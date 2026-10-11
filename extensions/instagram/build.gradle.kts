@@ -568,6 +568,13 @@ tasks.register("verifyAndroidBoundaries") {
                 "itIsUnderReelsAfterTheOtherCleanUpSwitchesAndStartsOff[28]", "itIsUnderReelsAfterTheOtherCleanUpSwitchesAndStartsOff[37]",
                 "theSavedSwitchAnswersOffWhilePaused[28]", "theSavedSwitchAnswersOffWhilePaused[37]",
                 "withoutCleanUpReelsThereIsNoSwitch[28]", "withoutCleanUpReelsThereIsNoSwitch[37]"),
+            "app.hushgram.extension.instagram.reels.ReelSaveButtonTest" to listOf(
+                "withTheSwitchOnTheButtonAndItsCountAreLeftOutAndCounted[28]", "withTheSwitchOnTheButtonAndItsCountAreLeftOutAndCounted[37]",
+                "onlyTheSaveSwitchTurnsItOnAndItTurnsNothingElseOn[28]", "onlyTheSaveSwitchTurnsItOnAndItTurnsNothingElseOn[37]",
+                "offPausedAndUnreadyKeepTheButtonAndCountNothing[28]", "offPausedAndUnreadyKeepTheButtonAndCountNothing[37]"),
+            "app.hushgram.extension.instagram.settings.ReelSaveButtonSettingsTest" to listOf(
+                "itIsUnderReelsWithTheOtherCleanUpSwitchesAndStartsOff[28]", "itIsUnderReelsWithTheOtherCleanUpSwitchesAndStartsOff[37]",
+                "withoutCleanUpReelsThereIsNoSwitch[28]", "withoutCleanUpReelsThereIsNoSwitch[37]"),
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),

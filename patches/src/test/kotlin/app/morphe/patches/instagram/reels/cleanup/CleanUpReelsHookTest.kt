@@ -38,6 +38,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -49,7 +50,7 @@ class CleanUpReelsHookTest {
     /** The hooks the patch writes are in the ReelDeclutter the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(HIDE_FOLLOW_BUTTON, HIDE_CHIPS, HIDE_SOCIAL_FOOTER, HIDE_SOCIAL_CONTEXT, HIDE_COMMENT_BAR, HIDE_EVERY_COMMENT_BAR)) {
+        for (hook in listOf(HIDE_FOLLOW_BUTTON, HIDE_CHIPS, HIDE_SOCIAL_FOOTER, HIDE_SOCIAL_CONTEXT, HIDE_COMMENT_BAR, HIDE_EVERY_COMMENT_BAR, HIDE_SAVE_BUTTON, HIDE_SAVE_COUNT)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -68,6 +69,9 @@ class CleanUpReelsHookTest {
             val method = context.mutableClassDefBy(owner(part.marker)).methods.single()
             assertGuardFirst(part.marker, part, method)
         }
+        val ufi = context.mutableClassDefBy(UFI).methods
+        assertEquals(setOf("A0D", "A06"), ufi.map { it.name }.toSet())
+        SAVE_PARTS.zip(listOf("A0D", "A06")).forEach { (part, name) -> assertGuardFirst(part.marker, part, ufi.single { it.name == name }) }
         val legacy = context.mutableClassDefBy(owner("ClipsFollowButtonComponentLegacy_render")).methods.single()
         assertEquals("the Legacy Follow button was touched", 3, legacy.instructions().size)
         assertBubblesGuarded("stand-in", context.mutableClassDefBy(BUBBLES).methods.single(), "$NO_BUBBLES->A00:$NO_BUBBLES")
@@ -139,6 +143,29 @@ class CleanUpReelsHookTest {
         val context = PatchContexts.of(classes(leaveOut = "ClipsMetaAiPillComponent_render"))
         val failure = assertThrows(PatchException::class.java) { context.hideReelParts() }
         assertTrue(failure.message!!, failure.message!!.contains("ClipsMetaAiPillComponent_render"))
+    }
+
+    /** The Save button's builder has to be an instance method of a scope and two longs, and each of the two has to be found. */
+    @Test
+    fun aSaveBuilderItCantReadFailsThePatch() {
+        for ((case, classes) in listOf(
+            "static" to classes(saveShape = "static"),
+            "other parameters" to classes(saveShape = "parameters"),
+            "returning a boolean" to classes(saveShape = "boolean"),
+            "no save button" to classes(leaveOut = SAVE_PARTS[0].marker),
+            "no save count" to classes(leaveOut = SAVE_PARTS[1].marker),
+        )) {
+            val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).hideReelParts() }
+            assertTrue("$case: ${failure.message}", failure.message!!.contains("maybeCreateSave"))
+        }
+    }
+
+    /** One method holding both markers would be guarded twice, so it fails the patch. */
+    @Test
+    fun aSingleMethodHoldingBothSaveMarkersFailsThePatch() {
+        val both = classes(saveShape = "both")
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(both).hideReelParts() }
+        assertTrue(failure.message!!, failure.message!!.contains("held by one method"))
     }
 
     @Test
@@ -222,6 +249,20 @@ class CleanUpReelsHookTest {
             val after = after(before)
             assertEquals("$label: ${part.marker} size", before.instructions().size + 5, after.instructions().size)
             assertGuardFirst("$label: ${part.marker}", part, after)
+        }
+        // The Save button and the save count: one method each, an instance builder of a scope and two
+        // longs, guarded first. No other method of the build asks either hook, a feed post's included.
+        SAVE_PARTS.forEach { part ->
+            val before = classes.flatMap { it.methods }.single { part.marker in it.markers() }
+            assertFalse("$label: ${part.marker} is static", AccessFlags.STATIC.isSet(before.accessFlags))
+            assertEquals("$label: ${part.marker} parameters", listOf("J", "J"), before.parameterTypes.drop(1).map { it.toString() })
+            val after = after(before)
+            assertEquals("$label: ${part.marker} size", before.instructions().size + 5, after.instructions().size)
+            assertGuardFirst("$label: ${part.marker}", part, after)
+            val askers = classes.flatMap { classDef -> context.mutableClassDefBy(classDef.type).methods.map { classDef.type to it } }
+                .filter { (_, method) -> method.instructions().any { (it as? ReferenceInstruction)?.reference?.toString() == part.hook } }
+            assertEquals("$label: who asks ${part.hook}", listOf("${before.definingClass}->${before.name}"),
+                askers.map { (type, method) -> "$type->${method.name}" })
         }
         // The in-viewer comment bar's render is guarded by the switch for all reels, nothing else.
         val inViewer = after(classes.flatMap { it.methods }.single { COMMENT_BAR_PARTS.single().marker in it.markers() })
@@ -392,6 +433,7 @@ class CleanUpReelsHookTest {
         noneOfItsOwn: Boolean = true,
         typeNames: List<String> = listOf("FOLLOWED_BY", "LIKED_BY", "FOLLOWER_COUNT"),
         overwritesLine: Boolean = false,
+        saveShape: String = "ok",
         barSource: Boolean = true,
         barStores: Int = 1,
         barThisReused: Boolean = false,
@@ -400,6 +442,9 @@ class CleanUpReelsHookTest {
         val renders = (REEL_PARTS.filter { !it.check }.map { it.marker } + "ClipsFollowButtonComponentLegacy_render")
             .filter { it != leaveOut }
             .map { render(owner(it), it, static = it == staticRender) }
+        val builders = SAVE_PARTS.filter { it.marker != leaveOut && (saveShape != "both" || it === SAVE_PARTS[0]) }
+            .map { save(UFI, if (it === SAVE_PARTS[0]) "A0D" else "A06", it.marker, saveShape) }
+        val saves = if (builders.isEmpty()) emptyList() else listOf(classOf(UFI, "Lfixture/KComponent;", *builders.toTypedArray()))
         val checks = REEL_PARTS.filter { it.check && it.marker != leaveOut }.map { check(owner(it.marker), it.marker, checkReturns) }
         val none = if (noneOfItsOwn) "$NO_BUBBLES->A00:$NO_BUBBLES" else "$BUBBLES->none:$NO_BUBBLES"
         val bubbles = classOf(
@@ -449,7 +494,7 @@ class CleanUpReelsHookTest {
             listOf(ImmutableField(LINE, "type", LINE_TYPE, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null)),
             null,
         )
-        return renders + checks + bubbles + lineCheck + lineType + line + commentBar(barSource, barStores, barThisReused) +
+        return renders + saves + checks + bubbles + lineCheck + lineType + line + commentBar(barSource, barStores, barThisReused) +
             unVanish(unVanish)
     }
 
@@ -567,6 +612,26 @@ class CleanUpReelsHookTest {
         )
     }
 
+    /**
+     * Shaped like the clips UFI's builders on 450: a private instance method taking the component
+     * scope and two longs, loading its marker first and answering a component or nothing.
+     */
+    private fun save(type: String, name: String, marker: String, shape: String): Method {
+        val static = shape == "static"
+        val parameters = if (shape == "parameters") listOf(scope, "I", "J") else listOf(scope, "J", "J")
+        val returns = if (shape == "boolean") "Z" else component
+        val extra = if (shape == "both") "\n                    const-string v2, \"android_purge_26_q2_${SAVE_PARTS[1].marker}\"" else ""
+        return method(
+            type, name, parameters, returns, 8,
+            """
+                const-string v0, "android_purge_26_q2_$marker"$extra
+                const/4 v0, 0x0
+                return${if (shape == "boolean") "" else "-object"} v0
+            """,
+            static = static,
+        )
+    }
+
     private fun check(type: String, marker: String, returns: String): ClassDef = ImmutableClassDef(
         type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, null,
         listOf(
@@ -589,6 +654,7 @@ class CleanUpReelsHookTest {
     private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
     private companion object {
+        const val UFI = "Lfixture/ClipsUfiComponent;"
         const val BUBBLES = "Lfixture/FloatingBubblesUseCase;"
         const val BUBBLES_STATE = "Lfixture/BubblesState;"
         const val NO_BUBBLES = "Lfixture/NoBubbles;"
