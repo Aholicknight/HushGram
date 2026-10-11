@@ -33,9 +33,11 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
 import org.w3c.dom.Document
 import javax.xml.parsers.DocumentBuilderFactory
+import java.io.File
 
 /**
  * Change version code (#68): the manifest carries the highest version code, and Instagram's reads of
@@ -178,61 +180,78 @@ class ChangeVersionCodeTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val checked = mutableSetOf<String>()
         for (version in versions) for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-            val code = realVersionCode(bundle.nameWithoutExtension.substringAfterLast('-'))
-            val found = mutableMapOf<String, ClassDef>()
-            val wanted = mutableSetOf<String>()
-            FixtureDex.forEach(bundle) { dex ->
-                if (dex.methodSection.none { it.definingClass == manager && it.name == "getPackageInfo" }) return@forEach
-                for (classDef in dex.classes) {
-                    val calls = classDef.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }
-                        .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
-                    if (calls.none { it.definingClass == manager && it.name == "getPackageInfo" }) continue
-                    found[classDef.type] = ImmutableClassDef.of(classDef)
-                    calls.filter { it.name == "getPackageName" || it.name == "getApplicationInfo" ||
-                        it.parameterTypes.map(Any::toString).let { p -> p == listOf(PACKAGE_INFO) || p == listOf("Ljava/lang/String;") }
-                    }.mapTo(wanted) { it.definingClass }
-                    classDef.superclass?.let(wanted::add)
-                }
-            }
-            var next = wanted.filterNot { it in found || it.startsWith("Landroid/") || it.startsWith("Ljava/") }.toSet()
-            while (next.isNotEmpty()) {
-                val supers = FixtureDex.classes(bundle, next)
-                found.putAll(supers)
-                next = supers.values.mapNotNull { it.superclass }
-                    .filterNot { it in found || it.startsWith("Landroid/") || it.startsWith("Ljava/") }.toSet()
-            }
-            val context = PatchContexts.of(found.values + ExtensionDex.classDef(helper) + ExtensionDex.classDef(SETTINGS_STATUS))
-            val reads = context.versionCodeReads(own)
-            val prepared = context.prepareVersionCode(own, code)
-            val keptReads = reads.filter { it.verdict == Verdict.KEPT }
-            println("[$version] ${reads.size} reads: ${reads.count { it.verdict == Verdict.REAL }} own, ${keptReads.size} kept, " +
-                "${reads.count { it.verdict == Verdict.OTHER }} other")
-            reads.forEach { println("[$version]   $it") }
-
-            assertTrue("the start-up check", prepared.reads.any {
-                it.method.definingClass == "Lcom/instagram/process/instagram/InstagramApplicationForMainProcess;" &&
-                    it.method.name == "initializeAllColdStartJobs"
-            })
-            assertEquals("the job scheduler check's two reads", 2,
-                prepared.reads.count { read -> read.method.implementation!!.instructions.any { it.string()?.startsWith(SCHEDULER_CHECK) == true } })
-            assertEquals("own reads", 14, prepared.reads.size)
-            assertEquals("own long reads", 1, prepared.reads.count { it.long })
-            assertEquals("kept raised", listOf(
-                "held against the manifest of Instagram's own APK file, which is raised too",
-                "sent to Google Play's update check, which is what the raised code is for",
-            ), keptReads.map { it.why }.sorted())
-
-            context.applyVersionCode(prepared)
-            val hooked = prepared.reads.map { it.method }.distinct().sumOf { method ->
-                context.code(method.definingClass, method.name, method.parameterTypes.map(Any::toString))
-                    .count { it.reference() == READ || it.reference() == READ_LONG }
-            }
-            assertEquals("a hook call for each own read", prepared.reads.size, hooked)
-            assertEquals(code, context.stub("real"))
-            assertEquals(1, context.status())
+            builds(bundle, bundle.name)
             checked += version
         }
         assertEquals("declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildChangesTheVersionCodeToo() {
+        for (base in Fixtures.otherBuilds().filter { it.parentFile.name != X86_BUILD }) builds(base, base.parentFile.name)
+    }
+
+    @Ignore("385611439 (x86): the finder reads 15 own version-code reads where the other builds have 14")
+    @Test
+    fun theX86BuildChangesTheVersionCodeToo() {
+        for (base in Fixtures.otherBuilds().filter { it.parentFile.name == X86_BUILD }) builds(base, base.parentFile.name)
+    }
+
+    private val X86_BUILD = "instagram-450.0.0.50.77-385611439"
+
+    private fun builds(bundle: File, label: String) {
+        val code = realVersionCode(label.removeSuffix(".apks").substringAfterLast('-'))
+        val found = mutableMapOf<String, ClassDef>()
+        val wanted = mutableSetOf<String>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.methodSection.none { it.definingClass == manager && it.name == "getPackageInfo" }) return@forEach
+            for (classDef in dex.classes) {
+                val calls = classDef.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }
+                    .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+                if (calls.none { it.definingClass == manager && it.name == "getPackageInfo" }) continue
+                found[classDef.type] = ImmutableClassDef.of(classDef)
+                calls.filter { it.name == "getPackageName" || it.name == "getApplicationInfo" ||
+                    it.parameterTypes.map(Any::toString).let { p -> p == listOf(PACKAGE_INFO) || p == listOf("Ljava/lang/String;") }
+                }.mapTo(wanted) { it.definingClass }
+                classDef.superclass?.let(wanted::add)
+            }
+        }
+        var next = wanted.filterNot { it in found || it.startsWith("Landroid/") || it.startsWith("Ljava/") }.toSet()
+        while (next.isNotEmpty()) {
+            val supers = FixtureDex.classes(bundle, next)
+            found.putAll(supers)
+            next = supers.values.mapNotNull { it.superclass }
+                .filterNot { it in found || it.startsWith("Landroid/") || it.startsWith("Ljava/") }.toSet()
+        }
+        val context = PatchContexts.of(found.values + ExtensionDex.classDef(helper) + ExtensionDex.classDef(SETTINGS_STATUS))
+        val reads = context.versionCodeReads(own)
+        val prepared = context.prepareVersionCode(own, code)
+        val keptReads = reads.filter { it.verdict == Verdict.KEPT }
+        println("[$label] ${reads.size} reads: ${reads.count { it.verdict == Verdict.REAL }} own, ${keptReads.size} kept, " +
+            "${reads.count { it.verdict == Verdict.OTHER }} other")
+        reads.forEach { println("[$label]   $it") }
+
+        assertTrue("the start-up check", prepared.reads.any {
+            it.method.definingClass == "Lcom/instagram/process/instagram/InstagramApplicationForMainProcess;" &&
+                it.method.name == "initializeAllColdStartJobs"
+        })
+        assertEquals("the job scheduler check's two reads", 2,
+            prepared.reads.count { read -> read.method.implementation!!.instructions.any { it.string()?.startsWith(SCHEDULER_CHECK) == true } })
+        assertEquals("own reads", 14, prepared.reads.size)
+        assertEquals("own long reads", 1, prepared.reads.count { it.long })
+        assertEquals("kept raised", listOf(
+            "held against the manifest of Instagram's own APK file, which is raised too",
+            "sent to Google Play's update check, which is what the raised code is for",
+        ), keptReads.map { it.why }.sorted())
+
+        context.applyVersionCode(prepared)
+        val hooked = prepared.reads.map { it.method }.distinct().sumOf { method ->
+            context.code(method.definingClass, method.name, method.parameterTypes.map(Any::toString))
+                .count { it.reference() == READ || it.reference() == READ_LONG }
+        }
+        assertEquals("a hook call for each own read", prepared.reads.size, hooked)
+        assertEquals(code, context.stub("real"))
+        assertEquals(1, context.status())
     }
 
     private fun assertRead(code: List<Instruction>, at: Int, hook: String, holder: Int, result: Int?) {

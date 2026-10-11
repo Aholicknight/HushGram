@@ -240,11 +240,15 @@ class SameKeyProvidersTest {
         NativeProviders(found, inlineAnchors)
     }
 
-    private fun fixtures(check: (File, NativeProviders) -> Unit) {
+    private fun otherFixtures(check: (String, NativeProviders) -> Unit) {
+        for (base in Fixtures.otherBuilds()) check(base.parentFile.name, nativeProviders(base))
+    }
+
+    private fun fixtures(check: (String, NativeProviders) -> Unit) {
         val version = AppCompatibilities.INSTAGRAM_TARGET_VERSION
         val bundles = Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }
         assertTrue("the supported build must have a native fixture", bundles.isNotEmpty())
-        bundles.forEach { check(it, nativeProviders(it)) }
+        bundles.forEach { check(it.name, nativeProviders(it)) }
     }
 
     private fun mutableTarget(classes: Iterable<ClassDef>, target: ProviderDecision): MutableMethod {
@@ -323,129 +327,138 @@ class SameKeyProvidersTest {
     }
 
     @Test
-    fun `the supported native fixture has one SameKey role and two uniquely matched decisions`() {
-        fixtures { bundle, native ->
-            assertEquals(bundle.name, sameKeyProviderTypes + otherPolicyTypes, native.classes.map { it.type }.toSet())
-            val targets = sameKeyProviderDecisions(native.classes)
-            assertEquals(bundle.name, 2, targets.size)
-            val inline = targets.single { killSwitch in it.method.strings() }
-            assertEquals("inline anchors and kept policy call are globally unique in ${bundle.name}", 1, native.inlineAnchors.size)
-            assertEquals(inline.method.toString(), native.inlineAnchors.single().toString())
+    fun `the supported native fixture has one SameKey role and two uniquely matched decisions`() = fixtures(::nativeCheck1)
 
-            val context = PatchContexts.of(native.classes)
-            val before = native.classes.flatMap { it.methods }.associate { it.toString() to snapshot(it) }
-            targets.forEach { target ->
-                val method = context.mutableClassDefBy(target.method.definingClass).methods.single {
-                    it.toString() == target.method.toString()
-                }
+    @Test
+    fun `the supported native fixture has one SameKey role and two uniquely matched decisions on every other build too`() = otherFixtures(::nativeCheck1)
+
+    @Test
+    fun `native body proof rejects absent repeated wrong-context wrong-result and other-policy repairs`() = fixtures(::nativeCheck2)
+
+    @Test
+    fun `native body proof rejects absent repeated wrong-context wrong-result and other-policy repairs on every other build too`() = otherFixtures(::nativeCheck2)
+
+    @Test
+    fun `native discovery refuses missing duplicate wrong-context wrong-result and relocated policy checks`() = fixtures(::nativeCheck3)
+
+    @Test
+    fun `native discovery refuses missing duplicate wrong-context wrong-result and relocated policy checks on every other build too`() = otherFixtures(::nativeCheck3)
+
+    private fun nativeCheck1(label: String, native: NativeProviders) {
+        assertEquals(label, sameKeyProviderTypes + otherPolicyTypes, native.classes.map { it.type }.toSet())
+        val targets = sameKeyProviderDecisions(native.classes)
+        assertEquals(label, 2, targets.size)
+        val inline = targets.single { killSwitch in it.method.strings() }
+        assertEquals("inline anchors and kept policy call are globally unique in ${label}", 1, native.inlineAnchors.size)
+        assertEquals(inline.method.toString(), native.inlineAnchors.single().toString())
+
+        val context = PatchContexts.of(native.classes)
+        val before = native.classes.flatMap { it.methods }.associate { it.toString() to snapshot(it) }
+        targets.forEach { target ->
+            val method = context.mutableClassDefBy(target.method.definingClass).methods.single {
+                it.toString() == target.method.toString()
+            }
+            method.repairSameKeyProviderDecision(target)
+            verifyInjection(target, method, before.getValue(target.method.toString()))
+        }
+        val changed = targets.map { it.method.toString() }.toSet()
+        for (type in native.classes.map { it.type }) for (method in context.mutableClassDefBy(type).methods) {
+            if (method.toString() !in changed) {
+                assertEquals("native initialization, kill switch and other policies stay intact in $method",
+                    before.getValue(method.toString()), snapshot(method))
+            }
+        }
+
+        val base = native.classes.single { it.type == PROVIDER_BASE }
+        val initialization = inline.method.calls().first()
+        assertEquals(PROVIDER_BASE, initialization.definingClass)
+        assertEquals("V", initialization.returnType)
+        assertTrue(initialization.parameterTypes.isEmpty())
+        val queryHelper = targets.single { it != inline }.method
+        val queryEntry = base.methods.single { method ->
+            killSwitch in method.strings() && method.calls().any { it.toString() == queryHelper.toString() }
+        }
+        for (gate in listOf(inline.method, queryEntry)) {
+            assertEquals("both gates keep the same native initialization", initialization, gate.calls().first())
+            assertTrue("same-process Binder checks survive", gate.calls().map { it.toString() }.containsAll(listOf(
+                "Landroid/os/Binder;->getCallingUid()I", "Landroid/os/Process;->myUid()I",
+                "Landroid/os/Binder;->getCallingPid()I", "Landroid/os/Process;->myPid()I",
+            )))
+            assertTrue("the native kill switch is present", killSwitch in gate.strings())
+        }
+    }
+
+    private fun nativeCheck2(label: String, native: NativeProviders) {
+        for (target in sameKeyProviderDecisions(native.classes)) {
+            val original = snapshot(target.method)
+            val mutants: List<(MutableMethod) -> Unit> = listOf(
+                { it.removeInstructions(target.index, 6) },
+                { it.addInstructionsWithLabels(target.index + 4, """
+                    invoke-static/range { v${target.context} .. v${target.context} }, $hook
+                """) },
+                { it.replaceInstruction(target.index + 4, """
+                    invoke-static/range { v${target.context + 1} .. v${target.context + 1} }, $hook
+                """) },
+                { it.replaceInstruction(target.index + 5, "move-result v${target.result + 1}") },
+                { it.replaceInstruction(target.index + 2, """
+                    instance-of v${target.result}, v${target.result}, Lcom/facebook/secure/content/delegate/ThirdPartyContentProviderDelegate;
+                """) },
+            )
+            for ((index, mutate) in mutants.withIndex()) {
+                val method = mutableTarget(native.classes, target)
                 method.repairSameKeyProviderDecision(target)
-                verifyInjection(target, method, before.getValue(target.method.toString()))
-            }
-            val changed = targets.map { it.method.toString() }.toSet()
-            for (type in native.classes.map { it.type }) for (method in context.mutableClassDefBy(type).methods) {
-                if (method.toString() !in changed) {
-                    assertEquals("native initialization, kill switch and other policies stay intact in $method",
-                        before.getValue(method.toString()), snapshot(method))
-                }
-            }
-
-            val base = native.classes.single { it.type == PROVIDER_BASE }
-            val initialization = inline.method.calls().first()
-            assertEquals(PROVIDER_BASE, initialization.definingClass)
-            assertEquals("V", initialization.returnType)
-            assertTrue(initialization.parameterTypes.isEmpty())
-            val queryHelper = targets.single { it != inline }.method
-            val queryEntry = base.methods.single { method ->
-                killSwitch in method.strings() && method.calls().any { it.toString() == queryHelper.toString() }
-            }
-            for (gate in listOf(inline.method, queryEntry)) {
-                assertEquals("both gates keep the same native initialization", initialization, gate.calls().first())
-                assertTrue("same-process Binder checks survive", gate.calls().map { it.toString() }.containsAll(listOf(
-                    "Landroid/os/Binder;->getCallingUid()I", "Landroid/os/Process;->myUid()I",
-                    "Landroid/os/Binder;->getCallingPid()I", "Landroid/os/Process;->myPid()I",
-                )))
-                assertTrue("the native kill switch is present", killSwitch in gate.strings())
-            }
-        }
-    }
-
-    @Test
-    fun `native body proof rejects absent repeated wrong-context wrong-result and other-policy repairs`() {
-        fixtures { _, native ->
-            for (target in sameKeyProviderDecisions(native.classes)) {
-                val original = snapshot(target.method)
-                val mutants: List<(MutableMethod) -> Unit> = listOf(
-                    { it.removeInstructions(target.index, 6) },
-                    { it.addInstructionsWithLabels(target.index + 4, """
-                        invoke-static/range { v${target.context} .. v${target.context} }, $hook
-                    """) },
-                    { it.replaceInstruction(target.index + 4, """
-                        invoke-static/range { v${target.context + 1} .. v${target.context + 1} }, $hook
-                    """) },
-                    { it.replaceInstruction(target.index + 5, "move-result v${target.result + 1}") },
-                    { it.replaceInstruction(target.index + 2, """
-                        instance-of v${target.result}, v${target.result}, Lcom/facebook/secure/content/delegate/ThirdPartyContentProviderDelegate;
-                    """) },
-                )
-                for ((index, mutate) in mutants.withIndex()) {
-                    val method = mutableTarget(native.classes, target)
-                    method.repairSameKeyProviderDecision(target)
-                    mutate(method)
-                    assertThrows("native guard mutant $index in ${target.method}", AssertionError::class.java) {
-                        verifyInjection(target, method, original)
-                    }
+                mutate(method)
+                assertThrows("native guard mutant $index in ${target.method}", AssertionError::class.java) {
+                    verifyInjection(target, method, original)
                 }
             }
         }
     }
 
-    @Test
-    fun `native discovery refuses missing duplicate wrong-context wrong-result and relocated policy checks`() {
-        fixtures { _, native ->
-            for (target in sameKeyProviderDecisions(native.classes)) {
-                val original = target.method
-                val implementation = original.implementation!!
-                val code = implementation.instructions.toList()
-                val checkerIndex = target.index - 2
-                val checker = code[checkerIndex] as FiveRegisterInstruction
-                val checkerRef = (code[checkerIndex] as ReferenceInstruction).reference
-                fun copyMethod(body: List<Instruction>, name: String = original.name, owner: String = original.definingClass) =
-                    ImmutableMethod(owner, name, original.parameters, original.returnType, original.accessFlags,
-                        original.annotations, original.hiddenApiRestrictions,
-                        ImmutableMethodImplementation(implementation.registerCount, body,
-                            implementation.tryBlocks, implementation.debugItems))
-                fun replaceClassMethods(type: String, methods: Iterable<Method>): List<ClassDef> = native.classes.map { candidate ->
-                    if (candidate.type != type) candidate else ImmutableClassDef(candidate.type, candidate.accessFlags,
-                        candidate.superclass, candidate.interfaces, candidate.sourceFile, candidate.annotations,
-                        candidate.fields, methods)
-                }
-                val baseMethods = native.classes.single { it.type == PROVIDER_BASE }.methods.toList()
-                fun replaced(replacement: Method) = replaceClassMethods(PROVIDER_BASE,
-                    baseMethods.map { if (it.toString() == original.toString()) replacement else it })
+    private fun nativeCheck3(label: String, native: NativeProviders) {
+        for (target in sameKeyProviderDecisions(native.classes)) {
+            val original = target.method
+            val implementation = original.implementation!!
+            val code = implementation.instructions.toList()
+            val checkerIndex = target.index - 2
+            val checker = code[checkerIndex] as FiveRegisterInstruction
+            val checkerRef = (code[checkerIndex] as ReferenceInstruction).reference
+            fun copyMethod(body: List<Instruction>, name: String = original.name, owner: String = original.definingClass) =
+                ImmutableMethod(owner, name, original.parameters, original.returnType, original.accessFlags,
+                    original.annotations, original.hiddenApiRestrictions,
+                    ImmutableMethodImplementation(implementation.registerCount, body,
+                        implementation.tryBlocks, implementation.debugItems))
+            fun replaceClassMethods(type: String, methods: Iterable<Method>): List<ClassDef> = native.classes.map { candidate ->
+                if (candidate.type != type) candidate else ImmutableClassDef(candidate.type, candidate.accessFlags,
+                    candidate.superclass, candidate.interfaces, candidate.sourceFile, candidate.annotations,
+                    candidate.fields, methods)
+            }
+            val baseMethods = native.classes.single { it.type == PROVIDER_BASE }.methods.toList()
+            fun replaced(replacement: Method) = replaceClassMethods(PROVIDER_BASE,
+                baseMethods.map { if (it.toString() == original.toString()) replacement else it })
 
-                val absent = code.take(checkerIndex) + List(3) { ImmutableInstruction10x(Opcode.NOP) } + code.drop(checkerIndex + 1)
-                val wrongContext = code.toMutableList().apply {
-                    this[checkerIndex] = ImmutableInstruction35c(Opcode.INVOKE_STATIC, 2,
-                        checker.registerD, checker.registerC, 0, 0, 0, checkerRef)
-                }
-                val wrongResult = code.toMutableList().apply {
-                    this[target.index] = ImmutableInstruction21t(code[target.index].opcode, target.context,
-                        (code[target.index] as OffsetInstruction).codeOffset)
-                }
-                val noGuard = replaceClassMethods(PROVIDER_BASE, baseMethods.filter { it.toString() != original.toString() })
-                val thirdParty = native.classes.single { it.type in otherPolicyTypes && it.type.endsWith("ThirdPartyContentProviderDelegate;") }
-                val moved = noGuard.map { candidate ->
-                    if (candidate.type != thirdParty.type) candidate else ImmutableClassDef(candidate.type, candidate.accessFlags,
-                        candidate.superclass, candidate.interfaces, candidate.sourceFile, candidate.annotations,
-                        candidate.fields, candidate.methods.toList() + copyMethod(code, owner = thirdParty.type))
-                }
-                val mutants = listOf(replaced(copyMethod(absent)), replaced(copyMethod(wrongContext)),
-                    replaced(copyMethod(wrongResult)), replaceClassMethods(PROVIDER_BASE,
-                        baseMethods + copyMethod(code, name = "duplicateProviderDecision")), moved)
-                for ((index, mutant) in mutants.withIndex()) {
-                    assertThrows("native discovery mutant $index in $original", PatchException::class.java) {
-                        sameKeyProviderDecisions(mutant)
-                    }
+            val absent = code.take(checkerIndex) + List(3) { ImmutableInstruction10x(Opcode.NOP) } + code.drop(checkerIndex + 1)
+            val wrongContext = code.toMutableList().apply {
+                this[checkerIndex] = ImmutableInstruction35c(Opcode.INVOKE_STATIC, 2,
+                    checker.registerD, checker.registerC, 0, 0, 0, checkerRef)
+            }
+            val wrongResult = code.toMutableList().apply {
+                this[target.index] = ImmutableInstruction21t(code[target.index].opcode, target.context,
+                    (code[target.index] as OffsetInstruction).codeOffset)
+            }
+            val noGuard = replaceClassMethods(PROVIDER_BASE, baseMethods.filter { it.toString() != original.toString() })
+            val thirdParty = native.classes.single { it.type in otherPolicyTypes && it.type.endsWith("ThirdPartyContentProviderDelegate;") }
+            val moved = noGuard.map { candidate ->
+                if (candidate.type != thirdParty.type) candidate else ImmutableClassDef(candidate.type, candidate.accessFlags,
+                    candidate.superclass, candidate.interfaces, candidate.sourceFile, candidate.annotations,
+                    candidate.fields, candidate.methods.toList() + copyMethod(code, owner = thirdParty.type))
+            }
+            val mutants = listOf(replaced(copyMethod(absent)), replaced(copyMethod(wrongContext)),
+                replaced(copyMethod(wrongResult)), replaceClassMethods(PROVIDER_BASE,
+                    baseMethods + copyMethod(code, name = "duplicateProviderDecision")), moved)
+            for ((index, mutant) in mutants.withIndex()) {
+                assertThrows("native discovery mutant $index in $original", PatchException::class.java) {
+                    sameKeyProviderDecisions(mutant)
                 }
             }
         }

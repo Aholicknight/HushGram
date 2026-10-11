@@ -29,6 +29,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Emoji style: first thing in EmojiCompat's process, the strategy it was handed goes through
@@ -89,24 +90,33 @@ class EmojiStyleHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = FixtureDex.classesHolding(bundle, RANGE_CHECK)
-                val context = PatchContexts.of(holders.distinctBy { it.type } + extension())
-
-                val found = context.findEmojiProcess()
-                assertEquals("${bundle.name}: the strategy", "p4", found.strategy)
-                val type = found.method.definingClass
-                val name = found.method.name
-                val register = found.method.implementation!!.registerCount - 1
-                val first = found.method.instructions().first().opcode
-                context.askReplaceStrategy()
-
-                val method = context.mutableClassDefBy(type).methods.single { it.name == name && it.holds(RANGE_CHECK) }
-                assertAsks("${bundle.name} $type->$name", method, register)
-                assertEquals("${bundle.name}: process's own start follows", first, method.instructions()[2].opcode)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    @Test
+    fun eachOtherBuildAsksFirstToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = FixtureDex.classesHolding(bundle, RANGE_CHECK)
+        val context = PatchContexts.of(holders.distinctBy { it.type } + extension())
+
+        val found = context.findEmojiProcess()
+        assertEquals("${label}: the strategy", "p4", found.strategy)
+        val type = found.method.definingClass
+        val name = found.method.name
+        val register = found.method.implementation!!.registerCount - 1
+        val first = found.method.instructions().first().opcode
+        context.askReplaceStrategy()
+
+        val method = context.mutableClassDefBy(type).methods.single { it.name == name && it.holds(RANGE_CHECK) }
+        assertAsks("${label} $type->$name", method, register)
+        assertEquals("${label}: process's own start follows", first, method.instructions()[2].opcode)
     }
 
     /** The hook first, on [register] alone, and its answer written back to [register]. */

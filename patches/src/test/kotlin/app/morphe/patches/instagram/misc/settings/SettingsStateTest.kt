@@ -20,6 +20,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.*
 import org.junit.Test
+import java.io.File
 
 class SettingsStateTest {
     @Test fun theHookIsPublicStaticInTheExtension() {
@@ -65,49 +66,58 @@ class SettingsStateTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val checked = mutableSetOf<String>()
         for (version in versions) for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-            val parents = mutableMapOf<String, String?>()
-            val candidates = mutableListOf<ClassDef>()
-            FixtureDex.forEach(bundle) { dex ->
-                for (type in dex.classes) {
-                    parents[type.type] = type.superclass
-                    if (type.methods.any { method -> method.implementation?.instructions?.any {
-                        ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == "IgFragmentActivity.internalOnCreate"
-                    } == true }) candidates += ImmutableClassDef.of(type)
-                }
-            }
-            var parent: String? = MAIN_ACTIVITY
-            while (parent != null && parents.containsKey(parent)) {
-                val type = parent
-                if (candidates.none { it.type == type }) candidates += ImmutableClassDef(
-                    type, AccessFlags.PUBLIC.value, parents[type], null, null, null, null, emptyList(),
-                )
-                parent = parents[type]
-            }
-            val original = candidates.flatMap { it.methods }.single { method ->
-                method.implementation?.instructions?.any {
-                    ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == "IgFragmentActivity.internalOnCreate"
-                } == true
-            }
-            val before = original.implementation!!.instructions.toList()
-            val context = PatchContexts.of(candidates)
-            context.preserveSettingsState()
-            val after = context.mutableClassDefBy(original.definingClass).methods.single { it.name == original.name }
-                .implementation!!.instructions
-            assertEquals(before.size, after.size)
-            var changes = 0
-            before.indices.forEach { at ->
-                if ((after[at] as? ReferenceInstruction)?.reference.toString() == REMOVE_FRAMEWORK_STATE) {
-                    changes++
-                    assertEquals("Landroid/os/BaseBundle;->remove(Ljava/lang/String;)V",
-                        (before[at] as ReferenceInstruction).reference.toString())
-                    val old = before[at] as com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
-                    val new = after[at] as com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
-                    assertEquals(listOf(old.registerC, old.registerD), listOf(new.registerC, new.registerD))
-                } else assertEquals(before[at].opcode, after[at].opcode)
-            }
-            assertEquals(2, changes)
+            builds(bundle, bundle.name)
             checked += version
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildHasTheSettingsStateToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val parents = mutableMapOf<String, String?>()
+        val candidates = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (type in dex.classes) {
+                parents[type.type] = type.superclass
+                if (type.methods.any { method -> method.implementation?.instructions?.any {
+                    ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == "IgFragmentActivity.internalOnCreate"
+                } == true }) candidates += ImmutableClassDef.of(type)
+            }
+        }
+        var parent: String? = MAIN_ACTIVITY
+        while (parent != null && parents.containsKey(parent)) {
+            val type = parent
+            if (candidates.none { it.type == type }) candidates += ImmutableClassDef(
+                type, AccessFlags.PUBLIC.value, parents[type], null, null, null, null, emptyList(),
+            )
+            parent = parents[type]
+        }
+        val original = candidates.flatMap { it.methods }.single { method ->
+            method.implementation?.instructions?.any {
+                ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == "IgFragmentActivity.internalOnCreate"
+            } == true
+        }
+        val before = original.implementation!!.instructions.toList()
+        val context = PatchContexts.of(candidates)
+        context.preserveSettingsState()
+        val after = context.mutableClassDefBy(original.definingClass).methods.single { it.name == original.name }
+            .implementation!!.instructions
+        assertEquals(before.size, after.size)
+        var changes = 0
+        before.indices.forEach { at ->
+            if ((after[at] as? ReferenceInstruction)?.reference.toString() == REMOVE_FRAMEWORK_STATE) {
+                changes++
+                assertEquals("Landroid/os/BaseBundle;->remove(Ljava/lang/String;)V",
+                    (before[at] as ReferenceInstruction).reference.toString())
+                val old = before[at] as com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+                val new = after[at] as com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+                assertEquals(listOf(old.registerC, old.registerD), listOf(new.registerC, new.registerD))
+            } else assertEquals(before[at].opcode, after[at].opcode)
+        }
+        assertEquals(2, changes)
     }
 }

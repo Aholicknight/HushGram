@@ -30,6 +30,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class MqttAnalyticsEndpointTest {
     private val endpoint = "Lapp/hushgram/extension/instagram/misc/Analytics;->endpoint(Ljava/lang/String;)Ljava/lang/String;"
@@ -74,38 +75,47 @@ class MqttAnalyticsEndpointTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                // The constructor first, then every class it calls a static method on, which takes in the string pools.
-                val classes = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (MQTT_SETTINGS_STRINGS.any { it !in dex.stringSection }) return@forEach
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.name == "<init>" && MQTT_SETTINGS_STRINGS.all { it in method.strings() } }) {
-                            classes += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val called = classes.flatMap { it.methods }.flatMap { it.code() }
-                    .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
-                    .mapNotNull { ((it as ReferenceInstruction).reference as? MethodReference)?.definingClass }
-                    .toSet() - classes.map { it.type }.toSet()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) if (classDef.type in called) classes += ImmutableClassDef.of(classDef)
-                }
-                val context = PatchContexts.of(classes)
-
-                assertNull(bundle.name, context.wrapMqttAnalyticsEndpoint(endpoint))
-
-                val constructor = classes.flatMap { it.methods }.single { method ->
-                    method.name == "<init>" && MQTT_SETTINGS_STRINGS.all { it in method.strings() }
-                }
-                val code = context.classDefBy(constructor.definingClass).methods.single { it.name == "<init>" && it.parameterTypes.map(Any::toString) == constructor.parameterTypes.map(Any::toString) }.code()
-                val call = code.indices.single { code[it].referenceText() == endpoint }
-                assertEquals("${bundle.name}: endpoint() follows optString()", optString, code[call - 2].referenceText())
-                assertTrue("${bundle.name}: the key isn't loaded in place", constructor.strings().none { it == ANALYTICS_KEY })
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildWrapsTheMqttAnalyticsAddressToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        // The constructor first, then every class it calls a static method on, which takes in the string pools.
+        val classes = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (MQTT_SETTINGS_STRINGS.any { it !in dex.stringSection }) return@forEach
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.name == "<init>" && MQTT_SETTINGS_STRINGS.all { it in method.strings() } }) {
+                    classes += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val called = classes.flatMap { it.methods }.flatMap { it.code() }
+            .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+            .mapNotNull { ((it as ReferenceInstruction).reference as? MethodReference)?.definingClass }
+            .toSet() - classes.map { it.type }.toSet()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) if (classDef.type in called) classes += ImmutableClassDef.of(classDef)
+        }
+        val context = PatchContexts.of(classes)
+
+        assertNull(label, context.wrapMqttAnalyticsEndpoint(endpoint))
+
+        val constructor = classes.flatMap { it.methods }.single { method ->
+            method.name == "<init>" && MQTT_SETTINGS_STRINGS.all { it in method.strings() }
+        }
+        val code = context.classDefBy(constructor.definingClass).methods.single { it.name == "<init>" && it.parameterTypes.map(Any::toString) == constructor.parameterTypes.map(Any::toString) }.code()
+        val call = code.indices.single { code[it].referenceText() == endpoint }
+        assertEquals("${label}: endpoint() follows optString()", optString, code[call - 2].referenceText())
+        assertTrue("${label}: the key isn't loaded in place", constructor.strings().none { it == ANALYTICS_KEY })
     }
 
     private fun BytecodePatchContext.constructor(): Method = classDefBy(settings).methods.single { it.name == "<init>" }

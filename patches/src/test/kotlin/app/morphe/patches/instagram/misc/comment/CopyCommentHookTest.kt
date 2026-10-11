@@ -26,6 +26,7 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.*
 import org.junit.Assert.*
 import org.junit.Test
+import java.io.File
 
 class CopyCommentHookTest {
     private val public = AccessFlags.PUBLIC.value
@@ -184,94 +185,103 @@ class CopyCommentHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val checked = mutableSetOf<String>()
         for (version in versions) for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-            val anchors = (FixtureDex.classesHolding(bundle, COMMENT_SELECT) +
-                FixtureDex.classesHolding(bundle, JSON_ROOT_FIELD) +
-                FixtureDex.classesHolding(bundle, "CopyText") + FixtureDex.classesHolding(bundle, COMMENT_LEGACY))
-                .distinctBy { it.type }
-            val selects = anchors.flatMap { it.methods }.filter { COMMENT_SELECT in it.strings() &&
-                it.parameters() == listOf(STRING, STRING, "F", "Z") && it.returnType == "V" }
-            assertEquals("fixture selector count", 1, selects.size)
-            val select = selects.single()
-            val selected = selectionType(select)
-            val model = FixtureDex.classes(bundle, setOf(selected)).getValue(selected)
-            val interfaces = FixtureDex.classes(bundle, model.fields.map { it.type }.toSet()).values
-            val raws = interfaces.filter { type -> type.methods.any {
-                it.parameterTypes.isEmpty() && it.returnType == giphy
-            } && AccessFlags.INTERFACE.isSet(type.accessFlags) }
-            assertEquals("fixture raw interfaces: ${raws.map { it.type }}", 1, raws.size)
-            val raw = raws.single().type
-            val parts = mutableListOf<ClassDef>()
-            FixtureDex.forEach(bundle) { dex ->
-                dex.classes.forEach { type ->
-                    if (raw in type.interfaces || type.methods.any { method ->
-                            method.returnType == selected || method.parameters().let {
-                                it.size == 5 && it[1] == selected && it[3] == LIST && it[4] == "F"
-                            }
-                        }) parts += ImmutableClassDef.of(type)
-                }
-            }
-            val values = parts.filter { raw in it.interfaces && it.superclass != "Lcom/facebook/pando/TreeJNI;" }.map { it.type }.toSet()
-            FixtureDex.forEach(bundle) { dex ->
-                dex.classes.forEach { type ->
-                    if (type.methods.any { method -> method.name == "unsafeParseFromJson" && "text" in method.strings() &&
-                        method.code().any { it.call()?.let { call -> call.name == "<init>" && call.definingClass in values } == true } }) {
-                        parts += ImmutableClassDef.of(type)
-                    }
-                }
-            }
-            val core = (anchors + model + interfaces + parts).distinctBy { it.type }
-            val dependencies = core.mapNotNull { it.superclass }.toMutableSet()
-            for (type in core) for (method in type.methods) for (instruction in method.code()) {
-                when (val reference = instruction.reference()) {
-                    is MethodReference -> {
-                        dependencies += reference.definingClass
-                        dependencies += reference.returnType
-                        dependencies += reference.parameters()
-                    }
-                    is FieldReference -> { dependencies += reference.definingClass; dependencies += reference.type }
-                    is TypeReference -> dependencies += reference.type
-                }
-            }
-            val classes = (core + FixtureDex.classes(bundle, dependencies).values).distinctBy { it.type }
-            val patch = PatchContexts.of(classes + extension())
-            val legacy = classes.filter { type -> type.methods.any { COMMENT_LEGACY in it.strings() } }.map { it.type }
-            assertTrue("fixture lost the separate legacy surface", legacy.isNotEmpty())
-            val unchanged = CommentWorld.snapshot(patch, legacy)
-            val menu = patch.findCommentMenu()
-            val renderer = patch.mutableClassDefBy(menu.surface.renderer.definingClass).methods.single { it.matches(menu.surface.renderer) }
-            val original = NeutralNativePath(renderer)
-            // #35: who wrote the comment, read through the raw comment like Save comment photo's
-            // name is, and the renderer's one getString on a row's label.
-            val author = menu.author ?: error("${bundle.name}: Copy username's boundaries weren't found")
-            assertEquals(menu.surface.raw, author.user.definingClass)
-            assertEquals(USER, author.user.returnType)
-            val stockLabel = labelSite(renderer, author.label)
-            assertEquals(GET_STRING, renderer.code()[stockLabel.at + 2].call().toString())
-            copyCommentPatch.execute(patch)
-            assertWiring(patch, menu)
-            assertEquals("${bundle.name}: Copy's status", 1, status(patch, "commentCopy"))
-            assertEquals("${bundle.name}: Copy username's status", 1, status(patch, COMMENT_AUTHOR_STATUS))
-            val hook = renderer.code().indexOfFirst { it.call()?.toString() == COMMENT_HOOK }
-            val labelAt = renderer.code().indexOfFirst { it.call()?.toString() == AUTHOR_LABEL }
-            assertEquals("one label read goes through Copy username", 1, renderer.code().count { it.call()?.toString() == AUTHOR_LABEL })
-            assertEquals("the label read keeps its place", Opcode.IGET, renderer.code()[labelAt - 1].opcode)
-            assertEquals(author.label.idField.toString(), renderer.code()[labelAt - 1].field().toString())
-            assertEquals(Opcode.MOVE_RESULT_OBJECT, renderer.code()[labelAt + 1].opcode)
-            assertEquals("the call keeps the row's context and id, and adds the row",
-                renderer.code()[labelAt].arguments(), listOf(stockLabel.context, stockLabel.id, stockLabel.row))
-            assertTrue("no row label is read past Copy username", renderer.code().none { it.call()?.toString() == GET_STRING &&
-                renderer.code().getOrNull(renderer.code().indexOf(it) - 1)?.field()?.toString() == author.label.idField.toString() })
-            val reader = patch.mutableClassDefBy(AUTHOR_NATIVE).methods.single { it.name == "author" }.code()
-            assertTrue(reader.any { it.field()?.toString() == menu.surface.rawField.toString() })
-            assertTrue(reader.any { it.call()?.toString() == author.user.toString() })
-            assertEquals(menu.surface.rowConstructor.definingClass, patch.mutableClassDefBy(AUTHOR_ROW).superclass)
-            val username = patch.mutableClassDefBy(INSTAGRAM_MEDIA).methods.single { it.name == "username" }.code()
-            assertTrue("User's username bridge is written", username.any { it.call()?.definingClass == USER })
-            original.assertPreserved(bundle.name, renderer, (hook - 3..hook + 1).toSet(), setOf(labelAt))
-            assertEquals("legacy surface must not be reported as patched", unchanged, CommentWorld.snapshot(patch, legacy))
+            builds(bundle, bundle.name)
             checked += version
         }
         assertEquals("declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildCopiesTheCommentToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val anchors = (FixtureDex.classesHolding(bundle, COMMENT_SELECT) +
+            FixtureDex.classesHolding(bundle, JSON_ROOT_FIELD) +
+            FixtureDex.classesHolding(bundle, "CopyText") + FixtureDex.classesHolding(bundle, COMMENT_LEGACY))
+            .distinctBy { it.type }
+        val selects = anchors.flatMap { it.methods }.filter { COMMENT_SELECT in it.strings() &&
+            it.parameters() == listOf(STRING, STRING, "F", "Z") && it.returnType == "V" }
+        assertEquals("fixture selector count", 1, selects.size)
+        val select = selects.single()
+        val selected = selectionType(select)
+        val model = FixtureDex.classes(bundle, setOf(selected)).getValue(selected)
+        val interfaces = FixtureDex.classes(bundle, model.fields.map { it.type }.toSet()).values
+        val raws = interfaces.filter { type -> type.methods.any {
+            it.parameterTypes.isEmpty() && it.returnType == giphy
+        } && AccessFlags.INTERFACE.isSet(type.accessFlags) }
+        assertEquals("fixture raw interfaces: ${raws.map { it.type }}", 1, raws.size)
+        val raw = raws.single().type
+        val parts = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            dex.classes.forEach { type ->
+                if (raw in type.interfaces || type.methods.any { method ->
+                        method.returnType == selected || method.parameters().let {
+                            it.size == 5 && it[1] == selected && it[3] == LIST && it[4] == "F"
+                        }
+                    }) parts += ImmutableClassDef.of(type)
+            }
+        }
+        val values = parts.filter { raw in it.interfaces && it.superclass != "Lcom/facebook/pando/TreeJNI;" }.map { it.type }.toSet()
+        FixtureDex.forEach(bundle) { dex ->
+            dex.classes.forEach { type ->
+                if (type.methods.any { method -> method.name == "unsafeParseFromJson" && "text" in method.strings() &&
+                    method.code().any { it.call()?.let { call -> call.name == "<init>" && call.definingClass in values } == true } }) {
+                    parts += ImmutableClassDef.of(type)
+                }
+            }
+        }
+        val core = (anchors + model + interfaces + parts).distinctBy { it.type }
+        val dependencies = core.mapNotNull { it.superclass }.toMutableSet()
+        for (type in core) for (method in type.methods) for (instruction in method.code()) {
+            when (val reference = instruction.reference()) {
+                is MethodReference -> {
+                    dependencies += reference.definingClass
+                    dependencies += reference.returnType
+                    dependencies += reference.parameters()
+                }
+                is FieldReference -> { dependencies += reference.definingClass; dependencies += reference.type }
+                is TypeReference -> dependencies += reference.type
+            }
+        }
+        val classes = (core + FixtureDex.classes(bundle, dependencies).values).distinctBy { it.type }
+        val patch = PatchContexts.of(classes + extension())
+        val legacy = classes.filter { type -> type.methods.any { COMMENT_LEGACY in it.strings() } }.map { it.type }
+        assertTrue("fixture lost the separate legacy surface", legacy.isNotEmpty())
+        val unchanged = CommentWorld.snapshot(patch, legacy)
+        val menu = patch.findCommentMenu()
+        val renderer = patch.mutableClassDefBy(menu.surface.renderer.definingClass).methods.single { it.matches(menu.surface.renderer) }
+        val original = NeutralNativePath(renderer)
+        // #35: who wrote the comment, read through the raw comment like Save comment photo's
+        // name is, and the renderer's one getString on a row's label.
+        val author = menu.author ?: error("${label}: Copy username's boundaries weren't found")
+        assertEquals(menu.surface.raw, author.user.definingClass)
+        assertEquals(USER, author.user.returnType)
+        val stockLabel = labelSite(renderer, author.label)
+        assertEquals(GET_STRING, renderer.code()[stockLabel.at + 2].call().toString())
+        copyCommentPatch.execute(patch)
+        assertWiring(patch, menu)
+        assertEquals("${label}: Copy's status", 1, status(patch, "commentCopy"))
+        assertEquals("${label}: Copy username's status", 1, status(patch, COMMENT_AUTHOR_STATUS))
+        val hook = renderer.code().indexOfFirst { it.call()?.toString() == COMMENT_HOOK }
+        val labelAt = renderer.code().indexOfFirst { it.call()?.toString() == AUTHOR_LABEL }
+        assertEquals("one label read goes through Copy username", 1, renderer.code().count { it.call()?.toString() == AUTHOR_LABEL })
+        assertEquals("the label read keeps its place", Opcode.IGET, renderer.code()[labelAt - 1].opcode)
+        assertEquals(author.label.idField.toString(), renderer.code()[labelAt - 1].field().toString())
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, renderer.code()[labelAt + 1].opcode)
+        assertEquals("the call keeps the row's context and id, and adds the row",
+            renderer.code()[labelAt].arguments(), listOf(stockLabel.context, stockLabel.id, stockLabel.row))
+        assertTrue("no row label is read past Copy username", renderer.code().none { it.call()?.toString() == GET_STRING &&
+            renderer.code().getOrNull(renderer.code().indexOf(it) - 1)?.field()?.toString() == author.label.idField.toString() })
+        val reader = patch.mutableClassDefBy(AUTHOR_NATIVE).methods.single { it.name == "author" }.code()
+        assertTrue(reader.any { it.field()?.toString() == menu.surface.rawField.toString() })
+        assertTrue(reader.any { it.call()?.toString() == author.user.toString() })
+        assertEquals(menu.surface.rowConstructor.definingClass, patch.mutableClassDefBy(AUTHOR_ROW).superclass)
+        val username = patch.mutableClassDefBy(INSTAGRAM_MEDIA).methods.single { it.name == "username" }.code()
+        assertTrue("User's username bridge is written", username.any { it.call()?.definingClass == USER })
+        original.assertPreserved(label, renderer, (hook - 3..hook + 1).toSet(), setOf(labelAt))
+        assertEquals("legacy surface must not be reported as patched", unchanged, CommentWorld.snapshot(patch, legacy))
     }
 
     private fun assertWiring(patch: BytecodePatchContext, menu: CommentMenu) {

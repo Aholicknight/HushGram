@@ -30,6 +30,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Every notification Instagram posts goes through NotificationGroups, which puts it in HushGram's
@@ -174,54 +175,63 @@ class GroupNotificationsHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val callers = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (dex.methodSection.none { it.definingClass == NOTIFICATION_MANAGER && it.name in setOf("notify", "cancel") }) {
-                        return@forEach
-                    }
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.instructions().any { it.sent() != null } }) {
-                            callers += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val methods = callers.flatMap { it.methods }
-                val byShape = NOTIFY_SHAPES.associateWith { shape ->
-                    methods.count { method -> method.instructions().any { it.notifyCall() == shape } }
-                }
-                assertEquals("${bundle.name}: methods posting by shape", mapOf(untagged to 9, tagged to 7), byShape)
-                val cancelsByShape = CANCEL_SHAPES.associateWith { shape ->
-                    methods.count { method -> method.instructions().any { it.cancelCall() == shape } }
-                }
-                assertEquals("${bundle.name}: methods cancelling by shape", mapOf(cancelUntagged to 4, cancelTagged to 23), cancelsByShape)
-
-                val context = PatchContexts.of(callers)
-                val sent = context.groupNotifications()
-
-                var posts = 0
-                var cancels = 0
-                for (before in callers) {
-                    val after = context.mutableClassDefBy(before.type).methods
-                    for (original in before.methods) {
-                        val was = original.instructions()
-                        if (was.none { it.sent() != null }) continue
-                        val where = "${bundle.name}: ${original.definingClass}->${original.name}"
-                        val now = after.single { it.sameSignatureAs(original) }.instructions()
-                        assertEquals("$where: instruction count", was.size, now.size)
-                        assertEquals("$where: calls left", emptyList<String>(), now.mapNotNull { it.sent() })
-                        was.forEachIndexed { index, instruction ->
-                            val standIn = instruction.sent() ?: return@forEachIndexed
-                            assertEquals("$where at $index", standIn, (now[index] as ReferenceInstruction).reference.toString())
-                            assertEquals("$where at $index: registers", instruction.registers(), now[index].registers())
-                            if (instruction.notifyCall() != null) posts++ else cancels++
-                        }
-                    }
-                }
-                assertEquals("${bundle.name}: calls sent", Sent(posts, cancels), sent)
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildGroupsNotificationsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val callers = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.methodSection.none { it.definingClass == NOTIFICATION_MANAGER && it.name in setOf("notify", "cancel") }) {
+                return@forEach
+            }
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.instructions().any { it.sent() != null } }) {
+                    callers += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val methods = callers.flatMap { it.methods }
+        val byShape = NOTIFY_SHAPES.associateWith { shape ->
+            methods.count { method -> method.instructions().any { it.notifyCall() == shape } }
+        }
+        assertEquals("${label}: methods posting by shape", mapOf(untagged to 9, tagged to 7), byShape)
+        val cancelsByShape = CANCEL_SHAPES.associateWith { shape ->
+            methods.count { method -> method.instructions().any { it.cancelCall() == shape } }
+        }
+        assertEquals("${label}: methods cancelling by shape", mapOf(cancelUntagged to 4, cancelTagged to 23), cancelsByShape)
+
+        val context = PatchContexts.of(callers)
+        val sent = context.groupNotifications()
+
+        var posts = 0
+        var cancels = 0
+        for (before in callers) {
+            val after = context.mutableClassDefBy(before.type).methods
+            for (original in before.methods) {
+                val was = original.instructions()
+                if (was.none { it.sent() != null }) continue
+                val where = "${label}: ${original.definingClass}->${original.name}"
+                val now = after.single { it.sameSignatureAs(original) }.instructions()
+                assertEquals("$where: instruction count", was.size, now.size)
+                assertEquals("$where: calls left", emptyList<String>(), now.mapNotNull { it.sent() })
+                was.forEachIndexed { index, instruction ->
+                    val standIn = instruction.sent() ?: return@forEachIndexed
+                    assertEquals("$where at $index", standIn, (now[index] as ReferenceInstruction).reference.toString())
+                    assertEquals("$where at $index: registers", instruction.registers(), now[index].registers())
+                    if (instruction.notifyCall() != null) posts++ else cancels++
+                }
+            }
+        }
+        assertEquals("${label}: calls sent", Sent(posts, cancels), sent)
     }
 
     private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

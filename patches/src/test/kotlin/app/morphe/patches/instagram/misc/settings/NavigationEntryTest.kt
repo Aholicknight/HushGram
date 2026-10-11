@@ -23,6 +23,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.*
 import org.junit.Test
+import java.io.File
 
 class NavigationEntryTest {
     @Test fun hookMethodsArePublicAndStatic() {
@@ -122,6 +123,15 @@ class NavigationEntryTest {
 
     @Test fun declaredBuildProvesBothVariantsAndPreservesAllNativeFactoryCalls() {
         val bundle = Fixtures.files { it.name == "instagram-450.0.0.50.77-385611438.apks" }.single()
+        builds(bundle, bundle.name)
+    }
+
+    @Test
+    fun eachOtherBuildProvesBothVariantsAndPreservesAllNativeFactoryCallsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
         val tabs = FixtureDex.classesHolding(bundle, "clips_viewer_clips_tab").filter { it.superclass == "Ljava/lang/Enum;" }
         val main = FixtureDex.classes(bundle, setOf(MAIN_ACTIVITY)).getValue(MAIN_ACTIVITY)
         val factory = main.methods.single { method -> method.implementation?.instructions?.any {

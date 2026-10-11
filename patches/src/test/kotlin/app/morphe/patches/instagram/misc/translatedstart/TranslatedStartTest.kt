@@ -28,6 +28,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class TranslatedStartTest {
     private val tasks = "Lfixture/IdleTasks;"
@@ -83,32 +84,41 @@ class TranslatedStartTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.instructionsOrEmpty().any { it.reference() == MPROTECT_EXEC_CODE } }) {
-                            classes += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val calls = classes.sumOf { classDef -> classDef.methods.sumOf { method -> method.instructionsOrEmpty().count { it.reference() == MPROTECT_EXEC_CODE } } }
-                val context = PatchContexts.of(classes)
-
-                assertEquals(bundle.name, calls, context.guardCodeProtection())
-
-                assertTrue("${bundle.name}: no call to guard", calls >= 1)
-                for (classDef in classes) {
-                    for (method in context.classDefBy(classDef.type).methods) {
-                        val code = method.instructionsOrEmpty()
-                        code.indices.filter { code[it].reference() == MPROTECT_EXEC_CODE }.forEach { call ->
-                            assertGuarded("${bundle.name}: ${method.definingClass}->${method.name}", code, call)
-                        }
-                    }
-                }
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildStartsTranslatedToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val classes = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.instructionsOrEmpty().any { it.reference() == MPROTECT_EXEC_CODE } }) {
+                    classes += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val calls = classes.sumOf { classDef -> classDef.methods.sumOf { method -> method.instructionsOrEmpty().count { it.reference() == MPROTECT_EXEC_CODE } } }
+        val context = PatchContexts.of(classes)
+
+        assertEquals(label, calls, context.guardCodeProtection())
+
+        assertTrue("${label}: no call to guard", calls >= 1)
+        for (classDef in classes) {
+            for (method in context.classDefBy(classDef.type).methods) {
+                val code = method.instructionsOrEmpty()
+                code.indices.filter { code[it].reference() == MPROTECT_EXEC_CODE }.forEach { call ->
+                    assertGuarded("${label}: ${method.definingClass}->${method.name}", code, call)
+                }
+            }
+        }
     }
 
     /** The three instructions in front of [call]: protectCode(), its answer, and a branch on it to just past the call. */

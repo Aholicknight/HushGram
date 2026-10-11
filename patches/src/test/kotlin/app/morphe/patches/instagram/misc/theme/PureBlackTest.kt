@@ -25,6 +25,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.w3c.dom.Element
 import javax.xml.parsers.DocumentBuilderFactory
+import java.io.File
 
 class PureBlackTest {
     private val bottomTabTint = "Lfixture/BottomTabTint;"
@@ -136,36 +137,45 @@ class PureBlackTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { it.implementation?.instructions?.any(::isPrismBlack) == true }) {
-                            classes += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val patch = PatchContexts.of(classes)
-
-                val changed = patch.blackenLiterals()
-
-                assertEquals("${bundle.name}: the Compose palettes", COMPOSE_PALETTES.toSet(),
-                    changed.map { it.substringBefore("->") }.toSet())
-                COMPOSE_PALETTES.forEach { palette ->
-                    assertTrue("${bundle.name}: $palette keeps no Prism black",
-                        patch.classDefBy(palette).methods.none { method ->
-                            method.implementation?.instructions?.any(::isPrismBlack) == true
-                        })
-                }
-                classes.filterNot { it.type in COMPOSE_PALETTES }.forEach { classDef ->
-                    assertTrue("${bundle.name}: ${classDef.type} keeps Prism black",
-                        patch.classDefBy(classDef.type).methods.any { method ->
-                            method.implementation?.instructions?.any(::isPrismBlack) == true
-                        })
-                }
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildGoesPureBlackToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val classes = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { it.implementation?.instructions?.any(::isPrismBlack) == true }) {
+                    classes += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val patch = PatchContexts.of(classes)
+
+        val changed = patch.blackenLiterals()
+
+        assertEquals("${label}: the Compose palettes", COMPOSE_PALETTES.toSet(),
+            changed.map { it.substringBefore("->") }.toSet())
+        COMPOSE_PALETTES.forEach { palette ->
+            assertTrue("${label}: $palette keeps no Prism black",
+                patch.classDefBy(palette).methods.none { method ->
+                    method.implementation?.instructions?.any(::isPrismBlack) == true
+                })
+        }
+        classes.filterNot { it.type in COMPOSE_PALETTES }.forEach { classDef ->
+            assertTrue("${label}: ${classDef.type} keeps Prism black",
+                patch.classDefBy(classDef.type).methods.any { method ->
+                    method.implementation?.instructions?.any(::isPrismBlack) == true
+                })
+        }
     }
 
     private fun app.morphe.patcher.patch.BytecodePatchContext.code(type: String): List<Instruction> =

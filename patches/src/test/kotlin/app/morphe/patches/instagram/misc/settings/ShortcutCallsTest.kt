@@ -196,67 +196,76 @@ class ShortcutCallsTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val callers = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (dex.methodSection.none { it.definingClass == SHORTCUT_MANAGER && it.name in SHORTCUT_CALLS }) {
-                        return@forEach
-                    }
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.instructions().any { it.frameworkCall() != null } }) {
-                            callers += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val found = callers.flatMap { it.methods }.flatMap { it.instructions() }
-                    .mapNotNull { it.frameworkCall() }.groupingBy { it }.eachCount()
-                assertEquals(
-                    "${bundle.name}: shortcut calls in the stock build",
-                    mapOf("pushDynamicShortcut" to 1, "addDynamicShortcuts" to 3, "setDynamicShortcuts" to 1,
-                        "updateShortcuts" to 2, "removeAllDynamicShortcuts" to 3),
-                    found,
-                )
-                val hosts = SettingsPatchHosts.all()
-                assertTrue(
-                    "${bundle.name}: a class making the calls is one the test stands in for",
-                    callers.none { caller -> hosts.any { it.type == caller.type } },
-                )
-
-                val context = PatchContexts.of(hosts + callers)
-                settingsPatch.execute(context)
-
-                val sent = mutableMapOf<String, Int>()
-                for (before in callers) {
-                    val after = context.mutableClassDefBy(before.type).methods
-                    for (original in before.methods) {
-                        val was = original.instructions()
-                        if (was.none { it.frameworkCall() != null }) continue
-                        val where = "${bundle.name}: ${original.definingClass}->${original.name}"
-                        val now = after.single { it.sameSignatureAs(original) }.instructions()
-                        assertEquals("$where: instruction count", was.size, now.size)
-                        assertEquals("$where: framework calls left", emptyList<String>(), now.mapNotNull { it.frameworkCall() })
-                        was.forEachIndexed { index, instruction ->
-                            val framework = instruction.shortcutCall() ?: return@forEachIndexed
-                            val replacement = now[index]
-                            assertEquals(
-                                "$where at $index",
-                                standIn(framework),
-                                (replacement as ReferenceInstruction).reference.toString(),
-                            )
-                            assertEquals(
-                                "$where at $index: the static form of ${instruction.opcode}",
-                                if (instruction is RegisterRangeInstruction) Opcode.INVOKE_STATIC_RANGE else Opcode.INVOKE_STATIC,
-                                replacement.opcode,
-                            )
-                            assertEquals("$where at $index: registers", instruction.registers(), replacement.registers())
-                            sent.merge(framework.name, 1, Int::plus)
-                        }
-                    }
-                }
-                assertEquals("${bundle.name}: calls sent to their stand-ins", found, sent)
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildGuardsTheShortcutCallsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val callers = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.methodSection.none { it.definingClass == SHORTCUT_MANAGER && it.name in SHORTCUT_CALLS }) {
+                return@forEach
+            }
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.instructions().any { it.frameworkCall() != null } }) {
+                    callers += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val found = callers.flatMap { it.methods }.flatMap { it.instructions() }
+            .mapNotNull { it.frameworkCall() }.groupingBy { it }.eachCount()
+        assertEquals(
+            "${label}: shortcut calls in the stock build",
+            mapOf("pushDynamicShortcut" to 1, "addDynamicShortcuts" to 3, "setDynamicShortcuts" to 1,
+                "updateShortcuts" to 2, "removeAllDynamicShortcuts" to 3),
+            found,
+        )
+        val hosts = SettingsPatchHosts.all()
+        assertTrue(
+            "${label}: a class making the calls is one the test stands in for",
+            callers.none { caller -> hosts.any { it.type == caller.type } },
+        )
+
+        val context = PatchContexts.of(hosts + callers)
+        settingsPatch.execute(context)
+
+        val sent = mutableMapOf<String, Int>()
+        for (before in callers) {
+            val after = context.mutableClassDefBy(before.type).methods
+            for (original in before.methods) {
+                val was = original.instructions()
+                if (was.none { it.frameworkCall() != null }) continue
+                val where = "${label}: ${original.definingClass}->${original.name}"
+                val now = after.single { it.sameSignatureAs(original) }.instructions()
+                assertEquals("$where: instruction count", was.size, now.size)
+                assertEquals("$where: framework calls left", emptyList<String>(), now.mapNotNull { it.frameworkCall() })
+                was.forEachIndexed { index, instruction ->
+                    val framework = instruction.shortcutCall() ?: return@forEachIndexed
+                    val replacement = now[index]
+                    assertEquals(
+                        "$where at $index",
+                        standIn(framework),
+                        (replacement as ReferenceInstruction).reference.toString(),
+                    )
+                    assertEquals(
+                        "$where at $index: the static form of ${instruction.opcode}",
+                        if (instruction is RegisterRangeInstruction) Opcode.INVOKE_STATIC_RANGE else Opcode.INVOKE_STATIC,
+                        replacement.opcode,
+                    )
+                    assertEquals("$where at $index: registers", instruction.registers(), replacement.registers())
+                    sent.merge(framework.name, 1, Int::plus)
+                }
+            }
+        }
+        assertEquals("${label}: calls sent to their stand-ins", found, sent)
     }
 
     private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

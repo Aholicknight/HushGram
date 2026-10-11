@@ -27,6 +27,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodRefere
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /** The framework calls a link leaves Instagram through, and the stand-ins they're sent to. */
 class LinkExitsTest {
@@ -88,49 +89,58 @@ class LinkExitsTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val callers = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (dex.methodSection.none { it.definingClass == "Landroid/content/Context;" && it.name == "startActivity" }) {
-                        return@forEach
-                    }
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.instructions().any { it.exitCall() != null } }) {
-                            callers += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val found = callers.flatMap { it.methods }.flatMap { it.instructions() }.count { it.exitCall() != null }
-                assertTrue("${bundle.name}: Context.startActivity calls in the stock build: $found", found > 40)
-
-                val context = PatchContexts.of(callers)
-                assertEquals("${bundle.name}: calls sent", found, context.rerouteLinkExits(DIRECT_SHARE_EXITS))
-
-                for (before in callers) {
-                    val after = context.mutableClassDefBy(before.type).methods
-                    for (original in before.methods) {
-                        val was = original.instructions()
-                        if (was.none { it.exitCall() != null }) continue
-                        val where = "${bundle.name}: ${original.definingClass}->${original.name}"
-                        val now = after.single { it.sameSignatureAs(original) }.instructions()
-                        assertEquals("$where: instruction count", was.size, now.size)
-                        assertEquals("$where: activity starts left", emptyList<String>(), now.mapNotNull { it.exitCall() })
-                        was.forEachIndexed { index, instruction ->
-                            val exit = instruction.exitCall() ?: return@forEachIndexed
-                            val replacement = now[index]
-                            assertEquals("$where at $index", exit, replacement.standInCall())
-                            assertEquals(
-                                "$where at $index: the static form of ${instruction.opcode}",
-                                if (instruction is RegisterRangeInstruction) Opcode.INVOKE_STATIC_RANGE else Opcode.INVOKE_STATIC,
-                                replacement.opcode,
-                            )
-                            assertEquals("$where at $index: registers", instruction.registers(), replacement.registers())
-                        }
-                    }
-                }
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildCleansTheLinkExitsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val callers = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.methodSection.none { it.definingClass == "Landroid/content/Context;" && it.name == "startActivity" }) {
+                return@forEach
+            }
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.instructions().any { it.exitCall() != null } }) {
+                    callers += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val found = callers.flatMap { it.methods }.flatMap { it.instructions() }.count { it.exitCall() != null }
+        assertTrue("${label}: Context.startActivity calls in the stock build: $found", found > 40)
+
+        val context = PatchContexts.of(callers)
+        assertEquals("${label}: calls sent", found, context.rerouteLinkExits(DIRECT_SHARE_EXITS))
+
+        for (before in callers) {
+            val after = context.mutableClassDefBy(before.type).methods
+            for (original in before.methods) {
+                val was = original.instructions()
+                if (was.none { it.exitCall() != null }) continue
+                val where = "${label}: ${original.definingClass}->${original.name}"
+                val now = after.single { it.sameSignatureAs(original) }.instructions()
+                assertEquals("$where: instruction count", was.size, now.size)
+                assertEquals("$where: activity starts left", emptyList<String>(), now.mapNotNull { it.exitCall() })
+                was.forEachIndexed { index, instruction ->
+                    val exit = instruction.exitCall() ?: return@forEachIndexed
+                    val replacement = now[index]
+                    assertEquals("$where at $index", exit, replacement.standInCall())
+                    assertEquals(
+                        "$where at $index: the static form of ${instruction.opcode}",
+                        if (instruction is RegisterRangeInstruction) Opcode.INVOKE_STATIC_RANGE else Opcode.INVOKE_STATIC,
+                        replacement.opcode,
+                    )
+                    assertEquals("$where at $index: registers", instruction.registers(), replacement.registers())
+                }
+            }
+        }
     }
 
     /** A class with one method that starts an activity both ways. */

@@ -26,6 +26,7 @@ import com.android.tools.smali.dexlib2.immutable.value.ImmutableStringEncodedVal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Open Whitehat settings (#1): HushGram opens Instagram's own Whitehat screen through the same
@@ -87,24 +88,33 @@ class WhitehatSettingsTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val checked = mutableSetOf<String>()
         for (version in versions) for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-            val kept = FixtureDex.classesHolding(bundle, USER_CERTS_TTL).toMutableList()
-            FixtureDex.forEach(bundle) { dex ->
-                dex.classes.filter { it.originalName() == WHITEHAT_SCREEN }.mapTo(kept) { ImmutableClassDef.of(it) }
-            }
-            var next = kept.filter { it.originalName() == WHITEHAT_SCREEN }.mapNotNull { it.superclass }.toSet()
-            while (next.isNotEmpty() && fragment !in next) {
-                val supers = FixtureDex.classes(bundle, next).values
-                kept += supers
-                next = supers.mapNotNull { it.superclass }.toSet()
-            }
-            val patch = PatchContexts.of(kept.distinctBy { it.type } + bridgeClass())
-            val found = patch.findWhitehatScreen()
-            assertEquals(WHITEHAT_SCREEN, patch.classDefBy(found).originalName())
-            putStubs(patch, found)
-            assertBridge(patch, found)
+            builds(bundle, bundle.name)
             checked += version
         }
         assertEquals("declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildHasTheWhitehatSettingsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val kept = FixtureDex.classesHolding(bundle, USER_CERTS_TTL).toMutableList()
+        FixtureDex.forEach(bundle) { dex ->
+            dex.classes.filter { it.originalName() == WHITEHAT_SCREEN }.mapTo(kept) { ImmutableClassDef.of(it) }
+        }
+        var next = kept.filter { it.originalName() == WHITEHAT_SCREEN }.mapNotNull { it.superclass }.toSet()
+        while (next.isNotEmpty() && fragment !in next) {
+            val supers = FixtureDex.classes(bundle, next).values
+            kept += supers
+            next = supers.mapNotNull { it.superclass }.toSet()
+        }
+        val patch = PatchContexts.of(kept.distinctBy { it.type } + bridgeClass())
+        val found = patch.findWhitehatScreen()
+        assertEquals(WHITEHAT_SCREEN, patch.classDefBy(found).originalName())
+        putStubs(patch, found)
+        assertBridge(patch, found)
     }
 
     private fun putStubs(patch: BytecodePatchContext, found: String) = patch.putStubs(patch.prepareWhitehatScreen(editor, found))

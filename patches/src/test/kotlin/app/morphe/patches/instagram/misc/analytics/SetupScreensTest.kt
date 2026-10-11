@@ -29,6 +29,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class SetupScreensTest {
     private val opener = "Lfixture/ScreenOpener;"
@@ -96,39 +97,48 @@ class SetupScreensTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = AlternateSetupFixture.nativeClasses(bundle)
-                val context = PatchContexts.of(classes)
-
-                assertNull(bundle.name, context.skipSetupScreens(SETUP_SCREEN))
-
-                val found = classes.single { classDef -> classDef.methods.any { SCREEN_FETCH in it.strings() } }
-                val hooked = context.classDefBy(found.type).methods.filter { method ->
-                    !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
-                        method.parameterTypes.map(Any::toString) == screenParameters
-                }
-                assertTrue("${bundle.name}: the opener's ways of showing a screen", hooked.size >= 2)
-                for (method in hooked) {
-                    val code = method.code()
-                    val read = code[1].referenceText()!!
-                    assertTrue("${bundle.name}: ${method.name} reads a String of the opener", read.startsWith("${found.type}->") && read.endsWith(":Ljava/lang/String;"))
-                    assertEquals("${bundle.name}: ${method.name} asks first", SETUP_SCREEN, code[2].referenceText())
-                    assertEquals("${bundle.name}: ${method.name} returns on a yes", Opcode.RETURN_VOID, code[5].opcode)
-                }
-                val presenter = classes.flatMap { it.methods }.single { it.strings().containsAll(AlternateSetupFixture.PRESENTER_HELD) }
-                val model = classes.single { it.type == presenter.parameterTypes[1].toString() }
-                val constructor = model.methods.single { it.name == "<init>" && it.parameterTypes.size == 19 }
-                val source = constructor.implementation!!.registerCount - 21 + 5
-                val stored = constructor.code().windowed(2).single { pair ->
-                    pair[0].opcode == Opcode.MOVE_OBJECT_FROM16 && (pair[0] as TwoRegisterInstruction).registerB == source &&
-                        pair[1].opcode == Opcode.IPUT_OBJECT && (pair[1] as TwoRegisterInstruction).registerA == (pair[0] as TwoRegisterInstruction).registerA
-                }[1].referenceText()!!
-                val changed = context.classDefBy(presenter.definingClass).methods.single { it.toString() == presenter.toString() }
-                AlternateSetupFixture.assertGuard(changed.code(), presenter.implementation!!.registerCount - 5, stored)
-                AlternateSetupFixture.assertBodies(classes, context, hooked.associate { it.toString() to 6 } + (presenter.toString() to 7))
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildAsksBeforeEveryScreenToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val classes = AlternateSetupFixture.nativeClasses(bundle)
+        val context = PatchContexts.of(classes)
+
+        assertNull(label, context.skipSetupScreens(SETUP_SCREEN))
+
+        val found = classes.single { classDef -> classDef.methods.any { SCREEN_FETCH in it.strings() } }
+        val hooked = context.classDefBy(found.type).methods.filter { method ->
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+                method.parameterTypes.map(Any::toString) == screenParameters
+        }
+        assertTrue("${label}: the opener's ways of showing a screen", hooked.size >= 2)
+        for (method in hooked) {
+            val code = method.code()
+            val read = code[1].referenceText()!!
+            assertTrue("${label}: ${method.name} reads a String of the opener", read.startsWith("${found.type}->") && read.endsWith(":Ljava/lang/String;"))
+            assertEquals("${label}: ${method.name} asks first", SETUP_SCREEN, code[2].referenceText())
+            assertEquals("${label}: ${method.name} returns on a yes", Opcode.RETURN_VOID, code[5].opcode)
+        }
+        val presenter = classes.flatMap { it.methods }.single { it.strings().containsAll(AlternateSetupFixture.PRESENTER_HELD) }
+        val model = classes.single { it.type == presenter.parameterTypes[1].toString() }
+        val constructor = model.methods.single { it.name == "<init>" && it.parameterTypes.size == 19 }
+        val source = constructor.implementation!!.registerCount - 21 + 5
+        val stored = constructor.code().windowed(2).single { pair ->
+            pair[0].opcode == Opcode.MOVE_OBJECT_FROM16 && (pair[0] as TwoRegisterInstruction).registerB == source &&
+                pair[1].opcode == Opcode.IPUT_OBJECT && (pair[1] as TwoRegisterInstruction).registerA == (pair[0] as TwoRegisterInstruction).registerA
+        }[1].referenceText()!!
+        val changed = context.classDefBy(presenter.definingClass).methods.single { it.toString() == presenter.toString() }
+        AlternateSetupFixture.assertGuard(changed.code(), presenter.implementation!!.registerCount - 5, stored)
+        AlternateSetupFixture.assertBodies(classes, context, hooked.associate { it.toString() to 6 } + (presenter.toString() to 7))
     }
 
     private fun BytecodePatchContext.method(name: String): Method = classDefBy(opener).methods.single { it.name == name }

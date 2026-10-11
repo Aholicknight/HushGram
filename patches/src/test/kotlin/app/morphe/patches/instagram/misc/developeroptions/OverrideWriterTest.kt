@@ -33,6 +33,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringRefere
 import com.android.tools.smali.dexlib2.immutable.value.ImmutableStringEncodedValue
 import org.junit.Assert.*
 import org.junit.Test
+import java.io.File
 
 class OverrideWriterTest {
     private val public = AccessFlags.PUBLIC.value
@@ -121,70 +122,79 @@ class OverrideWriterTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val checked = mutableSetOf<String>()
         for (version in versions) for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-            // Whole-app evidence first: one typed put, one store factory, and no caller of the
-            // string import or the reload this writer leaves alone.
-            val puts = mutableListOf<Method>()
-            val stringImports = mutableListOf<String>()
-            FixtureDex.forEach(bundle) { dex ->
-                for (clazz in dex.classes) for (method in clazz.methods) {
-                    if (method.texts().containsAll(listOf(DEBUG_STORE, PUT_FAILURE))) puts += method
-                    method.implementation?.instructions?.forEach { instruction ->
-                        val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return@forEach
-                        if (called.name == "importOverridesFromUser" || (called.name == "reload" &&
-                                called.definingClass == TABLE_IMPL)) stringImports += "$method -> $called"
-                    }
+            builds(bundle, bundle.name)
+            checked += version
+        }
+        assertEquals("declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildWritesTheOverridesToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        // Whole-app evidence first: one typed put, one store factory, and no caller of the
+        // string import or the reload this writer leaves alone.
+        val puts = mutableListOf<Method>()
+        val stringImports = mutableListOf<String>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (clazz in dex.classes) for (method in clazz.methods) {
+                if (method.texts().containsAll(listOf(DEBUG_STORE, PUT_FAILURE))) puts += method
+                method.implementation?.instructions?.forEach { instruction ->
+                    val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return@forEach
+                    if (called.name == "importOverridesFromUser" || (called.name == "reload" &&
+                            called.definingClass == TABLE_IMPL)) stringImports += "$method -> $called"
                 }
             }
-            val store = puts.single().definingClass
-            assertEquals("callers of the string import or reload", emptyList<String>(), stringImports)
-            val factories = FixtureDex.methodsWhere(bundle, { true }) { method ->
-                method.implementation?.instructions?.any { it.opcode == Opcode.NEW_INSTANCE &&
-                    ((it as ReferenceInstruction).reference as? TypeReference)?.type == store } == true
-            }
-            assertEquals(1, factories.size)
-            val factory = factories.single().definingClass
+        }
+        val store = puts.single().definingClass
+        assertEquals("callers of the string import or reload", emptyList<String>(), stringImports)
+        val factories = FixtureDex.methodsWhere(bundle, { true }) { method ->
+            method.implementation?.instructions?.any { it.opcode == Opcode.NEW_INSTANCE &&
+                ((it as ReferenceInstruction).reference as? TypeReference)?.type == store } == true
+        }
+        assertEquals(1, factories.size)
+        val factory = factories.single().definingClass
 
-            val roots = mutableListOf<ClassDef>()
-            val types = mutableSetOf("Lcom/instagram/mainactivity/InstagramMainActivity;", "Lcom/instagram/modal/ModalActivity;",
-                "Lcom/instagram/base/activity/IgFragmentActivity;", user, MANAGER_IMPL, TABLE_IMPL)
-            FixtureDex.forEach(bundle) { dex ->
-                for (clazz in dex.classes) {
-                    if (clazz.type == store || clazz.type == factory ||
-                        clazz.originalName() in setOf("MobileConfigRolloutDiagFragment", "QuickExperimentEditFragment") ||
-                        "Lcom/facebook/mobileconfig/MobileConfigUpdateOverridesTableCallback;" in clazz.interfaces ||
-                        clazz.methods.any { method -> method.texts().any { it in setOf(OVERRIDE_TITLE, "mc_overrides.json",
-                            "MobileConfigIdNameMappingLoader", RUNTIME_NOT_READY) } }) {
-                        roots += ImmutableClassDef.of(clazz)
-                        clazz.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }.forEach {
-                            when (val reference = (it as? ReferenceInstruction)?.reference) {
-                                is MethodReference -> { types += reference.definingClass; types += reference.returnType }
-                                is FieldReference -> { types += reference.definingClass; types += reference.type }
-                                is TypeReference -> types += reference.type
-                            }
+        val roots = mutableListOf<ClassDef>()
+        val types = mutableSetOf("Lcom/instagram/mainactivity/InstagramMainActivity;", "Lcom/instagram/modal/ModalActivity;",
+            "Lcom/instagram/base/activity/IgFragmentActivity;", user, MANAGER_IMPL, TABLE_IMPL)
+        FixtureDex.forEach(bundle) { dex ->
+            for (clazz in dex.classes) {
+                if (clazz.type == store || clazz.type == factory ||
+                    clazz.originalName() in setOf("MobileConfigRolloutDiagFragment", "QuickExperimentEditFragment") ||
+                    "Lcom/facebook/mobileconfig/MobileConfigUpdateOverridesTableCallback;" in clazz.interfaces ||
+                    clazz.methods.any { method -> method.texts().any { it in setOf(OVERRIDE_TITLE, "mc_overrides.json",
+                        "MobileConfigIdNameMappingLoader", RUNTIME_NOT_READY) } } || clazz.methods.any { it.namesARecord() }) {
+                    roots += ImmutableClassDef.of(clazz)
+                    clazz.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }.forEach {
+                        when (val reference = (it as? ReferenceInstruction)?.reference) {
+                            is MethodReference -> { types += reference.definingClass; types += reference.returnType }
+                            is FieldReference -> { types += reference.definingClass; types += reference.type }
+                            is TypeReference -> types += reference.type
                         }
                     }
                 }
             }
-            val loaded = FixtureDex.classes(bundle, types)
-            loaded[MANAGER_IMPL]?.superclass?.let { types += it }
-            val subset = (FixtureDex.classes(bundle, types).values + roots).distinctBy { it.type }
-            val patch = PatchContexts.of(subset + bridge(full = true) + projection())
-            val editor = patch.findOverrideEditor()
-            val reader = patch.findOverrideReader(editor)
-            val writer = patch.findOverrideWriter(reader.model)
-            patch.fillOverrideReader(reader, editor)
-            patch.fillOverrideWriter(writer)
-            assertWriter(patch, writer, reader.model)
-            assertTrue(writer.tableGetter.endsWith("->getOrCreateOverridesTable()${writer.table}"))
-            assertEquals("$MANAGER_IMPL->getOrCreateOverridesTable()${writer.table}", writer.managerGetter)
-            // On the device build the put branches on the decoder: 1 bool, 2 long, 3 string, 4 double.
-            assertEquals(mapOf(1 to "Z", 2 to "J", 3 to "Ljava/lang/String;", 4 to "D").mapValues {
-                "${writer.table}->updateOverrideForParam(J${it.value})V" }, writer.dispatch)
-            assertEquals("${writer.table}->removeOverrideForParam(J)V", writer.remove)
-            assertTrue(writer.gate.endsWith(")$MANAGER_IMPL"))
-            checked += version
         }
-        assertEquals("declared build has no fixture", versions, checked)
+        val loaded = FixtureDex.classes(bundle, types)
+        loaded[MANAGER_IMPL]?.superclass?.let { types += it }
+        val subset = (FixtureDex.classes(bundle, types).values + roots).distinctBy { it.type }
+        val patch = PatchContexts.of(subset + bridge(full = true) + projection())
+        val editor = patch.findOverrideEditor()
+        val reader = patch.findOverrideReader(editor)
+        val writer = patch.findOverrideWriter(reader.model)
+        patch.fillOverrideReader(reader, editor)
+        patch.fillOverrideWriter(writer)
+        assertWriter(patch, writer, reader.model)
+        assertTrue(writer.tableGetter.endsWith("->getOrCreateOverridesTable()${writer.table}"))
+        assertEquals("$MANAGER_IMPL->getOrCreateOverridesTable()${writer.table}", writer.managerGetter)
+        // On the device build the put branches on the decoder: 1 bool, 2 long, 3 string, 4 double.
+        assertEquals(mapOf(1 to "Z", 2 to "J", 3 to "Ljava/lang/String;", 4 to "D").mapValues {
+            "${writer.table}->updateOverrideForParam(J${it.value})V" }, writer.dispatch)
+        assertEquals("${writer.table}->removeOverrideForParam(J)V", writer.remove)
+        assertTrue(writer.gate.endsWith(")$MANAGER_IMPL"))
     }
 
     private fun assertWriter(patch: BytecodePatchContext, writer: OverrideWriter, model: String) {
@@ -362,5 +372,12 @@ class OverrideWriterTest {
         method.addInstructionsWithLabels(0, code)
         return ImmutableMethod.of(method)
     }
+    /** Reads a record's name the way the reader's test does, wherever that is. */
+    private fun Method.namesARecord(): Boolean {
+        val code = implementation?.instructions?.toList() ?: return false
+        return code.any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == "_" } &&
+            code.any { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.toString() == "Ljava/lang/String;->isEmpty()Z" }
+    }
+
     private fun Method.texts() = implementation?.instructions?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }.orEmpty()
 }

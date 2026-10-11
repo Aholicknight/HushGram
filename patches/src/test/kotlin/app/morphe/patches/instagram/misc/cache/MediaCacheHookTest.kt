@@ -29,6 +29,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Clear the media cache's one hook: the method that names the video cache's folders tells the
@@ -80,22 +81,31 @@ class MediaCacheHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = VIDEO_CACHE_FOLDERS.flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
-                val context = PatchContexts.of(holders.map { ImmutableClassDef.of(it) })
-
-                context.clearVideosAtStart()
-
-                val hooked = holders.flatMap { holder ->
-                    context.mutableClassDefBy(holder.type).methods.filter { method ->
-                        method.instructions().any { (it as? ReferenceInstruction)?.reference?.toString() == BEFORE_VIDEO_CACHE }
-                    }
-                }
-                assertEquals("${bundle.name}: hooked methods", 1, hooked.size)
-                assertHookedFirst("${bundle.name} ${hooked.single().definingClass}->${hooked.single().name}", hooked.single())
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    @Test
+    fun eachOtherBuildTellsTheExtensionFirstToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = VIDEO_CACHE_FOLDERS.flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
+        val context = PatchContexts.of(holders.map { ImmutableClassDef.of(it) })
+
+        context.clearVideosAtStart()
+
+        val hooked = holders.flatMap { holder ->
+            context.mutableClassDefBy(holder.type).methods.filter { method ->
+                method.instructions().any { (it as? ReferenceInstruction)?.reference?.toString() == BEFORE_VIDEO_CACHE }
+            }
+        }
+        assertEquals("${label}: hooked methods", 1, hooked.size)
+        assertHookedFirst("${label} ${hooked.single().definingClass}->${hooked.single().name}", hooked.single())
     }
 
     private fun refuses(reason: String, patch: () -> Unit) {

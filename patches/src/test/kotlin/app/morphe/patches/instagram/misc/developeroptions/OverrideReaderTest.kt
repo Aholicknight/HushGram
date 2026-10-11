@@ -26,6 +26,7 @@ import com.android.tools.smali.dexlib2.immutable.*
 import com.android.tools.smali.dexlib2.immutable.value.ImmutableStringEncodedValue
 import org.junit.Assert.*
 import org.junit.Test
+import java.io.File
 
 class OverrideReaderTest {
     private val public = AccessFlags.PUBLIC.value
@@ -123,57 +124,66 @@ class OverrideReaderTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val checked = mutableSetOf<String>()
         for (version in versions) for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-            val roots = mutableListOf<ClassDef>()
-            val types = mutableSetOf("Lcom/instagram/mainactivity/InstagramMainActivity;", "Lcom/instagram/modal/ModalActivity;",
-                "Lcom/instagram/base/activity/IgFragmentActivity;", user)
-            FixtureDex.forEach(bundle) { dex ->
-                for (clazz in dex.classes) {
-                    if (clazz.originalName() in setOf("MobileConfigRolloutDiagFragment", "QuickExperimentEditFragment") ||
-                        "Lcom/facebook/mobileconfig/MobileConfigUpdateOverridesTableCallback;" in clazz.interfaces ||
-                        clazz.methods.any { method -> method.implementation?.instructions?.any {
-                            ((it as? ReferenceInstruction)?.reference as? StringReference)?.string in setOf(
-                                OVERRIDE_TITLE, "mc_overrides.json", "MobileConfigIdNameMappingLoader")
-                        } == true } || clazz.methods.any { it.namesARecord() }) {
-                        roots += ImmutableClassDef.of(clazz)
-                        clazz.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }.forEach {
-                            when (val reference = (it as? ReferenceInstruction)?.reference) {
-                                is MethodReference -> { types += reference.definingClass; types += reference.returnType }
-                                is FieldReference -> { types += reference.definingClass; types += reference.type }
-                                is TypeReference -> types += reference.type
-                            }
+            builds(bundle, bundle.name)
+            checked += version
+        }
+        assertEquals("declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildReadsTheOverridesToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val roots = mutableListOf<ClassDef>()
+        val types = mutableSetOf("Lcom/instagram/mainactivity/InstagramMainActivity;", "Lcom/instagram/modal/ModalActivity;",
+            "Lcom/instagram/base/activity/IgFragmentActivity;", user)
+        FixtureDex.forEach(bundle) { dex ->
+            for (clazz in dex.classes) {
+                if (clazz.originalName() in setOf("MobileConfigRolloutDiagFragment", "QuickExperimentEditFragment") ||
+                    "Lcom/facebook/mobileconfig/MobileConfigUpdateOverridesTableCallback;" in clazz.interfaces ||
+                    clazz.methods.any { method -> method.implementation?.instructions?.any {
+                        ((it as? ReferenceInstruction)?.reference as? StringReference)?.string in setOf(
+                            OVERRIDE_TITLE, "mc_overrides.json", "MobileConfigIdNameMappingLoader")
+                    } == true } || clazz.methods.any { it.namesARecord() }) {
+                    roots += ImmutableClassDef.of(clazz)
+                    clazz.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }.forEach {
+                        when (val reference = (it as? ReferenceInstruction)?.reference) {
+                            is MethodReference -> { types += reference.definingClass; types += reference.returnType }
+                            is FieldReference -> { types += reference.definingClass; types += reference.type }
+                            is TypeReference -> types += reference.type
                         }
                     }
                 }
             }
-            var native = (FixtureDex.classes(bundle, types).values + roots).distinctBy { it.type }
-            // The slice grows until it holds everything the read-only check reaches, and the
-            // subclasses whose overrides it follows, so the check sees what it sees in the app.
-            var reader: OverrideReader
-            var rounds = 0
-            while (true) {
-                reader = PatchContexts.of(native + bridge() + projection()).let { it.findOverrideReader(it.findOverrideEditor()) }
-                val have = native.map { it.type }.toSet()
-                val below = reader.reach.open.toMutableSet()
-                val more = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (clazz in dex.classes) {
-                        if (clazz.type in have || (clazz.type !in reader.reach.missing && clazz.superclass !in below)) continue
-                        more += ImmutableClassDef.of(clazz)
-                        below += clazz.type
-                    }
-                }
-                if (more.isEmpty()) break
-                native = (native + more).distinctBy { it.type }
-                assertTrue("${bundle.name}: the read-only check's slice keeps growing", ++rounds <= READ_DEPTH + 4)
-            }
-            val patch = PatchContexts.of(native + bridge() + projection())
-            patch.fillOverrideReader(reader, patch.findOverrideEditor())
-            assertReader(patch, reader)
-            assertTrue("${bundle.name}: the check followed the session factory into an override: ${reader.reach.methods}",
-                reader.reach.methods.any { it.endsWith(reader.sessionFactory.substringAfter("->")) && it != reader.sessionFactory })
-            checked += version
         }
-        assertEquals("declared build has no fixture", versions, checked)
+        var native = (FixtureDex.classes(bundle, types).values + roots).distinctBy { it.type }
+        // The slice grows until it holds everything the read-only check reaches, and the
+        // subclasses whose overrides it follows, so the check sees what it sees in the app.
+        var reader: OverrideReader
+        var rounds = 0
+        while (true) {
+            reader = PatchContexts.of(native + bridge() + projection()).let { it.findOverrideReader(it.findOverrideEditor()) }
+            val have = native.map { it.type }.toSet()
+            val below = reader.reach.open.toMutableSet()
+            val more = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                for (clazz in dex.classes) {
+                    if (clazz.type in have || (clazz.type !in reader.reach.missing && clazz.superclass !in below)) continue
+                    more += ImmutableClassDef.of(clazz)
+                    below += clazz.type
+                }
+            }
+            if (more.isEmpty()) break
+            native = (native + more).distinctBy { it.type }
+            assertTrue("${label}: the read-only check's slice keeps growing", ++rounds <= READ_DEPTH + 4)
+        }
+        val patch = PatchContexts.of(native + bridge() + projection())
+        patch.fillOverrideReader(reader, patch.findOverrideEditor())
+        assertReader(patch, reader)
+        assertTrue("${label}: the check followed the session factory into an override: ${reader.reach.methods}",
+            reader.reach.methods.any { it.endsWith(reader.sessionFactory.substringAfter("->")) && it != reader.sessionFactory })
     }
 
     private fun assertReader(patch: BytecodePatchContext, reader: OverrideReader) {

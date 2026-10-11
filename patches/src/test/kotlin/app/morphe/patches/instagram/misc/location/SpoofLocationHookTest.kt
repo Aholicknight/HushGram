@@ -30,6 +30,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /** Every read of a Location's place in Instagram's code goes through SpoofLocation, on the same registers. */
 class SpoofLocationHookTest {
@@ -142,42 +143,51 @@ class SpoofLocationHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val callers = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (dex.methodSection.none { it.definingClass == LOCATION && it.name in LOCATION_READS }) return@forEach
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.instructions().any { it.locationRead() != null } }) {
-                            callers += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val context = PatchContexts.of(callers)
-                val sent = context.spoofLocationReads()
-                assertTrue("${bundle.name}: $sent", sent.getValue("getLatitude") > 0 && sent.getValue("getLongitude") > 0)
-
-                val calls = mutableMapOf<String, Int>()
-                for (before in callers) {
-                    val after = context.mutableClassDefBy(before.type).methods
-                    for (original in before.methods) {
-                        val was = original.instructions()
-                        if (was.none { it.locationRead() != null }) continue
-                        val where = "${bundle.name}: ${original.definingClass}->${original.name}"
-                        val now = after.single { it.sameSignatureAs(original) }.instructions()
-                        assertEquals("$where: instruction count", was.size, now.size)
-                        assertEquals("$where: reads left", emptyList<String>(), now.mapNotNull { it.locationRead() })
-                        was.forEachIndexed { index, instruction ->
-                            val name = instruction.locationRead() ?: return@forEachIndexed
-                            assertEquals("$where at $index", locationStandIn(name), (now[index] as ReferenceInstruction).reference.toString())
-                            assertEquals("$where at $index: registers", instruction.registers(), now[index].registers())
-                            calls[name] = (calls[name] ?: 0) + 1
-                        }
-                    }
-                }
-                assertEquals("${bundle.name}: reads sent", calls.filterValues { it > 0 }, sent.filterValues { it > 0 })
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildSpoofsTheLocationToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val callers = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.methodSection.none { it.definingClass == LOCATION && it.name in LOCATION_READS }) return@forEach
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.instructions().any { it.locationRead() != null } }) {
+                    callers += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val context = PatchContexts.of(callers)
+        val sent = context.spoofLocationReads()
+        assertTrue("${label}: $sent", sent.getValue("getLatitude") > 0 && sent.getValue("getLongitude") > 0)
+
+        val calls = mutableMapOf<String, Int>()
+        for (before in callers) {
+            val after = context.mutableClassDefBy(before.type).methods
+            for (original in before.methods) {
+                val was = original.instructions()
+                if (was.none { it.locationRead() != null }) continue
+                val where = "${label}: ${original.definingClass}->${original.name}"
+                val now = after.single { it.sameSignatureAs(original) }.instructions()
+                assertEquals("$where: instruction count", was.size, now.size)
+                assertEquals("$where: reads left", emptyList<String>(), now.mapNotNull { it.locationRead() })
+                was.forEachIndexed { index, instruction ->
+                    val name = instruction.locationRead() ?: return@forEachIndexed
+                    assertEquals("$where at $index", locationStandIn(name), (now[index] as ReferenceInstruction).reference.toString())
+                    assertEquals("$where at $index: registers", instruction.registers(), now[index].registers())
+                    calls[name] = (calls[name] ?: 0) + 1
+                }
+            }
+        }
+        assertEquals("${label}: reads sent", calls.filterValues { it > 0 }, sent.filterValues { it > 0 })
     }
 
     private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
