@@ -6,21 +6,21 @@ Every HushGram release, newest first.
 
 ### Features
 
-* **Instagram - Lock your messages:** New choice under Lock your messages, Unlock with. Pick HushGram PIN and a 4 to 8 digit PIN you set unlocks your messages, Lock all of Instagram, Locked chats and Hidden chats in place of your phone's lock, for when other people know your screen lock. The PIN stays on your phone and isn't in a backup. Five wrong tries in a row make it wait 30 seconds. The PIN can't be recovered, and your phone's lock can't reset it: turning a lock off, changing the PIN or how you unlock, and importing a backup all need the PIN, and Forgot PIN explains that clearing Instagram's storage is the only way to remove it. Phone lock stays the default and works as before. Asked for in #134.
+* **Instagram - Lock your messages:** New Unlock with choice. Pick HushGram PIN and a 4 to 8 digit PIN of your own unlocks your messages instead of your phone's lock. It stays on your phone and can't be recovered. Asked for in #134.
 
-* **Instagram - Hide suggested posts:** New switch under Feed, Hide 'Are you interested' questions, off by default. It leaves out the bubble Instagram puts under a post in Home that asks "Are you interested in this post?" with Not interested and Interested buttons, and no blank row is left. Nothing is answered for you. Asked for in #131.
+* **Instagram - Hide suggested posts:** New switch under Feed, Hide 'Are you interested' questions, off by default. It removes the bubble under a Home post that asks if you're interested, with no gap left and nothing answered for you. Asked for in #131.
 
-* **Instagram - Show when someone was last active:** New patch with a switch under Messages in HushGram settings, Show when someone was last active. It starts off. Turn it on and the Active 5m ago or Active 3h ago under a name in your messages becomes the time itself, like Active at 3:42 PM, in your phone's 12 or 24 hour clock. Yesterday reads Active yesterday at 9:10 PM, and earlier in the week gives the date and time. Active now stays as it is, and so do names Instagram shows nothing for. It uses the time Instagram already has, so nothing new is requested and nothing about you changes. Asked for in #132.
+* **Instagram - Show when someone was last active:** New patch with a switch under Messages, off by default. Active 5m ago under a name in your messages becomes the time itself, like Active at 3:42 PM. It uses the time Instagram already has, so nothing new is requested. Asked for in #132.
 
-* **Instagram - Clean up Reels:** New switch under Reels, Hide the Save button on reels, off by default. It takes the Save button, and the count under it, out of the column of buttons beside a reel, and the other buttons close up with no gap. It works on the Reels tab and on reels you open from Explore or a profile. Posts in your feed keep their Save button.
+* **Instagram - Clean up Reels:** New switch under Reels, Hide the Save button on reels, off by default. The Save button and its count leave the buttons beside a reel, and the rest close up. Posts in your feed keep theirs.
 
-* **Instagram - Download any video:** New switch under Downloads, Hold to download, off by default. Hold two fingers still on a feed post's picture or video, or on a reel, for a second and it saves what's under them through the same Download the menu has. You can pick three fingers and half a second or a second and a half instead. Instagram's one-finger long press stays as it was. It needs Download feed videos or Download feed photos on, and Download on reels for reels.
+* **Instagram - Download any video:** New switch under Downloads, Hold to download, off by default. Hold two fingers on a feed post or a reel for a second and it saves what's under them. Instagram's one-finger long press doesn't change.
 
-* **Instagram - HushGram settings:** Settings entry has a new switch, Open settings with a long press on your profile's menu. Turn it on and pressing and holding the menu button (the three lines at the top right of your own profile) opens HushGram, while a tap still opens Instagram's menu. It's off by default, and other people's profiles don't change. Asked for in #84.
+* **Instagram - HushGram settings:** New switch under Settings entry, Open settings with a long press on your profile's menu, off by default. Holding the three lines on your own profile opens HushGram, and a tap still opens Instagram's menu. Asked for in #84.
 
-* **Instagram - Hide the Reels tab:** New switch under Tab bar in HushGram settings, Center the logo on Home's header, off by default. It puts Instagram's logo in the middle of the top of Home without turning on the new tab bar and profile that come with Instagram's newer header, and keeps it there with Create or the heart hidden or with the Search or Ghost mode button added. A feed's name shown in its place is centered too. Asked for in #50.
+* **Instagram - Hide the Reels tab:** New switch under Tab bar, Center the logo on Home's header, off by default. Instagram's logo sits in the middle of Home's top bar without the newer header's other changes. Asked for in #50.
 
-* **Instagram - Rounded post corners:** New switch under Feed in HushGram settings, Rounded corners on posts, off by default, with a Corner size list (small or large). The photo, the video and every page of a carousel in a post in Home and Following are cut at rounded corners. Stories, profiles, Explore and Reels stay as they were. Asked for in #135.
+* **Instagram - Rounded post corners:** New switch under Feed, Rounded corners on posts, off by default, with a small or large size. Photos, videos and carousels in Home and Following get rounded corners. Asked for in #135.
 
 * **Instagram - Upload stories at full quality:** New patch that posts video stories at up to 1080 pixels wide and 9 Mbps instead of 720. Off by default, under Stories in HushGram settings. Asked for in #37.
 
@@ -32,9 +32,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Find the reel you came from:** New patch. Tap a reel's author, open their Reels tab, and it scrolls to that reel and outlines it. Off by default, under Reels in HushGram settings. Asked for in #30.
 
-* **Instagram - Open developer options:** MetaConfig now lists flag names instead of numbers, and Developer has a Recommended flags page of named On or Off switches that needs Allow importing overrides. Asked for in #91, #110, #50, #37 and #13.
-
-* **Instagram - Open developer options:** Import flag names now applies on every Instagram 450 build. On four of them (the x86 and x86_64 builds and two others) it was left out, so MetaConfig kept showing numbers. Asked for in #91.
+* **Instagram - Open developer options:** MetaConfig now lists flag names instead of numbers, and Developer has a Recommended flags page of named On or Off switches that needs Allow importing overrides. Asked for in #91, #25, #110, #50, #37 and #13.
 
 * **Instagram - Install next to Instagram:** New patch that installs a second Instagram beside the first, with its own data and sign-in. It starts unselected in Manager. Asked for in #34, #61, #73 and #121.
 
@@ -50,11 +48,11 @@ Every HushGram release, newest first.
 
 * **Instagram - Back leaves Home:** New switch under Feed in HushGram settings, off by default. Back on Home then leaves like Instagram does at the top of the feed, with no scroll up and no reload. Asked for in #54.
 
-* **Instagram - Start Home on Following:** New switch under Feed, Instagram logo on Home, off by default. It needs Start Home on Following and puts Instagram's logo where the feed's name would be.
+* **Instagram - Start Home on Following:** New switch under Feed, Instagram logo on Home, off by default. It needs Start Home on Following and puts Instagram's logo where the feed's name would be. Asked for in #126.
 
-* **Instagram - Hide the Reels tab:** Tab bar has new switches to hide Search, Create or Profile, a Start tab list for where Instagram opens and a Tab order list. Everything starts off or at Instagram's order. Restart Instagram to see a change.
+* **Instagram - Hide the Reels tab:** Tab bar has new switches to hide Search, Create or Profile, a Start tab list for where Instagram opens and a Tab order list. Everything starts off or at Instagram's order. Restart Instagram to see a change. Asked for in #20, #55 and #90.
 
-* **Instagram - Hide the Reels tab:** Tab bar has four new switches for Home's header that hide Create, hide notifications, add a Search button and add a Ghost mode button. All off by default. Restart Instagram to see them.
+* **Instagram - Hide the Reels tab:** Tab bar has four new Home header switches that hide Create or notifications, or add a Search or Ghost mode button. All start off, and a restart shows them. Asked for in #70 and #118.
 
 * **Instagram - Start stories with sound:** New switch under Stories in HushGram settings, off by default, that opens a story with its sound on. Your phone's ringer and volume still count. Asked for in #103.
 
@@ -84,13 +82,13 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** It can now hide single chats (Hidden chats) or lock them (Locked chats), under Messages in HushGram settings. Open a chat in Instagram first so it's on the list.
 
-* **Instagram - Download any video:** New switch, Download button on feed posts, off by default. It puts a download icon beside Save under each post and needs Download feed videos or photos. Asked for in #97.
+* **Instagram - Download any video:** New switch, Download button on feed posts, off by default. It puts a download icon beside Save under each post and needs Download feed videos or photos. Asked for in #97, #116 and #117.
 
 * **Instagram - Hide the Reels tab:** New switch, Show the Reels tab, off by default. It puts the tab back after Home when Instagram built your bar without it, and Hide wins if both are on. Asked for in #120.
 
 * **Instagram - Clean up Reels:** New switch under Reels, Hide the comment bar on all reels, off by default. The comment button still opens the comments. Asked for in #119.
 
-* **Instagram - Clean up Reels:** New switch under Reels, Hide the top bar on the Reels tab, off by default. It takes away the row with the Reels title and the camera button, and the reel stays where it was, so a tap up there reaches the reel. Reels you open from a profile, a post or a chat keep their bar, and the camera still opens from Home. Asked for in #14.
+* **Instagram - Clean up Reels:** New switch under Reels, Hide the top bar on the Reels tab, off by default. The row with the Reels title and camera goes away and the reel stays put. Reels opened elsewhere keep their bar. Asked for in #14.
 
 * **Instagram - Glass tab bar:** New patch, from @sherifrahim. It draws the tab bar as a floating pill of frosted glass with a highlight that slides to your tab. Off by default, under Tab bar, and a restart shows it. Refs #89, #65.
 
@@ -104,9 +102,11 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Open developer options:** Import flag names now applies on every Instagram 450 build. On four of them (the x86 and x86_64 builds and two others) it was left out, so MetaConfig kept showing numbers. Asked for in #91.
+
 * **Instagram - Lock your messages:** Ticking or unticking a chat under Hidden chats now shows in your inbox as soon as you go back to it. Before, the inbox kept its old rows until you pulled to refresh or a new message came in.
 
-* **Instagram - Hide ads:** Sponsored posts inside a page of posts, like the ones on Home's Older Posts page and Explore's chain of posts, are gone now too, and so are the rows of several ads Instagram puts between posts. Diagnostics counts both on a Feed ads line.
+* **Instagram - Hide ads:** Sponsored posts inside a page of posts, like Home's Older Posts page and Explore's chain of posts, are gone too, and so are rows of several ads between posts. Diagnostics counts both.
 
 * **Instagram - HushGram settings:** Typing in the settings search box no longer freezes Instagram on a slow phone.
 
@@ -122,9 +122,9 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** The cover shows its whole title and the Unlock link again on a phone screen.
 
-* **Instagram - Open developer options:** Export overrides no longer writes a file that Import overrides refuses.
+* **Instagram - Open developer options:** Export overrides no longer writes a file that Import overrides refuses. Reported in #67.
 
-* **Instagram - Show if a profile follows you:** The chip under a profile's counts grows with your phone's font size instead of cutting its words off.
+* **Instagram - Show if a profile follows you:** The chip under a profile's counts grows with your phone's font size instead of cutting its words off. Reported in #24.
 
 * **Instagram - Hide Meta AI:** With Hide Meta AI in search and Home's bar on, a keyword search's results no longer end in an Ask a follow-up bar.
 
@@ -136,13 +136,13 @@ Every HushGram release, newest first.
 
 * **Instagram - Save profile picture:** Save profile picture and Copy username and bio now work in the newer pop-up list a profile's three dots open on some accounts. Asked for in #29.
 
-* **Instagram:** HushGram does less work in the background while Instagram's open. Full screen Reels and Home, Saved on your profile and Lock your messages stop looking at the screen when there's nothing for them to do, and that now includes after you turn a lock off. Find the reel you came from now waits for the profile's Reels grid to draw instead of checking for it every third of a second. Reported in #129.
+* **Instagram:** HushGram does less background work. Full screen Reels and Home, Saved on your profile, Lock your messages and Find the reel you came from stop checking the screen when there's nothing to do. Reported in #129.
 
 * **Tooling:** The release facts check reads the push gate's kept run again when the pre-push hook starts it in a fresh PowerShell.
 
 ### Improvements
 
-* **Instagram:** The check that proves each hook landed in the right place now holds on all seven 450 builds for nearly every hook, not just the main one. It can find a method by a number it loads or by the shape of what it calls, so it no longer depends on names Instagram changes from build to build.
+* **Instagram:** The check that proves each hook landed in the right place now holds on all seven 450 builds, since it finds methods by what they load and call instead of names that change between builds.
 
 * **Instagram:** HushGram settings open as a list of categories, and a tap opens one on its own page. A button under the status card switches to one long list. Thanks to @talhaeenss for #123. Asked for in #80 and #100.
 
@@ -174,11 +174,11 @@ Every HushGram release, newest first.
 
 * **Tooling:** Patch tests run by area, so Gradle can reuse results for areas whose inputs haven't changed.
 
-* **Tooling:** Release notes come out in the shape Morphe Manager draws, as short scoped bullets under their type heading, and the release check holds every bullet to that.
+* **Tooling:** Release notes come out in the shape Morphe Manager draws, as short scoped bullets under their type heading, and the release check holds every bullet to that. Asked for in #86.
 
 * **Tooling:** The release checks that apply every patch as one Instagram leave out Install next to Instagram, and its own run checks that the result is a different package.
 
-* **Tooling:** The release notes check now stops a bullet that runs over 40 words, not counting its closing credit, so Manager's card stays short.
+* **Tooling:** The release notes check now stops a bullet that runs over 40 words, not counting its closing credit, so Manager's card stays short. Asked for in #106.
 
 ## 0.0.8 (2026-10-09)
 
