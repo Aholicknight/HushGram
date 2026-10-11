@@ -47,6 +47,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class HideHighlightsHookTest {
     private val header = "Lfixture/HeaderGroup;"
@@ -146,26 +147,34 @@ class HideHighlightsHookTest {
     /** In each declared build the header's tray row is found and asked for, once. */
     @Test
     fun eachDeclaredBuildAsksForTheTray() {
-        forEachFixture { bundle ->
-            val holders = listOf(HEADER_BIND, REEL_TRAY).flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
-            val context = PatchContexts.of(holders)
-            val site = context.findHighlightsRow()
-            val stockRows = context.mutableClassDefBy(site.type).methods.single {
-                it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
-            }
-            val original = NeutralNativePath(stockRows)
+        forEachFixture { builds(it, it.name) }
+    }
 
-            context.hide()
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildAsksForTheTrayToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
 
-            val written = holders.flatMap { context.mutableClassDefBy(it.type).methods }
-                .filter { method -> method.code().any { it.referenceText() == KEEP_TRAY } }
-            assertEquals("${bundle.name}: methods asking", 1, written.size)
-            val rows = written.single()
-            assertEquals("${bundle.name}: the rows method", BUILD_ROWS, rows.name)
-            val keep = rows.code().indexOfFirst { it.referenceText() == KEEP_TRAY }
-            assertTrayAsked(bundle.name, rows, (rows.code()[keep + 1] as OneRegisterInstruction).registerA)
-            original.assertPreserved(bundle.name, rows, (keep..keep + 2).toSet())
+    private fun builds(bundle: File, label: String) {
+        val holders = listOf(HEADER_BIND, REEL_TRAY).flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
+        val context = PatchContexts.of(holders)
+        val site = context.findHighlightsRow()
+        val stockRows = context.mutableClassDefBy(site.type).methods.single {
+            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
         }
+        val original = NeutralNativePath(stockRows)
+
+        context.hide()
+
+        val written = holders.flatMap { context.mutableClassDefBy(it.type).methods }
+            .filter { method -> method.code().any { it.referenceText() == KEEP_TRAY } }
+        assertEquals("$label: methods asking", 1, written.size)
+        val rows = written.single()
+        assertEquals("$label: the rows method", BUILD_ROWS, rows.name)
+        val keep = rows.code().indexOfFirst { it.referenceText() == KEEP_TRAY }
+        assertTrayAsked(label, rows, (rows.code()[keep + 1] as OneRegisterInstruction).registerA)
+        original.assertPreserved(label, rows, (keep..keep + 2).toSet())
     }
 
     /**
@@ -174,23 +183,31 @@ class HideHighlightsHookTest {
      */
     @Test
     fun eachDeclaredBuildTakesBothProfilePatchesInEitherOrder() {
-        forEachFixture { bundle ->
-            val holders = listOf(NO_SUGGESTED_BINDER, HEADER_BIND, STANDALONE_CHAINING, REEL_TRAY)
-                .flatMap { FixtureDex.classesHolding(bundle, it) }
-            val button = FixtureDex.classes(bundle, setOf(FOLLOW_CHAINING_BUTTON)).values
-            val classes = (holders + button).distinctBy { it.type }
-            val highlights: BytecodePatchContext.() -> Unit = { hide() }
-            val suggestions: BytecodePatchContext.() -> Unit = { hideProfileSuggestions(findProfileSuggestions()) }
-            for ((order, steps) in listOf(listOf(highlights, suggestions), listOf(suggestions, highlights)).withIndex()) {
-                val context = PatchContexts.of(classes)
-                steps.forEach { step -> step(context) }
+        forEachFixture { bothPatchesBuilds(it, it.name) }
+    }
 
-                val rows = classes.flatMap { context.mutableClassDefBy(it.type).methods }
-                    .single { method -> method.code().any { it.referenceText() == KEEP_TRAY } }
-                assertEquals("${bundle.name} order $order: the standalone row's question", 1, rows.code().count { it.referenceText() == KEEP_STANDALONE_ROW })
-                val keep = rows.code().indexOfFirst { it.referenceText() == KEEP_TRAY }
-                assertTrayAsked("${bundle.name} order $order", rows, (rows.code()[keep + 1] as OneRegisterInstruction).registerA)
-            }
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildTakesBothProfilePatchesInEitherOrderToo() {
+        for (base in Fixtures.otherBuilds()) bothPatchesBuilds(base, base.parentFile.name)
+    }
+
+    private fun bothPatchesBuilds(bundle: File, label: String) {
+        val holders = listOf(NO_SUGGESTED_BINDER, HEADER_BIND, STANDALONE_CHAINING, REEL_TRAY)
+            .flatMap { FixtureDex.classesHolding(bundle, it) }
+        val button = FixtureDex.classes(bundle, setOf(FOLLOW_CHAINING_BUTTON)).values
+        val classes = (holders + button).distinctBy { it.type }
+        val highlights: BytecodePatchContext.() -> Unit = { hide() }
+        val suggestions: BytecodePatchContext.() -> Unit = { hideProfileSuggestions(findProfileSuggestions()) }
+        for ((order, steps) in listOf(listOf(highlights, suggestions), listOf(suggestions, highlights)).withIndex()) {
+            val context = PatchContexts.of(classes)
+            steps.forEach { step -> step(context) }
+
+            val rows = classes.flatMap { context.mutableClassDefBy(it.type).methods }
+                .single { method -> method.code().any { it.referenceText() == KEEP_TRAY } }
+            assertEquals("$label order $order: the standalone row's question", 1, rows.code().count { it.referenceText() == KEEP_STANDALONE_ROW })
+            val keep = rows.code().indexOfFirst { it.referenceText() == KEEP_TRAY }
+            assertTrayAsked("$label order $order", rows, (rows.code()[keep + 1] as OneRegisterInstruction).registerA)
         }
     }
 

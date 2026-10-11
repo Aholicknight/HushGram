@@ -36,6 +36,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class HideThreadsButtonHookTest {
     private val builder = "Lfixture/Builder;"
@@ -138,26 +139,34 @@ class HideThreadsButtonHookTest {
      */
     @Test
     fun eachDeclaredBuildHandsTheBarsListToTheExtension() {
-        forEachFixture { bundle ->
-            val bar = FixtureDex.classes(bundle, setOf(PROFILE_ACTION_BAR)).values.single()
-            val builders = bar.methods.flatMap { it.code() }.mapNotNull { it.reference() as? MethodReference }
-                .filter { call -> call.parameterTypes.count { it.toString() == BAR_GROUP } == 2 }.map { it.definingClass }.toSet()
-            val builderClasses = FixtureDex.classes(bundle, builders).values
-            val casts = builderClasses.flatMap { it.methods }.flatMap { it.code() }
-                .filter { it.opcode == Opcode.CHECK_CAST }.map { (it.reference() as TypeReference).type }.toSet()
-            val buttons = FixtureDex.classes(bundle, casts).values
-            val context = PatchContexts.of((listOf(bar) + builderClasses + buttons).distinctBy { it.type } + ExtensionDex.classDef(THREADS_BUTTON))
-            val site = context.findThreadsButton()
-            val original = NeutralNativePath(context.binder(site))
+        forEachFixture { builds(it, it.name) }
+    }
 
-            context.hideThreadsButton(site)
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildHandsTheBarsListToTheExtensionToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
 
-            val binder = context.binder(site)
-            assertHooked(bundle.name, binder, site.register)
-            original.assertPreserved(bundle.name, binder, setOf(site.hook, site.hook + 1))
-            assertStub(bundle.name, context, site.button, site.icon)
-            assertTrue("${bundle.name}: no button the builder takes extends ${site.button}", buttons.any { it.superclass == site.button })
-        }
+    private fun builds(bundle: File, label: String) {
+        val bar = FixtureDex.classes(bundle, setOf(PROFILE_ACTION_BAR)).values.single()
+        val builders = bar.methods.flatMap { it.code() }.mapNotNull { it.reference() as? MethodReference }
+            .filter { call -> call.parameterTypes.count { it.toString() == BAR_GROUP } == 2 }.map { it.definingClass }.toSet()
+        val builderClasses = FixtureDex.classes(bundle, builders).values
+        val casts = builderClasses.flatMap { it.methods }.flatMap { it.code() }
+            .filter { it.opcode == Opcode.CHECK_CAST }.map { (it.reference() as TypeReference).type }.toSet()
+        val buttons = FixtureDex.classes(bundle, casts).values
+        val context = PatchContexts.of((listOf(bar) + builderClasses + buttons).distinctBy { it.type } + ExtensionDex.classDef(THREADS_BUTTON))
+        val site = context.findThreadsButton()
+        val original = NeutralNativePath(context.binder(site))
+
+        context.hideThreadsButton(site)
+
+        val binder = context.binder(site)
+        assertHooked(label, binder, site.register)
+        original.assertPreserved(label, binder, setOf(site.hook, site.hook + 1))
+        assertStub(label, context, site.button, site.icon)
+        assertTrue("$label: no button the builder takes extends ${site.button}", buttons.any { it.superclass == site.button })
     }
 
     private fun forEachFixture(check: (java.io.File) -> Unit) {

@@ -35,6 +35,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class HideProfileSuggestionsHookTest {
     private val actions = "Lfixture/ProfileActions;"
@@ -135,43 +136,53 @@ class HideProfileSuggestionsHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = listOf(NO_SUGGESTED_BINDER, HEADER_BIND, STANDALONE_CHAINING)
-                    .flatMap { FixtureDex.classesHolding(bundle, it) }
-                val buttonClass = FixtureDex.classes(bundle, setOf(FOLLOW_CHAINING_BUTTON)).values
-                val context = PatchContexts.of((holders + buttonClass).distinctBy { it.type })
-
-                context.hide()
-
-                val written = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
-                for (hook in hooks) {
-                    val calls = written.sumOf { method -> method.code().count { it.referenceText() == hook } }
-                    assertEquals("${bundle.name}: calls to $hook", 1, calls)
-                }
-                val actionRow = written.single { method -> method.code().any { it.referenceText() == INLINE_ROW } }
-                val code = actionRow.code()
-                val inline = code.indexOfFirst { it.referenceText() == INLINE_ROW }
-                val flag = code[inline - 1]
-                assertEquals("${bundle.name}: the flag read", Opcode.IGET_BOOLEAN, flag.opcode)
-                val register = (flag as OneRegisterInstruction).registerA
-                assertEquals("${bundle.name}: the flag handed over", listOf(register), code[inline].arguments())
-                assertEquals("${bundle.name}: the answer", Opcode.MOVE_RESULT, code[inline + 1].opcode)
-                assertEquals("${bundle.name}: the answer's register", register, (code[inline + 1] as OneRegisterInstruction).registerA)
-                assertEquals("${bundle.name}: the test", Opcode.IF_EQZ, code[inline + 2].opcode)
-                assertTrue("${bundle.name}: a jump skips the flag's hook", (inline..inline + 2).none { it in actionRow.jumpTargets() })
-
-                val button = code.indexOfFirst { it.referenceText() == CHAINING_BUTTON }
-                val setUp = code[button - 1].reference() as MethodReference
-                assertEquals("${bundle.name}: what comes before the button's hook", FOLLOW_CHAINING_BUTTON, setUp.definingClass)
-                assertEquals("${bundle.name}: the button handed over", code[button - 1].arguments().take(1), code[button].arguments())
-
-                val rows = written.single { method -> method.code().any { it.referenceText() == KEEP_STANDALONE_ROW } }
-                assertEquals("${bundle.name}: the rows method", BUILD_ROWS, rows.name)
-                val keep = rows.code().indexOfFirst { it.referenceText() == KEEP_STANDALONE_ROW }
-                assertStandaloneAsked(bundle.name, rows, (rows.code()[keep + 1] as OneRegisterInstruction).registerA)
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildGetsAllThreeHooksToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = listOf(NO_SUGGESTED_BINDER, HEADER_BIND, STANDALONE_CHAINING)
+            .flatMap { FixtureDex.classesHolding(bundle, it) }
+        val buttonClass = FixtureDex.classes(bundle, setOf(FOLLOW_CHAINING_BUTTON)).values
+        val context = PatchContexts.of((holders + buttonClass).distinctBy { it.type })
+
+        context.hide()
+
+        val written = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
+        for (hook in hooks) {
+            val calls = written.sumOf { method -> method.code().count { it.referenceText() == hook } }
+            assertEquals("$label: calls to $hook", 1, calls)
+        }
+        val actionRow = written.single { method -> method.code().any { it.referenceText() == INLINE_ROW } }
+        val code = actionRow.code()
+        val inline = code.indexOfFirst { it.referenceText() == INLINE_ROW }
+        val flag = code[inline - 1]
+        assertEquals("$label: the flag read", Opcode.IGET_BOOLEAN, flag.opcode)
+        val register = (flag as OneRegisterInstruction).registerA
+        assertEquals("$label: the flag handed over", listOf(register), code[inline].arguments())
+        assertEquals("$label: the answer", Opcode.MOVE_RESULT, code[inline + 1].opcode)
+        assertEquals("$label: the answer's register", register, (code[inline + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$label: the test", Opcode.IF_EQZ, code[inline + 2].opcode)
+        assertTrue("$label: a jump skips the flag's hook", (inline..inline + 2).none { it in actionRow.jumpTargets() })
+
+        val button = code.indexOfFirst { it.referenceText() == CHAINING_BUTTON }
+        val setUp = code[button - 1].reference() as MethodReference
+        assertEquals("$label: what comes before the button's hook", FOLLOW_CHAINING_BUTTON, setUp.definingClass)
+        assertEquals("$label: the button handed over", code[button - 1].arguments().take(1), code[button].arguments())
+
+        val rows = written.single { method -> method.code().any { it.referenceText() == KEEP_STANDALONE_ROW } }
+        assertEquals("$label: the rows method", BUILD_ROWS, rows.name)
+        val keep = rows.code().indexOfFirst { it.referenceText() == KEEP_STANDALONE_ROW }
+        assertStandaloneAsked(label, rows, (rows.code()[keep + 1] as OneRegisterInstruction).registerA)
     }
 
     /**

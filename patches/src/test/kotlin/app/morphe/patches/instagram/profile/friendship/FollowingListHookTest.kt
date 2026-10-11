@@ -35,6 +35,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class FollowingListHookTest {
     @Test
@@ -271,41 +272,51 @@ class FollowingListHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = fixtureClasses(bundle)
-                val context = PatchContexts.of(classes)
-
-                val found = context.findFollowRow()
-                val answers = context.findFollowAnswers()
-                assertEquals("${bundle.name}: the name line", TEXT_VIEW, found.subtitle.type)
-                assertEquals("${bundle.name}: the owner", FOLLOW_LIST_DATA, found.owner.definingClass)
-                assertEquals("${bundle.name}: the account signed in", USER_SESSION, found.session.type)
-                val kind = classes.single { it.type == found.kind.type }
-                assertTrue("${bundle.name}: the list kind is an enum", AccessFlags.ENUM.isSet(kind.accessFlags))
-                assertEquals("${bundle.name}: the list's data", FOLLOW_LIST_DATA, answers.listData.type)
-                assertEquals("${bundle.name}: the list's account", USER_SESSION, answers.listSession.type)
-                assertEquals("${bundle.name}: followed_by", "Ljava/lang/Boolean;", answers.followedBy.type)
-                context.markFollowRow(found)
-                context.askFollowAnswers(answers)
-                context.followingStubs().fill(found, answers)
-                val method = context.mutableClassDefBy(found.type).methods.single {
-                    it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
-                }
-                assertHooked("${bundle.name} ${found.type}->${found.name}", method)
-                assertAsked(bundle.name, context, answers)
-
-                val order = context.findFollowOrder(found)
-                assertEquals("${bundle.name}: the builder keeps the binder", found.type, order.binder.type)
-                context.orderFollowRows(order)
-                context.followingStubs().fillOrder(order)
-                assertOrdered(bundle.name, context, order)
-
-                val binder = classes.single { it.type == found.type }
-                assertRefused(classes + copyOf(binder, "Lfixture/SecondBinder;"), "found 2")
-                assertRefused(classes.filter { it.type != FOLLOW_LIST_DATA }, "$FOLLOW_LIST_DATA isn't in this build")
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildMarksTheFollowingListToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val classes = fixtureClasses(bundle)
+        val context = PatchContexts.of(classes)
+
+        val found = context.findFollowRow()
+        val answers = context.findFollowAnswers()
+        assertEquals("$label: the name line", TEXT_VIEW, found.subtitle.type)
+        assertEquals("$label: the owner", FOLLOW_LIST_DATA, found.owner.definingClass)
+        assertEquals("$label: the account signed in", USER_SESSION, found.session.type)
+        val kind = classes.single { it.type == found.kind.type }
+        assertTrue("$label: the list kind is an enum", AccessFlags.ENUM.isSet(kind.accessFlags))
+        assertEquals("$label: the list's data", FOLLOW_LIST_DATA, answers.listData.type)
+        assertEquals("$label: the list's account", USER_SESSION, answers.listSession.type)
+        assertEquals("$label: followed_by", "Ljava/lang/Boolean;", answers.followedBy.type)
+        context.markFollowRow(found)
+        context.askFollowAnswers(answers)
+        context.followingStubs().fill(found, answers)
+        val method = context.mutableClassDefBy(found.type).methods.single {
+            it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
+        }
+        assertHooked("$label ${found.type}->${found.name}", method)
+        assertAsked(label, context, answers)
+
+        val order = context.findFollowOrder(found)
+        assertEquals("$label: the builder keeps the binder", found.type, order.binder.type)
+        context.orderFollowRows(order)
+        context.followingStubs().fillOrder(order)
+        assertOrdered(label, context, order)
+
+        val binder = classes.single { it.type == found.type }
+        assertRefused(classes + copyOf(binder, "Lfixture/SecondBinder;"), "found 2")
+        assertRefused(classes.filter { it.type != FOLLOW_LIST_DATA }, "$FOLLOW_LIST_DATA isn't in this build")
     }
 
     /**
