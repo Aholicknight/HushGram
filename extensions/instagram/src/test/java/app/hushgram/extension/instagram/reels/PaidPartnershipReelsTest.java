@@ -172,7 +172,10 @@ public class PaidPartnershipReelsTest {
         assertSame(nothingMatches, page(nothingMatches));
     }
 
-    /** A page where every reel would go comes back whole, so the viewer has a reel to show, and that's counted. */
+    /**
+     * A page where every reel would go comes back whole, so the viewer has a reel to show, and that's
+     * counted. Items that aren't reels don't count toward it: a card left alone isn't a reel to show.
+     */
     @Test
     public void aPageWhereEveryReelMatchesIsKeptWhole() {
         List<Clip> items = Arrays.asList(clip(true, null), clip(false, "boosted"), clip(null, "finished"));
@@ -180,10 +183,12 @@ public class PaidPartnershipReelsTest {
         assertSame(items, page(items));
         List<Clip> one = Collections.singletonList(clip(true, null));
         assertSame(one, page(one));
+        List<Object> withCard = Arrays.asList("a suggestion card", clip(true, null), new Clip(null), clip(false, "boosted"));
+        assertSame(withCard, page(withCard));
 
         String report = FeedFilterCounters.report().toString();
-        assertTrue(report, report.contains("Paid partnership reels: 2 lists, 4 items, 0 removed"));
-        assertTrue(report, report.contains("page kept whole 2"));
+        assertTrue(report, report.contains("Paid partnership reels: 3 lists, 8 items, 0 removed"));
+        assertTrue(report, report.contains("page kept whole 3"));
     }
 
     /** Off, paused or before the settings are read, the page comes back as it came, read by nothing. */

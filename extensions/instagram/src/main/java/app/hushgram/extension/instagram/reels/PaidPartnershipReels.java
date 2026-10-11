@@ -36,8 +36,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Nothing else counts: a tracking token, an ad id or a field the app doesn't use to mark a
  * promotion isn't proof of one. Sponsored ads are Hide ads' to remove.
  *
- * <p>A page where every item would go keeps every item, so the viewer always has a reel to show,
- * and the report counts it. Off, paused, before the settings are read, or when anything throws,
+ * <p>A page where every reel would go keeps every item, so the viewer always has a reel to show,
+ * and the report counts it. Items that aren't reels, such as a suggestion card, don't count: a
+ * page of a card and two paid partnership reels is kept whole, or it would hold no reel. Off, paused, before the settings are read, or when anything throws,
  * the page comes back as it came, the same list.
  */
 public final class PaidPartnershipReels {
@@ -109,10 +110,13 @@ public final class PaidPartnershipReels {
             String[] reasons = new String[size];
             int partnerships = 0;
             int boosted = 0;
+            int reels = 0;
             int at = 0;
             for (Object item : items) {
                 if (at >= size) return items;
-                String reason = reasonFor(item, reader);
+                Object media = item == null ? null : reader.media(item);
+                if (media != null) reels++;
+                String reason = media == null ? null : reasonFor(media, reader);
                 if (PARTNERSHIP.equals(reason)) partnerships++;
                 if (BOOSTED.equals(reason)) boosted++;
                 if (reason != null) FeedFilterCounters.sawKind(ROUTE, reason);
@@ -122,7 +126,7 @@ public final class PaidPartnershipReels {
             if (at != size) return items;
             int matched = partnerships + boosted;
             if (matched == 0) return items;
-            if (matched == size) {
+            if (matched == reels) {
                 FeedFilterCounters.sawKind(ROUTE, PAGE_KEPT);
                 Logger.printDebug(() -> "Paid partnership reels: kept a page of " + size + " where every reel matched");
                 return items;
@@ -144,11 +148,8 @@ public final class PaidPartnershipReels {
         }
     }
 
-    /** Why [item] goes, or null when it stays. */
-    private static String reasonFor(Object item, Reader reader) {
-        if (item == null) return null;
-        Object media = reader.media(item);
-        if (media == null) return null;
+    /** Why the reel carrying [media] goes, or null when it stays. */
+    private static String reasonFor(Object media, Reader reader) {
         if (Boolean.TRUE.equals(reader.paidPartnership(media))) return PARTNERSHIP;
         return boostRan(reader.boostedStatus(media)) ? BOOSTED : null;
     }
