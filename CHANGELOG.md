@@ -148,6 +148,8 @@ Every HushGram release, newest first.
 
 * **Tooling:** The release checks that apply every patch as one Instagram leave out Install next to Instagram, and its own run checks that the result is a different package.
 
+* **Tooling:** The release notes check now stops a bullet that runs over 40 words, not counting its closing credit, so Manager's card stays short.
+
 ## 0.0.8 (2026-10-09)
 
 * **Instagram:** HushGram 0.0.8 adds 1 patch, for 79 in all, and stays on Instagram 450.0.0.50.77 with Morphe Manager 1.34.0 or newer. All seven builds of that version patch: the arm64 ones (385611395, 385611400, 385611404, 385611431 and 385611438) and the x86 and x86_64 ones (385611439 and 385611440).

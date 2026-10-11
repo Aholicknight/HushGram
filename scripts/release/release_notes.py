@@ -11,8 +11,9 @@ The CHANGELOG section sorts its bullets under ### Features, ### Bug Fixes and ##
 and each bullet opens with a scope, **Instagram:** or **Instagram - Patch name:** (Manager keeps a
 scoped bullet for an app when the scope, or the part before " - ", is the app's name), or
 **Tooling:**. The run stops on a bullet outside a type heading, an unknown heading, an unscoped
-bullet, an unknown scope or patch, a missing section, a bullet count that doesn't add up and dashes
-the project's writing rules keep out of public text.
+bullet, an unknown scope or patch, a missing section, a bullet count that doesn't add up, dashes
+the project's writing rules keep out of public text and a bullet that runs over 40 words (its
+closing credit, like Asked for in #12 or Thanks to @name, doesn't count).
 
     py -3.13 -I scripts/release/release_notes.py --version 0.0.9 --validation validation.md
         --out notes.md --description-out description.json
@@ -44,6 +45,11 @@ DASHES = (chr(0x2014), chr(0x2013), " - ")
 # A patch scope's label may hold " - ": it's how Manager splits the app from the patch.
 PATCH_SCOPE_RE = re.compile(r"\*\*Instagram - [^*:]+:\*\*")
 BULLET_RE = re.compile(r"\* \*\*([^*:]+):\*\* (.+)")
+# A bullet's text after its scope runs at most this many words, so Manager's card stays short.
+MAX_WORDS = 40
+# A closing sentence that credits or points at an issue doesn't count toward the limit.
+CREDIT_RE = re.compile(r"(Asked for|Asked about|Asked in|Reported in|Reported on|Thanks|Fixes from|Refs)\b")
+SENTENCE_BREAK_RE = re.compile(r"(?<=[.!?]) (?=[A-Z\[])")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # Manager strips these from a bullet, so none belongs in the notes.
 COMMIT_LINK_RE = re.compile(r"\(\[[0-9a-f]{7,}\]\([^)]+/commit/[^)]+\)\)")
@@ -117,6 +123,24 @@ def check_dashes(text: str, where: str) -> None:
             raise NotesError(f"there's a dash ({dash!r}) in {where}: {line[:80]}")
 
 
+def bullet_words(bullet: str) -> int:
+    """Words in a bullet's text after its scope, not counting closing credit sentences."""
+    scoped = BULLET_RE.match(bullet)
+    sentences = SENTENCE_BREAK_RE.split(scoped.group(2) if scoped else bullet)
+    while len(sentences) > 1 and CREDIT_RE.match(sentences[-1]):
+        sentences.pop()
+    return len(" ".join(sentences).split())
+
+
+def check_length(found: dict[str, list[str]]) -> None:
+    """Every bullet is short: the long explanations live in the README."""
+    for bullets in found.values():
+        for bullet in bullets:
+            words = bullet_words(bullet)
+            if words > MAX_WORDS:
+                raise NotesError(f"a bullet runs {words} words, the limit is {MAX_WORDS}: {bullet[:80]}")
+
+
 def check_clean(text: str, where: str) -> None:
     for pattern, what in ((COMMIT_LINK_RE, "a commit link"), (IMAGE_RE, "an image")):
         if pattern.search(text):
@@ -156,6 +180,7 @@ def build_notes(section: str, validation: str, version: str, date: str, previous
     if not total:
         raise NotesError("the section has no bullets")
     check_scopes(found, patches)
+    check_length(found)
     parts = [version_heading(version, date, previous)]
     carried = 0
     for name in SECTIONS:
@@ -193,11 +218,12 @@ def main(argv: list[str] | None = None) -> int:
             if not total:
                 raise NotesError("the section has no bullets")
             check_scopes(found, patches)
+            check_length(found)
             everything = "\n".join(b for bullets in found.values() for b in bullets)
             check_dashes(everything, "the section")
             check_clean(everything, "the section")
             counts = ", ".join(f"{len(found[n])} {n}" for n in SECTIONS if found.get(n))
-            print(f"[notes] {args.version or 'Unreleased'}: {total} bullets ({counts}), all typed and scoped, no dashes")
+            print(f"[notes] {args.version or 'Unreleased'}: {total} bullets ({counts}), all typed and scoped, short, no dashes")
             return 0
         if not args.version or date is None:
             raise NotesError("--version names the dated section the notes are for")
