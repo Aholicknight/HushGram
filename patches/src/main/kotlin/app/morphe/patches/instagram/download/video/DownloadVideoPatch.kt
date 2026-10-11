@@ -153,7 +153,9 @@ val downloadVideoPatch = bytecodePatch(
     name = "Download any video",
     description = "Adds Download to video posts in your feed, saving the video without Instagram's watermark. " +
         "Other switches add Download for photos, Download cover and a Details row with the post's time and " +
-        "poster. Starts off. Turn it on in HushGram settings > Downloads.",
+        "poster, and a download icon beside Save under each post. Download all waits its turn, with up to ten " +
+        "posts queued, so two posts' pages never mix in your gallery. Starts off. Turn it on in HushGram " +
+        "settings > Downloads.",
 ) {
     category("Downloads")
     dependsOn(settingsPatch)

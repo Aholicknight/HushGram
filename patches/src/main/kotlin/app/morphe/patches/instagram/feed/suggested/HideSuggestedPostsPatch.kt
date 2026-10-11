@@ -64,7 +64,9 @@ val hideSuggestedPostsPatch = bytecodePatch(
     description = "Removes posts from accounts you don't follow, suggested accounts, surveys and shopping rows " +
         "from Home. It also takes shop tiles out of Explore and the shopping bag off posts with tagged products. " +
         "Posts from accounts you follow stay. Extra switches can also hide all videos, photos, carousels, posts " +
-        "you've liked or posts from accounts you pick. On by default. Turn it off in HushGram settings > Feed.",
+        "you've liked or posts from accounts you pick. A post's menu has Hide posts from this account to add one " +
+        "to that list, and those posts leave Home on the next refresh. On by default. Turn it off in HushGram " +
+        "settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch)

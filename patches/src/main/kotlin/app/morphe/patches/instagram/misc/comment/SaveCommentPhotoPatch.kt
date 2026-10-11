@@ -27,7 +27,9 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 val saveCommentPhotoPatch = bytecodePatch(
     name = "Save comment photo",
     description = "Adds Save to the menu on a comment that has its own photo or GIF, saving the largest size " +
-        "Instagram sent. Starts off. Turn it on in HushGram settings > Comments.",
+        "Instagram sent. A GIF is saved as a .gif in Pictures/Instagram, taken from Instagram's own copy, not " +
+        "Giphy. If Instagram lists only an animated WebP or an MP4 for it, you get that file instead, and an MP4 " +
+        "goes in Movies/Instagram like a video. Starts off. Turn it on in HushGram settings > Comments.",
     default = true,
 ) {
     category("Downloads")
