@@ -95,6 +95,8 @@ try {
         "## 0.0.2 (2026-10-01)`n`n### Improvements`n`n* **Tooling:** The tooling line.`n`n### Features`n`n* **Instagram:** First patch line.`n`n" +
         "* **Instagram - Hide Meta AI:** Second patch line,`n  carried on.`n`n## 0.0.1 (2026-09-01)`n`n### Features`n`n* **Instagram:** The first release.`n"
     Write-Text $changelog $goodChangelog
+    # The builder checks each scoped bullet's patch against the catalog beside the CHANGELOG.
+    Write-Text (Join-Path $notesDir 'patches-list.json') ([IO.File]::ReadAllText((Join-Path $Root 'patches-list.json')))
     Write-Text (Join-Path $notesDir 'validation.md') 'Validation: 5 runtime tests passed locally. All 6 patch tests passed too.'
     $notesOut = Join-Path $notesDir 'notes.md'
     $descriptionOut = Join-Path $notesDir 'description.json'
