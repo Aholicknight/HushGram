@@ -12,6 +12,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Accent color:** New patch whose switch of the same name sits under Layout in HushGram settings and starts off. It turns Instagram's blue into purple, pink, red, orange, green or teal after a restart. Asked for in #8.
 
+* **Instagram - HushGram launch screen:** New patch whose switch of the same name sits under Layout in HushGram settings and starts off. Android 13 and newer then show HushGram's logo while Instagram starts. Asked for in #5.
+
 * **Instagram - Find the reel you came from:** New patch whose switch of the same name sits under Reels in HushGram settings and starts off. Tap a reel's author, open their Reels tab, and it scrolls to that reel and outlines it. Asked for in #30.
 
 * **Instagram - Open developer options:** MetaConfig now shows flag names from piko's Instagram 447 list instead of numbers, with no import. Use HushGram's setting names, under Developer in HushGram settings, turns it off. Asked for in #91.

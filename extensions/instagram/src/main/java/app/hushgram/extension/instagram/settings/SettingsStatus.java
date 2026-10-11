@@ -181,6 +181,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean launchScreen() {
+        return false;
+    }
+
     public static boolean notificationGroups() {
         return false;
     }

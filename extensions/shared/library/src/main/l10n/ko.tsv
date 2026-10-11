@@ -761,6 +761,9 @@ Red	빨간색
 Orange	주황색
 Green	초록색
 Teal	청록색
+# context: Layout switch; it puts HushGram's logo on the screen Android shows while Instagram starts
+HushGram launch screen	HushGram 시작 화면
+Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.	Instagram이 시작되는 동안 보이는 화면에 Instagram 로고 대신 HushGram 로고를 표시합니다. Android 13 이상에서 작동하며, 다음 시작부터 적용됩니다.
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	동영상 커버 다운로드
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	동영상이 있는 피드 게시물과 동영상을 보여 주는 캐러셀의 메뉴에 커버 다운로드를 추가합니다. 동영상이 재생되기 전에 보이는 정지 이미지를 가장 큰 크기로 저장합니다.

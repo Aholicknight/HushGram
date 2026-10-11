@@ -762,6 +762,9 @@ Red	Kırmızı
 Orange	Turuncu
 Green	Yeşil
 Teal	Camgöbeği
+# context: Layout switch; it puts HushGram's logo on the screen Android shows while Instagram starts
+HushGram launch screen	HushGram açılış ekranı
+Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.	Instagram açılırken gördüğün ekranda Instagram'ın logosu yerine HushGram'ın logosunu gösterir. Android 13 ve sonrasında çalışır. Bir sonraki açılıştan itibaren görünür.
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	Video kapaklarını indir
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Videolu bir akış gönderisinin ve video gösteren bir karuselin menüsüne Kapağı indir ekler. Video oynatılmadan önce görünen hareketsiz görüntüyü en büyük boyutunda kaydeder.

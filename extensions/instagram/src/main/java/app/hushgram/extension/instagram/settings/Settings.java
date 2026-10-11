@@ -786,6 +786,14 @@ public class Settings extends BaseSettings {
                     app.hushgram.extension.instagram.misc.AccentHue.PURPLE, true, parent(ACCENT_COLOR));
 
     /**
+     * HushGram's logo on the screen Android shows while Instagram starts, on Android 13 and newer
+     * ({@link app.hushgram.extension.instagram.misc.LaunchScreen}). Android keeps the answer, so a
+     * change shows from the next start. Off to start.
+     */
+    public static final BooleanSetting LAUNCH_SCREEN =
+            new BooleanSetting("hushgram_launch_screen", FALSE, true);
+
+    /**
      * Every notification Instagram posts joins one group with a count
      * ({@link app.hushgram.extension.instagram.misc.NotificationGroups}). Read at each post. Off to
      * start.

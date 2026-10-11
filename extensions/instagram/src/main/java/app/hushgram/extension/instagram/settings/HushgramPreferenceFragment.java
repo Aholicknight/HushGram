@@ -1017,7 +1017,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         if (build.contains(PatchFamily.BOTTOM_SPACE) || build.contains(PatchFamily.EMOJI_STYLE)
-                || build.contains(PatchFamily.ACCENT_COLOR)) {
+                || build.contains(PatchFamily.ACCENT_COLOR) || build.contains(PatchFamily.LAUNCH_SCREEN)) {
             PreferenceCategory layout = category(screen, L10n.t("Layout"));
             if (build.contains(PatchFamily.BOTTOM_SPACE)) {
                 layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE, L10n.t("Remove the empty space at the bottom"),
@@ -1035,6 +1035,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("Turns Instagram's blue, on Follow buttons, links and the like, into the color you "
                                 + "pick below. Restart Instagram to see the change.")));
                 layout.addPreference(accentHueRow(context));
+            }
+            if (build.contains(PatchFamily.LAUNCH_SCREEN)) {
+                layout.addPreference(toggle(context, Settings.LAUNCH_SCREEN, L10n.t("HushGram launch screen"),
+                        L10n.t("Shows HushGram's logo instead of Instagram's on the screen you see while Instagram "
+                                + "starts, on Android 13 and newer. It shows from the next start.")));
             }
         }
 

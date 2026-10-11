@@ -67,6 +67,7 @@ public final class FamilyNames {
     public static final String STOP_HEARTBEAT = "Stop background wake-ups";
     public static final String EMOJI_STYLE = "Emoji style";
     public static final String ACCENT_COLOR = "Accent color";
+    public static final String LAUNCH_SCREEN = "HushGram launch screen";
     public static final String NOTIFICATION_GROUPS = "Group Instagram's notifications";
     public static final String HDR_BOOST = "Turn off HDR brightness boosts";
     public static final String MEDIA_CACHE = "Clear the media cache";
