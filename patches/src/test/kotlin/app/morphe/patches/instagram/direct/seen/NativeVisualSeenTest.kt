@@ -29,7 +29,6 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 
@@ -75,11 +74,7 @@ class NativeVisualSeenTest {
     @Test fun nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueue() = fixtures { bundle -> nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOn(bundle) }
 
     @Test fun nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOnTheOtherBuildsToo() =
-        otherBuilds(except = "385611400") { bundle -> nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOn(bundle) }
-
-    @Ignore("385611400: findVisualSeen resolves the handler, but assertUploadedDelayIsZero finds no matching instruction in the delay descriptor or the registry method, so the uploaded-task retention check has nothing to read there")
-    @Test fun nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOnBuild385611400Too() =
-        otherBuilds(only = "385611400") { bundle -> nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOn(bundle) }
+        otherBuilds { bundle -> nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOn(bundle) }
 
     private fun nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOn(bundle: File) {
         val classes = nativeClasses(bundle)
@@ -269,7 +264,12 @@ class NativeVisualSeenTest {
             error("queue status switch did not terminate")
         }
 
-        /** The descriptor retains uploaded tasks only if its explicit retention flag is true. */
+        /**
+         * The descriptor retains uploaded tasks only if its explicit retention flag is true. The
+         * retained delay is a static final long, which 385611438 reads with an sget-wide and
+         * 385611400's Redex folds into the constant itself (a const-wide/32 of a day), so either
+         * write is the retention's.
+         */
         internal fun assertUploadedDelayIsZero(registry: Method, classes: Map<String, ClassDef>, delay: MethodReference, marker: String = VISUAL_MUTATION) {
             val descriptorClass = classes.getValue(delay.definingClass)
             val constructor = descriptorClass.methods.single { it.name == "<init>" }
@@ -281,7 +281,11 @@ class NativeVisualSeenTest {
             val low = boxed.namedRegisters().first()
             val zero = code.indices.single { code[it].opcode == Opcode.CONST_WIDE_16 && (code[it] as OneRegisterInstruction).registerA == low }
             assertEquals(0L, (code[zero] as WideLiteralInstruction).wideLiteral)
-            val retention = code.indices.single { code[it].opcode == Opcode.SGET_WIDE && (code[it] as OneRegisterInstruction).registerA == low }
+            val retention = code.indices.single {
+                it != zero && code[it].opcode.setsWideRegister() && (code[it] as? OneRegisterInstruction)?.registerA == low
+            }
+            assertTrue("the retained delay is a static or a constant", code[retention].opcode == Opcode.SGET_WIDE || code[retention] is WideLiteralInstruction)
+            (code[retention] as? WideLiteralInstruction)?.let { assertTrue("the retained delay is not zero", it.wideLiteral != 0L) }
             assertEquals(Opcode.IF_EQZ, code[retention - 1].opcode)
             assertEquals(Opcode.IGET_BOOLEAN, code[retention - 2].opcode)
             val flag = (code[retention - 2].visualReference() as FieldReference).toString()
