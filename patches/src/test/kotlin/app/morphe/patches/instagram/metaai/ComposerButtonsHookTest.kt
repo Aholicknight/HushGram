@@ -50,6 +50,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class ComposerButtonsHookTest {
     @Test
@@ -181,37 +182,47 @@ class ComposerButtonsHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         var checked = 0
         for (version in versions) for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-            val holders = mutableListOf<ClassDef>()
-            FixtureDex.forEach(bundle) { dex ->
-                for (candidate in dex.classes) {
-                    val keep = candidate.methods.any { method ->
-                        val code = method.code()
-                        (method.name == "<clinit>" && code.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
-                            .containsAll(COMPOSER_BUTTON_NAMES)) ||
-                            code.any { (it as? NarrowLiteralInstruction)?.narrowLiteral in COMPOSER_BUTTON_IDS } ||
-                            (method.parameterTypes.size == 3 && method.parameterTypes.last().toString() == "Z" &&
-                                method.returnType == "V" && (code.firstOrNull() as? ReferenceInstruction)?.reference.let {
-                                    it is MethodReference && it.returnType == VIEW
-                                })
-                    }
-                    if (keep) holders += ImmutableClassDef.of(candidate)
-                }
-            }
-            val context = PatchContexts.of(holders)
-            val site = context.findComposerButtonVisibility()
-            val original = holders.single { it.type == site.type }.methods.single {
-                it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
-            }
-            context.holdComposerButtons(site)
-            val patched = context.mutableClassDefBy(site.type).methods.single {
-                it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
-            }
-            assertGuard(patched)
-            assertNativeBody(original, patched)
-            assertOtherMethods(holders, context, site)
+            builds(bundle, bundle.name)
             checked++
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildUsesItsNativeComposerHidePathToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (candidate in dex.classes) {
+                val keep = candidate.methods.any { method ->
+                    val code = method.code()
+                    (method.name == "<clinit>" && code.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
+                        .containsAll(COMPOSER_BUTTON_NAMES)) ||
+                        code.any { (it as? NarrowLiteralInstruction)?.narrowLiteral in COMPOSER_BUTTON_IDS } ||
+                        (method.parameterTypes.size == 3 && method.parameterTypes.last().toString() == "Z" &&
+                            method.returnType == "V" && (code.firstOrNull() as? ReferenceInstruction)?.reference.let {
+                                it is MethodReference && it.returnType == VIEW
+                            })
+                }
+                if (keep) holders += ImmutableClassDef.of(candidate)
+            }
+        }
+        val context = PatchContexts.of(holders)
+        val site = context.findComposerButtonVisibility()
+        val original = holders.single { it.type == site.type }.methods.single {
+            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
+        }
+        context.holdComposerButtons(site)
+        val patched = context.mutableClassDefBy(site.type).methods.single {
+            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
+        }
+        assertGuard(patched)
+        assertNativeBody(original, patched)
+        assertOtherMethods(holders, context, site)
     }
 
     private fun refuses(extra: ClassDef? = null, replace: ClassDef? = null) {

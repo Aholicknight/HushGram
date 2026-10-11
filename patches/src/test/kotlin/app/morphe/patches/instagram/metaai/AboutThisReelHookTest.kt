@@ -42,6 +42,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * About this reel (#42): every menu's ask for the summary answers through the extension, and the
@@ -154,58 +155,68 @@ class AboutThisReelHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val kept = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        val code = classDef.methods.flatMap { it.instructions() }
-                        val loadsFlag = code.any { (it as? WideLiteralInstruction)?.wideLiteral == SUMMARY_FLAG }
-                        val holdsRowString = code.any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string in SUMMARY_ROW_STRINGS }
-                        val asksAFactory = code.any { instruction ->
-                            val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
-                            (instruction.opcode == Opcode.INVOKE_STATIC || instruction.opcode == Opcode.INVOKE_STATIC_RANGE) &&
-                                call?.parameterTypes?.map(CharSequence::toString) == FACTORY_SHAPE && call.returnType == call.definingClass
-                        }
-                        if (loadsFlag || holdsRowString || asksAFactory) kept += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val context = PatchContexts.of(kept)
-
-                val summary = context.findAboutSummaryCalls()
-                val site = context.findAskMetaAiBox()
-                // Every call of the factory in the kept classes, counted apart from the patch's own search.
-                val asks = kept.sumOf { classDef ->
-                    classDef.methods.sumOf { method ->
-                        method.instructions().count { instruction ->
-                            val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
-                            call != null && call.definingClass == summary.factory && call.returnType == summary.factory &&
-                                call.parameterTypes.map(CharSequence::toString) == FACTORY_SHAPE
-                        }
-                    }
-                }
-                assertTrue("${bundle.name}: the menus asking for the summary", asks >= 3)
-                assertEquals("${bundle.name}: every ask found", asks, summary.calls.size)
-                val callers = summary.calls.map { Triple(it.type, it.name, it.parameters) }.toSet()
-                assertTrue("${bundle.name}: a menu that also adds the Ask box", Triple(site.type, site.name, site.parameters) !in callers)
-                val row = context.mutableClassDefBy(site.type).methods.single {
-                    it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
-                }
-                val box = (row.instructions()[site.addView] as FiveRegisterInstruction).registerD
-
-                context.dropAboutSummary(summary)
-                context.holdAskMetaAiBox(site)
-
-                for (call in callers) {
-                    val method = context.mutableClassDefBy(call.first).methods.single {
-                        it.name == call.second && it.parameterTypes.map(CharSequence::toString) == call.third
-                    }
-                    val count = summary.calls.count { Triple(it.type, it.name, it.parameters) == call }
-                    assertPassedThrough("${bundle.name} ${call.first}->${call.second}", method, count, summary.factory)
-                }
-                assertBoxHeld("${bundle.name} ${site.type}->${site.name}", row, box)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildAnswersAboutThisReelAndItsAskBoxToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val kept = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                val code = classDef.methods.flatMap { it.instructions() }
+                val loadsFlag = code.any { (it as? WideLiteralInstruction)?.wideLiteral == SUMMARY_FLAG }
+                val holdsRowString = code.any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string in SUMMARY_ROW_STRINGS }
+                val asksAFactory = code.any { instruction ->
+                    val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+                    (instruction.opcode == Opcode.INVOKE_STATIC || instruction.opcode == Opcode.INVOKE_STATIC_RANGE) &&
+                        call?.parameterTypes?.map(CharSequence::toString) == FACTORY_SHAPE && call.returnType == call.definingClass
+                }
+                if (loadsFlag || holdsRowString || asksAFactory) kept += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(kept)
+
+        val summary = context.findAboutSummaryCalls()
+        val site = context.findAskMetaAiBox()
+        // Every call of the factory in the kept classes, counted apart from the patch's own search.
+        val asks = kept.sumOf { classDef ->
+            classDef.methods.sumOf { method ->
+                method.instructions().count { instruction ->
+                    val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+                    call != null && call.definingClass == summary.factory && call.returnType == summary.factory &&
+                        call.parameterTypes.map(CharSequence::toString) == FACTORY_SHAPE
+                }
+            }
+        }
+        assertTrue("$label: the menus asking for the summary", asks >= 3)
+        assertEquals("$label: every ask found", asks, summary.calls.size)
+        val callers = summary.calls.map { Triple(it.type, it.name, it.parameters) }.toSet()
+        assertTrue("$label: a menu that also adds the Ask box", Triple(site.type, site.name, site.parameters) !in callers)
+        val row = context.mutableClassDefBy(site.type).methods.single {
+            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
+        }
+        val box = (row.instructions()[site.addView] as FiveRegisterInstruction).registerD
+
+        context.dropAboutSummary(summary)
+        context.holdAskMetaAiBox(site)
+
+        for (call in callers) {
+            val method = context.mutableClassDefBy(call.first).methods.single {
+                it.name == call.second && it.parameterTypes.map(CharSequence::toString) == call.third
+            }
+            val count = summary.calls.count { Triple(it.type, it.name, it.parameters) == call }
+            assertPassedThrough("$label ${call.first}->${call.second}", method, count, summary.factory)
+        }
+        assertBoxHeld("$label ${site.type}->${site.name}", row, box)
     }
 
     /** Each ask's move-result is followed by the hook on its register, the answer back in it, and the cast to the factory's class. */

@@ -50,6 +50,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class InboxRowHookTest {
     @Test
@@ -122,29 +123,39 @@ class InboxRowHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         var checked = 0
         for (version in versions) for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-            val holders = mutableListOf<ClassDef>()
-            FixtureDex.forEach(bundle) { dex -> for (owner in dex.classes) {
-                if (owner.methods.any { method -> method.code().any { instruction ->
-                    ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string in
-                        listOf(INBOX_ROW_RENDER_MARKER, INBOX_ROW_ITEM_MARKER, INBOX_SECTION_MARKER)
-                } }) holders += ImmutableClassDef.of(owner)
-            } }
-            val context = PatchContexts.of(holders)
-            val site = context.findOptionalInboxRow()
-            // Include native factories that register the model without retained source strings.
-            FixtureDex.forEach(bundle) { dex -> for (owner in dex.classes) {
-                if (holders.none { it.type == owner.type } && owner.methods.any { method -> method.code().any {
-                    it.opcode == Opcode.CONST_CLASS && it.referenceText() == site.model
-                } }) holders += ImmutableClassDef.of(owner)
-            } }
-            val fullContext = PatchContexts.of(holders)
-            val fullSite = fullContext.findOptionalInboxRow()
-            fullContext.holdOptionalInboxRow(fullSite)
-            assertGuard(fullContext.method(fullSite), fullSite)
-            assertNativeMethods(holders, fullContext, fullSite)
+            builds(bundle, bundle.name)
             checked++
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildUsesOnlyItsNativeOptionalInboxRowToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex -> for (owner in dex.classes) {
+            if (owner.methods.any { method -> method.code().any { instruction ->
+                ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string in
+                    listOf(INBOX_ROW_RENDER_MARKER, INBOX_ROW_ITEM_MARKER, INBOX_SECTION_MARKER)
+            } }) holders += ImmutableClassDef.of(owner)
+        } }
+        val context = PatchContexts.of(holders)
+        val site = context.findOptionalInboxRow()
+        // Include native factories that register the model without retained source strings.
+        FixtureDex.forEach(bundle) { dex -> for (owner in dex.classes) {
+            if (holders.none { it.type == owner.type } && owner.methods.any { method -> method.code().any {
+                it.opcode == Opcode.CONST_CLASS && it.referenceText() == site.model
+            } }) holders += ImmutableClassDef.of(owner)
+        } }
+        val fullContext = PatchContexts.of(holders)
+        val fullSite = fullContext.findOptionalInboxRow()
+        fullContext.holdOptionalInboxRow(fullSite)
+        assertGuard(fullContext.method(fullSite), fullSite)
+        assertNativeMethods(holders, fullContext, fullSite)
     }
 
     private fun refuses(extra: ClassDef? = null, replace: ClassDef? = null) {
