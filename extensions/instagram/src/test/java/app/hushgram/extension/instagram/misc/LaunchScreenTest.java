@@ -47,6 +47,8 @@ public class LaunchScreenTest {
     private static final class FakeSplash implements LaunchScreen.Splash {
         int theme = THEME;
         RuntimeException failure;
+        /** Runs while Android is being told, as the activity going away at that moment would. */
+        Runnable whileTelling;
         final List<Integer> told = new ArrayList<>();
 
         @Override public int theme(Activity activity) {
@@ -56,6 +58,7 @@ public class LaunchScreenTest {
         @Override public void use(Activity activity, int theme) {
             if (failure != null) throw failure;
             told.add(theme);
+            if (whileTelling != null) whileTelling.run();
         }
     }
 
@@ -225,6 +228,32 @@ public class LaunchScreenTest {
         splash.failure = null;
         assertTrue(LaunchScreen.follow(activity));
         assertEquals(Collections.singletonList(THEME), splash.told);
+    }
+
+    /**
+     * Android ignores the call for an activity that's gone, so an activity destroyed while Android
+     * is told keeps nothing and counts nothing, and the next activity to resume tells it again. One
+     * already destroyed isn't used at all.
+     */
+    @Test
+    public void anActivityGoneByTheEndOfTheCallIsToldAgain() {
+        Settings.LAUNCH_SCREEN.save(true);
+        splash.whileTelling = () -> controller.pause().stop().destroy();
+
+        assertFalse(LaunchScreen.follow(activity));
+        assertEquals(Collections.singletonList(THEME), splash.told);
+        assertFalse(Utils.getContext().getSharedPreferences(LaunchScreen.STORE, Context.MODE_PRIVATE)
+                .contains(LaunchScreen.APPLIED));
+        assertFalse(HookStatus.report().toString().contains(LaunchScreen.SET));
+
+        splash.whileTelling = null;
+        assertFalse("a destroyed activity isn't used", LaunchScreen.follow(activity));
+        assertEquals(Collections.singletonList(THEME), splash.told);
+
+        controller = Robolectric.buildActivity(Activity.class).setup();
+        assertTrue(LaunchScreen.follow(controller.get()));
+        assertEquals(List.of(THEME, THEME), splash.told);
+        assertFalse(LaunchScreen.follow(controller.get()));
     }
 
     /** Before settings can be read, nothing is asked or counted. */

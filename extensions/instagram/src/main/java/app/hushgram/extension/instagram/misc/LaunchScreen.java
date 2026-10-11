@@ -42,8 +42,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * will do: the switch as saved, unless that start runs paused (the Pause switch, safe mode or the marker
  * file). What Android was last told is kept in {@link #STORE}, so a start with nothing to change asks
  * Android for nothing. With the switch on, each process tells Android once anyway, in case it lost the
- * answer. A build without the theme, Android 12 and older, or anything thrown leaves Instagram's own
- * screen.
+ * answer. Android ignores the call for an activity that's already gone, so an answer counts as given
+ * only when the activity outlived the call. A build without the theme, Android 12 and older, or
+ * anything thrown leaves Instagram's own screen.
  */
 public final class LaunchScreen {
     /** The theme the patch adds next to Instagram's launch theme. */
@@ -130,8 +131,12 @@ public final class LaunchScreen {
                 // HushGram's theme is handed over once in every process, in case Android lost it.
                 // Instagram's own is handed back only when Android may still hold HushGram's.
                 boolean unchanged = applied != null && applied == wanted && (!wanted || toldThisProcess);
-                if (unchanged) return false;
+                if (unchanged || activity.isDestroyed()) return false;
                 splash.use(activity, theme);
+                // Android drops the call without a word once the activity is gone, and marks it
+                // destroyed before it lets go of it, so the answer is kept only when the activity
+                // was still there after the call. Otherwise the next resume tells Android again.
+                if (activity.isDestroyed()) return false;
                 applied = wanted;
                 toldThisProcess = true;
                 store.edit().putBoolean(APPLIED, wanted).apply();
