@@ -1059,7 +1059,26 @@ tasks.register("verifyAndroidBoundaries") {
                 "callerAndSelfPackageRecordsMustAgreeWithTheirUids[28]", "callerAndSelfPackageRecordsMustAgreeWithTheirUids[37]",
                 "aCallerInAnotherAndroidUserIsRefused[28]", "aCallerInAnotherAndroidUserIsRefused[37]",
                 "oldSignatureArraysAndUnreadableCurrentSignersEarnNoTrust[28]", "oldSignatureArraysAndUnreadableCurrentSignersEarnNoTrust[37]",
-                "missingPackagesAndContextFailuresKeepTheNativeDecision[28]", "missingPackagesAndContextFailuresKeepTheNativeDecision[37]")
+                "missingPackagesAndContextFailuresKeepTheNativeDecision[28]", "missingPackagesAndContextFailuresKeepTheNativeDecision[37]"),
+            "app.hushgram.extension.instagram.download.HoldDownloadTest" to listOf(
+                "aTwoFingerHoldPastTheTimeSavesOnceAndCancelsInstagramsGesture[28]", "aTwoFingerHoldPastTheTimeSavesOnceAndCancelsInstagramsGesture[37]",
+                "releasedEarlyDoesNothing[28]", "releasedEarlyDoesNothing[37]",
+                "oneFingerNeverTriggers[28]", "oneFingerNeverTriggers[37]",
+                "aThirdFingerOrAMovePastTheTouchSlopCancels[28]", "aThirdFingerOrAMovePastTheTouchSlopCancels[37]",
+                "aLateSecondFingerAFingerOffThePostOrASlidFirstFingerDoNothing[28]", "aLateSecondFingerAFingerOffThePostOrASlidFirstFingerDoNothing[37]",
+                "threeFingersAndTheTimeAreTheChosenOnes[28]", "threeFingersAndTheTimeAreTheChosenOnes[37]",
+                "aReelSavesWhatItsDetectorKeepsAndNeedsDownloadOnReels[28]", "aReelSavesWhatItsDetectorKeepsAndNeedsDownloadOnReels[37]",
+                "offPausedOrNotReadyWatchNothing[28]", "offPausedOrNotReadyWatchNothing[37]",
+                "turnedOffOrPausedTheWatcherStepsOut[28]", "turnedOffOrPausedTheWatcherStepsOut[37]",
+                "underAnotherWrapperItStaysAPassThroughAndWakesAgain[28]", "underAnotherWrapperItStaysAPassThroughAndWakesAgain[37]",
+                "losingTheWindowsFocusEndsAHold[28]", "losingTheWindowsFocusEndsAHold[37]",
+                "aSaveThatThrowsIsCountedNotThrown[28]", "aSaveThatThrowsIsCountedNotThrown[37]",
+                "aFeedVideoSavesThroughDownload[28]", "aFeedVideoSavesThroughDownload[37]",
+                "aFeedCarouselSavesThePageOnScreen[28]", "aFeedCarouselSavesThePageOnScreen[37]",
+                "aReelSavesThroughDownloadOnReels[28]", "aReelSavesThroughDownloadOnReels[37]",
+                "nothingToSaveSaysSo[28]", "nothingToSaveSaysSo[37]"),
+            "app.hushgram.extension.instagram.settings.DownloadSettingsTest" to listOf(
+                "holdToDownloadSitsUnderTheDownloadButtonWithItsTwoLists[28]", "holdToDownloadSitsUnderTheDownloadButtonWithItsTwoLists[37]")
         )
         val factory = javax.xml.parsers.DocumentBuilderFactory.newInstance()
         factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true)

@@ -73,6 +73,11 @@ public class DownloadSettingsTest {
         Settings.DOWNLOAD_REEL_COVER.resetToDefault();
         Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();
+        Settings.DOWNLOAD_PHOTOS.resetToDefault();
+        Settings.FEED_DOWNLOAD_BUTTON.resetToDefault();
+        Settings.HOLD_TO_DOWNLOAD.resetToDefault();
+        Settings.HOLD_FINGERS.resetToDefault();
+        Settings.HOLD_TIME.resetToDefault();
     }
 
     /** The reel switch sits in Reels, starts on, and says Instagram's menu comes back when it's off. */
@@ -297,6 +302,74 @@ public class DownloadSettingsTest {
             assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.DOWNLOAD_FEED_COVER.key));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_FEED_COVER.key));
         }
+    }
+
+    /**
+     * Hold to download sits right below the Download button, starts off and waits for Download feed
+     * videos or photos, as the button does. Its Fingers and Hold time lists follow it, start on two
+     * fingers and a second, wait for it, and go in a settings file with it. A build with only reel
+     * downloads has none of the three.
+     */
+    @Test
+    @Config(sdk = {28, 37})
+    public void holdToDownloadSitsUnderTheDownloadButtonWithItsTwoLists() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            int at = indexOfKey(rows, Settings.HOLD_TO_DOWNLOAD.key);
+            assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_BUTTON.key) + 1, at);
+            SwitchPreference hold = (SwitchPreference) rows.get(at);
+            assertEquals("Hold to download", String.valueOf(hold.getTitle()));
+            assertTrue(String.valueOf(hold.getSummary()).contains("Needs Download feed videos or photos"));
+            assertFalse("it starts off", hold.isChecked());
+            assertFalse("it waits for a download switch", hold.isEnabled());
+
+            assertTrue(rows.get(at + 1) instanceof HushgramPreferenceFragment.HoldFingersRow);
+            HushgramPreferenceFragment.HoldFingersRow fingers = (HushgramPreferenceFragment.HoldFingersRow) rows.get(at + 1);
+            assertTrue(rows.get(at + 2) instanceof HushgramPreferenceFragment.HoldTimeRow);
+            HushgramPreferenceFragment.HoldTimeRow time = (HushgramPreferenceFragment.HoldTimeRow) rows.get(at + 2);
+            assertEquals("Fingers", String.valueOf(fingers.getTitle()));
+            assertEquals(Arrays.asList("Two fingers", "Three fingers"), texts(fingers.getEntries()));
+            assertEquals("TWO", fingers.getValue());
+            assertEquals("Two fingers", String.valueOf(fingers.getSummary()));
+            assertEquals("Hold time", String.valueOf(time.getTitle()));
+            assertEquals(Arrays.asList("Half a second", "1 second", "1.5 seconds"), texts(time.getEntries()));
+            assertEquals("ONE_SECOND", time.getValue());
+            assertEquals("1 second", String.valueOf(time.getSummary()));
+            assertFalse("the lists wait for the switch", fingers.isEnabled());
+
+            ((SwitchPreference) rows.get(indexOfKey(rows, Settings.DOWNLOAD_PHOTOS.key))).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(hold.isEnabled());
+            hold.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(fingers.isEnabled());
+            assertTrue(time.isEnabled());
+            fingers.setValue("THREE");
+            time.setValue("HALF_SECOND");
+            ShadowLooper.idleMainLooper();
+            assertEquals(app.hushgram.extension.instagram.download.HoldFingers.THREE, Settings.HOLD_FINGERS.savedValue());
+            assertEquals(app.hushgram.extension.instagram.download.HoldTime.HALF_SECOND, Settings.HOLD_TIME.savedValue());
+            assertEquals("Three fingers", String.valueOf(fingers.getSummary()));
+            assertEquals("Half a second", String.valueOf(time.getSummary()));
+            for (String key : List.of(Settings.HOLD_TO_DOWNLOAD.key, Settings.HOLD_FINGERS.key, Settings.HOLD_TIME.key)) {
+                assertTrue(key, ConfigurationBackup.eligible().containsKey(key));
+            }
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            for (String key : List.of(Settings.HOLD_TO_DOWNLOAD.key, Settings.HOLD_FINGERS.key, Settings.HOLD_TIME.key)) {
+                assertEquals(key, -1, indexOfKey(rows, key));
+                assertFalse(key, ConfigurationBackup.eligible().containsKey(key));
+            }
+        }
+    }
+
+    private static List<String> texts(CharSequence[] entries) {
+        List<String> texts = new ArrayList<>();
+        for (CharSequence entry : entries) texts.add(String.valueOf(entry));
+        return texts;
     }
 
     /** Folder per account sits under the folder and the file name, starts off and goes in a settings file. */
