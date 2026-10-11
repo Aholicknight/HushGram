@@ -456,6 +456,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_FEED_SURVEYS =
             new BooleanSetting("hushgram_hide_feed_surveys", TRUE);
 
+    /**
+     * The "Are you interested in this post?" bubble with Not interested and Interested buttons that
+     * Instagram adds under a post in Home's feed. Left out, never answered. Off to start.
+     */
+    public static final BooleanSetting HIDE_FEED_INTEREST =
+            new BooleanSetting("hushgram_hide_feed_interest", FALSE);
+
     /** The rows of products and live shopping in the home feed. */
     public static final BooleanSetting HIDE_FEED_SHOPPING =
             new BooleanSetting("hushgram_hide_feed_shopping", TRUE);

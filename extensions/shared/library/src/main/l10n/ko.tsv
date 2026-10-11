@@ -958,3 +958,5 @@ The PINs don't match.	PIN이 서로 다릅니다.
 Could not save the PIN.	PIN을 저장하지 못했습니다.
 The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN은 복구할 수 없습니다. 없애려면 Android 앱 설정에서 Instagram 저장소를 지우세요. 로그아웃되고 HushGram 설정이 초기화됩니다. 저장해 둔 설정 백업으로 나머지는 되돌릴 수 있지만 PIN은 돌아오지 않습니다.
 Open app info	앱 정보 열기
+Hide 'Are you interested' questions	'이 게시물에 관심이 있으신가요?' 질문 숨기기
+Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	게시물 아래에 '이 게시물에 관심이 있으신가요?'라고 묻고 관심 없음과 관심 있음 버튼이 있는 말풍선을 숨깁니다. 대신 답해 주지는 않습니다.

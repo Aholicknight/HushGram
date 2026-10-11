@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 ### Features
 
 * **Instagram - Lock your messages:** New choice under Lock your messages, Unlock with. Pick HushGram PIN and a 4 to 8 digit PIN you set unlocks your messages, Lock all of Instagram, Locked chats and Hidden chats in place of your phone's lock, for when other people know your screen lock. The PIN stays on your phone and isn't in a backup. Five wrong tries in a row make it wait 30 seconds. The PIN can't be recovered, and your phone's lock can't reset it: turning a lock off, changing the PIN or how you unlock, and importing a backup all need the PIN, and Forgot PIN explains that clearing Instagram's storage is the only way to remove it. Phone lock stays the default and works as before. Asked for in #134.
+* **Instagram - Hide suggested posts:** New switch under Feed, Hide 'Are you interested' questions, off by default. It leaves out the bubble Instagram puts under a post in Home that asks "Are you interested in this post?" with Not interested and Interested buttons, and no blank row is left. Nothing is answered for you. Asked for in #131.
 
 * **Instagram - Clean up Reels:** New switch under Reels, Hide the Save button on reels, off by default. It takes the Save button, and the count under it, out of the column of buttons beside a reel, and the other buttons close up with no gap. It works on the Reels tab and on reels you open from Explore or a profile. Posts in your feed keep their Save button.
 

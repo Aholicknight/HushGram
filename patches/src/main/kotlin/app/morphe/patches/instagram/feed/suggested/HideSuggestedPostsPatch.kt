@@ -63,7 +63,8 @@ val hideSuggestedPostsPatch = bytecodePatch(
     name = "Hide suggested posts",
     description = "Removes posts from accounts you don't follow, suggested accounts, surveys and shopping rows " +
         "from Home. It also takes shop tiles out of Explore and the shopping bag off posts with tagged products. " +
-        "Posts from accounts you follow stay. Extra switches can also hide all videos, photos, carousels, posts " +
+        "Posts from accounts you follow stay. Extra switches can also hide the 'Are you interested in this post?' " +
+        "question, all videos, photos, carousels, posts " +
         "you've liked or posts from accounts you pick. A post's menu has Hide posts from this account to add one " +
         "to that list, and those posts leave Home on the next refresh. On by default. Turn it off in HushGram " +
         "settings > Feed.",
@@ -79,6 +80,8 @@ val hideSuggestedPostsPatch = bytecodePatch(
         // indicator moved stops the patch with Home's filter not yet written.
         val exploreShops = findExploreShopSections()
         val productTags = findProductTagIndicator()
+        // Where Home's row builder adds the "Are you interested in this post?" row, found with the rest.
+        val interest = findInterestQuestion()
         // Asking for For you's next page after a page the switches left short (#52), found before the
         // show check changes. A build without it waits for the scroll as Instagram has it.
         val nextPage = homeNextPageOrWarn()
@@ -89,6 +92,7 @@ val hideSuggestedPostsPatch = bytecodePatch(
         nextPage?.write(this)
         exploreShops.write(this)
         productTags.write(this)
+        interest.write(this)
         // The post type switches are found whole before their part changes anything, so a build
         // where Home's reads or a post's type moved gets the rest of the patch alone.
         homeFeedTypesOrWarn()?.let {

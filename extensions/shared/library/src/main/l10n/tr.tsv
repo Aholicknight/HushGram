@@ -959,3 +959,5 @@ The PINs don't match.	PIN'ler eşleşmiyor.
 Could not save the PIN.	PIN kaydedilemedi.
 The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN geri alınamaz. Kaldırmak için Android uygulama ayarlarında Instagram'ın depolamasını temizle. Bu, oturumunu kapatır ve HushGram ayarlarını sıfırlar. Kayıtlı bir ayar yedeği geri kalanı getirir, ama PIN'i getirmez.
 Open app info	Uygulama bilgisini aç
+Hide 'Are you interested' questions	'Bu gönderiyle ilgileniyor musun?' sorularını gizle
+Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	Bir gönderinin altında 'Bu gönderiyle ilgileniyor musun?' diye soran, İlgilenmiyorum ve İlgileniyorum düğmeleri olan balonu gizler. Senin yerine hiçbir şey yanıtlanmaz.

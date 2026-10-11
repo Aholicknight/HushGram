@@ -695,6 +695,13 @@ once-call Lapp/hushgram/extension/instagram/explore/ExploreShopping;->section(Lj
 # both schema names.
 once-call Lapp/hushgram/extension/instagram/feed/ProductTags;->indicator(I)I in instance (Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Lcom/instagram/feed/media/Media;)LX/*; holding itas-android ig4a-instagram-schema
 #
+# Hide 'Are you interested' questions asks FeedInterest once in Home's row builder, where its two
+# module checks meet and the question's row is about to be added, and a yes goes on to the builder's
+# return. The builder is the one instance method of the shape (adapter list, Object, Object)V that
+# holds both feed module names: the feed adapter's other builder takes three objects of its own
+# classes, so the shape tells them apart on all seven 450 builds.
+once-call Lapp/hushgram/extension/instagram/feed/FeedInterest;->hide()Z in instance (L*;Ljava/lang/Object;Ljava/lang/Object;)V holding feed_timeline feed_timeline_older
+#
 # Start Home on Following passes every read of the two flags behind Instagram's For you and
 # Following picker through flag(), and the saved feed's getter passes the name it read through
 # saved() once. The getter is the one instance method taking nothing and answering a String in the
