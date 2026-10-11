@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.feed.reels.FILTER
 import app.morphe.patches.instagram.feed.reels.filterParsedFeedItems
 import app.morphe.patches.instagram.feed.suggested.emptiedFeedEndPatch
 import app.morphe.patches.instagram.feed.suggested.hideSuggestedPostsPatch
+import app.morphe.patches.instagram.misc.analytics.loadsString
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -44,7 +45,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 
@@ -55,9 +55,6 @@ import java.io.File
  * hook it shares with Hide suggested posts goes in once.
  */
 class HideHomeFeedHookTest {
-    /** Other 450 builds whose item helper has no reader of the shop ad feed besides Home's. */
-    private val WITHOUT_SHOP_FEED_READER = setOf("385611395", "385611400", "385611440")
-
     private val json = "Lfixture/JsonParser;"
     private val response = "Lfixture/HomeFeedResponse;"
     private val store = "Lfixture/HomeFeedStore;"
@@ -207,20 +204,7 @@ class HideHomeFeedHookTest {
     /** The same checks on every other build of the version, each compiled on its own. */
     @Test
     fun eachOtherBuildFiltersOnlyHomesReadsToo() {
-        for (base in Fixtures.otherBuilds().filterNot { it.parentFile.name.substringAfterLast('-') in WITHOUT_SHOP_FEED_READER }) {
-            builds(otherBuild(base), base.parentFile.name)
-        }
-    }
-
-    @Ignore(
-        "385611395, 385611400, 385611440: Home's two reads are found and answered as on 385611438, but no reader holding " +
-            "XDTShopEverythingAdMediaResponse is among the item helper's other callers, so the shop ad feed's left-alone check has no reader",
-    )
-    @Test
-    fun eachOtherBuildLeavesTheShopAdFeedAloneToo() {
-        for (base in Fixtures.otherBuilds().filter { it.parentFile.name.substringAfterLast('-') in WITHOUT_SHOP_FEED_READER }) {
-            builds(otherBuild(base), base.parentFile.name)
-        }
+        for (base in Fixtures.otherBuilds()) builds(otherBuild(base), base.parentFile.name)
     }
 
     /** [FeedItemStandIns.fixtures] for one of the other builds, whose base APK is not a bundle. */
@@ -250,7 +234,8 @@ class HideHomeFeedHookTest {
             .map { ((it as ReferenceInstruction).reference as TypeReference).type }.toSet()
         val classes = (fixture.classes + cache + FixtureDex.classes(fixture.bundle, callers.map { it.definingClass }.toSet() + made).values)
             .distinctBy { it.type }
-        val context = PatchContexts.of(classes)
+        // The string pools come along so a reader whose name Redex pooled can be told by it.
+        val context = PatchContexts.of(FixtureDex.withStringPools(fixture.bundle, classes))
         val home = callers.filter { it.holds("pull_to_refresh_window_ms") || (it.definingClass in made && it.parameterTypes.map(Any::toString) == listOf("[B")) }
         assertEquals("$name: Home's response and store", 2, home.size)
         val homeReads = home.sumOf { m -> m.instructions().count { it.calls(helperRef) } }
@@ -269,8 +254,14 @@ class HideHomeFeedHookTest {
                 assertFalse(after.instructions().any { it.calls(HOME_FEED_FILTER) })
             }
         }
+        // Which strings Redex pools differs from build to build: 385611395, 385611400 and 385611440
+        // ask a string pool for the shop ad feed's "XDTShopEverythingAdMediaResponse", which
+        // 385611438 loads itself, so each reader is told by the string it loads either way.
         for (other in listOf("chain_pagination_token", "XDTContextualAdMediaResponse", "XDTShopEverythingAdMediaResponse")) {
-            assertTrue("$name: no reader holding $other among ${callers.map { it.definingClass }}", callers.any { it.holds(other) && it !in home })
+            assertTrue(
+                "$name: no reader holding $other among ${callers.map { it.definingClass }}",
+                callers.any { context.loadsString(it, other) && it !in home },
+            )
         }
         val helperAfter = context.mutableClassDefBy(fixture.itemType).methods.single {
             it.name == fixture.helper.name && it.parameterTypes.map(Any::toString) == fixture.helper.parameterTypes.map(Any::toString)
