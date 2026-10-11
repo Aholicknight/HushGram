@@ -44,8 +44,8 @@ public final class CompositionFixture {
     private static final String TYPE = "Lapp/hushgram/fixture/" +
             (Set.of("base", "conflict", "identical", "identical-debug").contains(MODE) ? "base" : "addon") + "/Bridge;";
     private static final Compatibility TARGET = target(
-            MODE.equals("wrong-version") ? "439.0.0.37.89" : "449.0.0.52.84",
-            MODE.equals("wrong-code") ? 385511870 : 385511871);
+            MODE.equals("wrong-version") ? "439.0.0.37.89" : "450.0.0.50.77",
+            MODE.equals("wrong-code") ? 385611437 : 385611438);
 
     private static Compatibility target(String version, int code) {
         return new Compatibility("com.instagram.android", "Instagram fixture", null, ApkFileType.APK, null, null,

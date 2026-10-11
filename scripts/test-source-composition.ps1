@@ -105,20 +105,20 @@ Check 'relative bundle paths belong to the selection file directory' {
     Assert ($r.Exit -eq 0 -and $r.Report.sources[0].identity.name -ceq 'Fixture base') $r.Text
 }
 Check 'incompatible version is attributed before any merge or patch' {
-    Refused (Run-Sources @($base, (Selection (Join-Path $scratch 'wrong-version.mpp') @('Compatible addon')))) '*Fixture wrong-version*439.0.0.37.89*not 449.0.0.52.84*'
+    Refused (Run-Sources @($base, (Selection (Join-Path $scratch 'wrong-version.mpp') @('Compatible addon')))) '*Fixture wrong-version*439.0.0.37.89*not 450.0.0.50.77*'
 }
 Check 'different code of the same version is refused' {
-    Refused (Run-Sources @($base, (Selection (Join-Path $scratch 'wrong-code.mpp') @('Compatible addon')))) '*385511870*not*385511871*'
+    Refused (Run-Sources @($base, (Selection (Join-Path $scratch 'wrong-code.mpp') @('Compatible addon')))) '*385611437*not*385611438*'
 }
 Check 'unrestricted native declarations stay allowed but missing targets stay unknown' {
     $source = [pscustomobject]@{ identity = [pscustomobject]@{ name = 'Metadata fixture'; version = '1'; sha256 = ('a' * 64) }
         patches = @([pscustomobject]@{ name = 'Example'; compatibility = $null }) }
-    Assert (Test-SelectedPatchTargets @($source) 'com.instagram.android' '449.0.0.52.84' '385511871').Valid 'A universal dependency was refused.'
+    Assert (Test-SelectedPatchTargets @($source) 'com.instagram.android' '450.0.0.50.77' '385611438').Valid 'A universal dependency was refused.'
     $source.patches[0].compatibility = @([pscustomobject]@{ packageName = 'com.instagram.android'; targets = @(
         [pscustomobject]@{ version = $null; versionCodes = [pscustomobject]@{} }) })
-    Assert (Test-SelectedPatchTargets @($source) 'com.instagram.android' '449.0.0.52.84' '385511871').Valid 'A native unrestricted AppTarget was refused.'
+    Assert (Test-SelectedPatchTargets @($source) 'com.instagram.android' '450.0.0.50.77' '385611438').Valid 'A native unrestricted AppTarget was refused.'
     $source.patches[0].compatibility[0].targets = @()
-    $verdict = Test-SelectedPatchTargets @($source) 'com.instagram.android' '449.0.0.52.84' '385511871'
+    $verdict = Test-SelectedPatchTargets @($source) 'com.instagram.android' '450.0.0.50.77' '385611438'
     Assert (-not $verdict.Valid -and $verdict.Reason -like '*unknown declared targets*') 'Missing targets were invented as version compatibility.'
 }
 Check 'a dependency cannot silently declare another host version' {
@@ -223,7 +223,10 @@ if ($HushBundle -and $OriginalApk) {
         Assert ($r.Exit -eq 0 -and $r.Report.patching.valid) $r.Text
         $selectedCount = @($r.Report.sources[0].patches | Where-Object { $_.selected }).Count
         # Desktop reports selected roots. Dependency execution is independently proved below.
-        Assert ($selectedCount -eq 92 -and $r.Report.patching.applied -eq 93) 'Actual composition did not apply all 92 HushGram patches and the addon root.'
+        # '*' selects every patch in the bundle, Install next to Instagram and the opt-in ones included,
+        # so the catalog's count is the expected one, plus the addon's root.
+        $catalogCount = @((Get-Content -LiteralPath (Join-Path $Root 'patches-list.json') -Raw | ConvertFrom-Json).patches).Count
+        Assert ($selectedCount -eq $catalogCount -and $r.Report.patching.applied -eq $catalogCount + 1) "Actual composition selected $selectedCount and applied $($r.Report.patching.applied), not all $catalogCount HushGram patches and the addon root."
         Assert (@($r.Report.sources[1].patches | Where-Object { -not $_.selected -and $_.name -ceq 'Fixture settings' }).Count -eq 1) 'Actual composition lost the addon dependency.'
         $out = Get-ChildItem -LiteralPath $r.Directory -Recurse -Filter 'patched-unsigned.apk' -File | Select-Object -First 1
         & $Java '-cp' "$DesktopJar$([IO.Path]::PathSeparator)$classes" 'CompositionFixture' 'assert' $out.FullName 'Lapp/hushgram/fixture/addon/Bridge;'
