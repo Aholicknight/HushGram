@@ -39,6 +39,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * View live anonymously: the live heartbeat manager's tick asks the extension first, right where it
@@ -90,23 +91,32 @@ class ViewLiveAnonymouslyHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = (FixtureDex.classesHolding(bundle, LIVE_WITH_ELIGIBILITY) +
-                    FixtureDex.classes(bundle, setOf(LIVE_HEARTBEAT_MANAGER)).values).distinctBy { it.type }
-                val context = PatchContexts.of(classes)
-                val site = context.findViewerHeartbeat()
-                val original = text(site.tick.instructions()[site.call])
-                holdViewerHeartbeat(site)
-                val code = site.tick.instructions()
-                assertHooked(bundle.name, code, site.tick.implementation!!.instructions.toList(), site.call)
-                assertEquals("${bundle.name}: the heartbeat call stays", original, text(code[site.call + 3]))
-                val calls = context.mutableClassDefBy(LIVE_HEARTBEAT_MANAGER).methods.sumOf { method ->
-                    method.instructions().count { (it as? ReferenceInstruction)?.reference?.toString() == HOLD_LIVE_HEARTBEAT }
-                }
-                assertEquals("${bundle.name}: hold calls in the manager", 1, calls)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    @Test
+    fun eachOtherBuildHoldsTheViewerHeartbeatToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val classes = (FixtureDex.classesHolding(bundle, LIVE_WITH_ELIGIBILITY) +
+            FixtureDex.classes(bundle, setOf(LIVE_HEARTBEAT_MANAGER)).values).distinctBy { it.type }
+        val context = PatchContexts.of(classes)
+        val site = context.findViewerHeartbeat()
+        val original = text(site.tick.instructions()[site.call])
+        holdViewerHeartbeat(site)
+        val code = site.tick.instructions()
+        assertHooked(label, code, site.tick.implementation!!.instructions.toList(), site.call)
+        assertEquals("${label}: the heartbeat call stays", original, text(code[site.call + 3]))
+        val calls = context.mutableClassDefBy(LIVE_HEARTBEAT_MANAGER).methods.sumOf { method ->
+            method.instructions().count { (it as? ReferenceInstruction)?.reference?.toString() == HOLD_LIVE_HEARTBEAT }
+        }
+        assertEquals("${label}: hold calls in the manager", 1, calls)
     }
 
     /** The patch refuses for the reason given, and nothing has changed. */

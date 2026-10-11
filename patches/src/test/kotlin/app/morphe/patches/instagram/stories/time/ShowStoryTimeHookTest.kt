@@ -33,6 +33,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class ShowStoryTimeHookTest {
     private val contextType = "Landroid/content/Context;"
@@ -109,42 +110,51 @@ class ShowStoryTimeHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                val askers = mutableListOf<Pair<String, String>>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.type == STORY_ITEM || classDef.methods.any { it.loadsTheFlag() }) holders += ImmutableClassDef.of(classDef)
-                        for (method in classDef.methods) {
-                            method.code().mapNotNull { it.reference() as? MethodReference }
-                                .filter { it.definingClass == STORY_ITEM && it.returnType == STRING && it.parameterTypes.map(CharSequence::toString) == listOf(contextType) }
-                                .forEach { askers += "${classDef.type}->${method.name}" to it.name }
-                        }
-                    }
-                }
-                val context = PatchContexts.of(holders)
-
-                val sites = context.findStoryTime()
-                context.showStoryTime(sites)
-
-                assertLabelAsks(bundle.name, context.mutableClassDefBy(STORY_ITEM).methods.single { it.name == sites.name && it.returnType == STRING }, sites.seconds)
-                val builder = context.mutableClassDefBy(sites.header.type).methods.single {
-                    it.name == sites.header.name && it.parameterTypes.map(CharSequence::toString) == sites.header.parameters
-                }
-                assertFlagAnswered(bundle.name, builder)
-                val callers = askers.filter { it.second == sites.name }.map { it.first }.distinct()
-                assertTrue("${bundle.name}: the header reading the flag asks for the label: $callers", "${sites.header.type}->${sites.header.name}" in callers)
-                assertEquals("${bundle.name}: what asks the story item for its label: $callers", 3, callers.size)
-                assertTrue(
-                    "${bundle.name}: your own story's viewer list asks too: $callers",
-                    callers.any { it.startsWith("Linstagram/features/stories/dashboard/fragment/ReelDashboardFragment;->") },
-                )
-                val written = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
-                    .filter { method -> method.code().any { it.referenceText() in hooks } }
-                assertEquals("${bundle.name}: methods hooked", 2, written.size)
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildShowsTheExactTimeToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        val askers = mutableListOf<Pair<String, String>>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.type == STORY_ITEM || classDef.methods.any { it.loadsTheFlag() }) holders += ImmutableClassDef.of(classDef)
+                for (method in classDef.methods) {
+                    method.code().mapNotNull { it.reference() as? MethodReference }
+                        .filter { it.definingClass == STORY_ITEM && it.returnType == STRING && it.parameterTypes.map(CharSequence::toString) == listOf(contextType) }
+                        .forEach { askers += "${classDef.type}->${method.name}" to it.name }
+                }
+            }
+        }
+        val context = PatchContexts.of(holders)
+
+        val sites = context.findStoryTime()
+        context.showStoryTime(sites)
+
+        assertLabelAsks(label, context.mutableClassDefBy(STORY_ITEM).methods.single { it.name == sites.name && it.returnType == STRING }, sites.seconds)
+        val builder = context.mutableClassDefBy(sites.header.type).methods.single {
+            it.name == sites.header.name && it.parameterTypes.map(CharSequence::toString) == sites.header.parameters
+        }
+        assertFlagAnswered(label, builder)
+        val callers = askers.filter { it.second == sites.name }.map { it.first }.distinct()
+        assertTrue("${label}: the header reading the flag asks for the label: $callers", "${sites.header.type}->${sites.header.name}" in callers)
+        assertEquals("${label}: what asks the story item for its label: $callers", 3, callers.size)
+        assertTrue(
+            "${label}: your own story's viewer list asks too: $callers",
+            callers.any { it.startsWith("Linstagram/features/stories/dashboard/fragment/ReelDashboardFragment;->") },
+        )
+        val written = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
+            .filter { method -> method.code().any { it.referenceText() in hooks } }
+        assertEquals("${label}: methods hooked", 2, written.size)
     }
 
     /**

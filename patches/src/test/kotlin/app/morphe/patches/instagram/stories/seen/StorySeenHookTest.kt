@@ -40,6 +40,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class StorySeenHookTest {
     /** The hooks the patch writes and the stubs it fills are in the extension the bundle ships, static. */
@@ -273,53 +274,62 @@ class StorySeenHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = fixtureClasses(bundle)
-                val found = PatchContexts.of(classes).findStorySeen()
-                assertEquals("${bundle.name}: the stories are a map of the batch", found.batch, found.reels.definingClass)
-                assertEquals("${bundle.name}: the binder's account", USER_SESSION, found.binderParameters[found.session])
-                assertEquals("${bundle.name}: the binder's story", REEL_ITEM, found.binderParameters[found.item])
-                assertEquals("${bundle.name}: the item view", VIEW, found.itemView.type)
-                val retry = found.retry ?: throw AssertionError("${bundle.name}: no retry found")
-
-                val context = PatchContexts.of(classes)
-                context.holdBackStoryViews()
-                val store = classes.single { it.type == found.store }
-                val before = store.methods.single { it.name == found.send && it.parameterTypes.map(Any::toString) == listOf(found.batch) }
-                val send = context.mutableClassDefBy(found.store).methods.single { it.name == found.send && it.parameterTypes.map(Any::toString) == listOf(found.batch) }
-                assertEquals("${bundle.name}: the send's size", before.code().size + 5, send.code().size)
-                assertSendHooked("${bundle.name}: the send", send, found.batch)
-                val retryBefore = store.methods.single { it.name == retry.name && it.parameterTypes.map(Any::toString) == retry.parameters }
-                val retryAfter = context.mutableClassDefBy(found.store).methods.single { it.name == retry.name && it.parameterTypes.map(Any::toString) == retry.parameters }
-                assertEquals("${bundle.name}: the native retry bridge stays unchanged", retryBefore.code().map { it.opcode to it.referenceText() }, retryAfter.code().map { it.opcode to it.referenceText() })
-                assertRetryHooked("${bundle.name}: the retry", retryAfter, found.batch, retry.build)
-                val binder = context.mutableClassDefBy(found.binder).methods.single { it.name == found.binderName && it.parameterTypes.map(Any::toString) == found.binderParameters }
-                assertHeaderHooked("${bundle.name}: the header binder", binder, found.session, found.item, found.holder)
-                assertStubsFilled(
-                    context, found.batch, found.reels.toString(), "${found.store}->${found.getter}($USER_SESSION)${found.store}",
-                    "${found.store}->${found.send}(${found.batch})V", "${found.sessionOwner}->${found.sessionGetter}()$USER_SESSION",
-                    found.itemView.toString(),
-                )
-                val hooked = mutableListOf<String>()
-                context.classDefForEach { classDef ->
-                    for (method in classDef.methods) {
-                        method.code().filter { it.referenceText() in HOOKS }.forEach { hooked += "${classDef.type}->${method.name} ${it.referenceText()}" }
-                    }
-                }
-                assertEquals(
-                    "${bundle.name}: the hooks are in the send, the retry and the binder, and nowhere else",
-                    setOf("${found.store}->${found.send} $TO_SEND", "${found.queue!!.owner}->${found.queue.run} $TO_RETRY",
-                        "${found.binder}->${found.binderName} $BIND_BUTTON"),
-                    hooked.toSet(),
-                )
-                assertEquals("${bundle.name}: one call of each hook", 3, hooked.size)
-
-                val binderClass = classes.single { it.type == found.binder }
-                assertRefused(classes + copyOf(binderClass, "Lfixture/SecondBinder;"), "story header binder")
-                assertRefused(classes.filter { it.type != REEL_ITEM }, "$REEL_ITEM isn't in this build")
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildHooksTheSendAndTheHeaderToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val classes = fixtureClasses(bundle)
+        val found = PatchContexts.of(classes).findStorySeen()
+        assertEquals("${label}: the stories are a map of the batch", found.batch, found.reels.definingClass)
+        assertEquals("${label}: the binder's account", USER_SESSION, found.binderParameters[found.session])
+        assertEquals("${label}: the binder's story", REEL_ITEM, found.binderParameters[found.item])
+        assertEquals("${label}: the item view", VIEW, found.itemView.type)
+        val retry = found.retry ?: throw AssertionError("${label}: no retry found")
+
+        val context = PatchContexts.of(classes)
+        context.holdBackStoryViews()
+        val store = classes.single { it.type == found.store }
+        val before = store.methods.single { it.name == found.send && it.parameterTypes.map(Any::toString) == listOf(found.batch) }
+        val send = context.mutableClassDefBy(found.store).methods.single { it.name == found.send && it.parameterTypes.map(Any::toString) == listOf(found.batch) }
+        assertEquals("${label}: the send's size", before.code().size + 5, send.code().size)
+        assertSendHooked("${label}: the send", send, found.batch)
+        val retryBefore = store.methods.single { it.name == retry.name && it.parameterTypes.map(Any::toString) == retry.parameters }
+        val retryAfter = context.mutableClassDefBy(found.store).methods.single { it.name == retry.name && it.parameterTypes.map(Any::toString) == retry.parameters }
+        assertEquals("${label}: the native retry bridge stays unchanged", retryBefore.code().map { it.opcode to it.referenceText() }, retryAfter.code().map { it.opcode to it.referenceText() })
+        assertRetryHooked("${label}: the retry", retryAfter, found.batch, retry.build)
+        val binder = context.mutableClassDefBy(found.binder).methods.single { it.name == found.binderName && it.parameterTypes.map(Any::toString) == found.binderParameters }
+        assertHeaderHooked("${label}: the header binder", binder, found.session, found.item, found.holder)
+        assertStubsFilled(
+            context, found.batch, found.reels.toString(), "${found.store}->${found.getter}($USER_SESSION)${found.store}",
+            "${found.store}->${found.send}(${found.batch})V", "${found.sessionOwner}->${found.sessionGetter}()$USER_SESSION",
+            found.itemView.toString(),
+        )
+        val hooked = mutableListOf<String>()
+        context.classDefForEach { classDef ->
+            for (method in classDef.methods) {
+                method.code().filter { it.referenceText() in HOOKS }.forEach { hooked += "${classDef.type}->${method.name} ${it.referenceText()}" }
+            }
+        }
+        assertEquals(
+            "${label}: the hooks are in the send, the retry and the binder, and nowhere else",
+            setOf("${found.store}->${found.send} $TO_SEND", "${found.queue!!.owner}->${found.queue.run} $TO_RETRY",
+                "${found.binder}->${found.binderName} $BIND_BUTTON"),
+            hooked.toSet(),
+        )
+        assertEquals("${label}: one call of each hook", 3, hooked.size)
+
+        val binderClass = classes.single { it.type == found.binder }
+        assertRefused(classes + copyOf(binderClass, "Lfixture/SecondBinder;"), "story header binder")
+        assertRefused(classes.filter { it.type != REEL_ITEM }, "$REEL_ITEM isn't in this build")
     }
 
     /**

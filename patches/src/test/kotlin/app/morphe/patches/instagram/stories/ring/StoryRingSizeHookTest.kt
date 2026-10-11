@@ -37,6 +37,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class StoryRingSizeHookTest {
     @Test
@@ -94,37 +95,46 @@ class StoryRingSizeHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { it.holdsTheSizes() }) holders += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val context = PatchContexts.of(holders.distinctBy { it.type })
-
-                val sizings = context.findRingSizes()
-                val originals = sizings.map { sizing ->
-                    context.mutableClassDefBy(sizing.type).methods.single {
-                        it.name == sizing.name && it.parameterTypes.map(CharSequence::toString) == sizing.parameters
-                    }
-                }.associateWith(::NeutralNativePath)
-                assertEquals("${bundle.name}: sizing methods", 3, sizings.size)
-                context.scaleRingSizes(sizings)
-                for (sizing in sizings) {
-                    val method = context.mutableClassDefBy(sizing.type).methods.single {
-                        it.name == sizing.name && it.parameterTypes.map(CharSequence::toString) == sizing.parameters
-                    }
-                    assertScaled("${bundle.name} ${sizing.type}->${sizing.name}", method)
-                    val added = method.implementation!!.instructions.toList().withIndex().flatMap { (at, instruction) ->
-                        if ((instruction as? ReferenceInstruction)?.reference?.toString() == RING_SIZE) listOf(at, at + 1)
-                        else emptyList()
-                    }.toSet()
-                    originals.getValue(method).assertPreserved(bundle.name, method, added)
-                }
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    @Test
+    fun eachOtherBuildScalesTheRowToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { it.holdsTheSizes() }) holders += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(holders.distinctBy { it.type })
+
+        val sizings = context.findRingSizes()
+        val originals = sizings.map { sizing ->
+            context.mutableClassDefBy(sizing.type).methods.single {
+                it.name == sizing.name && it.parameterTypes.map(CharSequence::toString) == sizing.parameters
+            }
+        }.associateWith(::NeutralNativePath)
+        assertEquals("${label}: sizing methods", 3, sizings.size)
+        context.scaleRingSizes(sizings)
+        for (sizing in sizings) {
+            val method = context.mutableClassDefBy(sizing.type).methods.single {
+                it.name == sizing.name && it.parameterTypes.map(CharSequence::toString) == sizing.parameters
+            }
+            assertScaled("${label} ${sizing.type}->${sizing.name}", method)
+            val added = method.implementation!!.instructions.toList().withIndex().flatMap { (at, instruction) ->
+                if ((instruction as? ReferenceInstruction)?.reference?.toString() == RING_SIZE) listOf(at, at + 1)
+                else emptyList()
+            }.toSet()
+            originals.getValue(method).assertPreserved(label, method, added)
+        }
     }
 
     /**

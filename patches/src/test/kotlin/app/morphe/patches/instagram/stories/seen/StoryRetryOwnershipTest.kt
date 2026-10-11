@@ -30,143 +30,205 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StoryRetryOwnershipTest {
-    @Test fun aCountThatErasesPendingItemsRefusesBeforeMutation() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val owner = classes.single { it.type == found.queue!!.owner }
-        val run = owner.methods.single { it.name == found.queue!!.run }
-        val count = run.call(2)
-        val pending = owner.methods.single { it.toString() == run.call(17).toString() }.reference(4)
-        val changed = storyQueueMethod(owner.type, count.name, emptyList(), "I", 2, """
-            iget-object v0, p0, $pending
-            invoke-virtual { v0 }, Ljava/util/AbstractMap;->clear()V
-            const/4 v0, 0x0
-            return v0
-        """)
-        val map = linkedMapOf("held" to "unmarked original")
-        map.clear()
-        assertTrue("the substituted count removes held items before the selector can run", map.isEmpty())
-        refused(replace(classes, owner, owner.methods.map { if (it.toString() == count.toString()) changed else it }))
+    @Test fun aCountThatErasesPendingItemsRefusesBeforeMutation() = forInputs(::aCountThatErasesPendingItemsRefusesBeforeMutationCheck)
+
+    @Test fun aCountThatErasesPendingItemsRefusesBeforeMutationOnEachOtherBuildToo() = forOtherInputs(::aCountThatErasesPendingItemsRefusesBeforeMutationCheck)
+
+    @Test fun anAccountGetterThatErasesPendingItemsRefusesBeforeMutation() = forInputs(::anAccountGetterThatErasesPendingItemsRefusesBeforeMutationCheck)
+
+    @Test fun anAccountGetterThatErasesPendingItemsRefusesBeforeMutationOnEachOtherBuildToo() = forOtherInputs(::anAccountGetterThatErasesPendingItemsRefusesBeforeMutationCheck)
+
+    @Test fun aCountCannotHideANativeOrAbstractBody() = forInputs(::aCountCannotHideANativeOrAbstractBodyCheck)
+
+    @Test fun aCountCannotHideANativeOrAbstractBodyOnEachOtherBuildToo() = forOtherInputs(::aCountCannotHideANativeOrAbstractBodyCheck)
+
+    @Test fun anAccountGetterCannotHideANativeOrAbstractBody() = forInputs(::anAccountGetterCannotHideANativeOrAbstractBodyCheck)
+
+    @Test fun anAccountGetterCannotHideANativeOrAbstractBodyOnEachOtherBuildToo() = forOtherInputs(::anAccountGetterCannotHideANativeOrAbstractBodyCheck)
+
+    @Test fun aNativeBridgeCannotEvadeQueueDiscoveryByDroppingItsDexBody() = forInputs(::aNativeBridgeCannotEvadeQueueDiscoveryByDroppingItsDexBodyCheck)
+
+    @Test fun aNativeBridgeCannotEvadeQueueDiscoveryByDroppingItsDexBodyOnEachOtherBuildToo() = forOtherInputs(::aNativeBridgeCannotEvadeQueueDiscoveryByDroppingItsDexBodyCheck)
+
+    @Test fun aSubclassOwnerAliasCannotCallTheFinalStoryBuilder() = forInputs(::aSubclassOwnerAliasCannotCallTheFinalStoryBuilderCheck)
+
+    @Test fun aSubclassOwnerAliasCannotCallTheFinalStoryBuilderOnEachOtherBuildToo() = forOtherInputs(::aSubclassOwnerAliasCannotCallTheFinalStoryBuilderCheck)
+
+    @Test fun aSubclassOwnerAliasCannotHideAnEncodedBuilderHandle() = forInputs(::aSubclassOwnerAliasCannotHideAnEncodedBuilderHandleCheck)
+
+    @Test fun aSubclassOwnerAliasCannotHideAnEncodedBuilderHandleOnEachOtherBuildToo() = forOtherInputs(::aSubclassOwnerAliasCannotHideAnEncodedBuilderHandleCheck)
+
+    @Test fun theConstructorMustCaptureItsAccountArgument() = forInputs(::theConstructorMustCaptureItsAccountArgumentCheck)
+
+    @Test fun theConstructorMustCaptureItsAccountArgumentOnEachOtherBuildToo() = forOtherInputs(::theConstructorMustCaptureItsAccountArgumentCheck)
+
+    @Test fun aUserIdGetterMustReadTheNativeFinalField() = forInputs(::aUserIdGetterMustReadTheNativeFinalFieldCheck)
+
+    @Test fun aUserIdGetterMustReadTheNativeFinalFieldOnEachOtherBuildToo() = forOtherInputs(::aUserIdGetterMustReadTheNativeFinalFieldCheck)
+
+    @Test fun theFinalStoreCannotReplaceTheSharedAccountGetter() = forInputs(::theFinalStoreCannotReplaceTheSharedAccountGetterCheck)
+
+    @Test fun theFinalStoreCannotReplaceTheSharedAccountGetterOnEachOtherBuildToo() = forOtherInputs(::theFinalStoreCannotReplaceTheSharedAccountGetterCheck)
+
+    @Test fun aCountCannotAliasItsTwoAccumulatedSizes() = forInputs(::aCountCannotAliasItsTwoAccumulatedSizesCheck)
+
+    @Test fun aCountCannotAliasItsTwoAccumulatedSizesOnEachOtherBuildToo() = forOtherInputs(::aCountCannotAliasItsTwoAccumulatedSizesCheck)
+
+    @Test fun thePreselectionAssertionMustUseTheSnapshotIterator() = forInputs(::thePreselectionAssertionMustUseTheSnapshotIteratorCheck)
+
+    @Test fun thePreselectionAssertionMustUseTheSnapshotIteratorOnEachOtherBuildToo() = forOtherInputs(::thePreselectionAssertionMustUseTheSnapshotIteratorCheck)
+
+    @Test fun assertionInitializationCannotRunBeforeSelection() = forInputs(::assertionInitializationCannotRunBeforeSelectionCheck)
+
+    @Test fun assertionInitializationCannotRunBeforeSelectionOnEachOtherBuildToo() = forOtherInputs(::assertionInitializationCannotRunBeforeSelectionCheck)
+
+    private fun aCountThatErasesPendingItemsRefusesBeforeMutationCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val owner = classes.single { it.type == found.queue!!.owner }
+    val run = owner.methods.single { it.name == found.queue!!.run }
+    val count = run.call(2)
+    val pending = owner.methods.single { it.toString() == run.call(17).toString() }.reference(4)
+    val changed = storyQueueMethod(owner.type, count.name, emptyList(), "I", 2, """
+        iget-object v0, p0, $pending
+        invoke-virtual { v0 }, Ljava/util/AbstractMap;->clear()V
+        const/4 v0, 0x0
+        return v0
+    """)
+    val map = linkedMapOf("held" to "unmarked original")
+    map.clear()
+    assertTrue("the substituted count removes held items before the selector can run", map.isEmpty())
+    refused(replace(classes, owner, owner.methods.map { if (it.toString() == count.toString()) changed else it }))
     }
 
-    @Test fun anAccountGetterThatErasesPendingItemsRefusesBeforeMutation() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val owner = classes.single { it.type == found.queue!!.owner }
-        val run = owner.methods.single { it.name == found.queue!!.run }
-        val pending = owner.methods.single { it.toString() == run.call(17).toString() }.reference(4)
-        val getter = owner.methods.single { it.name == found.sessionGetter && it.returnType == USER_SESSION }
-        val changed = storyQueueMethod(owner.type, getter.name, emptyList(), USER_SESSION, 2, """
-            iget-object v0, p0, $pending
-            invoke-virtual { v0 }, Ljava/util/AbstractMap;->clear()V
-            iget-object v0, p0, ${getter.reference(0)}
+    private fun anAccountGetterThatErasesPendingItemsRefusesBeforeMutationCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val owner = classes.single { it.type == found.queue!!.owner }
+    val run = owner.methods.single { it.name == found.queue!!.run }
+    val pending = owner.methods.single { it.toString() == run.call(17).toString() }.reference(4)
+    val getter = owner.methods.single { it.name == found.sessionGetter && it.returnType == USER_SESSION }
+    val changed = storyQueueMethod(owner.type, getter.name, emptyList(), USER_SESSION, 2, """
+        iget-object v0, p0, $pending
+        invoke-virtual { v0 }, Ljava/util/AbstractMap;->clear()V
+        iget-object v0, p0, ${getter.reference(0)}
+        return-object v0
+    """)
+    refused(replace(classes, owner, owner.methods.map { if (it == getter) changed else it }))
+    }
+
+    private fun aCountCannotHideANativeOrAbstractBodyCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val owner = classes.single { it.type == found.queue!!.owner }
+    val run = owner.methods.single { it.name == found.queue!!.run }
+    val count = owner.methods.single { it.toString() == run.call(2).toString() }
+    for (flag in listOf(AccessFlags.NATIVE, AccessFlags.ABSTRACT)) refused(flags(classes, count, count.accessFlags or flag.value))
+    }
+
+    private fun anAccountGetterCannotHideANativeOrAbstractBodyCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val owner = classes.single { it.type == found.queue!!.owner }
+    val getter = owner.methods.single { it.name == found.sessionGetter && it.returnType == USER_SESSION }
+    for (flag in listOf(AccessFlags.NATIVE, AccessFlags.ABSTRACT)) refused(flags(classes, getter, getter.accessFlags or flag.value))
+    }
+
+    private fun aNativeBridgeCannotEvadeQueueDiscoveryByDroppingItsDexBodyCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val store = classes.single { it.type == found.store }
+    val bridge = store.methods.single { it.name == found.retry!!.name }
+    val native = ImmutableMethod(bridge.definingClass, bridge.name, bridge.parameters, bridge.returnType,
+        bridge.accessFlags or AccessFlags.NATIVE.value, bridge.annotations, bridge.hiddenApiRestrictions, null)
+    refused(replace(classes, store, store.methods.map { if (it == bridge) native else it }))
+    }
+
+    private fun aSubclassOwnerAliasCannotCallTheFinalStoryBuilderCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
+    for (alias in listOf("Lfixture/StorySubclass;", "Lapp/hushgram/extension/instagram/stories/StorySubclass;")) {
+        val caller = storyQueueMethod(alias, "outside", listOf("Ljava/lang/Object;"), bridge.returnType, 3, """
+            invoke-virtual { p0, p1 }, $alias->${bridge.name}(Ljava/lang/Object;)${bridge.returnType}
+            move-result-object v0
             return-object v0
         """)
-        refused(replace(classes, owner, owner.methods.map { if (it == getter) changed else it }))
+        refused(classes + ImmutableClassDef(alias, AccessFlags.PUBLIC.value, found.store, null, null, null, null, listOf(caller)))
+    }
     }
 
-    @Test fun aCountCannotHideANativeOrAbstractBody() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val owner = classes.single { it.type == found.queue!!.owner }
-        val run = owner.methods.single { it.name == found.queue!!.run }
-        val count = owner.methods.single { it.toString() == run.call(2).toString() }
-        for (flag in listOf(AccessFlags.NATIVE, AccessFlags.ABSTRACT)) refused(flags(classes, count, count.accessFlags or flag.value))
+    private fun aSubclassOwnerAliasCannotHideAnEncodedBuilderHandleCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
+    for (alias in listOf("Lfixture/StoryHandleSubclass;", "Lapp/hushgram/extension/instagram/stories/StoryHandleSubclass;")) {
+        val handle = ImmutableMethodHandleReference(MethodHandleType.INVOKE_INSTANCE,
+            ImmutableMethodReference(alias, bridge.name, bridge.parameterTypes, bridge.returnType))
+        val field = ImmutableField(alias, "saved", "Ljava/lang/invoke/MethodHandle;",
+            AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value,
+            ImmutableMethodHandleEncodedValue(handle), null, null)
+        refused(classes + ImmutableClassDef(alias, AccessFlags.PUBLIC.value, found.store, null, null, null, listOf(field), null))
+    }
     }
 
-    @Test fun anAccountGetterCannotHideANativeOrAbstractBody() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val owner = classes.single { it.type == found.queue!!.owner }
-        val getter = owner.methods.single { it.name == found.sessionGetter && it.returnType == USER_SESSION }
-        for (flag in listOf(AccessFlags.NATIVE, AccessFlags.ABSTRACT)) refused(flags(classes, getter, getter.accessFlags or flag.value))
+    private fun theConstructorMustCaptureItsAccountArgumentCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val owner = classes.single { it.type == found.queue!!.owner }
+    val constructor = owner.methods.single { it.name == "<init>" }
+    refused(changed(classes, constructor, 1, "iput-object v0, p0, ${constructor.reference(1)}"))
     }
 
-    @Test fun aNativeBridgeCannotEvadeQueueDiscoveryByDroppingItsDexBody() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val store = classes.single { it.type == found.store }
-        val bridge = store.methods.single { it.name == found.retry!!.name }
-        val native = ImmutableMethod(bridge.definingClass, bridge.name, bridge.parameters, bridge.returnType,
-            bridge.accessFlags or AccessFlags.NATIVE.value, bridge.annotations, bridge.hiddenApiRestrictions, null)
-        refused(replace(classes, store, store.methods.map { if (it == bridge) native else it }))
+    private fun aUserIdGetterMustReadTheNativeFinalFieldCheck(classes: List<ClassDef>) {
+    val session = classes.single { it.type == USER_SESSION }
+    val getter = session.methods.single { it.name == "getUserId" && it.parameterTypes.isEmpty() }
+    refused(changed(classes, getter, 0, "const/4 v0, 0x0"))
     }
 
-    @Test fun aSubclassOwnerAliasCannotCallTheFinalStoryBuilder() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
-        for (alias in listOf("Lfixture/StorySubclass;", "Lapp/hushgram/extension/instagram/stories/StorySubclass;")) {
-            val caller = storyQueueMethod(alias, "outside", listOf("Ljava/lang/Object;"), bridge.returnType, 3, """
-                invoke-virtual { p0, p1 }, $alias->${bridge.name}(Ljava/lang/Object;)${bridge.returnType}
-                move-result-object v0
-                return-object v0
-            """)
-            refused(classes + ImmutableClassDef(alias, AccessFlags.PUBLIC.value, found.store, null, null, null, null, listOf(caller)))
-        }
+    private fun theFinalStoreCannotReplaceTheSharedAccountGetterCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val store = classes.single { it.type == found.store }
+    val shadow = storyQueueMethod(store.type, found.sessionGetter, emptyList(), USER_SESSION, 2, """
+        const/4 v0, 0x0
+        return-object v0
+    """)
+    refused(replace(classes, store, store.methods + shadow))
     }
 
-    @Test fun aSubclassOwnerAliasCannotHideAnEncodedBuilderHandle() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
-        for (alias in listOf("Lfixture/StoryHandleSubclass;", "Lapp/hushgram/extension/instagram/stories/StoryHandleSubclass;")) {
-            val handle = ImmutableMethodHandleReference(MethodHandleType.INVOKE_INSTANCE,
-                ImmutableMethodReference(alias, bridge.name, bridge.parameterTypes, bridge.returnType))
-            val field = ImmutableField(alias, "saved", "Ljava/lang/invoke/MethodHandle;",
-                AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value,
-                ImmutableMethodHandleEncodedValue(handle), null, null)
-            refused(classes + ImmutableClassDef(alias, AccessFlags.PUBLIC.value, found.store, null, null, null, listOf(field), null))
-        }
+    private fun aCountCannotAliasItsTwoAccumulatedSizesCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val owner = classes.single { it.type == found.queue!!.owner }
+    val run = owner.methods.single { it.name == found.queue!!.run }
+    val count = owner.methods.single { it.toString() == run.call(2).toString() }
+    val accumulator = count.implementation!!.instructions.toList()[4].namedRegisters().single()
+    refused(changed(classes, count, 8, "add-int/2addr v$accumulator, v$accumulator"))
     }
 
-    @Test fun theConstructorMustCaptureItsAccountArgument() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val owner = classes.single { it.type == found.queue!!.owner }
-        val constructor = owner.methods.single { it.name == "<init>" }
-        refused(changed(classes, constructor, 1, "iput-object v0, p0, ${constructor.reference(1)}"))
+    private fun thePreselectionAssertionMustUseTheSnapshotIteratorCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val owner = classes.single { it.type == found.queue!!.owner }
+    val run = owner.methods.single { it.name == found.queue!!.run }
+    refused(changed(classes, run, 7, "invoke-static { p0 }, ${run.call(7)}"))
     }
 
-    @Test fun aUserIdGetterMustReadTheNativeFinalField() = forInputs { classes ->
-        val session = classes.single { it.type == USER_SESSION }
-        val getter = session.methods.single { it.name == "getUserId" && it.parameterTypes.isEmpty() }
-        refused(changed(classes, getter, 0, "const/4 v0, 0x0"))
-    }
-
-    @Test fun theFinalStoreCannotReplaceTheSharedAccountGetter() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val store = classes.single { it.type == found.store }
-        val shadow = storyQueueMethod(store.type, found.sessionGetter, emptyList(), USER_SESSION, 2, """
-            const/4 v0, 0x0
-            return-object v0
-        """)
-        refused(replace(classes, store, store.methods + shadow))
-    }
-
-    @Test fun aCountCannotAliasItsTwoAccumulatedSizes() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val owner = classes.single { it.type == found.queue!!.owner }
-        val run = owner.methods.single { it.name == found.queue!!.run }
-        val count = owner.methods.single { it.toString() == run.call(2).toString() }
-        val accumulator = count.implementation!!.instructions.toList()[4].namedRegisters().single()
-        refused(changed(classes, count, 8, "add-int/2addr v$accumulator, v$accumulator"))
-    }
-
-    @Test fun thePreselectionAssertionMustUseTheSnapshotIterator() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val owner = classes.single { it.type == found.queue!!.owner }
-        val run = owner.methods.single { it.name == found.queue!!.run }
-        refused(changed(classes, run, 7, "invoke-static { p0 }, ${run.call(7)}"))
-    }
-
-    @Test fun assertionInitializationCannotRunBeforeSelection() = forInputs { classes ->
-        val found = PatchContexts.of(classes).findStorySeen()
-        val owner = classes.single { it.type == found.queue!!.owner }
-        val run = owner.methods.single { it.name == found.queue!!.run }
-        val assertions = classes.single { it.type == run.call(7).definingClass }
-        val initialize = storyQueueMethod(assertions.type, "<clinit>", emptyList(), "V", 0, """
-            invoke-static { }, Lfixture/QueueState;->clearPending()V
-            return-void
-        """, static = true)
-        refused(replace(classes, assertions, assertions.methods + initialize))
+    private fun assertionInitializationCannotRunBeforeSelectionCheck(classes: List<ClassDef>) {
+    val found = PatchContexts.of(classes).findStorySeen()
+    val owner = classes.single { it.type == found.queue!!.owner }
+    val run = owner.methods.single { it.name == found.queue!!.run }
+    val assertions = classes.single { it.type == run.call(7).definingClass }
+    val initialize = storyQueueMethod(assertions.type, "<clinit>", emptyList(), "V", 0, """
+        invoke-static { }, Lfixture/QueueState;->clearPending()V
+        return-void
+    """, static = true)
+    refused(replace(classes, assertions, assertions.methods + initialize))
     }
 
     private fun forInputs(check: (List<ClassDef>) -> Unit) {
         check(StorySeenHookTest().standIns())
         for (classes in native450) check(classes)
+    }
+
+    private fun forOtherInputs(check: (List<ClassDef>) -> Unit) {
+        for ((label, classes) in otherNative) {
+            try {
+                check(classes)
+            } catch (failure: Throwable) {
+                throw AssertionError("$label: ${failure.message}", failure)
+            }
+        }
     }
 
     private fun refused(classes: List<ClassDef>) {
@@ -204,6 +266,9 @@ class StoryRetryOwnershipTest {
         private val native450 by lazy {
             Fixtures.files { it.name == "instagram-450.0.0.50.77-385611438.apks" }
                 .map { StorySeenHookTest().fixtureClasses(it) }
+        }
+        private val otherNative by lazy {
+            Fixtures.otherBuilds().map { it.parentFile.name to StorySeenHookTest().fixtureClasses(it) }
         }
     }
 }

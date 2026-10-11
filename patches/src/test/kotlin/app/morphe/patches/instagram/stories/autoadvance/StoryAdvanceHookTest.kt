@@ -39,6 +39,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class StoryAdvanceHookTest {
     private val reelItem = "Lcom/instagram/model/reels/ReelItem;"
@@ -166,39 +167,48 @@ class StoryAdvanceHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val viewer = FixtureDex.classes(bundle, setOf(STORY_VIEWER))[STORY_VIEWER]
-                    ?: error("${bundle.name}: no $STORY_VIEWER")
-                val context = PatchContexts.of(listOf(viewer))
-
-                context.holdFinishedStories()
-
-                val bridges = viewer.methods.filter {
-                    AccessFlags.BRIDGE.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")
-                }
-                assertEquals("${bundle.name}: the viewer's one-Object bridges", 2, bridges.size)
-                val handler = bridges.single { method -> method.instructions().any { it.string() == "userSession" } }
-                val after = context.mutableClassDefBy(STORY_VIEWER).methods.single {
-                    it.name == handler.name && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")
-                }
-                assertEquals("${bundle.name}: handler size", handler.instructions().size + GUARD, after.instructions().size)
-                val read = context.findStoryLoop()
-                val loopCheck = "$STORY_VIEWER->${read.name}($reelItem)Z"
-                assertGuardFirst(bundle.name, after, loopCheck)
-                assertEquals(
-                    "${bundle.name}: Instagram's own asks of the loop check",
-                    1, handler.instructions().count { it.reference() == loopCheck },
-                )
-                assertTrue("${bundle.name}: both on, a story that can loop", !trace(after, false, true, true).held)
-                assertTrue("${bundle.name}: both on, a story that can't loop", trace(after, false, true, false).held)
-                val other = bridges.single { it !== handler }
-                assertTrue(
-                    "${bundle.name}: the other bridge no longer holds \"sponsored\"",
-                    other.instructions().any { it.string() == "sponsored" },
-                )
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildHoldsTheFinishedStoryToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val viewer = FixtureDex.classes(bundle, setOf(STORY_VIEWER))[STORY_VIEWER]
+            ?: error("${label}: no $STORY_VIEWER")
+        val context = PatchContexts.of(listOf(viewer))
+
+        context.holdFinishedStories()
+
+        val bridges = viewer.methods.filter {
+            AccessFlags.BRIDGE.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")
+        }
+        assertEquals("${label}: the viewer's one-Object bridges", 2, bridges.size)
+        val handler = bridges.single { method -> method.instructions().any { it.string() == "userSession" } }
+        val after = context.mutableClassDefBy(STORY_VIEWER).methods.single {
+            it.name == handler.name && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")
+        }
+        assertEquals("${label}: handler size", handler.instructions().size + GUARD, after.instructions().size)
+        val read = context.findStoryLoop()
+        val loopCheck = "$STORY_VIEWER->${read.name}($reelItem)Z"
+        assertGuardFirst(label, after, loopCheck)
+        assertEquals(
+            "${label}: Instagram's own asks of the loop check",
+            1, handler.instructions().count { it.reference() == loopCheck },
+        )
+        assertTrue("${label}: both on, a story that can loop", !trace(after, false, true, true).held)
+        assertTrue("${label}: both on, a story that can't loop", trace(after, false, true, false).held)
+        val other = bridges.single { it !== handler }
+        assertTrue(
+            "${label}: the other bridge no longer holds \"sponsored\"",
+            other.instructions().any { it.string() == "sponsored" },
+        )
     }
 
     private fun assertGuardFirst(what: String, handler: Method, loopCheck: String) {

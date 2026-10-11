@@ -36,6 +36,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class LoopStoryHookTest {
     private val storyItem = "Lcom/instagram/model/reels/ReelItem;"
@@ -125,35 +126,44 @@ class LoopStoryHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.type == STORY_VIEWER || classDef.methods.any { it.loadsTheFlag() }) holders += ImmutableClassDef.of(classDef)
-                    }
-                }
-                assertEquals("${bundle.name}: classes loading $flagHex", setOf(STORY_VIEWER), holders.filter { c -> c.methods.any { it.loadsTheFlag() } }.map { it.type }.toSet())
-                val viewer = holders.single { it.type == STORY_VIEWER }
-                val context = PatchContexts.of(holders)
-
-                val read = context.findStoryLoop()
-                context.loopStories()
-
-                val patched = context.mutableClassDefBy(STORY_VIEWER).methods
-                val check = patched.single { it.name == read.name && it.parameterTypes.map(CharSequence::toString) == listOf(storyItem) }
-                assertLoopAnswered(bundle.name, check)
-                assertEquals("${bundle.name}: methods hooked", 1, patched.count { m -> m.code().any { it.referenceText() == LOOP } })
-                val askers = viewer.methods.filter { m -> m.code().any { it.calls(read.name) } }
-                val handler = askers.filter { AccessFlags.BRIDGE.isSet(it.accessFlags) }
-                assertEquals("${bundle.name}: the finished story handler asks: ${askers.map { it.name }}", 1, handler.size)
-                assertTrue("${bundle.name}: the handler holds \"userSession\"", handler.single().code().any { it.string() == "userSession" })
-                assertEquals("${bundle.name}: what asks the loop check: ${askers.map { it.name }}", 2, askers.size)
-                val other = askers.single { it !in handler }
-                assertEquals("${bundle.name}: the other asker's shape", listOf(storyItem), other.parameterTypes.map(CharSequence::toString))
-                assertEquals("${bundle.name}: the other asker's answer", "Z", other.returnType)
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildLoopsTheStoryToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.type == STORY_VIEWER || classDef.methods.any { it.loadsTheFlag() }) holders += ImmutableClassDef.of(classDef)
+            }
+        }
+        assertEquals("${label}: classes loading $flagHex", setOf(STORY_VIEWER), holders.filter { c -> c.methods.any { it.loadsTheFlag() } }.map { it.type }.toSet())
+        val viewer = holders.single { it.type == STORY_VIEWER }
+        val context = PatchContexts.of(holders)
+
+        val read = context.findStoryLoop()
+        context.loopStories()
+
+        val patched = context.mutableClassDefBy(STORY_VIEWER).methods
+        val check = patched.single { it.name == read.name && it.parameterTypes.map(CharSequence::toString) == listOf(storyItem) }
+        assertLoopAnswered(label, check)
+        assertEquals("${label}: methods hooked", 1, patched.count { m -> m.code().any { it.referenceText() == LOOP } })
+        val askers = viewer.methods.filter { m -> m.code().any { it.calls(read.name) } }
+        val handler = askers.filter { AccessFlags.BRIDGE.isSet(it.accessFlags) }
+        assertEquals("${label}: the finished story handler asks: ${askers.map { it.name }}", 1, handler.size)
+        assertTrue("${label}: the handler holds \"userSession\"", handler.single().code().any { it.string() == "userSession" })
+        assertEquals("${label}: what asks the loop check: ${askers.map { it.name }}", 2, askers.size)
+        val other = askers.single { it !in handler }
+        assertEquals("${label}: the other asker's shape", listOf(storyItem), other.parameterTypes.map(CharSequence::toString))
+        assertEquals("${label}: the other asker's answer", "Z", other.returnType)
     }
 
     /** Right after the flag's move-result: the range call with that register, and its answer back in it. */

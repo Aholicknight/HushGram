@@ -38,6 +38,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class HideSuggestedStoriesHookTest {
     /** Both hooks the patch writes are in the StoriesTray the bundle ships, public and static. */
@@ -188,43 +189,52 @@ class HideSuggestedStoriesHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        val keep = classDef.superclass == "Ljava/lang/Enum;" || TRAY_ITEM_INTF in classDef.interfaces ||
-                            classDef.methods.any {
-                                it.name == "parseFromJsonParser" || it.holds(TRAY_ROWS) || it.holds(TRAY_REMAINING) || it.holds(FLOATING_TRAY)
-                            }
-                        if (keep) holders += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val context = PatchContexts.of(holders)
-
-                val rows = context.findTrayRowBuild()
-                val floating = context.findFloatingTrayShow()
-                val parse = context.findTrayItemParse()
-                val remaining = context.findTrayRemaining(parse.site)
-                val guarded = { site: MethodSite ->
-                    context.mutableClassDefBy(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
-                }
-                val stock = listOf(rows, floating).map { NeutralNativePath(guarded(it)) }
-                context.guardTray(rows)
-                context.guardTray(floating)
-                context.hookTrayParser(parse, remaining)
-
-                for ((site, original) in listOf(rows, floating).zip(stock)) {
-                    val what = "${bundle.name} ${site.type}->${site.name}"
-                    assertGuardedFirst(what, guarded(site))
-                    // The guard's call, answer, test, return and the nop its label lands on.
-                    original.assertPreserved(what, guarded(site), (0..4).toSet())
-                }
-                val parser = context.mutableClassDefBy(parse.site.type).methods.single { it.name == "unsafeParseFromJson" && it.parameterTypes.size == 1 }
-                assertFilteredBeforeTheTest("${bundle.name} ${parse.site.type}", parser)
-                assertTrimmedAfterTheRead("${bundle.name} ${parse.site.type}", parser)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    @Test
+    fun eachOtherBuildGuardsTheTrayAndFiltersItsItemsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                val keep = classDef.superclass == "Ljava/lang/Enum;" || TRAY_ITEM_INTF in classDef.interfaces ||
+                    classDef.methods.any {
+                        it.name == "parseFromJsonParser" || it.holds(TRAY_ROWS) || it.holds(TRAY_REMAINING) || it.holds(FLOATING_TRAY)
+                    }
+                if (keep) holders += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(holders)
+
+        val rows = context.findTrayRowBuild()
+        val floating = context.findFloatingTrayShow()
+        val parse = context.findTrayItemParse()
+        val remaining = context.findTrayRemaining(parse.site)
+        val guarded = { site: MethodSite ->
+            context.mutableClassDefBy(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
+        }
+        val stock = listOf(rows, floating).map { NeutralNativePath(guarded(it)) }
+        context.guardTray(rows)
+        context.guardTray(floating)
+        context.hookTrayParser(parse, remaining)
+
+        for ((site, original) in listOf(rows, floating).zip(stock)) {
+            val what = "${label} ${site.type}->${site.name}"
+            assertGuardedFirst(what, guarded(site))
+            // The guard's call, answer, test, return and the nop its label lands on.
+            original.assertPreserved(what, guarded(site), (0..4).toSet())
+        }
+        val parser = context.mutableClassDefBy(parse.site.type).methods.single { it.name == "unsafeParseFromJson" && it.parameterTypes.size == 1 }
+        assertFilteredBeforeTheTest("${label} ${parse.site.type}", parser)
+        assertTrimmedAfterTheRead("${label} ${parse.site.type}", parser)
     }
 
     private fun Method.holds(string: String): Boolean = implementation?.instructions?.any {
