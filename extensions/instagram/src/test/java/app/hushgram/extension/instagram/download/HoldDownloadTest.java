@@ -73,7 +73,11 @@ public class HoldDownloadTest {
     private Post frame;
     private Reel reel;
     private View caption;
+    private FrameLayout root;
+    private FrameLayout videoFrame;
+    private Cover cover;
     private final Object holder = new Object();
+    private final Object videoHolder = new Object();
     private final Object detector = new Object();
     private final List<String> saves = new ArrayList<>();
 
@@ -111,6 +115,30 @@ public class HoldDownloadTest {
         }
     }
 
+    /** What Instagram calls its list of rows: a RecyclerView by name. */
+    static final class RecyclerView extends FrameLayout {
+        RecyclerView(Context context) {
+            super(context);
+        }
+    }
+
+    /** The clickable cover a reel preview ends on, over a feed video's frame: it takes the first finger, so the frame's touch method never runs. */
+    static final class Cover extends View {
+        final List<Integer> seen = new ArrayList<>();
+        int clicks;
+
+        Cover(Context context) {
+            super(context);
+            setClickable(true);
+            setOnClickListener(view -> clicks++);
+        }
+
+        @Override public boolean onTouchEvent(MotionEvent event) {
+            seen.add(event.getActionMasked());
+            return super.onTouchEvent(event);
+        }
+    }
+
     @Before
     public void open() {
         reset();
@@ -120,13 +148,22 @@ public class HoldDownloadTest {
         controller = Robolectric.buildActivity(Activity.class).setup();
         activity = controller.get();
         window = activity.getWindow();
-        FrameLayout root = new FrameLayout(activity);
+        root = new FrameLayout(activity);
         frame = new Post(activity, holder);
         reel = new Reel(activity, detector);
         caption = new View(activity);
         root.addView(frame, place(0));
         root.addView(reel, place(110));
         root.addView(caption, place(220));
+        // A video row: the frame the hold is about, with the cover over it, in a list of rows.
+        RecyclerView list = new RecyclerView(activity);
+        FrameLayout row = new FrameLayout(activity);
+        videoFrame = new FrameLayout(activity);
+        cover = new Cover(activity);
+        row.addView(videoFrame, new FrameLayout.LayoutParams(-1, -1));
+        row.addView(cover, new FrameLayout.LayoutParams(-1, -1));
+        list.addView(row, new FrameLayout.LayoutParams(-1, -1));
+        root.addView(list, place(330));
         activity.setContentView(root);
         idle();
         assertEquals("the post is laid out", 200, frame.getWidth());
@@ -140,7 +177,7 @@ public class HoldDownloadTest {
             }
 
             @Override public Object feedFrame(Object owner) {
-                return owner == holder ? frame : null;
+                return owner == holder ? frame : owner == videoHolder ? videoFrame : null;
             }
 
             @Override public Object reelMedia(Object owner) {
@@ -148,7 +185,7 @@ public class HoldDownloadTest {
             }
         };
         HoldDownload.saver = (kind, owner, at) -> {
-            saves.add(kind + " " + (owner == holder ? "holder" : owner == detector ? "detector" : owner) + " " + (at == activity));
+            saves.add(kind + " " + (owner == holder ? "holder" : owner == detector ? "detector" : owner == videoHolder ? "video holder" : owner) + " " + (at == activity));
             return true;
         };
         HookStatus.clear();
@@ -216,7 +253,7 @@ public class HoldDownloadTest {
             fingers.add(new float[] {left + x, top + y});
             ids.add(nextId++);
             send(MotionEvent.ACTION_DOWN);
-            List<Integer> seen = on instanceof Post ? ((Post) on).seen : on instanceof Reel ? ((Reel) on).seen : null;
+            List<Integer> seen = on instanceof Post ? ((Post) on).seen : on instanceof Reel ? ((Reel) on).seen : on instanceof Cover ? ((Cover) on).seen : null;
             if (seen != null) assertEquals("the touch reached the view", MotionEvent.ACTION_DOWN, (int) seen.get(seen.size() - 1));
         }
 
@@ -568,6 +605,131 @@ public class HoldDownloadTest {
         assertTrue(HookStatus.report().get(0).contains("hold to download save"));
     }
 
+    // A video under a cover of its own, which takes the first finger before the frame's touch method runs.
+
+    /** Two fingers held on the cover save the video once, the cover gets a cancel and nothing after it, so the tap never opens the Reels viewer. */
+    @Test
+    public void aHoldOnAVideoUnderItsCoverSavesOnceAndTheTapNeverReachesTheCover() {
+        // An earlier gesture on another post leaves its target behind.
+        new Gesture(frame, 40, 40).up();
+        pass(100);
+        HoldDownload.feedMade(videoHolder);
+        Gesture hold = twoFingersOn(cover);
+        assertTrue("the frame's own touch method never ran", HoldDownload.target == null || HoldDownload.target.downTime != hold.down);
+        pass(holdTime() - 1);
+        assertTrue("not before the time", saves.isEmpty());
+        pass(2);
+        assertEquals(List.of("FEED video holder true"), saves);
+        List<Integer> seen = new ArrayList<>(cover.seen);
+        assertEquals("the cover's gesture ends in a cancel", MotionEvent.ACTION_CANCEL, (int) seen.get(seen.size() - 1));
+
+        hold.move(0, 50, 50).move(1, 50, 50);
+        hold.up();
+        pass(holdTime() * 3);
+        assertEquals("the rest of the gesture is kept from the cover", seen, cover.seen);
+        assertEquals("the tap never reached the cover", 0, cover.clicks);
+        assertEquals("one save", 1, saves.size());
+        assertEquals(List.of(FamilyNames.VIDEO_DOWNLOAD + ": invoked 1, 0 found, 0 missing. Counted: " + HoldDownload.COUNT_SAVED + " 1"),
+                HookStatus.report());
+
+        // One finger is the cover's, as before.
+        new Gesture(cover, 30, 30).up();
+        pass(50);
+        assertEquals(1, cover.clicks);
+        assertEquals(1, saves.size());
+    }
+
+    /** A holder made before its frame is on a window watches the window once the frame is on it. */
+    @Test
+    public void aHolderMadeBeforeItsFrameIsOnAWindowWatchesItWhenItIs() {
+        FrameLayout late = new FrameLayout(activity);
+        Object lateHolder = new Object();
+        HoldDownload.Reads before = HoldDownload.reads;
+        HoldDownload.reads = new HoldDownload.Reads() {
+            @Override public Object feedMedia(Object owner) {
+                return before.feedMedia(owner);
+            }
+
+            @Override public Object feedState(Object owner) {
+                return before.feedState(owner);
+            }
+
+            @Override public Object feedFrame(Object owner) {
+                return owner == lateHolder ? late : before.feedFrame(owner);
+            }
+
+            @Override public Object reelMedia(Object owner) {
+                return before.reelMedia(owner);
+            }
+        };
+        HoldDownload.feedMade(lateHolder);
+        assertFalse("no window yet", HoldDownload.watched(window));
+        root.addView(late, place(500));
+        idle();
+        assertTrue("watched once the frame is on the window", HoldDownload.watched(window));
+    }
+
+    /** Off or paused, a made holder keeps nothing and no window is watched; paused after it was made, the hold is refused and the cover keeps its gesture. */
+    @Test
+    public void offOrPausedAVideoUnderItsCoverNotesNothing() {
+        Settings.HOLD_TO_DOWNLOAD.save(false);
+        HoldDownload.feedMade(videoHolder);
+        assertFalse(HoldDownload.watched(window));
+        Settings.HOLD_TO_DOWNLOAD.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        HoldDownload.feedMade(videoHolder);
+        assertFalse(HoldDownload.watched(window));
+        PauseForTests.resume();
+        holdAndLift(cover);
+        assertSame("never kept, so never watched", activity, window.getCallback());
+        assertTrue(saves.isEmpty());
+        assertFalse(cover.seen.contains(MotionEvent.ACTION_CANCEL));
+
+        HoldDownload.feedMade(videoHolder);
+        assertTrue(HoldDownload.watched(window));
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        cover.seen.clear();
+        holdAndLift(cover);
+        assertTrue("paused after it was made", saves.isEmpty());
+        assertFalse("the cover kept its gesture", cover.seen.contains(MotionEvent.ACTION_CANCEL));
+        assertSame(activity, window.getCallback());
+        assertTrue("nothing was counted", HookStatus.report().isEmpty());
+    }
+
+    /** A sheet over the feed, or fingers off the frame, never save the video below: only a cover inside its own row is looked past. */
+    @Test
+    public void aSheetOverTheFeedOrFingersOffTheFrameSaveNothing() {
+        HoldDownload.feedMade(videoHolder);
+        Cover sheet = new Cover(activity);
+        root.addView(sheet, place(330));
+        idle();
+        holdAndLift(sheet);
+        assertTrue("a clickable sheet from outside the row", saves.isEmpty());
+        assertFalse(sheet.seen.contains(MotionEvent.ACTION_CANCEL));
+
+        root.removeView(sheet);
+        idle();
+        holdAndLift(caption);
+        assertTrue("fingers off the frame", saves.isEmpty());
+        Gesture straddle = new Gesture(cover, 40, 40).add(120, 160);
+        pass(holdTime() * 3);
+        straddle.up();
+        assertTrue("one finger off the frame", saves.isEmpty());
+    }
+
+    /** A video under its cover saves through the same Download as the menu's row. */
+    @Test
+    @Config(shadows = Media.class)
+    public void aVideoUnderItsCoverSavesThroughDownload() {
+        useTheRealSave("video post", 1);
+        Media.videos.put("cover video", META + "cover.mp4");
+        HoldDownload.feedMade(videoHolder);
+        holdAndLift(cover);
+        idle();
+        assertEquals(Set.of("cover video"), Media.asked);
+        assertSaving();
+    }
+
     // The saves the menus make, picked for what's under the fingers.
 
     /** A feed post with a video saves its video, through Download's own save, which says it started. */
@@ -627,15 +789,15 @@ public class HoldDownloadTest {
         HoldDownload.saver = SAVER;
         HoldDownload.reads = new HoldDownload.Reads() {
             @Override public Object feedMedia(Object owner) {
-                return owner == holder ? post : null;
+                return owner == holder ? post : owner == videoHolder ? "cover video" : null;
             }
 
             @Override public Object feedState(Object owner) {
-                return owner == holder ? page : null;
+                return owner == holder ? page : owner == videoHolder ? 0 : null;
             }
 
             @Override public Object feedFrame(Object owner) {
-                return owner == holder ? frame : null;
+                return owner == holder ? frame : owner == videoHolder ? videoFrame : null;
             }
 
             @Override public Object reelMedia(Object owner) {

@@ -61,7 +61,7 @@ class HoldToDownloadHookTest {
         fun declared(type: String) = ExtensionDex.classDef(type).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(HOLD_FEED_TOUCH, HOLD_REEL_TOUCH)) {
+        for (hook in listOf(HOLD_FEED_TOUCH, HOLD_FEED_MADE, HOLD_REEL_TOUCH)) {
             assertTrue("$hook is not in the extension", hook.substringAfter("->") in declared(HOLD_DOWNLOAD))
         }
         for (read in listOf("feedMedia", "feedState", "feedFrame", "reelMedia")) {
@@ -79,8 +79,10 @@ class HoldToDownloadHookTest {
         val context = PatchContexts.of(classes())
         val feedBefore = context.method(holder, "onTouch").code().map { it.describe() }
         val reelBefore = context.method(detector, "onTouch").code().map { it.describe() }
+        val makeBefore = context.method(holder, "<init>").code().map { it.describe() }
 
         val sites = context.findHoldSites(feedState)
+        assertEquals("$holder-><init>", "${sites.feedMake.definingClass}->${sites.feedMake.name}")
         assertEquals("$holder->media:$MEDIA", sites.feedMedia.text())
         assertEquals("$holder->state:$feedState", sites.feedState.text())
         assertEquals("$holder->frame:$frame", sites.feedFrame.text())
@@ -100,7 +102,41 @@ class HoldToDownloadHookTest {
         assertEquals("it hands over the detector, the view and the event", (reelRegisters - 3 until reelRegisters).toList(), reel.code()[0].arguments())
         assertEquals(reelBefore, reel.code().drop(1).map { it.describe() })
 
+        // The constructor keeps the frame: the holder goes to the hook right before the return, and nothing else changed.
+        val make = context.method(holder, "<init>")
+        val made = make.code().indices.filter { make.code()[it].referenceText() == HOLD_FEED_MADE }
+        assertEquals("once, right before the return", listOf(make.code().size - 2), made)
+        assertEquals(Opcode.RETURN_VOID, make.code().last().opcode)
+        val self = make.implementation!!.registerCount - 2
+        assertEquals("it hands over the holder itself", listOf(self), make.code()[made.single()].arguments())
+        assertEquals(makeBefore, make.code().filterIndexed { at, _ -> at !in made }.map { it.describe() })
+
         assertReads(context, sites)
+    }
+
+    /** A constructor with two returns gets the call before each of them. */
+    @Test
+    fun everyReturnOfTheConstructorKeepsTheFrame() {
+        val context = PatchContexts.of(classes())
+        val sites = context.findHoldSites(feedState)
+        val make = context.method(holder, "<init>")
+        make.addInstructionsWithLabels(
+            0,
+            """
+                if-eqz p1, :late
+                return-void
+                :late
+                nop
+            """,
+        )
+        val returnsBefore = make.code().count { it.opcode == Opcode.RETURN_VOID }
+        assertEquals(2, returnsBefore)
+        context.apply { addHoldToDownload(sites) }
+        val code = make.code()
+        val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_VOID }
+        assertEquals(2, returns.size)
+        for (at in returns) assertEquals("before the return at $at", HOLD_FEED_MADE, code[at - 1].referenceText())
+        assertEquals(2, code.count { it.referenceText() == HOLD_FEED_MADE })
     }
 
     /** Long press to zoom's call stays first whichever of the two patches goes first, and this one comes right after it. */
@@ -133,6 +169,9 @@ class HoldToDownloadHookTest {
             Shape.REEL_SHAPE to "doesn't take a View and a MotionEvent",
             Shape.NO_ITEM to "reel item holding a Media, found 0",
             Shape.PRIVATE_ITEM to "isn't public",
+            Shape.TWO_MAKES to "to have one constructor, found 2",
+            Shape.MAKE_JUMPS_TO_RETURN to "constructor jumps to a return",
+            Shape.MAKE_WRITES_THIS to "writes the register holding this",
         )
         for ((shape, message) in cases) {
             val context = PatchContexts.of(classes(shape))
@@ -141,7 +180,7 @@ class HoldToDownloadHookTest {
             val touches = listOf(holder, detector).mapNotNull { type -> context.classDefByOrNull(type) }
                 .flatMap { context.mutableClassDefBy(it.type).methods }
             assertTrue("$shape: something was written", touches.none { method ->
-                method.code().any { it.referenceText() == HOLD_FEED_TOUCH || it.referenceText() == HOLD_REEL_TOUCH }
+                method.code().any { it.referenceText() in listOf(HOLD_FEED_TOUCH, HOLD_FEED_MADE, HOLD_REEL_TOUCH) }
             })
         }
     }
@@ -228,8 +267,20 @@ class HoldToDownloadHookTest {
                 val reelRegisters = reel.implementation!!.registerCount
                 assertEquals("$what: the detector, the view and the event", (reelRegisters - 3 until reelRegisters).toList(), reel.code()[0].arguments())
 
+                val makers = context.callers(classes, HOLD_FEED_MADE)
+                assertEquals("$what: methods keeping a frame", listOf(sites.feedMake.definingClass to "<init>"), makers.map { it.definingClass to it.name })
+                val make = makers.single()
+                val makeCode = make.code()
+                val madeAt = makeCode.indices.filter { makeCode[it].referenceText() == HOLD_FEED_MADE }
+                val returnsAt = makeCode.indices.filter { makeCode[it].opcode == Opcode.RETURN_VOID }
+                assertTrue("$what: a constructor that returns", returnsAt.isNotEmpty())
+                assertEquals("$what: a call right before every return, once each", returnsAt.map { it - 1 }, madeAt)
+                val self = make.implementation!!.registerCount - 1 - make.parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }
+                for (at in madeAt) assertEquals("$what: the holder itself", listOf(self), makeCode[at].arguments())
+
                 for ((method, original) in originals) {
                     val added = when {
+                        method.definingClass == make.definingClass && method.name == make.name -> madeAt.toSet()
                         method.definingClass == feed.definingClass && method.name == feed.name -> setOf(0, 1)
                         method.definingClass == reel.definingClass && method.name == reel.name -> setOf(0)
                         else -> emptySet()
@@ -259,7 +310,7 @@ class HoldToDownloadHookTest {
 
     private enum class Shape {
         PLAIN, NO_HOLDER, TWO_HOLDERS, NO_STATE, PRIVATE_MEDIA, PRIVATE_HOLDER, FEED_LOOPS, NO_MARKER, TWO_MARKED, REEL_SHAPE,
-        NO_ITEM, PRIVATE_ITEM,
+        NO_ITEM, PRIVATE_ITEM, TWO_MAKES, MAKE_JUMPS_TO_RETURN, MAKE_WRITES_THIS,
     }
 
     /**
@@ -277,9 +328,18 @@ class HoldToDownloadHookTest {
                 field(type, "detector", "Landroid/view/GestureDetector;"),
             )
             if (shape != Shape.NO_STATE) fields += field(type, "state", feedState)
+            val jump = if (shape == Shape.MAKE_JUMPS_TO_RETURN) "if-eqz p1, :done" else ""
+            val done = if (shape == Shape.MAKE_JUMPS_TO_RETURN) ":done" else ""
+            val clobber = if (shape == Shape.MAKE_WRITES_THIS) "move-object p0, v0" else ""
             val make = method(type, "<init>", listOf("Landroid/content/Context;"), "V", 1, body = """
                 new-instance v0, Landroid/view/GestureDetector;
                 invoke-direct { v0, p1, p0 }, Landroid/view/GestureDetector;-><init>(Landroid/content/Context;Landroid/view/GestureDetector${'$'}OnGestureListener;)V
+                $jump
+                $clobber
+                $done
+                return-void
+            """, flags = AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value)
+            val another = method(type, "<init>", listOf("Landroid/content/Context;", "I"), "V", 1, body = """
                 return-void
             """, flags = AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value)
             val top = if (shape == Shape.FEED_LOOPS) ":top" else ""
@@ -292,7 +352,8 @@ class HoldToDownloadHookTest {
                 return v0
             """)
             val flags = if (shape == Shape.PRIVATE_HOLDER) AccessFlags.FINAL.value else open
-            return ImmutableClassDef(type, flags, "Ljava/lang/Object;", null, null, null, fields, listOf(make, touch))
+            val methods = if (shape == Shape.TWO_MAKES) listOf(make, another, touch) else listOf(make, touch)
+            return ImmutableClassDef(type, flags, "Ljava/lang/Object;", null, null, null, fields, methods)
         }
         fun detectorClass(type: String): ClassDef {
             val loads = if (shape == Shape.NO_MARKER) "android_purge_26_q3_ClipsItemGestureDetector_onScroll" else marker
