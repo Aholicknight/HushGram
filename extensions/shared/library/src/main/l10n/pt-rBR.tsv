@@ -942,7 +942,7 @@ Takes the Save button out of the column of buttons beside a reel, and the count 
 Unlock with	Desbloquear com
 Phone lock	Bloqueio do celular
 HushGram PIN	PIN do HushGram
-A PIN you set here unlocks your messages, in place of your screen lock. Forgot PIN falls back to your screen lock.	Um PIN que você define aqui desbloqueia suas mensagens no lugar do bloqueio de tela. Se esquecer o PIN, vale o bloqueio de tela.
+A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.	Um PIN que você define aqui desbloqueia suas mensagens no lugar do bloqueio de tela. Ele não pode ser recuperado, só removido limpando o armazenamento do Instagram.
 Your fingerprint, face or screen lock unlocks your messages.	A digital, o rosto ou o bloqueio de tela do celular desbloqueia suas mensagens.
 Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	Defina ou troque o PIN de 4 a 8 dígitos. Ele fica só neste celular e não vai para o backup.
 PIN saved.	PIN salvo.
@@ -957,3 +957,5 @@ Set a PIN	Definir um PIN
 Use 4 to 8 digits.	Use de 4 a 8 dígitos.
 The PINs don't match.	Os PINs não são iguais.
 Could not save the PIN.	Não deu para salvar o PIN.
+The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	O PIN não pode ser recuperado. Para removê-lo, limpe o armazenamento do Instagram nas configurações de apps do Android. Isso desconecta você e redefine as configurações do HushGram. Um backup das configurações traz o resto de volta, mas não o PIN.
+Open app info	Abrir info do app

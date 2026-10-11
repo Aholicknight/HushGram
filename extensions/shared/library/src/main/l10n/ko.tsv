@@ -941,7 +941,7 @@ Takes the Save button out of the column of buttons beside a reel, and the count 
 Unlock with	잠금 해제 방법
 Phone lock	휴대폰 잠금
 HushGram PIN	HushGram PIN
-A PIN you set here unlocks your messages, in place of your screen lock. Forgot PIN falls back to your screen lock.	여기서 정한 PIN으로 화면 잠금 대신 메시지 잠금을 풉니다. PIN을 잊으면 화면 잠금을 사용합니다.
+A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.	여기서 정한 PIN으로 화면 잠금 대신 메시지 잠금을 풉니다. PIN은 복구할 수 없고, Instagram 저장소를 지워야만 없앨 수 있습니다.
 Your fingerprint, face or screen lock unlocks your messages.	휴대폰의 지문, 얼굴 또는 화면 잠금으로 메시지 잠금을 풉니다.
 Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	4~8자리 PIN을 정하거나 바꿉니다. 이 휴대폰에만 저장되고 백업에는 들어가지 않습니다.
 PIN saved.	PIN을 저장했습니다.
@@ -956,3 +956,5 @@ Set a PIN	PIN 설정
 Use 4 to 8 digits.	4~8자리 숫자를 사용하세요.
 The PINs don't match.	PIN이 서로 다릅니다.
 Could not save the PIN.	PIN을 저장하지 못했습니다.
+The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN은 복구할 수 없습니다. 없애려면 Android 앱 설정에서 Instagram 저장소를 지우세요. 로그아웃되고 HushGram 설정이 초기화됩니다. 저장해 둔 설정 백업으로 나머지는 되돌릴 수 있지만 PIN은 돌아오지 않습니다.
+Open app info	앱 정보 열기

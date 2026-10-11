@@ -260,6 +260,21 @@ public final class MessagesLock {
     }
 
     /**
+     * Runs [then] after the HushGram PIN is entered, every time, when a PIN is what unlocks the
+     * messages: a setting that weakens a lock (switching a lock off, changing the PIN or how to
+     * unlock) never takes the shortcut of an open session, and never the phone's lock. With no PIN
+     * in play it is {@link #confirmThen}, exactly as before.
+     */
+    public static void confirmPinThen(Activity activity, Runnable then) {
+        if (!PinLock.protects()) {
+            confirmThen(activity, then);
+            return;
+        }
+        if (activity == null) return;
+        PinLock.ask(activity, then, () -> { });
+    }
+
+    /**
      * A lock was just turned on while nothing was locked. It waits until you leave Instagram rather
      * than covering the screen you're on, since you're the one who turned it on.
      */
@@ -923,7 +938,7 @@ public final class MessagesLock {
      * can't at all. An ask that fails for any reason but your cancel goes to the phone's own check,
      * so there's always a way in.
      */
-    static void askPhone(Activity activity, Runnable confirmed, Runnable notConfirmed) {
+    private static void askPhone(Activity activity, Runnable confirmed, Runnable notConfirmed) {
         KeyguardManager keyguard = activity.getSystemService(KeyguardManager.class);
         if (keyguard == null || !keyguard.isDeviceSecure()) {
             HookStatus.counted(FamilyNames.MESSAGES_LOCK, NO_PHONE_LOCK);

@@ -8,6 +8,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.net.Uri;
 import android.graphics.Color;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -41,7 +43,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The PIN is 4 to 8 digits and is kept as a salted PBKDF2 hash in HushGram's own preferences,
  * never the digits. A backup leaves it, the choice of PIN and the miss count out. Five wrong tries
  * in a row make it wait 30 seconds before another, and the count and the wait outlast a restart.
- * Forgot PIN asks the phone's lock, and passing it lets you set a new PIN.
+ * The PIN can't be recovered, and nothing that knows the phone's lock can reset it: Forgot PIN
+ * only says how to clear it (Instagram's storage in Android's app settings, which also resets
+ * HushGram's settings). Every setting that would weaken a lock asks the PIN first.
  */
 public final class PinLock {
     public static final int MIN_DIGITS = 4;
@@ -58,8 +62,6 @@ public final class PinLock {
 
     /** The clock the wait runs on, wall time so it holds across a restart. Tests move it. */
     static volatile LongSupplier clock = System::currentTimeMillis;
-    /** Asks the phone's lock for Forgot PIN. Tests put a fake in. */
-    static volatile MessagesLock.Asker phoneAsker = MessagesLock::askPhone;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -73,6 +75,18 @@ public final class PinLock {
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, PIN_STEP, t);
             return false;
+        }
+    }
+
+    /**
+     * A PIN is what stands behind the locks, whether or not settings are ready to be read. Anything
+     * that can't tell takes the answer yes, so it fails closed.
+     */
+    public static boolean protects() {
+        try {
+            return Settings.UNLOCK_WITH.savedValue() == UnlockWith.PIN && isSet();
+        } catch (Throwable t) {
+            return true;
         }
     }
 
@@ -239,12 +253,8 @@ public final class PinLock {
                 if (result == Result.WAIT || waitLeftMs() > 0) showWait(message);
                 else message.setText(L10n.t("Wrong PIN. Try again."));
             });
-            dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener(v -> {
-                done[0] = true;
-                field.setText("");
-                dialog.dismiss();
-                forgot(activity, confirmed, notConfirmed);
-            });
+            // Forgot PIN only explains; the PIN dialog stays under it and nothing is reset.
+            dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener(v -> forgot(activity));
             dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setOnClickListener(v -> {
                 done[0] = true;
                 field.setText("");
@@ -262,16 +272,30 @@ public final class PinLock {
                 : "");
     }
 
-    /** Forgot PIN: the phone's lock, then a new PIN. Passing the phone's lock unlocks even if you skip the new PIN. */
-    private static void forgot(Activity activity, Runnable confirmed, Runnable notConfirmed) {
-        try {
-            phoneAsker.ask(activity,
-                    () -> promptNew(activity, saved -> confirmed.run()),
-                    notConfirmed);
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, PIN_STEP, t);
-            notConfirmed.run();
-        }
+    /**
+     * Forgot PIN: the PIN can't be recovered and the phone's lock can't reset it, since people
+     * around you know that. Clearing Instagram's storage is the way out, and it's offered here.
+     */
+    private static void forgot(Activity activity) {
+        AlertDialog dialog = builder(activity)
+                .setTitle(L10n.t("Forgot PIN?"))
+                .setMessage(L10n.t("The PIN can't be recovered. To remove it, clear Instagram's storage in Android's "
+                        + "app settings. That signs you out and resets HushGram's settings. A saved settings backup "
+                        + "brings the rest back, but not the PIN."))
+                .setPositiveButton(L10n.t("Open app info"), null)
+                .setNegativeButton(L10n.t("Cancel"), null)
+                .create();
+        secure(dialog);
+        dialog.setOnShowListener(d -> dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> {
+            try {
+                activity.startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", activity.getPackageName(), null)));
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.MESSAGES_LOCK, PIN_STEP, t);
+            }
+            dialog.dismiss();
+        }));
+        dialog.show();
     }
 
     /**
@@ -385,6 +409,5 @@ public final class PinLock {
     /** Back to how a fresh start finds it. */
     static void resetForTests() {
         clock = System::currentTimeMillis;
-        phoneAsker = MessagesLock::askPhone;
     }
 }

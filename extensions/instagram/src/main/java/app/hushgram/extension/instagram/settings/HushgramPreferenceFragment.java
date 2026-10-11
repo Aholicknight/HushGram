@@ -3006,6 +3006,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 MessagesLock.openUntilLeft();
                 return true;
             }
+            if (PinLock.protects()) {
+                // With a PIN, turning a lock off always asks it, and with nothing to ask it stays on.
+                if (activity != null) {
+                    MessagesLock.confirmPinThen(activity, () -> ((SwitchPreference) preference).setChecked(false));
+                }
+                return false;
+            }
             if (!MessagesLock.locked() || activity == null) return true;
             MessagesLock.confirmThen(activity, () -> ((SwitchPreference) preference).setChecked(false));
             return false;
@@ -3049,7 +3056,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setValue(Settings.UNLOCK_WITH.savedValue().name());
         row.setOnPreferenceChangeListener((preference, value) -> {
             Activity activity = activityOf(preference.getContext());
-            if (activity == null) return true;
+            if (activity == null) return !PinLock.protects();
             UnlockWith target = UnlockWith.PIN.name().equals(value) ? UnlockWith.PIN : UnlockWith.PHONE_LOCK;
             UnlockWithRow unlockRow = (UnlockWithRow) preference;
             Runnable change = () -> {
@@ -3061,28 +3068,27 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     unlockRow.setValue(target.name());
                 }
             };
-            if (MessagesLock.locked()) MessagesLock.confirmThen(activity, change);
-            else change.run();
+            MessagesLock.confirmPinThen(activity, change);
             return false;
         });
         return row;
     }
 
     /** The row that sets or changes the HushGram PIN; changing it while locked asks the current lock first. */
-    private Row changePinRow(Context context) {
+    static Row changePinRow(Context context) {
         Row row = new Row(context);
         row.setKey(CHANGE_PIN_ROW);
         row.setPersistent(false);
         row.setTitle(L10n.t("HushGram PIN"));
         row.setSummary(L10n.t("Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup."));
         row.setOnPreferenceClickListener(tapped -> {
-            Activity activity = getActivity();
+            Activity activity = activityOf(tapped.getContext());
             if (activity == null) return true;
             Runnable prompt = () -> PinLock.promptNew(activity, saved -> {
                 if (saved) Utils.showToastShort(L10n.t("PIN saved."));
             });
-            if (MessagesLock.locked()) MessagesLock.confirmThen(activity, prompt);
-            else prompt.run();
+            // Changing the PIN asks the current one; with no PIN yet there's nothing to ask.
+            MessagesLock.confirmPinThen(activity, prompt);
             return true;
         });
         return row;
@@ -5022,7 +5028,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
         void showSummary() {
             setSummary(UnlockWith.PIN.name().equals(getValue())
-                    ? L10n.t("A PIN you set here unlocks your messages, in place of your screen lock. Forgot PIN falls back to your screen lock.")
+                    ? L10n.t("A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.")
                     : L10n.t("Your fingerprint, face or screen lock unlocks your messages."));
         }
 

@@ -185,7 +185,7 @@ public final class ConfigurationBackup {
                 if (known == Settings.SAVE_FOLDER && !SaveFolder.isImportable((String) value)) throw invalid();
                 if (known == Settings.FILENAME_TEMPLATE && !FileNameTemplate.isImportable((String) value)) throw invalid();
                 Setting<?> setting = allowed.get(key);
-                if (setting == null || !setting.includeWithImportExport) {
+                if (setting == null || !setting.includeWithImportExport || heldByPin(setting)) {
                     skipped++;
                     continue;
                 }
@@ -216,6 +216,15 @@ public final class ConfigurationBackup {
             }
             return new Result(updates.size(), skipped, restart);
         }
+    }
+
+    /**
+     * With a HushGram PIN behind the locks, a file (or an Undo) can't switch Lock your messages or
+     * Lock all of Instagram, so a backup can't be a way round the PIN. Without one nothing changes.
+     */
+    private static boolean heldByPin(Setting<?> setting) {
+        return (setting == Settings.LOCK_MESSAGES || setting == Settings.LOCK_APP)
+                && app.hushgram.extension.instagram.direct.PinLock.protects();
     }
 
     /** Expiry and process lifetime bound the snapshot; there is no disk copy of Undo. */
@@ -250,7 +259,7 @@ public final class ConfigurationBackup {
             for (var entries = values.entrySet().iterator(); entries.hasNext();) {
                 var entry = entries.next();
                 Setting<?> setting = entry.getKey();
-                if (revisions.get(setting) != setting.savedRevision()
+                if (heldByPin(setting) || revisions.get(setting) != setting.savedRevision()
                         || !expected.get(setting).equals(setting.savedValue())) {
                     entries.remove();
                     skipped++;

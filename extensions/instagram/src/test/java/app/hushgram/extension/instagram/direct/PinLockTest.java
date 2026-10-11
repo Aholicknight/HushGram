@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.direct;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -14,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.text.InputType;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,6 +31,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
@@ -59,8 +62,6 @@ public class PinLockTest {
     private static final String PIN = "4821";
 
     private final AtomicLong now = new AtomicLong(1_000_000L);
-    /** Each Forgot PIN ask of the phone's lock: its two answers. */
-    private final List<Runnable[]> phoneAsks = new ArrayList<>();
 
     @Before
     public void enable() {
@@ -70,7 +71,6 @@ public class PinLockTest {
         ids.put(MessagesLock.INBOX_LIST, LIST);
         MessagesLock.idsForTests = ids;
         PinLock.clock = now::get;
-        PinLock.phoneAsker = (activity, confirmed, notConfirmed) -> phoneAsks.add(new Runnable[]{confirmed, notConfirmed});
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.LOCK_MESSAGES.save(true);
@@ -329,7 +329,6 @@ public class PinLockTest {
         // A restart forgets the process's state, not the count or the wait.
         MessagesLock.resetForTests();
         PinLock.clock = now::get;
-        PinLock.phoneAsker = (a, c, n) -> phoneAsks.add(new Runnable[]{c, n});
         assertEquals(5L, (long) Settings.LOCK_PIN_MISSES.get());
         assertTrue(PinLock.waitLeftMs() > 0);
         assertEquals(PinLock.Result.WAIT, PinLock.attempt(PIN));
@@ -371,69 +370,53 @@ public class PinLockTest {
     // ---------------------------------------------------------------- Forgot PIN
 
     @Test
-    public void forgotPinGoesToThePhoneLockAndThenLetsYouSetANewPin() {
+    public void forgotPinOnlyExplainsAndResetsNothing() {
         Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
         boolean[] opened = {false};
         MessagesLock.confirmHiddenThen(activity, () -> opened[0] = true);
-        AlertDialog dialog = latest();
+        AlertDialog pinDialog = latest();
+        String before = Settings.LOCK_PIN.get();
 
-        click(dialog, DialogInterface.BUTTON_NEUTRAL);
-        assertEquals("the phone's lock is asked", 1, phoneAsks.size());
-        assertFalse(opened[0]);
-        assertFalse(dialog.isShowing());
+        click(pinDialog, DialogInterface.BUTTON_NEUTRAL);
 
-        phoneAsks.get(0)[0].run();
-        AlertDialog set = latest();
-        assertEquals("Set a PIN", title(set));
-        assertFalse("the new PIN comes before the unlock", opened[0]);
-        type(set, PinLock.FIELD_TAG, "314159");
-        type(set, PinLock.CONFIRM_TAG, "314159");
-        click(set, DialogInterface.BUTTON_POSITIVE);
-
-        assertTrue(opened[0]);
-        assertTrue(PinLock.matches("314159"));
-        assertFalse(PinLock.matches(PIN));
-    }
-
-    @Test
-    public void forgotPinThenSkippingTheNewPinStillUnlocksAndKeepsTheOldPin() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
-        boolean[] opened = {false};
-        MessagesLock.confirmHiddenThen(activity, () -> opened[0] = true);
-        click(latest(), DialogInterface.BUTTON_NEUTRAL);
-        phoneAsks.get(0)[0].run();
-        click(latest(), DialogInterface.BUTTON_NEGATIVE);
-
-        assertTrue(opened[0]);
+        AlertDialog info = latest();
+        assertNotSame(pinDialog, info);
+        String text = ((TextView) info.findViewById(android.R.id.message)).getText().toString();
+        assertTrue(text, text.contains("can't be recovered"));
+        assertTrue(text, text.contains("clear Instagram's storage"));
+        assertTrue(text, text.contains("resets HushGram's settings"));
+        assertFalse("nothing asks the phone's lock or opens", opened[0]);
+        assertTrue("the PIN dialog stays under it", pinDialog.isShowing());
+        assertEquals(before, Settings.LOCK_PIN.get());
         assertTrue(PinLock.matches(PIN));
-    }
+        assertTrue(MessagesLock.locked());
+        assertNull("no new-PIN dialog", findDialogTitled("Set a PIN"));
+        assertNull("nothing was launched", Shadows.shadowOf(activity).getNextStartedActivity());
 
-    @Test
-    public void forgotPinWhenThePhoneLockIsCancelledOpensNothing() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
-        boolean[] opened = {false};
-        MessagesLock.confirmHiddenThen(activity, () -> opened[0] = true);
-        click(latest(), DialogInterface.BUTTON_NEUTRAL);
-        phoneAsks.get(0)[1].run();
+        // Cancel goes back to the PIN dialog and changes nothing.
+        click(info, DialogInterface.BUTTON_NEGATIVE);
+        assertFalse(info.isShowing());
+        assertTrue(pinDialog.isShowing());
+        assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
+        assertEquals(before, Settings.LOCK_PIN.get());
         assertFalse(opened[0]);
-        assertTrue(PinLock.matches(PIN));
     }
 
     @Test
-    public void forgotPinWorksDuringTheWaitAndAnewPinClearsIt() {
-        for (int i = 0; i < 5; i++) PinLock.attempt("9999");
-        assertTrue(PinLock.waitLeftMs() > 0);
+    public void forgotPinOffersAppInfoForInstagramAndNothingElse() {
         Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
         MessagesLock.confirmHiddenThen(activity, () -> { });
-        AlertDialog dialog = latest();
-        assertEquals("Too many tries. Wait 30 seconds.", message(dialog));
-        click(dialog, DialogInterface.BUTTON_NEUTRAL);
-        phoneAsks.get(0)[0].run();
-        AlertDialog set = latest();
-        type(set, PinLock.FIELD_TAG, "2468");
-        type(set, PinLock.CONFIRM_TAG, "2468");
-        click(set, DialogInterface.BUTTON_POSITIVE);
-        assertEquals(0, PinLock.waitLeftMs());
+        click(latest(), DialogInterface.BUTTON_NEUTRAL);
+        AlertDialog info = latest();
+
+        click(info, DialogInterface.BUTTON_POSITIVE);
+
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertNotNull(started);
+        assertEquals(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, started.getAction());
+        assertEquals("package:" + activity.getPackageName(), started.getDataString());
+        assertTrue(PinLock.matches(PIN));
+        assertTrue(MessagesLock.locked());
     }
 
     // ---------------------------------------------------------------- the phone's lock, unchanged
@@ -533,6 +516,16 @@ public class PinLockTest {
     private static void click(AlertDialog dialog, int which) {
         dialog.getButton(which).performClick();
         ShadowLooper.idleMainLooper();
+    }
+
+    /** A dialog showing now whose title is [title], if any. */
+    private static AlertDialog findDialogTitled(String title) {
+        for (android.app.Dialog dialog : org.robolectric.shadows.ShadowDialog.getShownDialogs()) {
+            if (dialog instanceof AlertDialog && dialog.isShowing() && title(((AlertDialog) dialog)).equals(title)) {
+                return (AlertDialog) dialog;
+            }
+        }
+        return null;
     }
 
     private static String message(AlertDialog dialog) {

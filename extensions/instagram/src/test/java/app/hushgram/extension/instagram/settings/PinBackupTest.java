@@ -82,4 +82,55 @@ public class PinBackupTest {
         assertEquals(UnlockWith.PIN, Settings.UNLOCK_WITH.get());
         assertTrue(PinLock.matches("4821"));
     }
+
+    private static byte[] locksOff() {
+        return ("{\"project\":\"HushGram\",\"schema\":1,\"settings\":{"
+                + "\"" + Settings.LOCK_MESSAGES.key + "\":{\"type\":\"boolean\",\"value\":false},"
+                + "\"" + Settings.LOCK_APP.key + "\":{\"type\":\"boolean\",\"value\":false}}}")
+                .getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Test
+    public void anImportCannotSwitchALockOffWhileAPinIsChosen() throws Exception {
+        Settings.LOCK_APP.save(true);
+
+        ConfigurationBackup.Result result = ConfigurationBackup.restore(locksOff());
+
+        assertTrue(Settings.LOCK_MESSAGES.savedValue());
+        assertTrue(Settings.LOCK_APP.savedValue());
+        assertEquals(0, result.applied);
+        assertEquals(2, result.skipped);
+        assertFalse("nothing to undo", ConfigurationBackup.canUndo());
+        Settings.LOCK_APP.resetToDefault();
+    }
+
+    @Test
+    public void anImportStillChangesTheLocksWithThePhoneLockChosen() throws Exception {
+        Settings.UNLOCK_WITH.save(UnlockWith.PHONE_LOCK);
+        Settings.LOCK_APP.save(true);
+
+        ConfigurationBackup.restore(locksOff());
+
+        assertFalse(Settings.LOCK_MESSAGES.savedValue());
+        assertFalse(Settings.LOCK_APP.savedValue());
+        ConfigurationBackup.forgetUndo();
+    }
+
+    @Test
+    public void anUndoCannotSwitchALockOffEither() throws Exception {
+        Settings.UNLOCK_WITH.save(UnlockWith.PHONE_LOCK);
+        Settings.LOCK_MESSAGES.save(false);
+        String on = "{\"project\":\"HushGram\",\"schema\":1,\"settings\":{\"" + Settings.LOCK_MESSAGES.key
+                + "\":{\"type\":\"boolean\",\"value\":true}}}";
+        ConfigurationBackup.restore(on.getBytes(StandardCharsets.UTF_8));
+        long token = ConfigurationBackup.undoToken();
+        assertTrue(token != 0);
+        // A PIN is chosen before the Undo is tapped: Undo would switch the lock off.
+        Settings.UNLOCK_WITH.save(UnlockWith.PIN);
+
+        ConfigurationBackup.undo(token);
+
+        assertTrue(Settings.LOCK_MESSAGES.savedValue());
+        ConfigurationBackup.forgetUndo();
+    }
 }
