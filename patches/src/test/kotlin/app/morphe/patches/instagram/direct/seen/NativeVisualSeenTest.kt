@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.direct.seen
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patches.instagram.FixtureCache
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.direct.seen.VisualSeenHookTest.Companion.assertVisualGuard
@@ -120,7 +121,7 @@ class NativeVisualSeenTest {
 
     companion object {
         private const val DISK_IO = "Lcom/instagram/direct/store/impl/sqlite/DirectSQLiteDiskIO;"
-        private val cached = mutableMapOf<String, Map<String, ClassDef>>()
+        private val cached = FixtureCache<Map<String, ClassDef>>()
         private val anchors = setOf(VISUAL_ENDPOINT, VISUAL_MUTATION, SUCCESS_ANCHOR, DISPATCH_ANCHOR,
             "mutation_success", "IGDirectItemSeenMutation", "seenEphemeralMessageThreadData")
 
@@ -147,7 +148,7 @@ class NativeVisualSeenTest {
             }
         }
 
-        internal fun nativeClasses(bundle: File): Map<String, ClassDef> = cached.getOrPut(bundle.absolutePath) {
+        internal fun nativeClasses(bundle: File): Map<String, ClassDef> = cached.get(bundle) {
             val found = mutableMapOf<String, ClassDef>()
             FixtureDex.forEach(bundle) { dex ->
                 if (dex.stringSection.any { it in anchors }) for (candidate in dex.classes) {

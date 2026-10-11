@@ -6,6 +6,7 @@ package app.morphe.patches.instagram.direct.seen
 
 import app.morphe.ExtensionDex
 import app.morphe.PatchContexts
+import app.morphe.patches.instagram.FixtureCache
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.CHAT
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.CHOSEN
@@ -109,7 +110,7 @@ class NativeMarkReadTest {
     }
 
     companion object {
-        private val cached = mutableMapOf<String, Map<String, ClassDef>>()
+        private val cached = FixtureCache<Map<String, ClassDef>>()
 
         /**
          * The chat receipt's classes, plus the chat menu's enum, the classes whose methods take it or
@@ -118,7 +119,7 @@ class NativeMarkReadTest {
          * receipt's details and the classes they extend, the account class, and the extension's hooks
          * and bridges.
          */
-        private fun markReadClasses(bundle: File): Map<String, ClassDef> = cached.getOrPut(bundle.absolutePath) {
+        private fun markReadClasses(bundle: File): Map<String, ClassDef> = cached.get(bundle) {
             val classes = threadClasses(bundle).toMutableMap()
             val menu = FixtureDex.classesHolding(bundle, MARK_AS_UNREAD).single { candidate ->
                 candidate.superclass == "Ljava/lang/Enum;" && candidate.methods.any { method ->

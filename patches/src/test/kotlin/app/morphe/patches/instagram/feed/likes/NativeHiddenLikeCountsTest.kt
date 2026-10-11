@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.feed.likes
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patches.instagram.FixtureCache
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.assertCountHook
 import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.assertDecisionHook
@@ -133,7 +134,7 @@ class NativeHiddenLikeCountsTest {
         const val SESSION = "Lcom/instagram/common/session/UserSession;"
         val DECIDE = listOf(SESSION, "Ljava/lang/String;", "Z")
         val CONSTS = setOf(Opcode.CONST, Opcode.CONST_16, Opcode.CONST_HIGH16, Opcode.CONST_4)
-        val cached = mutableMapOf<String, Map<String, ClassDef>>()
+        val cached = FixtureCache<Map<String, ClassDef>>()
 
         fun bundles(): List<File> {
             val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -145,7 +146,7 @@ class NativeHiddenLikeCountsTest {
          * The post model, every class loading either key, and the classes of every method taking the
          * session, an id and a boolean that those call: what the patch reads, and the decider among them.
          */
-        fun nativeClasses(bundle: File): Map<String, ClassDef> = cached.getOrPut(bundle.absolutePath) {
+        fun nativeClasses(bundle: File): Map<String, ClassDef> = cached.get(bundle) {
             val found = mutableMapOf<String, ClassDef>()
             val asked = mutableSetOf<String>()
             FixtureDex.forEach(bundle) { dex ->

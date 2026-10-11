@@ -10,6 +10,7 @@ import app.morphe.PatchContexts
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.FixtureCache
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.fixtures
 import app.morphe.patches.instagram.direct.seen.THREAD_KEY
@@ -485,13 +486,13 @@ class HiddenChatHookTest {
     }
 
     companion object {
-        private val cached = mutableMapOf<String, Map<String, ClassDef>>()
-        private val searchCached = mutableMapOf<String, Map<String, ClassDef>>()
+        private val cached = FixtureCache<Map<String, ClassDef>>()
+        private val searchCached = FixtureCache<Map<String, ClassDef>>()
 
-        private val recentCached = mutableMapOf<String, Map<String, ClassDef>>()
+        private val recentCached = FixtureCache<Map<String, ClassDef>>()
 
         /** The recent searches store, the chat type and the extension's class. */
-        private fun recentClasses(bundle: File): Map<String, ClassDef> = recentCached.getOrPut(bundle.absolutePath) {
+        private fun recentClasses(bundle: File): Map<String, ClassDef> = recentCached.get(bundle) {
             val readers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == SHARE_TARGET } }) { it.readsRecentSearches() }
             val classes = mutableMapOf<String, ClassDef>()
             classes += FixtureDex.classes(bundle, (readers.map { it.definingClass } + SHARE_TARGET).toSet())
@@ -503,7 +504,7 @@ class HiddenChatHookTest {
          * The inbox search's row builder, the See all reader, the builder of message matches, the
          * search result type, the chat key and the extension's class.
          */
-        private fun searchClasses(bundle: File): Map<String, ClassDef> = searchCached.getOrPut(bundle.absolutePath) {
+        private fun searchClasses(bundle: File): Map<String, ClassDef> = searchCached.get(bundle) {
             val classes = mutableMapOf<String, ClassDef>()
             FixtureDex.classesHolding(bundle, "ibc_chats_context_lines").forEach { classes[it.type] = it }
             val readers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == SEE_ALL_SCREEN } }) { it.seeAllListAt() != null }
@@ -522,9 +523,9 @@ class HiddenChatHookTest {
          */
         private class RowAnchors(val factories: List<Method>, val starters: List<Method>, val lists: List<FieldReference>, val writes: List<Pair<Method, Int>>)
 
-        private val rowCached = mutableMapOf<String, RowAnchors>()
+        private val rowCached = FixtureCache<RowAnchors>()
 
-        private fun rowAnchors(bundle: File): RowAnchors = rowCached.getOrPut(bundle.absolutePath) {
+        private fun rowAnchors(bundle: File): RowAnchors = rowCached.get(bundle) {
             val holders = FixtureDex.classesHolding(bundle, INBOX_ROWS)
             val factories = holders.flatMap { classDef -> classDef.methods.filter { method -> method.visualCode().any { it.visualString() == INBOX_ROWS } } }
             val factoryTypes = holders.mapTo(HashSet()) { it.type }
@@ -558,7 +559,7 @@ class HiddenChatHookTest {
          * badge snapshot's class, the row factory with the classes starting it and writing its list,
          * and the extension's class.
          */
-        private fun summaryClasses(bundle: File): Map<String, ClassDef> = cached.getOrPut(bundle.absolutePath) {
+        private fun summaryClasses(bundle: File): Map<String, ClassDef> = cached.get(bundle) {
             val classes = mutableMapOf<String, ClassDef>()
             FixtureDex.classesHolding(bundle, THREAD_SUMMARIES).forEach { classes[it.type] = it }
             val named = mutableSetOf(THREAD_KEY)

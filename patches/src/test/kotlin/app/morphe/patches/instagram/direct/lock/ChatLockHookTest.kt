@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.FixtureCache
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.direct.seen.THREAD_KEY
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.fixtures
@@ -150,13 +151,13 @@ class ChatLockHookTest {
     }
 
     companion object {
-        private val cached = mutableMapOf<String, Map<String, ClassDef>>()
+        private val cached = FixtureCache<Map<String, ClassDef>>()
 
         /**
          * The chat screen, the push display and the push's labels, the chat key, every type the screen
          * and the display name, and the extension's chat lock class.
          */
-        private fun chatClasses(bundle: File): Map<String, ClassDef> = cached.getOrPut(bundle.absolutePath) {
+        private fun chatClasses(bundle: File): Map<String, ClassDef> = cached.get(bundle) {
             val classes = mutableMapOf<String, ClassDef>()
             for (anchor in listOf(CHAT_RESUME, CHAT_PAUSE, PUSH_ALERT_ONCE, PUSH_ACTION)) {
                 FixtureDex.classesHolding(bundle, anchor).forEach { classes[it.type] = it }

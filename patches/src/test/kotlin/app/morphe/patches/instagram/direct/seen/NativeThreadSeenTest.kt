@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.direct.seen
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patches.instagram.FixtureCache
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.assertUploadedDelayIsZero
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.fixtures
@@ -117,10 +118,10 @@ class NativeThreadSeenTest {
     }
 
     companion object {
-        private val cached = mutableMapOf<String, Map<String, ClassDef>>()
+        private val cached = FixtureCache<Map<String, ClassDef>>()
 
         /** The view-once test's classes, which hold the chat handler and its sender too, plus its provider and the extension. */
-        internal fun threadClasses(bundle: File): Map<String, ClassDef> = cached.getOrPut(bundle.absolutePath) {
+        internal fun threadClasses(bundle: File): Map<String, ClassDef> = cached.get(bundle) {
             val classes = nativeClasses(bundle).toMutableMap()
             val handler = threadHandler(classes)
             val providers = classes.getValue(handler.definingClass).methods.single { it.name == "<clinit>" }.visualCode()
