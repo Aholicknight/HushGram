@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.download;
 
 import android.app.Activity;
+import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -18,6 +19,8 @@ import android.view.MotionEvent;
 import android.view.SearchEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
@@ -25,6 +28,7 @@ import android.view.accessibility.AccessibilityEvent;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -49,6 +53,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * touch slop for the chosen time, Instagram's gesture gets a cancel, as it would when the system takes a
  * gesture away, the rest of the gesture is kept from it, and the post saves through the same save as
  * Download in its menu ({@link VideoDownload#save} on a feed post, {@link ReelDownload#save} on a reel).
+ *
+ * <p>A video in the feed can sit under a clickable cover of its own (the keep-watching screen a reel preview
+ * ends on), which takes the first finger before the media frame's touch method ever runs. So the patch also
+ * calls {@link #feedMade} as each frame's touch holder is made, which keeps the frame with its holder and
+ * watches the frame's window. When the second finger lands with no hook having noted this gesture, the
+ * watcher looks for a kept frame under every finger with nothing clickable from outside its row on top, and
+ * holds on that one.
  *
  * <p>Instagram's one-finger long press never sees a difference: a second finger landing ends a long press
  * in Android's gesture detector, and a hold that starts after one is refused. Off, paused or before the
@@ -131,6 +142,12 @@ public final class HoldDownload {
     @Nullable
     static Target target;
 
+    /** The feed frames whose touch holders were made, each with its holder, held weakly both ways. Main thread only. */
+    private static final Map<View, WeakReference<Object>> made = new WeakHashMap<>();
+
+    /** The kept frames that were not on a window yet, and wait for one. */
+    private static final Map<View, Boolean> waiting = new WeakHashMap<>();
+
     /** Each watched window's watcher, held weakly both ways, so a closed screen takes its watcher with it. */
     private static final Map<Window, WeakReference<Watcher>> watchers = new WeakHashMap<>();
 
@@ -155,6 +172,41 @@ public final class HoldDownload {
         } catch (Throwable failure) {
             target = null;
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "hold to download (feed)", failure);
+        }
+    }
+
+    /**
+     * Called last thing in the constructor of a feed post's touch holder, with the new [holder]. Keeps its
+     * media frame for a hold the frame's own touch method never sees, and watches the frame's window as
+     * soon as it has one. Never throws.
+     */
+    public static void feedMade(Object holder) {
+        try {
+            if (!on(Kind.FEED)) return;
+            Object frame = reads.feedFrame(holder);
+            if (!(frame instanceof View)) return;
+            View view = (View) frame;
+            made.put(view, new WeakReference<>(holder));
+            if (view.isAttachedToWindow()) {
+                watchWindowOf(view);
+            } else if (waiting.put(view, Boolean.TRUE) == null) {
+                view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+                    @Override public void onViewAttachedToWindow(View attached) {
+                        attached.removeOnAttachStateChangeListener(this);
+                        waiting.remove(attached);
+                        try {
+                            if (on(Kind.FEED)) watchWindowOf(attached);
+                        } catch (Throwable failure) {
+                            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "hold to download (made)", failure);
+                        }
+                    }
+
+                    @Override public void onViewDetachedFromWindow(View detached) {
+                    }
+                });
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "hold to download (made)", failure);
         }
     }
 
@@ -200,12 +252,25 @@ public final class HoldDownload {
 
     /** Notes [owner]'s [view] under a first finger, when the view is in its activity's own window, and watches that window. */
     private static void note(Kind kind, Object owner, View view, MotionEvent down) {
-        Activity activity = FeedDownloadButton.activityOf(view);
-        Window window = activity == null ? null : activity.getWindow();
-        // A view in a dialog or a popup has a window of its own, which no watcher sees.
-        if (window == null || window.peekDecorView() == null || view.getRootView() != window.peekDecorView()) return;
+        Window window = windowOf(view);
+        if (window == null) return;
         target = new Target(kind, owner, view, down);
         watch(window);
+    }
+
+    /** Watches the window [view] is in, when it is its activity's own. */
+    private static void watchWindowOf(View view) {
+        Window window = windowOf(view);
+        if (window != null) watch(window);
+    }
+
+    /** [view]'s activity's window, unless the view sits in a dialog or a popup, whose window no watcher sees. */
+    @Nullable
+    private static Window windowOf(View view) {
+        Activity activity = FeedDownloadButton.activityOf(view);
+        Window window = activity == null ? null : activity.getWindow();
+        if (window == null || window.peekDecorView() == null || view.getRootView() != window.peekDecorView()) return null;
+        return window;
     }
 
     private static void forget(Object owner) {
@@ -325,6 +390,8 @@ public final class HoldDownload {
         /** Another finger is down. */
         private void landed(MotionEvent event) {
             Target noted = target;
+            // No hook saw this gesture go down, as when a cover over the frame took it: look for the frame under the fingers.
+            if (noted == null || noted.downTime != event.getDownTime()) noted = covered(event);
             if (!active || noted == null || !on(noted.kind)) {
                 state = REFUSED;
                 if (!active || !on(Kind.FEED)) retire();
@@ -359,6 +426,87 @@ public final class HoldDownload {
             held = noted;
             state = ARMED;
             handler.postDelayed(fire, holdMillis());
+        }
+
+        /**
+         * The kept feed frame all of [event]'s fingers are on (the smallest when frames overlap) as this
+         * gesture's target, or null. Only a frame showing on screen counts, and only when no clickable view
+         * from outside its row (a sheet, a screen over the feed) is on top at the first finger. A cover
+         * inside the row does not matter, since it is the reason to look.
+         */
+        @Nullable
+        private static Target covered(MotionEvent event) {
+            View best = null;
+            Object owner = null;
+            long smallest = Long.MAX_VALUE;
+            for (Map.Entry<View, WeakReference<Object>> kept : new ArrayList<>(made.entrySet())) {
+                View view = kept.getKey();
+                Object holder = kept.getValue().get();
+                if (view == null || holder == null || !view.isAttachedToWindow() || !view.isShown() || !fingersOn(event, view)) continue;
+                long area = (long) view.getWidth() * view.getHeight();
+                if (area >= smallest || !nothingOutsideItsRowOver(view, event.getX(0), event.getY(0))) continue;
+                best = view;
+                owner = holder;
+                smallest = area;
+            }
+            return best == null ? null : new Target(Kind.FEED, owner, best, event);
+        }
+
+        /** Whether every finger of [event] is on the part of [view] that shows. */
+        private static boolean fingersOn(MotionEvent event, View view) {
+            Rect shows = new Rect();
+            if (!view.getLocalVisibleRect(shows)) return false;
+            int[] at = new int[2];
+            view.getLocationInWindow(at);
+            for (int i = 0; i < event.getPointerCount(); i++) {
+                if (!shows.contains(Math.round(event.getX(i) - at[0]), Math.round(event.getY(i) - at[1]))) return false;
+            }
+            return true;
+        }
+
+        /** Whether the topmost clickable view at the window's point (x, y) is none, or sits inside the row [frame] is in. */
+        private static boolean nothingOutsideItsRowOver(View frame, float x, float y) {
+            View hit = clickableAt(frame.getRootView(), x, y);
+            if (hit == null) return true;
+            View row = frame;
+            int up = 0;
+            for (ViewParent parent = frame.getParent(); parent instanceof View; parent = parent.getParent()) {
+                if (isRecycler(parent)) break;
+                row = (View) parent;
+                // Without a list around it, the row is the frame's own few levels.
+                if (++up == 6) break;
+            }
+            if (hit == row) return true;
+            for (ViewParent at = hit.getParent(); at != null; at = at.getParent()) {
+                if (at == row) return true;
+            }
+            return false;
+        }
+
+        /** The topmost clickable view under (x, y) in the window's coordinates, trying each group's children from the one drawn last. */
+        @Nullable
+        private static View clickableAt(View view, float x, float y) {
+            if (view instanceof ViewGroup) {
+                ViewGroup group = (ViewGroup) view;
+                int[] at = new int[2];
+                for (int i = group.getChildCount() - 1; i >= 0; i--) {
+                    View child = group.getChildAt(i);
+                    if (child.getVisibility() != View.VISIBLE || child.getAlpha() == 0f) continue;
+                    child.getLocationInWindow(at);
+                    if (x < at[0] || y < at[1] || x >= at[0] + child.getWidth() || y >= at[1] + child.getHeight()) continue;
+                    View found = clickableAt(child, x, y);
+                    if (found != null) return found;
+                }
+            }
+            return view.isClickable() || view.isLongClickable() ? view : null;
+        }
+
+        /** Whether [parent] is a RecyclerView or a subclass of one, whatever Instagram named the subclass. */
+        private static boolean isRecycler(ViewParent parent) {
+            for (Class<?> type = parent.getClass(); type != null; type = type.getSuperclass()) {
+                if (type.getSimpleName().equals("RecyclerView")) return true;
+            }
+            return false;
         }
 
         /** Whether the first finger moved past [slop] from where it went down: one that slid has started a scroll. */
