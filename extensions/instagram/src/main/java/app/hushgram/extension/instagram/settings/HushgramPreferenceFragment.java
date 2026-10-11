@@ -94,6 +94,7 @@ import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.misc.GlassHeight;
+import app.hushgram.extension.instagram.misc.AccentHue;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
@@ -1010,7 +1011,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
         }
 
-        if (build.contains(PatchFamily.BOTTOM_SPACE) || build.contains(PatchFamily.EMOJI_STYLE)) {
+        if (build.contains(PatchFamily.BOTTOM_SPACE) || build.contains(PatchFamily.EMOJI_STYLE)
+                || build.contains(PatchFamily.ACCENT_COLOR)) {
             PreferenceCategory layout = category(screen, L10n.t("Layout"));
             if (build.contains(PatchFamily.BOTTOM_SPACE)) {
                 layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE, L10n.t("Remove the empty space at the bottom"),
@@ -1022,6 +1024,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 layout.addPreference(toggle(context, Settings.NOTO_EMOJI, L10n.t("Google's emoji everywhere"),
                         L10n.t("Shows every emoji in Google's style instead of your phone's own. Restart Instagram "
                                 + "to see the change.")));
+            }
+            if (build.contains(PatchFamily.ACCENT_COLOR)) {
+                layout.addPreference(toggle(context, Settings.ACCENT_COLOR, L10n.t("Accent color"),
+                        L10n.t("Turns Instagram's blue, on Follow buttons, links and the like, into the color you "
+                                + "pick below. Restart Instagram to see the change.")));
+                layout.addPreference(accentHueRow(context));
             }
         }
 
@@ -1449,6 +1457,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key));
+                    belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
@@ -3458,6 +3467,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** The color Instagram's blue turns into. Its summary is the color chosen. */
+    static AccentHueRow accentHueRow(Context context) {
+        AccentHueRow row = new AccentHueRow(context);
+        row.setKey(Settings.ACCENT_HUE.key);
+        row.setTitle(L10n.t("Color"));
+        row.setDialogTitle(L10n.t("Accent color"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        AccentHue[] hues = AccentHue.values();
+        CharSequence[] entries = new CharSequence[hues.length];
+        CharSequence[] values = new CharSequence[hues.length];
+        for (int i = 0; i < hues.length; i++) {
+            entries[i] = accentHueLabel(hues[i]);
+            values[i] = hues[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.ACCENT_HUE.savedValue().name());
+        return row;
+    }
+
     /** How tall the glass tab bar's pill is. Its summary is the step chosen. */
     static GlassHeightRow glassHeightRow(Context context) {
         GlassHeightRow row = new GlassHeightRow(context);
@@ -3598,6 +3627,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return L10n.f("Instagram opens on %1$s when you start it from its icon. A notification or a link still opens "
                 + "what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.",
                 L10n.isolate(startTabLabel(tab)));
+    }
+
+    /** What the list calls [hue]. */
+    static String accentHueLabel(AccentHue hue) {
+        switch (hue) {
+            case PURPLE:
+                return L10n.t("Purple");
+            case PINK:
+                return L10n.t("Pink");
+            case RED:
+                return L10n.t("Red");
+            case ORANGE:
+                return L10n.t("Orange");
+            case GREEN:
+                return L10n.t("Green");
+            case TEAL:
+                return L10n.t("Teal");
+            default:
+                return L10n.t("Instagram blue");
+        }
     }
 
     /** What the list calls [step]. */
@@ -4683,6 +4732,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             case FIVE_MINUTES: return L10n.t("5 minutes");
             case FIFTEEN_MINUTES: return L10n.t("15 minutes");
             default: return L10n.t("1 hour");
+        }
+    }
+
+    static final class AccentHueRow extends ListPreference {
+        AccentHueRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the color chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            AccentHue hue = Settings.ACCENT_HUE.defaultValue;
+            for (AccentHue candidate : AccentHue.values()) {
+                if (candidate.name().equals(value)) hue = candidate;
+            }
+            setSummary(accentHueLabel(hue));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
         }
     }
 

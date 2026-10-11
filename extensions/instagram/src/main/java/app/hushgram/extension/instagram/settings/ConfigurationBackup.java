@@ -86,6 +86,7 @@ public final class ConfigurationBackup {
             settings.put(Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_OPACITY);
             settings.put(Settings.GLASS_TAB_BAR_HEIGHT.key, Settings.GLASS_TAB_BAR_HEIGHT);
         }
+        if (PatchFamily.ACCENT_COLOR.inBuild()) settings.put(Settings.ACCENT_HUE.key, Settings.ACCENT_HUE);
         if (PatchFamily.REEL_DOWNLOAD.inBuild()) settings.put(Settings.DOWNLOAD_REEL_COVER.key, Settings.DOWNLOAD_REEL_COVER);
         if (PatchFamily.VIDEO_DOWNLOAD.inBuild()) settings.put(Settings.DOWNLOAD_FEED_COVER.key, Settings.DOWNLOAD_FEED_COVER);
         if (PatchFamily.VIDEO_DOWNLOAD.inBuild()) {

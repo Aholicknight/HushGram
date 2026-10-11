@@ -747,6 +747,19 @@ Mentioned in this story	Disebut di cerita ini
 See who a story mentions	Lihat siapa yang disebut cerita
 Shows every emoji in Google's style instead of your phone's own. Restart Instagram to see the change.	Menampilkan semua emoji dengan gaya Google, bukan gaya bawaan ponselmu. Mulai ulang Instagram untuk melihat perubahannya.
 Google's emoji everywhere	Emoji Google di mana saja
+# context: Layout switch; it turns Instagram's blue into a color picked in the row under it
+Accent color	Warna aksen
+Turns Instagram's blue, on Follow buttons, links and the like, into the color you pick below. Restart Instagram to see the change.	Mengubah biru Instagram pada tombol Ikuti, tautan, dan sejenisnya menjadi warna yang kamu pilih di bawah. Mulai ulang Instagram untuk melihat perubahannya.
+# context: Layout list under Accent color; its choices are Instagram blue and the colors below
+Color	Warna
+Instagram blue	Biru Instagram
+# context: the colors in the Accent color list, each one the blue on buttons and links turns into
+Purple	Ungu
+Pink	Merah muda
+Red	Merah
+Orange	Oranye
+Green	Hijau
+Teal	Hijau kebiruan
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	Unduh sampul video
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Menambahkan Unduh sampul ke menu postingan feed berisi video, dan ke carousel yang sedang menampilkan video. Ini menyimpan gambar diam yang tampil sebelum video diputar, dalam ukuran terbesarnya.

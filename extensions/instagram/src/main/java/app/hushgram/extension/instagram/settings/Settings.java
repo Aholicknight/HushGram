@@ -762,6 +762,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_noto_emoji", FALSE, true);
 
     /**
+     * Instagram's blue turns into the color picked in {@link #ACCENT_HUE} wherever it's read from the
+     * theme ({@link app.hushgram.extension.instagram.misc.AccentColor}). Colors already on screen keep
+     * theirs, so a change shows after a restart. Off to start.
+     */
+    public static final BooleanSetting ACCENT_COLOR =
+            new BooleanSetting("hushgram_accent_color", FALSE, true);
+
+    /**
+     * Under {@link #ACCENT_COLOR}: the color ({@link app.hushgram.extension.instagram.misc.AccentHue}).
+     * Starts on purple, and Instagram blue keeps the stock color. A change shows after a restart.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.AccentHue> ACCENT_HUE =
+            new EnumSetting<>("hushgram_accent_hue",
+                    app.hushgram.extension.instagram.misc.AccentHue.PURPLE, true, parent(ACCENT_COLOR));
+
+    /**
      * Every notification Instagram posts joins one group with a count
      * ({@link app.hushgram.extension.instagram.misc.NotificationGroups}). Read at each post. Off to
      * start.

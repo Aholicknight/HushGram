@@ -746,6 +746,19 @@ Mentioned in this story	이 스토리에서 언급한 사람
 See who a story mentions	스토리에서 언급한 사람 보기
 Shows every emoji in Google's style instead of your phone's own. Restart Instagram to see the change.	모든 이모지를 휴대폰 기본 스타일 대신 Google 스타일로 표시합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Google's emoji everywhere	모든 곳에 Google 이모티콘
+# context: Layout switch; it turns Instagram's blue into a color picked in the row under it
+Accent color	강조 색상
+Turns Instagram's blue, on Follow buttons, links and the like, into the color you pick below. Restart Instagram to see the change.	팔로우 버튼, 링크 등에 쓰이는 Instagram의 파란색을 아래에서 고른 색으로 바꿉니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+# context: Layout list under Accent color; its choices are Instagram blue and the colors below
+Color	색상
+Instagram blue	Instagram 파란색
+# context: the colors in the Accent color list, each one the blue on buttons and links turns into
+Purple	보라색
+Pink	분홍색
+Red	빨간색
+Orange	주황색
+Green	초록색
+Teal	청록색
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	동영상 커버 다운로드
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	동영상이 있는 피드 게시물과 동영상을 보여 주는 캐러셀의 메뉴에 커버 다운로드를 추가합니다. 동영상이 재생되기 전에 보이는 정지 이미지를 가장 큰 크기로 저장합니다.

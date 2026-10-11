@@ -104,7 +104,7 @@ public class NeutralDefaultsSettingsTest {
                 Settings.HIDE_SCREENSHOTS,
                 Settings.ALLOW_SCREENSHOTS,
                 Settings.KEEP_IN_CHAT,
-                Settings.VIEW_LIVE_ANONYMOUSLY, Settings.NOTO_EMOJI,
+                Settings.VIEW_LIVE_ANONYMOUSLY, Settings.NOTO_EMOJI, Settings.ACCENT_COLOR,
                 Settings.DONT_SEND_REEL_WATCH_HISTORY, Settings.BLOCK_STORY_AUTO_ADVANCE, Settings.START_STORIES_WITH_SOUND, Settings.START_FEED_VIDEOS_WITH_SOUND, Settings.LONG_PRESS_TO_ZOOM, Settings.FULL_SCREEN_REELS, Settings.FULL_SCREEN_HOME, Settings.SHOW_STORY_TIME,
                 Settings.SHOW_STORY_MENTIONS, Settings.SHOW_POST_TIME, Settings.SHOW_HIDDEN_LIKE_COUNTS, Settings.BACK_LEAVES_HOME, Settings.LOOP_STORIES, Settings.VIEW_STORIES_ANONYMOUSLY,
                 Settings.SPOOF_LOCATION, Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.HIDE_TYPING, Settings.HIDE_ACTIVE_STATUS,
@@ -123,7 +123,7 @@ public class NeutralDefaultsSettingsTest {
                 PatchFamily.PROFILE_HIGHLIGHTS, PatchFamily.THREADS_BUTTON, PatchFamily.PROFILE_NOTES, PatchFamily.PROFILE_POSTS_LIST, PatchFamily.NOTES_ROW, PatchFamily.INBOX_SUGGESTIONS, PatchFamily.INSTANTS, PatchFamily.SWIPE_TO_CREATE,
                 PatchFamily.REEL_SCROLLING, PatchFamily.REEL_ORIGIN, PatchFamily.STORY_RING, PatchFamily.FULL_RESOLUTION, PatchFamily.HOME_FEED, PatchFamily.FEED_SUGGESTIONS,
                 PatchFamily.TAB_SWIPE, PatchFamily.HDR_BOOST, PatchFamily.RECENT_SEARCHES, PatchFamily.DATA_SAVER, PatchFamily.MEDIA_CACHE, PatchFamily.NOTIFICATION_GROUPS, PatchFamily.MESSAGES_LOCK, PatchFamily.SCREENSHOT_REPORTS, PatchFamily.SCREENSHOT_BLOCK, PatchFamily.KEEP_IN_CHAT, PatchFamily.LIVE_SEEN,
-                PatchFamily.EMOJI_STYLE,
+                PatchFamily.EMOJI_STYLE, PatchFamily.ACCENT_COLOR,
                 PatchFamily.REEL_WATCH_HISTORY, PatchFamily.STORY_AUTO_ADVANCE, PatchFamily.STORY_SOUND, PatchFamily.FEED_SOUND, PatchFamily.LONG_PRESS_ZOOM, PatchFamily.FULL_SCREEN_BARS, PatchFamily.STORY_TIME, PatchFamily.STORY_MENTIONS,
                 PatchFamily.POST_TIME, PatchFamily.HIDDEN_LIKE_COUNTS, PatchFamily.BACK_LEAVES_HOME, PatchFamily.STORY_LOOP, PatchFamily.STORY_SEEN, PatchFamily.SPOOF_LOCATION,
                 PatchFamily.THREAD_SEEN, PatchFamily.TYPING, PatchFamily.ACTIVE_STATUS, PatchFamily.FEED_REELS, PatchFamily.FOLLOWING_FEED,
@@ -283,6 +283,7 @@ public class NeutralDefaultsSettingsTest {
         assertFalse(ReelDeclutter.hideCommentBar(StockSource.REPOSTS_GRID));
         assertEquals(270f, StoryRing.size(270f), 0f);
         assertEquals(0, app.hushgram.extension.instagram.misc.EmojiStyle.replaceStrategy(0));
+        assertEquals(0xff0095f6, app.hushgram.extension.instagram.misc.AccentColor.color(0xff0095f6));
         java.util.List<Object> profileButtons = java.util.Arrays.asList(new Object(), new Object());
         assertSame(profileButtons, app.hushgram.extension.instagram.profile.ThreadsButton.buttons(profileButtons));
         assertFalse(app.hushgram.extension.instagram.reels.ReelWatchHistory.holdBack());

@@ -1119,6 +1119,15 @@ once-call Lapp/hushgram/extension/instagram/misc/BottomSpace;->navigationBarHeig
 # but first, process may already have read the strategy. EmojiStyleHookTest checks it on 450.
 start-call Lapp/hushgram/extension/instagram/misc/EmojiStyle;->replaceStrategy(I)I in instance (Ljava/lang/CharSequence;III)Ljava/lang/CharSequence; holding start\sshould\sbe\s<=\sthan\send end\sshould\sbe\s<\sthan\scharSequence\slength
 once-call Lapp/hushgram/extension/instagram/misc/EmojiStyle;->replaceStrategy(I)I in instance (Ljava/lang/CharSequence;III)Ljava/lang/CharSequence; holding start\sshould\sbe\s<=\sthan\send end\sshould\sbe\s<\sthan\scharSequence\slength
+# Accent color hands each color state list AndroidX ResourcesCompat's loader returns to AccentColor.list
+# at all three of its returns (00Et.A01 on 450, the one static (Context, int) list holding the log line
+# below), and the color each of Instagram's two theme color reads returns to AccentColor.color (00ON.A0Y
+# and 0118.A03 on 450, each resolving the attribute through 00ON.A0b and returning getColor of the
+# answer). Left out, Instagram's blue stays wherever that path reads it. AccentColorHookTest checks all
+# three on the seven 450 builds.
+once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->list(Landroid/content/res/ColorStateList;)Landroid/content/res/ColorStateList; in static (Landroid/content/Context;I)Landroid/content/res/ColorStateList; sites 3 holding Failed\sto\sinflate\sColorStateList,\sleaving\sit\sto\sthe\sframework
+shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I calling static LX/00ON;->A0b(Landroid/content/Context;I)I class-holding Missing\scolor\stheme\sin\sthis\scontext:\s themeMap
+shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I calling static LX/00ON;->A0b(Landroid/content/Context;I)I class-holding max_highlights_to_fetch_on_pagination device_fold_orientation
 # Show if a profile follows you hands the pronouns slot beside a profile's name and the header to
 # FriendshipStatus right after the name's binder shows the slot with the pronouns in it, and right
 # after it hides the slot for an account with none (0BNk.A04 on 449, the one method loading the

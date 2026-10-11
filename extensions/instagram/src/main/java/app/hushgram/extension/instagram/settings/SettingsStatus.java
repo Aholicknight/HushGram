@@ -173,6 +173,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean accentColor() {
+        return false;
+    }
+
     public static boolean notificationGroups() {
         return false;
     }
