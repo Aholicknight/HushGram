@@ -1519,3 +1519,11 @@ shared-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(
 # still checks where each answer lands. Left out, notes stay on profile pictures with the switch on.
 shared-call Lapp/hushgram/extension/instagram/profile/ProfileNotes;->consumptionDisabled(I)Z in instance (Landroid/view/View;L*;L*;L*;Z)V holding self_profile external_profile
 shared-call Lapp/hushgram/extension/instagram/profile/ProfileNotes;->consumptionDisabled(I)Z in static (Lcom/instagram/profile/fragment/UserDetailFragment;Z)V calling instance Lcom/instagram/direct/inbox/notes/data/repository/NotesRepository;->*(Ljava/lang/String;)Ljava/util/List; holding Lcom/instagram/common/session/UserSession;->userId:Ljava/lang/String;
+# Upload stories at full quality (#37) asks StoryUploadQuality.fullQuality first in Instagram's high
+# quality upload check (0EGK.A08 on 450), the one instance ()Z method that reads the transcode
+# strategy's share type and asks the high_quality_media_upload reader (0E0O.A00) itself. Its
+# neighbors read the same field but reach the setting through it. Field and method names are pinned
+# 450 data. Left out, video stories stay at 720 with the switch on; twice or elsewhere, it isn't the
+# guard the patch wrote. UploadStoriesAtFullQualityHookTest finds the check in all seven 450 builds.
+start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQuality(Ljava/lang/Object;)Z in instance ()Z calling static LX/0E0O;->A00(LX/02pn;)Z holding LX/0EGK;->A03:Lcom/instagram/pendingmedia/model/constants/ShareType;
+once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQuality(Ljava/lang/Object;)Z in instance ()Z calling static LX/0E0O;->A00(LX/02pn;)Z holding LX/0EGK;->A03:Lcom/instagram/pendingmedia/model/constants/ShareType;

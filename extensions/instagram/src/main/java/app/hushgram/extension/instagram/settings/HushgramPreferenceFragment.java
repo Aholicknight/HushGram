@@ -865,6 +865,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Adds Download to the menu of anyone's story, photo or video, saved at your download quality. "
                             + "Off or paused, Instagram's own menu returns.")));
         }
+        if (build.contains(PatchFamily.STORY_UPLOAD_QUALITY)) {
+            stories.add(toggle(context, Settings.UPLOAD_STORIES_AT_FULL_QUALITY, L10n.t("Upload stories at full quality"),
+                    L10n.t("Video stories you post are sent up to 1080 pixels wide instead of 720, as they are with Instagram's "
+                            + "own Upload at highest quality setting on. Photo stories stay as they are.")));
+        }
         if (!stories.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Stories"));
             for (Preference row : stories) section.addPreference(row);

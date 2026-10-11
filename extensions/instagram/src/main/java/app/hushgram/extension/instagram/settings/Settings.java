@@ -211,6 +211,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_stories_with_sound", FALSE);
 
     /**
+     * A video story is prepared the way Instagram prepares it with its own "Upload at highest quality"
+     * setting on, up to 1080 wide instead of 720 ({@link app.hushgram.extension.instagram.stories.StoryUploadQuality}).
+     * Read as each upload is prepared, so a change applies to the next story posted. Off to start.
+     */
+    public static final BooleanSetting UPLOAD_STORIES_AT_FULL_QUALITY =
+            new BooleanSetting("hushgram_upload_stories_at_full_quality", FALSE);
+
+    /**
      * The first feed video of a Home session starts with its sound on, through the video's own sound
      * flag, when the phone's ringer is on and its volume is up
      * ({@link app.hushgram.extension.instagram.feed.FeedSound}). Off to start.

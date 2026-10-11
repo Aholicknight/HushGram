@@ -84,6 +84,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storyUploadQuality() {
+        return false;
+    }
+
     public static boolean storySeen() {
         return false;
     }
