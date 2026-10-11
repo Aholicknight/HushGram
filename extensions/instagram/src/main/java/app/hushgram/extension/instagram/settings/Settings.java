@@ -1012,6 +1012,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_comment_bar_everywhere", FALSE);
 
     /**
+     * The top bar of the Reels tab, with the Reels title and the camera button (#14). A reel opened
+     * from anywhere else keeps its bar
+     * ({@link app.hushgram.extension.instagram.reels.ReelsTopBar}). Off to start.
+     */
+    public static final BooleanSetting HIDE_REELS_TOP_BAR =
+            new BooleanSetting("hushgram_hide_reels_top_bar", FALSE);
+
+    /**
      * Download in every reel's more menu, saving the reel through the save pipeline below instead
      * of Instagram's own save, which only some reels offer and which stamps a watermark on.
      */

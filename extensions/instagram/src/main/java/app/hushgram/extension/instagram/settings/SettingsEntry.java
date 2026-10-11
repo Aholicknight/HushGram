@@ -41,6 +41,7 @@ import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
+import app.hushgram.extension.instagram.reels.ReelsTopBar;
 import app.hushgram.extension.instagram.reels.TabStart;
 import app.hushgram.extension.instagram.misc.ProfileSaved;
 import app.hushgram.extension.instagram.misc.LaunchScreen;
@@ -120,6 +121,7 @@ public final class SettingsEntry {
         }
         GlassTabBar.install(context);
         FullScreenBars.install(context);
+        ReelsTopBar.install(context);
         TabStart.install(context);
         ProfileSaved.install(context);
         ProfileMenuPress.install(context);

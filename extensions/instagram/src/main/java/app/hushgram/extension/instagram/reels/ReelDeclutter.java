@@ -49,6 +49,9 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with a switch
  * off, or when something throws, Instagram draws the part.
+ *
+ * <p>The patch's sixth switch, the Reels tab's top bar, needs no hook: {@link ReelsTopBar} hides
+ * that bar's view at runtime.
  */
 public final class ReelDeclutter {
     /**

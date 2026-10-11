@@ -76,6 +76,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Clean up Reels:** New switch under Reels, Hide the comment bar on all reels, off by default. The comment button still opens the comments. Asked for in #119.
 
+* **Instagram - Clean up Reels:** New switch under Reels, Hide the top bar on the Reels tab, off by default. It takes away the row with the Reels title and the camera button, and the reel stays where it was, so a tap up there reaches the reel. Reels you open from a profile, a post or a chat keep their bar, and the camera still opens from Home. Asked for in #14.
+
 * **Instagram - Glass tab bar:** New patch, from @sherifrahim. It draws the tab bar as a floating pill of frosted glass with a highlight that slides to your tab. Off by default, under Tab bar, and a restart shows it. Refs #89, #65.
 
 * **Instagram - Saved on your profile:** New patch, from @sherifrahim. It adds a bookmark to your profile's tabs that opens Saved. Turn it on under Profiles in HushGram settings and restart Instagram. Refs #89.
