@@ -1534,6 +1534,11 @@ once-call Lapp/hushgram/extension/instagram/download/HoldDownload;->feedTouch(Lj
 # HoldDownload.feedMade last thing before it returns. Left out, a hold on such a video never finds its frame; twice or
 # elsewhere, it isn't the call the patch wrote.
 once-call Lapp/hushgram/extension/instagram/download/HoldDownload;->feedMade(Ljava/lang/Object;)V in instance (Landroid/content/Context;Lcom/instagram/feed/media/Media;L*;Lcom/instagram/ui/widget/framelayout/MediaFrameLayout;L*;IJZZZZ)V holding LX/*;->*:Landroid/view/GestureDetector;
+# Rounded post corners (#135): the feed touch holder's one constructor, the instance (Context, Media, *,
+# MediaFrameLayout, *, int, long, boolean x4) method writing the holder's GestureDetector field, hands the new holder to
+# RoundedCorners.made last thing before it returns, once, next to Hold to download's own call there. Left out, no post
+# frame is rounded; twice or elsewhere, it isn't the call the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/RoundedCorners;->made(Ljava/lang/Object;)V in instance (Landroid/content/Context;Lcom/instagram/feed/media/Media;L*;Lcom/instagram/ui/widget/framelayout/MediaFrameLayout;L*;IJZZZZ)V holding LX/*;->*:Landroid/view/GestureDetector;
 # A reel's gesture detector hands itself, the view and every touch to HoldDownload.reelTouch first, in
 # its one instance (View, MotionEvent) boolean method holding the detector's touch marker. Left out,
 # a hold on a reel never saves; twice or elsewhere, it isn't the call the patch wrote.

@@ -247,6 +247,19 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_long_press_to_zoom", FALSE);
 
     /**
+     * The picture, video and carousel pages of a post in Home and Following are cut at rounded corners
+     * ({@link app.hushgram.extension.instagram.feed.RoundedCorners}). Stories, the profile grid, Explore
+     * and the Reels tab stay as Instagram draws them. Off to start, so no frame is touched.
+     */
+    public static final BooleanSetting ROUNDED_POST_CORNERS =
+            new BooleanSetting("hushgram_rounded_post_corners", FALSE);
+
+    /** Under {@link #ROUNDED_POST_CORNERS}: how round the corners are. Small to start. */
+    public static final EnumSetting<app.hushgram.extension.instagram.feed.CornerSize> ROUNDED_CORNER_SIZE =
+            new EnumSetting<>("hushgram_rounded_corner_size", app.hushgram.extension.instagram.feed.CornerSize.SMALL,
+                    parent(ROUNDED_POST_CORNERS));
+
+    /**
      * The stories you watch, which Instagram posts to media/seen/ to put you on their viewer lists.
      * Held back, you stay off them. Replies and reactions still show you. Off to start.
      */

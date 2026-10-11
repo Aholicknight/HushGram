@@ -459,6 +459,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Rounded post corners patch. */
+    public static boolean roundedPostCorners() {
+        return false;
+    }
+
     /** Rewritten by the Keep in chat patch. */
     public static boolean keepInChat() {
         return false;

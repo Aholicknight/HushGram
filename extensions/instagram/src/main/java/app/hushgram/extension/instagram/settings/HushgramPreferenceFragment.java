@@ -85,6 +85,7 @@ import app.hushgram.extension.instagram.media.TapToPlayScope;
 import app.hushgram.extension.instagram.media.ResumePlayback;
 import app.hushgram.extension.instagram.misc.OverrideExchange;
 import app.hushgram.extension.instagram.feed.HiddenAccounts;
+import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
 import app.hushgram.extension.instagram.misc.FlagNames;
 import app.hushgram.extension.instagram.misc.MediaCache;
@@ -460,9 +461,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         boolean backHome = build.contains(PatchFamily.BACK_LEAVES_HOME);
         boolean feedSound = build.contains(PatchFamily.FEED_SOUND);
         boolean longPressZoom = build.contains(PatchFamily.LONG_PRESS_ZOOM);
+        boolean roundedCorners = build.contains(PatchFamily.ROUNDED_POST_CORNERS);
         boolean fullScreen = build.contains(PatchFamily.FULL_SCREEN_BARS);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
-                || askLike || askRefresh || postTime || hiddenLikes || backHome || feedSound || longPressZoom || fullScreen
+                || askLike || askRefresh || postTime || hiddenLikes || backHome || feedSound || longPressZoom || roundedCorners || fullScreen
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
         if (following) {
@@ -569,6 +571,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Press and hold a photo in a feed to see it twice as big around your finger, and slide to "
                             + "look around. Let go to close it. While this is on, it takes the place of Instagram's own "
                             + "long press on a photo.")));
+        }
+        if (roundedCorners) {
+            feed.addPreference(toggle(context, Settings.ROUNDED_POST_CORNERS, L10n.t("Rounded corners on posts"),
+                    L10n.t("Rounds the corners of a post's photo, video and carousel pages in Home and Following. "
+                            + "Posts you scroll to after a change show it. Stories, profiles, Explore and Reels stay "
+                            + "as they were.")));
+            feed.addPreference(cornerSizeRow(context));
         }
         if (fullScreen) {
             feed.addPreference(toggle(context, Settings.FULL_SCREEN_HOME, L10n.t("Full screen Home"),
@@ -1527,6 +1536,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 for (PatchFamily family : build) {
                     boolean belongs = family.switches.stream().anyMatch(setting -> setting.key.equals(key));
                     belongs |= family == PatchFamily.STORY_RING && Settings.STORY_RING_SCALE.key.equals(key);
+                    belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
@@ -3739,6 +3749,31 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** How round Rounded corners on posts cuts a post's corners. Its summary is the size chosen. */
+    static CornerSizeRow cornerSizeRow(Context context) {
+        CornerSizeRow row = new CornerSizeRow(context);
+        row.setKey(Settings.ROUNDED_CORNER_SIZE.key);
+        row.setTitle(L10n.t("Corner size"));
+        row.setDialogTitle(L10n.t("Corner size"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        CornerSize[] sizes = CornerSize.values();
+        CharSequence[] entries = new CharSequence[sizes.length];
+        CharSequence[] values = new CharSequence[sizes.length];
+        for (int i = 0; i < sizes.length; i++) {
+            entries[i] = cornerSizeLabel(sizes[i]);
+            values[i] = sizes[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.ROUNDED_CORNER_SIZE.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [size]. */
+    static String cornerSizeLabel(CornerSize size) {
+        return size == CornerSize.LARGE ? L10n.t("Large") : L10n.t("Small");
+    }
+
     /** How long Hold to download's fingers stay down. Its summary is the time chosen. */
     static HoldTimeRow holdTimeRow(Context context) {
         HoldTimeRow row = new HoldTimeRow(context);
@@ -5177,6 +5212,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(value)) count = candidate;
             }
             setSummary(holdFingersLabel(count));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class CornerSizeRow extends ListPreference {
+        CornerSizeRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the size chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            CornerSize size = CornerSize.SMALL;
+            for (CornerSize candidate : CornerSize.values()) {
+                if (candidate.name().equals(value)) size = candidate;
+            }
+            setSummary(cornerSizeLabel(size));
         }
 
         @Override
