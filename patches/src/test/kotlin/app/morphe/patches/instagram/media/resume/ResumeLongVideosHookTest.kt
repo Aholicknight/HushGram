@@ -31,6 +31,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class ResumeLongVideosHookTest {
     private val player = "Lfixture/VideoPlayer;"
@@ -159,43 +160,53 @@ class ResumeLongVideosHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val players = FixtureDex.classesHolding(bundle, PLAY_INTERNAL)
-                val dumps = FixtureDex.classesHolding(bundle, IS_SPONSORED)
-                val sources = dumps.flatMap { it.methods }
-                    .filter { method -> method.implementation?.instructions?.any { it.stringText() == MEDIA_ID } == true }
-                    .mapNotNull { it.parameterTypes.firstOrNull()?.toString() }
-                val fieldTypes = players.flatMap { it.fields }.map { it.type }
-                val extra = FixtureDex.classes(bundle, (sources + fieldTypes).toSet()).values
-                val context = PatchContexts.of(
-                    (players + dumps + extra + ExtensionDex.classDef(RESUME_PLAYBACK)).distinctBy { it.type },
-                )
-                val found = context.findResumePlayer()
-                assertEquals("${bundle.name}: the holder is the player's", found.player.type, found.holder.definingClass)
-                assertEquals("${bundle.name}: the source is the holder's", found.holder.type, found.source.definingClass)
-                assertEquals("${bundle.name}: the product type", PRODUCT_TYPE, found.productType.type)
-                assertTrue("${bundle.name}: the position and length readers differ", found.position != found.length)
-                assertEquals("${bundle.name}: the player's session", found.player.type, found.session.definingClass)
-                assertEquals("${bundle.name}: the session's user ID", "$RESUME_SESSION->userId:$string", found.userId.toString())
-                assertEquals("${bundle.name}: the session's end", RESUME_SESSION, found.sessionEnd.definingClass)
-                assertEquals("${bundle.name}: the sign-out flag", "$RESUME_SESSION->isLoggedOut:Z", found.loggedOut.toString())
-
-                context.resumeLongVideos()
-
-                fun after(method: Method) = context.classDefBy(method.definingClass).methods.first {
-                    it.name == method.name && it.parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString)
-                }.code()
-                for ((method, hook) in listOf(found.started to STARTED, found.pause to STOPPED, found.stop to STOPPED,
-                    found.bind to REBOUND, found.seek to SEEKING, found.completed to ENDED, found.looping to ENDED)) {
-                    assertEquals("${bundle.name}: ${method.name}", hook, after(method)[0].referenceText())
-                }
-                val ending = after(found.sessionEnd)
-                assertEquals("${bundle.name}: the session's end", SESSION_ENDED, ending[0].referenceText())
-                assertEquals("${bundle.name}: Instagram's own end follows", found.sessionEnd.implementation!!.instructions.count(),
-                    ending.size - 1)
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildHooksItsPlayerToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val players = FixtureDex.classesHolding(bundle, PLAY_INTERNAL)
+        val dumps = FixtureDex.classesHolding(bundle, IS_SPONSORED)
+        val sources = dumps.flatMap { it.methods }
+            .filter { method -> method.implementation?.instructions?.any { it.stringText() == MEDIA_ID } == true }
+            .mapNotNull { it.parameterTypes.firstOrNull()?.toString() }
+        val fieldTypes = players.flatMap { it.fields }.map { it.type }
+        val extra = FixtureDex.classes(bundle, (sources + fieldTypes).toSet()).values
+        val context = PatchContexts.of(
+            (players + dumps + extra + ExtensionDex.classDef(RESUME_PLAYBACK)).distinctBy { it.type },
+        )
+        val found = context.findResumePlayer()
+        assertEquals("$label: the holder is the player's", found.player.type, found.holder.definingClass)
+        assertEquals("$label: the source is the holder's", found.holder.type, found.source.definingClass)
+        assertEquals("$label: the product type", PRODUCT_TYPE, found.productType.type)
+        assertTrue("$label: the position and length readers differ", found.position != found.length)
+        assertEquals("$label: the player's session", found.player.type, found.session.definingClass)
+        assertEquals("$label: the session's user ID", "$RESUME_SESSION->userId:$string", found.userId.toString())
+        assertEquals("$label: the session's end", RESUME_SESSION, found.sessionEnd.definingClass)
+        assertEquals("$label: the sign-out flag", "$RESUME_SESSION->isLoggedOut:Z", found.loggedOut.toString())
+
+        context.resumeLongVideos()
+
+        fun after(method: Method) = context.classDefBy(method.definingClass).methods.first {
+            it.name == method.name && it.parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString)
+        }.code()
+        for ((method, hook) in listOf(found.started to STARTED, found.pause to STOPPED, found.stop to STOPPED,
+            found.bind to REBOUND, found.seek to SEEKING, found.completed to ENDED, found.looping to ENDED)) {
+            assertEquals("$label: ${method.name}", hook, after(method)[0].referenceText())
+        }
+        val ending = after(found.sessionEnd)
+        assertEquals("$label: the session's end", SESSION_ENDED, ending[0].referenceText())
+        assertEquals("$label: Instagram's own end follows", found.sessionEnd.implementation!!.instructions.count(),
+            ending.size - 1)
     }
 
     private fun assertFailsUntouched(classes: List<ClassDef>, message: String) {

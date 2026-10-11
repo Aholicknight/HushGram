@@ -39,6 +39,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Default playback quality's anchors: the one (String)V call in the method holding
@@ -142,60 +143,70 @@ class DefaultPlaybackQualityTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val name = bundle.name
-                val holders = FixtureDex.classesHolding(bundle, SET_CUSTOM_QUALITY)
-                val holding = holders.flatMap { it.methods }.filter { holdsString(it, SET_CUSTOM_QUALITY) }
-                assertEquals("$name: methods holding \"$SET_CUSTOM_QUALITY\"", 1, holding.size)
-                val call = customQualityCalls(holding.single()).single()
-                val evaluatorClass = FixtureDex.classes(bundle, setOf(call.definingClass)).values.single()
-                val setter = evaluatorClass.methods.single { it.name == call.name && it.parameterTypes.map(Any::toString) == listOf(string) }
-                val formatsField = formatsFields(setter).single()
-                val formatType = formatsField.type.removePrefix("[")
-                val (labelOf, label) = labelReads(setter, formatType).single()
-                val classes = (holders + evaluatorClass + FixtureDex.classes(bundle, setOf(formatType, labelOf.definingClass, label.definingClass)).values +
-                    ExtensionDex.classDef(QUALITY_CHOICE) + ExtensionDex.classDef(QUALITY_READER) + ExtensionDex.classDef(SETTINGS_STATUS))
-                    .distinctBy { it.type }
-                val context = PatchContexts.of(classes)
-                val anchors = context.findQualityAnchors()
-                assertEquals("$name: the evaluator", call.definingClass, anchors.evaluator.type)
-                assertTrue("$name: the evaluator isn't built with an $ABR_CONFIGURATION", takesAbrConfiguration(anchors.evaluator))
-
-                // Only the Hero player's method calls the setter, so Instagram has no menu of its
-                // own that picks a quality; only the choice writes the tracks; only the setter
-                // keeps a track.
-                val callers = FixtureDex.methodsWhere(bundle, dexFilter = { dex ->
-                    dex.methodSection.any { it.definingClass == anchors.evaluator.type && it.name == setter.name }
-                }) { method -> method.code().any { (it.reference() as? MethodReference)?.let { c -> c.definingClass == anchors.evaluator.type && c.name == setter.name } == true } }
-                assertEquals("$name: callers of ${setter.name}", setOf("${holding.single().definingClass}->${holding.single().name}"),
-                    callers.map { "${it.definingClass}->${it.name}" }.toSet())
-                fun writers(field: FieldReference) = FixtureDex.methodsWhere(bundle, dexFilter = { dex ->
-                    dex.fieldSection.any { it.definingClass == field.definingClass && it.name == field.name }
-                }) { method -> method.code().any { it.opcode == Opcode.IPUT_OBJECT && it.referenceText() == field.toString() } }
-                    .map { "${it.definingClass}->${it.name}" }.toSet()
-                assertEquals("$name: writers of ${anchors.formats.name}", setOf("${anchors.evaluator.type}->${anchors.firstChoice.name}"), writers(anchors.formats))
-                assertEquals("$name: writers of ${anchors.customTrack.name}", setOf("${anchors.evaluator.type}->${setter.name}"), writers(anchors.customTrack))
-
-                defaultPlaybackQualityPatch.execute(context)
-
-                val original = anchors.firstChoice.code()
-                val choice = context.method(anchors.evaluator.type, anchors.firstChoice.name).code()
-                assertEquals("$name: the choice's own code follows", original.size + 1, choice.size)
-                val hook = choice[anchors.hookAt]
-                assertEquals("$name: the write right before the hook", Opcode.IPUT_OBJECT to anchors.formats.toString(),
-                    choice[anchors.hookAt - 1].opcode to choice[anchors.hookAt - 1].referenceText())
-                assertEquals("$name: the hook", FIRST_CHOICE, hook.referenceText())
-                assertEquals("$name: the evaluator the write went to", (choice[anchors.hookAt - 1] as TwoRegisterInstruction).registerB,
-                    (hook as RegisterRangeInstruction).startRegister)
-                assertTrue("$name: a branch lands on the hook", anchors.hookAt !in landings(choice))
-
-                assertEquals("$name: the kept track stub", listOf(anchors.evaluator.type, anchors.customTrack.toString()), filled(context, CUSTOM_TRACK_STUB))
-                assertEquals("$name: the tracks stub", listOf(anchors.evaluator.type, anchors.formats.toString()), filled(context, FORMATS_STUB))
-                assertEquals("$name: the label stub", listOf(formatType, labelOf.toString(), label.toString()), filled(context, LABEL_STUB))
-                assertEquals("$name: the setter stub", listOf(anchors.evaluator.type, "${anchors.evaluator.type}->${setter.name}($string)V"), filled(context, SETTER_STUB))
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildKeepsItsFirstChoiceToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val name = label
+        val holders = FixtureDex.classesHolding(bundle, SET_CUSTOM_QUALITY)
+        val holding = holders.flatMap { it.methods }.filter { holdsString(it, SET_CUSTOM_QUALITY) }
+        assertEquals("$name: methods holding \"$SET_CUSTOM_QUALITY\"", 1, holding.size)
+        val call = customQualityCalls(holding.single()).single()
+        val evaluatorClass = FixtureDex.classes(bundle, setOf(call.definingClass)).values.single()
+        val setter = evaluatorClass.methods.single { it.name == call.name && it.parameterTypes.map(Any::toString) == listOf(string) }
+        val formatsField = formatsFields(setter).single()
+        val formatType = formatsField.type.removePrefix("[")
+        val (labelOf, label) = labelReads(setter, formatType).single()
+        val classes = (holders + evaluatorClass + FixtureDex.classes(bundle, setOf(formatType, labelOf.definingClass, label.definingClass)).values +
+            ExtensionDex.classDef(QUALITY_CHOICE) + ExtensionDex.classDef(QUALITY_READER) + ExtensionDex.classDef(SETTINGS_STATUS))
+            .distinctBy { it.type }
+        val context = PatchContexts.of(classes)
+        val anchors = context.findQualityAnchors()
+        assertEquals("$name: the evaluator", call.definingClass, anchors.evaluator.type)
+        assertTrue("$name: the evaluator isn't built with an $ABR_CONFIGURATION", takesAbrConfiguration(anchors.evaluator))
+
+        // Only the Hero player's method calls the setter, so Instagram has no menu of its
+        // own that picks a quality; only the choice writes the tracks; only the setter
+        // keeps a track.
+        val callers = FixtureDex.methodsWhere(bundle, dexFilter = { dex ->
+            dex.methodSection.any { it.definingClass == anchors.evaluator.type && it.name == setter.name }
+        }) { method -> method.code().any { (it.reference() as? MethodReference)?.let { c -> c.definingClass == anchors.evaluator.type && c.name == setter.name } == true } }
+        assertEquals("$name: callers of ${setter.name}", setOf("${holding.single().definingClass}->${holding.single().name}"),
+            callers.map { "${it.definingClass}->${it.name}" }.toSet())
+        fun writers(field: FieldReference) = FixtureDex.methodsWhere(bundle, dexFilter = { dex ->
+            dex.fieldSection.any { it.definingClass == field.definingClass && it.name == field.name }
+        }) { method -> method.code().any { it.opcode == Opcode.IPUT_OBJECT && it.referenceText() == field.toString() } }
+            .map { "${it.definingClass}->${it.name}" }.toSet()
+        assertEquals("$name: writers of ${anchors.formats.name}", setOf("${anchors.evaluator.type}->${anchors.firstChoice.name}"), writers(anchors.formats))
+        assertEquals("$name: writers of ${anchors.customTrack.name}", setOf("${anchors.evaluator.type}->${setter.name}"), writers(anchors.customTrack))
+
+        defaultPlaybackQualityPatch.execute(context)
+
+        val original = anchors.firstChoice.code()
+        val choice = context.method(anchors.evaluator.type, anchors.firstChoice.name).code()
+        assertEquals("$name: the choice's own code follows", original.size + 1, choice.size)
+        val hook = choice[anchors.hookAt]
+        assertEquals("$name: the write right before the hook", Opcode.IPUT_OBJECT to anchors.formats.toString(),
+            choice[anchors.hookAt - 1].opcode to choice[anchors.hookAt - 1].referenceText())
+        assertEquals("$name: the hook", FIRST_CHOICE, hook.referenceText())
+        assertEquals("$name: the evaluator the write went to", (choice[anchors.hookAt - 1] as TwoRegisterInstruction).registerB,
+            (hook as RegisterRangeInstruction).startRegister)
+        assertTrue("$name: a branch lands on the hook", anchors.hookAt !in landings(choice))
+
+        assertEquals("$name: the kept track stub", listOf(anchors.evaluator.type, anchors.customTrack.toString()), filled(context, CUSTOM_TRACK_STUB))
+        assertEquals("$name: the tracks stub", listOf(anchors.evaluator.type, anchors.formats.toString()), filled(context, FORMATS_STUB))
+        assertEquals("$name: the label stub", listOf(formatType, labelOf.toString(), label.toString()), filled(context, LABEL_STUB))
+        assertEquals("$name: the setter stub", listOf(anchors.evaluator.type, "${anchors.evaluator.type}->${setter.name}($string)V"), filled(context, SETTER_STUB))
     }
 
     private fun assertUntouched(context: BytecodePatchContext) {

@@ -31,6 +31,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Every HDR headroom request and HDR color mode call in Instagram's code goes through HdrBoost,
@@ -183,50 +184,60 @@ class TurnOffHdrBoostsHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val callers = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (dex.methodSection.none { m -> HDR_CALLS.any { it.definingClass == m.definingClass && it.name == m.name } }) {
-                        return@forEach
-                    }
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.instructions().any { it.hdrCall() != null } }) {
-                            callers += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val making = callers.flatMap { it.methods }.filter { method -> method.instructions().any { it.hdrCall() != null } }
-                val byCall = HDR_CALLS.associateWith { call -> making.count { method -> method.instructions().any { it.hdrCall() == call } } }
-                assertEquals(
-                    "${bundle.name}: methods making each call",
-                    mapOf(surface to 1, transaction to 1, windowHeadroom to 2, colorMode to 6, extendedRange to 1), byCall,
-                )
-
-                val context = PatchContexts.of(callers)
-                val sent = context.holdBackHdrBoosts()
-
-                var calls = 0
-                for (before in callers) {
-                    val after = context.mutableClassDefBy(before.type).methods
-                    for (original in before.methods) {
-                        val was = original.instructions()
-                        if (was.none { it.hdrCall() != null }) continue
-                        val where = "${bundle.name}: ${original.definingClass}->${original.name}"
-                        val now = after.single { it.sameSignatureAs(original) }.instructions()
-                        assertEquals("$where: instruction count", was.size, now.size)
-                        assertEquals("$where: calls left", emptyList<HdrCall>(), now.mapNotNull { it.hdrCall() })
-                        was.forEachIndexed { index, instruction ->
-                            val call = instruction.hdrCall() ?: return@forEachIndexed
-                            assertEquals("$where at $index", call.standInMethod, now[index].target())
-                            assertEquals("$where at $index: registers", instruction.registers(), now[index].registers())
-                            calls++
-                        }
-                    }
-                }
-                assertEquals("${bundle.name}: calls sent", calls, sent.values.sum())
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildSendsEveryCallToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val callers = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.methodSection.none { m -> HDR_CALLS.any { it.definingClass == m.definingClass && it.name == m.name } }) {
+                return@forEach
+            }
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.instructions().any { it.hdrCall() != null } }) {
+                    callers += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val making = callers.flatMap { it.methods }.filter { method -> method.instructions().any { it.hdrCall() != null } }
+        val byCall = HDR_CALLS.associateWith { call -> making.count { method -> method.instructions().any { it.hdrCall() == call } } }
+        assertEquals(
+            "$label: methods making each call",
+            mapOf(surface to 1, transaction to 1, windowHeadroom to 2, colorMode to 6, extendedRange to 1), byCall,
+        )
+
+        val context = PatchContexts.of(callers)
+        val sent = context.holdBackHdrBoosts()
+
+        var calls = 0
+        for (before in callers) {
+            val after = context.mutableClassDefBy(before.type).methods
+            for (original in before.methods) {
+                val was = original.instructions()
+                if (was.none { it.hdrCall() != null }) continue
+                val where = "$label: ${original.definingClass}->${original.name}"
+                val now = after.single { it.sameSignatureAs(original) }.instructions()
+                assertEquals("$where: instruction count", was.size, now.size)
+                assertEquals("$where: calls left", emptyList<HdrCall>(), now.mapNotNull { it.hdrCall() })
+                was.forEachIndexed { index, instruction ->
+                    val call = instruction.hdrCall() ?: return@forEachIndexed
+                    assertEquals("$where at $index", call.standInMethod, now[index].target())
+                    assertEquals("$where at $index: registers", instruction.registers(), now[index].registers())
+                    calls++
+                }
+            }
+        }
+        assertEquals("$label: calls sent", calls, sent.values.sum())
     }
 
     private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

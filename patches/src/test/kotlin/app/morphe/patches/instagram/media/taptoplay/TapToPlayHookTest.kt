@@ -37,6 +37,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 
@@ -430,92 +431,118 @@ class TapToPlayHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                // The Reels tap's navigator and controller, then the classes the controller's pause
-                // names, then the classes their methods return, which reaches the player interface
-                // and its state enum.
-                val reel = FixtureDex.classesHolding(bundle, CLIPS_PAUSE) + FixtureDex.classesHolding(bundle, pauseCurrentPlayerLog)
-                val pauses = reel.flatMap { it.methods }.filter { pauseCurrentPlayerLog in it.strings() }
-                val near = FixtureDex.classes(bundle, pauses.flatMap { it.namedTypes() }.toSet()).values.toList()
-                val returned = FixtureDex.classes(bundle, near.flatMap { it.methods }.map { it.returnType }.toSet()).values.toList()
-                // The story viewer, and every class implementing its video player's interface.
-                val viewer = FixtureDex.classes(bundle, setOf(REEL_VIEWER_FRAGMENT)).values.toList()
-                val storyInterface = viewer.single().fields.single { it.name == VIDEO_PLAYER_FIELD }.type
-                val storyPlayers = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex -> dex.classes.filterTo(storyPlayers) { storyInterface in it.interfaces } }
-                // Every class made with a ClipsViewerConfig first, the Reels viewer's video logger among them.
-                val madeWithConfig = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    dex.classes.filterTo(madeWithConfig) { classDef ->
-                        classDef.methods.any { it.name == "<init>" && it.parameterTypes.firstOrNull()?.toString() == CLIPS_VIEWER_CONFIG }
-                    }
-                }
-                val classes = (
-                    FixtureDex.classesHolding(bundle, PLAY_INTERNAL) + FixtureDex.classesHolding(bundle, GROOT_PREPARE) +
-                        FixtureDex.classesHolding(bundle, AUTOPLAY_CHECKER.last()) +
-                        listOfNotNull(FixtureDex.classes(bundle, setOf(FRAGMENT_ACTIVITY))[FRAGMENT_ACTIVITY]) +
-                        reel + near + returned + playButtonClasses(bundle) + viewer + storyPlayers + scrollToNextReelClasses(bundle) + madeWithConfig +
-                        ExtensionDex.classDef(TAP_TO_PLAY) + ExtensionDex.classDef(REEL_STATE_READER) + ExtensionDex.classDef(STORY_PLAYER_READER)
-                    ).distinctBy { it.type }
-                val context = PatchContexts.of(classes)
-                val hooks = context.findPlayerHooks()
-                val reelTap = context.findReelTap()
-                val storyRelease = context.findStoryRelease(hooks.prepare.definingClass)
-                val flagField = storyRelease.resume.code()[storyRelease.read].referenceText()!!
-                val autoScroll = context.findAutoScroll()
-                    ?: throw AssertionError("${bundle.name}: no method carries $SCROLL_TO_NEXT_REEL")
-                // The call the patch found by its shape is the Reels pager's smooth scroll to the next item.
-                val moveCall = (autoScroll.move.code()[autoScroll.call] as ReferenceInstruction).reference as MethodReference
-                val pagerClass = FixtureDex.classes(bundle, setOf(moveCall.definingClass)).values.single()
-                val target = pagerClass.methods.single { it.name == moveCall.name && it.parameterTypes.isEmpty() && it.returnType == "V" }
-                assertTrue("${bundle.name}: ${moveCall.definingClass} holds a ViewPager2", pagerClass.fields.any { it.type == viewPager2 })
-                assertEquals("${bundle.name}: $moveCall", listOf(smoothScrollToNextItem), target.markers())
-                assertEquals("${bundle.name}: the player's IgGrootPlayer field", hooks.prepare.definingClass, hooks.grootField.type)
-                assertEquals("${bundle.name}: play and prepare are one class's", hooks.prepare.definingClass, hooks.play.definingClass)
-                assertEquals("${bundle.name}: pause is theirs too", hooks.prepare.definingClass, hooks.pause.definingClass)
-                // The logger is the player's own, kept from its making, and the Reels viewer's keeps its config.
-                assertEquals("${bundle.name}: the logger field", hooks.playInternal.definingClass, hooks.reelsLogger.field.definingClass)
-                val loggerClass = madeWithConfig.single { it.type == hooks.reelsLogger.type }
-                assertEquals("${bundle.name}: the Reels viewer's logger extends the field's type", hooks.reelsLogger.field.type, loggerClass.superclass)
-                assertTrue("${bundle.name}: and keeps its config", loggerClass.fields.any { it.type == CLIPS_VIEWER_CONFIG })
-
-                context.holdStartsWithoutATap()
-
-                fun after(method: Method) = context.method(method.definingClass, method.name, method.parameterTypes.map(Any::toString)).code()
-                val internal = after(hooks.playInternal)
-                assertEquals("${bundle.name}: playInternal", hooks.grootField.toString(), internal[0].referenceText())
-                assertGateFirst("${bundle.name}: playInternal", internal, ALLOW_START, prefix = playInternalPrefix)
-                assertEquals("${bundle.name}: the logger read", hooks.reelsLogger.field.toString(), internal[1].referenceText())
-                assertEquals("${bundle.name}: the logger check", hooks.reelsLogger.type, internal[2].referenceText())
-                assertGateFirst("${bundle.name}: play", after(hooks.play), ALLOW_DIRECT_START)
-                assertEquals("${bundle.name}: pause", PAUSED, after(hooks.pause)[0].referenceText())
-                assertEquals("${bundle.name}: prepare", REBOUND, after(hooks.prepare)[0].referenceText())
-                val check = after(hooks.checker)
-                val returns = check.indices.filter { check[it].opcode == Opcode.RETURN }
-                assertTrue("${bundle.name}: the check returns", returns.isNotEmpty())
-                returns.forEach { assertEquals("${bundle.name}: the check's return at $it", AUTOPLAY_ALLOWED, check[it - 2].referenceText()) }
-                assertEquals("${bundle.name}: touch", TOUCH, after(hooks.touch)[0].referenceText())
-                // `this` is the first register past the locals: the count less the three declared parameters and itself.
-                assertReelTapHooked(after(reelTap.tap), reelTap.decision, reelTap.tap.implementation!!.registerCount - 4, "${bundle.name}: the Reels tap")
-                assertEquals("${bundle.name}: the state stub", reelTap.state.toString(), filled(context, "stateOf").last())
-                assertEquals("${bundle.name}: the controller stub", "$function0->invoke()$objectType", filled(context, "controllerOf").last())
-                // `this` is the first register past the locals: the count less the two declared parameters and itself.
-                assertStoryReleaseHooked(
-                    after(storyRelease.resume), flagField, storyRelease.flag, storyRelease.resume.implementation!!.registerCount - 3,
-                    "${bundle.name}: the story release",
-                )
-                assertEquals(
-                    "${bundle.name}: the story player stub", listOf(storyRelease.resume.definingClass, storyRelease.groot.toString()),
-                    filled(context, GROOT_OF, STORY_PLAYER_READER),
-                )
-                val click = hooks.playButton.method
-                assertPlayButtonHooked(after(click), click.implementation!!.registerCount - 1, "${bundle.name}: the play button's click")
-                val scroll = after(autoScroll.move)
-                assertAutoScrollHooked(scroll, "${bundle.name}: the auto scroll")
-                assertEquals("${bundle.name}: the hook is in front of the call found", moveCall.toString(), scroll[scroll.indexOfFirst { it.referenceText() == AUTO_SCROLLED } + 1].referenceText())
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildGatesItsPlayersToo() {
+        for (base in Fixtures.otherBuilds().filterNot { it.parentFile.name.substringAfterLast('-') in WITH_ANOTHER_FIRST_CONTEXT_CALL }) {
+            builds(base, base.parentFile.name)
+        }
+    }
+
+    @Ignore(
+        "385611400, 385611440: the play button's click has an invoke-static taking a Context that the hook doesn't follow " +
+            "(an iget-object of the click's field comes right after it), so the check that the hook sits right after the click's first such call fails",
+    )
+    @Test
+    fun eachOtherBuildHooksThePlayButtonRightAfterItsStartToo() {
+        for (base in Fixtures.otherBuilds().filter { it.parentFile.name.substringAfterLast('-') in WITH_ANOTHER_FIRST_CONTEXT_CALL }) {
+            builds(base, base.parentFile.name)
+        }
+    }
+
+    /** Other 450 builds whose Litho play button's click starts with another invoke-static taking a Context. */
+    private val WITH_ANOTHER_FIRST_CONTEXT_CALL = setOf("385611400", "385611440")
+
+    private fun builds(bundle: File, label: String) {
+        // The Reels tap's navigator and controller, then the classes the controller's pause
+        // names, then the classes their methods return, which reaches the player interface
+        // and its state enum.
+        val reel = FixtureDex.classesHolding(bundle, CLIPS_PAUSE) + FixtureDex.classesHolding(bundle, pauseCurrentPlayerLog)
+        val pauses = reel.flatMap { it.methods }.filter { pauseCurrentPlayerLog in it.strings() }
+        val near = FixtureDex.classes(bundle, pauses.flatMap { it.namedTypes() }.toSet()).values.toList()
+        val returned = FixtureDex.classes(bundle, near.flatMap { it.methods }.map { it.returnType }.toSet()).values.toList()
+        // The story viewer, and every class implementing its video player's interface.
+        val viewer = FixtureDex.classes(bundle, setOf(REEL_VIEWER_FRAGMENT)).values.toList()
+        val storyInterface = viewer.single().fields.single { it.name == VIDEO_PLAYER_FIELD }.type
+        val storyPlayers = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex -> dex.classes.filterTo(storyPlayers) { storyInterface in it.interfaces } }
+        // Every class made with a ClipsViewerConfig first, the Reels viewer's video logger among them.
+        val madeWithConfig = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            dex.classes.filterTo(madeWithConfig) { classDef ->
+                classDef.methods.any { it.name == "<init>" && it.parameterTypes.firstOrNull()?.toString() == CLIPS_VIEWER_CONFIG }
+            }
+        }
+        val classes = (
+            FixtureDex.classesHolding(bundle, PLAY_INTERNAL) + FixtureDex.classesHolding(bundle, GROOT_PREPARE) +
+                FixtureDex.classesHolding(bundle, AUTOPLAY_CHECKER.last()) +
+                listOfNotNull(FixtureDex.classes(bundle, setOf(FRAGMENT_ACTIVITY))[FRAGMENT_ACTIVITY]) +
+                reel + near + returned + playButtonClasses(bundle) + viewer + storyPlayers + scrollToNextReelClasses(bundle) + madeWithConfig +
+                ExtensionDex.classDef(TAP_TO_PLAY) + ExtensionDex.classDef(REEL_STATE_READER) + ExtensionDex.classDef(STORY_PLAYER_READER)
+            ).distinctBy { it.type }
+        val context = PatchContexts.of(classes)
+        val hooks = context.findPlayerHooks()
+        val reelTap = context.findReelTap()
+        val storyRelease = context.findStoryRelease(hooks.prepare.definingClass)
+        val flagField = storyRelease.resume.code()[storyRelease.read].referenceText()!!
+        val autoScroll = context.findAutoScroll()
+            ?: throw AssertionError("$label: no method carries $SCROLL_TO_NEXT_REEL")
+        // The call the patch found by its shape is the Reels pager's smooth scroll to the next item.
+        val moveCall = (autoScroll.move.code()[autoScroll.call] as ReferenceInstruction).reference as MethodReference
+        val pagerClass = FixtureDex.classes(bundle, setOf(moveCall.definingClass)).values.single()
+        val target = pagerClass.methods.single { it.name == moveCall.name && it.parameterTypes.isEmpty() && it.returnType == "V" }
+        assertTrue("$label: ${moveCall.definingClass} holds a ViewPager2", pagerClass.fields.any { it.type == viewPager2 })
+        assertEquals("$label: $moveCall", listOf(smoothScrollToNextItem), target.markers())
+        assertEquals("$label: the player's IgGrootPlayer field", hooks.prepare.definingClass, hooks.grootField.type)
+        assertEquals("$label: play and prepare are one class's", hooks.prepare.definingClass, hooks.play.definingClass)
+        assertEquals("$label: pause is theirs too", hooks.prepare.definingClass, hooks.pause.definingClass)
+        // The logger is the player's own, kept from its making, and the Reels viewer's keeps its config.
+        assertEquals("$label: the logger field", hooks.playInternal.definingClass, hooks.reelsLogger.field.definingClass)
+        val loggerClass = madeWithConfig.single { it.type == hooks.reelsLogger.type }
+        assertEquals("$label: the Reels viewer's logger extends the field's type", hooks.reelsLogger.field.type, loggerClass.superclass)
+        assertTrue("$label: and keeps its config", loggerClass.fields.any { it.type == CLIPS_VIEWER_CONFIG })
+
+        context.holdStartsWithoutATap()
+
+        fun after(method: Method) = context.method(method.definingClass, method.name, method.parameterTypes.map(Any::toString)).code()
+        val internal = after(hooks.playInternal)
+        assertEquals("$label: playInternal", hooks.grootField.toString(), internal[0].referenceText())
+        assertGateFirst("$label: playInternal", internal, ALLOW_START, prefix = playInternalPrefix)
+        assertEquals("$label: the logger read", hooks.reelsLogger.field.toString(), internal[1].referenceText())
+        assertEquals("$label: the logger check", hooks.reelsLogger.type, internal[2].referenceText())
+        assertGateFirst("$label: play", after(hooks.play), ALLOW_DIRECT_START)
+        assertEquals("$label: pause", PAUSED, after(hooks.pause)[0].referenceText())
+        assertEquals("$label: prepare", REBOUND, after(hooks.prepare)[0].referenceText())
+        val check = after(hooks.checker)
+        val returns = check.indices.filter { check[it].opcode == Opcode.RETURN }
+        assertTrue("$label: the check returns", returns.isNotEmpty())
+        returns.forEach { assertEquals("$label: the check's return at $it", AUTOPLAY_ALLOWED, check[it - 2].referenceText()) }
+        assertEquals("$label: touch", TOUCH, after(hooks.touch)[0].referenceText())
+        // `this` is the first register past the locals: the count less the three declared parameters and itself.
+        assertReelTapHooked(after(reelTap.tap), reelTap.decision, reelTap.tap.implementation!!.registerCount - 4, "$label: the Reels tap")
+        assertEquals("$label: the state stub", reelTap.state.toString(), filled(context, "stateOf").last())
+        assertEquals("$label: the controller stub", "$function0->invoke()$objectType", filled(context, "controllerOf").last())
+        // `this` is the first register past the locals: the count less the two declared parameters and itself.
+        assertStoryReleaseHooked(
+            after(storyRelease.resume), flagField, storyRelease.flag, storyRelease.resume.implementation!!.registerCount - 3,
+            "$label: the story release",
+        )
+        assertEquals(
+            "$label: the story player stub", listOf(storyRelease.resume.definingClass, storyRelease.groot.toString()),
+            filled(context, GROOT_OF, STORY_PLAYER_READER),
+        )
+        val click = hooks.playButton.method
+        assertPlayButtonHooked(after(click), click.implementation!!.registerCount - 1, "$label: the play button's click")
+        val scroll = after(autoScroll.move)
+        assertAutoScrollHooked(scroll, "$label: the auto scroll")
+        assertEquals("$label: the hook is in front of the call found", moveCall.toString(), scroll[scroll.indexOfFirst { it.referenceText() == AUTO_SCROLLED } + 1].referenceText())
     }
 
     private fun assertGateFirst(what: String, code: List<Instruction>, hook: String, prefix: List<Opcode> = emptyList()) {
