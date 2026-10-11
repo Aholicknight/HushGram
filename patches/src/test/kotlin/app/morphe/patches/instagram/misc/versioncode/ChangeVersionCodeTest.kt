@@ -33,7 +33,6 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import org.w3c.dom.Document
 import javax.xml.parsers.DocumentBuilderFactory
@@ -188,16 +187,15 @@ class ChangeVersionCodeTest {
 
     @Test
     fun eachOtherBuildChangesTheVersionCodeToo() {
-        for (base in Fixtures.otherBuilds().filter { it.parentFile.name != X86_BUILD }) builds(base, base.parentFile.name)
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
     }
 
-    @Ignore("385611439 (x86): the finder reads 15 own version-code reads where the other builds have 14")
-    @Test
-    fun theX86BuildChangesTheVersionCodeToo() {
-        for (base in Fixtures.otherBuilds().filter { it.parentFile.name == X86_BUILD }) builds(base, base.parentFile.name)
-    }
-
-    private val X86_BUILD = "instagram-450.0.0.50.77-385611439"
+    /**
+     * 385611439 (x86) is the one 450 build with minSdk 26, where every other has 28, so its crash
+     * reporter keeps getLongVersionCode's fallback for Android 8: below API 28 it reads versionCode
+     * from the same PackageInfo instead. That's Instagram's own code too, one more own read.
+     */
+    private val PRE_28_FALLBACK_BUILD = "instagram-450.0.0.50.77-385611439"
 
     private fun builds(bundle: File, label: String) {
         val code = realVersionCode(label.removeSuffix(".apks").substringAfterLast('-'))
@@ -237,8 +235,17 @@ class ChangeVersionCodeTest {
         })
         assertEquals("the job scheduler check's two reads", 2,
             prepared.reads.count { read -> read.method.implementation!!.instructions.any { it.string()?.startsWith(SCHEDULER_CHECK) == true } })
-        assertEquals("own reads", 14, prepared.reads.size)
+        val fallback = label == PRE_28_FALLBACK_BUILD
+        assertEquals("own reads", if (fallback) 15 else 14, prepared.reads.size)
         assertEquals("own long reads", 1, prepared.reads.count { it.long })
+        val longRead = prepared.reads.single { it.long }
+        val beside = prepared.reads.filter { !it.long && it.method == longRead.method }
+        if (fallback) {
+            assertEquals("${label}: the pre-28 fallback beside the long read", 1, beside.size)
+            assertEquals("${label}: it reads the long read's PackageInfo", longRead.holder, beside.single().holder)
+        } else {
+            assertTrue("${label}: no int read beside the long read", beside.isEmpty())
+        }
         assertEquals("kept raised", listOf(
             "held against the manifest of Instagram's own APK file, which is raised too",
             "sent to Google Play's update check, which is what the raised code is for",
