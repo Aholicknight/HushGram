@@ -114,6 +114,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Save profile picture:** Save profile picture and Copy username and bio now work in the newer pop-up list a profile's three dots open on some accounts. Asked for in #29.
 
+* **Instagram:** HushGram does less work in the background while Instagram's open. Full screen Reels and Home, Saved on your profile and Lock your messages stop looking at the screen when they're off, while HushGram is paused, or once there's nothing left for them to find. Find the reel you came from now waits for the profile's Reels grid to draw instead of checking for it every third of a second. Reported in #129.
+
 * **Tooling:** The release facts check reads the push gate's kept run again when the pre-push hook starts it in a fresh PowerShell.
 
 ### Improvements
