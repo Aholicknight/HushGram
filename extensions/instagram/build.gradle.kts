@@ -861,6 +861,19 @@ tasks.register("verifyAndroidBoundaries") {
                 "storyTimeSwitchStartsOffUnderStoriesPersistsAndHonorsPause[28]", "storyTimeSwitchStartsOffUnderStoriesPersistsAndHonorsPause[37]",
                 "theChoiceSitsBelowTheSwitchStartsAtTheDateAndTimeAndSaysWhatItShows[28]",
                 "theChoiceSitsBelowTheSwitchStartsAtTheDateAndTimeAndSaysWhatItShows[37]"),
+            "app.hushgram.extension.instagram.direct.LastActiveTest" to listOf(
+                "todayGetsTheTimeOnAnyHourSetting[28]", "todayGetsTheTimeOnAnyHourSetting[37]",
+                "yesterdayGetsYesterdayAndTheTime[28]", "yesterdayGetsYesterdayAndTheTime[37]",
+                "earlierInTheWeekGetsTheDateAndTime[28]", "earlierInTheWeekGetsTheDateAndTime[37]",
+                "aTimeSevenDaysBackOrMoreKeepsInstagramsNothing[28]", "aTimeSevenDaysBackOrMoreKeepsInstagramsNothing[37]",
+                "activeNowIsLeftToInstagram[28]", "activeNowIsLeftToInstagram[37]",
+                "aMissingOrImpossibleTimeKeepsInstagramsText[28]", "aMissingOrImpossibleTimeKeepsInstagramsText[37]",
+                "offPausedAndUnreadyKeepInstagramsText[28]", "offPausedAndUnreadyKeepInstagramsText[37]",
+                "offPausedAndUnreadyFormatNothing[28]", "offPausedAndUnreadyFormatNothing[37]",
+                "theHookReadsThePhonesClock[28]", "theHookReadsThePhonesClock[37]"),
+            "app.hushgram.extension.instagram.settings.LastActiveSettingsTest" to listOf(
+                "missingPatchHasNoLastActiveSwitch[28]", "missingPatchHasNoLastActiveSwitch[37]",
+                "lastActiveSwitchStartsOffUnderMessagesPersistsAndHonorsPause[28]", "lastActiveSwitchStartsOffUnderMessagesPersistsAndHonorsPause[37]"),
             "app.hushgram.extension.instagram.stories.StoryLoopTest" to listOf(
                 "onEveryStoryLoops[28]", "onEveryStoryLoops[37]",
                 "offPausedAndUnreadyKeepInstagramsAnswer[28]", "offPausedAndUnreadyKeepInstagramsAnswer[37]",
