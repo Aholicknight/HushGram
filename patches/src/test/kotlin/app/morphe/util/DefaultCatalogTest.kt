@@ -96,6 +96,7 @@ import app.morphe.patches.instagram.stories.ring.storyRingSizePatch
 import app.morphe.patches.instagram.stories.seen.viewStoriesAnonymouslyPatch
 import app.morphe.patches.instagram.stories.time.showStoryTimePatch
 import app.morphe.patches.instagram.feed.sound.startFeedVideosWithSoundPatch
+import app.morphe.patches.instagram.feed.rounded.roundedPostCornersPatch
 import app.morphe.patches.instagram.feed.zoom.longPressZoomPatch
 import app.morphe.patches.instagram.stories.sound.startStoriesWithSoundPatch
 import app.morphe.patches.instagram.stories.quality.uploadStoriesAtFullQualityPatch
@@ -195,6 +196,7 @@ class DefaultCatalogTest {
         startStoriesWithSoundPatch,
         uploadStoriesAtFullQualityPatch,
         longPressZoomPatch,
+        roundedPostCornersPatch,
         fullScreenBarsPatch,
     )
 

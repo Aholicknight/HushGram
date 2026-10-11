@@ -534,6 +534,12 @@ tasks.register("verifyAndroidBoundaries") {
                 "theSwitchAloneStillMakesTheFeedSection[28]", "theSwitchAloneStillMakesTheFeedSection[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
                 "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
+            "app.hushgram.extension.instagram.feed.RoundedCornersTest" to listOf(
+                "itStartsOffAndLeavesTheFrameAsInstagramMadeIt[28]", "itStartsOffAndLeavesTheFrameAsInstagramMadeIt[37]", "onTheFrameGetsARoundedOutlineAndClipsToIt[28]", "onTheFrameGetsARoundedOutlineAndClipsToIt[37]", "theRadiusFollowsTheChoice[28]", "theRadiusFollowsTheChoice[37]",
+                "aFrameAlreadyRoundedToTheChoiceIsNotTouchedTwice[28]", "aFrameAlreadyRoundedToTheChoiceIsNotTouchedTwice[37]", "turnedOffTheNextHolderPutsInstagramsOutlineAndClippingBack[28]", "turnedOffTheNextHolderPutsInstagramsOutlineAndClippingBack[37]", "aFrameInstagramDidNotClipGoesBackUnclipped[28]", "aFrameInstagramDidNotClipGoesBackUnclipped[37]",
+                "pausedLeavesAFrameStockAndBringsARoundedOneBack[28]", "pausedLeavesAFrameStockAndBringsARoundedOneBack[37]", "beforeTheSettingsAreReadyTheFrameStaysStock[28]", "beforeTheSettingsAreReadyTheFrameStaysStock[37]", "aHolderWithoutAFrameOrAReadThatThrowsLeavesThingsAlone[28]", "aHolderWithoutAFrameOrAReadThatThrowsLeavesThingsAlone[37]", "theOutlineFollowsTheFramesSize[28]", "theOutlineFollowsTheFramesSize[37]"),
+            "app.hushgram.extension.instagram.settings.RoundedCornersSettingsTest" to listOf(
+                "theSwitchAndItsListAreUnderFeedAfterTheZoomAndStartOff[28]", "theSwitchAndItsListAreUnderFeedAfterTheZoomAndStartOff[37]", "theSwitchAloneStillMakesTheFeedSection[28]", "theSwitchAloneStillMakesTheFeedSection[37]", "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]", "missingPatchHasNeitherRowNorBackupKey[28]", "missingPatchHasNeitherRowNorBackupKey[37]"),
             "app.hushgram.extension.instagram.reels.FullScreenBarsTest" to listOf(
                 "bothSwitchesStartOffAndNothingHides[28]", "bothSwitchesStartOffAndNothingHides[37]",
                 "aViewerFillingTheWindowHidesTheBarsAndLeavingItBringsThemBack[28]", "aViewerFillingTheWindowHidesTheBarsAndLeavingItBringsThemBack[37]",
