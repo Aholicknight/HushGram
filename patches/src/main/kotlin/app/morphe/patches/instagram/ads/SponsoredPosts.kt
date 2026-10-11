@@ -26,6 +26,18 @@ import com.android.tools.smali.dexlib2.iface.reference.FieldReference
  */
 internal const val AD_DETAILS = "injected"
 
+/**
+ * The feed item kinds Instagram gives only its own ad units, which Hide ads' filter takes out
+ * whatever post they carry. INTENT_AWARE_AD_PIVOT is the row of ads a contextual ad response fills
+ * ("intent_aware_ad_pivot" in a page), and Instagram's own check of whether an item is sponsored
+ * answers yes for every one. STAND_ALONE_MULTI_AD_PIVOT is a post carrying "multi_ads_info" and a
+ * row of other posts ("stand_alone_multi_ad_pivot" in a page), which Instagram shows as that row.
+ * Instagram's feed turns only these two kinds into rows of ads (anything else is an "Unsupported
+ * multi ad type" there). Neither keeps a post in the field the sponsored check reads, so that
+ * check alone never saw them. The item's kind enum has to name both; see [requireOneKindField].
+ */
+internal val AD_UNITS = listOf("INTENT_AWARE_AD_PIVOT", "STAND_ALONE_MULTI_AD_PIVOT")
+
 /** Hide ads' filter for each item the feed item parse helper answers. */
 internal const val FEED_ADS_FILTER = "$ADS->feedItem(Ljava/lang/Object;)Ljava/lang/Object;"
 
@@ -41,9 +53,10 @@ internal const val SPONSORED_STUB = "sponsored"
  * ordinary post item, kind MEDIA, whose post has ad details; the feed item parser never makes an
  * item of kind AD, only the app's own insert does, and Hide ads' guard on the insert never sees it.
  * [write] fills the stub and passes every item the parse helper answers through the extension, which
- * answers null for a sponsored one while the switch is on. The helper reads Home's pages (Following
- * and Older Posts are pages of Home's response too), Home's store of the last run, Explore's chain of
- * posts and the contextual and shop ad responses, and every caller skips a null item.
+ * answers null for a sponsored one, or one of the [AD_UNITS], while the switch is on. The helper
+ * reads Home's pages (Following and Older Posts are pages of Home's response too), Home's store of
+ * the last run, Explore's chain of posts and the contextual and shop ad responses, and every caller
+ * skips a null item.
  */
 internal class SponsoredPosts(
     private val itemType: String,
@@ -77,13 +90,13 @@ internal class SponsoredPosts(
                 return p0
             """,
         )
-        context.filterParsedFeedItems(PATCH, FEED_ADS_FILTER, emptyList())
+        context.filterParsedFeedItems(PATCH, FEED_ADS_FILTER, AD_UNITS)
     }
 }
 
 /** Finds what [SponsoredPosts] writes, or stops the patch naming what moved. */
 internal fun BytecodePatchContext.findSponsoredPosts(): SponsoredPosts {
-    val (itemType, _) = findFeedItemHelper(PATCH, emptyList())
+    val (itemType, _) = findFeedItemHelper(PATCH, AD_UNITS)
     val post = itemPost(itemType, PATCH)
     val details = adDetailsGetter()
     val stub = mutableClassDefBy(ADS).methods.singleOrNull {

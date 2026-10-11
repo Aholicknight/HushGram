@@ -374,9 +374,9 @@ public final class FeedSuggestions {
     }
 
     /**
-     * Called by Hide ads' feed filter each time it takes a sponsored post out. Inside a page of
-     * Home's response being parsed on this thread, the post counts toward that page as read and
-     * taken out, as one {@link #filter} took out does, so a page Hide ads left with no posts ends
+     * Called by Hide ads' feed filter each time it takes a sponsored post or an ad pivot out. Inside
+     * a page of Home's response being parsed on this thread, the item counts toward that page as read
+     * and taken out, as one {@link #filter} took out does, so a page Hide ads left with no posts ends
      * Home or the Older Posts page instead of keeping a loading row. Outside a page (Home's store,
      * Explore and the other feeds the helper reads) it does nothing. Never throws.
      */

@@ -39,9 +39,9 @@ val hideAdsPatch = bytecodePatch(
 }
 
 /**
- * Guards Instagram's own ad insert and takes the sponsored posts a feed's pages carry out of them.
- * Both are found before either changes, so a build where one moved stops the patch with nothing
- * written.
+ * Guards Instagram's own ad insert and takes the sponsored posts and ad pivots a feed's pages carry
+ * out of them. Both are found before either changes, so a build where one moved stops the patch with
+ * nothing written.
  */
 internal fun BytecodePatchContext.hideAds() {
     val injector = findAdInjector()

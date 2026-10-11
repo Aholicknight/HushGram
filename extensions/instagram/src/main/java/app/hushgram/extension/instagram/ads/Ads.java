@@ -4,8 +4,13 @@
  */
 package app.hushgram.extension.instagram.ads;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.ToIntFunction;
 
+import app.hushgram.extension.instagram.feed.FeedItemKinds;
 import app.hushgram.extension.instagram.feed.FeedSuggestions;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -23,7 +28,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * details, which no insert ever saw. The patch passes every feed item Instagram's parse helper reads
  * through {@link #feedItem}, beside the other feed filters, so those go too: Home and its Following
  * and Older Posts pages, Home's store of the last run, Explore's chain of posts and the ad responses
- * that read their items the same way.
+ * that read their items the same way. The same filter takes out the two kinds of item Instagram
+ * gives only its rows of ads ({@link #AD_UNITS}), which keep no post where the sponsored check reads.
  */
 public final class Ads {
 
@@ -38,6 +44,19 @@ public final class Ads {
 
     /** The report's count of sponsored posts taken out of a feed's own pages. */
     static final String REMOVED = "sponsored posts removed";
+
+    /**
+     * The feed item kinds Instagram gives only its rows of ads, counted on {@link #ROUTE} by these
+     * names. INTENT_AWARE_AD_PIVOT is the row a contextual ad response fills, which Instagram's own
+     * sponsored check always counts as sponsored. STAND_ALONE_MULTI_AD_PIVOT is a post carrying
+     * "multi_ads_info" with a row of other posts, shown as that row. The patch checks that the
+     * item's kind enum names both.
+     */
+    static final Set<String> AD_UNITS = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList("INTENT_AWARE_AD_PIVOT", "STAND_ALONE_MULTI_AD_PIVOT")));
+
+    /** The report's count of {@link #AD_UNITS} taken out of a feed's own pages. */
+    static final String UNITS_REMOVED = "ad pivots removed";
 
     private Ads() {}
 
@@ -57,11 +76,12 @@ public final class Ads {
     }
 
     /**
-     * Injected at the return of Instagram's feed item parse helper. Answers null for an item whose
-     * post is sponsored ({@link #sponsored}) while Hide ads is on, and [item] itself otherwise: with
-     * the switch off, HushGram paused, the settings not ready or anything thrown. Inside a page of
-     * Home's response the item still counts toward that page as one taken out, so a page left with
-     * no posts ends the way one the feed switches emptied does. Never throws.
+     * Injected at the return of Instagram's feed item parse helper. Answers null for one of the
+     * {@link #AD_UNITS} or an item whose post is sponsored ({@link #sponsored}) while Hide ads is
+     * on, and [item] itself otherwise: with the switch off, HushGram paused, the settings not ready
+     * or anything thrown. Inside a page of Home's response the item still counts toward that page as
+     * one taken out, so a page left with no posts ends the way one the feed switches emptied does.
+     * Never throws.
      */
     public static Object feedItem(Object item) {
         return feedItem(item, Ads::sponsored);
@@ -72,6 +92,15 @@ public final class Ads {
         HookStatus.invoked(FamilyNames.HIDE_ADS);
         try {
             if (!Utils.settingsReady() || !Settings.HIDE_ADS.get()) return item;
+            String unit = FeedItemKinds.kindIn(item, AD_UNITS, FamilyNames.HIDE_ADS);
+            if (unit != null) {
+                FeedFilterCounters.sawKind(ROUTE, unit);
+                FeedFilterCounters.removed(ROUTE, 1, unit);
+                HookStatus.counted(FamilyNames.HIDE_ADS, UNITS_REMOVED);
+                FeedSuggestions.adTakenOut();
+                Logger.printDebug(() -> "Hide ads: took a " + unit + " item out of a feed");
+                return null;
+            }
             boolean sponsored = sponsoredOf.applyAsInt(item) == 1;
             FeedFilterCounters.sawKind(ROUTE, sponsored ? SPONSORED : NOT_SPONSORED);
             if (!sponsored) return item;

@@ -84,7 +84,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
-* **Instagram - Hide ads:** Sponsored posts inside a page of posts, like the ones on Home's Older Posts page and Explore's chain of posts, are gone now too. Diagnostics counts them on a Feed ads line.
+* **Instagram - Hide ads:** Sponsored posts inside a page of posts, like the ones on Home's Older Posts page and Explore's chain of posts, are gone now too, and so are the rows of several ads Instagram puts between posts. Diagnostics counts both on a Feed ads line.
 
 * **Instagram - HushGram settings:** Typing in the settings search box no longer freezes Instagram on a slow phone.
 
