@@ -14,6 +14,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.view.InputDevice;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -40,11 +42,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>The patch also calls {@link #reelsTabResumed} first in the onResume of a profile's Reels tab
  * (ClipsProfileTabFragment). When that tab is in the profile's activity and shows the reel's author
- * (the id ends with the author's user id), the tab's grid is scrolled a screen at a time until a tile
- * with the reel's id is bound, letting Instagram load more as it would for a finger. Found, the tile
- * is brought fully on screen and outlined for a moment, and the id is dropped. Not found after a few
- * screens or when the grid ends, the grid goes back to where it was, a toast says so, and the id is
- * dropped. Leaving the tab first stops the search and keeps the id for the next time the tab opens.
+ * (the id ends with the author's user id), the tab's grid is dragged up most of a screen at a time,
+ * the way a finger drags it, until a tile with the reel's id is bound. It's a drag and not a scroll
+ * because Instagram loads the grid's next page only for a drag: scrolled, the grid stopped at the
+ * first page's end and never got more. At the loaded end it's dragged again now and then while the
+ * next page comes. Found, the tile is brought fully on screen and outlined for a moment, and the id
+ * is dropped. Not found after a few screens or when the grid ends, the grid goes back to where it
+ * was, a toast says so, and the id is dropped. Leaving the tab first stops the search and keeps the
+ * id for the next time the tab opens.
  *
  * <p>The hooks fail open: with the switch off, HushGram paused, the settings not read yet, a member
  * missing or anything thrown, nothing is held and the grid stays as Instagram shows it.
@@ -72,11 +77,17 @@ public final class ReelOrigin {
     static final long STEP_MS = 150;
     /** How often a tab whose grid isn't on screen yet is looked at again. */
     static final long WAIT_MS = 300;
-    /** How many screens the grid moves at most, and how long the search runs at most once the grid shows. */
+    /** How many times the grid is dragged on at most, and how long the search runs at most once the grid shows. */
     static final int MAX_STEPS = 20;
     static final long GIVE_UP_MS = 15000;
     /** How long the end of the grid may stay the end before no more is coming. */
     static final long END_WAIT_MS = 4000;
+    /** How often the grid is dragged again while it sits at its loaded end. */
+    static final long NUDGE_MS = 1000;
+    /** How many moves a drag takes, how far apart in time, and how long it holds still before letting go. */
+    static final int DRAG_MOVES = 8;
+    static final long MOVE_MS = 10;
+    static final long HOLD_MS = 100;
     /** How long the found tile stays outlined. */
     static final long OUTLINE_MS = 1500;
 
@@ -91,6 +102,8 @@ public final class ReelOrigin {
     private static Application watched;
     /** The search running, at most one. */
     private static Look looking;
+    /** View's computeVerticalScrollOffset, read once. */
+    private static Method scrollOffset;
 
     private ReelOrigin() {
     }
@@ -187,8 +200,9 @@ public final class ReelOrigin {
     }
 
     /**
-     * Moves the tab's grid on a screen at a time until the reel's tile is bound, the grid ends, or
-     * the steps or the time run out. Stops without a word when the tab is left, and keeps the id.
+     * Drags the tab's grid on most of a screen at a time until the reel's tile is bound, the grid
+     * ends, or the steps or the time run out. Stops without a word when the tab is left, and keeps
+     * the id.
      */
     private static final class Look implements Runnable {
         private final WeakReference<Object> tab;
@@ -199,8 +213,10 @@ public final class ReelOrigin {
         private final Rect area = new Rect();
         private long started;
         private long endSince;
+        private long dragged;
         private int steps;
-        private int moved;
+        /** Where the grid was when the search started. */
+        private int start;
 
         Look(Object tab, Method resumed, Field grid, String id, BooleanSupplier on) {
             this.tab = new WeakReference<>(tab);
@@ -227,7 +243,10 @@ public final class ReelOrigin {
                 }
                 ViewGroup list = (ViewGroup) found;
                 long now = SystemClock.uptimeMillis();
-                if (started == 0) started = now;
+                if (started == 0) {
+                    started = now;
+                    start = offset(list);
+                }
                 View tile = tile(list, id);
                 if (tile != null) {
                     show(tile);
@@ -240,9 +259,8 @@ public final class ReelOrigin {
                     return;
                 }
                 if (list.canScrollVertically(1)) {
-                    int by = Math.max(1, list.getHeight() * 4 / 5);
-                    list.scrollBy(0, by);
-                    moved += by;
+                    drag(list);
+                    dragged = now;
                     steps++;
                     endSince = 0;
                 } else if (list.getChildCount() > 0) {
@@ -251,6 +269,10 @@ public final class ReelOrigin {
                     } else if (now - endSince >= END_WAIT_MS) {
                         giveUp(list);
                         return;
+                    }
+                    if (now - dragged >= NUDGE_MS) {
+                        drag(list);
+                        dragged = now;
                     }
                 }
                 main().postDelayed(this, STEP_MS);
@@ -268,8 +290,9 @@ public final class ReelOrigin {
         }
 
         /** Not found: the grid goes back to where it was, a toast says so, and the id is dropped. */
-        private void giveUp(ViewGroup list) {
-            if (moved > 0) list.scrollBy(0, -moved);
+        private void giveUp(ViewGroup list) throws ReflectiveOperationException {
+            int back = start - offset(list);
+            if (back != 0) list.scrollBy(0, back);
             HookStatus.counted(FamilyNames.REEL_ORIGIN, NOT_FOUND);
             forget();
             Utils.showToastShort(L10n.t(list.getContext(), "Couldn't find the reel you came from"));
@@ -290,6 +313,46 @@ public final class ReelOrigin {
             if (found != null) return found;
         }
         return null;
+    }
+
+    /**
+     * Drags [list] up from near its bottom to near its top as a finger would, holding still before
+     * letting go so it doesn't fling on. The grid takes it like any drag, folding the profile's header
+     * away first and asking Instagram for the next page near the end.
+     */
+    static void drag(View list) {
+        float x = list.getWidth() / 2f;
+        float from = list.getHeight() * 9 / 10f;
+        float to = list.getHeight() / 10f;
+        long down = SystemClock.uptimeMillis();
+        touch(list, down, down, MotionEvent.ACTION_DOWN, x, from);
+        for (int move = 1; move <= DRAG_MOVES; move++) {
+            touch(list, down, down + move * MOVE_MS, MotionEvent.ACTION_MOVE, x, from + (to - from) * move / DRAG_MOVES);
+        }
+        long still = down + DRAG_MOVES * MOVE_MS + HOLD_MS;
+        touch(list, down, still, MotionEvent.ACTION_MOVE, x, to);
+        touch(list, down, still, MotionEvent.ACTION_UP, x, to);
+    }
+
+    private static void touch(View view, long down, long at, int action, float x, float y) {
+        MotionEvent event = MotionEvent.obtain(down, at, action, x, y, 0);
+        event.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        try {
+            view.dispatchTouchEvent(event);
+        } finally {
+            event.recycle();
+        }
+    }
+
+    /** How far down [list] is scrolled, as its scroll bar sees it. */
+    static int offset(View list) throws ReflectiveOperationException {
+        Method found = scrollOffset;
+        if (found == null) {
+            found = View.class.getDeclaredMethod("computeVerticalScrollOffset");
+            found.setAccessible(true);
+            scrollOffset = found;
+        }
+        return (Integer) found.invoke(list);
     }
 
     /** Brings [tile] fully on screen, the header folding away if it must, and outlines it for a moment. */

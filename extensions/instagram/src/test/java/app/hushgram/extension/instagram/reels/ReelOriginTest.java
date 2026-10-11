@@ -182,6 +182,7 @@ public class ReelOriginTest {
         ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
         ShadowLooper.idleMainLooper();
         assertEquals(List.of(REEL), shown);
+        assertTrue("nothing was dragged", grid.drags.isEmpty());
         assertTrue("nothing was scrolled", grid.scrolls.isEmpty());
         Tile tile = tile(REEL);
         assertEquals("outlined", 1, outlines(tile));
@@ -199,7 +200,11 @@ public class ReelOriginTest {
         assertTrue(HookStatus.missing(FamilyNames.REEL_ORIGIN).toString(), HookStatus.missing(FamilyNames.REEL_ORIGIN).isEmpty());
     }
 
-    /** A reel further down: the grid moves a screen at a time, waiting for each page Instagram loads, until it shows. */
+    /**
+     * A reel further down: the grid is dragged on most of a screen at a time, waiting for each page
+     * Instagram loads, until it shows. Instagram loads a page only at the end of a drag, so a grid
+     * moved by scrollBy would stop at the first page's end.
+     */
     @Test
     public void aReelFurtherDownIsScrolledToAsPagesLoad() {
         List<List<String>> pages = new ArrayList<>();
@@ -216,7 +221,7 @@ public class ReelOriginTest {
         Runnable nextPage = () -> {
             if (loaded[0] < pages.size()) grid.reels.addAll(pages.get(loaded[0]++));
         };
-        // Instagram loads its next page a moment after the end shows, and the first a moment after the tab opens.
+        // Instagram loads its next page a moment after a drag ends at the end, and the first a moment after the tab opens.
         grid.atEnd = () -> main.postDelayed(nextPage, 300);
         main.postDelayed(() -> {
             nextPage.run();
@@ -226,8 +231,9 @@ public class ReelOriginTest {
         ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
         idleSeconds(10);
         assertEquals(List.of(REEL), shown);
-        assertFalse("the grid moved down", grid.scrolls.isEmpty());
-        assertTrue("every scroll went down", grid.scrolls.stream().allMatch(by -> by > 0));
+        assertFalse("the grid was dragged on", grid.drags.isEmpty());
+        assertTrue("every drag went down the grid", grid.drags.stream().allMatch(by -> by > 0));
+        assertTrue("and it was never scrolled", grid.scrolls.isEmpty());
         assertTrue("it waited for Instagram's pages", loaded[0] >= 3);
         assertNull(ReelOrigin.heldForTests());
         String report = HookStatus.report().toString();
@@ -245,8 +251,9 @@ public class ReelOriginTest {
         ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
         idleSeconds(20);
         assertTrue(shown.isEmpty());
-        assertEquals("the steps, then one back", ReelOrigin.MAX_STEPS + 1, grid.scrolls.size());
-        assertTrue(grid.scrolls.get(grid.scrolls.size() - 1) < 0);
+        assertEquals("the steps", ReelOrigin.MAX_STEPS, grid.drags.size());
+        assertEquals("then one scroll back", 1, grid.scrolls.size());
+        assertTrue(grid.scrolls.get(0) < 0);
         assertEquals("back at the top", 0, grid.firstRow());
         assertEquals("Couldn't find the reel you came from", ShadowToast.getTextOfLatestToast());
         assertNull(ReelOrigin.heldForTests());
@@ -254,7 +261,10 @@ public class ReelOriginTest {
         assertTrue(report, report.contains(ReelOrigin.NOT_FOUND + " 1"));
     }
 
-    /** A grid that ends without it gives up after waiting a few seconds for more, without moving. */
+    /**
+     * A grid that ends without it gives up after waiting a few seconds for more, without moving.
+     * While it waits, the grid is dragged at its end now and then, in case more is coming.
+     */
     @Test
     public void givesUpWhenTheGridEnds() {
         ReelOrigin.opening(new Reel(REEL), ON);
@@ -264,7 +274,31 @@ public class ReelOriginTest {
         assertNull("still waiting for more", ShadowToast.getTextOfLatestToast());
         idleSeconds(4);
         assertEquals("Couldn't find the reel you came from", ShadowToast.getTextOfLatestToast());
-        assertTrue(grid.scrolls.isEmpty());
+        assertFalse("dragged at the end in case more was coming", grid.drags.isEmpty());
+        assertTrue("never scrolled", grid.scrolls.isEmpty());
+        assertEquals("never moved", 0, grid.firstRow());
+        assertNull(ReelOrigin.heldForTests());
+    }
+
+    /**
+     * A drag that ends at the end while Instagram is still busy loads nothing, and a drag there a
+     * moment later does, so the search drags again at the end and finds the reel on the next page.
+     */
+    @Test
+    public void aPageThatComesOnlyForALaterDragIsStillSearched() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(reels(12, 9000), null);
+        List<String> next = reels(12, 8000);
+        next.set(4, REEL);
+        int[] asks = {0};
+        grid.atEnd = () -> {
+            if (asks[0]++ == 1) grid.reels.addAll(next);
+        };
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(5);
+        assertEquals(List.of(REEL), shown);
+        assertTrue("it asked again after the first ask loaded nothing", asks[0] >= 2);
         assertNull(ReelOrigin.heldForTests());
     }
 
@@ -280,12 +314,12 @@ public class ReelOriginTest {
         ShadowLooper.idleMainLooper();
         tab.resumed = false;
         idleSeconds(3);
-        int moved = grid.scrolls.size();
+        int moved = grid.drags.size();
         assertTrue(shown.isEmpty());
         assertEquals("it kept the reel", REEL, ReelOrigin.heldForTests());
         assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ReelOrigin.LEFT + " 1"));
         idleSeconds(3);
-        assertEquals("and stopped", moved, grid.scrolls.size());
+        assertEquals("and stopped", moved, grid.drags.size());
 
         tab.resumed = true;
         ReelOrigin.reelsTabResumed(tab, ON);
