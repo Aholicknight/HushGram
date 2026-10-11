@@ -275,6 +275,28 @@ final class ScreenColors {
         row.setPaddingRelative(dp(row, 20), dp(row, 20), dp(row, 20), dp(row, 8));
     }
 
+    /**
+     * The line that opens a category's page: secondary text on the page itself, outside any card,
+     * starting where the section titles do. It wraps and the row grows with it at any font size.
+     */
+    void paintIntro(View row) {
+        TextView text = row.findViewById(android.R.id.title);
+        if (text != null) {
+            text.setTextColor(summary);
+            text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            text.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+            text.setLineSpacing(dp(row, 2), 1);
+            if (text.getParent() instanceof View) {
+                View block = (View) text.getParent();
+                block.setPadding(0, 0, 0, 0);
+                block.setMinimumHeight(0);
+            }
+        }
+        row.setBackground(null);
+        row.setMinimumHeight(0);
+        row.setPaddingRelative(dp(row, 20), dp(row, 12), dp(row, 20), 0);
+    }
+
     /** Marks the chevron a row was given, so a recycled row's can be found and taken off. */
     static final String CHEVRON = "hushgram_chevron";
 
@@ -601,6 +623,12 @@ final class ScreenColors {
     static void heading(View row) {
         ScreenColors colors = shown;
         (colors == null ? DEFAULT : colors).paintHeading(row);
+    }
+
+    /** Paints a category page's intro with the colours on show, if there are any. */
+    static void intro(View row) {
+        ScreenColors colors = shown;
+        (colors == null ? DEFAULT : colors).paintIntro(row);
     }
 
     /** Paints both recovery actions even if the ordinary settings page failed to initialize. */
