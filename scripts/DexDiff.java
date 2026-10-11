@@ -218,7 +218,17 @@ public class DexDiff {
      *       that don't load them may call it too. For a filter the patches put in more than one of
      *       the app's methods, each picked by a rule of its own, such as the one every link parser
      *       passes its link through: once-call would count the other parsers' calls against it.
-     *   <li>Any of those five with "class-holding" in place of "holding": the strings are held by
+     *   <li>A token after "holding" or "class-holding" may also be a literal, written
+     *       {@code const:0x} and its value in hex (unsigned, 32 bits for a narrow constant and 64
+     *       for a wide one), held by a method that loads it; a method reference, held by a method
+     *       that calls it; or a field or method reference with Redex's class names written LX/*;,
+     *       such as {@code LX/*;->*(LX/*;Z)V} (the member of such a class named *, so any name) or
+     *       {@code LX/*;->A07:Ljava/util/List;} (the member's own name kept), held by a method
+     *       that reads, writes or calls any member those match. For code Redex renames from one
+     *       build to the next while its literals, types and the names it keeps stay.
+     *   <li>"single-call" may name more than one caller method, joined by |, and a story-loop-call
+     *       rule may write its native method's name as *, which keeps the class, parameters,
+     *       return, registers and both call sites it is held to.     *   <li>Any of those five with "class-holding" in place of "holding": the strings are held by
      *       the method's class, its methods loading every one of them between them (a field
      *       reference by one reading or writing it), and the method is the one with the shape
      *       among the methods with code of every such class outside the bundle's own code. Exactly
@@ -1481,6 +1491,7 @@ public class DexDiff {
             classPicks = true;
             pickStrings.addAll(storyStoreMarkers);
         }
+        TokenKinds tokenKinds = new TokenKinds(pickStrings);
         MultiDexContainer<? extends DexFile> container =
                 DexFileFactory.loadDexContainer(apk, Opcodes.getDefault());
         if (!pooledStrings.isEmpty()) {
@@ -1513,7 +1524,7 @@ public class DexDiff {
                     if (!typeNamedClasses.isEmpty()) recordTypeNamed(cd, m, typeNamedClasses);
                     if (picksHere) {
                         Set<String> asked = pools.isEmpty() ? null : new HashSet<>();
-                        Set<String> held = recordHolders(s, m, pickRules, pickStrings, pools, asked, holders);
+                        Set<String> held = recordHolders(s, m, pickRules, pickStrings, tokenKinds, pools, asked, holders);
                         if (classMethods != null) classMethods.add(new ClassMethod(s, m, held, asked));
                     }
                     if ((callSites.isEmpty() && noCallSites.isEmpty() && hookCallers.isEmpty())
@@ -1635,13 +1646,21 @@ public class DexDiff {
                 contractFindings.add("contract: " + contract.callee + " has " + sites.size()
                         + " call sites, and must have exactly one, in " + contract.target
                         + (sites.isEmpty() ? "" : ": " + String.join(", ", sites)));
-            } else if (!sites.get(0).contains("->" + contract.target + "(")) {
+            } else if (!callerNamed(sites.get(0), contract.target)) {
                 contractFindings.add("contract: " + contract.callee + " is called from " + sites.get(0)
                         + ", not from " + contract.target);
             }
         }
         if (!contractFindings.isEmpty()) out.put("contract", contractFindings);
         return out;
+    }
+
+    /** Whether a call site's method is named by a single-call rule's name, or by one of its names joined by |. */
+    private static boolean callerNamed(String site, String names) {
+        for (String name : names.split("\\|")) {
+            if (site.contains("->" + name + "(")) return true;
+        }
+        return false;
     }
 
     /** Where a method calls a start-call rule's method: not at all, first thing, or later. */
@@ -1686,13 +1705,103 @@ public class DexDiff {
         }
     }
 
+    /** What a literal token of a rule is written with: this, then the value in hex. */
+    static final String LITERAL_PREFIX = "const:0x";
+
+    /** Redex's class names, which change from one build to the next. */
+    private static final java.util.regex.Pattern REDEX_CLASS = java.util.regex.Pattern.compile("LX/[0-9A-Za-z_$]+;");
+    private static final Map<String, String> WILDCARDED = new HashMap<>();
+
+    /**
+     * A field or method reference with Redex's class names written LX/*; and, for a member of such
+     * a class, its name written *: what a rule token can say about a member whose names change
+     * from one build to the next while its types stay. Anything else stays as it is.
+     */
+    static String wildcarded(String reference) {
+        if (!reference.contains("LX/")) return reference;
+        String known = WILDCARDED.get(reference);
+        if (known != null) return known;
+        int arrow = reference.indexOf("->");
+        int open = reference.indexOf('(', arrow);
+        int colon = reference.lastIndexOf(':');
+        String owner = reference.substring(0, arrow);
+        String general;
+        if (open > 0) {
+            String name = reference.substring(arrow + 2, open);
+            general = redexWildcarded(owner) + "->" + (owner.startsWith("LX/") ? "*" : name)
+                    + redexWildcarded(reference.substring(open));
+        } else {
+            String name = reference.substring(arrow + 2, colon);
+            general = redexWildcarded(owner) + "->" + (owner.startsWith("LX/") ? "*" : name) + ":"
+                    + redexWildcarded(reference.substring(colon + 1));
+        }
+        WILDCARDED.put(reference, general);
+        return general;
+    }
+
+    /**
+     * The same with the member's name kept: a reference to a member of a Redex class written
+     * LX/*; with its own name, for a name Redex keeps from one build to the next, such as a
+     * lambda's {@code $t} or a field its build numbers the same.
+     */
+    static String ownerWildcarded(String reference) {
+        return reference.contains("LX/") ? redexWildcarded(reference) : reference;
+    }
+
+    private static String redexWildcarded(String text) {
+        return REDEX_CLASS.matcher(text).replaceAll("LX/*;");
+    }
+
+    /**
+     * The token a literal instruction is held by: {@code const:0x} and the value in hex, as an
+     * unsigned 32-bit value for a narrow constant and an unsigned 64-bit one for a wide one. Null
+     * for an instruction that is no literal.
+     */
+    static String literalToken(Instruction i) {
+        if (i instanceof WideLiteralInstruction) {
+            return LITERAL_PREFIX + Long.toHexString(((WideLiteralInstruction) i).getWideLiteral());
+        }
+        if (i instanceof NarrowLiteralInstruction) {
+            return LITERAL_PREFIX + Long.toHexString(((NarrowLiteralInstruction) i).getNarrowLiteral() & 0xffffffffL);
+        }
+        return null;
+    }
+
+    /**
+     * What the rules' tokens ask a method to hold besides a string or a field: a literal, a method
+     * it calls, or a reference written with Redex's names wildcarded. Worked out once, so a method
+     * is only read for the kinds some rule uses.
+     */
+    private static final class TokenKinds {
+        final boolean literals;
+        final boolean references;
+        final boolean wildcards;
+
+        TokenKinds(Set<String> tokens) {
+            boolean literals = false;
+            boolean references = false;
+            boolean wildcards = false;
+            for (String token : tokens) {
+                if (token.startsWith(LITERAL_PREFIX)) literals = true;
+                if (token.contains("->") && token.indexOf('(') > token.indexOf("->")) references = true;
+                if (token.contains("LX/*;") || token.contains("->*")) wildcards = true;
+            }
+            this.literals = literals;
+            this.references = references;
+            this.wildcards = wildcards;
+        }
+    }
+
     /**
      * Adds [m] to each holding rule whose strings it loads, every one of them, a field reference by
-     * reading or writing the field, and for a pooled rule a string it asks one of [pools] for, which
-     * go into [asked]. Answers what it loads of [wanted] itself, or null for none.
+     * reading or writing the field, a literal by loading it, a method reference by calling it, a
+     * reference written with wildcards by a member such a reference matches, and for a pooled rule
+     * a string it asks one of [pools] for, which go into [asked]. Answers what it loads of [wanted]
+     * itself, or null for none.
      */
     private static Set<String> recordHolders(String s, Method m, List<Contract> rules, Set<String> wanted,
-            Map<String, Map<Integer, String>> pools, Set<String> asked, Map<Contract, List<Holder>> holders) {
+            TokenKinds kinds, Map<String, Map<Integer, String>> pools, Set<String> asked,
+            Map<Contract, List<Holder>> holders) {
         if (m.getImplementation() == null) return null;
         Set<String> held = null;
         Instruction before = null;
@@ -1700,13 +1809,34 @@ public class DexDiff {
             String pooled = asked == null ? null : pooledString(before, i, pools);
             before = i;
             if (pooled != null) asked.add(pooled);
+            if (kinds.literals) {
+                String literal = literalToken(i);
+                if (literal != null && wanted.contains(literal)) {
+                    if (held == null) held = new HashSet<>();
+                    held.add(literal);
+                }
+            }
             if (!(i instanceof ReferenceInstruction)) continue;
             Reference r = ((ReferenceInstruction) i).getReference();
+            boolean invoke = r instanceof MethodReference && i.getOpcode().name.startsWith("invoke");
             String loaded = r instanceof StringReference ? ((StringReference) r).getString()
-                    : r instanceof FieldReference ? r.toString() : null;
-            if (loaded == null || !wanted.contains(loaded)) continue;
-            if (held == null) held = new HashSet<>();
-            held.add(loaded);
+                    : r instanceof FieldReference || invoke && kinds.references ? r.toString() : null;
+            if (loaded != null && wanted.contains(loaded)) {
+                if (held == null) held = new HashSet<>();
+                held.add(loaded);
+            }
+            if (kinds.wildcards && (r instanceof FieldReference || invoke)) {
+                String general = wildcarded(r.toString());
+                if (!general.equals(loaded) && wanted.contains(general)) {
+                    if (held == null) held = new HashSet<>();
+                    held.add(general);
+                }
+                String named = ownerWildcarded(r.toString());
+                if (!named.equals(loaded) && !named.equals(general) && wanted.contains(named)) {
+                    if (held == null) held = new HashSet<>();
+                    held.add(named);
+                }
+            }
         }
         if (held == null && (asked == null || asked.isEmpty())) return null;
         for (Contract rule : rules) {
@@ -1947,6 +2077,9 @@ public class DexDiff {
                 || !method.getReturnType().equals("V") || body.size() < prefix.length) return false;
         for (int i = 0; i < prefix.length; i++) if (body.get(i).getOpcode() != prefix[i]) return false;
         MethodReference check = calledMethod(body.get(7));
+        // A rule may leave the native check's name as * where Instagram renamed it between builds; its
+        // class, parameters, return, registers and the two call sites are checked all the same.
+        if (check != null && callee.contains("->*(")) callee = callee.replace("->*(", "->" + check.getName() + "(");
         int self = method.getImplementation().getRegisterCount() - 2;
         if (check == null || !check.toString().equals(callee) || !check.getDefiningClass().equals(method.getDefiningClass())
                 || !check.getReturnType().equals("Z") || !check.getParameterTypes().equals(List.of("Lcom/instagram/model/reels/ReelItem;"))

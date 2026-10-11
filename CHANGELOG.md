@@ -132,6 +132,8 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* **Instagram:** The check that proves each hook landed in the right place now holds on all seven 450 builds for nearly every hook, not just the main one. It can find a method by a number it loads or by the shape of what it calls, so it no longer depends on names Instagram changes from build to build.
+
 * **Instagram:** HushGram settings open as a list of categories, and a tap opens one on its own page. A button under the status card switches to one long list. Thanks to @talhaeenss for #123. Asked for in #80 and #100.
 
 * **Instagram:** HushGram settings look tidier. Each category's page starts with a line saying what it's for, and every row now has an icon. On the list of categories, the rows share one rounded card the way a section's rows do. Asked for in #130.

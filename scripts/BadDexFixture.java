@@ -41,6 +41,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22t;
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22x;
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i;
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction51l;
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31t;
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c;
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc;
@@ -59,6 +60,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -355,6 +357,21 @@ public class BadDexFixture {
             method(SESSION_FLAGS, "enabled", "Z", USER_SESSION);
     private static final String REELS_TAB = "Lapp/hushgram/extension/fixture/reels/ReelsTab;";
     private static final ImmutableMethodReference TAB_TO_OPEN = method(REELS_TAB, "tab", OBJECT, OBJECT);
+    /**
+     * Methods a rule picks by what Redex leaves alone: a literal, a call or a field written with
+     * LX/*; for its class (and * for its name, or the name kept), and a hook's caller that two
+     * builds name differently. Each pick has a twin of its shape that lacks what the rule asks for.
+     */
+    private static final String TOKEN_HOST = "Lfixture/TokenHost;";
+    private static final String TOKEN_HOOK = "Lapp/hushgram/extension/fixture/misc/TokenHook;";
+    private static final ImmutableMethodReference TOKEN_LITERAL_HOOK = method(TOKEN_HOOK, "literal", OBJECT, OBJECT);
+    private static final ImmutableMethodReference TOKEN_CALL_HOOK = method(TOKEN_HOOK, "call", OBJECT, OBJECT);
+    private static final ImmutableMethodReference TOKEN_FIELD_HOOK = method(TOKEN_HOOK, "field", OBJECT, OBJECT);
+    private static final ImmutableMethodReference TOKEN_SITE_HOOK = method(TOKEN_HOOK, "site", OBJECT, OBJECT);
+    private static final ImmutableMethodReference TOKEN_CALLEE = method("LX/Ab12;", "c3", "V", "LX/De45;");
+    private static final ImmutableFieldReference TOKEN_LIST = new ImmutableFieldReference("LX/Fg67;", "A07", "Ljava/util/List;");
+    private static final ImmutableFieldReference TOKEN_NAME = new ImmutableFieldReference("LX/Hi89;", "A09", "Ljava/lang/String;");
+
     /** How the home tab asks about the session: the static check, the flag reader's instance call, or not at all. */
     private static final int STATIC_CHECK = 0;
     private static final int INSTANCE_CHECK = 1;
@@ -476,7 +493,11 @@ public class BadDexFixture {
             "once-call Lapp/hushgram/extension/fixture/feed/SwipeToCreate;->enabled()I in instance (Lfixture/PositionConfig;)V calling instance Lfixture/SwipeContainer;->setEndPanelExtraParameter(Lfixture/PositionConfig;)V holding Lfixture/PositionConfig;->animate:Z",
             "once-call Lapp/hushgram/extension/fixture/stories/StorySeen;->toRetry(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance ()V calling instance Ljava/util/Iterator;->hasNext()Z class-holding null\\scannot\\sbe\\scast\\sto\\snon-null\\stype\\sT\\sof\\scom.instagram.store.PendingActionStore",
             "retry-call Lapp/hushgram/extension/fixture/stories/StorySeen;->toRetry(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance ()V calling instance Ljava/util/Iterator;->hasNext()Z class-holding null\\scannot\\sbe\\scast\\sto\\snon-null\\stype\\sT\\sof\\scom.instagram.store.PendingActionStore",
-            "story-loop-call Linstagram/features/stories/fragment/ReelViewerFragment;->A1K(Lcom/instagram/model/reels/ReelItem;)Z in instance (Ljava/lang/Object;)V holding fixture_finished_story",
+            "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->literal(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Integer;)V holding const:0x1ce57a65 const:0x811116000d5cda",
+            "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->call(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Long;)V holding LX/*;->*(LX/*;)V",
+            "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->field(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Short;)V holding LX/*;->A07:Ljava/util/List; LX/*;->*:Ljava/lang/String;",
+            "single-call Lapp/hushgram/extension/fixture/misc/TokenHook;->site(Ljava/lang/Object;)Ljava/lang/Object; in other|tokenSite",
+            "story-loop-call Linstagram/features/stories/fragment/ReelViewerFragment;->*(Lcom/instagram/model/reels/ReelItem;)Z in instance (Ljava/lang/Object;)V holding fixture_finished_story",
             "start-call Lapp/hushgram/extension/fixture/settings/NavigationSettings;->remember(Landroid/view/View;Ljava/lang/Object;Landroid/view/View$OnLongClickListener;)Landroid/view/View$OnLongClickListener; in instance (Landroid/view/View$OnLongClickListener;)V calling instance Landroid/view/View;->setOnLongClickListener(Landroid/view/View$OnLongClickListener;)V holding Lfixture/NavigationPlain;->button:Landroid/view/View;",
             "start-call Lapp/hushgram/extension/fixture/settings/NavigationSettings;->remember(Landroid/view/View;Ljava/lang/Object;Landroid/view/View$OnLongClickListener;)Landroid/view/View$OnLongClickListener; in instance (Landroid/view/View$OnLongClickListener;)V calling instance Landroid/view/View;->setOnLongClickListener(Landroid/view/View$OnLongClickListener;)V holding Lfixture/NavigationLitho;->button:Landroid/view/View;",
             "shared-call Lapp/hushgram/extension/fixture/settings/NavigationSettings;->remember(Landroid/view/View;Ljava/lang/Object;Landroid/view/View$OnLongClickListener;)Landroid/view/View$OnLongClickListener; in instance (Landroid/view/View$OnLongClickListener;)V calling instance Landroid/view/View;->setOnLongClickListener(Landroid/view/View$OnLongClickListener;)V holding Lfixture/NavigationPlain;->button:Landroid/view/View;",
@@ -2290,6 +2311,60 @@ public class BadDexFixture {
                         tabMethod("fallback", "FEED", NO_CHECK, fallbackHooked)));
     }
 
+    /**
+     * One method of the token host: a string into v0, then what [content] says (a wide and a narrow
+     * literal, a narrow one, a call, two field reads or nothing), then the hook the patch writes
+     * when [hook] isn't null.
+     */
+    private static Method tokenMethod(String name, String parameter, String content, ImmutableMethodReference hook) {
+        List<Instruction> code = new ArrayList<>();
+        code.add(new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference("fixture_token")));
+        if (content.equals("literals")) code.add(new ImmutableInstruction51l(Opcode.CONST_WIDE, 1, 0x811116000d5cdaL));
+        if (content.equals("literals") || content.equals("narrow")) {
+            code.add(new ImmutableInstruction31i(Opcode.CONST, 1, 0x1ce57a65));
+        }
+        if (content.equals("call")) code.add(invoke(TOKEN_CALLEE, 0));
+        if (content.equals("fields")) {
+            code.add(new ImmutableInstruction21c(Opcode.SGET_OBJECT, 1, TOKEN_LIST));
+            code.add(new ImmutableInstruction21c(Opcode.SGET_OBJECT, 1, TOKEN_NAME));
+        }
+        if (hook != null) {
+            code.add(invoke(hook, 0));
+            code.add(op(Opcode.MOVE_RESULT_OBJECT, 0));
+        }
+        code.add(op(Opcode.RETURN_VOID));
+        return define(TOKEN_HOST, name, "V", false, new ImmutableMethodImplementation(5, code, null, null), parameter);
+    }
+
+    /**
+     * The token host, with its hooks in the methods named by [hooked]. literalPick holds a wide and a
+     * narrow literal and literalHalf only the narrow one, callPick calls a method of a Redex class
+     * and callTwin doesn't, fieldPick reads two fields of Redex classes and fieldTwin doesn't, and
+     * tokenSite is where the site hook goes, tokenElsewhere where it must not.
+     */
+    private static ClassDef tokenHost(String... hooked) {
+        Set<String> at = new HashSet<>(Arrays.asList(hooked));
+        return new ImmutableClassDef(TOKEN_HOST, AccessFlags.PUBLIC.getValue(), OBJECT, null, null, null, null, Arrays.asList(
+                tokenMethod("literalPick", "Ljava/lang/Integer;", "literals", at.contains("literalPick") ? TOKEN_LITERAL_HOOK : null),
+                tokenMethod("literalHalf", "Ljava/lang/Integer;", "narrow", at.contains("literalHalf") ? TOKEN_LITERAL_HOOK : null),
+                tokenMethod("callPick", "Ljava/lang/Long;", "call", at.contains("callPick") ? TOKEN_CALL_HOOK : null),
+                tokenMethod("callTwin", "Ljava/lang/Long;", "none", at.contains("callTwin") ? TOKEN_CALL_HOOK : null),
+                tokenMethod("fieldPick", "Ljava/lang/Short;", "fields", at.contains("fieldPick") ? TOKEN_FIELD_HOOK : null),
+                tokenMethod("fieldTwin", "Ljava/lang/Short;", "none", at.contains("fieldTwin") ? TOKEN_FIELD_HOOK : null),
+                tokenMethod("tokenSite", "Ljava/lang/Object;", "none", at.contains("tokenSite") ? TOKEN_SITE_HOOK : null),
+                tokenMethod("tokenElsewhere", "Ljava/lang/Object;", "none", at.contains("tokenElsewhere") ? TOKEN_SITE_HOOK : null)));
+    }
+
+    /** The extension's token hooks, each answering what it was given. */
+    private static ClassDef tokenHook() {
+        List<Method> methods = new ArrayList<>();
+        for (String name : new String[] { "literal", "call", "field", "site" }) {
+            methods.add(define(TOKEN_HOOK, name, OBJECT, true, body(1, op(Opcode.RETURN_OBJECT, 0)), OBJECT));
+        }
+        return new ImmutableClassDef(TOKEN_HOOK, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(),
+                OBJECT, null, null, null, null, methods);
+    }
+
     /** The extension's ReelsTab.tab, static: it answers the tab it was given. */
     private static ClassDef reelsTab() {
         return new ImmutableClassDef(REELS_TAB, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(),
@@ -2474,7 +2549,8 @@ public class BadDexFixture {
                 linkParsers(1, 1, false, false), linkFilter(), stringPool(), menuOptions(1, false), videoDownload(),
                 seenStore(seenGuard(), Collections.<Instruction>emptyList(), false),
                 seenCache(Collections.<Instruction>emptyList(), false), storySeen(), storyRetryQueue(1, false, false),
-                tabBuilder(STATIC_CHECK, true, false), reelsTab(), dmReceipts(1, false), visualSeen(),
+                tabBuilder(STATIC_CHECK, true, false), reelsTab(), tokenHook(),
+                tokenHost("literalPick", "callPick", "fieldPick", "tokenSite"), dmReceipts(1, false), visualSeen(),
                 inboxSections(true), inboxFilter(), familyProviders(1, true, false), trustedProvider(), instagramSignature(),
                 setupPresenter(true), setupOpeners(true), setupData(), analyticsSetup(), swipeMovement(1), swipeConfig(), swipeGate(), storyLoopViewer("", true), storyAdvance(),
                 navigationBinding(NAV_PLAIN, 1, false), navigationBinding(NAV_LITHO, 1, false), navigationFactory(1), navigationSettings(),
@@ -2497,7 +2573,7 @@ public class BadDexFixture {
                 speedToast(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList()),
                 linkParsers(0, 0, false, false), stringPool(), menuOptions(0, false),
                 seenStore(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList(), false),
-                seenCache(Collections.<Instruction>emptyList(), false), tabBuilder(STATIC_CHECK, false, false),
+                seenCache(Collections.<Instruction>emptyList(), false), tabBuilder(STATIC_CHECK, false, false), tokenHost(),
                 dmReceipts(0, false), inboxSections(false), familyProviders(0, false, false), trustedProvider(), setupPresenter(false), setupOpeners(false), setupData(), storyRetryQueue(0, false, false), swipeMovement(0), swipeConfig(), storyLoopViewer("", false),
                 navigationBinding(NAV_PLAIN, 0, false), navigationBinding(NAV_LITHO, 0, false), navigationFactory(0),
                 tabPager(0, 0, false), tabList(), feedStore(0));
@@ -3199,6 +3275,16 @@ public class BadDexFixture {
         // contract: the home tab asking the flag reader's instance instead, a call matching the
         // rule's method reference that isn't static, so it doesn't count and no method answers.
         dexes.put("bad-home-tab-check-instance", replaced(good(), tabBuilder(INSTANCE_CHECK, true, false)));
+
+        // contract: a literal, a call, a field and a caller picked the way Redex's renames leave
+        // them. Each hook left out, or put in the pick's twin, fails its own rule alone.
+        dexes.put("bad-token-literal-missing", replaced(good(), tokenHost("callPick", "fieldPick", "tokenSite")));
+        dexes.put("bad-token-literal-decoy", replaced(good(), tokenHost("literalHalf", "callPick", "fieldPick", "tokenSite")));
+        dexes.put("bad-token-call-missing", replaced(good(), tokenHost("literalPick", "fieldPick", "tokenSite")));
+        dexes.put("bad-token-call-decoy", replaced(good(), tokenHost("literalPick", "callTwin", "fieldPick", "tokenSite")));
+        dexes.put("bad-token-field-missing", replaced(good(), tokenHost("literalPick", "callPick", "tokenSite")));
+        dexes.put("bad-token-field-decoy", replaced(good(), tokenHost("literalPick", "callPick", "fieldTwin", "tokenSite")));
+        dexes.put("bad-token-site-moved", replaced(good(), tokenHost("literalPick", "callPick", "fieldPick", "tokenElsewhere")));
 
         dexes.put("bad-dm-visual-guard-late", replaced(good(), dmReceipts(1, true)));
         dexes.put("bad-navigation-plain-missing", replaced(good(), navigationBinding(NAV_PLAIN, 0, false)));
