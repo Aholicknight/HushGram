@@ -123,33 +123,58 @@ class FlagNameListTest {
     }
 
     /**
-     * The other builds of a declared version (#77, #95). 385611404 and 385611431 build MetaConfig's
-     * list the way 385611438 does and take the hooks. 385611395, 385611400 and the x86 and x86_64
-     * builds (385611439, 385611440) make each label in a separate method, so there the finder
-     * refuses before anything changes, and Import flag names is left out of them.
+     * The other builds of a declared version (#77, #95, #91). Every one hooks MetaConfig's list, and
+     * every one has the same two row sites, whether it makes the labels inline (385611404, 385611431,
+     * 385611438) or through the entry's getters (385611395, 385611400) or a static helper that takes
+     * the entry (the x86 and x86_64 builds, 385611439 and 385611440). Before #91 the last four
+     * refused and went without Import flag names.
      */
-    @Test fun everyOtherBuildHooksMetaConfigsListOrLeavesItAlone() {
-        val hooked = mutableSetOf<String>()
-        val elsewhere = listOf("-385611395", "-385611400", "-385611439", "-385611440")
+    @Test fun everyBuildHooksMetaConfigsListWithTheSameTwoRows() {
+        val hooked = mutableMapOf<String, Int>()
         for (bundle in Fixtures.otherBuilds()) {
             val label = bundle.parentFile.name
-            if (elsewhere.any { label.endsWith(it) }) {
-                val patch = PatchContexts.of(slice(bundle))
-                val failure = runCatching { patch.findFlagNameList() }.exceptionOrNull()
-                assertTrue("$label: $failure", failure?.message?.startsWith("Open developer options: ") == true)
-            } else {
-                hooksTheList(bundle, label)
-                hooked += label
-            }
+            hooked[label] = hooksTheList(bundle, label).size
         }
-        assertTrue("no other build took the hooks", hooked.isNotEmpty())
+        for (build in listOf("395", "400", "404", "431", "439", "440")) {
+            assertEquals("385611$build: $hooked", 2, hooked.entries.single { it.key.endsWith("-385611$build") }.value)
+        }
+        assertEquals(hooked.toString(), setOf(2), hooked.values.toSet())
+    }
+
+    /** A list builder that makes its labels through getters on the entry, or a helper that takes it, hooks the same way. */
+    @Test fun labelsMadeByGettersOnTheEntryAreHooked() {
+        for (static in listOf(false, true)) {
+            val patch = PatchContexts.of(classes(calls = true, staticGetters = static))
+            val list = patch.findFlagNameList()
+            assertEquals("static=$static", listOf(6, 6), list.rows.map { it.entry })
+            assertEquals("static=$static", listOf(4, 4), list.rows.map { it.parameter })
+            assertEquals("static=$static", listOf(1, 1), list.rows.map { it.config })
+            patch.applyFlagNameList(list)
+            assertHooked(patch.method(builder, "rows"), 2)
+        }
+    }
+
+    /** A getter that isn't the fallback read of the right field, or labels set after it, refuse the lot. */
+    @Test fun gettersThatArentTheEntrysNamesRefuse() {
+        val cases = mapOf(
+            "getters reading each other's fields" to classes(calls = true, badGetter = true),
+            "static getters reading each other's fields" to classes(calls = true, staticGetters = true, badGetter = true),
+            "a label set after its getter" to classes(calls = true, labelAfterRead = true),
+        )
+        for ((case, classes) in cases) {
+            val patch = PatchContexts.of(classes)
+            val before = patch.snapshot()
+            val failure = runCatching { patch.findFlagNameList() }.exceptionOrNull()
+            assertTrue("$case: $failure", failure?.message?.startsWith("Open developer options: ") == true)
+            assertEquals(case, before, patch.snapshot())
+        }
     }
 
     /** Finds and puts in the hook on [bundle]'s slice, checks what went in, and answers the rows found. */
     private fun hooksTheList(bundle: File, label: String): List<FlagRow> {
         val patch = PatchContexts.of(slice(bundle))
 
-        val list = patch.findFlagNameList()
+        val list = runCatching { patch.findFlagNameList() }.getOrElse { throw AssertionError("$label: $it", it) }
         assertTrue("$label: no rows", list.rows.isNotEmpty())
         patch.applyFlagNameList(list)
 
@@ -181,6 +206,14 @@ class FlagNameListTest {
                 kept += ImmutableClassDef.of(clazz)
                 clazz.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }
                     .mapNotNull { (it.reference() as? MethodReference)?.takeIf { call -> call.isRecord() }?.definingClass }.forEach { types += it }
+            }
+        }
+        // And the classes of the static helpers some builds make a label with, which take the entry alone.
+        FixtureDex.forEach(bundle) { dex ->
+            for (clazz in dex.classes) {
+                if (clazz.methods.any { it.returnType == "Ljava/lang/String;" && it.parameterTypes.size == 1 && it.parameterTypes.single().toString() in types }) {
+                    kept += ImmutableClassDef.of(clazz)
+                }
             }
         }
         val native = FixtureDex.withStringPools(bundle, (kept + FixtureDex.classes(bundle, types).values).distinctBy { it.type })
@@ -231,6 +264,7 @@ class FlagNameListTest {
     private fun classes(
         jumpIn: Boolean = false, jumpToNew: Boolean = false, overwriteEntry: Boolean = false, twoEntries: Boolean = false,
         labelAfterRead: Boolean = false, skipConfigRead: Boolean = false,
+        calls: Boolean = false, staticGetters: Boolean = false, badGetter: Boolean = false,
     ): List<ClassDef> {
         val types = listOf(string, string) + List(7) { "I" } + List(3) { "Z" }
         val constructor = "invoke-direct { p0 }, Ljava/lang/Object;-><init>()V\n" + fields.mapIndexed { i, field ->
@@ -249,8 +283,9 @@ class FlagNameListTest {
                 methods = listOf(
                     method(entry, "<init>", types, "V", 13, public or AccessFlags.CONSTRUCTOR.value, constructor),
                     method(entry, "id", emptyList(), "J", 3, public, "const-wide v0, 0x0\nreturn-wide v0"),
-                )),
-            builderClass(builder, jumpIn, jumpToNew, overwriteEntry, twoEntries, labelAfterRead, skipConfigRead),
+                ) + if (calls && !staticGetters) getters(false, badGetter) else emptyList()),
+            builderClass(builder, jumpIn, jumpToNew, overwriteEntry, twoEntries, labelAfterRead, skipConfigRead, calls, staticGetters),
+            clazz("Lfixture/Helper;", methods = if (calls && staticGetters) getters(true, badGetter) else emptyList()),
             clazz(OVERRIDE_BRIDGE, methods = listOf("getFlagConfigNative", "getFlagIndexNative").map { name ->
                 method(OVERRIDE_BRIDGE, name, listOf("Ljava/lang/Object;"), "I", 2, static, "const/4 v0, -0x1\nreturn v0")
             }),
@@ -260,11 +295,48 @@ class FlagNameListTest {
         )
     }
 
+    /** The entry's two label getters as Instagram's builds have them: on the entry, or static in a helper. */
+    private fun getters(static: Boolean, swapped: Boolean): List<ImmutableMethod> {
+        val owner = if (static) "Lfixture/Helper;" else entry
+        fun getter(name: String, nameField: String, numberField: String) = method(owner, name, if (static) listOf(entry) else emptyList(), string, 3,
+            if (static) this.static else public, """
+                iget-object v1, p0, $entry->$nameField:$string
+                invoke-virtual { v1 }, $string->isEmpty()Z
+                move-result v0
+                if-eqz v0, :done
+                iget v0, p0, $entry->$numberField:I
+                invoke-static { v0 }, $string->valueOf(I)$string
+                move-result-object v1
+                const-string v0, "_"
+                invoke-static { v0, v1 }, Lfixture/Concat;->join($string$string)$string
+                move-result-object v1
+                :done
+                return-object v1
+            """.trimIndent())
+        return listOf(
+            getter("nameLabel", if (swapped) "configName" else "name", if (swapped) "config" else "index"),
+            getter("configLabel", if (swapped) "name" else "configName", if (swapped) "index" else "config"),
+        )
+    }
+
     private fun builderClass(
         type: String, jumpIn: Boolean = false, jumpToNew: Boolean = false, overwriteEntry: Boolean = false,
         twoEntries: Boolean = false, labelAfterRead: Boolean = false, skipConfigRead: Boolean = false,
+        calls: Boolean = false, staticGetters: Boolean = false,
     ): ClassDef {
-        fun row(kind: String, broken: Boolean) = """
+        fun getter(name: String) = if (staticGetters) "invoke-static { v6 }, Lfixture/Helper;->$name($entry)$string" else "invoke-virtual { v6 }, $entry->$name()$string"
+        fun callRow(kind: String) = """
+            ${getter("nameLabel")}
+            move-result-object v4
+            invoke-static { v4 }, Lfixture/Checks;->notNull(Ljava/lang/Object;)V
+            ${getter("configLabel")}
+            move-result-object v1
+            ${if (labelAfterRead) "const-string v4, \"set\"" else "nop"}
+            invoke-static { v1 }, Lfixture/Checks;->notNull(Ljava/lang/Object;)V
+            new-instance v0, Lfixture/Row$kind;
+            invoke-direct { v0, v2, v3, v4, v1 }, Lfixture/Row;-><init>(J$string$string)V
+        """.trimIndent()
+        fun row(kind: String, broken: Boolean) = if (calls) callRow(kind) else """
             iget-object v4, v6, $entry->name:$string
             invoke-virtual { v4 }, $string->isEmpty()Z
             move-result v0

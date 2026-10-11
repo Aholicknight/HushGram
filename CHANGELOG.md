@@ -34,6 +34,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Open developer options:** MetaConfig now lists flag names instead of numbers, and Developer has a Recommended flags page of named On or Off switches that needs Allow importing overrides. Asked for in #91, #110, #50, #37 and #13.
 
+* **Instagram - Open developer options:** Import flag names now applies on every Instagram 450 build. On four of them (the x86 and x86_64 builds and two others) it was left out, so MetaConfig kept showing numbers. Asked for in #91.
+
 * **Instagram - Install next to Instagram:** New patch that installs a second Instagram beside the first, with its own data and sign-in. It starts unselected in Manager. Asked for in #34, #61, #73 and #121.
 
 * **Instagram - Save comment photo:** It now covers a comment's GIF too, saved as a .gif in Pictures/Instagram, or as the animated WebP or MP4 when that's all Instagram has. Off by default, under Comments in HushGram settings. Asked for in #1.
