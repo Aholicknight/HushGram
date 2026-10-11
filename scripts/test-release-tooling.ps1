@@ -2221,6 +2221,7 @@ try {
 
     $catalogHere = Get-Content -LiteralPath (Join-Path $factsRoot 'patches-list.json') -Raw | ConvertFrom-Json
     $versionHere = ([string]$catalogHere.version).TrimStart('v')
+    $nextVersion = "$(([version]$versionHere).Major).$(([version]$versionHere).Minor).$(([version]$versionHere).Build + 1)"
     $countHere = @($catalogHere.patches).Count
     $targetHere = Get-PatchTarget -PatchList $catalogHere
     $buildHere = $targetHere.PackageVersion
@@ -2245,7 +2246,7 @@ try {
     # Each fact the pre-release check holds, moved one at a time.
     $noIndexCases = @(
         @{ File = 'gradle.properties'; Case = 'a Gradle version that is not the catalog''s'; Pattern = "*gradle.properties does not match v$versionHere*"
-            Edit = { param($text) $text -replace '(?m)^(\s*version\s*=\s*)\S+', '${1}0.0.9' } },
+            Edit = { param($text) $text -replace '(?m)^(\s*version\s*=\s*)\S+', "`${1}$nextVersion" } },
         @{ File = 'README.md'; Case = 'a version badge picture naming another version'; Pattern = '*version badge names*0.1.0*'
             Edit = { param($text) $text -replace 'badge/version-\d+(?:\.\d+)+-', 'badge/version-0.1.0-' } },
         @{ File = 'README.md'; Case = 'a version badge alt text naming another version'; Pattern = '*version badge names*0.1.0*'
@@ -2486,7 +2487,6 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
     # first, and the index keeps naming the release until its own push. The lenient check the hook
     # runs on that source push accepts it, the new version described under Unreleased; the strict
     # one refuses it.
-    $nextVersion = "$(([version]$versionHere).Major).$(([version]$versionHere).Minor).$(([version]$versionHere).Build + 1)"
     Set-FactsFile 'gradle.properties' { param($text) $text -replace '(?m)^(\s*version\s*=\s*)\S+', "`${1}$nextVersion" }
     Set-FactsFile 'patches-list.json' { param($text) $text.Replace("`"v$versionHere`"", "`"v$nextVersion`"") }
     Set-FactsFile 'README.md' { param($text) $text -replace 'badge/version-\d+(?:\.\d+)+-', "badge/version-$nextVersion-" -replace
