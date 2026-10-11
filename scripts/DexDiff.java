@@ -1539,9 +1539,9 @@ public class DexDiff {
             }
         }
         // The method each picking rule claims, its one holder of the rule's shape, by the method the
-        // rule names. A start-call or shared-call rule doesn't count another rule's claim for the same
-        // method as somewhere else the hook went: the list ViewPager2 makes calls TabSwipe.input in
-        // both of its touch methods, each claimed by a rule of its own told apart by the call it makes.
+        // rule names. No rule counts another rule's claim for the same method as somewhere else the
+        // hook went: the list ViewPager2 makes calls TabSwipe.input in both of its touch methods, each
+        // claimed by a rule of its own told apart by the call it makes.
         Map<String, Map<Contract, String>> claims = new HashMap<>();
         for (Contract contract : pickRules) {
             List<String> shaped = new ArrayList<>();
@@ -1809,7 +1809,7 @@ public class DexDiff {
      * method pick. Then each kind asks its own questions: start-call that no other holder calls it,
      * leaving out the claimed ones, and that the call comes first; shared-call the same about other
      * holders, and that the method calls it once there, or as many times as the rule's sites says;
-     * once-call that no other host method calls it and that the method calls it once there, or as
+     * once-call that no other host method calls it, leaving out the claimed ones, and that the method calls it once there, or as
      * many times as sites says; next-call that it's the method's one call there, right after the call it pairs
      * with and on the same register; sole-call that it's the method's one call, that the call it
      * stands in for is gone, and that it reads what that call read in [clean]. A class-holding rule
@@ -1852,7 +1852,9 @@ public class DexDiff {
         // among those that hold them all themselves, so the one guard Instagram's batch of watched
         // reels puts in each of its record methods passes. A holder another rule for the same call
         // picks is that rule's to check. A next-call, sole-call or once-call hook belongs to one
-        // method, so a second call anywhere is one too many.
+        // method, so a call in any other host method is one too many, unless another rule for the
+        // same call picks that method: HushGram's hidden like count hook goes in seven row methods,
+        // each held to one call by a rule of its own, and a call in an eighth still fails all seven.
         List<String> elsewhere = new ArrayList<>();
         if (contract.kind.equals("start-call") || contract.kind.equals("shared-call")) {
             for (Holder holder : holders) {
@@ -1860,7 +1862,9 @@ public class DexDiff {
                         && !callSites(instructions(holder.m), contract.callee).isEmpty()) elsewhere.add(holder.method);
             }
         } else {
-            for (String caller : callers) if (!caller.equals(only.method)) elsewhere.add(caller);
+            for (String caller : callers) {
+                if (!caller.equals(only.method) && !claimed.contains(caller)) elsewhere.add(caller);
+            }
         }
         if (sites.isEmpty()) {
             System.out.println("[diff] " + rule + ": not called in " + only.method

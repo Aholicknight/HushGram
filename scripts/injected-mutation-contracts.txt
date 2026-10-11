@@ -24,13 +24,14 @@
 # other invoke, and neither word any invoke. A once-call or shared-call rule's method calls the hook
 # once, or with sites <n> (2 or more) exactly n times, for a filter put on each of several reads in
 # one method. Where start-call and shared-call look for the hook in the other methods holding the
-# strings, they leave out a method another rule for the same hook picks, so two rules told apart
-# only by calling each hold their own method.
+# strings, and once-call in every other method of Instagram's, they leave out a method another rule
+# for the same hook picks, so two rules told apart only by calling each hold their own method, and a
+# hook the patch puts in several methods gets a once-call for each.
 #
 # One guard per hot method. A guard the patch puts first in a method gets a start-call rule, which
 # holds it first there and in no other method holding the same strings, and a once-call rule, which
-# holds it to one call in that method and none anywhere else. start-call alone passes a guard
-# written in twice, since the first of the two is still first.
+# holds it to one call in that method and none anywhere else but the methods its other rules pick.
+# start-call alone passes a guard written in twice, since the first of the two is still first.
 #
 # Taken from Hushfacebook's scripts/injected-mutation-contracts.txt
 # (https://github.com/SysAdminDoc/Hushfacebook, commit 3a47363954eea853357e71e7cf3951a5ee984cee).
@@ -540,18 +541,17 @@ shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homeItem(Lj
 start-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePageStarts()V in instance (L*;)Ljava/lang/Object; holding feed_items pull_to_refresh_window_ms
 once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePageStarts()V in instance (L*;)Ljava/lang/Object; holding feed_items pull_to_refresh_window_ms
 shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePageParsed()V in instance (L*;)Ljava/lang/Object; sites 2 holding feed_items pull_to_refresh_window_ms
-# The constructor and the start method below both call homeSession on purpose, so their call-once rules are shared-calls.
 # Hidden accounts learns whose Home it is from homeSession, first thing in the constructor of Home's
 # cache source (MainFeedCacheDataSource, a kept name): its one constructor taking a boolean and the
 # session, in the class holding the two strings below. Left out, one list counts for every account.
 start-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (ZLcom/instagram/common/session/UserSession;)V class-holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
-shared-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (ZLcom/instagram/common/session/UserSession;)V class-holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
+once-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (ZLcom/instagram/common/session/UserSession;)V class-holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
 # Instagram keeps one cache source for each session, so its constructor runs once for an account and a switch back to an
 # account never reaches it. The source's start (the one instance method of the class holding both strings, reading the
 # session out of the source first thing) runs each time Home comes up and hands the same session over again. Left out,
 # the list stays the last new account's after switching back to an earlier one.
 start-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (L*;)V holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
-shared-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (L*;)V holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
+once-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (L*;)V holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
 #
 # Hide suggested posts answers the home feed adapter's "no next page" flag through feedEnded() at
 # each of its two reads: the model builder, the one method holding both strings below, and the
@@ -578,13 +578,12 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->moreAfterFoll
 # The Older Posts page is a contextual feed. Its two adapters' model builders (the static methods taking the adapter)
 # draw a full-screen loading row while the fetch is loading and the adapter is empty, and a page that lost every post
 # to the switches left them built once with the fetch still loading. olderPageLoading() passes each isLoading() answer.
-# Both adapters' builders call both hooks on purpose, so each of the four rules is a shared-call.
 # One adapter's builder holds the BaseItemFilter cast message; the other holds no string, so it is told apart by the
 # three fields it reads (its constructor reads them too, but is not static). Left out, that page keeps its spinner.
-shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPageLoading(I)I in static (L*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.feed.media.baseitemfilter.BaseItemFilter<com.instagram.feed.feeditem.FeedItem>
-shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPolicyAsked(Ljava/lang/Object;)V in static (L*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.feed.media.baseitemfilter.BaseItemFilter<com.instagram.feed.feeditem.FeedItem>
-shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPageLoading(I)I in static (L*;)V holding LX/0D9q;->A0T:LX/0AOd; LX/0D9q;->A0S:LX/07YZ; LX/0D9q;->A0N:LX/0E3K;
-shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPolicyAsked(Ljava/lang/Object;)V in static (L*;)V holding LX/0D9q;->A0T:LX/0AOd; LX/0D9q;->A0S:LX/07YZ; LX/0D9q;->A0N:LX/0E3K;
+once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPageLoading(I)I in static (L*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.feed.media.baseitemfilter.BaseItemFilter<com.instagram.feed.feeditem.FeedItem>
+once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPolicyAsked(Ljava/lang/Object;)V in static (L*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.feed.media.baseitemfilter.BaseItemFilter<com.instagram.feed.feeditem.FeedItem>
+once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPageLoading(I)I in static (L*;)V holding LX/0D9q;->A0T:LX/0AOd; LX/0D9q;->A0S:LX/07YZ; LX/0D9q;->A0N:LX/0E3K;
+once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPolicyAsked(Ljava/lang/Object;)V in static (L*;)V holding LX/0D9q;->A0T:LX/0AOd; LX/0D9q;->A0S:LX/07YZ; LX/0D9q;->A0N:LX/0E3K;
 # Right before each of those questions, olderPolicyAsked gets the feed's load more policy, so olderPageLoading only drops the
 # row of a feed whose own page lost every post, not the row of a fetch that started after Home's emptied page.
 #
@@ -1365,17 +1364,17 @@ once-call Lapp/hushgram/extension/instagram/feed/BackLeavesHome;->leave()I in in
 # the post's data and the flag it just read, once, so the poster is noted by that post's own count and not
 # another's.
 # Six like rows on 450: 08um.A05, 00gF.A09, 00gF.A0P, 04uv.A00 (the hash of the like row's view model), 04uv.A01
-# and 05wC.A00, and the facepile below. Each is meant to call the same hook, so each rule is a shared-call: one call in its method, the other rows' methods allowed. Left out, a hidden post is never let through; twice in a row, it isn't the hook the patch wrote.
+# and 05wC.A00, and the facepile below. Left out, a hidden post is never let through; elsewhere or twice, it isn't the hook the patch wrote.
 # NativeHiddenLikeCountsTest checks each row on all seven 450 builds.
-shared-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Lcom/instagram/common/session/UserSession;LX/04zw;Ljava/lang/String;)Z holding LX/04wE;->A00:LX/04wE; LX/06Hl;->A01:LX/0A0W;
-shared-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Landroid/content/Context;LX/0A0W;LX/00gF;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/CharSequence; holding sans-serif-medium LX/03p2;->A01:LX/0A0W;
-shared-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Landroid/content/Context;LX/08WI;Ljava/lang/String;Ljava/lang/String;ZZZ)Ljava/lang/CharSequence; holding on_media sans-serif-medium
-shared-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (LX/0A0W;LX/04uv;)I holding getMediaUfiViewModelHash
-shared-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Lcom/instagram/common/session/UserSession;LX/06vF;Ljava/lang/String;)Z holding LX/04wE;->A00:LX/04wE; LX/06Hl;->A01:LX/0A0W;
-shared-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (LX/0A0W;LX/04Wz;LX/05wD;LX/05wC;Ljava/lang/String;Z)LX/05xH; holding feed_timeline ig4a-instagram-schema
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Lcom/instagram/common/session/UserSession;LX/04zw;Ljava/lang/String;)Z holding LX/04wE;->A00:LX/04wE; LX/06Hl;->A01:LX/0A0W;
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Landroid/content/Context;LX/0A0W;LX/00gF;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/CharSequence; holding sans-serif-medium LX/03p2;->A01:LX/0A0W;
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Landroid/content/Context;LX/08WI;Ljava/lang/String;Ljava/lang/String;ZZZ)Ljava/lang/CharSequence; holding on_media sans-serif-medium
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (LX/0A0W;LX/04uv;)I holding getMediaUfiViewModelHash
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Lcom/instagram/common/session/UserSession;LX/06vF;Ljava/lang/String;)Z holding LX/04wE;->A00:LX/04wE; LX/06Hl;->A01:LX/0A0W;
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (LX/0A0W;LX/04Wz;LX/05wD;LX/05wC;Ljava/lang/String;Z)LX/05xH; holding feed_timeline ig4a-instagram-schema
 # The facepile's reader (05AT.A07 on 450) reads the flag with its key loaded once at the top of the method, and
 # asks the decider well after the read, so it notes its own post the same way, once, before it decides.
-shared-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Lcom/instagram/common/session/UserSession;L*;)Ljava/util/List; holding LX/04wE;->A00:LX/04wE;
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Lcom/instagram/common/session/UserSession;L*;)Ljava/util/List; holding LX/04wE;->A00:LX/04wE;
 # Clear the media cache hands MediaCache.beforeVideoCache the folder first thing in the method that
 # names the video cache's three folders (08nf.A00 on 450), the one static (Integer, String) method
 # holding all three. Instagram's only builder of its video cache asks it for the folder before it

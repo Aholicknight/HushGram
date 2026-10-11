@@ -484,6 +484,8 @@ public class BadDexFixture {
             "once-call Lapp/hushgram/extension/fixture/settings/NavigationSettings;->bind(Landroid/view/View;Ljava/lang/Object;)V in static (Ljava/lang/Object;)Landroid/view/View; holding InstagramMainActivity.createTabButton(",
             "shared-call Lapp/hushgram/extension/fixture/feed/TabSwipe;->input(Landroid/view/View;I)Z in instance (Landroid/view/MotionEvent;)Z calling instance Lfixture/TabList;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z holding Lfixture/TabPager;->paging:Z",
             "shared-call Lapp/hushgram/extension/fixture/feed/TabSwipe;->input(Landroid/view/View;I)Z in instance (Landroid/view/MotionEvent;)Z calling instance Lfixture/TabList;->onTouchEvent(Landroid/view/MotionEvent;)Z holding Lfixture/TabPager;->paging:Z",
+            "once-call Lapp/hushgram/extension/fixture/feed/TabSwipe;->input(Landroid/view/View;I)Z in instance (Landroid/view/MotionEvent;)Z calling instance Lfixture/TabList;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z holding Lfixture/TabPager;->paging:Z",
+            "once-call Lapp/hushgram/extension/fixture/feed/TabSwipe;->input(Landroid/view/View;I)Z in instance (Landroid/view/MotionEvent;)Z calling instance Lfixture/TabList;->onTouchEvent(Landroid/view/MotionEvent;)Z holding Lfixture/TabPager;->paging:Z",
             "shared-call Lapp/hushgram/extension/fixture/feed/HomeFeed;->filter(Ljava/lang/Object;)Ljava/lang/Object; in instance ([B)Ljava/lang/Object; sites 2 holding feed_store_items");
 
     /**
@@ -1453,9 +1455,24 @@ public class BadDexFixture {
     }
 
     private static ClassDef tabList() {
+        return tabList(false);
+    }
+
+    /**
+     * The list's own touch methods, of the pager's touch shape but reading no paging field. With
+     * [strayHooked], onInterceptTouchEvent passes its answer through the tab swipe check, a call
+     * outside every method holding what the rules pick by.
+     */
+    private static ClassDef tabList(boolean strayHooked) {
+        List<Instruction> intercept = new ArrayList<>();
+        intercept.add(new ImmutableInstruction11n(Opcode.CONST_4, 0, 0));
+        if (strayHooked) {
+            intercept.add(new ImmutableInstruction35c(Opcode.INVOKE_STATIC, 2, 1, 0, 0, 0, 0, TAB_SWIPE_INPUT));
+            intercept.add(op(Opcode.MOVE_RESULT, 0));
+        }
+        intercept.add(op(Opcode.RETURN, 0));
         return new ImmutableClassDef(TAB_LIST, AccessFlags.PUBLIC.getValue(), OBJECT, null, null, null, null, Arrays.asList(
-                define(TAB_LIST, "onInterceptTouchEvent", "Z", false, body(3, new ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
-                        op(Opcode.RETURN, 0)), MOTION_EVENT),
+                define(TAB_LIST, "onInterceptTouchEvent", "Z", false, body(3, intercept.toArray(new Instruction[0])), MOTION_EVENT),
                 define(TAB_LIST, "onTouchEvent", "Z", false, body(3, new ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
                         op(Opcode.RETURN, 0)), MOTION_EVENT)));
     }
@@ -3192,6 +3209,9 @@ public class BadDexFixture {
         // contract: the tab swipe check also in fling, a third method reading the paging field that
         // neither sibling rule picks, so each of them still finds it there.
         dexes.put("bad-tab-swipe-third-holder", replaced(good(), tabPager(1, 1, true)));
+        // contract: the tab swipe check also in the list's own intercept, which holds no paging field,
+        // so the sibling shared-calls pass and only the once-calls, which look at every caller, fail.
+        dexes.put("bad-tab-swipe-stray-caller", replaced(good(), tabList(true)));
         // contract: the store read filtering one helper read, and then one of them twice, where its
         // rule says sites 2.
         dexes.put("bad-feed-sites-once", replaced(good(), feedStore(1)));

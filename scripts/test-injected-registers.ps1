@@ -877,9 +877,16 @@ try {
     $swipeSite = 'Lfixture/SwipeContainer;->move(Lfixture/PositionConfig;)V'
     $swipeRule = "once-call $swipeHook in instance (Lfixture/PositionConfig;)V calling instance " +
         'Lfixture/SwipeContainer;->setEndPanelExtraParameter(Lfixture/PositionConfig;)V holding Lfixture/PositionConfig;->animate:Z'
-    Assert-True ($onceCallRules.Count -eq 8 -and $onceCallRules[0] -ceq $swapRule -and $onceCallRules[1] -ceq $allowRule -and
+    # The tab swipe check's two touch methods also each get a once-call, which leaves out the other
+    # rule's method but still counts a call in any other host method, holder or not.
+    $tabOnceRule = { param($Name) 'once-call Lapp/hushgram/extension/fixture/feed/TabSwipe;->input(Landroid/view/View;I)Z in instance (Landroid/view/MotionEvent;)Z ' +
+        "calling instance Lfixture/TabList;->$Name(Landroid/view/MotionEvent;)Z holding Lfixture/TabPager;->paging:Z" }
+    $tabInterceptOnceRule = & $tabOnceRule 'onInterceptTouchEvent'
+    $tabTouchOnceRule = & $tabOnceRule 'onTouchEvent'
+    Assert-True ($onceCallRules.Count -eq 10 -and $onceCallRules[0] -ceq $swapRule -and $onceCallRules[1] -ceq $allowRule -and
         $onceCallRules[2] -ceq $tabRule -and $onceCallRules[3] -ceq $dmRule -and $onceCallRules[4] -ceq $inboxRule -and
-        $onceCallRules[5] -ceq $swipeRule -and $onceCallRules[6] -ceq $retryRule -and $onceCallRules[7] -ceq $navBindRule) `
+        $onceCallRules[5] -ceq $swipeRule -and $onceCallRules[6] -ceq $retryRule -and $onceCallRules[7] -ceq $navBindRule -and
+        $onceCallRules[8] -ceq $tabInterceptOnceRule -and $onceCallRules[9] -ceq $tabTouchOnceRule) `
         "The contract file has a once-call rule without exact negative coverage:`n$($onceCallRules -join "`n")"
     Assert-True (($good.Output -join "`n") -match [regex]::Escape("contract $swapRule`: once in $swapRun")) `
         "The good build's swap guard was not reported once in the swap runnable.`n$($good.Output -join "`n")"
@@ -977,13 +984,19 @@ try {
     $tabHeld = """default"" with the shape static $tabShape and a static call to $tabCall"
     $callingRules = @(Get-Content -LiteralPath $contracts | Where-Object { $_ -match '^\s*[a-z-]+-call\s.*\scalling\s' } |
         ForEach-Object { ($_.Trim() -split '\s+') -join ' ' })
-    Assert-True ($callingRules.Count -eq 11 -and $callingRules[0] -ceq $tabRule -and $callingRules[1] -ceq $providerRule -and
+    Assert-True ($callingRules.Count -eq 13 -and $callingRules[0] -ceq $tabRule -and $callingRules[1] -ceq $providerRule -and
         $callingRules[2] -ceq $swipeRule -and $callingRules[3] -ceq $retryRule -and $callingRules[4] -ceq $retryRouteRule -and
         $callingRules[5] -ceq ($navPlainRule -replace '^shared-call', 'start-call') -and
         $callingRules[6] -ceq ($navLithoRule -replace '^shared-call', 'start-call') -and
         $callingRules[7] -ceq $navPlainRule -and $callingRules[8] -ceq $navLithoRule -and
-        $callingRules[9] -ceq $tabInterceptRule -and $callingRules[10] -ceq $tabTouchRule) `
+        $callingRules[9] -ceq $tabInterceptRule -and $callingRules[10] -ceq $tabTouchRule -and
+        $callingRules[11] -ceq $tabInterceptOnceRule -and $callingRules[12] -ceq $tabTouchOnceRule) `
         "The contract file has a calling rule without exact negative coverage:`n$($callingRules -join "`n")"
+    # Each once-call passes with the hook in the other rule's method as well as its own.
+    foreach ($pair in @(@($tabInterceptOnceRule, $tabIntercept), @($tabTouchOnceRule, $tabTouch))) {
+        Assert-True (($good.Output -join "`n") -match [regex]::Escape("contract $($pair[0]): once in $($pair[1])")) `
+            "The good build's tab swipe check was not reported once in $($pair[1]) by its once-call.`n$($good.Output -join "`n")"
+    }
     Assert-True (($good.Output -join "`n") -match [regex]::Escape("contract $tabRule`: once in $tabHome")) `
         "The good build's home tab call was not reported once in the home tab, picked by its static check.`n$($good.Output -join "`n")"
     Assert-True (($good.Output -join "`n") -match [regex]::Escape("contract $retryRule`: once in $retrySite")) `
@@ -1188,6 +1201,7 @@ try {
         'bad-navigation-factory-missing' = 'contract'
         'bad-navigation-factory-twice' = 'contract'
         'bad-tab-swipe-third-holder' = 'contract'
+        'bad-tab-swipe-stray-caller' = 'contract'
         'bad-feed-sites-once' = 'contract'
         'bad-feed-sites-thrice' = 'contract'
         'bad-dm-visual-guard-twice' = 'contract'
@@ -1463,14 +1477,19 @@ try {
         'bad-story-retry-two-loops' = "[diff] FAIL: contract: 2 methods $retryMany, and exactly one must, so the rule can't say " +
             "which one calls ${retryHook}: $retrySite, Lfixture/StoryRetryQueue;->runAgain()V"
     }
-    # The check in a third method reading the paging field: each sibling rule still finds it there,
-    # since only the other sibling's own method is left out. The store read's filter once and three
-    # times: each is held to the two its rule says.
+    # The check in a third method reading the paging field: each sibling rule, shared-call and
+    # once-call alike, still finds it there, since only the other siblings' own methods are left out.
+    # The check in the list's own intercept, which reads no paging field: only the once-calls, which
+    # look at every caller, find it. The store read's filter once and three times: each is held to
+    # the two its rule says.
     $tabFlingFail = "[diff] FAIL: contract: $tabSwipeHook is called in $tabFling as well as in"
+    $tabStrayFail = "[diff] FAIL: contract: $tabSwipeHook is called in $(& $tabListCall 'onInterceptTouchEvent') as well as in"
+    $tabInterceptHeld = "$tabIntercept, the one method holding $(& $tabPagingHeld 'onInterceptTouchEvent')"
+    $tabTouchHeld = "$tabTouch, the one method holding $(& $tabPagingHeld 'onTouchEvent')"
     $siteFails = [ordered]@{
-        'bad-tab-swipe-third-holder' = @(
-            "$tabFlingFail $tabIntercept, the one method holding $(& $tabPagingHeld 'onInterceptTouchEvent')",
-            "$tabFlingFail $tabTouch, the one method holding $(& $tabPagingHeld 'onTouchEvent')")
+        'bad-tab-swipe-third-holder' = @("$tabFlingFail $tabInterceptHeld", "$tabFlingFail $tabTouchHeld",
+            "$tabFlingFail $tabInterceptHeld", "$tabFlingFail $tabTouchHeld")
+        'bad-tab-swipe-stray-caller' = @("$tabStrayFail $tabInterceptHeld", "$tabStrayFail $tabTouchHeld")
         'bad-feed-sites-once' = @("[diff] FAIL: contract: $feedHook has 1 call site in $feedRead, and must have exactly 2")
         'bad-feed-sites-thrice' = @("[diff] FAIL: contract: $feedHook has 3 call sites in $feedRead, and must have exactly 2")
     }
