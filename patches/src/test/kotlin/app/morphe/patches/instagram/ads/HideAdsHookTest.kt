@@ -32,6 +32,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Hide ads (audit A04): Instagram's one ad-insert method answers that nothing went in from its
@@ -103,19 +104,29 @@ class HideAdsHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val context = PatchContexts.of(FixtureDex.classesHolding(bundle, AD_INJECTOR_STRINGS.first()))
-
-                val found = context.findAdInjector()
-                context.guardAdInjector(found)
-
-                val method = context.mutableClassDefBy(found.type).methods.single {
-                    it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
-                }
-                assertAnswersNoFirst("${bundle.name} ${found.type}->${found.name}", method)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same check on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildHidesAdsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val context = PatchContexts.of(FixtureDex.classesHolding(bundle, AD_INJECTOR_STRINGS.first()))
+
+        val found = context.findAdInjector()
+        context.guardAdInjector(found)
+
+        val method = context.mutableClassDefBy(found.type).methods.single {
+            it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
+        }
+        assertAnswersNoFirst("$label ${found.type}->${found.name}", method)
     }
 
     /** The patch refuses, for the reason given. */
