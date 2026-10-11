@@ -42,6 +42,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class StopSwipeToCreateHookTest {
     private val container = SWIPE_CONTAINER
@@ -163,35 +164,45 @@ class StopSwipeToCreateHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                // Copied, and as the patcher reads an APK, a new object for an instruction on each read.
-                for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
-                    val what = "${bundle.name} ($read)"
-                    val classes = classesOf(bundle, setOf(container, config)).values
-                    assertEquals("$what: the container and its config", 2, classes.size)
-                    val context = PatchContexts.of(classes)
-                    val before = context.setter().code().map { it.describe() }
-                    val original = NeutralNativePath(context.setter())
-
-                    context.stop()
-
-                    val written = context.mutableClassDefBy(container).methods.filter { method -> method.code().any { it.referenceText() == HOLD } }
-                    assertEquals("$what: methods asking", listOf(SET_POSITION), written.map { it.name })
-                    val setter = written.single()
-                    val code = setter.code()
-                    val hold = code.indexOfFirst { it.referenceText() == HOLD }
-                    val flag = (code[hold + 6] as OneRegisterInstruction).registerA
-                    val target = (code[hold - 8] as OneRegisterInstruction).registerA
-                    val reason = code[hold - 1].reference() as FieldReference
-                    assertEquals("$what: the reason's class", config, reason.definingClass)
-                    assertHeld(what, setter, target, flag, reason.toString())
-                    assertEquals("$what: what comes after the flag's read", Opcode.INVOKE_DIRECT, code[hold + 7].opcode)
-                    assertDisabledPath(what, setter, before)
-                    assertOriginalPath(what, setter, original)
-                }
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildAsksBeforeTheSpringMovesToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        // Copied, and as the patcher reads an APK, a new object for an instruction on each read.
+        for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
+            val what = "$label ($read)"
+            val classes = classesOf(bundle, setOf(container, config)).values
+            assertEquals("$what: the container and its config", 2, classes.size)
+            val context = PatchContexts.of(classes)
+            val before = context.setter().code().map { it.describe() }
+            val original = NeutralNativePath(context.setter())
+
+            context.stop()
+
+            val written = context.mutableClassDefBy(container).methods.filter { method -> method.code().any { it.referenceText() == HOLD } }
+            assertEquals("$what: methods asking", listOf(SET_POSITION), written.map { it.name })
+            val setter = written.single()
+            val code = setter.code()
+            val hold = code.indexOfFirst { it.referenceText() == HOLD }
+            val flag = (code[hold + 6] as OneRegisterInstruction).registerA
+            val target = (code[hold - 8] as OneRegisterInstruction).registerA
+            val reason = code[hold - 1].reference() as FieldReference
+            assertEquals("$what: the reason's class", config, reason.definingClass)
+            assertHeld(what, setter, target, flag, reason.toString())
+            assertEquals("$what: what comes after the flag's read", Opcode.INVOKE_DIRECT, code[hold + 7].opcode)
+            assertDisabledPath(what, setter, before)
+            assertOriginalPath(what, setter, original)
+        }
     }
 
     /**
@@ -209,58 +220,68 @@ class StopSwipeToCreateHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val what = bundle.name
-                val classes = FixtureDex.classes(bundle, setOf(container, config)).values
-                val site = PatchContexts.of(classes).findSwipeToCreate()
-                val methods = classes.single { it.type == container }.methods
-                val slot = classes.single { it.type == config }.methods.single { it.name == "<init>" }.parameterStoredIn(site.reasonField)
-
-                val fling = methods.single { it.name == "onFling" && it.parameterTypes.map(CharSequence::toString) == listOf(event, event, "F", "F") }
-                assertTrue("$what: onFling makes or hands on a config", fling.code().none { it.handlesAConfig() })
-                val kept = fling.code().filter { it.opcode == Opcode.IPUT }.map { it.reference() as FieldReference }
-                    .filter { it.definingClass == container && it.type == "F" }
-                assertEquals("$what: what onFling keeps", 1, kept.size)
-                val velocity = "field ${kept.single()}"
-
-                val handOffs = methods.flatMap { method ->
-                    val code = method.code()
-                    code.indices.mapNotNull { at ->
-                        val called = code[at].reference() as? MethodReference
-                        val floats = called?.takeIf { it.definingClass == container }?.parameterTypes?.indices
-                            ?.filter { called.parameterTypes[it].toString() == "F" }.orEmpty()
-                        if (floats.any { velocity in method.valuesReaching(at, code[at].argumentFor(called!!, it)) }) method.name to called!! else null
-                    }
-                }
-                assertEquals("$what: what hands the fling on", listOf("onTouchEvent"), handOffs.map { it.first })
-                val release = handOffs.single().second
-                assertEquals("$what: the release's shape", listOf(event, "F", "J"), release.parameterTypes.map(CharSequence::toString))
-                assertEquals(
-                    "$what: what runs the release",
-                    setOf("onTouchEvent", "onStopNestedScroll"),
-                    methods.filter { m -> m.code().any { it.referenceText() == release.toString() } }.map { it.name }.toSet(),
-                )
-
-                val movers = methods.filter { m -> m.code().any { (it.reference() as? MethodReference)?.name == SET_POSITION } }
-                assertEquals(
-                    "$what: what moves the panels",
-                    setOf(ON_SCROLL, "onNestedPreScroll", "onNestedScroll", release.name, "setPosition"),
-                    movers.map { it.name }.toSet(),
-                )
-                assertEquals(
-                    "$what: the reason each move is made with",
-                    mapOf(
-                        ON_SCROLL to listOf(setOf("\"$DRAG\"")),
-                        "onNestedPreScroll" to listOf(setOf("\"$DRAG\"")),
-                        "onNestedScroll" to listOf(setOf("\"$DRAG\"")),
-                        release.name to listOf(setOf("\"$DRAG\"", "\"tap_partially_visible_panel\"")),
-                        "setPosition" to emptyList(),
-                    ),
-                    movers.associate { it.name to it.reasonsMade(slot) },
-                )
+                flingBuilds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun aFlingFromHomeSaysSwipeOnEveryOtherBuildToo() {
+        for (base in Fixtures.otherBuilds()) flingBuilds(base, base.parentFile.name)
+    }
+
+    private fun flingBuilds(bundle: File, label: String) {
+        val what = label
+        val classes = FixtureDex.classes(bundle, setOf(container, config)).values
+        val site = PatchContexts.of(classes).findSwipeToCreate()
+        val methods = classes.single { it.type == container }.methods
+        val slot = classes.single { it.type == config }.methods.single { it.name == "<init>" }.parameterStoredIn(site.reasonField)
+
+        val fling = methods.single { it.name == "onFling" && it.parameterTypes.map(CharSequence::toString) == listOf(event, event, "F", "F") }
+        assertTrue("$what: onFling makes or hands on a config", fling.code().none { it.handlesAConfig() })
+        val kept = fling.code().filter { it.opcode == Opcode.IPUT }.map { it.reference() as FieldReference }
+            .filter { it.definingClass == container && it.type == "F" }
+        assertEquals("$what: what onFling keeps", 1, kept.size)
+        val velocity = "field ${kept.single()}"
+
+        val handOffs = methods.flatMap { method ->
+            val code = method.code()
+            code.indices.mapNotNull { at ->
+                val called = code[at].reference() as? MethodReference
+                val floats = called?.takeIf { it.definingClass == container }?.parameterTypes?.indices
+                    ?.filter { called.parameterTypes[it].toString() == "F" }.orEmpty()
+                if (floats.any { velocity in method.valuesReaching(at, code[at].argumentFor(called!!, it)) }) method.name to called!! else null
+            }
+        }
+        assertEquals("$what: what hands the fling on", listOf("onTouchEvent"), handOffs.map { it.first })
+        val release = handOffs.single().second
+        assertEquals("$what: the release's shape", listOf(event, "F", "J"), release.parameterTypes.map(CharSequence::toString))
+        assertEquals(
+            "$what: what runs the release",
+            setOf("onTouchEvent", "onStopNestedScroll"),
+            methods.filter { m -> m.code().any { it.referenceText() == release.toString() } }.map { it.name }.toSet(),
+        )
+
+        val movers = methods.filter { m -> m.code().any { (it.reference() as? MethodReference)?.name == SET_POSITION } }
+        assertEquals(
+            "$what: what moves the panels",
+            setOf(ON_SCROLL, "onNestedPreScroll", "onNestedScroll", release.name, "setPosition"),
+            movers.map { it.name }.toSet(),
+        )
+        assertEquals(
+            "$what: the reason each move is made with",
+            mapOf(
+                ON_SCROLL to listOf(setOf("\"$DRAG\"")),
+                "onNestedPreScroll" to listOf(setOf("\"$DRAG\"")),
+                "onNestedScroll" to listOf(setOf("\"$DRAG\"")),
+                release.name to listOf(setOf("\"$DRAG\"", "\"tap_partially_visible_panel\"")),
+                "setPosition" to emptyList(),
+            ),
+            movers.associate { it.name to it.reasonsMade(slot) },
+        )
     }
 
     /**

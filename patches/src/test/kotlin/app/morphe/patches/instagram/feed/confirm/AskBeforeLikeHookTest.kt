@@ -31,6 +31,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * The Like button's handler asks LikeConfirm.hold first and returns while it holds the tap, and the
@@ -93,28 +94,38 @@ class AskBeforeLikeHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holding = FixtureDex.withStringPools(bundle, FixtureDex.classesHolding(bundle, "like_media"))
-                val handler = holding.flatMap { it.methods }.single {
-                    it.likeShaped() && !AccessFlags.STATIC.isSet(it.accessFlags) &&
-                        it.implementation?.instructions?.any { instruction -> instruction.referencedOrNull() == "like_media" } == true
-                }
-                val others = FixtureDex.classes(bundle, setOf(handler.parameterTypes[1].toString(), FRAGMENT)).values
-                val context = PatchContexts.of((holding + others).distinctBy { it.type } + extension())
-                context.askBeforeLike()
-
-                val code = context.mutableClassDefBy(handler.definingClass).methods.single {
-                    it.name == handler.name && it.parameterTypes.map(Any::toString) == handler.parameterTypes.map(Any::toString)
-                }.implementation!!.instructions.toList()
-                assertTrue("${bundle.name}: hold first", code[0].calls(HOLD_LIKE))
-                assertEquals(bundle.name, handler.implementation!!.registerCount - 6, (code[0] as RegisterRangeInstruction).startRegister)
-                assertEquals(bundle.name, listOf(Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID), code.subList(1, 4).map { it.opcode })
-                assertEquals(bundle.name, 1, code.count { it.calls(HOLD_LIKE) })
-                assertTrue("${bundle.name}: the stub reaches the fragment", context.stub(CONTEXT_OF_STUB)[1].referenced().startsWith("${handler.definingClass}->"))
-                assertTrue("${bundle.name}: and calls the handler again", context.stub(LIKE_AGAIN_STUB)[4].referenced().startsWith("${handler.definingClass}->${handler.name}("))
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildAsksBeforeALikeToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holding = FixtureDex.withStringPools(bundle, FixtureDex.classesHolding(bundle, "like_media"))
+        val handler = holding.flatMap { it.methods }.single {
+            it.likeShaped() && !AccessFlags.STATIC.isSet(it.accessFlags) &&
+                it.implementation?.instructions?.any { instruction -> instruction.referencedOrNull() == "like_media" } == true
+        }
+        val others = FixtureDex.classes(bundle, setOf(handler.parameterTypes[1].toString(), FRAGMENT)).values
+        val context = PatchContexts.of((holding + others).distinctBy { it.type } + extension())
+        context.askBeforeLike()
+
+        val code = context.mutableClassDefBy(handler.definingClass).methods.single {
+            it.name == handler.name && it.parameterTypes.map(Any::toString) == handler.parameterTypes.map(Any::toString)
+        }.implementation!!.instructions.toList()
+        assertTrue("$label: hold first", code[0].calls(HOLD_LIKE))
+        assertEquals(label, handler.implementation!!.registerCount - 6, (code[0] as RegisterRangeInstruction).startRegister)
+        assertEquals(label, listOf(Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID), code.subList(1, 4).map { it.opcode })
+        assertEquals(label, 1, code.count { it.calls(HOLD_LIKE) })
+        assertTrue("$label: the stub reaches the fragment", context.stub(CONTEXT_OF_STUB)[1].referenced().startsWith("${handler.definingClass}->"))
+        assertTrue("$label: and calls the handler again", context.stub(LIKE_AGAIN_STUB)[4].referenced().startsWith("${handler.definingClass}->${handler.name}("))
     }
 
     private fun refuses(case: String, classes: List<ClassDef>) {

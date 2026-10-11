@@ -39,6 +39,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Stop swiping between tabs: the main tabs' pager goes to TabSwipe once it's stored, and each touch
@@ -98,28 +99,38 @@ class StopTabSwipingHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = FixtureDex.classesHolding(bundle, PAGER_BINDER)
-                val pager = FixtureDex.classes(bundle, setOf(VIEW_PAGER)).values.single()
-                val made = pager.methods.flatMap { it.instructions() }.filter { it.opcode == Opcode.NEW_INSTANCE }
-                    .map { ((it as ReferenceInstruction).reference as TypeReference).type }.toSet()
-                val kept = (holders + pager + FixtureDex.classes(bundle, made).values).distinctBy { it.type }
-                val context = PatchContexts.of(FixtureDex.withStringPools(bundle, kept))
-
-                val site = context.findTabSwiping()
-                context.stopTabSwiping(site)
-
-                val setup = context.mutableClassDefBy(site.owner).methods.single {
-                    it.name == site.setup && it.parameterTypes.joinToString("", "(", ")") + it.returnType == site.setupShape
-                }
-                assertPagerHandedOver(bundle.name, setup)
-                val list = context.mutableClassDefBy(site.list)
-                TOUCH_METHODS.forEach { name ->
-                    assertFlagAsked("${bundle.name} $name", list.methods.single { it.name == name && it.parameterTypes.size == 1 })
-                }
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildStopsTheMainTabsSwipeToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = FixtureDex.classesHolding(bundle, PAGER_BINDER)
+        val pager = FixtureDex.classes(bundle, setOf(VIEW_PAGER)).values.single()
+        val made = pager.methods.flatMap { it.instructions() }.filter { it.opcode == Opcode.NEW_INSTANCE }
+            .map { ((it as ReferenceInstruction).reference as TypeReference).type }.toSet()
+        val kept = (holders + pager + FixtureDex.classes(bundle, made).values).distinctBy { it.type }
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, kept))
+
+        val site = context.findTabSwiping()
+        context.stopTabSwiping(site)
+
+        val setup = context.mutableClassDefBy(site.owner).methods.single {
+            it.name == site.setup && it.parameterTypes.joinToString("", "(", ")") + it.returnType == site.setupShape
+        }
+        assertPagerHandedOver(label, setup)
+        val list = context.mutableClassDefBy(site.list)
+        TOUCH_METHODS.forEach { name ->
+            assertFlagAsked("$label $name", list.methods.single { it.name == name && it.parameterTypes.size == 1 })
+        }
     }
 
     private fun refusesUnchanged(reason: String, build: () -> List<ClassDef>) {

@@ -31,6 +31,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * The double-tap heart's set-up for a post hands Instagram's animation to LikeAnimation.pick first
@@ -104,39 +105,49 @@ class ChangeLikeAnimationHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val view = FixtureDex.classes(bundle, setOf(LIKE_ACTION_VIEW)).values.single()
-                val animation = view.methods.single { it.name == SET_UP_CUSTOM_LIKES }.parameterTypes.single().toString()
-                val classes = listOf(view) + FixtureDex.classes(bundle, setOf(animation)).values + extension()
-                val context = PatchContexts.of(classes)
-
-                val anchors = context.findLikeAnimation()
-                assertEquals(bundle.name, animation, anchors.animation)
-                assertEquals("${bundle.name}: the plain heart is the animation's own", animation, anchors.none.definingClass)
-                context.applyLikeAnimation(anchors)
-
-                val code = context.mutableClassDefBy(LIKE_ACTION_VIEW).methods.single {
-                    it.name == anchors.configure.name && it.parameterTypes.map(Any::toString) == anchors.configure.parameterTypes.map(Any::toString)
-                }.implementation!!.instructions.toList()
-                assertTrue("${bundle.name}: pick first", code[0].calls(PICK_LIKE_ANIMATION))
-                assertEquals(bundle.name, Opcode.MOVE_RESULT_OBJECT, code[1].opcode)
-                assertEquals(bundle.name, Opcode.CHECK_CAST, code[2].opcode)
-                val register = (code[0] as RegisterRangeInstruction).startRegister
-                assertEquals("${bundle.name}: the animation's register", anchors.configure.implementation!!.registerCount - 1, register)
-                assertEquals(bundle.name, register, (code[1] as OneRegisterInstruction).registerA)
-                assertEquals(bundle.name, register, (code[2] as OneRegisterInstruction).registerA)
-                val allow = code.indexOfFirst { it.calls(ALLOW_LIKE_ANIMATION) }
-                assertEquals("${bundle.name}: allow right after the check's answer", Opcode.MOVE_RESULT, code[allow - 1].opcode)
-                assertTrue("${bundle.name}: and the check before that", (code[allow - 2] as ReferenceInstruction).reference.toString().endsWith("(Lcom/instagram/common/session/UserSession;)Z"))
-                assertEquals(bundle.name, Opcode.MOVE_RESULT, code[allow + 1].opcode)
-                assertEquals("${bundle.name}: the test after", Opcode.IF_EQZ, code[allow + 2].opcode)
-                assertTrue("${bundle.name}: the set-up after", code.drop(allow).any { it.calls("$LIKE_ACTION_VIEW->$SET_UP_CUSTOM_LIKES($animation)V") })
-                assertEquals(bundle.name, 1, code.count { it.calls(PICK_LIKE_ANIMATION) })
-                assertEquals(bundle.name, 1, code.count { it.calls(ALLOW_LIKE_ANIMATION) })
-                assertEquals(bundle.name, anchors.none.toString(), (context.stub(NO_ANIMATION_STUB)[0] as ReferenceInstruction).reference.toString())
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildPlaysThePickedAnimationToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val view = FixtureDex.classes(bundle, setOf(LIKE_ACTION_VIEW)).values.single()
+        val animation = view.methods.single { it.name == SET_UP_CUSTOM_LIKES }.parameterTypes.single().toString()
+        val classes = listOf(view) + FixtureDex.classes(bundle, setOf(animation)).values + extension()
+        val context = PatchContexts.of(classes)
+
+        val anchors = context.findLikeAnimation()
+        assertEquals(label, animation, anchors.animation)
+        assertEquals("$label: the plain heart is the animation's own", animation, anchors.none.definingClass)
+        context.applyLikeAnimation(anchors)
+
+        val code = context.mutableClassDefBy(LIKE_ACTION_VIEW).methods.single {
+            it.name == anchors.configure.name && it.parameterTypes.map(Any::toString) == anchors.configure.parameterTypes.map(Any::toString)
+        }.implementation!!.instructions.toList()
+        assertTrue("$label: pick first", code[0].calls(PICK_LIKE_ANIMATION))
+        assertEquals(label, Opcode.MOVE_RESULT_OBJECT, code[1].opcode)
+        assertEquals(label, Opcode.CHECK_CAST, code[2].opcode)
+        val register = (code[0] as RegisterRangeInstruction).startRegister
+        assertEquals("$label: the animation's register", anchors.configure.implementation!!.registerCount - 1, register)
+        assertEquals(label, register, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals(label, register, (code[2] as OneRegisterInstruction).registerA)
+        val allow = code.indexOfFirst { it.calls(ALLOW_LIKE_ANIMATION) }
+        assertEquals("$label: allow right after the check's answer", Opcode.MOVE_RESULT, code[allow - 1].opcode)
+        assertTrue("$label: and the check before that", (code[allow - 2] as ReferenceInstruction).reference.toString().endsWith("(Lcom/instagram/common/session/UserSession;)Z"))
+        assertEquals(label, Opcode.MOVE_RESULT, code[allow + 1].opcode)
+        assertEquals("$label: the test after", Opcode.IF_EQZ, code[allow + 2].opcode)
+        assertTrue("$label: the set-up after", code.drop(allow).any { it.calls("$LIKE_ACTION_VIEW->$SET_UP_CUSTOM_LIKES($animation)V") })
+        assertEquals(label, 1, code.count { it.calls(PICK_LIKE_ANIMATION) })
+        assertEquals(label, 1, code.count { it.calls(ALLOW_LIKE_ANIMATION) })
+        assertEquals(label, anchors.none.toString(), (context.stub(NO_ANIMATION_STUB)[0] as ReferenceInstruction).reference.toString())
     }
 
     private fun refuses(case: String, classes: List<ClassDef>) {

@@ -36,6 +36,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Feed's action-row state: the flags its toString prints after "isCommentsEnabled=" and
@@ -112,28 +113,38 @@ class HideCommentsHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val context = PatchContexts.of(FixtureDex.classesHolding(bundle, COMMENTS_ENABLED_LABEL))
-                val found = context.findFeedCommentState()
-                assertEquals("${bundle.name}: the button and its count", 2, found.flags.size)
-                assertEquals("${bundle.name}: each set once", 2, found.writes.size)
-                assertTrue("${bundle.name}: in place", found.writes.all { it.answer == it.value })
-                context.prepareFeedComments(found)()
-                val repost = context.findFeedRepostState()
-                assertEquals("${bundle.name}: the same state", found.type, repost.type)
-                context.hideFeedState(repost)
-
-                val code = context.mutableClassDefBy(found.type).methods.single { it.name == "<init>" }
-                    .implementation!!.instructions.toList()
-                assertEquals(bundle.name, 2, code.count { it.calls(COMMENTS_FEED_STATE) })
-                assertEquals(bundle.name, 2, code.count { it.calls(REPOSTS_FEED_STATE) })
-                for (write in found.writes) {
-                    assertHooked(bundle.name, code, write.field.name, COMMENTS_FEED_STATE, write.value, write.answer)
-                }
-                for (write in repost.writes) assertHooked(bundle.name, code, write.field.name, REPOSTS_FEED_STATE)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildTakesTheCommentButtonOffBesideTheRepostHooksToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val context = PatchContexts.of(FixtureDex.classesHolding(bundle, COMMENTS_ENABLED_LABEL))
+        val found = context.findFeedCommentState()
+        assertEquals("$label: the button and its count", 2, found.flags.size)
+        assertEquals("$label: each set once", 2, found.writes.size)
+        assertTrue("$label: in place", found.writes.all { it.answer == it.value })
+        context.prepareFeedComments(found)()
+        val repost = context.findFeedRepostState()
+        assertEquals("$label: the same state", found.type, repost.type)
+        context.hideFeedState(repost)
+
+        val code = context.mutableClassDefBy(found.type).methods.single { it.name == "<init>" }
+            .implementation!!.instructions.toList()
+        assertEquals(label, 2, code.count { it.calls(COMMENTS_FEED_STATE) })
+        assertEquals(label, 2, code.count { it.calls(REPOSTS_FEED_STATE) })
+        for (write in found.writes) {
+            assertHooked(label, code, write.field.name, COMMENTS_FEED_STATE, write.value, write.answer)
+        }
+        for (write in repost.writes) assertHooked(label, code, write.field.name, REPOSTS_FEED_STATE)
     }
 
     /** The one write of [name] stores [answer], right after [hook] takes [value] and answers into [answer]. */

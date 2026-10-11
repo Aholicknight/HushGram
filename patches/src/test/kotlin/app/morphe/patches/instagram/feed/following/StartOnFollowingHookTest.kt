@@ -43,6 +43,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class StartOnFollowingHookTest {
     /** The hooks the patch writes are in the FollowingFeed the bundle ships, public and static. */
@@ -166,43 +167,53 @@ class StartOnFollowingHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { it.loadsTheFlag() || it.holds(SAVED_FEED_KEY) }) holders += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val context = PatchContexts.of(holders)
-
-                val reads = context.findFlagReads("test", FEED_PICKER_FLAGS)
-                val saved = context.findSavedFeedReturn()
-                context.defaultSavedFeed(saved)
-                context.answerFlagReads(reads, FEED_FLAG)
-
-                assertEquals("${bundle.name}: remembered feed reads", 12, reads.count { it.flag == REMEMBERED_FEED_FLAG })
-                assertEquals("${bundle.name}: For you reads", 3, reads.count { it.flag == FOR_YOU_PICKER_FLAG })
-                assertDefaultedAndAnswered(
-                    "${bundle.name} ${saved.type}",
-                    context.mutableClassDefBy(saved.type).methods.single { it.name == saved.name && it.parameterTypes.isEmpty() },
-                )
-                for (read in reads) {
-                    val method = context.mutableClassDefBy(read.type).methods.single {
-                        it.name == read.name && it.parameterTypes.map(CharSequence::toString) == read.parameters
-                    }
-                    assertAnsweredAfterEveryRead("${bundle.name} ${read.type}->${read.name}", method)
-                }
-                val freeze = context.findPickerFreeze(saved)
-                context.limitPicker(freeze)
-                assertLimited(
-                    "${bundle.name} ${freeze.type}->${freeze.name}",
-                    context.mutableClassDefBy(freeze.type).methods.single {
-                        it.name == freeze.name && it.parameterTypes.map(CharSequence::toString) == freeze.parameters
-                    },
-                )
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildStartsHomeOnFollowingToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { it.loadsTheFlag() || it.holds(SAVED_FEED_KEY) }) holders += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(holders)
+
+        val reads = context.findFlagReads("test", FEED_PICKER_FLAGS)
+        val saved = context.findSavedFeedReturn()
+        context.defaultSavedFeed(saved)
+        context.answerFlagReads(reads, FEED_FLAG)
+
+        assertEquals("$label: remembered feed reads", 12, reads.count { it.flag == REMEMBERED_FEED_FLAG })
+        assertEquals("$label: For you reads", 3, reads.count { it.flag == FOR_YOU_PICKER_FLAG })
+        assertDefaultedAndAnswered(
+            "$label ${saved.type}",
+            context.mutableClassDefBy(saved.type).methods.single { it.name == saved.name && it.parameterTypes.isEmpty() },
+        )
+        for (read in reads) {
+            val method = context.mutableClassDefBy(read.type).methods.single {
+                it.name == read.name && it.parameterTypes.map(CharSequence::toString) == read.parameters
+            }
+            assertAnsweredAfterEveryRead("$label ${read.type}->${read.name}", method)
+        }
+        val freeze = context.findPickerFreeze(saved)
+        context.limitPicker(freeze)
+        assertLimited(
+            "$label ${freeze.type}->${freeze.name}",
+            context.mutableClassDefBy(freeze.type).methods.single {
+                it.name == freeze.name && it.parameterTypes.map(CharSequence::toString) == freeze.parameters
+            },
+        )
     }
 
     private fun Method.loadsTheFlag(): Boolean = implementation?.instructions?.any {

@@ -31,6 +31,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Instagram's nested-scrolling refresh layout hands the listener it reads to RefreshConfirm.pull, and
@@ -156,56 +157,66 @@ class AskBeforeRefreshHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { it.name == "setOnRefreshListener" } || ANIMATION_LISTENER in classDef.interfaces ||
-                            classDef.type == NESTED_LAYOUT
-                        ) {
-                            classes += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val context = PatchContexts.of(classes.distinctBy { it.type } + extension())
-                context.askBeforeRefresh()
-
-                val asked = classes.filter { ANIMATION_LISTENER in it.interfaces }.flatMap { end ->
-                    context.mutableClassDefBy(end.type).methods.filter { it.name == "onAnimationEnd" }
-                        .map { it.implementation!!.instructions.toList() }
-                        .filter { body -> body.any { it.calls(REFRESH_LISTENER) } }
-                }
-                assertEquals("${bundle.name}: one end-of-pull animation asks", 1, asked.size)
-                val end = asked.single()
-                val at = end.indexOfFirst { it.calls(REFRESH_LISTENER) }
-                assertEquals(bundle.name, Opcode.IGET_OBJECT, end[at - 1].opcode)
-                assertEquals(bundle.name, listOf(Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST, Opcode.IF_EQZ, Opcode.INVOKE_INTERFACE),
-                    end.subList(at + 1, at + 5).map { it.opcode })
-                val held = (end[at - 1] as OneRegisterInstruction).registerA
-                assertEquals("${bundle.name}: the listener goes in", held, (end[at] as FiveRegisterInstruction).registerD)
-                assertEquals("${bundle.name}: and the answer back in its place", held, (end[at + 1] as OneRegisterInstruction).registerA)
-                assertEquals(bundle.name, 1, end.count { it.calls(REFRESH_LISTENER) })
-                val layout = classes.single { it.methods.any { method -> method.name == "setOnRefreshListener" } &&
-                    it.methods.any { method -> method.name == "setRefreshing" && method.parameterTypes.map(Any::toString) == listOf("Z") } }
-                assertTrue("${bundle.name}: a public layout", AccessFlags.PUBLIC.isSet(layout.accessFlags))
-                assertSpinnerOff(context, layout.type, bundle.name)
-
-                val pulls = context.mutableClassDefBy(NESTED_LAYOUT).methods.mapNotNull { it.implementation?.instructions?.toList() }
-                    .filter { body -> body.any { it.calls(PULL_LISTENER) } }
-                assertEquals("${bundle.name}: one place in the nested layout asks", 1, pulls.size)
-                val pull = pulls.single()
-                val asks = pull.indexOfFirst { it.calls(PULL_LISTENER) }
-                assertEquals(bundle.name, 1, pull.count { it.calls(PULL_LISTENER) })
-                assertEquals(bundle.name, Opcode.IGET_OBJECT, pull[asks - 1].opcode)
-                assertEquals(bundle.name, listOf(Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST, Opcode.IF_EQZ, Opcode.INVOKE_INTERFACE),
-                    pull.subList(asks + 1, asks + 5).map { it.opcode })
-                val listenerIn = (pull[asks - 1] as OneRegisterInstruction).registerA
-                assertEquals("${bundle.name}: the listener goes in", listenerIn, (pull[asks] as FiveRegisterInstruction).registerD)
-                assertEquals("${bundle.name}: and the answer back in its place", listenerIn, (pull[asks + 1] as OneRegisterInstruction).registerA)
-                assertRefresh(context, (pull[asks + 4] as ReferenceInstruction).reference.toString(), bundle.name)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildAsksBeforeARefreshToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val classes = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { it.name == "setOnRefreshListener" } || ANIMATION_LISTENER in classDef.interfaces ||
+                    classDef.type == NESTED_LAYOUT
+                ) {
+                    classes += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val context = PatchContexts.of(classes.distinctBy { it.type } + extension())
+        context.askBeforeRefresh()
+
+        val asked = classes.filter { ANIMATION_LISTENER in it.interfaces }.flatMap { end ->
+            context.mutableClassDefBy(end.type).methods.filter { it.name == "onAnimationEnd" }
+                .map { it.implementation!!.instructions.toList() }
+                .filter { body -> body.any { it.calls(REFRESH_LISTENER) } }
+        }
+        assertEquals("$label: one end-of-pull animation asks", 1, asked.size)
+        val end = asked.single()
+        val at = end.indexOfFirst { it.calls(REFRESH_LISTENER) }
+        assertEquals(label, Opcode.IGET_OBJECT, end[at - 1].opcode)
+        assertEquals(label, listOf(Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST, Opcode.IF_EQZ, Opcode.INVOKE_INTERFACE),
+            end.subList(at + 1, at + 5).map { it.opcode })
+        val held = (end[at - 1] as OneRegisterInstruction).registerA
+        assertEquals("$label: the listener goes in", held, (end[at] as FiveRegisterInstruction).registerD)
+        assertEquals("$label: and the answer back in its place", held, (end[at + 1] as OneRegisterInstruction).registerA)
+        assertEquals(label, 1, end.count { it.calls(REFRESH_LISTENER) })
+        val layout = classes.single { it.methods.any { method -> method.name == "setOnRefreshListener" } &&
+            it.methods.any { method -> method.name == "setRefreshing" && method.parameterTypes.map(Any::toString) == listOf("Z") } }
+        assertTrue("$label: a public layout", AccessFlags.PUBLIC.isSet(layout.accessFlags))
+        assertSpinnerOff(context, layout.type, label)
+
+        val pulls = context.mutableClassDefBy(NESTED_LAYOUT).methods.mapNotNull { it.implementation?.instructions?.toList() }
+            .filter { body -> body.any { it.calls(PULL_LISTENER) } }
+        assertEquals("$label: one place in the nested layout asks", 1, pulls.size)
+        val pull = pulls.single()
+        val asks = pull.indexOfFirst { it.calls(PULL_LISTENER) }
+        assertEquals(label, 1, pull.count { it.calls(PULL_LISTENER) })
+        assertEquals(label, Opcode.IGET_OBJECT, pull[asks - 1].opcode)
+        assertEquals(label, listOf(Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST, Opcode.IF_EQZ, Opcode.INVOKE_INTERFACE),
+            pull.subList(asks + 1, asks + 5).map { it.opcode })
+        val listenerIn = (pull[asks - 1] as OneRegisterInstruction).registerA
+        assertEquals("$label: the listener goes in", listenerIn, (pull[asks] as FiveRegisterInstruction).registerD)
+        assertEquals("$label: and the answer back in its place", listenerIn, (pull[asks + 1] as OneRegisterInstruction).registerA)
+        assertRefresh(context, (pull[asks + 4] as ReferenceInstruction).reference.toString(), label)
     }
 
     private fun refuses(case: String, classes: List<ClassDef>) {

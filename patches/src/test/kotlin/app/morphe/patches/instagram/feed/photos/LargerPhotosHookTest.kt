@@ -31,6 +31,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class LargerPhotosHookTest {
     private val pickerType = "Lfixture/SizePicker;"
@@ -101,30 +102,40 @@ class LargerPhotosHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        val holds = classDef.methods.any { method ->
-                            method.code().any { it.string() == SCREEN_FORMAT } ||
-                                (method.returnType == EXTENDED_IMAGE_URL && method.parameterTypes.map(CharSequence::toString) == pickerParameters)
-                        }
-                        if (holds) holders += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val context = PatchContexts.of(holders)
-
-                val sites = context.findLargerSizes()
-                askForLarger(sites)
-
-                assertPickerHooked(bundle.name, sites.picker)
-                assertReportHooked(bundle.name, sites.report)
-                val written = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
-                assertEquals("${bundle.name}: methods asking", 1, written.count { m -> m.code().any { it.referenceText() == WANTED } })
-                assertEquals("${bundle.name}: methods reporting", 1, written.count { m -> m.code().any { it.referenceText() == SCREEN } })
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildAsksForTheLargerSizeToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                val holds = classDef.methods.any { method ->
+                    method.code().any { it.string() == SCREEN_FORMAT } ||
+                        (method.returnType == EXTENDED_IMAGE_URL && method.parameterTypes.map(CharSequence::toString) == pickerParameters)
+                }
+                if (holds) holders += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(holders)
+
+        val sites = context.findLargerSizes()
+        askForLarger(sites)
+
+        assertPickerHooked(label, sites.picker)
+        assertReportHooked(label, sites.report)
+        val written = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
+        assertEquals("$label: methods asking", 1, written.count { m -> m.code().any { it.referenceText() == WANTED } })
+        assertEquals("$label: methods reporting", 1, written.count { m -> m.code().any { it.referenceText() == SCREEN } })
     }
 
     private fun assertPickerHooked(what: String, method: MutableMethod) {

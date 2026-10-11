@@ -40,6 +40,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class FullResolutionPhotosHookTest {
     private val contextType = "Landroid/content/Context;"
@@ -146,31 +147,41 @@ class FullResolutionPhotosHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.code().any { it.string() == NO_IMAGE_URL } }) {
-                            holders += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val context = PatchContexts.of(holders)
-
-                val site = context.findFullResolution()
-                context.loadFullResolution(site)
-
-                val method = context.mutableClassDefBy(site.definingClass).methods.single {
-                    it.name == site.name && it.parameterTypes.map(CharSequence::toString) == parameters
-                }
-                assertTrue("${bundle.name}: the method is an instance one", !AccessFlags.STATIC.isSet(method.accessFlags))
-                assertHooked(bundle.name, method, site.media, site.size)
-                val written = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
-                    .filter { written -> written.code().any { it.referenceText() == PHOTO } }
-                assertEquals("${bundle.name}: methods hooked", 1, written.size)
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildHandsOverTheFeedPhotosSizeToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.code().any { it.string() == NO_IMAGE_URL } }) {
+                    holders += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val context = PatchContexts.of(holders)
+
+        val site = context.findFullResolution()
+        context.loadFullResolution(site)
+
+        val method = context.mutableClassDefBy(site.definingClass).methods.single {
+            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == parameters
+        }
+        assertTrue("$label: the method is an instance one", !AccessFlags.STATIC.isSet(method.accessFlags))
+        assertHooked(label, method, site.media, site.size)
+        val written = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
+            .filter { written -> written.code().any { it.referenceText() == PHOTO } }
+        assertEquals("$label: methods hooked", 1, written.size)
     }
 
     /**
@@ -184,62 +195,72 @@ class FullResolutionPhotosHookTest {
     fun eachDeclaredBuildReadsTheSizesThePickerReads() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val checked = mutableSetOf<String>()
-        val wanted = setOf(MEDIA_EXT, MEDIA)
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val pool = linkedMapOf<String, ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        val type = classDef.type
-                        if (type in wanted || SIZE_PACKAGES.any(type::startsWith) ||
-                            classDef.methods.any { method -> method.code().any { it.string() == NO_IMAGE_URL } }
-                        ) {
-                            pool.putIfAbsent(type, ImmutableClassDef.of(classDef))
-                        }
-                    }
-                }
-                val site = PatchContexts.of(pool.values).findFullResolution()
-                val forWidth = pool.getValue(MEDIA_EXT).method(site.forScreen).code().mapNotNull { it.call() }
-                    .single { it.definingClass == MEDIA_EXT && it.returnType == EXTENDED_IMAGE_URL }
-                val picker = pool.getValue(MEDIA_EXT).method(forWidth).code().mapNotNull { it.call() }
-                val onPost = picker.single { it.definingClass == MEDIA && it.returnType == IMAGE_INFO }
-                val read = picker.single { it.definingClass == MEDIA_EXT && it.returnType == IMAGE_INFO }
-                val choose = picker.single { it.returnType == EXTENDED_IMAGE_URL && it.parameterTypes.firstOrNull()?.toString() == IMAGE_INFO }
-                pool.putAll(FixtureDex.classes(bundle, setOf(choose.definingClass)))
-                val candidates = pool.getValue(choose.definingClass).method(choose).code().mapNotNull { it.call() }
-                    .single { it.definingClass == IMAGE_INFO && it.returnType == "Ljava/util/List;" }
-                val context = PatchContexts.of(pool.values + ExtensionDex.classDef(INSTAGRAM_MEDIA))
-
-                val helper = context.findPickerSizes(context.findFullResolution())
-                context.imageBridges("test")()
-                context.pickerSizesBridge("test", helper)()
-
-                val what = bundle.name
-                val bridges = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
-                fun bridge(name: String) = bridges.single { it.name == name }.code()
-                fun assertReads(name: String, receiver: String, call: MethodReference) {
-                    val code = bridge(name)
-                    assertEquals("$what: $name casts to", receiver, (code[0].reference() as TypeReference).type)
-                    assertEquals("$what: $name calls", call.toString(), code[1].call().toString())
-                }
-                assertEquals("$what: the helper found", read.toString(), helper.toString())
-                assertReads("imageVersions", MEDIA, onPost)
-                assertReads("pickerImageVersions", MEDIA, read)
-                assertReads("imageCandidates", IMAGE_INFO, candidates)
-                val listed = pool.getValue(PANDO_IMAGE_INFO).methods.single { it.name == candidates.name && it.parameterTypes.isEmpty() }
-                assertTrue(
-                    "$what: the candidates aren't of the pick's class",
-                    listed.code().any { it.opcode == Opcode.NEW_INSTANCE && (it.reference() as TypeReference).type == EXTENDED_IMAGE_URL },
-                )
-                assertTrue("$what: a size isn't an ImageUrl", IMAGE_URL in supertypes(EXTENDED_IMAGE_URL, pool))
-                for ((name, getter) in listOf("candidateUrl" to "getUrl", "candidateWidth" to "getWidth", "candidateHeight" to "getHeight")) {
-                    val call = bridge(name)[1].call()!!
-                    assertEquals("$what: $name", "$IMAGE_URL->$getter", "${call.definingClass}->${call.name}")
-                }
+                pickerBuilds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildReadsTheSizesThePickerReadsToo() {
+        for (base in Fixtures.otherBuilds()) pickerBuilds(base, base.parentFile.name)
+    }
+
+    private fun pickerBuilds(bundle: File, label: String) {
+        val wanted = setOf(MEDIA_EXT, MEDIA)
+        val pool = linkedMapOf<String, ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                val type = classDef.type
+                if (type in wanted || SIZE_PACKAGES.any(type::startsWith) ||
+                    classDef.methods.any { method -> method.code().any { it.string() == NO_IMAGE_URL } }
+                ) {
+                    pool.putIfAbsent(type, ImmutableClassDef.of(classDef))
+                }
+            }
+        }
+        val site = PatchContexts.of(pool.values).findFullResolution()
+        val forWidth = pool.getValue(MEDIA_EXT).method(site.forScreen).code().mapNotNull { it.call() }
+            .single { it.definingClass == MEDIA_EXT && it.returnType == EXTENDED_IMAGE_URL }
+        val picker = pool.getValue(MEDIA_EXT).method(forWidth).code().mapNotNull { it.call() }
+        val onPost = picker.single { it.definingClass == MEDIA && it.returnType == IMAGE_INFO }
+        val read = picker.single { it.definingClass == MEDIA_EXT && it.returnType == IMAGE_INFO }
+        val choose = picker.single { it.returnType == EXTENDED_IMAGE_URL && it.parameterTypes.firstOrNull()?.toString() == IMAGE_INFO }
+        pool.putAll(FixtureDex.classes(bundle, setOf(choose.definingClass)))
+        val candidates = pool.getValue(choose.definingClass).method(choose).code().mapNotNull { it.call() }
+            .single { it.definingClass == IMAGE_INFO && it.returnType == "Ljava/util/List;" }
+        val context = PatchContexts.of(pool.values + ExtensionDex.classDef(INSTAGRAM_MEDIA))
+
+        val helper = context.findPickerSizes(context.findFullResolution())
+        context.imageBridges("test")()
+        context.pickerSizesBridge("test", helper)()
+
+        val what = label
+        val bridges = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
+        fun bridge(name: String) = bridges.single { it.name == name }.code()
+        fun assertReads(name: String, receiver: String, call: MethodReference) {
+            val code = bridge(name)
+            assertEquals("$what: $name casts to", receiver, (code[0].reference() as TypeReference).type)
+            assertEquals("$what: $name calls", call.toString(), code[1].call().toString())
+        }
+        assertEquals("$what: the helper found", read.toString(), helper.toString())
+        assertReads("imageVersions", MEDIA, onPost)
+        assertReads("pickerImageVersions", MEDIA, read)
+        assertReads("imageCandidates", IMAGE_INFO, candidates)
+        val listed = pool.getValue(PANDO_IMAGE_INFO).methods.single { it.name == candidates.name && it.parameterTypes.isEmpty() }
+        assertTrue(
+            "$what: the candidates aren't of the pick's class",
+            listed.code().any { it.opcode == Opcode.NEW_INSTANCE && (it.reference() as TypeReference).type == EXTENDED_IMAGE_URL },
+        )
+        assertTrue("$what: a size isn't an ImageUrl", IMAGE_URL in supertypes(EXTENDED_IMAGE_URL, pool))
+        for ((name, getter) in listOf("candidateUrl" to "getUrl", "candidateWidth" to "getWidth", "candidateHeight" to "getHeight")) {
+            val call = bridge(name)[1].call()!!
+            assertEquals("$what: $name", "$IMAGE_URL->$getter", "${call.definingClass}->${call.name}")
+        }
     }
 
     private fun ClassDef.method(reference: MethodReference): Method = methods.single {

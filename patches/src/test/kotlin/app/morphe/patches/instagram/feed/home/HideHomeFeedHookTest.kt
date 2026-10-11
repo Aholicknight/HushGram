@@ -5,9 +5,11 @@
 package app.morphe.patches.instagram.feed.home
 
 import app.morphe.ExtensionDex
+import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.feed.CLIPS_NETEGO
 import app.morphe.patches.instagram.feed.FeedItemStandIns
 import app.morphe.patches.instagram.feed.FeedItemStandIns.assertFilteredBeforeReturn
 import app.morphe.patches.instagram.feed.FeedItemStandIns.instructions
@@ -42,7 +44,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
+import java.io.File
 
 /**
  * Hide the home feed: every item Home reads, from its feed response and from its store of the last
@@ -51,6 +55,9 @@ import org.junit.Test
  * hook it shares with Hide suggested posts goes in once.
  */
 class HideHomeFeedHookTest {
+    /** Other 450 builds whose item helper has no reader of the shop ad feed besides Home's. */
+    private val WITHOUT_SHOP_FEED_READER = setOf("385611395", "385611400", "385611440")
+
     private val json = "Lfixture/JsonParser;"
     private val response = "Lfixture/HomeFeedResponse;"
     private val store = "Lfixture/HomeFeedStore;"
@@ -194,47 +201,81 @@ class HideHomeFeedHookTest {
      */
     @Test
     fun eachDeclaredBuildFiltersOnlyHomesReads() {
-        for (fixture in FeedItemStandIns.fixtures()) {
-            val name = fixture.bundle.name
-            val helperRef = fixture.helper.let { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-            val callers = FixtureDex.methodsWhere(
-                fixture.bundle,
-                { dex -> dex.methodSection.any { it.toString() == helperRef } },
-                { method -> method.instructions().any { it.calls(helperRef) } },
-            )
-            val cache = FixtureDex.classes(fixture.bundle, setOf(FEED_MEDIA_CACHE)).values
-            val made = cache.flatMap { it.methods }.flatMap { it.instructions() }
-                .filter { it.opcode == Opcode.NEW_INSTANCE }
-                .map { ((it as ReferenceInstruction).reference as TypeReference).type }.toSet()
-            val classes = (fixture.classes + cache + FixtureDex.classes(fixture.bundle, callers.map { it.definingClass }.toSet() + made).values)
-                .distinctBy { it.type }
-            val context = PatchContexts.of(classes)
-            val home = callers.filter { it.holds("pull_to_refresh_window_ms") || (it.definingClass in made && it.parameterTypes.map(Any::toString) == listOf("[B")) }
-            assertEquals("$name: Home's response and store", 2, home.size)
-            val homeReads = home.sumOf { m -> m.instructions().count { it.calls(helperRef) } }
+        for (fixture in FeedItemStandIns.fixtures()) builds(fixture, fixture.bundle.name)
+    }
 
-            assertEquals(name, homeReads, context.filterHomeFeedItems())
-
-            for (caller in callers) {
-                val after = context.mutableClassDefBy(caller.definingClass).methods.single {
-                    it.name == caller.name && it.parameterTypes.map(Any::toString) == caller.parameterTypes.map(Any::toString) &&
-                        it.returnType == caller.returnType
-                }
-                if (caller in home) {
-                    assertFilteredAfterRead("$name ${caller.definingClass}", after, helperRef)
-                } else {
-                    assertEquals("$name: ${caller.definingClass}->${caller.name} was touched", caller.instructions().size, after.instructions().size)
-                    assertFalse(after.instructions().any { it.calls(HOME_FEED_FILTER) })
-                }
-            }
-            for (other in listOf("chain_pagination_token", "XDTContextualAdMediaResponse", "XDTShopEverythingAdMediaResponse")) {
-                assertTrue("$name: no reader holding $other among ${callers.map { it.definingClass }}", callers.any { it.holds(other) && it !in home })
-            }
-            val helperAfter = context.mutableClassDefBy(fixture.itemType).methods.single {
-                it.name == fixture.helper.name && it.parameterTypes.map(Any::toString) == fixture.helper.parameterTypes.map(Any::toString)
-            }
-            assertEquals("$name: the helper was touched", fixture.helper.instructions().size, helperAfter.instructions().size)
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildFiltersOnlyHomesReadsToo() {
+        for (base in Fixtures.otherBuilds().filterNot { it.parentFile.name.substringAfterLast('-') in WITHOUT_SHOP_FEED_READER }) {
+            builds(otherBuild(base), base.parentFile.name)
         }
+    }
+
+    @Ignore(
+        "385611395, 385611400, 385611440: Home's two reads are found and answered as on 385611438, but no reader holding " +
+            "XDTShopEverythingAdMediaResponse is among the item helper's other callers, so the shop ad feed's left-alone check has no reader",
+    )
+    @Test
+    fun eachOtherBuildLeavesTheShopAdFeedAloneToo() {
+        for (base in Fixtures.otherBuilds().filter { it.parentFile.name.substringAfterLast('-') in WITHOUT_SHOP_FEED_READER }) {
+            builds(otherBuild(base), base.parentFile.name)
+        }
+    }
+
+    /** [FeedItemStandIns.fixtures] for one of the other builds, whose base APK is not a bundle. */
+    private fun otherBuild(base: File): FeedItemStandIns.Fixture {
+        val holders = FixtureDex.classesHolding(base, "clips_netego")
+        val made = holders.flatMap { it.methods }.flatMap { it.instructions() }
+            .filter { it.opcode == Opcode.NEW_INSTANCE }
+            .map { ((it as ReferenceInstruction).reference as TypeReference).type }
+            .toSet()
+        val candidates = FixtureDex.classes(base, made)
+        val itemType = candidates.values.single { classDef -> classDef.fields.any { it.type == CLIPS_NETEGO } }.type
+        val fieldTypes = candidates.getValue(itemType).fields.map { it.type }.toSet()
+        val classes = (holders + candidates.values + FixtureDex.classes(base, fieldTypes).values).distinctBy { it.type }
+        return FeedItemStandIns.Fixture(base, classes, itemType)
+    }
+
+    private fun builds(fixture: FeedItemStandIns.Fixture, name: String) {
+        val helperRef = fixture.helper.let { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        val callers = FixtureDex.methodsWhere(
+            fixture.bundle,
+            { dex -> dex.methodSection.any { it.toString() == helperRef } },
+            { method -> method.instructions().any { it.calls(helperRef) } },
+        )
+        val cache = FixtureDex.classes(fixture.bundle, setOf(FEED_MEDIA_CACHE)).values
+        val made = cache.flatMap { it.methods }.flatMap { it.instructions() }
+            .filter { it.opcode == Opcode.NEW_INSTANCE }
+            .map { ((it as ReferenceInstruction).reference as TypeReference).type }.toSet()
+        val classes = (fixture.classes + cache + FixtureDex.classes(fixture.bundle, callers.map { it.definingClass }.toSet() + made).values)
+            .distinctBy { it.type }
+        val context = PatchContexts.of(classes)
+        val home = callers.filter { it.holds("pull_to_refresh_window_ms") || (it.definingClass in made && it.parameterTypes.map(Any::toString) == listOf("[B")) }
+        assertEquals("$name: Home's response and store", 2, home.size)
+        val homeReads = home.sumOf { m -> m.instructions().count { it.calls(helperRef) } }
+
+        assertEquals(name, homeReads, context.filterHomeFeedItems())
+
+        for (caller in callers) {
+            val after = context.mutableClassDefBy(caller.definingClass).methods.single {
+                it.name == caller.name && it.parameterTypes.map(Any::toString) == caller.parameterTypes.map(Any::toString) &&
+                    it.returnType == caller.returnType
+            }
+            if (caller in home) {
+                assertFilteredAfterRead("$name ${caller.definingClass}", after, helperRef)
+            } else {
+                assertEquals("$name: ${caller.definingClass}->${caller.name} was touched", caller.instructions().size, after.instructions().size)
+                assertFalse(after.instructions().any { it.calls(HOME_FEED_FILTER) })
+            }
+        }
+        for (other in listOf("chain_pagination_token", "XDTContextualAdMediaResponse", "XDTShopEverythingAdMediaResponse")) {
+            assertTrue("$name: no reader holding $other among ${callers.map { it.definingClass }}", callers.any { it.holds(other) && it !in home })
+        }
+        val helperAfter = context.mutableClassDefBy(fixture.itemType).methods.single {
+            it.name == fixture.helper.name && it.parameterTypes.map(Any::toString) == fixture.helper.parameterTypes.map(Any::toString)
+        }
+        assertEquals("$name: the helper was touched", fixture.helper.instructions().size, helperAfter.instructions().size)
     }
 
     /** Each read of the helper in [method] is kept and then answered through HomeFeed into the same register. */
