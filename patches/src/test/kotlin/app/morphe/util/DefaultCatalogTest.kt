@@ -5,6 +5,7 @@
 package app.morphe.util
 
 import app.morphe.patches.instagram.ads.hideAdsPatch
+import app.morphe.patches.instagram.coexist.installNextToInstagramPatch
 import app.morphe.patches.instagram.direct.calls.askBeforeCallPatch
 import app.morphe.patches.instagram.feed.confirm.askBeforeLikePatch
 import app.morphe.patches.instagram.feed.confirm.askBeforeRefreshPatch
@@ -208,6 +209,7 @@ class DefaultCatalogTest {
 
     private val optIn = listOf<Patch<*>>(
         changeVersionCodePatch,
+        installNextToInstagramPatch,
         openDeveloperOptionsPatch,
         pureBlackPatch,
         viewDmMediaAnonymouslyPatch,
@@ -224,14 +226,14 @@ class DefaultCatalogTest {
     }
 
     @Test fun patchTimeChangesDeveloperToolsAndUnacceptedDmReceiptsStayOptIn() {
-        assertEquals(4, optIn.size)
+        assertEquals(5, optIn.size)
         optIn.forEach { assertEquals(it.name, false, it.use) }
     }
 
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.use }
-        assertEquals("every named patch needs one reviewed decision", 93, all.size)
+        assertEquals("every named patch needs one reviewed decision", 94, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

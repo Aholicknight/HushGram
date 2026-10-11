@@ -39,6 +39,10 @@ param(
     # Patch names to leave out of this build. The catalog applies everything, so a check of what
     # Instagram does without one of them needs a build that leaves it out.
     [string[]]$Exclude = @(),
+    # Build the second copy Install next to Instagram makes, under its default package
+    # com.instagram.android.hush. Without it that patch is left out, so the build installs over
+    # the HushGram already on the phone.
+    [switch]$Clone,
     # Patch with the release bundle even when a source file is newer than it, for replaying
     # an earlier build on purpose. Without it a stale bundle stops the run.
     [switch]$AllowStaleBundle,
@@ -126,6 +130,8 @@ if (-not $AllowStaleBundle) {
             '(or pass -AllowStaleBundle to patch with it as it is).')
     }
 }
+$secondCopy = 'Install next to Instagram'
+if (-not $Clone -and $secondCopy -notin $Exclude) { $Exclude += $secondCopy }
 $names = @($catalog.patches | ForEach-Object { $_.name } | Where-Object { $_ -notin $Exclude })
 foreach ($excluded in $Exclude) {
     if ($excluded -notin ($catalog.patches | ForEach-Object { $_.name })) { throw "No patch named '$excluded' to exclude." }
@@ -210,7 +216,8 @@ Write-Host "[device] installing on $Serial"
 $installed = Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'install', '-r', $out) -DeviceLease $deviceLease
 $installed.Output | Out-Host
 if ($installed.ExitCode -ne 0) { throw "adb install failed on $Serial. The installed app and data were kept." }
-$facts = Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'shell', 'dumpsys', 'package', $target.PackageName) -DeviceLease $deviceLease
+$installedPackage = if ($Clone) { 'com.instagram.android.hush' } else { $target.PackageName }
+$facts = Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'shell', 'dumpsys', 'package', $installedPackage) -DeviceLease $deviceLease
 if ($facts.ExitCode -ne 0) { throw 'The install finished, but installed build verification failed.' }
 $facts.Output | Select-String 'versionName' | Out-Host
 } finally { Exit-HushgramDeviceLease $deviceLease }

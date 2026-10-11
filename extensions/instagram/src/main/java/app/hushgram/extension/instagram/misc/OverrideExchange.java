@@ -127,7 +127,9 @@ public final class OverrideExchange {
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) throw invalid();
         try {
             HookStatus.invoked(FamilyNames.DEVELOPER_OPTIONS);
-            if (!HOST.equals(activity.getPackageName())) throw invalid();
+            // The running build's own package, which is the second copy's under Install next to Instagram.
+            // The document still names Instagram, so a file moves between the two copies.
+            if (!OwnPackage.name().equals(activity.getPackageName())) throw invalid();
             Object manager = DeveloperOptions.getOverrideStoreNative(activity);
             if (manager == null) throw invalid();
             File resolved = DeveloperOptions.getOverrideFileNative(manager);
@@ -139,7 +141,7 @@ public final class OverrideExchange {
             if (nativeSchema == null || nativeSchema.isEmpty() || nativeSchema.size() > MAX_PARAMETERS) throw invalid();
             List<Parameter> parameters = new ArrayList<>(nativeSchema.size());
             for (Object entry : nativeSchema) parameters.add(DeveloperOptions.getOverrideParameterNative(entry));
-            PackageInfo host = activity.getPackageManager().getPackageInfo(HOST, 0);
+            PackageInfo host = activity.getPackageManager().getPackageInfo(OwnPackage.name(), 0);
             byte[] bytes = "{}".getBytes(StandardCharsets.UTF_8);
             boolean present = file.exists();
             if (present) {

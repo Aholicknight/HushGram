@@ -236,6 +236,8 @@
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/developeroptions/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/theme/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/versioncode/**",
+        "patches/src/main/kotlin/app/morphe/patches/instagram/coexist/**",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/OwnPackage.java",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/bottomspace/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/glass/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/heartbeat/**",

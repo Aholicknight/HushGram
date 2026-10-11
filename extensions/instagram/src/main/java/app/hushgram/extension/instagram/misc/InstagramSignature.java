@@ -72,8 +72,6 @@ public final class InstagramSignature {
 
     private InstagramSignature() {}
 
-    private static final String PACKAGE = "com.instagram.android";
-
     /** Threads, Facebook and Messenger, by their exact package names. */
     static final String THREADS = "com.instagram.barcelona";
     static final String FACEBOOK = "com.facebook.katana";
@@ -222,7 +220,8 @@ public final class InstagramSignature {
      */
     public static boolean isSameKeyFamilyProviderCaller(@Nullable Context context) {
         try {
-            if (context == null || Process.isIsolated() || !PACKAGE.equals(context.getPackageName())) {
+            String ownPackage = OwnPackage.name();
+            if (context == null || Process.isIsolated() || !ownPackage.equals(context.getPackageName())) {
                 return false;
             }
             int callerUid = Binder.getCallingUid();
@@ -234,9 +233,9 @@ public final class InstagramSignature {
             String[] names = packages.getPackagesForUid(callerUid);
             if (names == null || names.length != 1 || metaSignersFor(names[0]) == null) return false;
 
-            PackageInfo self = packages.getPackageInfo(PACKAGE, PackageManager.GET_SIGNING_CERTIFICATES);
+            PackageInfo self = packages.getPackageInfo(ownPackage, PackageManager.GET_SIGNING_CERTIFICATES);
             PackageInfo caller = packages.getPackageInfo(names[0], PackageManager.GET_SIGNING_CERTIFICATES);
-            if (!packageUid(self, PACKAGE, Process.myUid()) || !packageUid(caller, names[0], callerUid)) {
+            if (!packageUid(self, ownPackage, Process.myUid()) || !packageUid(caller, names[0], callerUid)) {
                 return false;
             }
             Set<ByteBuffer> own = certificates(currentSigners(self));
@@ -422,7 +421,7 @@ public final class InstagramSignature {
      */
     static boolean isThisApp(PackageInfo info) {
         if (info == null || info.packageName == null) return false;
-        if (info.applicationInfo == null || Process.isIsolated()) return PACKAGE.equals(info.packageName);
+        if (info.applicationInfo == null || Process.isIsolated()) return OwnPackage.name().equals(info.packageName);
         return isThisAppByUid(info);
     }
 

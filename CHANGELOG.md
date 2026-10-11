@@ -10,6 +10,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Open developer options:** New Recommended flags page under Developer, with named On or Off switches such as the new story style. Nothing changes until you pick one, and it needs Allow importing overrides. Asked for in #110, #50, #37 and #13.
 
+* **Instagram - Install next to Instagram:** New patch that installs a second Instagram beside the first under its own package and name, with its own data and sign-in, and it starts unselected. Asked for in #34, #61, #73 and #121.
+
 * **Instagram - Save comment photo:** A comment's own GIF now gets Save in its menu too, under the same switch, Save comment photo, in HushGram settings > Comments. It starts off. Save puts the GIF in Pictures/Instagram as a .gif, taken from Instagram's own copy on its servers, so nothing comes from Giphy. When Instagram lists only an animated WebP or an MP4 for a GIF, you get that file instead with its own extension, and an MP4 goes in Movies/Instagram like a video. Asked for in #1.
 
 * **Instagram - Full screen Reels and Home:** New patch with two switches that start off, Full screen Reels under Reels and Full screen Home under Feed in HushGram settings. They hide the status and navigation bars while that screen shows, and a swipe from the edge brings them back for a moment. Asked for in #14.
