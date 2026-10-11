@@ -221,13 +221,18 @@ public final class ChatLocks {
 
     // ---------------------------------------------------------------- the chat's name
 
+    /** Whether a chat is on screen whose name hasn't been found yet and may still be looked for. */
+    static boolean wantsName() {
+        return current != null && currentName == null && nameAttempts < NAME_ATTEMPTS;
+    }
+
     /**
      * Looks for the name of the chat on screen in its [root] while it has none, a bounded number of
      * frames, and keeps it for the list. A chat already on the list takes the name it is found under.
      */
     static void learnName(View root) {
         String id = current;
-        if (id == null || currentName != null || nameAttempts >= NAME_ATTEMPTS) return;
+        if (id == null || !wantsName()) return;
         nameAttempts++;
         String name = findName(root);
         if (name == null) return;

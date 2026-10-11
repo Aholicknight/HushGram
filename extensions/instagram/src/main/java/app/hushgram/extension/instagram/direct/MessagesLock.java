@@ -543,10 +543,11 @@ public final class MessagesLock {
             ViewGroup window = (ViewGroup) decor;
             if (!switchedOn() && !ChatLocks.any() && !anyCover(window)) {
                 // Nothing to cover and nothing to take down. Before every frame, all that's left
-                // is learning which chat is open for Lock a chat, and that walks the whole window,
-                // so it waits IDLE_LOOK_MS between looks instead of running on each draw.
+                // is learning the open chat's name for Lock a chat, and that walks the whole window,
+                // so it waits IDLE_LOOK_MS between looks instead of running on each draw. With no
+                // chat open, or its name found, there's nothing to learn and nothing is walked.
                 long now = SystemClock.elapsedRealtime();
-                if (now - idleLookedAt < IDLE_LOOK_MS) {
+                if (!ChatLocks.wantsName() || now - idleLookedAt < IDLE_LOOK_MS) {
                     keepOutOfRecents(activity, false);
                     if (askedAt == 0) askedThisTime = false;
                     return;
