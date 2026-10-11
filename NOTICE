@@ -33,10 +33,12 @@ Their files here keep a "Forked from" line naming the file and commit they
 came from, and provenance.json records every rule.
 
 crimera/piko is licensed under the GNU General Public License v3.0. HushGram
-carries no piko code. It ships the MetaConfig name list that piko publishes for
-Instagram 447 (docs/mappings/447.0.0.55.81.json, commit
-ea752648f5688a50a96df21430020e98bf9ece00), packed into FlagNameData.java by
-scripts/gen-flag-names.py. piko's notice is reproduced below.
+carries no piko code. It ships two data files piko publishes, both from commit
+ea752648f5688a50a96df21430020e98bf9ece00: the MetaConfig name list for
+Instagram 447 (docs/mappings/447.0.0.55.81.json), packed into FlagNameData.java
+by scripts/gen-flag-names.py, and the recommended flag list
+(docs/mappings/piko_recommended_flags_v3.json), written out in
+RecommendedFlags.java. piko's notice is reproduced below.
 
 Carried third-party libraries
 ----------------------------
