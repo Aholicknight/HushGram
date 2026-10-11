@@ -1124,6 +1124,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_search_button_on_home", FALSE, true);
 
     /**
+     * Instagram's logo sits in the middle of Home's header, with the buttons on each side, as
+     * Instagram's newer header has it ({@link app.hushgram.extension.instagram.reels.HomeLogo}). The
+     * header centers it as it draws, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting CENTER_HOME_LOGO =
+            new BooleanSetting("hushgram_center_home_logo", FALSE, true);
+
+    /**
      * The order the tab bar shows its tabs in, as the tab enum's names, comma separated, first tab
      * first ({@link app.hushgram.extension.instagram.reels.TabOrder}). Empty keeps Instagram's order.
      * The bar is built as Instagram starts, so a change takes a restart.

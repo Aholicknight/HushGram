@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.reels.HomeHeader;
+import app.hushgram.extension.instagram.reels.HomeLogo;
 import app.hushgram.extension.instagram.reels.SearchHeaderButton;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -59,8 +60,9 @@ public final class GhostHeaderButton {
 
     /**
      * Injected first thing as Home's header draws from its state. Queues the placement of this
-     * button and of the Search button ({@link SearchHeaderButton}) behind the draw. Never throws,
-     * and does nothing to the header itself.
+     * button and of the Search button ({@link SearchHeaderButton}) behind the draw, then the
+     * centering of the logo ({@link HomeLogo}), which goes last so it sees every button the header
+     * ends up with. Never throws, and does nothing to the header itself.
      */
     public static void drew(View header) {
         try {
@@ -69,6 +71,7 @@ public final class GhostHeaderButton {
             header.post(() -> {
                 SearchHeaderButton.place(header);
                 place(header);
+                HomeLogo.center(header);
             });
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "ghost button", failure);

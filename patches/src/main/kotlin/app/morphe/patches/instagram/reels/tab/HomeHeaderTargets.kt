@@ -19,6 +19,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
@@ -33,12 +34,20 @@ internal const val HEADER_BUTTONS = "$HOME_HEADER->buttons(Ljava/util/List;)Ljav
 internal const val HEADER_ICON_STUB = "icon"
 internal const val HEADER_HEART_STUB = "heart"
 internal const val HEADER_ROW_STUB = "endRow"
+internal const val HEADER_START_ROW_STUB = "startRow"
+internal const val HEADER_TITLE_STUB = "title"
 
-/** Called as the header starts drawing from its state, with the header, to put the Search and Ghost mode buttons on it. */
+/**
+ * Called as the header starts drawing from its state, with the header, to put the Search and Ghost
+ * mode buttons on it and center its logo.
+ */
 internal const val GHOST_BUTTON = "$EXTENSION_PACKAGE/settings/GhostHeaderButton;->drew(Landroid/view/View;)V"
 
 /** The notifications heart's view, a class Instagram's layouts name, so every build keeps the name. */
 internal const val TOASTING_BADGE = "Lcom/instagram/notifications/badging/ui/component/ToastingBadge;"
+
+/** The header's title view, holding the logo and the feed's name: a class Instagram's layouts name, so every build keeps it. */
+internal const val TITLE_VIEW = "Lcom/instagram/actionbar/ActionBarTitleViewSwitcher;"
 
 private const val OBJECT = "Ljava/lang/Object;"
 private const val INTEGER = "Ljava/lang/Integer;"
@@ -51,7 +60,8 @@ private const val VIEW = "Landroid/view/View;"
  * Home's header: the constructor of the state class the header draws from, and the register its list
  * of buttons arrives in, the type of an image button (Create, Messages and the others) with the int
  * field holding its icon's resource id, and the type of the notifications heart, the method that
- * draws the header from a state, and the header's field holding its end row of buttons.
+ * draws the header from a state, the header's fields holding its end row and its start row of
+ * buttons, and its field holding the title view.
  */
 internal class HomeHeaderHook(
     val draw: Method,
@@ -61,6 +71,8 @@ internal class HomeHeaderHook(
     val icon: String,
     val badge: String,
     val row: String,
+    val start: String,
+    val title: String,
 )
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
@@ -78,7 +90,10 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  *    heart, which extends the same class as the image button and is the only other type it asks about
  *    that does;
  *  - the drawing method adds the heart's view, cast to [TOASTING_BADGE], to one of the header's
- *    LinearLayout fields through a static (ViewGroup, View) helper, and that field is the end row.
+ *    LinearLayout fields through a static (ViewGroup, View) helper, and that field is the end row;
+ *  - where Instagram's newer header centers its logo, the drawing method gives two of the header's
+ *    LinearLayout fields the same minimum width: the end row and the start row;
+ *  - the header has one field of [TITLE_VIEW], the view between the two rows.
  */
 internal fun BytecodePatchContext.findHomeHeader(): HomeHeaderHook {
     val bar = classDefByOrNull(MAIN_FEED_ACTION_BAR) ?: refuse("this Instagram build has no $MAIN_FEED_ACTION_BAR")
@@ -156,12 +171,29 @@ internal fun BytecodePatchContext.findHomeHeader(): HomeHeaderHook {
     ) {
         refuse("the header's end row ${row.name} isn't a public instance field, so the extension can't read it")
     }
+    val widened = widenedRows(draw.code())
+    if (widened.size != 2 || widened.none { it.name == row.name }) {
+        refuse("expected the header to give its end row ${row.name} and one other row the same width, found ${widened.map { it.name }}")
+    }
+    val start = widened.single { it.name != row.name }
+    val startField = bar.fields.singleOrNull { it.name == start.name && it.type == LINEAR_LAYOUT }
+        ?: refuse("$MAIN_FEED_ACTION_BAR has no LinearLayout field ${start.name}")
+    if (!AccessFlags.PUBLIC.isSet(startField.accessFlags) || AccessFlags.STATIC.isSet(startField.accessFlags)) {
+        refuse("the header's start row ${start.name} isn't a public instance field, so the extension can't read it")
+    }
+    val titles = bar.fields.filter { it.type == TITLE_VIEW }
+    val title = titles.singleOrNull() ?: refuse("expected one $TITLE_VIEW field in $MAIN_FEED_ACTION_BAR, found ${titles.size}")
+    if (!AccessFlags.PUBLIC.isSet(title.accessFlags) || AccessFlags.STATIC.isSet(title.accessFlags)) {
+        refuse("the header's title view ${title.name} isn't a public instance field, so the extension can't read it")
+    }
 
     val extension = classDefByOrNull(HOME_HEADER) ?: refuse("the extension has no $HOME_HEADER")
     for (stub in listOf(HEADER_ICON_STUB, HEADER_HEART_STUB)) {
         if (extension.methods.none { it.isStub(stub) }) refuse("$HOME_HEADER has no public static I $stub($OBJECT)")
     }
-    if (extension.methods.none { it.isRowStub() }) refuse("$HOME_HEADER has no public static $OBJECT $HEADER_ROW_STUB($OBJECT)")
+    for (stub in listOf(HEADER_ROW_STUB, HEADER_START_ROW_STUB, HEADER_TITLE_STUB)) {
+        if (extension.methods.none { it.isReadStub(stub) }) refuse("$HOME_HEADER has no public static $OBJECT $stub($OBJECT)")
+    }
     val ghost = classDefByOrNull(GHOST_BUTTON.substringBefore("->")) ?: refuse("the extension has no ${GHOST_BUTTON.substringBefore("->")}")
     if (ghost.methods.none { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == GHOST_BUTTON.substringAfter("->") && it.isPublicStatic() }) {
         refuse("the extension has no public static $GHOST_BUTTON")
@@ -169,8 +201,34 @@ internal fun BytecodePatchContext.findHomeHeader(): HomeHeaderHook {
     if (extension.methods.none { it.name == "buttons" && it.parameterTypes.map(CharSequence::toString) == listOf(LIST) && it.returnType == LIST && it.isPublicStatic() }) {
         refuse("the extension has no public static $HEADER_BUTTONS")
     }
-    return HomeHeaderHook(draw, constructor, list, image, "$image->${icon.name}:I", badge, "$MAIN_FEED_ACTION_BAR->${row.name}:$LINEAR_LAYOUT")
+    return HomeHeaderHook(
+        draw, constructor, list, image, "$image->${icon.name}:I", badge, "$MAIN_FEED_ACTION_BAR->${row.name}:$LINEAR_LAYOUT",
+        "$MAIN_FEED_ACTION_BAR->${start.name}:$LINEAR_LAYOUT", "$MAIN_FEED_ACTION_BAR->${title.name}:$TITLE_VIEW",
+    )
 }
+
+/**
+ * The header's LinearLayout fields the draw method gives a minimum width: the field an iget-object
+ * last read into the register a View.setMinimumWidth(I) call is made on, looking back from the call.
+ * Instagram's newer header does it to its two rows of buttons, so the title between them sits in
+ * the middle. A register written by anything else in between doesn't count.
+ */
+internal fun widenedRows(code: List<Instruction>): List<FieldReference> = code.indices.mapNotNull { index ->
+    val call = code[index]
+    val method = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return@mapNotNull null
+    if (method.definingClass != VIEW || method.name != "setMinimumWidth" ||
+        method.parameterTypes.map(CharSequence::toString) != listOf("I") || method.returnType != "V"
+    ) return@mapNotNull null
+    val row = when (call.opcode) {
+        Opcode.INVOKE_VIRTUAL -> (call as FiveRegisterInstruction).registerC
+        Opcode.INVOKE_VIRTUAL_RANGE -> (call as RegisterRangeInstruction).startRegister
+        else -> return@mapNotNull null
+    }
+    val written = code.subList(0, index).lastOrNull { it.opcode.setsRegister() && (it as? OneRegisterInstruction)?.registerA == row }
+    written?.fieldReference()?.takeIf {
+        written.opcode == Opcode.IGET_OBJECT && it.definingClass == MAIN_FEED_ACTION_BAR && it.type == LINEAR_LAYOUT
+    }
+}.distinctBy { it.name }
 
 /**
  * The header's LinearLayout fields the draw method adds the heart's view to: a read of the field
@@ -195,7 +253,7 @@ private fun endRows(code: List<Instruction>): List<FieldReference> = code.indice
 }.distinctBy { it.name }
 
 /**
- * Writes the two stubs, then hands the header state's list of buttons to [HEADER_BUTTONS] as its
+ * Writes the stubs, then hands the header state's list of buttons to [HEADER_BUTTONS] as its
  * constructor starts, keeping the answer in the same register, and hands the header to
  * [GHOST_BUTTON] as the method that draws it starts. Only called once [findHomeHeader] found
  * everything.
@@ -217,18 +275,9 @@ internal fun BytecodePatchContext.hideHomeHeaderButtons(hook: HomeHeaderHook) {
         instance-of v0, p0, ${hook.badge}
         return v0
     """)
-    // Answers an Object: the end row, or null for anything that isn't the header. Two registers for
-    // the same reason as the icon stub: v0 is a local and p0, the header, is v1.
-    replace(mutableClassDefBy(HOME_HEADER).methods.single { it.isRowStub() }, 2, """
-        instance-of v0, p0, $MAIN_FEED_ACTION_BAR
-        if-eqz v0, :other
-        check-cast p0, $MAIN_FEED_ACTION_BAR
-        iget-object v0, p0, ${hook.row}
-        return-object v0
-        :other
-        const/4 v0, 0x0
-        return-object v0
-    """)
+    readFromHeader(HEADER_ROW_STUB, hook.row)
+    readFromHeader(HEADER_START_ROW_STUB, hook.start)
+    readFromHeader(HEADER_TITLE_STUB, hook.title)
     val state = mutableClassDefBy(hook.state.definingClass).methods.single { it.sameShape(hook.state) }
     state.addInstructions(
         0,
@@ -245,13 +294,31 @@ internal fun BytecodePatchContext.hideHomeHeaderButtons(hook: HomeHeaderHook) {
     )
 }
 
+/**
+ * Writes the [stub] that reads [field] out of the header. It answers an Object: the field's view, or
+ * null for anything that isn't the header. Two registers for the same reason as the icon stub: v0
+ * is a local and p0, the header, is v1.
+ */
+private fun BytecodePatchContext.readFromHeader(stub: String, field: String) {
+    replace(mutableClassDefBy(HOME_HEADER).methods.single { it.isReadStub(stub) }, 2, """
+        instance-of v0, p0, $MAIN_FEED_ACTION_BAR
+        if-eqz v0, :other
+        check-cast p0, $MAIN_FEED_ACTION_BAR
+        iget-object v0, p0, $field
+        return-object v0
+        :other
+        const/4 v0, 0x0
+        return-object v0
+    """)
+}
+
 private fun Method.isPublicStatic() = AccessFlags.PUBLIC.isSet(accessFlags) && AccessFlags.STATIC.isSet(accessFlags)
 
 private fun Method.isStub(name: String) =
     this.name == name && parameterTypes.map(CharSequence::toString) == listOf(OBJECT) && returnType == "I" && isPublicStatic()
 
-private fun Method.isRowStub() =
-    name == HEADER_ROW_STUB && parameterTypes.map(CharSequence::toString) == listOf(OBJECT) && returnType == OBJECT && isPublicStatic()
+private fun Method.isReadStub(name: String) =
+    this.name == name && parameterTypes.map(CharSequence::toString) == listOf(OBJECT) && returnType == OBJECT && isPublicStatic()
 
 private fun MutableMethod.sameShape(other: Method) =
     name == other.name && returnType == other.returnType &&

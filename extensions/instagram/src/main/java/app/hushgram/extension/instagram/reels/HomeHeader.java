@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.reels;
 
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.LinearLayout;
 
@@ -37,7 +38,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * can't be named or anything thrown, and the list goes through as it came.
  *
  * <p>It also finds where the buttons HushGram adds to the header go: the row Messages sits in, and
- * the header's end row of buttons, which the patch reads for {@link #endRow}.
+ * the header's end row of buttons, which the patch reads for {@link #endRow}. The start row and the
+ * title view, read for {@link #startRow} and {@link #title}, are what {@link HomeLogo} centers the
+ * logo with.
  */
 public final class HomeHeader {
     /** The start of the resource name of Instagram's plus icon, which the Create button on Home's header wears. */
@@ -147,6 +150,66 @@ public final class HomeHeader {
             Function<Object, Object> stand = endRowForTests;
             Object row = stand != null ? stand.apply(header) : endRow(header);
             return row instanceof LinearLayout ? (LinearLayout) row : null;
+        } catch (RuntimeException failure) {
+            return null;
+        }
+    }
+
+    /** Stand in for the patched {@link #startRow} and {@link #title} in tests, or null to ask the stubs. */
+    @Nullable
+    private static volatile Function<Object, Object> startRowForTests;
+    @Nullable
+    private static volatile Function<Object, Object> titleForTests;
+
+    /** For tests only: answers {@link #startRowOf} from [rows] in place of the stub, or from the stub again with null. */
+    public static void standInStartRowForTests(@Nullable Function<Object, Object> rows) {
+        startRowForTests = rows;
+    }
+
+    /** For tests only: answers {@link #titleOf} from [titles] in place of the stub, or from the stub again with null. */
+    public static void standInTitleForTests(@Nullable Function<Object, Object> titles) {
+        titleForTests = titles;
+    }
+
+    /**
+     * Home's header's row of buttons on its start side, the other row Instagram's newer header gives
+     * the same width as the end row. A stub: the patch writes its body, which reads the row out of
+     * [header]. Answers null unpatched or for anything that isn't Home's header.
+     */
+    @Nullable
+    public static Object startRow(Object header) {
+        return null;
+    }
+
+    /**
+     * Home's header's title view, between its two rows of buttons, which shows Instagram's logo or the
+     * picked feed's name. A stub: the patch writes its body, which reads the view out of [header].
+     * Answers null unpatched or for anything that isn't Home's header.
+     */
+    @Nullable
+    public static Object title(Object header) {
+        return null;
+    }
+
+    /** The header's start row of buttons, from {@link #startRow}, or null. Never throws. */
+    @Nullable
+    public static LinearLayout startRowOf(View header) {
+        try {
+            Function<Object, Object> stand = startRowForTests;
+            Object row = stand != null ? stand.apply(header) : startRow(header);
+            return row instanceof LinearLayout ? (LinearLayout) row : null;
+        } catch (RuntimeException failure) {
+            return null;
+        }
+    }
+
+    /** The header's title view, from {@link #title}, or null. Never throws. */
+    @Nullable
+    public static ViewGroup titleOf(View header) {
+        try {
+            Function<Object, Object> stand = titleForTests;
+            Object view = stand != null ? stand.apply(header) : title(header);
+            return view instanceof ViewGroup ? (ViewGroup) view : null;
         } catch (RuntimeException failure) {
             return null;
         }
