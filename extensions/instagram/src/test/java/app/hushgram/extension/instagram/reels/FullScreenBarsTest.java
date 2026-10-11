@@ -271,17 +271,40 @@ public class FullScreenBarsTest {
         assertEquals(0, FullScreenBars.withoutAdded(FullScreenBars.IMMERSIVE_FLAGS, 0));
     }
 
-    /** On Android 11 and newer only the bars that were showing before the hide are shown again. */
+    /**
+     * Home, away, Home again before the insets caught up, away again: every show asks for all the bars
+     * back. The S22 kept them hidden off Home when a show went by which bars the insets said were up.
+     */
     @Config(sdk = 37)
-    @Test public void onlyTheBarsThatWereShowingComeBack() {
+    @Test public void everyShowAsksForAllTheBarsBack() throws Exception {
         int status = android.view.WindowInsets.Type.statusBars(), navigation = android.view.WindowInsets.Type.navigationBars();
-        android.view.WindowInsets noStatus = new android.view.WindowInsets.Builder()
-                .setVisible(status, false).setVisible(navigation, true).build();
-        assertEquals(navigation, FullScreenBars.visibleBars(noStatus));
-        android.view.WindowInsets both = new android.view.WindowInsets.Builder()
-                .setVisible(status, true).setVisible(navigation, true).build();
-        assertEquals(status | navigation, FullScreenBars.visibleBars(both));
-        assertEquals("no insets shows both", status | navigation, FullScreenBars.visibleBars(null));
+        int caption = android.view.WindowInsets.Type.captionBar();
+        assertEquals(status | navigation | caption, FullScreenBars.barsToShow() & (status | navigation | caption));
+        Settings.FULL_SCREEN_HOME.save(true);
+        select(homeTab);
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        assertEquals("hidden on Home", 0, requestedVisible() & (status | navigation));
+        for (int round = 1; round <= 2; round++) {
+            select(otherTab);
+            session.evaluate();
+            assertFalse(session.isHidden());
+            assertEquals("back off Home, round " + round, status | navigation, requestedVisible() & (status | navigation));
+            select(homeTab);
+            session.evaluate();
+            assertTrue(session.isHidden());
+            assertEquals("hidden on Home, round " + round, 0, requestedVisible() & (status | navigation));
+        }
+        FullScreenBars.release(activity);
+        assertEquals("back after a pause", status | navigation, requestedVisible() & (status | navigation));
+    }
+
+    /** The bar types the window asks to have showing (Android 13 and newer keep it on the controller). */
+    private int requestedVisible() throws Exception {
+        Object insetsController = activity.getWindow().getInsetsController();
+        java.lang.reflect.Method method = insetsController.getClass().getMethod("getRequestedVisibleTypes");
+        method.setAccessible(true);
+        return (int) method.invoke(insetsController);
     }
 
     @Test public void aScreenWithNoTabBarAndNoViewerIsLeftAlone() {
