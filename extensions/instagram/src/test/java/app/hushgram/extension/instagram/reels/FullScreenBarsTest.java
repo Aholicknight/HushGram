@@ -307,6 +307,31 @@ public class FullScreenBarsTest {
         return (int) method.invoke(insetsController);
     }
 
+    /**
+     * Swiping Home over to the story camera moves Home's whole panel sideways, tab bar and all, with
+     * Home still selected: that's the camera, and the bars come back. The glass bar sliding down on
+     * scroll is still Home.
+     */
+    @Test public void homeSwipedSidewaysToTheCameraIsNotHome() {
+        Settings.FULL_SCREEN_HOME.save(true);
+        select(homeTab);
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        bar.setTranslationY(H);
+        session.evaluate();
+        assertTrue("a tab bar slid down on scroll is still Home", session.isHidden());
+        bar.setTranslationY(0);
+        root.setTranslationX(W / 2f);
+        assertEquals(FullScreenBars.Screen.OTHER, screen());
+        session.evaluate();
+        assertFalse(session.isHidden());
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) assertFalse(barsGone());
+        root.setTranslationX(-W / 3f);
+        assertEquals("partway through the swipe it's still Home", FullScreenBars.Screen.HOME, screen());
+        session.evaluate();
+        assertTrue(session.isHidden());
+    }
+
     @Test public void aScreenWithNoTabBarAndNoViewerIsLeftAlone() {
         Settings.FULL_SCREEN_REELS.save(true);
         Settings.FULL_SCREEN_HOME.save(true);

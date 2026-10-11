@@ -121,11 +121,23 @@ public final class FullScreenBars {
         return window > 0 && (long) seen.width() * seen.height() >= window * FILL_SHARE;
     }
 
+    /**
+     * Whether [bar] sits half the window or more to the side: Home's panel swiped over to the story
+     * camera or Add to story keeps its tab bar shown and Home selected, only moved off screen. Up and
+     * down don't count, since the glass bar slides away on scroll and Home is still Home.
+     */
+    static boolean sidewaysOff(View bar, View decor) {
+        int[] at = new int[2], origin = new int[2];
+        bar.getLocationOnScreen(at);
+        decor.getLocationOnScreen(origin);
+        return Math.abs(at[0] - origin[0]) * 2 >= decor.getWidth();
+    }
+
     /** The tab Instagram marks selected in its tab bar, as the name of its id, or null. */
     @Nullable
     private static String selectedTab(View decor) {
         View bar = find(decor, TAB_BAR);
-        if (!(bar instanceof ViewGroup) || !bar.isShown()) return null;
+        if (!(bar instanceof ViewGroup) || !bar.isShown() || sidewaysOff(bar, decor)) return null;
         ViewGroup tabs = (ViewGroup) bar;
         for (int i = 0; i < tabs.getChildCount(); i++) {
             View tab = tabs.getChildAt(i);
