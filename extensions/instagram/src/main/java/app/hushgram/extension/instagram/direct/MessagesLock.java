@@ -641,10 +641,15 @@ public final class MessagesLock {
     static final long IDLE_LOOK_MS = 500;
     private static long idleLookedAt = Long.MIN_VALUE / 2;
 
-    /** Whether [window] has a cover at all, shown or not. */
+    /**
+     * Whether [window] has a cover that isn't taken down yet. A cover {@link #place} has set to GONE
+     * already gave the screen under it back, so it leaves nothing to do, and the window can go back
+     * to the idle look after a lock is turned off.
+     */
     private static boolean anyCover(ViewGroup window) {
         for (int i = window.getChildCount() - 1; i >= 0; i--) {
-            if (window.getChildAt(i) instanceof Cover) return true;
+            View child = window.getChildAt(i);
+            if (child instanceof Cover && child.getVisibility() != View.GONE) return true;
         }
         return false;
     }

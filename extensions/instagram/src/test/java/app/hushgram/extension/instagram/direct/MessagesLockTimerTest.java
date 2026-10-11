@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.direct;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
@@ -169,10 +170,36 @@ public class MessagesLockTimerTest {
         frames(activity, 6);
         assertEquals("no look with nothing to learn", before, looks());
 
+        // The locks keep working while paused, so pausing changes nothing here: still nothing to do.
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         frames(activity, 6);
-        assertEquals("nor while paused", before, looks());
+        assertEquals("the same while paused, with nothing locked", before, looks());
+    }
+
+    @Test
+    public void aLockTurnedOffLeavesNoWalkBehind() {
+        Activity activity = screen("Alice");
+        ViewGroup window = (ViewGroup) activity.getWindow().getDecorView();
+        Settings.LOCK_MESSAGES.save(true);
+        MessagesLock.check(activity);
+        assertTrue("the inbox got its cover", coverShown(window));
+
+        Settings.LOCK_MESSAGES.save(false);
+        MessagesLock.check(activity);
+        assertFalse("turned off, the cover is taken down", coverShown(window));
+
+        int before = looks();
+        frames(activity, 6);
+        assertEquals("a cover taken down leaves no look behind", before, looks());
+    }
+
+    private static boolean coverShown(ViewGroup window) {
+        for (int i = 0; i < window.getChildCount(); i++) {
+            View child = window.getChildAt(i);
+            if (child instanceof MessagesLock.Cover && child.getVisibility() != View.GONE) return true;
+        }
+        return false;
     }
 
     @Test
