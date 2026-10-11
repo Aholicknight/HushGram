@@ -122,6 +122,8 @@ Every HushGram release, newest first.
 
 * **Instagram:** HushGram settings open as a list of categories, and a tap opens one on its own page. A button under the status card switches to one long list. Thanks to @talhaeenss for #123. Asked for in #80 and #100.
 
+* **Instagram:** HushGram settings look tidier. Each category's page starts with a line saying what it's for, and every row now has an icon. On the list of categories, the rows share one rounded card the way a section's rows do. Asked for in #130.
+
 * **Instagram - Show if a profile follows you:** The chip under a profile's counts has a color for each answer, blue, green or red, darker on a light profile. Thanks to @talhaeenss for #124.
 
 * **Instagram - Download any video:** Download all now waits its turn, with up to ten posts queued, so two posts' pages never mix in your gallery. Download all on reels works the same. Asked for in #115.
