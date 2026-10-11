@@ -776,6 +776,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("After 20 reels, swiping in Reels stops until Instagram has been in the background for "
                             + "15 minutes. A reel you open from a message or a post still plays.")));
         }
+        if (build.contains(PatchFamily.REEL_ORIGIN)) {
+            reels.add(toggle(context, Settings.FIND_REEL_ORIGIN, L10n.t("Find the reel you came from"),
+                    L10n.t("Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel "
+                            + "and outlines it for a moment.")));
+        }
         if (!reels.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Reels"));
             for (Preference row : reels) section.addPreference(row);

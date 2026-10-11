@@ -331,6 +331,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean reelOrigin() {
+        return false;
+    }
+
     public static boolean storyDownload() {
         return false;
     }

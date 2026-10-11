@@ -1163,6 +1163,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reel_cap", FALSE);
 
     /**
+     * A profile opened from a reel scrolls its Reels tab to that reel and outlines its tile for a
+     * moment ({@link app.hushgram.extension.instagram.reels.ReelOrigin}). Read as the profile opens and
+     * each time its Reels tab comes up, so a change shows on the next profile opened. Off to start.
+     */
+    public static final BooleanSetting FIND_REEL_ORIGIN =
+            new BooleanSetting("hushgram_find_reel_origin", FALSE);
+
+    /**
      * Whether auto scroll in Reels was last left on, as
      * {@link app.hushgram.extension.instagram.reels.ReelAutoScroll} last saw it. It isn't a switch:
      * a pause doesn't change it, and a settings backup leaves it out.

@@ -1,0 +1,463 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.hushgram.extension.instagram.reels;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import android.app.Activity;
+import android.content.Context;
+import android.graphics.Rect;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.View;
+import android.widget.FrameLayout;
+
+import androidx.recyclerview.widget.RecyclerView;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.Shadows;
+import org.robolectric.android.controller.ActivityController;
+import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.shadows.ShadowToast;
+import org.robolectric.util.ReflectionHelpers;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BooleanSupplier;
+
+import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
+
+/**
+ * Finding the reel a profile was opened from in that profile's Reels grid. Runtime decisions only:
+ * that 450 opens the profile in its own activity and names its grid tiles by the reel's id needs a
+ * check on a phone.
+ */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = {28, 37})
+public class ReelOriginTest {
+    @Rule public final SettingsContextRule settings = new SettingsContextRule();
+
+    private static final BooleanSupplier ON = () -> true;
+    private static final BooleanSupplier THROWS = () -> {
+        throw new IllegalStateException("settings went away");
+    };
+    /** The reel's author, and the reel as Instagram names it: its own id, then its author's. */
+    private static final String AUTHOR = "7";
+    private static final String REEL = "3100_" + AUTHOR;
+
+    /** A reel as the extension sees 450's Media. */
+    public static final class Reel {
+        private final String id;
+        int reads;
+
+        Reel(String id) {
+            this.id = id;
+        }
+
+        public String getId() {
+            reads++;
+            return id;
+        }
+    }
+
+    /** A profile's Reels tab as the extension sees 450's: its activity, its arguments, whether it's resumed, and its grid. */
+    public static final class Tab {
+        public RecyclerView grid;
+        public String gridKey = "profile_clips";
+        public boolean resumed = true;
+        private final Activity activity;
+        private final Bundle arguments = new Bundle();
+
+        Tab(Activity activity, RecyclerView grid, String user) {
+            this.activity = activity;
+            this.grid = grid;
+            arguments.putString(ReelOrigin.USER_KEY, user);
+        }
+
+        public Activity getActivity() {
+            return activity;
+        }
+
+        public Bundle getArguments() {
+            return arguments;
+        }
+
+        public boolean isResumed() {
+            return resumed;
+        }
+    }
+
+    /** A tab with two grids, which the extension can't tell apart. */
+    public static final class TwoGrids {
+        public RecyclerView grid;
+        public RecyclerView other;
+        private final Activity activity;
+        private final Bundle arguments = new Bundle();
+
+        TwoGrids(Activity activity) {
+            this.activity = activity;
+            arguments.putString(ReelOrigin.USER_KEY, AUTHOR);
+        }
+
+        public Activity getActivity() {
+            return activity;
+        }
+
+        public Bundle getArguments() {
+            return arguments;
+        }
+
+        public boolean isResumed() {
+            return true;
+        }
+    }
+
+    /** A tile of the grid, noting each time it's asked onto the screen. */
+    static final class Tile extends View {
+        final List<String> shown;
+
+        Tile(Context context, List<String> shown) {
+            super(context);
+            this.shown = shown;
+        }
+
+        @Override public boolean requestRectangleOnScreen(Rect rectangle, boolean immediate) {
+            shown.add(getTransitionName());
+            return super.requestRectangleOnScreen(rectangle, immediate);
+        }
+    }
+
+    private final List<ActivityController<Activity>> controllers = new ArrayList<>();
+    private final List<String> shown = new ArrayList<>();
+    private final List<Tile> made = new ArrayList<>();
+    private Activity profile;
+    private RecyclerView grid;
+
+    @Before
+    public void enable() {
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Settings.FIND_REEL_ORIGIN.save(true);
+        HookStatus.clear();
+        ReelOrigin.forget();
+    }
+
+    @After
+    public void restore() {
+        ReelOrigin.forget();
+        for (ActivityController<Activity> controller : controllers) controller.pause().stop().destroy();
+        Settings.FIND_REEL_ORIGIN.resetToDefault();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        HookStatus.clear();
+    }
+
+    /** A reel on the grid's first screen: brought fully on screen and outlined for a moment, with no scrolling. */
+    @Test
+    public void aReelOnTheFirstScreenIsShownAndOutlined() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        assertEquals(REEL, ReelOrigin.heldForTests());
+        openProfile(List.of("3000_7", REEL, "2900_7", "2800_7"), null);
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        ShadowLooper.idleMainLooper();
+        assertEquals(List.of(REEL), shown);
+        assertTrue("nothing was scrolled", grid.scrolls.isEmpty());
+        Tile tile = tile(REEL);
+        assertEquals("outlined", 1, outlines(tile));
+        idleSeconds(2);
+        assertEquals("the outline goes after a moment", 0, outlines(tile));
+        assertNull("the reel is dropped once found", ReelOrigin.heldForTests());
+
+        // Back to the tab later: found once, it isn't looked for again.
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(2);
+        assertEquals(List.of(REEL), shown);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.REMEMBERED + " 1"));
+        assertTrue(report, report.contains(ReelOrigin.FOUND + " 1"));
+        assertTrue(HookStatus.missing(FamilyNames.REEL_ORIGIN).toString(), HookStatus.missing(FamilyNames.REEL_ORIGIN).isEmpty());
+    }
+
+    /** A reel further down: the grid moves a screen at a time, waiting for each page Instagram loads, until it shows. */
+    @Test
+    public void aReelFurtherDownIsScrolledToAsPagesLoad() {
+        List<List<String>> pages = new ArrayList<>();
+        for (int page = 0; page < 4; page++) {
+            List<String> reels = new ArrayList<>();
+            for (int at = 0; at < 12; at++) reels.add((5000 - page * 12 - at) + "_" + AUTHOR);
+            pages.add(reels);
+        }
+        pages.get(2).set(7, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(new ArrayList<>(), null);
+        Handler main = new Handler(Looper.getMainLooper());
+        int[] loaded = {0};
+        Runnable nextPage = () -> {
+            if (loaded[0] < pages.size()) grid.reels.addAll(pages.get(loaded[0]++));
+        };
+        // Instagram loads its next page a moment after the end shows, and the first a moment after the tab opens.
+        grid.atEnd = () -> main.postDelayed(nextPage, 300);
+        main.postDelayed(() -> {
+            nextPage.run();
+            grid.bind();
+        }, 1000);
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(10);
+        assertEquals(List.of(REEL), shown);
+        assertFalse("the grid moved down", grid.scrolls.isEmpty());
+        assertTrue("every scroll went down", grid.scrolls.stream().allMatch(by -> by > 0));
+        assertTrue("it waited for Instagram's pages", loaded[0] >= 3);
+        assertNull(ReelOrigin.heldForTests());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.FOUND + " 1"));
+    }
+
+    /** Never there: after its steps it gives up, the grid goes back to where it was, and a toast says so. */
+    @Test
+    public void givesUpAfterItsStepsAndPutsTheGridBack() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(reels(12, 9000), null);
+        int[] page = {0};
+        grid.atEnd = () -> grid.reels.addAll(reels(12, 8000 - 100 * page[0]++));
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(20);
+        assertTrue(shown.isEmpty());
+        assertEquals("the steps, then one back", ReelOrigin.MAX_STEPS + 1, grid.scrolls.size());
+        assertTrue(grid.scrolls.get(grid.scrolls.size() - 1) < 0);
+        assertEquals("back at the top", 0, grid.firstRow());
+        assertEquals("Couldn't find the reel you came from", ShadowToast.getTextOfLatestToast());
+        assertNull(ReelOrigin.heldForTests());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.NOT_FOUND + " 1"));
+    }
+
+    /** A grid that ends without it gives up after waiting a few seconds for more, without moving. */
+    @Test
+    public void givesUpWhenTheGridEnds() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(reels(5, 9000), null);
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(2);
+        assertNull("still waiting for more", ShadowToast.getTextOfLatestToast());
+        idleSeconds(4);
+        assertEquals("Couldn't find the reel you came from", ShadowToast.getTextOfLatestToast());
+        assertTrue(grid.scrolls.isEmpty());
+        assertNull(ReelOrigin.heldForTests());
+    }
+
+    /** Leaving the tab stops the search and keeps the reel, and coming back to it finds it. */
+    @Test
+    public void leavingTheTabFirstKeepsTheReelForNextTime() {
+        List<String> reels = reels(30, 9000);
+        reels.set(25, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(reels, null);
+        Tab tab = new Tab(profile, grid, AUTHOR);
+        ReelOrigin.reelsTabResumed(tab, ON);
+        ShadowLooper.idleMainLooper();
+        tab.resumed = false;
+        idleSeconds(3);
+        int moved = grid.scrolls.size();
+        assertTrue(shown.isEmpty());
+        assertEquals("it kept the reel", REEL, ReelOrigin.heldForTests());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ReelOrigin.LEFT + " 1"));
+        idleSeconds(3);
+        assertEquals("and stopped", moved, grid.scrolls.size());
+
+        tab.resumed = true;
+        ReelOrigin.reelsTabResumed(tab, ON);
+        idleSeconds(5);
+        assertEquals(List.of(REEL), shown);
+        assertNull(ReelOrigin.heldForTests());
+    }
+
+    /**
+     * Only the Reels tab of the reel's own author, in the screen opened from the reel, looks. A
+     * profile reached from there, another screen, and a screen that came too late to be the
+     * profile's are left alone.
+     */
+    @Test
+    public void onlyTheAuthorsProfileInItsOwnScreenLooks() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(List.of(REEL), null);
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, "8"), ON);
+        Activity other = Robolectric.buildActivity(Activity.class).setup().get();
+        ReelOrigin.reelsTabResumed(new Tab(other, grid, AUTHOR), ON);
+        idleSeconds(6);
+        assertTrue(shown.isEmpty());
+        assertEquals("still held for the author's own tab", REEL, ReelOrigin.heldForTests());
+
+        ReelOrigin.forget();
+        ReelOrigin.opening(new Reel(REEL), ON);
+        idleSeconds(6);
+        Activity late = Robolectric.buildActivity(Activity.class).setup().get();
+        assertNull("no screen came in time, so the reel is dropped", ReelOrigin.heldForTests());
+        ReelOrigin.reelsTabResumed(new Tab(late, grid, AUTHOR), ON);
+        idleSeconds(6);
+        assertTrue(shown.isEmpty());
+    }
+
+    /** Leaving the profile drops the reel. */
+    @Test
+    public void leavingTheProfileDropsTheReel() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup();
+        Robolectric.buildActivity(Activity.class).setup();
+        assertEquals(REEL, ReelOrigin.heldForTests());
+        controller.pause().stop().destroy();
+        assertNull(ReelOrigin.heldForTests());
+
+        // A screen made later isn't taken for a profile, and nothing is held.
+        Robolectric.buildActivity(Activity.class).setup();
+        assertNull(ReelOrigin.heldForTests());
+    }
+
+    /** Off to start, off, paused and before the settings are read, no reel is read or held and no grid moves. */
+    @Test
+    public void offToStartOffPausedAndUnreadyHoldNothing() {
+        Reel reel = new Reel(REEL);
+        Settings.FIND_REEL_ORIGIN.resetToDefault();
+        assertFalse(Settings.FIND_REEL_ORIGIN.defaultValue);
+        ReelOrigin.opening(reel);
+        Settings.FIND_REEL_ORIGIN.save(false);
+        ReelOrigin.opening(reel);
+
+        Settings.FIND_REEL_ORIGIN.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        ReelOrigin.opening(reel);
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> ReelOrigin.opening(reel));
+        SettingsContextRule.beforeThePauseIsDecided(() -> ReelOrigin.opening(reel));
+        assertEquals("the reel wasn't even read", 0, reel.reads);
+        assertNull(ReelOrigin.heldForTests());
+
+        ReelOrigin.opening(reel);
+        assertEquals("on again, the real switch holds it", REEL, ReelOrigin.heldForTests());
+        openProfile(List.of(REEL), null);
+        Tab tab = new Tab(profile, grid, AUTHOR);
+        Settings.FIND_REEL_ORIGIN.save(false);
+        ReelOrigin.reelsTabResumed(tab);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        Settings.FIND_REEL_ORIGIN.save(true);
+        ReelOrigin.reelsTabResumed(tab);
+        idleSeconds(6);
+        assertTrue(shown.isEmpty());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(FamilyNames.REEL_ORIGIN));
+
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        ReelOrigin.reelsTabResumed(tab);
+        ShadowLooper.idleMainLooper();
+        assertEquals("on again, the real switch finds it", List.of(REEL), shown);
+    }
+
+    /** A throw, a reel or tab missing what the extension reads, or two grids hold or move nothing and are reported. */
+    @Test
+    public void failuresHoldNothingAndAreReported() {
+        ReelOrigin.opening(new Reel(REEL), THROWS);
+        ReelOrigin.opening(null, ON);
+        ReelOrigin.opening(new Object(), ON);
+        assertNull(ReelOrigin.heldForTests());
+
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(List.of(REEL), null);
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), THROWS);
+        ReelOrigin.reelsTabResumed(null, ON);
+        ReelOrigin.reelsTabResumed(new Object(), ON);
+        TwoGrids two = new TwoGrids(profile);
+        two.grid = grid;
+        ReelOrigin.reelsTabResumed(two, ON);
+        idleSeconds(6);
+        assertTrue(shown.isEmpty());
+        assertEquals("a failure on the tab keeps the reel", REEL, ReelOrigin.heldForTests());
+
+        String missing = HookStatus.missing(FamilyNames.REEL_ORIGIN).toString();
+        assertTrue(missing, missing.contains("'" + ReelOrigin.OPENING + "'"));
+        assertTrue(missing, missing.contains("'" + ReelOrigin.RESUME + "'"));
+        assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+        assertTrue(missing, missing.contains(Object.class.getName() + "#getId"));
+        assertTrue(missing, missing.contains(Object.class.getName() + "#getActivity"));
+        assertTrue(missing, missing.contains(TwoGrids.class.getName() + "#" + ReelOrigin.GRID_TYPE + " (found 2)"));
+    }
+
+    /** Opens the profile's screen, which comes up right after the tap, with its Reels grid holding [reels]. */
+    private void openProfile(List<String> reels, Runnable atEnd) {
+        ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup();
+        controllers.add(controller);
+        profile = controller.get();
+        FrameLayout root = new FrameLayout(profile);
+        grid = new RecyclerView(profile);
+        grid.tiles = id -> {
+            Tile tile = new Tile(profile, shown);
+            made.add(tile);
+            return tile;
+        };
+        grid.atEnd = atEnd;
+        grid.reels.addAll(reels);
+        root.addView(grid, new FrameLayout.LayoutParams(1080, RecyclerView.ROW * RecyclerView.SHOWN_ROWS));
+        profile.setContentView(root);
+        grid.bind();
+        layout();
+    }
+
+    /** [count] reels by the author, none of them the one looked for, numbered down from [from]. */
+    private static List<String> reels(int count, int from) {
+        List<String> reels = new ArrayList<>();
+        for (int at = 0; at < count; at++) reels.add((from - at) + "_" + AUTHOR);
+        return reels;
+    }
+
+    /** The last tile made for [id]. */
+    private Tile tile(String id) {
+        for (int at = made.size() - 1; at >= 0; at--) {
+            if (id.equals(made.get(at).getTransitionName())) return made.get(at);
+        }
+        throw new AssertionError("no tile for " + id);
+    }
+
+    /** How many drawables sit on [view]'s overlay. */
+    private static int outlines(View view) {
+        Object group = ReflectionHelpers.getField(view.getOverlay(), "mOverlayViewGroup");
+        List<?> drawables = ReflectionHelpers.getField(group, "mDrawables");
+        return drawables == null ? 0 : drawables.size();
+    }
+
+    /** Lets [seconds] pass on the main thread, running what comes due. */
+    private static void idleSeconds(long seconds) {
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(seconds));
+    }
+
+    private void layout() {
+        ShadowLooper.idleMainLooper();
+        View decor = profile.getWindow().getDecorView();
+        decor.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
+        decor.layout(0, 0, 1080, 1920);
+    }
+}

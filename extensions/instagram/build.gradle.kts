@@ -673,6 +673,20 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.settings.ReelScrollingSettingsTest" to listOf(
                 "missingPatchHasNoReelScrollingSwitch[28]", "missingPatchHasNoReelScrollingSwitch[37]",
                 "reelScrollingSwitchStartsOffPersistsAndHonorsPause[28]", "reelScrollingSwitchStartsOffPersistsAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.reels.ReelOriginTest" to listOf(
+                "aReelOnTheFirstScreenIsShownAndOutlined[28]", "aReelOnTheFirstScreenIsShownAndOutlined[37]",
+                "aReelFurtherDownIsScrolledToAsPagesLoad[28]", "aReelFurtherDownIsScrolledToAsPagesLoad[37]",
+                "givesUpAfterItsStepsAndPutsTheGridBack[28]", "givesUpAfterItsStepsAndPutsTheGridBack[37]",
+                "givesUpWhenTheGridEnds[28]", "givesUpWhenTheGridEnds[37]",
+                "leavingTheTabFirstKeepsTheReelForNextTime[28]", "leavingTheTabFirstKeepsTheReelForNextTime[37]",
+                "onlyTheAuthorsProfileInItsOwnScreenLooks[28]", "onlyTheAuthorsProfileInItsOwnScreenLooks[37]",
+                "leavingTheProfileDropsTheReel[28]", "leavingTheProfileDropsTheReel[37]",
+                "offToStartOffPausedAndUnreadyHoldNothing[28]", "offToStartOffPausedAndUnreadyHoldNothing[37]",
+                "failuresHoldNothingAndAreReported[28]", "failuresHoldNothingAndAreReported[37]"),
+            "app.hushgram.extension.instagram.settings.ReelOriginSettingsTest" to listOf(
+                "missingPatchHasNoReelOriginSwitch[28]", "missingPatchHasNoReelOriginSwitch[37]",
+                "reelOriginAloneStillGetsReels[28]", "reelOriginAloneStillGetsReels[37]",
+                "reelOriginSwitchStartsOffLastUnderReelsAndHonorsPause[28]", "reelOriginSwitchStartsOffLastUnderReelsAndHonorsPause[37]"),
             "app.hushgram.extension.instagram.profile.FollowingListTest" to listOf(
                 "ownFollowingListMarksOnlyWhoDoesNotFollowBack[28]", "ownFollowingListMarksOnlyWhoDoesNotFollowBack[37]",
                 "aRowWithNoNameShowsTheMarkOnItsOwn[28]", "aRowWithNoNameShowsTheMarkOnItsOwn[37]",

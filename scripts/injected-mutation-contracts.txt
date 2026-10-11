@@ -1292,6 +1292,16 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in in
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onInterceptTouchEvent
 start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
+# Find the reel you came from hands the reel's media to ReelOrigin.opening first thing in the Reels
+# viewer's profile opener (07FC.A03 on 450, the one method holding the marker below), reading the media
+# field of its one argument into v0 on the way, and hands a profile's Reels tab to
+# ReelOrigin.reelsTabResumed first thing in the tab's onResume (ClipsProfileTabFragment, picked by its
+# marker). Left out, the switch does nothing. Twice or elsewhere, it isn't the hook the patch wrote.
+# NativeFindReelOriginTest checks on all seven 450 builds where each lands.
+start-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->opening(Ljava/lang/Object;)V in instance (L*;)Z holding android_purge_26_q3_AuthorInfoNavigator_navigateToNormalProfile
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->opening(Ljava/lang/Object;)V in instance (L*;)Z holding android_purge_26_q3_AuthorInfoNavigator_navigateToNormalProfile
+start-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->reelsTabResumed(Ljava/lang/Object;)V in instance ()V holding android_purge_26_q2_ClipsProfileTabFragment_onResume
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->reelsTabResumed(Ljava/lang/Object;)V in instance ()V holding android_purge_26_q2_ClipsProfileTabFragment_onResume
 # Blur the bars around Reels hands ReelBlurBars.pager the Reels pager (AndroidX's ViewPager2, whose pages
 # each hold the reel's TextureView) right after the viewer's onViewCreated stores it, the same method
 # Stop Reels scrolling finds by the trace name of the pager's setup. Left out, the switch does nothing;
