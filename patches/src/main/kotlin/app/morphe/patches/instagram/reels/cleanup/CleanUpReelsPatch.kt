@@ -42,10 +42,11 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 private const val PATCH = "Clean up Reels"
 
 /**
- * Takes six things off the Reels viewer, each behind its own switch: the Follow button beside a
+ * Takes seven things off the Reels viewer, each behind its own switch: the Follow button beside a
  * reel's author, the pills that prompt you to make something or promote something, and friends'
  * activity with the comment preview, and the Add comment bar under a reel opened from a profile's
- * reposts, and the same bar under every reel, the Reels tab's included, and the Reels tab's top bar.
+ * reposts, and the same bar under every reel, the Reels tab's included, the Save button in a reel's
+ * button column, and the Reels tab's top bar.
  * The patch is in the default selection and every switch starts off. Friends' activity covers the
  * floating bubbles and the Liked by or Followed by line with its faces. See ReelParts.kt for each
  * part.
@@ -61,7 +62,7 @@ private const val PATCH = "Clean up Reels"
 val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
     description = "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban " +
-        "Meta glasses, friends' activity, the Add a comment bar and the Reels tab's top bar. Each one has its own " +
+        "Meta glasses, friends' activity, the Add a comment bar, the Save button and the Reels tab's top bar. Each one has its own " +
         "switch. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")
@@ -101,9 +102,13 @@ internal fun BytecodePatchContext.hideReelParts() {
     }
 
     val methods = REEL_PARTS.associateWith { holding(it.marker) }
+    val saves = SAVE_PARTS.associateWith { holding(it.marker) }
     val bubbles = holding(FLOATING_BUBBLES)
     val socialContext = holding(SOCIAL_CONTEXT_CHECK)
     methods.forEach { (part, method) -> requireShape(part, method) }
+    saves.forEach { (part, method) -> requireSaveShape(part, method) }
+    val everyMethod = (methods.values + saves.values + bubbles + socialContext).map { "${it.definingClass}->${it.name}" }
+    if (everyMethod.toSet().size != everyMethod.size) throw PatchException("$PATCH: two parts are held by one method: $everyMethod")
     val renders = methods.filterKeys { !it.check }.values
     val shapes = renders.map { it.parameterTypes.single().toString() to it.returnType }.toSet()
     if (shapes.size != 1) throw PatchException("$PATCH: the renders don't share one shape: $shapes")
@@ -111,7 +116,7 @@ internal fun BytecodePatchContext.hideReelParts() {
     val line = socialContextType(socialContext)
     val bar = commentBar(holding(COMMENT_BAR_SHOW), holding(COMMENT_BAR_HIDE), holding(COMMENT_BAR_CREATED), holding(COMMENT_BAR_UNVANISH))
 
-    methods.forEach { (part, found) ->
+    (methods + saves).forEach { (part, found) ->
         val method = mutable(found)
         method.requireLocals(PATCH, 1)
         val answer = if (part.check) "return v0" else "return-object v0"
@@ -427,6 +432,21 @@ private fun BytecodePatchContext.hideFriendsSocialContext(found: Method, line: S
         """,
         ExternalLabel("check", method.getInstruction(0)),
     )
+}
+
+/**
+ * The Save button's and the save count's builders are private instance methods of the clips UFI
+ * taking the component scope and two longs, and answering the component or nothing.
+ */
+private fun requireSaveShape(part: ReelPart, method: Method) {
+    val types = method.parameterTypes.map { it.toString() }
+    val problem = when {
+        method.implementation == null -> "has no body"
+        AccessFlags.STATIC.isSet(method.accessFlags) || types.size != 3 || types[1] != "J" || types[2] != "J" ||
+            !method.returnType.startsWith("L") -> "is not a builder taking a scope and two longs and answering a component"
+        else -> null
+    } ?: return
+    throw PatchException("$PATCH: ${method.definingClass}->${method.name}, holding the ${part.marker} marker, $problem")
 }
 
 /** A render takes one component scope and answers an object; the check is static and answers a boolean. */

@@ -11,6 +11,8 @@ internal const val HIDE_FOLLOW_BUTTON = "$DECLUTTER->hideFollowButton()Z"
 internal const val HIDE_CHIPS = "$DECLUTTER->hideChips()Z"
 internal const val HIDE_SOCIAL_FOOTER = "$DECLUTTER->hideSocialFooter()Z"
 internal const val HIDE_EVERY_COMMENT_BAR = "$DECLUTTER->hideEveryCommentBar()Z"
+internal const val HIDE_SAVE_BUTTON = "$DECLUTTER->hideSaveButton()Z"
+internal const val HIDE_SAVE_COUNT = "$DECLUTTER->hideSaveCount()Z"
 internal const val HIDE_COMMENT_BAR = "$DECLUTTER->hideCommentBar(Ljava/lang/Object;)Z"
 
 /**
@@ -62,6 +64,18 @@ internal val SOCIAL_PARTS = listOf(
  */
 internal val COMMENT_BAR_PARTS = listOf(ReelPart("ClipsViewerInViewerCommentBarComponent_render", HIDE_EVERY_COMMENT_BAR))
 
+/**
+ * The Save button in a reel's right-hand button column, and the save count under it. On Instagram
+ * 450 the reel's button column (the clips UFI) builds each button in a method of its own that answers
+ * nothing when the reel has none, and the column adds only what it's handed, so an empty answer
+ * closes up with no gap. They are not renders: each takes the component scope and two colors (a
+ * long each) and is an instance method. A feed post's Save button is another component.
+ */
+internal val SAVE_PARTS = listOf(
+    ReelPart("ClipsUfiComponent_maybeCreateSaveButtonComponent", HIDE_SAVE_BUTTON),
+    ReelPart("ClipsUfiComponent_maybeCreateSaveCountComponent", HIDE_SAVE_COUNT),
+)
+
 internal val REEL_PARTS = FOLLOW_PARTS + CHIP_PARTS + SOCIAL_PARTS + COMMENT_BAR_PARTS
 
 internal const val HIDE_SOCIAL_CONTEXT = "$DECLUTTER->hideSocialContext(Ljava/lang/Object;)Z"
@@ -97,5 +111,5 @@ internal const val COMMENT_BAR_UNVANISH = "ClipsViewerCommentBarController_unVan
 /** Where the viewer was opened from, an enum that keeps its name, which the controller holds. */
 internal const val CLIPS_VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
 
-internal val CLEANUP_MARKERS = REEL_PARTS.map { it.marker } + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
+internal val CLEANUP_MARKERS = REEL_PARTS.map { it.marker } + SAVE_PARTS.map { it.marker } + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
     COMMENT_BAR_SHOW + COMMENT_BAR_HIDE + COMMENT_BAR_CREATED + COMMENT_BAR_UNVANISH

@@ -355,6 +355,16 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentB
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentBar(Ljava/lang/Object;)Z holding android_purge_26_q2_ClipsViewerCommentBarController_unVanishCommentBar
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideEveryCommentBar()Z holding android_purge_26_q3_ClipsViewerInViewerCommentBarComponent_render
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideEveryCommentBar()Z holding android_purge_26_q3_ClipsViewerInViewerCommentBarComponent_render
+# Hide the Save button on reels asks hideSaveButton() first thing in the clips UFI method that builds
+# the reel Save button, and hideSaveCount() first thing in the one that builds the save count under
+# it. Both are private instance methods of the one clips UFI class taking the component scope and two
+# longs, and each is the only caller of its hook, so start-call and once-call. The marker names the
+# method on all seven 450 builds, and the shape keeps a sibling that holds no such marker out. A feed
+# post draws its Save button in another class and is not touched.
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveButton()Z in instance (L*;JJ)L*; holding android_purge_26_q2_ClipsUfiComponent_maybeCreateSaveButtonComponent
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveButton()Z in instance (L*;JJ)L*; holding android_purge_26_q2_ClipsUfiComponent_maybeCreateSaveButtonComponent
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveCount()Z in instance (L*;JJ)L*; holding android_purge_26_q2_ClipsUfiComponent_maybeCreateSaveCountComponent
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveCount()Z in instance (L*;JJ)L*; holding android_purge_26_q2_ClipsUfiComponent_maybeCreateSaveCountComponent
 #
 # Sanitize sharing links passes the link each of Instagram's two share link parsers reads through
 # the extension, once, before the parser stores it: the permalink parser for a post or reel and the

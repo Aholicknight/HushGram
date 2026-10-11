@@ -1022,6 +1022,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reels_top_bar", FALSE);
 
     /**
+     * The Save (bookmark) button in the right-hand column of a reel, and the save count under it
+     * when Instagram draws one. Feed posts keep theirs. Off to start.
+     */
+    public static final BooleanSetting HIDE_REEL_SAVE_BUTTON =
+            new BooleanSetting("hushgram_hide_reel_save_button", FALSE);
+
+    /**
      * Download in every reel's more menu, saving the reel through the save pipeline below instead
      * of Instagram's own save, which only some reels offer and which stamps a watermark on.
      */

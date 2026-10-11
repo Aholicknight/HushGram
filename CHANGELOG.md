@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Clean up Reels:** New switch under Reels, Hide the Save button on reels, off by default. It takes the Save button, and the count under it, out of the column of buttons beside a reel, and the other buttons close up with no gap. It works on the Reels tab and on reels you open from Explore or a profile. Posts in your feed keep their Save button.
+
 * **Instagram - Download any video:** New switch under Downloads, Hold to download, off by default. Hold two fingers still on a feed post's picture or video, or on a reel, for a second and it saves what's under them through the same Download the menu has. You can pick three fingers and half a second or a second and a half instead. Instagram's one-finger long press stays as it was. It needs Download feed videos or Download feed photos on, and Download on reels for reels.
 
 * **Instagram - HushGram settings:** Settings entry has a new switch, Open settings with a long press on your profile's menu. Turn it on and pressing and holding the menu button (the three lines at the top right of your own profile) opens HushGram, while a tap still opens Instagram's menu. It's off by default, and other people's profiles don't change. Asked for in #84.

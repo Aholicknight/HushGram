@@ -45,6 +45,11 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *       the switch for all reels on, it answers yes for every source.
  *   <li>{@link #hideEveryCommentBar} first thing in the render of the in-viewer comment bar
  *       component, the bar Instagram 450 draws under reels in the Reels tab.
+ *   <li>{@link #hideSaveButton} and {@link #hideSaveCount} first thing in the two methods of the
+ *       reel's button column that build the Save button and the save count under it. Each answers
+ *       nothing when the hook says to hide, which Instagram's own "maybe create" methods do
+ *       whenever a reel has no such button, so the column closes up with no gap. The Save button
+ *       of a feed post is another component and stays.
  * </ul>
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with a switch
@@ -80,6 +85,10 @@ public final class ReelDeclutter {
     /** Where a viewer of reposted reels is opened from, as Instagram 450's ClipsViewerSource names it. */
     static final Set<String> REPOSTS = new HashSet<>(Arrays.asList("REPOSTS_GRID", "SELF_REPOSTS_GRID"));
 
+    /** Diagnostics counts, fixed text. */
+    static final String COUNT_SAVE_HIDDEN = "reel Save buttons hidden";
+    static final String COUNT_SAVE_COUNT_HIDDEN = "reel save counts hidden";
+
     /** The line types the debug log has named, each once a run. */
     private static final Set<String> LOGGED = Collections.synchronizedSet(new HashSet<>());
 
@@ -99,6 +108,20 @@ public final class ReelDeclutter {
     /** True leaves friends' activity and the comment preview out. Never throws. */
     public static boolean hideSocialFooter() {
         return hide(Settings.HIDE_REEL_SOCIAL_FOOTER, "friends' activity");
+    }
+
+    /** True leaves the Save button out of a reel's button column. Never throws. */
+    public static boolean hideSaveButton() {
+        boolean hide = hide(Settings.HIDE_REEL_SAVE_BUTTON, "Save button");
+        if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_SAVE_HIDDEN);
+        return hide;
+    }
+
+    /** True leaves the save count under a reel's Save button out. Never throws. */
+    public static boolean hideSaveCount() {
+        boolean hide = hide(Settings.HIDE_REEL_SAVE_BUTTON, "save count");
+        if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_SAVE_COUNT_HIDDEN);
+        return hide;
     }
 
     /**
