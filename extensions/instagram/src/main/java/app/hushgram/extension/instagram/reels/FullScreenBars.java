@@ -32,6 +32,7 @@ import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * Helper for the "Full screen Reels and Home" patch: hides the status bar and the navigation bar
@@ -54,8 +55,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * stays), or on Android 11 and newer every bar it hid, with the window's own swipe behaviour back.
  *
  * <p>The check runs from a draw listener at most every {@link #CHECK_MS}, and acts only when the
- * answer changes, so a swipe that brought the bars back for a moment isn't fought. Anything that
- * throws leaves the bars as the system has them.
+ * answer changes, so a swipe that brought the bars back for a moment isn't fought. With both switches
+ * off and nothing hidden, a frame looks at nothing and leaves no check behind it, and a paused
+ * HushGram watches no activity at all. Anything that throws leaves the bars as the system has them.
  */
 public final class FullScreenBars {
     static final String TAB_BAR = "tab_bar";
@@ -168,6 +170,11 @@ public final class FullScreenBars {
         return screen == Screen.HOME && Settings.FULL_SCREEN_HOME.get();
     }
 
+    /** Whether either switch is on, so some screen may want the bars hidden. */
+    static boolean eitherOn() {
+        return Settings.FULL_SCREEN_REELS.get() || Settings.FULL_SCREEN_HOME.get();
+    }
+
     /** Tests give the names ids of their own, since a test app has none of Instagram's. */
     static void idForTests(String name, int id) {
         synchronized (IDS) {
@@ -197,7 +204,8 @@ public final class FullScreenBars {
 
     static void track(Activity activity) {
         try {
-            if (!Utils.settingsReady() || sessions.containsKey(activity)) return;
+            // Paused, both switches read off for the whole process, so no screen would ever hide a bar.
+            if (!Utils.settingsReady() || HushgramPause.isPaused() || sessions.containsKey(activity)) return;
             Window window = activity.getWindow();
             if (window == null) return;
             Session session = new Session(activity);
@@ -265,9 +273,15 @@ public final class FullScreenBars {
             return hidden;
         }
 
+        /** Whether a look is waiting on the main thread for a quiet moment after the last frame, for tests. */
+        boolean checkQueued() {
+            return queued;
+        }
+
         void stop() {
             stopped = true;
             handler.removeCallbacks(check);
+            queued = false;
             Activity found = activity.get();
             if (found != null) {
                 ViewTreeObserver observer = found.getWindow().getDecorView().getViewTreeObserver();
@@ -281,6 +295,9 @@ public final class FullScreenBars {
 
         @Override public boolean onPreDraw() {
             if (stopped || queued) return true;
+            // Both switches off and nothing hidden: nothing to look for, and no look left waiting
+            // after the frame. A switch turned on is seen at the next frame.
+            if (!hidden && !eitherOn()) return true;
             long since = SystemClock.uptimeMillis() - lastCheck;
             if (since >= CHECK_MS) {
                 evaluate();
@@ -309,7 +326,7 @@ public final class FullScreenBars {
             if (stopped) return;
             try {
                 Activity found = activity.get();
-                if (found == null || !Utils.settingsReady()) return;
+                if (found == null || !Utils.settingsReady() || (!hidden && !eitherOn())) return;
                 View decor = found.getWindow().getDecorView();
                 boolean want = wanted(screenOf(decor));
                 if (want && !hidden) hide(found.getWindow(), decor);
