@@ -38,6 +38,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class HideReelsSuggestionsHookTest {
     private val converter = "Lfixture/Converter;"
@@ -120,36 +121,45 @@ class HideReelsSuggestionsHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val converters = FixtureDex.classesHolding(bundle, TO_CLIPS_ITEM)
-                val dispatches = FixtureDex.classesHolding(bundle, FRIENDS_TO_FOLLOW)
-                val itemType = converters.flatMap { it.methods }.single { method -> method.code().any { it.string() == TO_CLIPS_ITEM } }.returnType
-                val itemClass = FixtureDex.classes(bundle, setOf(itemType)).values
-                val fieldTypes = itemClass.flatMap { it.fields }.map { it.type }.filter { it.startsWith("L") }.toSet()
-                val kinds = FixtureDex.classes(bundle, fieldTypes).values
-                val context = PatchContexts.of((converters + dispatches + itemClass + kinds).distinctBy { it.type })
-
-                context.hide()
-
-                val written = converters.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
-                    .filter { method -> method.code().any { it.referenceText() in hooks } }
-                assertEquals("${bundle.name}: methods hooked", 1, written.size)
-                val method = written.single()
-                assertTrue("${bundle.name}: the converter", method.code().any { it.string() == TO_CLIPS_ITEM })
-                assertEveryReturnFiltered(bundle.name, method, itemType)
-                val code = method.code()
-                val asked = code.indexOfFirst { it.referenceText() == NETEGO_FILTER }
-                val made = code[asked - 4]
-                assertEquals("${bundle.name}: what the netego hook follows", Opcode.MOVE_RESULT_OBJECT, made.opcode)
-                val call = code[asked - 5].reference() as MethodReference
-                assertEquals("${bundle.name}: the call that made the netego item", itemType, call.returnType)
-                assertNetegoAsked(
-                    bundle.name, method,
-                    unitRegister = code[asked - 5].arguments().first(), itemRegister = (made as OneRegisterInstruction).registerA,
-                )
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildFiltersEveryReturnToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val converters = FixtureDex.classesHolding(bundle, TO_CLIPS_ITEM)
+        val dispatches = FixtureDex.classesHolding(bundle, FRIENDS_TO_FOLLOW)
+        val itemType = converters.flatMap { it.methods }.single { method -> method.code().any { it.string() == TO_CLIPS_ITEM } }.returnType
+        val itemClass = FixtureDex.classes(bundle, setOf(itemType)).values
+        val fieldTypes = itemClass.flatMap { it.fields }.map { it.type }.filter { it.startsWith("L") }.toSet()
+        val kinds = FixtureDex.classes(bundle, fieldTypes).values
+        val context = PatchContexts.of((converters + dispatches + itemClass + kinds).distinctBy { it.type })
+
+        context.hide()
+
+        val written = converters.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
+            .filter { method -> method.code().any { it.referenceText() in hooks } }
+        assertEquals("${label}: methods hooked", 1, written.size)
+        val method = written.single()
+        assertTrue("${label}: the converter", method.code().any { it.string() == TO_CLIPS_ITEM })
+        assertEveryReturnFiltered(label, method, itemType)
+        val code = method.code()
+        val asked = code.indexOfFirst { it.referenceText() == NETEGO_FILTER }
+        val made = code[asked - 4]
+        assertEquals("${label}: what the netego hook follows", Opcode.MOVE_RESULT_OBJECT, made.opcode)
+        val call = code[asked - 5].reference() as MethodReference
+        assertEquals("${label}: the call that made the netego item", itemType, call.returnType)
+        assertNetegoAsked(
+            label, method,
+            unitRegister = code[asked - 5].arguments().first(), itemRegister = (made as OneRegisterInstruction).registerA,
+        )
     }
 
     /**

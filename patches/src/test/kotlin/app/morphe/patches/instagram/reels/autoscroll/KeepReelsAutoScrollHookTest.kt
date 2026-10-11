@@ -40,6 +40,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /** The markers, after Instagram's release prefix, of 449's two methods reading the memory besides the check. */
 private const val PLAYBACK_STATE = "VideoPlaybackUseCase_getUiState"
@@ -274,107 +275,116 @@ class KeepReelsAutoScrollHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val found = mutableMapOf<String, ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (dex.stringSection.none { it == AUTOSCROLL_PREFERENCE || it == AUTOSCROLL_EXPIRATION ||
-                        it.endsWith("_$IS_AUTOSCROLL_ACTIVE") || it.endsWith("_$AUTOSCROLL_MODE_CLICK") || it.endsWith("_$AUTOSCROLL_DURATION_TAP") }) {
-                        return@forEach
-                    }
-                    for (classDef in dex.classes) {
-                        val wanted = classDef.methods.any { method ->
-                            method.markers().any { it == IS_AUTOSCROLL_ACTIVE || it == AUTOSCROLL_MODE_CLICK || it == AUTOSCROLL_DURATION_TAP } ||
-                                (method.name == "<clinit>" && method.code().any { it.string() in listOf(AUTOSCROLL_PREFERENCE, AUTOSCROLL_EXPIRATION) })
-                        }
-                        if (wanted) found[classDef.type] = ImmutableClassDef.of(classDef)
-                    }
-                }
-                val preferenceClass = found.values.single { type -> type.methods.any { m -> m.name == "<clinit>" && m.code().any { it.string() == AUTOSCROLL_PREFERENCE } } }
-                val getter = preferenceClass.methods.single { AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" && it.parameterTypes.size == 1 }
-                val setter = preferenceClass.methods.single {
-                    AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
-                        it.parameterTypes.map(CharSequence::toString) == listOf(getter.parameterTypes.single().toString(), "Z")
-                }
-                val plugin = found.values.single { type -> type.methods.any { m -> IS_AUTOSCROLL_ACTIVE in m.markers() } }
-                val checkMethod = plugin.methods.single { IS_AUTOSCROLL_ACTIVE in it.markers() }
-                val memory = checkMethod.code().single { it.opcode == Opcode.IGET_BOOLEAN }.reference() as FieldReference
-                val memoryText = memory.toString()
-                val timerClass = found.values.single { type -> type.methods.any { m -> m.name == "<clinit>" && m.code().any { it.string() == AUTOSCROLL_EXPIRATION } } }
-                val expirationSetter = timerClass.methods.single { it.name != "<clinit>" }
-                val boxingHelper = expirationSetter.code().mapNotNull { it.reference() as? MethodReference }.last()
-                found.putAll(FixtureDex.classes(bundle, setOf(boxingHelper.definingClass)))
-                // The timer's and the preference's state: the static fields the preference class
-                // keeps, and those of the same types the check reads from the timer's class.
-                val descriptorTypes = preferenceClass.staticFields.map { it.type }.toSet()
-                val stateClasses = checkMethod.code().filter { it.opcode == Opcode.SGET_OBJECT }.map { it.reference() as FieldReference }
-                    .filter { it.type in descriptorTypes }.map { it.definingClass }.toSet() + preferenceClass.type
-                assertEquals("${bundle.name}: the timer's and the preference's classes", 2, stateClasses.size)
-                val stateReaders = mutableSetOf<String>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        var wanted = classDef.type == memory.definingClass
-                        for (method in classDef.methods) {
-                            for (instruction in method.code()) {
-                                if (instruction.calls(setter) || instruction.referenceText() == memoryText) wanted = true
-                                val field = instruction.reference() as? FieldReference ?: continue
-                                if (instruction.opcode.setsRegister() && field.definingClass in stateClasses && classDef.type !in stateClasses) {
-                                    stateReaders += method.text()
-                                }
-                            }
-                        }
-                        if (wanted && classDef.type !in found) found[classDef.type] = ImmutableClassDef.of(classDef)
-                    }
-                }
-                assertEquals("${bundle.name}: what reads the timer or the preference besides their own classes", setOf(checkMethod.text()), stateReaders)
-                val context = PatchContexts.of(FixtureDex.withStringPools(bundle, found.values) + ExtensionDex.classDef(SETTINGS_STATUS))
-                val sites = context.findReelAutoScroll()
-                assertEquals("${bundle.name}: the getter", "${getter.definingClass}->${getter.name}", "${sites.getter.definingClass}->${sites.getter.name}")
-
-                keepReelsAutoScrollPatch.execute(context)
-
-                val check = context.mutableClassDefBy(plugin.type).methods.single { IS_AUTOSCROLL_ACTIVE in it.markers() }
-                assertEveryReturnAnswered("${bundle.name}: the check", check, returns = null)
-                val checkCode = check.code()
-                assertTrue("${bundle.name}: no branch in the check lands on a return's answer",
-                    checkCode.indices.filter { checkCode[it].opcode == Opcode.RETURN }.any { it - 2 in check.jumpTargets() })
-                assertTrue("${bundle.name}: the check still reads the getter", checkCode.any { it.calls(getter) })
-                assertEveryReturnAnswered("${bundle.name}: the getter", context.method(getter), returns = 1, filter = AUTO_SCROLL_SAVED)
-                val click = context.mutableClassDefBy(plugin.type).methods.single { AUTOSCROLL_MODE_CLICK in it.markers() }
-                assertChoiceFirst(bundle.name, click)
-                assertChoiceKept(bundle.name, click, setter.text(), memoryText)
-                val callback = found.values.flatMap { it.methods.toList() }.single { AUTOSCROLL_DURATION_TAP in it.markers() && it.code().any { code -> code.calls(expirationSetter) } }
-                assertTimerChoices(context.method(callback), expirationSetter.text())
-                assertEquals("${bundle.name}: native expiration setter is unchanged", expirationSetter.code().map { Triple(it.opcode, it.referenceText(), it.arguments()) },
-                    context.method(expirationSetter).code().map { Triple(it.opcode, it.referenceText(), it.arguments()) })
-                val cancellation = found.values.flatMap { it.methods.toList() }.single { AUTOSCROLL_DURATION_TAP in it.markers() && it.text() != callback.text() }
-                assertEquals("${bundle.name}: cancellation is unchanged", cancellation.code().map { Triple(it.opcode, it.referenceText(), it.arguments()) },
-                    context.method(cancellation).code().map { Triple(it.opcode, it.referenceText(), it.arguments()) })
-
-                val readers = found.values.flatMap { type -> type.methods.filter { m -> m.code().any { it.referenceText() == memoryText && it.opcode.setsRegister() } } }
-                assertTrue("${bundle.name}: the check reads the memory", readers.any { it.text() == checkMethod.text() })
-                val outside = readers.filter { it.text() != checkMethod.text() }
-                val known = listOf(PIP_ON_CREATE, PLAYBACK_STATE)
-                assertEquals("${bundle.name}: what reads the memory besides the check", known, outside.map { m -> known.single { it in m.markers() } }.sorted())
-                outside.forEach { assertMemoryReadsAnswered("${bundle.name}: ${it.text()}", context.method(it), memoryText, reads = 1) }
-                assertEquals("${bundle.name}: reads answered", outside.map { "${it.definingClass}->${it.name}" }.sorted(),
-                    sites.memoryReads.map { "${it.method.definingClass}->${it.method.name}" }.sorted())
-                val resets = found.values.flatMap { type -> type.methods.filter { m -> m.code().any { it.referenceText() == memoryText && !it.opcode.setsRegister() } } }
-                    .filter { it.text() != click.text() }
-                assertTrue("${bundle.name}: Instagram resets the memory somewhere", resets.isNotEmpty())
-                resets.forEach { reset ->
-                    assertEquals("${bundle.name}: ${reset.text()} resets the memory and isn't changed", 0, context.method(reset).code().count { it.referenceText() in hooks })
-                }
-
-                val savers = found.values.flatMap { type -> type.methods.filter { m -> m.code().any { it.calls(setter) } }.map { type to it } }
-                assertEquals("${bundle.name}: the setter's callers", 3, savers.size)
-                val (_, toggle) = savers.single { (type, _) -> type.fields.any { it.type == MAIN_ACTIVITY } }
-                assertEquals("${bundle.name}: the long-press action", sites.toggle.toString(), "${toggle.definingClass}->${toggle.name}()")
-                assertChoiceAfterSave(bundle.name, context.method(toggle), setter.text())
-                val (_, pause) = savers.single { (_, method) -> method.name == "onPause" }
-                assertEquals("${bundle.name}: onPause isn't hooked", 0, context.method(pause).code().count { it.referenceText() in hooks })
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildKeepsAutoScrollToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val found = mutableMapOf<String, ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.stringSection.none { it == AUTOSCROLL_PREFERENCE || it == AUTOSCROLL_EXPIRATION ||
+                it.endsWith("_$IS_AUTOSCROLL_ACTIVE") || it.endsWith("_$AUTOSCROLL_MODE_CLICK") || it.endsWith("_$AUTOSCROLL_DURATION_TAP") }) {
+                return@forEach
+            }
+            for (classDef in dex.classes) {
+                val wanted = classDef.methods.any { method ->
+                    method.markers().any { it == IS_AUTOSCROLL_ACTIVE || it == AUTOSCROLL_MODE_CLICK || it == AUTOSCROLL_DURATION_TAP } ||
+                        (method.name == "<clinit>" && method.code().any { it.string() in listOf(AUTOSCROLL_PREFERENCE, AUTOSCROLL_EXPIRATION) })
+                }
+                if (wanted) found[classDef.type] = ImmutableClassDef.of(classDef)
+            }
+        }
+        val preferenceClass = found.values.single { type -> type.methods.any { m -> m.name == "<clinit>" && m.code().any { it.string() == AUTOSCROLL_PREFERENCE } } }
+        val getter = preferenceClass.methods.single { AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" && it.parameterTypes.size == 1 }
+        val setter = preferenceClass.methods.single {
+            AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
+                it.parameterTypes.map(CharSequence::toString) == listOf(getter.parameterTypes.single().toString(), "Z")
+        }
+        val plugin = found.values.single { type -> type.methods.any { m -> IS_AUTOSCROLL_ACTIVE in m.markers() } }
+        val checkMethod = plugin.methods.single { IS_AUTOSCROLL_ACTIVE in it.markers() }
+        val memory = checkMethod.code().single { it.opcode == Opcode.IGET_BOOLEAN }.reference() as FieldReference
+        val memoryText = memory.toString()
+        val timerClass = found.values.single { type -> type.methods.any { m -> m.name == "<clinit>" && m.code().any { it.string() == AUTOSCROLL_EXPIRATION } } }
+        val expirationSetter = timerClass.methods.single { it.name != "<clinit>" }
+        val boxingHelper = expirationSetter.code().mapNotNull { it.reference() as? MethodReference }.last()
+        found.putAll(FixtureDex.classes(bundle, setOf(boxingHelper.definingClass)))
+        // The timer's and the preference's state: the static fields the preference class
+        // keeps, and those of the same types the check reads from the timer's class.
+        val descriptorTypes = preferenceClass.staticFields.map { it.type }.toSet()
+        val stateClasses = checkMethod.code().filter { it.opcode == Opcode.SGET_OBJECT }.map { it.reference() as FieldReference }
+            .filter { it.type in descriptorTypes }.map { it.definingClass }.toSet() + preferenceClass.type
+        assertEquals("${label}: the timer's and the preference's classes", 2, stateClasses.size)
+        val stateReaders = mutableSetOf<String>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                var wanted = classDef.type == memory.definingClass
+                for (method in classDef.methods) {
+                    for (instruction in method.code()) {
+                        if (instruction.calls(setter) || instruction.referenceText() == memoryText) wanted = true
+                        val field = instruction.reference() as? FieldReference ?: continue
+                        if (instruction.opcode.setsRegister() && field.definingClass in stateClasses && classDef.type !in stateClasses) {
+                            stateReaders += method.text()
+                        }
+                    }
+                }
+                if (wanted && classDef.type !in found) found[classDef.type] = ImmutableClassDef.of(classDef)
+            }
+        }
+        assertEquals("${label}: what reads the timer or the preference besides their own classes", setOf(checkMethod.text()), stateReaders)
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, found.values) + ExtensionDex.classDef(SETTINGS_STATUS))
+        val sites = context.findReelAutoScroll()
+        assertEquals("${label}: the getter", "${getter.definingClass}->${getter.name}", "${sites.getter.definingClass}->${sites.getter.name}")
+
+        keepReelsAutoScrollPatch.execute(context)
+
+        val check = context.mutableClassDefBy(plugin.type).methods.single { IS_AUTOSCROLL_ACTIVE in it.markers() }
+        assertEveryReturnAnswered("${label}: the check", check, returns = null)
+        val checkCode = check.code()
+        assertTrue("${label}: no branch in the check lands on a return's answer",
+            checkCode.indices.filter { checkCode[it].opcode == Opcode.RETURN }.any { it - 2 in check.jumpTargets() })
+        assertTrue("${label}: the check still reads the getter", checkCode.any { it.calls(getter) })
+        assertEveryReturnAnswered("${label}: the getter", context.method(getter), returns = 1, filter = AUTO_SCROLL_SAVED)
+        val click = context.mutableClassDefBy(plugin.type).methods.single { AUTOSCROLL_MODE_CLICK in it.markers() }
+        assertChoiceFirst(label, click)
+        assertChoiceKept(label, click, setter.text(), memoryText)
+        val callback = found.values.flatMap { it.methods.toList() }.single { AUTOSCROLL_DURATION_TAP in it.markers() && it.code().any { code -> code.calls(expirationSetter) } }
+        assertTimerChoices(context.method(callback), expirationSetter.text())
+        assertEquals("${label}: native expiration setter is unchanged", expirationSetter.code().map { Triple(it.opcode, it.referenceText(), it.arguments()) },
+            context.method(expirationSetter).code().map { Triple(it.opcode, it.referenceText(), it.arguments()) })
+        val cancellation = found.values.flatMap { it.methods.toList() }.single { AUTOSCROLL_DURATION_TAP in it.markers() && it.text() != callback.text() }
+        assertEquals("${label}: cancellation is unchanged", cancellation.code().map { Triple(it.opcode, it.referenceText(), it.arguments()) },
+            context.method(cancellation).code().map { Triple(it.opcode, it.referenceText(), it.arguments()) })
+
+        val readers = found.values.flatMap { type -> type.methods.filter { m -> m.code().any { it.referenceText() == memoryText && it.opcode.setsRegister() } } }
+        assertTrue("${label}: the check reads the memory", readers.any { it.text() == checkMethod.text() })
+        val outside = readers.filter { it.text() != checkMethod.text() }
+        val known = listOf(PIP_ON_CREATE, PLAYBACK_STATE)
+        assertEquals("${label}: what reads the memory besides the check", known, outside.map { m -> known.single { it in m.markers() } }.sorted())
+        outside.forEach { assertMemoryReadsAnswered("${label}: ${it.text()}", context.method(it), memoryText, reads = 1) }
+        assertEquals("${label}: reads answered", outside.map { "${it.definingClass}->${it.name}" }.sorted(),
+            sites.memoryReads.map { "${it.method.definingClass}->${it.method.name}" }.sorted())
+        val resets = found.values.flatMap { type -> type.methods.filter { m -> m.code().any { it.referenceText() == memoryText && !it.opcode.setsRegister() } } }
+            .filter { it.text() != click.text() }
+        assertTrue("${label}: Instagram resets the memory somewhere", resets.isNotEmpty())
+        resets.forEach { reset ->
+            assertEquals("${label}: ${reset.text()} resets the memory and isn't changed", 0, context.method(reset).code().count { it.referenceText() in hooks })
+        }
+
+        val savers = found.values.flatMap { type -> type.methods.filter { m -> m.code().any { it.calls(setter) } }.map { type to it } }
+        assertEquals("${label}: the setter's callers", 3, savers.size)
+        val (_, toggle) = savers.single { (type, _) -> type.fields.any { it.type == MAIN_ACTIVITY } }
+        assertEquals("${label}: the long-press action", sites.toggle.toString(), "${toggle.definingClass}->${toggle.name}()")
+        assertChoiceAfterSave(label, context.method(toggle), setter.text())
+        val (_, pause) = savers.single { (_, method) -> method.name == "onPause" }
+        assertEquals("${label}: onPause isn't hooked", 0, context.method(pause).code().count { it.referenceText() in hooks })
     }
 
     /**

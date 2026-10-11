@@ -37,6 +37,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class StopReelsScrollingHookTest {
     private val viewerType = "Lfixture/ReelsViewer;"
@@ -136,52 +137,61 @@ class StopReelsScrollingHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = (FixtureDex.classesHolding(bundle, PAGER_SETUP) + FixtureDex.classesHolding(bundle, ENABLE_SCROLLING))
-                    .map { it.type }.toSet()
-                val types = holders + VIEW_PAGER + PULL_LAYOUT
-                for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
-                    val what = "${bundle.name} ($read)"
-                    val classes = classesOf(bundle, types).values
-                    assertEquals("$what: the viewer, the pager, AndroidX's pager and the layout", types, classes.map { it.type }.toSet())
-                    val context = PatchContexts.of(classes)
-                    val originals = classes.flatMap { context.mutableClassDefBy(it.type).methods }
-                        .filter { it.implementation != null }.associateWith(::NeutralNativePath)
-
-                    context.stop()
-
-                    val asking = holders.flatMap { type ->
-                        context.mutableClassDefBy(type).methods.filter { method -> method.code().any { it.referenceText() == PAGER_HOOK } }
-                    }
-                    assertEquals("$what: methods asking about the pager", listOf("onViewCreated"), asking.map { it.name })
-                    val viewer = asking.single()
-                    val code = viewer.code()
-                    val ask = code.indexOfFirst { it.referenceText() == PAGER_HOOK }
-                    val store = code[ask - 1]
-                    assertEquals("$what: the store", Opcode.IPUT_OBJECT, store.opcode)
-                    assertEquals("$what: the pager's type", VIEW_PAGER, (store.reference() as FieldReference).type)
-                    val pager = (store as TwoRegisterInstruction).registerA
-                    val answer = (code[ask + 1] as OneRegisterInstruction).registerA
-                    assertPagerHeld(what, viewer, pager, answer, after = code[ask + 5].opcode)
-                    assertSetterAsks(what, context.setter(), self = context.setter().implementation!!.registerCount - 2)
-                    for (name in PULL_TOUCHES) {
-                        val touch = context.touch(name)
-                        assertPullAsks(what, touch, free = (touch.code()[1] as OneRegisterInstruction).registerA)
-                    }
-                    for ((method, original) in originals) {
-                        val added = method.code().indices.flatMap { at ->
-                            when (method.code()[at].referenceText()) {
-                                PAGER_HOOK, PULL_HOOK -> (at until at + 5).toList()
-                                USER_INPUT_HOOK -> (at until at + 2).toList()
-                                else -> emptyList()
-                            }
-                        }.toSet()
-                        original.assertPreserved("$what ${method.name}", method, added)
-                    }
-                }
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildHoldsItsReelsPagerToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = (FixtureDex.classesHolding(bundle, PAGER_SETUP) + FixtureDex.classesHolding(bundle, ENABLE_SCROLLING))
+            .map { it.type }.toSet()
+        val types = holders + VIEW_PAGER + PULL_LAYOUT
+        for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
+            val what = "${label} ($read)"
+            val classes = classesOf(bundle, types).values
+            assertEquals("$what: the viewer, the pager, AndroidX's pager and the layout", types, classes.map { it.type }.toSet())
+            val context = PatchContexts.of(classes)
+            val originals = classes.flatMap { context.mutableClassDefBy(it.type).methods }
+                .filter { it.implementation != null }.associateWith(::NeutralNativePath)
+
+            context.stop()
+
+            val asking = holders.flatMap { type ->
+                context.mutableClassDefBy(type).methods.filter { method -> method.code().any { it.referenceText() == PAGER_HOOK } }
+            }
+            assertEquals("$what: methods asking about the pager", listOf("onViewCreated"), asking.map { it.name })
+            val viewer = asking.single()
+            val code = viewer.code()
+            val ask = code.indexOfFirst { it.referenceText() == PAGER_HOOK }
+            val store = code[ask - 1]
+            assertEquals("$what: the store", Opcode.IPUT_OBJECT, store.opcode)
+            assertEquals("$what: the pager's type", VIEW_PAGER, (store.reference() as FieldReference).type)
+            val pager = (store as TwoRegisterInstruction).registerA
+            val answer = (code[ask + 1] as OneRegisterInstruction).registerA
+            assertPagerHeld(what, viewer, pager, answer, after = code[ask + 5].opcode)
+            assertSetterAsks(what, context.setter(), self = context.setter().implementation!!.registerCount - 2)
+            for (name in PULL_TOUCHES) {
+                val touch = context.touch(name)
+                assertPullAsks(what, touch, free = (touch.code()[1] as OneRegisterInstruction).registerA)
+            }
+            for ((method, original) in originals) {
+                val added = method.code().indices.flatMap { at ->
+                    when (method.code()[at].referenceText()) {
+                        PAGER_HOOK, PULL_HOOK -> (at until at + 5).toList()
+                        USER_INPUT_HOOK -> (at until at + 2).toList()
+                        else -> emptyList()
+                    }
+                }.toSet()
+                original.assertPreserved("$what ${method.name}", method, added)
+            }
+        }
     }
 
     /** After the store: the hook on the pager, its answer, a skip on 1, and the pager's input turned off with a 0. */

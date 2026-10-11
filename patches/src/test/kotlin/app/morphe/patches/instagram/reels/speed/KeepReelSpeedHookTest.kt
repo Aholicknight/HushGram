@@ -37,6 +37,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class KeepReelSpeedHookTest {
     private val controller = "Lfixture/ClipsVideoPlayerController;"
@@ -163,75 +164,84 @@ class KeepReelSpeedHookTest {
     @Test
     fun eachDeclaredBuildGetsEveryHook() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
-        val markers = setOf(SET_PLAYBACK_SPEED, MAYBE_RESUME_PLAYER, LOCK_UP_BEGIN, RESET, FAST_PLAY_NUX)
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    val holds = dex.stringSection.any { string ->
-                        string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in markers
-                    }
-                    if (!holds) return@forEach
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.markers().any { it in markers } }) holders += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val methods = holders.flatMap { it.methods }
-                val setter = methods.single { SET_PLAYBACK_SPEED in it.markers() }
-                val resume = methods.single { MAYBE_RESUME_PLAYER in it.markers() }
-                val playerType = setter.code().mapNotNull { it.methodRef() }.single { it.parameterTypes.map(Any::toString) == listOf("F") }.definingClass
-                val itemType = resume.parameterTypes.first().toString()
-                val extra = FixtureDex.classes(bundle, setOf(playerType, itemType)).values
-                val context = PatchContexts.of((holders + extra + ExtensionDex.classDef(REEL_SPEED)).distinctBy { it.type })
-
-                context.keepReelSpeed()
-
-                val name = bundle.name
-                val after = { method: Method -> context.method(method.definingClass, method.name, method.parameterTypes.map(Any::toString)) }
-                val newSetter = after(setter)
-                assertEquals("$name: the setter's first instruction", SPEED_SET, newSetter[0].referenceText())
-                assertEquals("$name: the setter grew", setter.code().size + 1, newSetter.size)
-
-                val newResume = after(resume)
-                val itemHook = newResume.indexOfFirst { it.referenceText() == ITEM }
-                assertEquals("$name: maybeResumePlayer grew", resume.code().size + 2, newResume.size)
-                assertEquals("$name: the player follows the reel", RESUMING, newResume[itemHook + 1].referenceText())
-                val playCall = newResume[itemHook + 2]
-                assertTrue("$name: the play call follows", playCall.methodRef()?.definingClass == playerType && playCall.methodRef()?.returnType == "Z")
-                assertEquals("$name: the player handed over is the one played", playCall.registers().first(), newResume[itemHook + 1].registers().single())
-
-                val holdBefore = methods.single { LOCK_UP_BEGIN in it.markers() }
-                val newHold = after(holdBefore)
-                assertEquals("$name: the hold handler grew", holdBefore.code().size + 2, newHold.size)
-                val begun = newHold.indexOfFirst { it.string()?.endsWith("_$LOCK_UP_BEGIN") == true }
-                assertEquals("$name: the lock hook", LOCKED_UP, newHold[begun + 1].referenceText())
-                val ended = newHold.indexOfFirst { it.string() == HOLD_ENDED_EVENT }
-                assertEquals("$name: the hold-end hook", HOLD_ENDED, newHold[ended + 1].referenceText())
-
-                val resetBefore = methods.single { RESET in it.markers() }
-                val newReset = after(resetBefore)
-                assertEquals("$name: the reset grew", resetBefore.code().size + 3, newReset.size)
-                val endMarker = newReset.indexOfFirst { it.string()?.endsWith("_$LOCK_UP_END") == true }
-                assertEquals("$name: the reason hook", LOCK_UP_ENDED, newReset[endMarker + 1].referenceText())
-                val reasonRegister = newReset[endMarker + 1].registers().single()
-                assertEquals(
-                    "$name: the reason handed over is the register the reasons go in",
-                    setOf(reasonRegister),
-                    newReset.filter { it.string() in LOCK_END_REASONS }.map { (it as OneRegisterInstruction).registerA }.toSet(),
-                )
-                val asked = newReset.indexOfFirst { it.referenceText() == RESET_SPEED }
-                assertEquals("$name: the speed asked for is the one the setter gets", newReset[asked + 2].registers()[2], newReset[asked].registers().single())
-                assertEquals("$name: the setter follows", setter.text(), newReset[asked + 2].methodRef()?.text())
-
-                val ad = context.method(REEL_SPEED, AD_ITEM_STUB)
-                assertEquals("$name: the ad flag is the reel's", itemType, (ad[1] as ReferenceInstruction).reference.let { (it as FieldReference).definingClass })
-                val speed = context.method(REEL_SPEED, SET_PLAYER_SPEED_STUB)
-                assertEquals("$name: the stub calls the player's setter", playerType, speed[1].methodRef()?.definingClass)
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildGetsEveryHookToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val markers = setOf(SET_PLAYBACK_SPEED, MAYBE_RESUME_PLAYER, LOCK_UP_BEGIN, RESET, FAST_PLAY_NUX)
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            val holds = dex.stringSection.any { string ->
+                string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in markers
+            }
+            if (!holds) return@forEach
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.markers().any { it in markers } }) holders += ImmutableClassDef.of(classDef)
+            }
+        }
+        val methods = holders.flatMap { it.methods }
+        val setter = methods.single { SET_PLAYBACK_SPEED in it.markers() }
+        val resume = methods.single { MAYBE_RESUME_PLAYER in it.markers() }
+        val playerType = setter.code().mapNotNull { it.methodRef() }.single { it.parameterTypes.map(Any::toString) == listOf("F") }.definingClass
+        val itemType = resume.parameterTypes.first().toString()
+        val extra = FixtureDex.classes(bundle, setOf(playerType, itemType)).values
+        val context = PatchContexts.of((holders + extra + ExtensionDex.classDef(REEL_SPEED)).distinctBy { it.type })
+
+        context.keepReelSpeed()
+
+        val name = label
+        val after = { method: Method -> context.method(method.definingClass, method.name, method.parameterTypes.map(Any::toString)) }
+        val newSetter = after(setter)
+        assertEquals("$name: the setter's first instruction", SPEED_SET, newSetter[0].referenceText())
+        assertEquals("$name: the setter grew", setter.code().size + 1, newSetter.size)
+
+        val newResume = after(resume)
+        val itemHook = newResume.indexOfFirst { it.referenceText() == ITEM }
+        assertEquals("$name: maybeResumePlayer grew", resume.code().size + 2, newResume.size)
+        assertEquals("$name: the player follows the reel", RESUMING, newResume[itemHook + 1].referenceText())
+        val playCall = newResume[itemHook + 2]
+        assertTrue("$name: the play call follows", playCall.methodRef()?.definingClass == playerType && playCall.methodRef()?.returnType == "Z")
+        assertEquals("$name: the player handed over is the one played", playCall.registers().first(), newResume[itemHook + 1].registers().single())
+
+        val holdBefore = methods.single { LOCK_UP_BEGIN in it.markers() }
+        val newHold = after(holdBefore)
+        assertEquals("$name: the hold handler grew", holdBefore.code().size + 2, newHold.size)
+        val begun = newHold.indexOfFirst { it.string()?.endsWith("_$LOCK_UP_BEGIN") == true }
+        assertEquals("$name: the lock hook", LOCKED_UP, newHold[begun + 1].referenceText())
+        val ended = newHold.indexOfFirst { it.string() == HOLD_ENDED_EVENT }
+        assertEquals("$name: the hold-end hook", HOLD_ENDED, newHold[ended + 1].referenceText())
+
+        val resetBefore = methods.single { RESET in it.markers() }
+        val newReset = after(resetBefore)
+        assertEquals("$name: the reset grew", resetBefore.code().size + 3, newReset.size)
+        val endMarker = newReset.indexOfFirst { it.string()?.endsWith("_$LOCK_UP_END") == true }
+        assertEquals("$name: the reason hook", LOCK_UP_ENDED, newReset[endMarker + 1].referenceText())
+        val reasonRegister = newReset[endMarker + 1].registers().single()
+        assertEquals(
+            "$name: the reason handed over is the register the reasons go in",
+            setOf(reasonRegister),
+            newReset.filter { it.string() in LOCK_END_REASONS }.map { (it as OneRegisterInstruction).registerA }.toSet(),
+        )
+        val asked = newReset.indexOfFirst { it.referenceText() == RESET_SPEED }
+        assertEquals("$name: the speed asked for is the one the setter gets", newReset[asked + 2].registers()[2], newReset[asked].registers().single())
+        assertEquals("$name: the setter follows", setter.text(), newReset[asked + 2].methodRef()?.text())
+
+        val ad = context.method(REEL_SPEED, AD_ITEM_STUB)
+        assertEquals("$name: the ad flag is the reel's", itemType, (ad[1] as ReferenceInstruction).reference.let { (it as FieldReference).definingClass })
+        val speed = context.method(REEL_SPEED, SET_PLAYER_SPEED_STUB)
+        assertEquals("$name: the stub calls the player's setter", playerType, speed[1].methodRef()?.definingClass)
     }
 
     // ---- stand-ins shaped like Instagram 449's -------------------------------------------------

@@ -30,6 +30,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /** Stop after 20 reels hears of every page the Reels pager lands on, from each store of its current page. */
 class ReelPagesHookTest {
@@ -112,38 +113,47 @@ class ReelPagesHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (dex.fieldSection.none { it.definingClass == VIEW_PAGER }) return@forEach
-                    for (classDef in dex.classes) {
-                        val writesPager = classDef.methods.any { method ->
-                            method.code().any { it.opcode == Opcode.IPUT && it.field()?.definingClass == VIEW_PAGER }
-                        }
-                        if (classDef.type == VIEW_PAGER || writesPager) classes += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val context = PatchContexts.of(classes)
-                val stores = context.findPageStores()
-                assertTrue("${bundle.name}: a store outside the pager", stores.any { it.type != VIEW_PAGER })
-                assertTrue("${bundle.name}: a store in the pager", stores.any { it.type == VIEW_PAGER })
-
-                context.reportPages(stores)
-
-                stores.groupBy { it.type to it.name }.forEach { (where, inMethod) ->
-                    val code = context.mutableClassDefBy(where.first).methods.filter { it.name == where.second }
-                        .single { method -> method.code().any { it.referenceText() == PAGE_HOOK } }.code()
-                    val hooks = code.withIndex().filter { it.value.referenceText() == PAGE_HOOK }
-                    assertEquals("${bundle.name}: ${where.first}->${where.second} hooks", inMethod.size, hooks.size)
-                    hooks.forEach { (index, hook) ->
-                        val store = code[index - 1] as TwoRegisterInstruction
-                        assertEquals("${bundle.name}: ${where.first}->${where.second} at $index", Opcode.IPUT, code[index - 1].opcode)
-                        assertHook(hook, store.registerB, store.registerA)
-                    }
-                }
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildReportsEveryStoreToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val classes = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.fieldSection.none { it.definingClass == VIEW_PAGER }) return@forEach
+            for (classDef in dex.classes) {
+                val writesPager = classDef.methods.any { method ->
+                    method.code().any { it.opcode == Opcode.IPUT && it.field()?.definingClass == VIEW_PAGER }
+                }
+                if (classDef.type == VIEW_PAGER || writesPager) classes += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(classes)
+        val stores = context.findPageStores()
+        assertTrue("${label}: a store outside the pager", stores.any { it.type != VIEW_PAGER })
+        assertTrue("${label}: a store in the pager", stores.any { it.type == VIEW_PAGER })
+
+        context.reportPages(stores)
+
+        stores.groupBy { it.type to it.name }.forEach { (where, inMethod) ->
+            val code = context.mutableClassDefBy(where.first).methods.filter { it.name == where.second }
+                .single { method -> method.code().any { it.referenceText() == PAGE_HOOK } }.code()
+            val hooks = code.withIndex().filter { it.value.referenceText() == PAGE_HOOK }
+            assertEquals("${label}: ${where.first}->${where.second} hooks", inMethod.size, hooks.size)
+            hooks.forEach { (index, hook) ->
+                val store = code[index - 1] as TwoRegisterInstruction
+                assertEquals("${label}: ${where.first}->${where.second} at $index", Opcode.IPUT, code[index - 1].opcode)
+                assertHook(hook, store.registerB, store.registerA)
+            }
+        }
     }
 
     private fun assertHook(instruction: Instruction, pager: Int, position: Int) {

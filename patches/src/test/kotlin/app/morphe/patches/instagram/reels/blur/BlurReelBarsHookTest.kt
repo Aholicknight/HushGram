@@ -39,6 +39,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class BlurReelBarsHookTest {
     private val viewerType = "Lfixture/ReelsViewer;"
@@ -115,39 +116,48 @@ class BlurReelBarsHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = (FixtureDex.classesHolding(bundle, PAGER_SETUP) + FixtureDex.classesHolding(bundle, ENABLE_SCROLLING))
-                    .map { it.type }.toSet()
-                val types = holders + VIEW_PAGER
-                for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
-                    val what = "${bundle.name} ($read)"
-                    val classes = classesOf(bundle, types).values
-                    assertEquals("$what: the viewer, the pager's owner and AndroidX's pager", types, classes.map { it.type }.toSet())
-                    val context = PatchContexts.of(classes)
-                    val originals = classes.flatMap { context.mutableClassDefBy(it.type).methods }
-                        .filter { it.implementation != null }.associateWith(::NeutralNativePath)
-
-                    context.blur()
-
-                    val asking = holders.flatMap { type ->
-                        context.mutableClassDefBy(type).methods.filter { method -> method.code().any { it.referenceText() == BLUR_PAGER_HOOK } }
-                    }
-                    assertEquals("$what: methods handing over the pager", listOf("onViewCreated"), asking.map { it.name })
-                    val viewer = asking.single()
-                    val code = viewer.code()
-                    val ask = code.indexOfFirst { it.referenceText() == BLUR_PAGER_HOOK }
-                    val store = code[ask - 1]
-                    assertEquals("$what: the store", Opcode.IPUT_OBJECT, store.opcode)
-                    assertEquals("$what: the pager's type", VIEW_PAGER, (store.reference() as FieldReference).type)
-                    assertHandedOver(what, viewer, (store as TwoRegisterInstruction).registerA)
-                    for ((method, original) in originals) {
-                        val added = method.code().indices.filter { method.code()[it].referenceText() == BLUR_PAGER_HOOK }.toSet()
-                        original.assertPreserved("$what ${method.name}", method, added)
-                    }
-                }
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildHoldsItsReelsPagerToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = (FixtureDex.classesHolding(bundle, PAGER_SETUP) + FixtureDex.classesHolding(bundle, ENABLE_SCROLLING))
+            .map { it.type }.toSet()
+        val types = holders + VIEW_PAGER
+        for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
+            val what = "${label} ($read)"
+            val classes = classesOf(bundle, types).values
+            assertEquals("$what: the viewer, the pager's owner and AndroidX's pager", types, classes.map { it.type }.toSet())
+            val context = PatchContexts.of(classes)
+            val originals = classes.flatMap { context.mutableClassDefBy(it.type).methods }
+                .filter { it.implementation != null }.associateWith(::NeutralNativePath)
+
+            context.blur()
+
+            val asking = holders.flatMap { type ->
+                context.mutableClassDefBy(type).methods.filter { method -> method.code().any { it.referenceText() == BLUR_PAGER_HOOK } }
+            }
+            assertEquals("$what: methods handing over the pager", listOf("onViewCreated"), asking.map { it.name })
+            val viewer = asking.single()
+            val code = viewer.code()
+            val ask = code.indexOfFirst { it.referenceText() == BLUR_PAGER_HOOK }
+            val store = code[ask - 1]
+            assertEquals("$what: the store", Opcode.IPUT_OBJECT, store.opcode)
+            assertEquals("$what: the pager's type", VIEW_PAGER, (store.reference() as FieldReference).type)
+            assertHandedOver(what, viewer, (store as TwoRegisterInstruction).registerA)
+            for ((method, original) in originals) {
+                val added = method.code().indices.filter { method.code()[it].referenceText() == BLUR_PAGER_HOOK }.toSet()
+                original.assertPreserved("$what ${method.name}", method, added)
+            }
+        }
     }
 
     /** One call of the hook, right after the pager's store, on the register that holds the pager, and no jump into it. */

@@ -41,6 +41,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class ReelSeekBarHookTest {
     /** The hooks the patch writes are in the ReelSeekBar the bundle ships, public and static. */
@@ -315,43 +316,52 @@ class ReelSeekBarHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.type == SEEK_BAR || classDef.type == APPCOMPAT_SEEK_BAR ||
-                            classDef.methods.any {
-                                it.loadsAny(ORGANIC_MIN_SECONDS, ORGANIC_LAZY) || it.holdsMarker() ||
-                                    it.holdsString(SCRUBBER_TAG) || it.returnType == SEEK_BAR
-                            }
-                        ) {
-                            holders += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val context = PatchContexts.of(holders)
-
-                val sites = context.findReelSeekBarSites()
-                assertEquals("${bundle.name}: reads of the minimum", 3, sites.lengths.size)
-                assertEquals("${bundle.name}: shared reads of the minimum", 2, sites.lengths.count { it.shared })
-                assertTrue("${bundle.name}: the hidden kind's read is shared", sites.lazy.shared)
-                context.applyReelSeekBar(sites)
-
-                for (load in sites.lengths) {
-                    assertAnsweredOnItsOwn(
-                        "${bundle.name} ${load.type}->${load.name}", context.method(load),
-                        ORGANIC_MIN_SECONDS, if (load.shared) AD_MIN_SECONDS else null, MIN_SECONDS,
-                    )
-                }
-                assertAnsweredOnItsOwn(
-                    "${bundle.name} ${sites.lazy.type}->${sites.lazy.name}", context.method(sites.lazy),
-                    ORGANIC_LAZY, AD_LAZY, LAZY,
-                )
-                assertProgressHookedFirst(bundle.name, context.method(SEEK_BAR, PROGRESS_CHANGED))
-                assertBindHookedAfterTheAdRead(bundle.name, context.method(sites.bind.method), context.method(sites.lazy))
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    @Test
+    fun eachOtherBuildKeepsTheSeekBarToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.type == SEEK_BAR || classDef.type == APPCOMPAT_SEEK_BAR ||
+                    classDef.methods.any {
+                        it.loadsAny(ORGANIC_MIN_SECONDS, ORGANIC_LAZY) || it.holdsMarker() ||
+                            it.holdsString(SCRUBBER_TAG) || it.returnType == SEEK_BAR
+                    }
+                ) {
+                    holders += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val context = PatchContexts.of(holders)
+
+        val sites = context.findReelSeekBarSites()
+        assertEquals("${label}: reads of the minimum", 3, sites.lengths.size)
+        assertEquals("${label}: shared reads of the minimum", 2, sites.lengths.count { it.shared })
+        assertTrue("${label}: the hidden kind's read is shared", sites.lazy.shared)
+        context.applyReelSeekBar(sites)
+
+        for (load in sites.lengths) {
+            assertAnsweredOnItsOwn(
+                "${label} ${load.type}->${load.name}", context.method(load),
+                ORGANIC_MIN_SECONDS, if (load.shared) AD_MIN_SECONDS else null, MIN_SECONDS,
+            )
+        }
+        assertAnsweredOnItsOwn(
+            "${label} ${sites.lazy.type}->${sites.lazy.name}", context.method(sites.lazy),
+            ORGANIC_LAZY, AD_LAZY, LAZY,
+        )
+        assertProgressHookedFirst(label, context.method(SEEK_BAR, PROGRESS_CHANGED))
+        assertBindHookedAfterTheAdRead(label, context.method(sites.bind.method), context.method(sites.lazy))
     }
 
     private fun Method.loadsAny(vararg flags: Long): Boolean = implementation?.instructions?.any {

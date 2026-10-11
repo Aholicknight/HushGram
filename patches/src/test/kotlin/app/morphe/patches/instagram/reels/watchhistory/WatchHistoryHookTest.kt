@@ -31,6 +31,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class WatchHistoryHookTest {
     private val batchType = "Lfixture/PendingClipsSeenState;"
@@ -94,33 +95,42 @@ class WatchHistoryHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (dex.stringSection.none { it == "clips/write_seen_state/" }) return@forEach
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.instructions().any { it.string() == "clips/write_seen_state/" } }) {
-                            holders += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val context = PatchContexts.of(holders)
-
-                context.holdBackWatchedReels()
-
-                val batch = holders.single { holder ->
-                    holder.methods.any { method -> method.instructions().any { it.string() == WATCHED_REELS_ERROR } }
-                }
-                val patched = context.mutableClassDefBy(batch.type)
-                for ((parameters, what) in RECORDS) {
-                    val before = batch.methods.single { it.recordParameters(batch.type) == parameters }
-                    val after = patched.methods.single { it.name == before.name && it.recordParameters(batch.type) == parameters }
-                    assertEquals("${bundle.name}: $what size", before.instructions().size + 4, after.instructions().size)
-                    assertGuardFirst("${bundle.name}: $what", after)
-                }
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildHoldsBackBothRecordsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.stringSection.none { it == "clips/write_seen_state/" }) return@forEach
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.instructions().any { it.string() == "clips/write_seen_state/" } }) {
+                    holders += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val context = PatchContexts.of(holders)
+
+        context.holdBackWatchedReels()
+
+        val batch = holders.single { holder ->
+            holder.methods.any { method -> method.instructions().any { it.string() == WATCHED_REELS_ERROR } }
+        }
+        val patched = context.mutableClassDefBy(batch.type)
+        for ((parameters, what) in RECORDS) {
+            val before = batch.methods.single { it.recordParameters(batch.type) == parameters }
+            val after = patched.methods.single { it.name == before.name && it.recordParameters(batch.type) == parameters }
+            assertEquals("${label}: $what size", before.instructions().size + 4, after.instructions().size)
+            assertGuardFirst("${label}: $what", after)
+        }
     }
 
     private fun assertGuardFirst(what: String, record: Method) {

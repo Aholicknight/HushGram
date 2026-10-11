@@ -35,6 +35,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class HideReelsTabHookTest {
     private val tab = "Lfixture/Tab;"
@@ -111,40 +112,49 @@ class HideReelsTabHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val enums = FixtureDex.classesHolding(bundle, REELS_MODULE).filter { it.superclass == "Ljava/lang/Enum;" }
-                val hosts = FixtureDex.classesHolding(bundle, TAB_HOST_STATE)
-                val builderTypes = hosts.flatMap { it.methods }.filter { it.name == "<init>" }.flatMap { it.code() }
-                    .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
-                    .filter { it.returnType == LIST && SESSION in it.parameterTypes.map(CharSequence::toString) }
-                    .map { it.definingClass }.toSet()
-                val builders = FixtureDex.classes(bundle, builderTypes).values
-                val context = PatchContexts.of((enums + hosts + builders).distinctBy { it.type })
-
-                context.hideReelsTab()
-
-                val tabType = enums.single { enum -> enum.methods.any { m -> m.name == "<clinit>" && m.code().any { it.string() == REELS } } }.type
-                val asked = { type: String, hook: String ->
-                    context.mutableClassDefBy(type).methods.filter { method -> method.code().any { it.referenceText() == hook } }
-                }
-                val listAsks = builders.flatMap { asked(it.type, SHOWN_TABS) }
-                assertEquals("${bundle.name}: one list builder asks", 1, listAsks.size)
-                assertListAsked("${bundle.name}: the list builder", listAsks.single())
-                val homeAsks = builders.flatMap { asked(it.type, TAB_TO_OPEN) }
-                assertEquals("${bundle.name}: one home tab asks", 1, homeAsks.size)
-                assertHomeAsked("${bundle.name}: the home tab", homeAsks.single(), tabType)
-                val switchAsks = hosts.flatMap { asked(it.type, TAB_TO_OPEN) }
-                assertEquals("${bundle.name}: one switch asks", 1, switchAsks.size)
-                val switch = switchAsks.single()
-                assertTrue("${bundle.name}: the switch reports", switch.code().any { it.string() == TAB_SWITCH_REPORT })
-                val tabParameter = switch.parameterTypes.indexOfFirst { it.toString() == tabType }
-                val register = switch.implementation!!.registerCount - switch.parameterTypes.sumOf { width(it.toString()) } +
-                    switch.parameterTypes.take(tabParameter).sumOf { width(it.toString()) }
-                assertSwitchAsked("${bundle.name}: the switch", switch, tabType, register)
-                assertPagerStartAsked("${bundle.name}: the switch", switch)
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildGetsAllThreeHooksToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val enums = FixtureDex.classesHolding(bundle, REELS_MODULE).filter { it.superclass == "Ljava/lang/Enum;" }
+        val hosts = FixtureDex.classesHolding(bundle, TAB_HOST_STATE)
+        val builderTypes = hosts.flatMap { it.methods }.filter { it.name == "<init>" }.flatMap { it.code() }
+            .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+            .filter { it.returnType == LIST && SESSION in it.parameterTypes.map(CharSequence::toString) }
+            .map { it.definingClass }.toSet()
+        val builders = FixtureDex.classes(bundle, builderTypes).values
+        val context = PatchContexts.of((enums + hosts + builders).distinctBy { it.type })
+
+        context.hideReelsTab()
+
+        val tabType = enums.single { enum -> enum.methods.any { m -> m.name == "<clinit>" && m.code().any { it.string() == REELS } } }.type
+        val asked = { type: String, hook: String ->
+            context.mutableClassDefBy(type).methods.filter { method -> method.code().any { it.referenceText() == hook } }
+        }
+        val listAsks = builders.flatMap { asked(it.type, SHOWN_TABS) }
+        assertEquals("${label}: one list builder asks", 1, listAsks.size)
+        assertListAsked("${label}: the list builder", listAsks.single())
+        val homeAsks = builders.flatMap { asked(it.type, TAB_TO_OPEN) }
+        assertEquals("${label}: one home tab asks", 1, homeAsks.size)
+        assertHomeAsked("${label}: the home tab", homeAsks.single(), tabType)
+        val switchAsks = hosts.flatMap { asked(it.type, TAB_TO_OPEN) }
+        assertEquals("${label}: one switch asks", 1, switchAsks.size)
+        val switch = switchAsks.single()
+        assertTrue("${label}: the switch reports", switch.code().any { it.string() == TAB_SWITCH_REPORT })
+        val tabParameter = switch.parameterTypes.indexOfFirst { it.toString() == tabType }
+        val register = switch.implementation!!.registerCount - switch.parameterTypes.sumOf { width(it.toString()) } +
+            switch.parameterTypes.take(tabParameter).sumOf { width(it.toString()) }
+        assertSwitchAsked("${label}: the switch", switch, tabType, register)
+        assertPagerStartAsked("${label}: the switch", switch)
     }
 
     /** The builder ends in the ask, its answer and the return of it, and a jump that went to the return now goes to the ask. */
