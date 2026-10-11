@@ -30,7 +30,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 
@@ -108,16 +107,16 @@ class BrowserMenuLinkTest {
 
     @Test
     fun eachOtherBuildCleansBothMenuAddressesToo() {
-        for (base in Fixtures.otherBuilds().filter { it.parentFile.name !in X86_BUILDS }) builds(base, base.parentFile.name)
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
     }
 
-    @Ignore("385611439 and 385611440 (x86, x86_64): the handler is found and both calls go in, but the copy-link helper answers V, not the Z the check expects")
-    @Test
-    fun theX86BuildsCleanBothMenuAddressesToo() {
-        for (base in Fixtures.otherBuilds().filter { it.parentFile.name in X86_BUILDS }) builds(base, base.parentFile.name)
-    }
-
-    private val X86_BUILDS = setOf("instagram-450.0.0.50.77-385611439", "instagram-450.0.0.50.77-385611440")
+    /**
+     * The builds whose clipboard helper answers nothing. It's the same ClipboardUtil copy(Context,
+     * String) everywhere, handing the text to the (Context, String, String)Z that calls
+     * setPrimaryClip, but 385611439 and 385611440 (x86, x86_64) are compiled with it void since no
+     * caller reads its answer, where every arm64 build keeps its Z. The handler drops it either way.
+     */
+    private val VOID_COPY_HELPER_BUILDS = setOf("instagram-450.0.0.50.77-385611439", "instagram-450.0.0.50.77-385611440")
 
     private fun builds(bundle: File, label: String) {
         val handlers = FixtureDex.classesHolding(bundle, BROWSER_SHARE_FAILURE)
@@ -149,7 +148,8 @@ class BrowserMenuLinkTest {
         assertTrue("${label}: Copy link's after its failure line", (share until copy).any { code[it].loads(BROWSER_COPY_FAILURE) })
         val helper = code[copy + 2]
         assertEquals(label, Opcode.INVOKE_STATIC, helper.opcode)
-        assertTrue("${label}: ${helper.reference()}", helper.reference().endsWith("(Landroid/content/Context;Ljava/lang/String;)Z"))
+        val answers = if (label in VOID_COPY_HELPER_BUILDS) "V" else "Z"
+        assertTrue("${label}: ${helper.reference()}", helper.reference().endsWith("(Landroid/content/Context;Ljava/lang/String;)$answers"))
         assertEquals("${label}: the copied text is the address", (code[copy] as RegisterRangeInstruction).startRegister, (helper as FiveRegisterInstruction).registerD)
         assertEquals(
             "${label}: the rest as it was",
