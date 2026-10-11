@@ -240,6 +240,8 @@ public class ReelTimerLifecycleTest {
         assertTrue("it kept looking while nothing drew: " + tab.asked, tab.asked <= 3);
         assertTrue(shown.isEmpty());
         assertEquals("still held for when the grid shows", REEL, ReelOrigin.heldForTests());
+        // One look waits for the next frame, so one frame listener is out for it.
+        int waiting = frameListeners(grid);
 
         // The grid coming on screen draws a frame, and the search goes on from there.
         grid.setVisibility(View.VISIBLE);
@@ -248,6 +250,7 @@ public class ReelTimerLifecycleTest {
         idleSeconds(2);
         assertEquals(List.of(REEL), shown);
         assertNull(ReelOrigin.heldForTests());
+        assertEquals("the waiting frame listener took itself off", waiting - 1, frameListeners(grid));
     }
 
     @Test public void aWaitingLookStopsWhenTheTabIsLeft() {
