@@ -15,6 +15,7 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.PatchLogCapture
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -37,7 +38,6 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 
@@ -303,17 +303,35 @@ class TapToPlayHookTest {
     /**
      * The Litho play button's click tells the extension right after it hands its start to
      * Instagram, with the click event, and a branch from the click's other cases to the instruction
-     * after that call still skips the hook.
+     * after that call still skips the hook. The start's call is the click's one static (Context, *,
+     * UserSession, Function0) call, the shape the patch takes it by, handed a Function0 the click
+     * read from a field. A merged click's other cases make static calls of their own that take a
+     * Context first (385611400 and 385611440 each have one well before the start's), so the first
+     * such call isn't the start's. Answers the call's index.
      */
-    private fun assertPlayButtonHooked(code: List<Instruction>, eventRegister: Int, what: String = "the play button's click") {
-        val call = code.indexOfFirst { it.opcode == Opcode.INVOKE_STATIC && it.referenceText()?.contains("(Landroid/content/Context;") == true }
-        assertTrue("$what: the start's call", call >= 0)
+    private fun assertPlayButtonHooked(code: List<Instruction>, eventRegister: Int, what: String = "the play button's click"): Int {
+        val calls = code.indices.filter { code[it].handsOverTheStart() }
+        assertEquals("$what: one call handing over the start", 1, calls.size)
+        val call = calls.single()
+        val start = code[call].namedRegisters().last()
+        val read = (call - 1 downTo 0).first { code[it].opcode.setsRegister() && (code[it] as? OneRegisterInstruction)?.registerA == start }
+        assertEquals("$what: the start handed over is read from a field", Opcode.IGET_OBJECT, code[read].opcode)
+        assertEquals("$what: the start is a Function0", function0, ((code[read] as ReferenceInstruction).reference as FieldReference).type)
         val hook = code[call + 1]
         assertEquals("$what: the hook right after the call", PLAY_BUTTON_TAPPED, hook.referenceText())
         assertEquals("$what: the click event", listOf(eventRegister, 1), (hook as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
         assertEquals("$what: one hook", 1, code.count { it.referenceText() == PLAY_BUTTON_TAPPED })
         code.indices.filter { code[it] is OffsetInstruction && code[it].opcode != Opcode.PACKED_SWITCH && code[it].opcode != Opcode.SPARSE_SWITCH }
             .forEach { assertTrue("$what: the branch at $it lands on the hook", code.target(it) != call + 1) }
+        return call
+    }
+
+    /** A static (Context, *, UserSession, Function0) call answering nothing, the data saver check handed the start. */
+    private fun Instruction.handsOverTheStart(): Boolean {
+        val called = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+        val parameters = called.parameterTypes.map(Any::toString)
+        return opcode == Opcode.INVOKE_STATIC && called.returnType == "V" && parameters.size == 4 &&
+            parameters[0] == "Landroid/content/Context;" && parameters[2] == session && parameters[3] == function0
     }
 
     /**
@@ -441,24 +459,8 @@ class TapToPlayHookTest {
     /** The same checks on every other build of the version, each compiled on its own. */
     @Test
     fun eachOtherBuildGatesItsPlayersToo() {
-        for (base in Fixtures.otherBuilds().filterNot { it.parentFile.name.substringAfterLast('-') in WITH_ANOTHER_FIRST_CONTEXT_CALL }) {
-            builds(base, base.parentFile.name)
-        }
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
     }
-
-    @Ignore(
-        "385611400, 385611440: the play button's click has an invoke-static taking a Context that the hook doesn't follow " +
-            "(an iget-object of the click's field comes right after it), so the check that the hook sits right after the click's first such call fails",
-    )
-    @Test
-    fun eachOtherBuildHooksThePlayButtonRightAfterItsStartToo() {
-        for (base in Fixtures.otherBuilds().filter { it.parentFile.name.substringAfterLast('-') in WITH_ANOTHER_FIRST_CONTEXT_CALL }) {
-            builds(base, base.parentFile.name)
-        }
-    }
-
-    /** Other 450 builds whose Litho play button's click starts with another invoke-static taking a Context. */
-    private val WITH_ANOTHER_FIRST_CONTEXT_CALL = setOf("385611400", "385611440")
 
     private fun builds(bundle: File, label: String) {
         // The Reels tap's navigator and controller, then the classes the controller's pause
@@ -539,7 +541,8 @@ class TapToPlayHookTest {
             filled(context, GROOT_OF, STORY_PLAYER_READER),
         )
         val click = hooks.playButton.method
-        assertPlayButtonHooked(after(click), click.implementation!!.registerCount - 1, "$label: the play button's click")
+        val call = assertPlayButtonHooked(after(click), click.implementation!!.registerCount - 1, "$label: the play button's click")
+        assertEquals("$label: the start's call is the one the patch found", hooks.playButton.call, call)
         val scroll = after(autoScroll.move)
         assertAutoScrollHooked(scroll, "$label: the auto scroll")
         assertEquals("$label: the hook is in front of the call found", moveCall.toString(), scroll[scroll.indexOfFirst { it.referenceText() == AUTO_SCROLLED } + 1].referenceText())
