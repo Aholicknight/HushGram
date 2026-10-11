@@ -19,6 +19,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -34,7 +35,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** The Home header hook: where the header's state takes its list of buttons, and the two stubs. */
+/** The Home header hook: where the header's state takes its list of buttons, and the stubs. */
 class HomeHeaderHookTest {
     private val extensionType = HEADER_BUTTONS.substringBefore("->")
 
@@ -51,7 +52,35 @@ class HomeHeaderHookTest {
         assertTrue("$GHOST_BUTTON is not in the extension: $ghost", GHOST_BUTTON.substringAfter("->") in ghost)
         assertTrue("the $HEADER_ICON_STUB stub is not in the extension: $declared", "$HEADER_ICON_STUB(Ljava/lang/Object;)I" in declared)
         assertTrue("the $HEADER_HEART_STUB stub is not in the extension: $declared", "$HEADER_HEART_STUB(Ljava/lang/Object;)I" in declared)
-        assertTrue("the $HEADER_ROW_STUB stub is not in the extension: $declared", "$HEADER_ROW_STUB(Ljava/lang/Object;)Ljava/lang/Object;" in declared)
+        for (stub in listOf(HEADER_ROW_STUB, HEADER_START_ROW_STUB, HEADER_TITLE_STUB)) {
+            assertTrue("the $stub stub is not in the extension: $declared", "$stub(Ljava/lang/Object;)Ljava/lang/Object;" in declared)
+        }
+    }
+
+    /**
+     * The start row is the other row the draw method gives a minimum width: a field read straight
+     * into the register widened counts, once, and a register written again in between doesn't.
+     */
+    @Test
+    fun theRowsTheHeaderWidensAreTheFieldsReadIntoTheWidenedRegister() {
+        val code = standCode(
+            """
+                iget-object v0, p0, $MAIN_FEED_ACTION_BAR->A0F:Landroid/widget/LinearLayout;
+                iget-object v1, p0, $MAIN_FEED_ACTION_BAR->A0G:Landroid/widget/LinearLayout;
+                iget-object v2, p0, $MAIN_FEED_ACTION_BAR->A0E:Landroid/widget/LinearLayout;
+                move-object v2, v0
+                const/4 v3, 0x0
+                invoke-virtual { v0, v3 }, Landroid/view/View;->setMinimumWidth(I)V
+                invoke-virtual { v1, v3 }, Landroid/view/View;->setMinimumWidth(I)V
+                invoke-virtual { v2, v3 }, Landroid/view/View;->setMinimumWidth(I)V
+                iget-object v2, p0, $MAIN_FEED_ACTION_BAR->A0E:Landroid/widget/LinearLayout;
+                invoke-virtual { v2, v3 }, Landroid/view/View;->setVisibility(I)V
+                invoke-virtual { v0, v3 }, Landroid/view/View;->setMinimumWidth(I)V
+                return-void
+            """,
+            registers = 5,
+        )
+        assertEquals(listOf("A0F", "A0G"), widenedRows(code).map { it.name })
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
@@ -73,7 +102,8 @@ class HomeHeaderHookTest {
     /**
      * In each of the seven 450 builds the header's state constructor is found, hands its list to the
      * extension first thing and keeps its own code after, the image button and the heart are two
-     * different types, and the stubs read the icon and ask for the heart.
+     * different types, the stubs read the icon and ask for the heart, and the row and title stubs
+     * read the end row, the start row and the title view the logo is centered with.
      */
     @Test
     fun everyBuildHandsTheHeadersListToTheExtension() {
@@ -135,27 +165,56 @@ class HomeHeaderHookTest {
             // The end row is the header's LinearLayout field the draw method adds the heart's view to,
             // and the row stub reads it out of the header after asking the header's type.
             assertTrue("$name: the end row ${hook.row}", hook.row.startsWith("$MAIN_FEED_ACTION_BAR->") && hook.row.endsWith(":Landroid/widget/LinearLayout;"))
-            val rowMethod = context.mutableClassDefBy(extensionType).methods.single { it.name == HEADER_ROW_STUB }
-            val row = rowMethod.code()
-            assertEquals(
-                "$name: row stub",
-                listOf(Opcode.INSTANCE_OF, Opcode.IF_EQZ, Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT, Opcode.CONST_4, Opcode.RETURN_OBJECT),
-                row.map { it.opcode },
-            )
-            assertEquals("$name: row stub type", MAIN_FEED_ACTION_BAR, (row[0].reference() as TypeReference).type)
-            assertEquals("$name: row stub cast", MAIN_FEED_ACTION_BAR, (row[2].reference() as TypeReference).type)
-            assertEquals("$name: row stub field", hook.row, row[3].referenceText())
-            // The stub's local never lands on the header's register, which it reads after instance-of writes.
-            val header = rowMethod.implementation!!.registerCount - 1
-            assertEquals("$name: the row stub has one local", 1, rowMethod.localRegisterCount())
-            assertNotEquals("$name: instance-of keeps off the header's register", header, (row[0] as OneRegisterInstruction).registerA)
-            assertEquals("$name: instance-of asks about the header", header, (row[0] as TwoRegisterInstruction).registerB)
-            assertEquals("$name: the cast is on the header", header, (row[2] as OneRegisterInstruction).registerA)
-            assertEquals("$name: the read is from the header", header, (row[3] as TwoRegisterInstruction).registerB)
-            assertNotEquals("$name: the read lands off the header's register", header, (row[3] as OneRegisterInstruction).registerA)
+            assertReadStub(context, name, HEADER_ROW_STUB, hook.row)
             val badgeAdds = hook.draw.code().count { it.opcode == Opcode.CHECK_CAST && (it.reference() as TypeReference).type == TOASTING_BADGE }
             assertTrue("$name: the draw method casts the heart's view", badgeAdds >= 1)
+
+            // The start row is the other LinearLayout the draw method gives a minimum width as
+            // Instagram's newer header centers its logo, and the title view is the header's one
+            // field of its type. Their stubs read them the way the end row's does.
+            assertTrue("$name: the start row ${hook.start}", hook.start.startsWith("$MAIN_FEED_ACTION_BAR->") && hook.start.endsWith(":Landroid/widget/LinearLayout;"))
+            assertNotEquals("$name: the start row isn't the end row", hook.row, hook.start)
+            assertEquals("$name: the rows the header widens", setOf(hook.row, hook.start), widenedRows(hook.draw.code()).map { it.toString() }.toSet())
+            assertEquals("$name: the title view", TITLE_VIEW, hook.title.substringAfterLast(':'))
+            assertTrue("$name: the title view ${hook.title}", hook.title.startsWith("$MAIN_FEED_ACTION_BAR->"))
+            assertReadStub(context, name, HEADER_START_ROW_STUB, hook.start)
+            assertReadStub(context, name, HEADER_TITLE_STUB, hook.title)
         }
+    }
+
+    /** The [stub] reads [field] out of the header after asking the header's type, and answers null for anything else. */
+    private fun assertReadStub(context: BytecodePatchContext, name: String, stub: String, field: String) {
+        val method = context.mutableClassDefBy(extensionType).methods.single { it.name == stub }
+        val code = method.code()
+        assertEquals(
+            "$name: $stub stub",
+            listOf(Opcode.INSTANCE_OF, Opcode.IF_EQZ, Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT, Opcode.CONST_4, Opcode.RETURN_OBJECT),
+            code.map { it.opcode },
+        )
+        assertEquals("$name: $stub stub type", MAIN_FEED_ACTION_BAR, (code[0].reference() as TypeReference).type)
+        assertEquals("$name: $stub stub cast", MAIN_FEED_ACTION_BAR, (code[2].reference() as TypeReference).type)
+        assertEquals("$name: $stub stub field", field, code[3].referenceText())
+        // The stub's local never lands on the header's register, which it reads after instance-of writes.
+        val header = method.implementation!!.registerCount - 1
+        assertEquals("$name: the $stub stub has one local", 1, method.localRegisterCount())
+        assertNotEquals("$name: $stub's instance-of keeps off the header's register", header, (code[0] as OneRegisterInstruction).registerA)
+        assertEquals("$name: $stub's instance-of asks about the header", header, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$name: $stub's cast is on the header", header, (code[2] as OneRegisterInstruction).registerA)
+        assertEquals("$name: $stub's read is from the header", header, (code[3] as TwoRegisterInstruction).registerB)
+        assertNotEquals("$name: $stub's read lands off the header's register", header, (code[3] as OneRegisterInstruction).registerA)
+        assertEquals("$name: the null answer", 0, (code[5] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("$name: $stub answers what it read", (code[3] as OneRegisterInstruction).registerA, (code[4] as OneRegisterInstruction).registerA)
+    }
+
+    private fun standCode(smali: String, registers: Int): List<Instruction> {
+        val mutable = MutableMethod(
+            ImmutableMethod(
+                MAIN_FEED_ACTION_BAR, "A08", emptyList(), "V", AccessFlags.PUBLIC.value, null, null,
+                ImmutableMethodImplementation(registers, emptyList(), null, null),
+            ),
+        )
+        mutable.addInstructionsWithLabels(0, smali)
+        return ImmutableMethod.of(mutable).code()
     }
 
     private fun stand(name: String, parameters: List<String>): Method {

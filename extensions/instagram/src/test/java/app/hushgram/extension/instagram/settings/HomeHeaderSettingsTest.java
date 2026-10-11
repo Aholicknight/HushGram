@@ -114,6 +114,26 @@ public class HomeHeaderSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SEARCH_BUTTON_ON_HOME.key));
     }
 
+    @Test public void theCenteredLogoSwitchShowsUnderTabBarWithTheReelsTabPatchAndStartsOff() throws Exception {
+        open();
+        assertNull(row(Settings.CENTER_HOME_LOGO.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.CENTER_HOME_LOGO.key));
+        controller.close();
+        controller = null;
+
+        open(PatchFamily.REELS_TAB);
+        SwitchPreference toggle = (SwitchPreference) row(Settings.CENTER_HOME_LOGO.key);
+        assertNotNull(toggle);
+        assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), toggle).getTitle()));
+        assertEquals("Center the logo on Home's header", String.valueOf(toggle.getTitle()));
+        assertTrue(String.valueOf(toggle.getSummary()), String.valueOf(toggle.getSummary()).startsWith("Puts Instagram's logo in the middle"));
+        assertFalse(toggle.isChecked());
+        assertEquals(Boolean.FALSE, Settings.CENTER_HOME_LOGO.defaultValue);
+        assertTrue(Settings.CENTER_HOME_LOGO.rebootApp);
+        assertTrue(PatchFamily.REELS_TAB.switches.contains(Settings.CENTER_HOME_LOGO));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CENTER_HOME_LOGO.key));
+    }
+
     @Test public void eachHeaderButtonHasASwitchUnderTabBarThatStartsOffAndAsksForARestart() throws Exception {
         open(PatchFamily.REELS_TAB);
         for (BooleanSetting setting : switches()) {
