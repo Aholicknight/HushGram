@@ -960,3 +960,8 @@ The PIN can't be recovered. To remove it, clear Instagram's storage in Android's
 Open app info	앱 정보 열기
 Hide 'Are you interested' questions	'이 게시물에 관심이 있으신가요?' 질문 숨기기
 Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	게시물 아래에 '이 게시물에 관심이 있으신가요?'라고 묻고 관심 없음과 관심 있음 버튼이 있는 말풍선을 숨깁니다. 대신 답해 주지는 않습니다.
+Show when someone was last active	마지막 활동 시간을 정확히 표시
+Under a name in your messages and in a chat, the exact time they were last on, like Active at 3:42 PM, replaces Active 3h ago. Active now stays as it is.	메시지 목록의 이름 아래와 채팅에서 3시간 전 활동 대신 오후 3:42에 활동처럼 마지막으로 활동한 정확한 시간을 보여줍니다. 지금 활동 중은 그대로입니다.
+Active at %1$s	%1$s에 활동
+Active yesterday at %1$s	어제 %1$s에 활동
+Active %1$s at %2$s	%1$s %2$s에 활동

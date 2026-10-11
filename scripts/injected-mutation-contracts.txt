@@ -491,6 +491,12 @@ shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Ob
 shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;J)Ljava/lang/String; in static (*)V holding com.instagram.comments.mvvm.view.compose.CommentAuthorHeader\s(CommentAuthorHeader.kt:77)
 shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance ()Ljava/lang/Object; holding LX/*;->*(Landroid/content/Context;J)Ljava/lang/String; LX/*;->*:Ljava/lang/Long;
 shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;J)Ljava/lang/String; in instance ()Ljava/lang/Object; holding LX/*;->*(Landroid/content/Context;J)Ljava/lang/String; LX/*;->*:Ljava/lang/Long;
+# Show when someone was last active asks LastActive.exact() with the time a person was last on, in the one
+# method that turns it into Active 5m ago, Active 3h ago or Active yesterday: an instance (Resources, List)
+# method answering a String, the one holding the eight hour and one week limits in minutes (0x1e0, 0x2760).
+# The call sits after the method's two Active now checks, which are why Active now stays Instagram's. Left
+# out, the text stays relative; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/direct/LastActive;->exact(J)Ljava/lang/String; in instance (Landroid/content/res/Resources;Ljava/util/List;)Ljava/lang/String; holding const:0x2760 const:0x1e0
 # Loop a story answers the read of Instagram's own story loop flag through loop(), right after it
 # in the story viewer's private check of whether a story item plays again. The check holds no
 # string, so the rule names one only the viewer holds, and of the viewer's instance methods taking

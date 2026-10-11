@@ -961,3 +961,8 @@ The PIN can't be recovered. To remove it, clear Instagram's storage in Android's
 Open app info	Abrir info de la app
 Hide 'Are you interested' questions	Ocultar las preguntas «¿Te interesa esta publicación?»
 Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	Oculta el globo bajo una publicación que pregunta «¿Te interesa esta publicación?» con los botones No me interesa y Me interesa. No se responde nada por ti.
+Show when someone was last active	Mostrar la hora exacta de la última actividad
+Under a name in your messages and in a chat, the exact time they were last on, like Active at 3:42 PM, replaces Active 3h ago. Active now stays as it is.	Bajo un nombre en tus mensajes y en un chat, la hora exacta de la última actividad, como Activo a las 15:42, reemplaza a Activo hace 3 h. Activo ahora se queda como está.
+Active at %1$s	Activo a las %1$s
+Active yesterday at %1$s	Activo ayer a las %1$s
+Active %1$s at %2$s	Activo el %1$s a las %2$s

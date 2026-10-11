@@ -296,6 +296,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_ACTIVE_STATUS = new BooleanSetting("hushgram_hide_active_status", FALSE);
 
     /**
+     * The exact time someone was last active in place of Instagram's "Active 3h ago", under their
+     * name in your messages and in a chat's header
+     * ({@link app.hushgram.extension.instagram.direct.LastActive}). Read each time Instagram writes
+     * that text. Off to start.
+     */
+    public static final BooleanSetting SHOW_LAST_ACTIVE = new BooleanSetting("hushgram_show_last_active", FALSE);
+
+    /**
      * Your inbox and chats stay covered until the phone's lock says it's you, and message
      * notifications say only that a message came
      * ({@link app.hushgram.extension.instagram.direct.MessagesLock}). Off to start.

@@ -153,6 +153,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Show when someone was last active patch. */
+    public static boolean lastActive() {
+        return false;
+    }
+
     public static boolean shareSheet() {
         return false;
     }

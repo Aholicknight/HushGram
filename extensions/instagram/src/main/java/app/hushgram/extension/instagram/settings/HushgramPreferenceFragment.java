@@ -623,6 +623,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 || build.contains(PatchFamily.INSTANTS)
                 || build.contains(PatchFamily.THREAD_SEEN) || build.contains(PatchFamily.TYPING)
                 || build.contains(PatchFamily.ACTIVE_STATUS)
+                || build.contains(PatchFamily.LAST_ACTIVE)
                 || build.contains(PatchFamily.MESSAGES_LOCK)
                 || build.contains(PatchFamily.SCREENSHOT_REPORTS)
                 || build.contains(PatchFamily.SCREENSHOT_BLOCK)
@@ -662,6 +663,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 messages.addPreference(toggle(context, Settings.HIDE_ACTIVE_STATUS, L10n.t("Hide your active status"),
                         L10n.t("People don't see Active now for you while you use Instagram, and you still see when "
                                 + "they're active. Restart Instagram to see the change.")));
+            }
+            if (build.contains(PatchFamily.LAST_ACTIVE)) {
+                messages.addPreference(toggle(context, Settings.SHOW_LAST_ACTIVE,
+                        L10n.t("Show when someone was last active"),
+                        L10n.t("Under a name in your messages and in a chat, the exact time they were last on, like "
+                                + "Active at 3:42 PM, replaces Active 3h ago. Active now stays as it is.")));
             }
             if (build.contains(PatchFamily.SCREENSHOT_REPORTS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_SCREENSHOTS, L10n.t("Don't report screenshots"),
