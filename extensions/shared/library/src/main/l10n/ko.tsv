@@ -771,6 +771,18 @@ Adds Download cover to the menu of a feed post with a video, and of a carousel s
 Download button on feed posts	피드 게시물 다운로드 버튼
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	게시물 아래 줄의 저장 왼쪽에 다운로드 아이콘을 넣어, 메뉴를 열지 않고 한 번 탭으로 저장합니다. 캐러셀에서는 이 페이지만 저장할지 모두 저장할지 묻습니다.
 Nothing to download on this post	이 게시물에는 다운로드할 항목이 없습니다
+# context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
+Hold to download	길게 눌러 다운로드
+Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	피드 게시물의 사진이나 동영상, 또는 릴스 위에 두 손가락을 가만히 대고 있으면 그 아래 항목이 메뉴의 다운로드와 똑같이 저장됩니다. Instagram의 한 손가락 길게 누르기는 그대로입니다. 피드 동영상 다운로드 메뉴 추가 또는 피드 사진 다운로드가 필요하며, 릴스에는 릴스 다운로드 메뉴 추가도 필요합니다.
+# context: Downloads list under Hold to download; how many fingers the hold takes
+Fingers	손가락 수
+# context: Downloads list under Hold to download; how long the fingers stay down before it saves
+Hold time	누르고 있는 시간
+Two fingers	두 손가락
+Three fingers	세 손가락
+Half a second	0.5초
+1 second	1초
+1.5 seconds	1.5초
 Use HushGram's setting names	HushGram 설정 이름 사용
 MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig에서 숫자 대신 HushGram이 가진 목록의 이름이 표시됩니다. 이 목록은 Instagram 447 기준이라 더 새로운 설정 몇 개는 계속 숫자로 보입니다. 가져온 목록이 있으면 그 목록이 대신 쓰입니다
 Import setting names	설정 이름 가져오기

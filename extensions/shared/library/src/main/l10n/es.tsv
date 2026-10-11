@@ -772,6 +772,18 @@ Adds Download cover to the menu of a feed post with a video, and of a carousel s
 Download button on feed posts	Botón de descarga en las publicaciones del feed
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	Pone un icono de descarga en la fila bajo una publicación, a la izquierda de Guardar, para que un toque la guarde sin abrir el menú. En un carrusel pregunta si quieres esta página o todas.
 Nothing to download on this post	No hay nada que descargar en esta publicación
+# context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
+Hold to download	Mantener para descargar
+Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	Mantén dos dedos quietos sobre la foto o el video de una publicación del feed, o sobre un reel, y se guarda lo que hay debajo, igual que Descargar en el menú. La pulsación larga de Instagram con un dedo sigue como estaba. Necesita Descargar videos del feed o Descargar fotos del feed, y Descargar en los reels para los reels.
+# context: Downloads list under Hold to download; how many fingers the hold takes
+Fingers	Dedos
+# context: Downloads list under Hold to download; how long the fingers stay down before it saves
+Hold time	Duración de la pulsación
+Two fingers	Dos dedos
+Three fingers	Tres dedos
+Half a second	Medio segundo
+1 second	1 segundo
+1.5 seconds	1,5 segundos
 Use HushGram's setting names	Usar los nombres de ajustes de HushGram
 MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig muestra nombres de la lista propia de HushGram en lugar de números. La lista viene de Instagram 447, así que unos pocos ajustes más nuevos siguen apareciendo como números. Una lista que importes se usa en su lugar.
 Import setting names	Importar nombres de ajustes

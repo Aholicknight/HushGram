@@ -772,6 +772,18 @@ Adds Download cover to the menu of a feed post with a video, and of a carousel s
 Download button on feed posts	Botão de download nas publicações do feed
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	Coloca um ícone de download na linha abaixo da publicação, à esquerda de Salvar, para que um toque a salve sem abrir o menu. Em um carrossel, ele pergunta se é só esta página ou todas.
 Nothing to download on this post	Nada para baixar nesta publicação
+# context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
+Hold to download	Segurar para baixar
+Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	Segure dois dedos parados sobre a foto ou o vídeo de uma publicação do feed, ou sobre um reel, e o que está embaixo deles é salvo, igual a Baixar no menu. O toque longo de um dedo do Instagram continua como era. Precisa de Baixar vídeos do feed ou Baixar fotos do feed, e de Baixar nos reels para reels.
+# context: Downloads list under Hold to download; how many fingers the hold takes
+Fingers	Dedos
+# context: Downloads list under Hold to download; how long the fingers stay down before it saves
+Hold time	Tempo segurando
+Two fingers	Dois dedos
+Three fingers	Três dedos
+Half a second	Meio segundo
+1 second	1 segundo
+1.5 seconds	1,5 segundo
 Use HushGram's setting names	Usar os nomes de configurações do HushGram
 MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	O MetaConfig mostra nomes da lista própria do HushGram no lugar dos números. A lista vem do Instagram 447, então algumas configurações mais novas continuam aparecendo como números. Uma lista que você importar é usada no lugar dela.
 Import setting names	Importar nomes de configurações

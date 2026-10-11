@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Download any video:** New switch under Downloads, Hold to download, off by default. Hold two fingers still on a feed post's picture or video, or on a reel, for a second and it saves what's under them through the same Download the menu has. You can pick three fingers and half a second or a second and a half instead. Instagram's one-finger long press stays as it was. It needs Download feed videos or Download feed photos on, and Download on reels for reels.
+
 * **Instagram - HushGram settings:** Settings entry has a new switch, Open settings with a long press on your profile's menu. Turn it on and pressing and holding the menu button (the three lines at the top right of your own profile) opens HushGram, while a tap still opens Instagram's menu. It's off by default, and other people's profiles don't change. Asked for in #84.
 
 * **Instagram - Hide the Reels tab:** New switch under Tab bar in HushGram settings, Center the logo on Home's header, off by default. It puts Instagram's logo in the middle of the top of Home without turning on the new tab bar and profile that come with Instagram's newer header, and keeps it there with Create or the heart hidden or with the Search or Ghost mode button added. A feed's name shown in its place is centered too. Asked for in #50.

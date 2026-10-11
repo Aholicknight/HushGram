@@ -13,6 +13,8 @@ import static app.hushgram.extension.shared.settings.Setting.parentsAny;
 
 import app.hushgram.extension.instagram.download.DownloadQuality;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
+import app.hushgram.extension.instagram.download.HoldFingers;
+import app.hushgram.extension.instagram.download.HoldTime;
 import app.hushgram.extension.instagram.download.SaveFolder;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
@@ -1282,6 +1284,24 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting FEED_DOWNLOAD_BUTTON =
             new BooleanSetting("hushgram_feed_download_button", FALSE, parentsAny(DOWNLOAD_VIDEOS, DOWNLOAD_PHOTOS));
+
+    /**
+     * Hold to download: two fingers (or three) held still on a feed post's picture or video, or on a reel,
+     * save what's under them with the same save as Download in the menu
+     * ({@link app.hushgram.extension.instagram.download.HoldDownload}). Instagram's one-finger long press
+     * stays its own. It waits for the video or the photo switch, as the feed's Download button does, and
+     * a reel also needs Download on reels. Starts off, so no touch is watched.
+     */
+    public static final BooleanSetting HOLD_TO_DOWNLOAD =
+            new BooleanSetting("hushgram_hold_to_download", FALSE, parentsAny(DOWNLOAD_VIDEOS, DOWNLOAD_PHOTOS));
+
+    /** Under {@link #HOLD_TO_DOWNLOAD}: how many fingers it waits for. Two to start. */
+    public static final EnumSetting<HoldFingers> HOLD_FINGERS =
+            new EnumSetting<>("hushgram_hold_fingers", HoldFingers.TWO, parent(HOLD_TO_DOWNLOAD));
+
+    /** Under {@link #HOLD_TO_DOWNLOAD}: how long the fingers stay down before it saves. A second to start. */
+    public static final EnumSetting<HoldTime> HOLD_TIME =
+            new EnumSetting<>("hushgram_hold_time", HoldTime.ONE_SECOND, parent(HOLD_TO_DOWNLOAD));
 
     /**
      * Videos, reels and stories start only after a tap: a player's start goes ahead when a tap has

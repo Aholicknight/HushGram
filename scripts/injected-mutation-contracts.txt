@@ -1492,6 +1492,15 @@ once-call Lapp/hushgram/extension/instagram/feed/LongPressZoom;->touch(Landroid/
 # Its gesture listener's long press, the one instance (float, float) void method writing the
 # helper's press time, asks once whether the zoom takes the press. Field names are pinned 450 data.
 once-call Lapp/hushgram/extension/instagram/feed/LongPressZoom;->press(Landroid/view/View;Ljava/lang/Object;)I in instance (FF)V holding LX/07AW;->A00:J
+# Hold to download (Download any video): the same feed media touch method hands its holder and every
+# touch to HoldDownload.feedTouch, right after Long press to zoom's call when that patch is in, so the
+# zoom's start-call keeps the first place and this one is held to one call there and none elsewhere.
+once-call Lapp/hushgram/extension/instagram/download/HoldDownload;->feedTouch(Ljava/lang/Object;Landroid/view/MotionEvent;)V in instance (Landroid/view/MotionEvent;)Z holding LX/07AW;->A08:Landroid/view/GestureDetector;
+# A reel's gesture detector hands itself, the view and every touch to HoldDownload.reelTouch first, in
+# its one instance (View, MotionEvent) boolean method holding the detector's touch marker. Left out,
+# a hold on a reel never saves; twice or elsewhere, it isn't the call the patch wrote.
+start-call Lapp/hushgram/extension/instagram/download/HoldDownload;->reelTouch(Ljava/lang/Object;Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/View;Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsItemGestureDetector_onTouch
+once-call Lapp/hushgram/extension/instagram/download/HoldDownload;->reelTouch(Ljava/lang/Object;Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/View;Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsItemGestureDetector_onTouch
 # Pure black dark mode paints the comments sheet (#108). The bottom sheet host's (Context, Fragment,
 # int) set-up method, the one method holding the host's kept name, hands the host and its screen to
 # CommentsSheet.paint before each of its two returns. Its public (int, int) drag method, the one

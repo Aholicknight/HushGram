@@ -91,6 +91,9 @@ public final class ConfigurationBackup {
         if (PatchFamily.VIDEO_DOWNLOAD.inBuild()) settings.put(Settings.DOWNLOAD_FEED_COVER.key, Settings.DOWNLOAD_FEED_COVER);
         if (PatchFamily.VIDEO_DOWNLOAD.inBuild()) {
             settings.put(Settings.FEED_DOWNLOAD_BUTTON.key, Settings.FEED_DOWNLOAD_BUTTON);
+            settings.put(Settings.HOLD_TO_DOWNLOAD.key, Settings.HOLD_TO_DOWNLOAD);
+            settings.put(Settings.HOLD_FINGERS.key, Settings.HOLD_FINGERS);
+            settings.put(Settings.HOLD_TIME.key, Settings.HOLD_TIME);
         }
         if (PatchFamily.REEL_DOWNLOAD.inBuild() || PatchFamily.VIDEO_DOWNLOAD.inBuild()) {
             settings.put(Settings.OPEN_IN_PLAYER.key, Settings.OPEN_IN_PLAYER);

@@ -772,6 +772,18 @@ Adds Download cover to the menu of a feed post with a video, and of a carousel s
 Download button on feed posts	Akış gönderilerinde indirme düğmesi
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	Bir gönderinin altındaki satıra, Kaydet'in soluna bir indirme simgesi koyar, böylece tek dokunuşla menüyü açmadan kaydedebilirsin. Karuselde yalnızca bu sayfayı mı yoksa hepsini mi istediğini sorar.
 Nothing to download on this post	Bu gönderide indirilecek bir şey yok
+# context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
+Hold to download	Basılı tutarak indir
+Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	Bir akış gönderisinin fotoğrafı ya da videosu veya bir reel üzerinde iki parmağınızı kıpırdatmadan tutun, altındaki şey menüdeki İndir ile aynı şekilde kaydedilir. Instagram'ın tek parmakla uzun basması olduğu gibi kalır. Akıştaki videoları indir veya Akıştaki fotoğrafları indir açık olmalı, reels için de Reels'te indir.
+# context: Downloads list under Hold to download; how many fingers the hold takes
+Fingers	Parmak sayısı
+# context: Downloads list under Hold to download; how long the fingers stay down before it saves
+Hold time	Basılı tutma süresi
+Two fingers	İki parmak
+Three fingers	Üç parmak
+Half a second	Yarım saniye
+1 second	1 saniye
+1.5 seconds	1,5 saniye
 Use HushGram's setting names	HushGram'ın ayar adlarını kullan
 MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig sayılar yerine HushGram'ın kendi listesindeki adları gösterir. Liste Instagram 447'den geldiği için daha yeni birkaç ayar yine sayı olarak görünür. İçe aktardığın bir liste varsa onun yerine o kullanılır.
 Import setting names	Ayar adlarını içe aktar

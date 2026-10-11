@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.function.BooleanSupplier;
 
+import app.hushgram.extension.instagram.download.HoldDownload;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -180,8 +181,10 @@ final class GlassScrollHide {
     static void install(Window window, GlassScrollHide hide) {
         Window.Callback inner = window.getCallback();
         if (inner == null) return;
-        if (Proxy.isProxyClass(inner.getClass()) && Proxy.getInvocationHandler(inner) instanceof Watcher) {
-            Watcher watcher = (Watcher) Proxy.getInvocationHandler(inner);
+        // Hold to download's watcher may have wrapped this one since, so it's looked through.
+        Window.Callback seen = HoldDownload.innerOf(inner);
+        if (seen != null && Proxy.isProxyClass(seen.getClass()) && Proxy.getInvocationHandler(seen) instanceof Watcher) {
+            Watcher watcher = (Watcher) Proxy.getInvocationHandler(seen);
             if (watcher.hide != hide) {
                 watcher.hide.restoreNow();
                 watcher.hide = hide;

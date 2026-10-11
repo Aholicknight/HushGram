@@ -145,6 +145,10 @@ private const val CAROUSEL_FIELD = "carousel_media"
  * as Download cover on a reel does. Open in another player is one more row of that kind, offered
  * after it, and Details, with its own switch, comes last.
  *
+ * Hold to download, with its own switch, hands every touch on a feed post's media frame and on a
+ * reel to the extension first ([addHoldToDownload]), which saves through the same Download when two
+ * fingers (or three) stay still on the post for the chosen time.
+ *
  * Everything is found before anything changes, so a build that differs stops the patch naming
  * what it couldn't find, and nothing is half done.
  */
@@ -152,10 +156,10 @@ private const val CAROUSEL_FIELD = "carousel_media"
 val downloadVideoPatch = bytecodePatch(
     name = "Download any video",
     description = "Adds Download to video posts in your feed, saving the video without Instagram's watermark. " +
-        "Other switches add Download for photos, Download cover and a Details row with the post's time and " +
-        "poster, and a download icon beside Save under each post. Download all waits its turn, with up to ten " +
-        "posts queued, so two posts' pages never mix in your gallery. Starts off. Turn it on in HushGram " +
-        "settings > Downloads.",
+        "Other switches add Download for photos, Download cover, a Details row with the post's time and " +
+        "poster, a download icon beside Save under each post, and Hold to download, which saves a post or reel " +
+        "you hold two fingers on. Download all waits its turn, with up to ten posts queued, so two posts' pages " +
+        "never mix in your gallery. Starts off. Turn it on in HushGram settings > Downloads.",
 ) {
     category("Downloads")
     dependsOn(settingsPatch)
@@ -167,8 +171,10 @@ val downloadVideoPatch = bytecodePatch(
         val page = offerDownloadOnEveryVideo()
         val button = findFeedButtonSite(page)
         val litho = findLithoSaveSite(button, page)
+        val hold = findHoldSites(page.index.definingClass)
         addFeedDownloadButton(button)
         addLithoDownloadButton(litho)
+        addHoldToDownload(hold)
         enableStatus("videoDownload")
     }
 }

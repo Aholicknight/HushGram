@@ -101,6 +101,8 @@ import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.StartTab;
 import app.hushgram.extension.instagram.reels.TabOrder;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
+import app.hushgram.extension.instagram.download.HoldFingers;
+import app.hushgram.extension.instagram.download.HoldTime;
 import app.hushgram.extension.instagram.download.SaveControl;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.download.SaveFolder;
@@ -1181,6 +1183,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 downloads.addPreference(toggle(context, Settings.FEED_DOWNLOAD_BUTTON, L10n.t("Download button on feed posts"),
                         L10n.t("Puts a download icon in the row under a post, left of Save, so one tap saves it without "
                                 + "opening the menu. On a carousel it asks for this page or all of them.")));
+                downloads.addPreference(toggle(context, Settings.HOLD_TO_DOWNLOAD, L10n.t("Hold to download"),
+                        L10n.t("Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's "
+                                + "under them, the same as Download in the menu. Instagram's one-finger long press stays as "
+                                + "it was. Needs Download feed videos or photos, and Download on reels for reels.")));
+                downloads.addPreference(holdFingersRow(context));
+                downloads.addPreference(holdTimeRow(context));
             }
             if (build.contains(PatchFamily.PROFILE_PICTURE)) {
                 downloads.addPreference(toggle(context, Settings.SAVE_PROFILE_PICTURES, L10n.t("Save profile picture"),
@@ -1508,6 +1516,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key));
+                    belongs |= family == PatchFamily.VIDEO_DOWNLOAD && (Settings.HOLD_TO_DOWNLOAD.key.equals(key)
+                            || Settings.HOLD_FINGERS.key.equals(key) || Settings.HOLD_TIME.key.equals(key));
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
@@ -3628,6 +3638,46 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** How many fingers Hold to download waits for. Its summary is the count chosen. */
+    static HoldFingersRow holdFingersRow(Context context) {
+        HoldFingersRow row = new HoldFingersRow(context);
+        row.setKey(Settings.HOLD_FINGERS.key);
+        row.setTitle(L10n.t("Fingers"));
+        row.setDialogTitle(L10n.t("Fingers"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        HoldFingers[] counts = HoldFingers.values();
+        CharSequence[] entries = new CharSequence[counts.length];
+        CharSequence[] values = new CharSequence[counts.length];
+        for (int i = 0; i < counts.length; i++) {
+            entries[i] = holdFingersLabel(counts[i]);
+            values[i] = counts[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.HOLD_FINGERS.savedValue().name());
+        return row;
+    }
+
+    /** How long Hold to download's fingers stay down. Its summary is the time chosen. */
+    static HoldTimeRow holdTimeRow(Context context) {
+        HoldTimeRow row = new HoldTimeRow(context);
+        row.setKey(Settings.HOLD_TIME.key);
+        row.setTitle(L10n.t("Hold time"));
+        row.setDialogTitle(L10n.t("Hold time"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        HoldTime[] times = HoldTime.values();
+        CharSequence[] entries = new CharSequence[times.length];
+        CharSequence[] values = new CharSequence[times.length];
+        for (int i = 0; i < times.length; i++) {
+            entries[i] = holdTimeLabel(times[i]);
+            values[i] = times[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.HOLD_TIME.savedValue().name());
+        return row;
+    }
+
     /** The row that opens the tab order list. Its summary names the order chosen. */
     private Row tabOrderRow(Context context) {
         Row row = new Row(context);
@@ -3793,6 +3843,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Tall");
             default:
                 return L10n.t("Standard");
+        }
+    }
+
+    /** What the list calls [count]. */
+    static String holdFingersLabel(HoldFingers count) {
+        return count == HoldFingers.THREE ? L10n.t("Three fingers") : L10n.t("Two fingers");
+    }
+
+    /** What the list calls [time]. */
+    static String holdTimeLabel(HoldTime time) {
+        switch (time) {
+            case HALF_SECOND:
+                return L10n.t("Half a second");
+            case ONE_AND_A_HALF_SECONDS:
+                return L10n.t("1.5 seconds");
+            default:
+                return L10n.t("1 second");
         }
     }
 
@@ -4960,6 +5027,70 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(value)) step = candidate;
             }
             setSummary(glassHeightLabel(step));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class HoldFingersRow extends ListPreference {
+        HoldFingersRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the count chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            HoldFingers count = HoldFingers.TWO;
+            for (HoldFingers candidate : HoldFingers.values()) {
+                if (candidate.name().equals(value)) count = candidate;
+            }
+            setSummary(holdFingersLabel(count));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class HoldTimeRow extends ListPreference {
+        HoldTimeRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the time chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            HoldTime time = HoldTime.ONE_SECOND;
+            for (HoldTime candidate : HoldTime.values()) {
+                if (candidate.name().equals(value)) time = candidate;
+            }
+            setSummary(holdTimeLabel(time));
         }
 
         @Override

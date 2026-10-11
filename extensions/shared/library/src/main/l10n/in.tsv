@@ -772,6 +772,18 @@ Adds Download cover to the menu of a feed post with a video, and of a carousel s
 Download button on feed posts	Tombol unduh di kiriman beranda
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	Menaruh ikon unduh di baris di bawah kiriman, di sebelah kiri Simpan, sehingga satu ketukan menyimpannya tanpa membuka menu. Pada carousel, ia menanyakan halaman ini saja atau semuanya.
 Nothing to download on this post	Tidak ada yang bisa diunduh di kiriman ini
+# context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
+Hold to download	Tahan untuk mengunduh
+Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	Tahan dua jari tanpa bergerak di foto atau video kiriman feed, atau di reel, dan yang ada di bawahnya disimpan, sama seperti Unduh di menu. Tekan lama dengan satu jari milik Instagram tetap seperti biasa. Perlu Unduh video feed atau Unduh foto feed, dan Unduh di reel untuk reel.
+# context: Downloads list under Hold to download; how many fingers the hold takes
+Fingers	Jari
+# context: Downloads list under Hold to download; how long the fingers stay down before it saves
+Hold time	Lama menahan
+Two fingers	Dua jari
+Three fingers	Tiga jari
+Half a second	Setengah detik
+1 second	1 detik
+1.5 seconds	1,5 detik
 Use HushGram's setting names	Gunakan nama pengaturan HushGram
 MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig menampilkan nama dari daftar bawaan HushGram sebagai pengganti angka. Daftar ini berasal dari Instagram 447, jadi beberapa pengaturan yang lebih baru tetap tampil sebagai angka. Daftar yang kamu impor dipakai sebagai gantinya.
 Import setting names	Impor nama pengaturan

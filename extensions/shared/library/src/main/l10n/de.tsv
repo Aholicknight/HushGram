@@ -772,6 +772,18 @@ Adds Download cover to the menu of a feed post with a video, and of a carousel s
 Download button on feed posts	Download-Button bei Feed-Beiträgen
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	Setzt ein Download-Symbol in die Zeile unter einem Beitrag, links von Speichern, damit ein Tippen ihn speichert, ohne das Menü zu öffnen. Bei einem Karussell fragt es, ob nur diese Seite oder alle gespeichert werden.
 Nothing to download on this post	In diesem Beitrag gibt es nichts herunterzuladen
+# context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
+Hold to download	Halten zum Herunterladen
+Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	Halte zwei Finger ruhig auf das Bild oder Video eines Feed-Beitrags oder auf ein Reel, und es wird gespeichert, was darunter liegt, genau wie mit Herunterladen im Menü. Instagrams langes Drücken mit einem Finger bleibt, wie es war. Braucht Feed-Videos herunterladen oder Feed-Fotos herunterladen, und für Reels Herunterladen bei Reels.
+# context: Downloads list under Hold to download; how many fingers the hold takes
+Fingers	Finger
+# context: Downloads list under Hold to download; how long the fingers stay down before it saves
+Hold time	Haltedauer
+Two fingers	Zwei Finger
+Three fingers	Drei Finger
+Half a second	Eine halbe Sekunde
+1 second	1 Sekunde
+1.5 seconds	1,5 Sekunden
 Use HushGram's setting names	HushGram-Einstellungsnamen verwenden
 MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig zeigt Namen aus der eigenen Liste von HushGram statt Nummern. Die Liste stammt von Instagram 447, deshalb erscheinen ein paar neuere Einstellungen weiterhin als Nummern. Eine importierte Liste wird stattdessen verwendet.
 Import setting names	Einstellungsnamen importieren
