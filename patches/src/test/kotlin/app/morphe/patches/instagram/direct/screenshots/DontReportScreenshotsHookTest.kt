@@ -32,6 +32,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Don't report screenshots: both of Instagram's screenshot detectors ask the extension first where
@@ -77,17 +78,27 @@ class DontReportScreenshotsHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = (FixtureDex.classesHolding(bundle, DETECTOR_SESSION) + FixtureDex.classesHolding(bundle, FOLDER_REPORT))
-                    .distinctBy { it.type }
-                val context = PatchContexts.of(classes)
-                val reports = context.findScreenshotReports()
-                assertTrue("${bundle.name}: the two hand-offs are in two detectors", reports[0].definingClass != reports[1].definingClass)
-                reports.forEach(::holdScreenshotReport)
-                assertHooked(bundle.name, context, reports)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildHoldsBothDetectorsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val classes = (FixtureDex.classesHolding(bundle, DETECTOR_SESSION) + FixtureDex.classesHolding(bundle, FOLDER_REPORT))
+            .distinctBy { it.type }
+        val context = PatchContexts.of(classes)
+        val reports = context.findScreenshotReports()
+        assertTrue("$label: the two hand-offs are in two detectors", reports[0].definingClass != reports[1].definingClass)
+        reports.forEach(::holdScreenshotReport)
+        assertHooked(label, context, reports)
     }
 
     /** The patch refuses for the reason given, and nothing has changed. */

@@ -38,6 +38,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Allow screenshots: every window flag call in Instagram goes through the extension, and Instagram's
@@ -117,29 +118,39 @@ class AllowScreenshotsHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val callers = FixtureDex.methodsWhere(bundle, { dex -> dex.stringSection.any { it == "setFlags" || it == "addFlags" } }) {
-                    it.windowFlagCalls().isNotEmpty()
-                }
-                val marks = callers.filter {
-                    it.returnType == "V" && it.setsSecureFlag() && !AccessFlags.STATIC.isSet(it.accessFlags) &&
-                        it.parameterTypes.map(CharSequence::toString) == SHAPE
-                }
-                assertEquals("${bundle.name}: ${marks.map { "${it.definingClass}->${it.name}" }}", 1, marks.size)
-                val types = callers.map { it.definingClass }.toSet()
-                val context = PatchContexts.of(FixtureDex.classes(bundle, types).values.toList())
-                val secure = context.findSecureWindow()
-                assertEquals("${bundle.name}: every call moves", callers.sumOf { it.windowFlagCalls().size }, context.routeWindowFlags())
-                liftScreenshotBlock(secure)
-                assertHooked(bundle.name, context, secure.definingClass)
-                for (type in types) {
-                    for (method in context.mutableClassDefBy(type).methods) {
-                        assertEquals("${bundle.name}: $type->${method.name} still calls window flags", emptyList<Int>(), method.windowFlagCalls())
-                    }
-                }
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildMovesEveryFlagCallToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val callers = FixtureDex.methodsWhere(bundle, { dex -> dex.stringSection.any { it == "setFlags" || it == "addFlags" } }) {
+            it.windowFlagCalls().isNotEmpty()
+        }
+        val marks = callers.filter {
+            it.returnType == "V" && it.setsSecureFlag() && !AccessFlags.STATIC.isSet(it.accessFlags) &&
+                it.parameterTypes.map(CharSequence::toString) == SHAPE
+        }
+        assertEquals("$label: ${marks.map { "${it.definingClass}->${it.name}" }}", 1, marks.size)
+        val types = callers.map { it.definingClass }.toSet()
+        val context = PatchContexts.of(FixtureDex.classes(bundle, types).values.toList())
+        val secure = context.findSecureWindow()
+        assertEquals("$label: every call moves", callers.sumOf { it.windowFlagCalls().size }, context.routeWindowFlags())
+        liftScreenshotBlock(secure)
+        assertHooked(label, context, secure.definingClass)
+        for (type in types) {
+            for (method in context.mutableClassDefBy(type).methods) {
+                assertEquals("$label: $type->${method.name} still calls window flags", emptyList<Int>(), method.windowFlagCalls())
+            }
+        }
     }
 
     /** The patch refuses for the reason given, and nothing has changed. */

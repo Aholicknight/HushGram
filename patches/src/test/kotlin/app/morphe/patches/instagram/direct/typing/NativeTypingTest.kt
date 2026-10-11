@@ -8,6 +8,7 @@ import app.morphe.ExtensionDex
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.fixtures
+import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.otherBuilds
 import app.morphe.patches.instagram.direct.typing.HideTypingHookTest.Companion.assertTypingGuard
 import app.morphe.patches.instagram.direct.typing.HideTypingHookTest.Companion.code
 import app.morphe.patches.instagram.direct.typing.HideTypingHookTest.Companion.reference
@@ -24,7 +25,11 @@ import java.io.File
 
 /** The typing hook on each declared build's own dex: the service it lands in and the sender it skips. */
 class NativeTypingTest {
-    @Test fun declaredBuildsHoldTypingInTheServiceAndLeaveEverythingElse() = fixtures { bundle ->
+    @Test fun declaredBuildsHoldTypingInTheServiceAndLeaveEverythingElse() = fixtures { bundle -> declaredBuildsHoldTypingInTheServiceAndLeaveEverythingElseOn(bundle) }
+
+    @Test fun otherBuildsHoldTypingInTheServiceAndLeaveEverythingElseToo() = otherBuilds { bundle -> declaredBuildsHoldTypingInTheServiceAndLeaveEverythingElseOn(bundle) }
+
+    private fun declaredBuildsHoldTypingInTheServiceAndLeaveEverythingElseOn(bundle: File) {
         val classes = typingClasses(bundle)
         val context = PatchContexts.of(classes.values)
         val found = context.findTyping()
@@ -44,7 +49,11 @@ class NativeTypingTest {
             classes.values.flatMap { it.methods }.sumOf { method -> method.code().count { it.reference() == senderKey } })
     }
 
-    @Test fun dexBackedInstructionReReadsResolveTheSameService() = fixtures { bundle ->
+    @Test fun dexBackedInstructionReReadsResolveTheSameService() = fixtures { bundle -> dexBackedInstructionReReadsResolveTheSameServiceOn(bundle) }
+
+    @Test fun dexBackedInstructionReReadsResolveTheSameServiceOnTheOtherBuildsToo() = otherBuilds { bundle -> dexBackedInstructionReReadsResolveTheSameServiceOn(bundle) }
+
+    private fun dexBackedInstructionReReadsResolveTheSameServiceOn(bundle: File) {
         val types = typingClasses(bundle).keys - TYPING_STATUS
         val context = PatchContexts.of(FixtureDex.classesAsRead(bundle, types).values + ExtensionDex.classDef(TYPING_STATUS))
         val found = context.findTyping()

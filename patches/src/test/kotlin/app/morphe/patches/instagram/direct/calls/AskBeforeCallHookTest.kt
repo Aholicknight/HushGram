@@ -36,6 +36,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Ask before a call (#35's first action): the chat's call start asks the extension first with its
@@ -111,28 +112,38 @@ class AskBeforeCallHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val kept = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.parameterTypes.any { it.toString() == CO_WATCH } }) {
-                            kept += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                kept += FixtureDex.classesHolding(bundle, CALL_DELEGATE_TEXT).map { ImmutableClassDef.of(it) }
-                val context = PatchContexts.of(kept.distinctBy { it.type } + ExtensionDex.classDef(CALL_CONFIRM))
-
-                val found = context.findChatCall()
-                context.askBeforeCall()
-
-                val start = context.mutableClassDefBy(found.start.definingClass).methods.single {
-                    it.name == found.start.name && it.parameterTypes.map(CharSequence::toString) == found.start.parameterTypes.map(CharSequence::toString)
-                }
-                assertAsksFirst("${bundle.name} ${start.definingClass}->${start.name}", start)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same check on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildAsksBeforeACallToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val kept = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.parameterTypes.any { it.toString() == CO_WATCH } }) {
+                    kept += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        kept += FixtureDex.classesHolding(bundle, CALL_DELEGATE_TEXT).map { ImmutableClassDef.of(it) }
+        val context = PatchContexts.of(kept.distinctBy { it.type } + ExtensionDex.classDef(CALL_CONFIRM))
+
+        val found = context.findChatCall()
+        context.askBeforeCall()
+
+        val start = context.mutableClassDefBy(found.start.definingClass).methods.single {
+            it.name == found.start.name && it.parameterTypes.map(CharSequence::toString) == found.start.parameterTypes.map(CharSequence::toString)
+        }
+        assertAsksFirst("$label ${start.definingClass}->${start.name}", start)
     }
 
     private fun refuses(reason: String, patch: () -> Unit) {

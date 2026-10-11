@@ -29,12 +29,17 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 
 /** Native structure and injected-branch execution, without claiming sender-side acceptance. */
 class NativeVisualSeenTest {
-    @Test fun declaredBuildsBindALiveVisualCreatorAndCompleteOnlyItsHandler() = fixtures { bundle ->
+    @Test fun declaredBuildsBindALiveVisualCreatorAndCompleteOnlyItsHandler() = fixtures { bundle -> declaredBuildsBindALiveVisualCreatorAndCompleteOnlyItsHandlerOn(bundle) }
+
+    @Test fun otherBuildsBindALiveVisualCreatorAndCompleteOnlyItsHandlerToo() = otherBuilds { bundle -> declaredBuildsBindALiveVisualCreatorAndCompleteOnlyItsHandlerOn(bundle) }
+
+    private fun declaredBuildsBindALiveVisualCreatorAndCompleteOnlyItsHandlerOn(bundle: File) {
         val classes = nativeClasses(bundle)
         val context = PatchContexts.of(classes.values)
         val found = context.findVisualSeen()
@@ -55,7 +60,11 @@ class NativeVisualSeenTest {
         untouched.forEach { assertEquals(0, it.visualCode().count { ins -> ins.visualReference()?.toString() == HOLD_VISUAL_SEEN }) }
     }
 
-    @Test fun dexBackedInstructionReReadsStillResolveTheCallbackForwarding() = fixtures { bundle ->
+    @Test fun dexBackedInstructionReReadsStillResolveTheCallbackForwarding() = fixtures { bundle -> dexBackedInstructionReReadsStillResolveTheCallbackForwardingOn(bundle) }
+
+    @Test fun dexBackedInstructionReReadsStillResolveTheCallbackForwardingOnTheOtherBuildsToo() = otherBuilds { bundle -> dexBackedInstructionReReadsStillResolveTheCallbackForwardingOn(bundle) }
+
+    private fun dexBackedInstructionReReadsStillResolveTheCallbackForwardingOn(bundle: File) {
         val types = nativeClasses(bundle).keys - VISUAL_SEEN
         val context = PatchContexts.of(FixtureDex.classesAsRead(bundle, types).values + ExtensionDex.classDef(VISUAL_SEEN))
         val found = context.findVisualSeen()
@@ -63,7 +72,16 @@ class NativeVisualSeenTest {
         assertVisualGuard(found.handler, found.complete.toString())
     }
 
-    @Test fun nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueue() = fixtures { bundle ->
+    @Test fun nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueue() = fixtures { bundle -> nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOn(bundle) }
+
+    @Test fun nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOnTheOtherBuildsToo() =
+        otherBuilds(except = "385611400") { bundle -> nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOn(bundle) }
+
+    @Ignore("385611400: findVisualSeen resolves the handler, but assertUploadedDelayIsZero finds no matching instruction in the delay descriptor or the registry method, so the uploaded-task retention check has nothing to read there")
+    @Test fun nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOnBuild385611400Too() =
+        otherBuilds(only = "385611400") { bundle -> nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOn(bundle) }
+
+    private fun nativeSuccessRemovesRetriesAndRewritesOnlyTheRemainingMutationQueueOn(bundle: File) {
         val classes = nativeClasses(bundle)
         val found = PatchContexts.of(classes.values).findVisualSeen()
         val completion = classes.values.flatMap { it.methods }.single {
@@ -119,6 +137,19 @@ class NativeVisualSeenTest {
                 count++
             }
             assertTrue("no fixture of a declared build", count > 0)
+        }
+
+        /** [fixtures] for the other builds of the version, each failure naming the build it came from. */
+        internal fun otherBuilds(except: String? = null, only: String? = null, check: (File) -> Unit) {
+            for (base in Fixtures.otherBuilds()) {
+                val build = base.parentFile.name.substringAfterLast('-')
+                if (build == except || (only != null && build != only)) continue
+                try {
+                    check(base)
+                } catch (failure: Throwable) {
+                    throw AssertionError("${base.parentFile.name}: ${failure.message}", failure)
+                }
+            }
         }
 
         internal fun nativeClasses(bundle: File): Map<String, ClassDef> = cached.getOrPut(bundle.absolutePath) {

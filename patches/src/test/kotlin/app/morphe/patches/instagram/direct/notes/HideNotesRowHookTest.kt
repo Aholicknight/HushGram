@@ -39,6 +39,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class HideNotesRowHookTest {
     private val section = "Lfixture/Section;"
@@ -109,31 +110,39 @@ class HideNotesRowHookTest {
     /** In each declared build the inbox's sections are found and asked for, once, and the stock code around them is kept. */
     @Test
     fun eachDeclaredBuildAsksForTheSections() {
-        forEachFixture { bundle ->
-            val holders = listOf(INBOX_DIFF, INBOX_SECTION_MARKER, NOTES_SECTION)
-                .flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
-            val sets = holders.flatMap { it.methods }.filter { method -> method.code().any { it.referenceText() == INBOX_DIFF } }
-                .flatMap { it.code() }
-                .mapNotNull { (it.reference() as? MethodReference)?.takeIf { call -> call.name == "<init>" && call.parameterTypes.size == 1 } }
-                .map { it.definingClass }.toSet()
-            val classes = (holders + FixtureDex.classes(bundle, sets).values).distinctBy { it.type }
-            val context = PatchContexts.of(classes)
-            val site = context.findNotesSections()
-            val stock = context.mutableClassDefBy(site.type).methods.single {
-                it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
-            }
-            val original = NeutralNativePath(stock)
+        forEachFixture { builds(it, it.name) }
+    }
 
-            context.hide()
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildAsksForTheSectionsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
 
-            val written = classes.flatMap { context.mutableClassDefBy(it.type).methods }
-                .filter { method -> method.code().any { it.referenceText() == KEEP_SECTIONS } }
-            assertEquals("${bundle.name}: methods asking", 1, written.size)
-            val diff = written.single()
-            val keep = diff.code().indexOfFirst { it.referenceText() == KEEP_SECTIONS }
-            assertSectionsAsked(bundle.name, diff, site.register, site.sections)
-            original.assertPreserved(bundle.name, diff, (keep..keep + 2).toSet())
+    private fun builds(bundle: File, label: String) {
+        val holders = listOf(INBOX_DIFF, INBOX_SECTION_MARKER, NOTES_SECTION)
+            .flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
+        val sets = holders.flatMap { it.methods }.filter { method -> method.code().any { it.referenceText() == INBOX_DIFF } }
+            .flatMap { it.code() }
+            .mapNotNull { (it.reference() as? MethodReference)?.takeIf { call -> call.name == "<init>" && call.parameterTypes.size == 1 } }
+            .map { it.definingClass }.toSet()
+        val classes = (holders + FixtureDex.classes(bundle, sets).values).distinctBy { it.type }
+        val context = PatchContexts.of(classes)
+        val site = context.findNotesSections()
+        val stock = context.mutableClassDefBy(site.type).methods.single {
+            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
         }
+        val original = NeutralNativePath(stock)
+
+        context.hide()
+
+        val written = classes.flatMap { context.mutableClassDefBy(it.type).methods }
+            .filter { method -> method.code().any { it.referenceText() == KEEP_SECTIONS } }
+        assertEquals("$label: methods asking", 1, written.size)
+        val diff = written.single()
+        val keep = diff.code().indexOfFirst { it.referenceText() == KEEP_SECTIONS }
+        assertSectionsAsked(label, diff, site.register, site.sections)
+        original.assertPreserved(label, diff, (keep..keep + 2).toSet())
     }
 
     private fun forEachFixture(check: (java.io.File) -> Unit) {

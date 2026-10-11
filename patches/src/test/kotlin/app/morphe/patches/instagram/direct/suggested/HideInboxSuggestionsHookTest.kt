@@ -34,6 +34,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class HideInboxSuggestionsHookTest {
     private val loader = "Lfixture/InboxLoader;"
@@ -105,25 +106,33 @@ class HideInboxSuggestionsHookTest {
     /** In each declared build the method building the section is found and asks for its units, once, and the stock code is kept. */
     @Test
     fun eachDeclaredBuildAsksForTheUnits() {
-        forEachFixture { bundle ->
-            val classes = listOf(PREFETCHED, FOLLOW_REQUESTS).flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
-            val context = PatchContexts.of(classes)
-            val site = context.findInboxUnitsSet()
-            val stock = context.mutableClassDefBy(site.type).methods.single {
-                it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
-            }
-            val original = NeutralNativePath(stock)
+        forEachFixture { builds(it, it.name) }
+    }
 
-            context.hide()
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildAsksForTheUnitsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
 
-            val written = classes.flatMap { context.mutableClassDefBy(it.type).methods }
-                .filter { method -> method.code().any { it.referenceText() == INBOX_UNITS } }
-            assertEquals("${bundle.name}: methods asking", 1, written.size)
-            val build = written.single()
-            assertEquals("${bundle.name}: the method asking", "${site.type}->${site.name}", "${build.definingClass}->${build.name}")
-            assertUnitsAsked(bundle.name, build)
-            original.assertPreserved(bundle.name, build, setOf(0, 1))
+    private fun builds(bundle: File, label: String) {
+        val classes = listOf(PREFETCHED, FOLLOW_REQUESTS).flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
+        val context = PatchContexts.of(classes)
+        val site = context.findInboxUnitsSet()
+        val stock = context.mutableClassDefBy(site.type).methods.single {
+            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
         }
+        val original = NeutralNativePath(stock)
+
+        context.hide()
+
+        val written = classes.flatMap { context.mutableClassDefBy(it.type).methods }
+            .filter { method -> method.code().any { it.referenceText() == INBOX_UNITS } }
+        assertEquals("$label: methods asking", 1, written.size)
+        val build = written.single()
+        assertEquals("$label: the method asking", "${site.type}->${site.name}", "${build.definingClass}->${build.name}")
+        assertUnitsAsked(label, build)
+        original.assertPreserved(label, build, setOf(0, 1))
     }
 
     private fun forEachFixture(check: (java.io.File) -> Unit) {

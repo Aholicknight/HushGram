@@ -45,6 +45,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Lock your messages: every notification goes through the extension first, at the poster and at
@@ -145,56 +146,66 @@ class LockMessagesHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val posting = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (dex.methodSection.none { it.definingClass == NOTIFICATION_MANAGER && it.name == "notify" }) return@forEach
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.instructions().any { it.postsNotification() } }) {
-                            posting += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val classes = (FixtureDex.classesHolding(bundle, SIDE_CHANNEL) + FixtureDex.classesHolding(bundle, NO_BANNER_ACTIVITY) + posting)
-                    .distinctBy { it.type }
-                val context = PatchContexts.of(classes)
-                val targets = context.findLockTargets()
-                val poster = targets.notify.definingClass
-                val banner = targets.banner.definingClass
-                val direct = context.findDirectPosts(targets.notify)
-                hideNotificationText(targets.notify)
-                hideDirectPosts(direct)
-                holdBanner(targets.banner)
-
-                assertHooked(bundle.name, context, poster, banner)
-                // Every post outside the poster hands its notification over first, the inline reply's included.
-                var posts = 0
-                for (classDef in posting.distinctBy { it.type }) {
-                    for (method in context.mutableClassDefBy(classDef.type).methods) {
-                        val isPoster = method.definingClass == poster && method.parameterTypes.map(CharSequence::toString) == NOTIFY_PARAMETERS &&
-                            !AccessFlags.STATIC.isSet(method.accessFlags) && method.instructions().any { text(it) == "\"$SIDE_CHANNEL\"" }
-                        if (isPoster) continue
-                        val code = method.instructions()
-                        code.indices.filter { code[it].postsNotification() }.forEach { index ->
-                            val notification = code[index].registerList().last()
-                            val where = "${bundle.name}: ${method.definingClass}->${method.name} at $index"
-                            assertEquals(where, HIDE_NOTIFICATION, (code[index - 2] as ReferenceInstruction).reference.toString())
-                            assertEquals(where, notification, (code[index - 2] as RegisterRangeInstruction).startRegister)
-                            assertEquals(where, notification, (code[index - 1] as OneRegisterInstruction).registerA)
-                            posts++
-                        }
-                    }
-                }
-                assertTrue("${bundle.name}: no direct post", posts > 0)
-                assertTrue("${bundle.name}: nothing reads a notification after its direct post",
-                    direct.all { it.spares.isEmpty() })
-                assertEquals("${bundle.name}: posts hooked", direct.sumOf { it.sites.size }, posts)
-                assertTrue("${bundle.name}: the inline reply's post", direct.any { post ->
-                    post.method.instructions().any { ((it as? ReferenceInstruction)?.reference as? FieldReference)?.type == REPLY_SERVICE }
-                })
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildLocksMessagesToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val posting = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.methodSection.none { it.definingClass == NOTIFICATION_MANAGER && it.name == "notify" }) return@forEach
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.instructions().any { it.postsNotification() } }) {
+                    posting += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val classes = (FixtureDex.classesHolding(bundle, SIDE_CHANNEL) + FixtureDex.classesHolding(bundle, NO_BANNER_ACTIVITY) + posting)
+            .distinctBy { it.type }
+        val context = PatchContexts.of(classes)
+        val targets = context.findLockTargets()
+        val poster = targets.notify.definingClass
+        val banner = targets.banner.definingClass
+        val direct = context.findDirectPosts(targets.notify)
+        hideNotificationText(targets.notify)
+        hideDirectPosts(direct)
+        holdBanner(targets.banner)
+
+        assertHooked(label, context, poster, banner)
+        // Every post outside the poster hands its notification over first, the inline reply's included.
+        var posts = 0
+        for (classDef in posting.distinctBy { it.type }) {
+            for (method in context.mutableClassDefBy(classDef.type).methods) {
+                val isPoster = method.definingClass == poster && method.parameterTypes.map(CharSequence::toString) == NOTIFY_PARAMETERS &&
+                    !AccessFlags.STATIC.isSet(method.accessFlags) && method.instructions().any { text(it) == "\"$SIDE_CHANNEL\"" }
+                if (isPoster) continue
+                val code = method.instructions()
+                code.indices.filter { code[it].postsNotification() }.forEach { index ->
+                    val notification = code[index].registerList().last()
+                    val where = "$label: ${method.definingClass}->${method.name} at $index"
+                    assertEquals(where, HIDE_NOTIFICATION, (code[index - 2] as ReferenceInstruction).reference.toString())
+                    assertEquals(where, notification, (code[index - 2] as RegisterRangeInstruction).startRegister)
+                    assertEquals(where, notification, (code[index - 1] as OneRegisterInstruction).registerA)
+                    posts++
+                }
+            }
+        }
+        assertTrue("$label: no direct post", posts > 0)
+        assertTrue("$label: nothing reads a notification after its direct post",
+            direct.all { it.spares.isEmpty() })
+        assertEquals("$label: posts hooked", direct.sumOf { it.sites.size }, posts)
+        assertTrue("$label: the inline reply's post", direct.any { post ->
+            post.method.instructions().any { ((it as? ReferenceInstruction)?.reference as? FieldReference)?.type == REPLY_SERVICE }
+        })
     }
 
     private fun BytecodePatchContext.lock() {

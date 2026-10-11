@@ -31,6 +31,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Hide Instants (#59): Instagram's one Instants check answers no from its first instruction while
@@ -91,27 +92,37 @@ class HideInstantsHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val kept = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        val loads = classDef.methods.flatMap { it.instructions() }
-                            .any { (it as? WideLiteralInstruction)?.wideLiteral == INSTANTS_FLAG }
-                        if (loads) kept += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val context = PatchContexts.of(kept)
-
-                val gate = context.findInstantsGate()
-                context.holdInstantsGate(gate)
-
-                val method = context.mutableClassDefBy(gate.type).methods.single {
-                    it.name == gate.name && it.parameterTypes.map(CharSequence::toString) == GATE_PARAMETERS
-                }
-                assertAnswersNoFirst("${bundle.name} ${gate.type}->${gate.name}", method)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same check on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildHidesInstantsToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val kept = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                val loads = classDef.methods.flatMap { it.instructions() }
+                    .any { (it as? WideLiteralInstruction)?.wideLiteral == INSTANTS_FLAG }
+                if (loads) kept += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(kept)
+
+        val gate = context.findInstantsGate()
+        context.holdInstantsGate(gate)
+
+        val method = context.mutableClassDefBy(gate.type).methods.single {
+            it.name == gate.name && it.parameterTypes.map(CharSequence::toString) == GATE_PARAMETERS
+        }
+        assertAnswersNoFirst("$label ${gate.type}->${gate.name}", method)
     }
 
     /** The patch refuses, for the reason given. */

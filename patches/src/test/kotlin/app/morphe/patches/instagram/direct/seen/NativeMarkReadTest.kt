@@ -19,6 +19,7 @@ import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.asser
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.traceTapGuard
 import app.morphe.patches.instagram.direct.seen.NativeThreadSeenTest.Companion.threadClasses
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.fixtures
+import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.otherBuilds
 import app.morphe.patches.instagram.direct.seen.ThreadSeenHookTest.Companion.assertThreadGuard
 import app.morphe.patches.instagram.direct.seen.VisualSeenHookTest.Companion.snapshot
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -40,7 +41,11 @@ import java.io.File
  * written from Instagram's own handlers.
  */
 class NativeMarkReadTest {
-    @Test fun declaredBuildsOfferMarkAsReadOnOneChatAndHandleItsTapFirst() = fixtures { bundle ->
+    @Test fun declaredBuildsOfferMarkAsReadOnOneChatAndHandleItsTapFirst() = fixtures { bundle -> declaredBuildsOfferMarkAsReadOnOneChatAndHandleItsTapFirstOn(bundle) }
+
+    @Test fun otherBuildsOfferMarkAsReadOnOneChatAndHandleItsTapFirstToo() = otherBuilds { bundle -> declaredBuildsOfferMarkAsReadOnOneChatAndHandleItsTapFirstOn(bundle) }
+
+    private fun declaredBuildsOfferMarkAsReadOnOneChatAndHandleItsTapFirstOn(bundle: File) {
         val classes = markReadClasses(bundle)
         val context = PatchContexts.of(classes.values)
         val seen = context.findThreadSeen()
@@ -84,7 +89,11 @@ class NativeMarkReadTest {
         assertBridgesCallInstagram(context.mutableClassDefBy(INSTAGRAM_CHATS).methods.toList(), classes)
     }
 
-    @Test fun dexBackedInstructionReReadsResolveTheSameTargets() = fixtures { bundle ->
+    @Test fun dexBackedInstructionReReadsResolveTheSameTargets() = fixtures { bundle -> dexBackedInstructionReReadsResolveTheSameTargetsOn(bundle) }
+
+    @Test fun dexBackedInstructionReReadsResolveTheSameTargetsOnTheOtherBuildsToo() = otherBuilds { bundle -> dexBackedInstructionReReadsResolveTheSameTargetsOn(bundle) }
+
+    private fun dexBackedInstructionReReadsResolveTheSameTargetsOn(bundle: File) {
         val types = markReadClasses(bundle).keys - THREAD_SEEN - VISUAL_SEEN - INSTAGRAM_CHATS
         val context = PatchContexts.of(FixtureDex.classesAsRead(bundle, types).values +
             ExtensionDex.classDef(THREAD_SEEN) + ExtensionDex.classDef(INSTAGRAM_CHATS))
