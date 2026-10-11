@@ -154,7 +154,9 @@ if (-not $PatchList) { $PatchList = Join-Path $Root 'patches-list.json' }
 if (-not $OutputPath) { $OutputPath = Join-Path $Root "release-receipt-$releaseVersion.json" }
 
 $catalog = Get-Content -LiteralPath $PatchList -Raw | ConvertFrom-Json
-$patchNames = @($catalog.patches | ForEach-Object { $_.name })
+# A second app (Install next to Instagram) is no longer the catalog's package; verify-all-patches.ps1
+# applies it in a run of its own.
+$patchNames = @(Get-SameAppPatchNames -PatchList $catalog)
 if ($patchNames.Count -eq 0) { throw "No patches listed in $PatchList." }
 $dependencyNames = @(Get-PatchDependencyNames -PatchList $catalog -RequestedNames $patchNames)
 $expectedTarget = Get-PatchTarget -PatchList $catalog

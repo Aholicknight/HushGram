@@ -219,3 +219,32 @@ function Test-SelectedPatchTargets {
     }
     return [pscustomobject]@{ Valid = $true; Reason = $null }
 }
+
+function Split-SecondAppPatches {
+    <#
+    .SYNOPSIS
+        The catalog's patch names in two lists: those that patch Instagram as Instagram, and those
+        that make a second app beside it (a package, data and sign-in of its own).
+    .DESCRIPTION
+        Every check that applies all patches as one Instagram (verify-all-patches.ps1, the release
+        receipt, patch-all-builds.ps1 and the receipt's validation) takes SameApp, since a second
+        app's package is no longer the catalog's and its manifest renames every authority.
+        verify-all-patches.ps1 applies SecondApp in a run of its own, and patch-for-device.ps1
+        adds it only with -Clone. Catalog order is kept in both.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory = $true)][object]$PatchList)
+
+    $secondApp = @('Install next to Instagram')
+    $names = @(@($PatchList.patches) | ForEach-Object { [string]$_.name })
+    return [pscustomobject]@{
+        SameApp   = @($names | Where-Object { $secondApp -cnotcontains $_ })
+        SecondApp = @($names | Where-Object { $secondApp -ccontains $_ })
+    }
+}
+
+function Get-SameAppPatchNames {
+    [CmdletBinding()]
+    param([Parameter(Mandatory = $true)][object]$PatchList)
+    return @((Split-SecondAppPatches -PatchList $PatchList).SameApp)
+}

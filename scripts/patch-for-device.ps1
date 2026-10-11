@@ -130,8 +130,11 @@ if (-not $AllowStaleBundle) {
             '(or pass -AllowStaleBundle to patch with it as it is).')
     }
 }
-$secondCopy = 'Install next to Instagram'
-if (-not $Clone -and $secondCopy -notin $Exclude) { $Exclude += $secondCopy }
+if (-not $Clone) {
+    foreach ($secondCopy in (Split-SecondAppPatches -PatchList $catalog).SecondApp) {
+        if ($secondCopy -notin $Exclude) { $Exclude += $secondCopy }
+    }
+}
 $names = @($catalog.patches | ForEach-Object { $_.name } | Where-Object { $_ -notin $Exclude })
 foreach ($excluded in $Exclude) {
     if ($excluded -notin ($catalog.patches | ForEach-Object { $_.name })) { throw "No patch named '$excluded' to exclude." }

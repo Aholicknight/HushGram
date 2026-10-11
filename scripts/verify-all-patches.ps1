@@ -14,6 +14,9 @@
     run answers "which patches still apply on this build" rather than being refused before it
     starts. The package still has to be the catalog's.
 
+    A patch that makes a second app (Install next to Instagram, see Split-SecondAppPatches) is left
+    out of that run, since its result is no longer Instagram, and applied in a run of its own once
+    the rest pass; that one has to save a package other than Instagram's.
     A split bundle is merged into one APK first, with the CLI's own merger (Get-MergedApk), and
     the CLI patches that merge. A clean run reads the manifests of the merge and the patched APK
     with aapt2 and prints what patching changed: permissions asked for or dropped, components
@@ -90,7 +93,9 @@ if (-not (Test-Path -LiteralPath $DesktopJar -PathType Leaf)) { throw "Desktop C
 
 try {
     $catalog = Get-Content -LiteralPath $PatchList -Raw | ConvertFrom-Json
-    $names = @($catalog.patches | ForEach-Object { $_.name })
+    $split = Split-SecondAppPatches -PatchList $catalog
+    $names = @($split.SameApp)
+    $secondAppNames = @($split.SecondApp)
 } catch {
     throw "Could not read patch list ${PatchList}: $($_.Exception.Message)"
 }
@@ -100,6 +105,7 @@ if ($names.Count -eq 0 -or @($names | Where-Object { [string]::IsNullOrWhiteSpac
 }
 $dependencyNames = @(Get-PatchDependencyNames -PatchList $catalog -RequestedNames $names)
 Write-Host "[verify] $($names.Count) patches from $(Split-Path -Leaf $Bundle)"
+if ($secondAppNames.Count -gt 0) { Write-Host "[verify] then on their own, since they make a second app: $($secondAppNames -join ', ')" }
 
 New-Item -ItemType Directory -Force -Path $WorkDir | Out-Null
 $workRoot = (Resolve-Path -LiteralPath $WorkDir).Path
@@ -284,6 +290,52 @@ try {
         } else {
             Write-Warning "[verify] the patched resource table failed its check against the stock one (exit $resourceExitCode)."
         }
+    }
+    if ($exitCode -eq 0 -and $secondAppNames.Count -gt 0) {
+        # A patch that makes a second app, on its own: it has to apply to this build, and what it
+        # saves has to be another package, or it would install over the Instagram already there.
+        $exitCode = 1
+        $secondOut = Resolve-WithinRoot -Path (Join-Path $runDir 'verify-second-app.apk') -Root $workRoot
+        $secondTemp = Resolve-WithinRoot -Path (Join-Path $runDir 'verify-second-app-tmp') -Root $workRoot
+        $secondResult = Resolve-WithinRoot -Path (Join-Path $workRoot "verify-second-app-result-$runId.json") -Root $workRoot
+        $secondArguments = @('patch', '--exclusive', '--continue-on-error', '--unsigned', '-p', $Bundle,
+            '-o', $secondOut, '-t', $secondTemp, '-r', $secondResult)
+        if ($forced) { $secondArguments += '-f' }
+        foreach ($name in $secondAppNames) { $secondArguments += '-e'; $secondArguments += $name }
+        $secondArguments += $patchInput
+        $preference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $global:LASTEXITCODE = -1
+            @(& $Java '-jar' $DesktopJar @secondArguments 2>&1) | ForEach-Object {
+                $line = [string]$_
+                if ($line -match 'SEVERE|ERROR|Exception') { Write-Host "[verify] $line" }
+            }
+            $secondExitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $preference
+        }
+        $secondReport = $null
+        if (Test-Path -LiteralPath $secondResult -PathType Leaf) {
+            try { $secondReport = Get-Content -LiteralPath $secondResult -Raw | ConvertFrom-Json }
+            catch { Write-Warning "Could not parse the second app's result JSON: $($_.Exception.Message)" }
+        }
+        $secondValidation = Test-PatchingReport -Report $secondReport -ExpectedNames $secondAppNames `
+            -AllowedDependencyNames @(Get-PatchDependencyNames -PatchList $catalog -RequestedNames $secondAppNames) `
+            -OutputPath $secondOut -ExpectedPackageName $expectedTarget.PackageName -ExpectedPackageVersion $expectedVersion
+        $secondLabel = $secondAppNames -join ', '
+        if ($secondExitCode -ne 0 -or -not $secondValidation.Valid) {
+            Write-Warning "[verify] $secondLabel did not apply on its own: $($secondValidation.Reason) (CLI exit $secondExitCode)"
+        } else {
+            $secondPackage = (Get-ApkManifestFacts -Apk $secondOut -Aapt2 $Aapt2).package
+            if ($secondPackage -ceq $stock.package) {
+                Write-Warning "[verify] $secondLabel saved $secondPackage, which would install over Instagram."
+            } else {
+                Write-Host "[verify] $secondLabel applied on its own and saved $secondPackage, beside $($stock.package)"
+                $exitCode = 0
+            }
+        }
+        Write-Host "[verify] second app result file: $secondResult"
     }
     if ($KeepIn -and $exitCode -eq 0) {
         # A keep that fails costs the release a second patch run, not this one its verdict.

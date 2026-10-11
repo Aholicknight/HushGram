@@ -1071,7 +1071,7 @@ try {
     # the unanchored pattern also matched PackageVersions[0], the newest build alone; the release
     # root section below runs the check on a receipt of its own as well.
     $factsSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'validate-release-facts.ps1') -Raw
-    Assert-True ($factsSource -match '-ExpectedPatchNames @\(\$resolvedList\.PatchList\.patches' -and
+    Assert-True ($factsSource -match '-ExpectedPatchNames @\(Get-SameAppPatchNames -PatchList \$resolvedList\.PatchList\)' -and
         $factsSource -match '\$receiptTarget = Get-PatchTarget -PatchList \$resolvedList\.PatchList' -and
         $factsSource -match '-ExpectedPackageName \$receiptTarget\.PackageName' -and
         $factsSource -match '-ExpectedPackageVersions \$receiptTarget\.PackageVersions(?![\w.\[])' -and
@@ -2664,7 +2664,10 @@ try {
     $releaseVersionHere = Get-BundleVersion -Root $releaseRepo
     $releaseCatalog = Get-Content -LiteralPath (Join-Path $releaseRepo 'patches-list.json') -Raw | ConvertFrom-Json
     $releaseTarget = Get-PatchTarget -PatchList $releaseCatalog
-    $releaseNames = @($releaseCatalog.patches | ForEach-Object { [string]$_.name })
+    # As build-release-receipt.ps1 counts them: Install next to Instagram makes a second app and stays out.
+    $releaseNames = @(Get-SameAppPatchNames -PatchList $releaseCatalog)
+    # What a release publishes (README, the GitHub description, the bundle) is the whole catalog.
+    $releaseCatalogCount = @($releaseCatalog.patches).Count
     $releaseToolchain = Read-CatalogToolchain -Source 'the release fixture catalog' `
         -Text (Get-Content -LiteralPath (Join-Path $releaseRepo 'gradle/libs.versions.toml') -Raw)
     $releaseReceipt = Join-Path $releaseRepo "release-receipt-$releaseVersionHere.json"
@@ -3386,7 +3389,7 @@ try {
     $readmeText = Get-Content -LiteralPath $readmePath -Raw
     $readmeText = [regex]::Replace($readmeText, "(?m)There's no release yet\.[^\r\n]*", (
         "The latest release is [v$releaseVersionHere](https://github.com/$slugHere/releases/tag/v$releaseVersionHere), " +
-        "with $($releaseNames.Count) patches. Add it to Morphe Manager with " +
+        "with $($releaseCatalogCount) patches. Add it to Morphe Manager with " +
         "[this link](https://morphe.software/add-source?github=$([Uri]::EscapeDataString($slugHere)))."))
     Set-Content -LiteralPath $readmePath -Encoding UTF8 -NoNewline -Value $readmeText
     # The versions released before this one stay, as a release keeps them: the check holds the
@@ -3405,7 +3408,7 @@ try {
     foreach ($file in @($releaseBundle, $releaseSbom, $releaseReceipt, $releaseSums)) {
         Copy-Item -LiteralPath $file -Destination (Join-Path $servedDir (Split-Path -Leaf $file)) -Force
     }
-    Set-Content -LiteralPath (Join-Path $tools 'patch-names.txt') -Encoding ASCII -Value @($releaseNames | ForEach-Object { "Name: $_" })
+    Set-Content -LiteralPath (Join-Path $tools 'patch-names.txt') -Encoding ASCII -Value @($releaseCatalog.patches | ForEach-Object { "Name: $($_.name)" })
     $listJava = Join-Path $tools 'list-java.cmd'
     [System.IO.File]::WriteAllText($listJava, ((@(
         '@echo off',
@@ -3434,7 +3437,7 @@ try {
     # the release doesn't carry. Morphe's add-source page answers for this repository only, and gh
     # reads back the repository description a release sets, unless a case has put another in
     # $githubDescription. Dot-sourced into each run, so the check finds them first.
-    $githubDescription = "HushGram v$releaseVersionHere`: $($releaseNames.Count) patches for Instagram $declaredBuild."
+    $githubDescription = "HushGram v$releaseVersionHere`: $($releaseCatalogCount) patches for Instagram $declaredBuild."
     $publishedStandIns = {
         function Invoke-WebRequest {
             param($Uri, $Method, $OutFile, $MaximumRedirection, $TimeoutSec, [switch]$PassThru, [switch]$UseBasicParsing)
@@ -3500,12 +3503,12 @@ try {
     foreach ($expected in @(
             "*indexed bundle URL answers 200*",
             "*Morphe add-source page answers 200*",
-            "*the GitHub description of $slugHere names v$releaseVersionHere, $($releaseNames.Count) patches and Instagram $declaredBuild*",
+            "*the GitHub description of $slugHere names v$releaseVersionHere, $($releaseCatalogCount) patches and Instagram $declaredBuild*",
             "*5 runtime tests, 7 patch tests*",
             "*the Instagram source census is 0 day(s) old*",
             "*the hosted patches-$releaseVersionHere.mpp matches the bundle built here byte for byte*",
             "*published bundle is pinned to v$releaseVersionHere ($releaseCommit)*",
-            "*the published bundle carries $($releaseNames.Count) patches, as described*",
+            "*the published bundle carries $($releaseCatalogCount) patches, as described*",
             "*the index description names no Morphe Manager floor, the README carries it*",
             "*Morphe Manager can read the $releaseVersionHere entry*",
             "*the hosted release-receipt-$releaseVersionHere.json is the receipt checked here, as SHA256SUMS.txt lists it*",
@@ -3608,7 +3611,7 @@ try {
         Assert-Throws { Invoke-IndexPushCheck $publishedRun } "*The GitHub description of $slugHere does not say*" `
             'An index push went through with a GitHub description naming another release.'
     } finally {
-        $githubDescription = "HushGram v$releaseVersionHere`: $($releaseNames.Count) patches for Instagram $declaredBuild."
+        $githubDescription = "HushGram v$releaseVersionHere`: $($releaseCatalogCount) patches for Instagram $declaredBuild."
     }
     $savedSlug = $slugHere
     $slugHere = 'SysAdminDoc/Elsewhere'

@@ -141,7 +141,7 @@ if (-not (Test-Path -LiteralPath $Bundle -PathType Leaf)) { throw "No bundle at 
 $Bundle = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Bundle)
 $bundleHash = (Get-FileHash -LiteralPath $Bundle -Algorithm SHA256).Hash.ToUpperInvariant()
 $catalog = Get-Content -LiteralPath $PatchList -Raw | ConvertFrom-Json
-$names = @($catalog.patches | ForEach-Object { [string]$_.name })
+$names = @(Get-SameAppPatchNames -PatchList $catalog)
 $target = Get-PatchTarget -PatchList $catalog
 if (-not $OutDir) { $OutDir = Join-Path ([IO.Path]::GetTempPath()) "hushgram-all-builds-$([guid]::NewGuid().ToString('N').Substring(0, 12))" }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null

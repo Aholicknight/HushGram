@@ -1184,7 +1184,7 @@ function Test-ReleaseReceiptHere {
     }
 
     $receiptCheck = Test-ReleaseReceipt -Receipt $receiptDocument -ExpectedVersion $releaseVersion `
-        -ExpectedPatchNames @($resolvedList.PatchList.patches | ForEach-Object { [string]$_.name }) `
+        -ExpectedPatchNames @(Get-SameAppPatchNames -PatchList $resolvedList.PatchList) `
         -ExpectedPatcherVersion $expectedToolchain.PatcherVersion `
         -ExpectedManagerFloor $expectedToolchain.ManagerFloor `
         -ExpectedPackageName $receiptTarget.PackageName -ExpectedPackageVersions $receiptTarget.PackageVersions `

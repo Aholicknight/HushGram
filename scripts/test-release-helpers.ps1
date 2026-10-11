@@ -271,7 +271,13 @@ try {
     Write-Text (Join-Path $repo 'CHANGELOG.md') $goodChangelog
     Write-Text (Join-Path $repo '.gitignore') "build/`npatches/build/`n"
     $catalog = Get-Content -LiteralPath (Join-Path $repo 'patches-list.json') -Raw | ConvertFrom-Json
-    $patchNames = @($catalog.patches | ForEach-Object { [string]$_.name })
+    . (Join-Path $Root 'scripts/patch-target.ps1')
+    # The release runs patch Instagram as Instagram: a patch that makes a second app is left out.
+    $split = Split-SecondAppPatches -PatchList $catalog
+    Assert-True (@($split.SecondApp).Count -eq 1 -and $split.SecondApp[0] -ceq 'Install next to Instagram' -and
+        @($split.SameApp).Count -eq @($catalog.patches).Count - 1 -and $split.SameApp -cnotcontains 'Install next to Instagram') `
+        "The second-app split is wrong: $($split | ConvertTo-Json -Compress)"
+    $patchNames = @($split.SameApp)
     function Invoke-RepoGit {
         $gitArguments = $args
         & git -C $repo @gitArguments 2>&1

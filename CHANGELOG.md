@@ -159,6 +159,8 @@ Every HushGram release, newest first.
 
 * **Tooling:** Release notes now come out in the shape Morphe Manager draws, a New list and a Fixes list of short bullets under the version heading, with the validation line last. The intro, install steps and requirements are gone from them, since the README has those. The release check holds every bullet to a scope, a type heading and the dash rules before a release starts.
 
+* **Tooling:** Install next to Instagram makes a second app, so the release checks that apply every patch as one Instagram (the all-patches run, the release receipt and the all-builds run) leave it out. The all-patches run then applies it on its own and checks that the result is a different package, so it can't install over the Instagram already on the phone.
+
 ## 0.0.8 (2026-10-09)
 
 * **Instagram:** HushGram 0.0.8 adds 1 patch, for 79 in all, and stays on Instagram 450.0.0.50.77 with Morphe Manager 1.34.0 or newer. All seven builds of that version patch: the arm64 ones (385611395, 385611400, 385611404, 385611431 and 385611438) and the x86 and x86_64 ones (385611439 and 385611440).
