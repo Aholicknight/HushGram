@@ -18,10 +18,16 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 /**
  * Helper for the "Hide paid partnership Reels" patch (#12).
  *
- * <p>Each page of Reels the server sends comes back from one method of the response, which turns
- * the server's items into clips items, the Reels viewer's own model. The patch passes that list
- * through {@link #page} at every one of those methods' returns, so the viewer, and everything else
- * reading a page, gets the list this answers.
+ * <p>Every Reels viewer takes each page it fetched, already turned into clips items, the viewer's
+ * own model, in one network callback, which knows the viewer's module name: "clips_viewer_" and
+ * where it was opened. The patch hands that page and that name to {@link #page} there, so the
+ * viewer gets the list this answers.
+ *
+ * <p>Only the Reels tab is filtered, in any of its lanes, where Instagram picks every reel (see
+ * {@link #PICKED_BY_INSTAGRAM}). A viewer opened on something the user chose (search, a profile,
+ * their own profile, an audio, hashtag or location page, Saved, a reel shared in a message) gets
+ * its pages as they came, so a reel they tapped always opens, and a creator's own boosted reels
+ * still show on their profile.
  *
  * <p>Two things about a reel's post decide it, both fields Instagram already parsed from the
  * page, read through getters the patch finds by their JSON names:
@@ -57,6 +63,28 @@ public final class PaidPartnershipReels {
     /** boosted_status values that mean the boost delivered: running now, and run to its end. */
     private static final String[] BOOST_RAN = {"boosted", "finished"};
 
+    /**
+     * The module names of the Reels tab's viewer, the only pages this filters: "clips_viewer_" and
+     * the source of each lane the tab offers (For you, Following, Nearby, Friends, Trending, Shop,
+     * the ads lane and Instagram's in-house test lanes), and the name For you takes in Instagram's
+     * homecoming test. Instagram picks every reel in those. Any other name is a viewer the user
+     * opened on a reel or a place they chose.
+     */
+    static final String[] PICKED_BY_INSTAGRAM = {
+        "clips_viewer_clips_tab",
+        "clips_viewer_homecoming_fyp",
+        "clips_viewer_clips_connected",
+        "clips_viewer_clips_location",
+        "clips_viewer_friends_lane",
+        "clips_viewer_trending_only",
+        "clips_viewer_clips_shop_lane",
+        "clips_viewer_clips_ads_only",
+        "clips_viewer_social_debug",
+        "clips_viewer_clips_voice_translation_dogfooding",
+        "clips_viewer_clips_translated_stickers_dogfooding",
+        "clips_viewer_clips_translated_closed_captions_dogfooding",
+    };
+
     /** Reads what decides an item; the patch-filled stubs below outside tests. */
     interface Reader {
         /** The item's post, or null for anything that isn't a Reels item carrying one. */
@@ -90,19 +118,21 @@ public final class PaidPartnershipReels {
     }
 
     /**
-     * Injected at the return of each method that makes a page of Reels items. Answers a new list
-     * without the paid partnership and boosted items while the switch is on, and [items] itself
-     * when nothing goes, when every item would, when the switch is off or paused, or when anything
-     * goes wrong. Never throws.
+     * Injected where the Reels viewer's network callback takes a page, with the viewer's module
+     * name. Answers a new list without the paid partnership and boosted items while the switch is
+     * on and the page is for the Reels tab, and [items] itself when the viewer is any other, when
+     * nothing goes, when every item would, when the switch is off or paused, or when anything goes
+     * wrong. Never throws.
      */
-    public static List<?> page(List<?> items) {
-        return page(items, PATCHED, PaidPartnershipReels::switchedOn);
+    public static List<?> page(List<?> items, String module) {
+        return page(items, module, PATCHED, PaidPartnershipReels::switchedOn);
     }
 
-    static List<?> page(List<?> items, Reader reader, BooleanSupplier on) {
+    static List<?> page(List<?> items, String module, Reader reader, BooleanSupplier on) {
         if (items == null) return null;
         try {
             HookStatus.invoked(FamilyNames.PAID_PARTNERSHIP_REELS);
+            if (!pickedByInstagram(module)) return items;
             int size = items.size();
             FeedFilterCounters.sawList(ROUTE, size);
             if (size == 0 || !on.getAsBoolean()) return items;
@@ -152,6 +182,15 @@ public final class PaidPartnershipReels {
     private static String reasonFor(Object media, Reader reader) {
         if (Boolean.TRUE.equals(reader.paidPartnership(media))) return PARTNERSHIP;
         return boostRan(reader.boostedStatus(media)) ? BOOSTED : null;
+    }
+
+    /** Whether a viewer's module name is one of the Reels tab's, where Instagram picks every reel. */
+    static boolean pickedByInstagram(String module) {
+        if (module == null) return false;
+        for (String picked : PICKED_BY_INSTAGRAM) {
+            if (picked.equals(module)) return true;
+        }
+        return false;
     }
 
     /** Whether a boosted_status value says the boost delivered. */

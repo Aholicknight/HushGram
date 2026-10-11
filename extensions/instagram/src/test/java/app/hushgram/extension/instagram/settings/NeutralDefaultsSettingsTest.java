@@ -249,7 +249,7 @@ public class NeutralDefaultsSettingsTest {
         assertSame(sections, NotesRow.sections(sections));
         java.util.List<Object> units = java.util.Arrays.asList(new StockUnit(), new StockUnit());
         assertSame(units, InboxSuggestions.units(units));
-        assertSame(units, app.hushgram.extension.instagram.reels.PaidPartnershipReels.page(units));
+        assertSame(units, app.hushgram.extension.instagram.reels.PaidPartnershipReels.page(units, "clips_viewer_clips_tab"));
         assertFalse(Instants.hide());
         assertTrue(app.hushgram.extension.instagram.feed.CommentsButton.feedState(1));
         assertTrue(app.hushgram.extension.instagram.share.ShareButton.feedState(1));

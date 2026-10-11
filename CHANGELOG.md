@@ -8,7 +8,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Upload stories at full quality:** New patch, off to start under Stories in HushGram settings, that sends the video stories you post at up to 1080 pixels wide and 9 Mbps instead of 720, as Instagram's own Upload at highest quality setting does. Asked for in #37.
 
-* **Instagram - Hide paid partnership Reels:** A switch of the same name under Reels in HushGram settings, off to start, leaves out reels with a Paid partnership label and reels Instagram marks as boosted. Asked for in #12.
+* **Instagram - Hide paid partnership Reels:** A switch of the same name under Reels in HushGram settings, off to start, leaves reels with a Paid partnership label, and reels Instagram marks as boosted, out of the Reels tab. A reel you open from search, a profile, Saved or a message still plays. Asked for in #12.
 
 * **Instagram - Accent color:** New patch whose switch of the same name sits under Layout in HushGram settings and starts off. It turns Instagram's blue into purple, pink, red, orange, green or teal after a restart. Asked for in #8.
 

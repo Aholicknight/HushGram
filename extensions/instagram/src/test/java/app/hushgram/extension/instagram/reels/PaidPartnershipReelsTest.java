@@ -101,8 +101,15 @@ public class PaidPartnershipReelsTest {
         FeedFilterCounters.clear();
     }
 
+    /** The For you lane's module name, as the Reels tab's viewer hands it over. */
+    private static final String REELS_TAB = "clips_viewer_clips_tab";
+
     private List<?> page(List<?> items) {
-        return PaidPartnershipReels.page(items, reader, PaidPartnershipReels::switchedOn);
+        return page(items, REELS_TAB);
+    }
+
+    private List<?> page(List<?> items, String module) {
+        return PaidPartnershipReels.page(items, module, reader, PaidPartnershipReels::switchedOn);
     }
 
     private static Clip clip(Boolean partnership, String boost) {
@@ -225,8 +232,8 @@ public class PaidPartnershipReelsTest {
             }
         };
 
-        assertSame(items, PaidPartnershipReels.page(items, broken, () -> true));
-        assertSame(items, PaidPartnershipReels.page(items, reader, () -> {
+        assertSame(items, PaidPartnershipReels.page(items, REELS_TAB, broken, () -> true));
+        assertSame(items, PaidPartnershipReels.page(items, REELS_TAB, reader, () -> {
             throw new IllegalStateException("settings went away");
         }));
 
@@ -236,16 +243,59 @@ public class PaidPartnershipReelsTest {
         assertEquals(FeedFilterCounters.report().toString(), 0, reader.reads.get());
     }
 
+    /** Every lane of the Reels tab, For you under Instagram's homecoming test too, leaves the paid reels out. */
+    @Test
+    public void everyReelsTabLaneIsFiltered() {
+        List<String> lanes = Arrays.asList(PaidPartnershipReels.PICKED_BY_INSTAGRAM);
+        for (String lane : new String[]{REELS_TAB, "clips_viewer_homecoming_fyp", "clips_viewer_clips_connected",
+                "clips_viewer_clips_location", "clips_viewer_friends_lane", "clips_viewer_trending_only"}) {
+            assertTrue(lane + " isn't a Reels tab lane: " + lanes, lanes.contains(lane));
+        }
+        for (String lane : lanes) {
+            Clip plain = clip(false, null);
+            List<Clip> items = Arrays.asList(plain, clip(true, null), clip(null, "boosted"));
+            assertEquals(lane, Collections.singletonList(plain), page(items, lane));
+        }
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains("Paid partnership reels: " + lanes.size() + " lists, " + 3 * lanes.size()
+                + " items, " + 2 * lanes.size() + " removed"));
+    }
+
+    /**
+     * A viewer opened on something the user chose (search, a profile, their own, an audio, hashtag
+     * or location page, Saved, a reel shared in a message, an Explore tile) gets its page as it
+     * came, read by nothing and not counted as a filtered page. So does a name that's only close to
+     * a Reels tab's, and a missing one.
+     */
+    @Test
+    public void reelsTheUserWentToStayAsTheyCame() {
+        List<Clip> items = Arrays.asList(clip(true, null), clip(false, "boosted"), clip(false, null));
+        for (String module : new String[]{"clips_viewer_serp_top_clips_unit", "clips_viewer_clips_profile",
+                "clips_viewer_self_clips_profile", "clips_viewer_audio_page", "clips_viewer_feed_hashtag",
+                "clips_viewer_discovery_map_location_detail", "clips_viewer_feed_saved_collections_clips",
+                "clips_viewer_direct", "clips_viewer_shared_reels_inbox", "clips_viewer_explore_popular_major_unit",
+                "clips_tab","CLIPS_VIEWER_CLIPS_TAB", "clips_viewer_clips_tab ",
+                "", null}) {
+            assertSame(String.valueOf(module), items, page(items, module));
+        }
+
+        assertEquals("a reel the user went to was read", 0, reader.reads.get());
+        assertTrue(FeedFilterCounters.report().toString(), FeedFilterCounters.report().isEmpty());
+        assertTrue(HookStatus.missing(FamilyNames.PAID_PARTNERSHIP_REELS).toString(),
+                HookStatus.missing(FamilyNames.PAID_PARTNERSHIP_REELS).isEmpty());
+        assertEquals(Collections.singletonList(items.get(2)), page(items));
+    }
+
     /** A null page stays null, an empty one comes back as it came, and the stubs as built keep every reel. */
     @Test
     public void nullEmptyAndUnpatchedPagesStay() {
-        assertNull(PaidPartnershipReels.page(null));
+        assertNull(PaidPartnershipReels.page(null, REELS_TAB));
         List<Clip> empty = Collections.emptyList();
         assertSame(empty, page(empty));
         assertEquals("an empty page reads nothing", 0, reader.reads.get());
 
         List<Clip> items = Arrays.asList(clip(true, "boosted"), clip(false, null));
-        assertSame(items, PaidPartnershipReels.page(items));
+        assertSame(items, PaidPartnershipReels.page(items, REELS_TAB));
         assertNull(PaidPartnershipReels.media(items.get(0)));
         assertNull(PaidPartnershipReels.paidPartnership(items.get(0).post));
         assertNull(PaidPartnershipReels.boostedStatus(items.get(0).post));

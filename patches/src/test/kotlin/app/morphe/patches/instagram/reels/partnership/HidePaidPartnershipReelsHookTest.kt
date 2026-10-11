@@ -13,6 +13,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.MEDIA
+import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.reels.suggested.TO_CLIPS_ITEM
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -20,11 +21,13 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -34,7 +37,9 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import java.util.IdentityHashMap
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -48,8 +53,12 @@ class HidePaidPartnershipReelsHookTest {
     private val helped = "Lfixture/HelpedSource;"
     private val helpers = "Lfixture/Helpers;"
     private val other = "Lfixture/Other;"
+    private val callback = "Lfixture/Callback;"
+    private val fetcher = "Lfixture/Fetcher;"
+    private val viewer = "Lfixture/Viewer;"
     private val session = "Lcom/instagram/common/session/UserSession;"
     private val list = "Ljava/util/List;"
+    private val string = "Ljava/lang/String;"
     private val convert = "$converter->convert(Lfixture/ServerItem;$session)$item"
     private val fill = "$helpers->fill(${session}Ljava/util/AbstractCollection;Ljava/util/Iterator;)V"
 
@@ -67,29 +76,33 @@ class HidePaidPartnershipReelsHookTest {
         )) {
             assertTrue("$wanted is not in the extension: $declared", wanted in declared)
         }
+        assertFalse("the page filter without a module is still there: $declared", "page(Ljava/util/List;)Ljava/util/List;" in declared)
     }
 
     /**
-     * Both pages, the one calling the converter and the one calling its helper, pass every list they
-     * return through the filter, a branch straight to a return included. Nothing else is hooked, and
-     * the stubs read the item's post and the post's two fields.
+     * The viewer's callback hands the list to the filter, with the module name its fetcher gave it
+     * from getModuleName, where the page and its fallback meet, the branch from the page's check
+     * included. The sources answering a page, the converter and everything else stay as they were,
+     * and the stubs read the item's post and the post's two fields.
      */
     @Test
-    fun everyPageReturnIsFilteredAndTheStubsFilled() {
+    fun theCallbackFiltersEachPageWithItsModuleAndTheStubsAreFilled() {
         val context = PatchContexts.of(classes())
 
         val sites = context.findPaidPartnershipReels()
         context.hidePaidPartnershipReels(sites)
 
         assertEquals(source, sites.pageInterface)
-        val directPage = context.mutableClassDefBy(direct).methods.single { it.name == "page" }
-        assertEveryReturnFiltered("the direct page", directPage)
-        val code = directPage.code()
-        val done = code.indices.single { code[it].opcode == Opcode.RETURN_OBJECT }
-        assertEquals("the branch to the return lands on its filter", done - 2, directPage.targetOf(1))
-        assertEveryReturnFiltered("the helped page", context.mutableClassDefBy(helped).methods.single { it.name == "page" })
+        assertEquals(callback, sites.callback)
+        assertEquals("module", sites.moduleField)
+        assertEquals("the page's register", 2, sites.list)
+        assertEquals("the first local nothing reads after the join", 0, sites.scratch)
+        assertHookAtJoin("the stand-in", context.mutableClassDefBy(callback).methods.single { it.name == "success" }, sites, "page")
 
-        val unhooked = listOf(direct to "older", converter to "convert", helpers to "fill", other to "list")
+        val unhooked = listOf(
+            direct to "page", direct to "older", helped to "page", converter to "convert", helpers to "fill",
+            other to "list", callback to "<init>", fetcher to "fetch",
+        )
         for ((type, name) in unhooked) {
             val method = context.mutableClassDefBy(type).methods.single { it.name == name }
             assertTrue("$type->$name was hooked", method.code().none { it.referenceText() == PARTNERSHIP_PAGE_FILTER })
@@ -100,6 +113,7 @@ class HidePaidPartnershipReelsHookTest {
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
+        val success = "$callback->success($source)V"
         val cases = listOf(
             classes(converters = 0) to "Reels item converter holding \"$TO_CLIPS_ITEM\" in this Instagram build, found none",
             classes(converters = 2) to "Reels item converter holding \"$TO_CLIPS_ITEM\" in this Instagram build, found Lfixture/",
@@ -111,6 +125,20 @@ class HidePaidPartnershipReelsHookTest {
             classes(helpedName = "items") to "expected every page of Reels items to share one name, found [page, items]",
             classes(helpedInterface = otherSource) to "expected every page of Reels items to be one interface's page, found",
             classes(helpedInterface = null) to "expected every page of Reels items to be one interface's page, found",
+            classes(successMarks = 0) to "expected one method marked $REELS_PAGE_ARRIVED, found []",
+            classes(successMarks = 2) to "expected one method marked $REELS_PAGE_ARRIVED, found [Lfixture/",
+            classes(successTakes = otherSource) to "expected $callback->success($otherSource)V to take a $source and answer nothing",
+            classes(fallback = false) to "expected $success to ask for the page page and then one other list, found [page]",
+            classes(fallbackInto = 4) to "$success keeps the page in v2 and its fallback in v4",
+            classes(pageOverwritten = true) to "$success writes over the page in v2 at instruction",
+            classes(earlyJump = true) to "expected $success to reach instruction",
+            classes(thisReused = true) to "the Reels page's callback: $callback->success writes over this",
+            classes(listRegister = 16) to "$success keeps the page in v16, past what the hook's call can name",
+            classes(fetchMarked = false) to "expected one method marked $REELS_FETCH, found []",
+            classes(fetchMakes = false) to "$fetcher->fetch()V doesn't make $callback",
+            classes(fetchNamed = false) to "expected $fetcher->fetch()V to make $callback with one module name at instruction",
+            classes(moduleKeptTwice = true) to "expected $callback's constructor to keep its module name in one field, found 2",
+            classes(moduleWrittenElsewhere = true) to "$callback->module is written by [",
             classes(partnershipField = "is_paid_partnership_v2") to "expected one getter on $MEDIA answering Ljava/lang/Boolean; for is_paid_partnership, found none",
             classes(boostedPublic = false) to "$MEDIA->boost isn't public, so the extension can't reach it",
             classes(extension = false) to "the extension has no $PAID_PARTNERSHIP_REELS",
@@ -128,16 +156,23 @@ class HidePaidPartnershipReelsHookTest {
     }
 
     /**
-     * On the declared build and each other build of 450, the patch finds twelve pages of one
-     * interface and filters every return of each, and fills the stubs from the item's one Media
-     * field and Media's getters for the two fields. The pages are checked against the ones this test
-     * finds itself by scanning the whole build for callers of the converter and of its helpers.
+     * On the declared build and each other build of 450, the one method hooked is the Reels viewer's
+     * network callback, where its page and fallback meet, with the field its fetcher fills from the
+     * viewer's getModuleName. The twelve sources answering a page, found here by scanning the whole
+     * build for callers of the converter and its helpers, are left as they are, the one holding a
+     * search's SearchContext and the one the profile's mapper makes among them. The module names the
+     * extension filters are exactly the Reels tab's: "clips_viewer_" and the source of each lane
+     * Instagram's lane enum lists, and the two names its tab container answers. The names of
+     * search, profile, audio, hashtag, location, Saved and message viewers aren't among them.
      */
     @Test
-    fun eachBuildFiltersEveryPage() {
+    fun eachBuildFiltersOnlyTheReelsTab() {
+        val tabModules = ExtensionDex.classDef(PAID_PARTNERSHIP_REELS).methods.single { it.name == "<clinit>" }.code()
+            .mapNotNull { it.string() }.filter { it.startsWith("clips_viewer_") }.toSet()
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
+        val wanted = setOf(REELS_PAGE_ARRIVED, REELS_FETCH, LANE_SOURCE, TAB_CONTAINER_MODULE, PROFILE_MAPPER)
         var checked = 0
         for (bundle in bundles) {
             val converterClasses = FixtureDex.classesHolding(bundle, TO_CLIPS_ITEM)
@@ -146,9 +181,18 @@ class HidePaidPartnershipReelsHookTest {
 
             val parents = mutableMapOf<String, List<String>>()
             val callers = mutableListOf<ClassDef>()
+            val marked = mutableMapOf<String, MutableList<ClassDef>>()
             FixtureDex.forEach(bundle) { dex ->
                 for (classDef in dex.classes) {
                     parents.putIfAbsent(classDef.type, listOfNotNull(classDef.superclass) + classDef.interfaces)
+                }
+                if (dex.stringSection.any { string -> wanted.any { string.endsWith("_$it") } }) {
+                    for (classDef in dex.classes) {
+                        val found = classDef.methods.flatMap { it.markers() }.filter { it in wanted }.toSet()
+                        if (found.isEmpty()) continue
+                        val copy = ImmutableClassDef.of(classDef)
+                        found.forEach { marked.getOrPut(it) { mutableListOf() } += copy }
+                    }
                 }
                 if (dex.methodSection.none { it.calls(converterMethod) }) return@forEach
                 for (classDef in dex.classes) {
@@ -172,13 +216,16 @@ class HidePaidPartnershipReelsHookTest {
                 }
             }
             val pageClasses = (callers + helped).filter { classDef -> classDef.methods.any { it.isPageShaped() && it.callsAny(listOf(converterMethod) + helperMethods) } }
-                .map { it.type }.toSet()
-            // The page classes' superclasses and interfaces, all the way up, for the patch to find the one declaring the page.
             val ancestors = mutableSetOf<String>()
-            val next = ArrayDeque(pageClasses)
+            val next = ArrayDeque(pageClasses.map { it.type })
             while (next.isNotEmpty()) parents[next.removeFirst()].orEmpty().filter { it in parents && ancestors.add(it) }.forEach(next::addLast)
-            val kept = (converterClasses + callers + helped + FixtureDex.classes(bundle, ancestors + itemType + MEDIA).values)
-                .distinctBy { it.type } + ExtensionDex.classDef(PAID_PARTNERSHIP_REELS)
+            fun markedBy(name: String): List<Method> = marked[name].orEmpty().flatMap { it.methods }.filter { name in it.markers() }
+            val success = markedBy(REELS_PAGE_ARRIVED).single()
+            val fetch = markedBy(REELS_FETCH).single()
+            val callbackClass = marked.getValue(REELS_PAGE_ARRIVED).single()
+            val kept = (converterClasses + callers + helped + callbackClass + marked.getValue(REELS_FETCH) +
+                FixtureDex.classes(bundle, ancestors + itemType + MEDIA).values).distinctBy { it.type } +
+                ExtensionDex.classDef(PAID_PARTNERSHIP_REELS)
             val context = PatchContexts.of(kept)
 
             val sites = context.findPaidPartnershipReels()
@@ -186,41 +233,145 @@ class HidePaidPartnershipReelsHookTest {
 
             val hooked = kept.filter { it.type != PAID_PARTNERSHIP_REELS }.flatMap { context.mutableClassDefBy(it.type).methods }
                 .filter { method -> method.code().any { it.referenceText() == PARTNERSHIP_PAGE_FILTER } }
-            assertEquals("${bundle.name}: pages hooked", 12, hooked.size)
-            assertEquals("${bundle.name}: the pages this test found", pageClasses, hooked.map { it.definingClass }.toSet())
-            assertEquals("${bundle.name}: the pages' one name", 1, hooked.map { it.name }.distinct().size)
-            for (page in hooked) {
-                assertTrue("${bundle.name}: ${page.definingClass}->${page.name} isn't a page", page.isPageShaped())
-                assertTrue("${bundle.name}: ${page.definingClass} doesn't come to ${sites.pageInterface}", page.definingClass.reaches(sites.pageInterface, parents))
-                assertEveryReturnFiltered("${bundle.name}: ${page.definingClass}->${page.name}", page)
-            }
+            assertEquals("${bundle.name}: the methods hooked", listOf("${success.definingClass}->${success.name}"), hooked.map { "${it.definingClass}->${it.name}" })
+            assertEquals("${bundle.name}: the callback's page source", success.parameterTypes.single().toString(), sites.pageInterface)
+            val pageName = pageClasses.flatMap { it.methods }.filter { it.isPageShaped() && it.callsAny(listOf(converterMethod) + helperMethods) }
+                .map { it.name }.distinct().single()
+            assertHookAtJoin(bundle.name, hooked.single(), sites, pageName)
+            assertEquals("${bundle.name}: the field the fetcher fills from getModuleName", moduleFieldOf(fetch, callbackClass), sites.moduleField)
             assertEquals("${bundle.name}: the item", itemType, sites.itemType)
             assertStubsFilled(bundle.name, context, itemType, sites.mediaField, sites.partnershipGetter.name, sites.boostedGetter.name)
             assertTrue("${bundle.name}: the partnership getter's field", sites.partnershipGetter.loads(PAID_PARTNERSHIP_FIELD.hashCode()))
             assertTrue("${bundle.name}: the boost getter's field", sites.boostedGetter.loads(BOOSTED_STATUS_FIELD.hashCode()))
+
+            assertEquals("${bundle.name}: the sources answering a page", 12, pageClasses.size)
+            val search = pageClasses.filter { classDef -> classDef.fields.any { it.type == SEARCH_CONTEXT } }.map { it.type }
+            val profile = markedBy(PROFILE_MAPPER).single().returnType
+            assertEquals("${bundle.name}: the search's source", 1, search.size)
+            assertTrue("${bundle.name}: the profile's source $profile answers no page", profile in pageClasses.map { it.type })
+            for (type in pageClasses.map { it.type }) {
+                assertTrue("${bundle.name}: $type was hooked", context.mutableClassDefBy(type).methods.none { method ->
+                    method.code().any { it.referenceText() == PARTNERSHIP_PAGE_FILTER }
+                })
+            }
+
+            val viewerSource = marked.getValue(TAB_CONTAINER_MODULE).single()
+            assertEquals("${bundle.name}: the tab container's class", VIEWER_SOURCE, viewerSource.type)
+            val values = sourceValues(viewerSource)
+            val lane = marked.getValue(LANE_SOURCE).single()
+            val lanes = lane.methods.single { it.name == "<clinit>" }.code().mapNotNull { instruction ->
+                (instruction.reference() as? FieldReference)?.takeIf { instruction.opcode == Opcode.SGET_OBJECT && it.definingClass == VIEWER_SOURCE }
+                    ?.let { "clips_viewer_" + values[it.name] }
+            }.toSet()
+            val container = markedBy(TAB_CONTAINER_MODULE).single().code().mapNotNull { it.string() }.filter { it.startsWith("clips_viewer_") }
+            assertEquals("${bundle.name}: the Reels tab's module names", lanes + container, tabModules)
+            for (chosen in listOf(
+                "clips_profile", "self_clips_profile", "serp_top_clips_unit", "audio_page", "feed_hashtag",
+                "discovery_map_location_detail", "feed_saved_collections_clips", "direct",
+            )) {
+                assertTrue("${bundle.name}: $chosen isn't a viewer's source", chosen in values.values)
+                assertFalse("${bundle.name}: the viewer opened from $chosen is filtered", "clips_viewer_$chosen" in tabModules)
+            }
             checked++
         }
         assertEquals("the seven builds of 450 weren't all read", 7, checked)
     }
 
     /**
-     * Each return is the end of the filter call and its answer, in the return's register, the filter
-     * is called once per return, and nothing jumps between the filter and its return.
+     * Where the page and its fallback meet: the fallback's answer falls into the hook and the
+     * page's check jumps to it. The hook reads the module field off this into the scratch local,
+     * passes the list and the name to the filter and keeps its answer in the list's register.
      */
-    private fun assertEveryReturnFiltered(what: String, method: MutableMethod) {
+    private fun assertHookAtJoin(what: String, method: MutableMethod, sites: PaidPartnershipSites, pageName: String) {
         val code = method.code()
-        val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
-        assertTrue("$what: no returns", returns.isNotEmpty())
-        assertEquals("$what: filter calls", returns.size, code.count { it.referenceText() == PARTNERSHIP_PAGE_FILTER })
-        val targets = method.jumpTargets()
-        for (at in returns) {
-            val register = (code[at] as OneRegisterInstruction).registerA
-            assertEquals("$what: the filter before return $at", PARTNERSHIP_PAGE_FILTER, code[at - 2].referenceText())
-            assertEquals("$what: the filter's register at $at", listOf(register), code[at - 2].rangeRegisters())
-            assertEquals("$what: the answer at $at", Opcode.MOVE_RESULT_OBJECT, code[at - 1].opcode)
-            assertEquals("$what: the answer's register at $at", register, (code[at - 1] as OneRegisterInstruction).registerA)
-            assertTrue("$what: a jump skips the filter of return $at", (at - 1..at).none { it in targets })
+        val at = sites.join
+        val self = method.implementation!!.registerCount - 1 - method.parameterTypes.size
+        assertTrue("$what: the scratch v${sites.scratch} next to the list v${sites.list}", sites.scratch <= 15 && sites.scratch != sites.list)
+        assertEquals(
+            "$what: the hook at $at",
+            listOf(
+                "move-object/from16", "iget-object ${sites.callback}->${sites.moduleField}:$string",
+                "invoke-static $PARTNERSHIP_PAGE_FILTER", "move-result-object",
+            ),
+            code.subList(at, at + 4).map { listOfNotNull(it.opcode.name, it.referenceText()).joinToString(" ") },
+        )
+        assertEquals("$what: this into the scratch", listOf(sites.scratch, self), (code[at] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        assertEquals("$what: the field read", listOf(sites.scratch, sites.scratch), (code[at + 1] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        assertEquals("$what: the filter's registers", listOf(sites.list, sites.scratch), (code[at + 2] as FiveRegisterInstruction).let {
+            listOf(it.registerC, it.registerD).take(it.registerCount)
+        })
+        assertEquals("$what: the answer's register", sites.list, (code[at + 3] as OneRegisterInstruction).registerA)
+        assertEquals("$what: one filter call", 1, code.count { it.referenceText() == PARTNERSHIP_PAGE_FILTER })
+
+        assertEquals("$what: the fallback's answer before the hook", sites.list, (code[at - 1] as OneRegisterInstruction).registerA)
+        val fallback = code[at - 2].reference() as MethodReference
+        assertEquals("$what: the fallback's source", sites.pageInterface, fallback.definingClass)
+        val page = code.indexOfFirst { (it.reference() as? MethodReference)?.let { ref -> ref.definingClass == sites.pageInterface && ref.name == pageName } == true }
+        val jumps = method.implementation!!.instructions.withIndex()
+            .filter { (_, instruction) -> (instruction as? BuilderOffsetInstruction)?.target?.location?.index == at }.map { it.index }
+        assertTrue("$what: the page's check doesn't land on the hook: $jumps", jumps.isNotEmpty() && jumps.all { it in page + 2 until at - 2 })
+    }
+
+    /**
+     * The field of [callback]'s constructor parameter that [fetch] fills straight from the
+     * viewer's getModuleName, read off the code here rather than the patch's finder.
+     */
+    private fun moduleFieldOf(fetch: Method, callback: ClassDef): String {
+        val code = fetch.code()
+        val fields = code.indices.filter { at ->
+            (code[at].reference() as? MethodReference)?.let { it.definingClass == callback.type && it.name == "<init>" } == true
+        }.map { at ->
+            val constructor = code[at].reference() as MethodReference
+            val parameters = constructor.parameterTypes.map(Any::toString)
+            val registers = code[at].invokeRegisters()
+            val slot = parameters.indices.single { index ->
+                val register = registers[1 + parameters.take(index).sumOf { it.width() }]
+                val writer = (at - 1 downTo 1).first { code[it].writes(register) }
+                code[writer].opcode == Opcode.MOVE_RESULT_OBJECT &&
+                    (code[writer - 1].reference() as? MethodReference)?.name == "getModuleName"
+            }
+            val body = callback.methods.single { it.name == "<init>" && it.parameterTypes.map(Any::toString) == parameters }
+            val held = body.implementation!!.registerCount - 1 - parameters.sumOf { it.width() } + 1 + parameters.take(slot).sumOf { it.width() }
+            body.code().filter { it.opcode == Opcode.IPUT_OBJECT && (it as TwoRegisterInstruction).registerA == held }
+                .map { (it.reference() as FieldReference).name }.single()
         }
+        return fields.distinct().single()
+    }
+
+    /** Each ClipsViewerSource constant's source string, by field, as its static initializer makes them. */
+    private fun sourceValues(source: ClassDef): Map<String, String> {
+        val values = mutableMapOf<String, String>()
+        val held = mutableMapOf<Int, Any>()
+        val valueOf = IdentityHashMap<Any, String>()
+        for (instruction in source.methods.single { it.name == "<clinit>" }.code()) {
+            val opcode = instruction.opcode
+            val reference = instruction.reference()
+            when {
+                opcode == Opcode.CONST_STRING || opcode == Opcode.CONST_STRING_JUMBO ->
+                    held[(instruction as OneRegisterInstruction).registerA] = (reference as StringReference).string
+                opcode == Opcode.NEW_INSTANCE -> held[(instruction as OneRegisterInstruction).registerA] = Any()
+                opcode == Opcode.MOVE_OBJECT || opcode == Opcode.MOVE_OBJECT_FROM16 || opcode == Opcode.MOVE_OBJECT_16 -> {
+                    val move = instruction as TwoRegisterInstruction
+                    held[move.registerB]?.let { held[move.registerA] = it } ?: held.remove(move.registerA)
+                }
+                (opcode == Opcode.INVOKE_DIRECT || opcode == Opcode.INVOKE_DIRECT_RANGE) &&
+                    (reference as? MethodReference)?.let { it.definingClass == source.type && it.name == "<init>" } == true -> {
+                    val registers = instruction.invokeRegisters()
+                    val strings = registers.drop(1).mapNotNull { held[it] as? String }
+                    val made = held[registers.first()]
+                    if (made != null && strings.size >= 2) valueOf[made] = strings[1]
+                }
+                opcode == Opcode.SPUT_OBJECT && (reference as? FieldReference)?.definingClass == source.type -> {
+                    held[(instruction as OneRegisterInstruction).registerA]?.let { valueOf[it] }
+                        ?.let { values[reference.name] = it }
+                }
+                opcode.setsRegister() && instruction is OneRegisterInstruction -> {
+                    held.remove(instruction.registerA)
+                    if (opcode.setsWideRegister()) held.remove(instruction.registerA + 1)
+                }
+            }
+        }
+        return values
     }
 
     /** The media stub answers the item's post for an item, null otherwise, and the two getter stubs read the post's fields. */
@@ -238,7 +389,7 @@ class HidePaidPartnershipReelsHookTest {
         )
         for ((stub, getter, returns) in listOf(
             Triple("paidPartnership", partnership, "Ljava/lang/Boolean;"),
-            Triple("boostedStatus", boosted, "Ljava/lang/String;"),
+            Triple("boostedStatus", boosted, string),
         )) {
             val method = methods.single { it.name == stub }
             assertEquals("$what: the $stub stub's registers", 1, method.implementation!!.registerCount)
@@ -253,10 +404,11 @@ class HidePaidPartnershipReelsHookTest {
     // ---- stand-ins shaped like Instagram 450's -------------------------------------------------
 
     /**
-     * The converter; the item with its post; Media with its getters; the source interface; a page
-     * calling the converter, with a branch straight to its return and a sibling that doesn't call
-     * it; a page calling the static helper that calls the converter; a static method answering a
-     * List that isn't a page; and the extension.
+     * The converter; the item with its post; Media with its getters; the source interface; a source
+     * whose page calls the converter, and one whose page calls the static helper that does; a static
+     * method answering a List that isn't a page; the viewer's network callback, asking its source
+     * for the page and, when that's empty, for the fallback; the fetcher making the callback with the
+     * viewer's module name; and the extension.
      */
     private fun classes(
         converters: Int = 1,
@@ -266,6 +418,19 @@ class HidePaidPartnershipReelsHookTest {
         pageAnswers: String = list,
         helpedName: String = "page",
         helpedInterface: String? = source,
+        successMarks: Int = 1,
+        successTakes: String = source,
+        fallback: Boolean = true,
+        fallbackInto: Int? = null,
+        pageOverwritten: Boolean = false,
+        earlyJump: Boolean = false,
+        thisReused: Boolean = false,
+        listRegister: Int = 2,
+        fetchMarked: Boolean = true,
+        fetchMakes: Boolean = true,
+        fetchNamed: Boolean = true,
+        moduleKeptTwice: Boolean = false,
+        moduleWrittenElsewhere: Boolean = false,
         partnershipField: String = PAID_PARTNERSHIP_FIELD,
         boostedPublic: Boolean = true,
         extension: Boolean = true,
@@ -285,8 +450,8 @@ class HidePaidPartnershipReelsHookTest {
         )
         val mediaClass = classDef(MEDIA, listOf(
             getter("partnership", partnershipField, "Ljava/lang/Boolean;"),
-            getter("boost", BOOSTED_STATUS_FIELD, "Ljava/lang/String;", public = boostedPublic),
-            getter("caption", "caption", "Ljava/lang/String;"),
+            getter("boost", BOOSTED_STATUS_FIELD, string, public = boostedPublic),
+            getter("caption", "caption", string),
         ))
         val interfaces = listOf(source, otherSource).map { type ->
             interfaceDef(type, listOf("page", "older", "items").map { abstractMethod(type, it, listOf(session), pageAnswers) })
@@ -333,7 +498,78 @@ class HidePaidPartnershipReelsHookTest {
                 return-object v1
             """),
         ))
+
+        // v0 the marker and the check, v1 the session, v3 the source, v4 this's copy, the page in [listRegister].
+        val page = "v$listRegister"
+        val successBody = buildString {
+            if (successMarks > 0) appendLine("const-string v0, \"android_purge_26_q2_$REELS_PAGE_ARRIVED\"")
+            appendLine("move-object/from16 v4, p0")
+            appendLine("iget-object v1, v4, $callback->session:$session")
+            appendLine("move-object/from16 v3, p1")
+            if (earlyJump) appendLine("if-eqz v3, :join")
+            appendLine("invoke-interface { v3, v1 }, $successTakes->page($session)$list")
+            appendLine("move-result-object $page")
+            if (thisReused) appendLine("move-object/from16 p0, v1")
+            appendLine("invoke-interface/range { $page .. $page }, $list->isEmpty()Z")
+            appendLine("move-result v0")
+            if (pageOverwritten) appendLine("const/4 $page, 0x0")
+            appendLine("if-eqz v0, :join")
+            if (fallback) {
+                appendLine("invoke-interface { v3, v1 }, $successTakes->older($session)$list")
+                appendLine("move-result-object v${fallbackInto ?: listRegister}")
+            }
+            appendLine(":join")
+            appendLine("invoke-static/range { $page .. $page }, $viewer->show($list)V")
+            appendLine("return-void")
+        }
+        val callbackMethods = listOfNotNull(
+            method(callback, "<init>", listOf(session, string, string), "V", 0, body = """
+                invoke-direct { p0 }, Ljava/lang/Object;-><init>()V
+                iput-object p1, p0, $callback->session:$session
+                iput-object p2, p0, $callback->path:$string
+                iput-object p3, p0, $callback->module:$string
+                ${if (moduleKeptTwice) "iput-object p3, p0, $callback->path:$string" else ""}
+                return-void
+            """),
+            method(callback, "success", listOf(successTakes), "V", maxOf(5, listRegister + 1), body = successBody),
+            if (moduleWrittenElsewhere) method(callback, "rename", listOf(string), "V", 0, body = """
+                iput-object p1, p0, $callback->module:$string
+                return-void
+            """) else null,
+        )
+        val callbackClass = classDef(
+            callback, callbackMethods,
+            fields = listOf("session" to session, "path" to string, "module" to string),
+        )
+        val otherCallback = if (successMarks > 1) listOf(classDef("Lfixture/OtherCallback;", listOf(
+            method("Lfixture/OtherCallback;", "success", listOf(source), "V", 1, body = """
+                const-string v0, "android_purge_26_q2_$REELS_PAGE_ARRIVED"
+                return-void
+            """),
+        ))) else emptyList()
+        val fetchBody = buildString {
+            if (fetchMarked) appendLine("const-string v0, \"android_purge_26_q2_$REELS_FETCH\"")
+            appendLine("iget-object v1, p0, $fetcher->viewer:$viewer")
+            if (fetchNamed) {
+                appendLine("invoke-interface { v1 }, $viewer->getModuleName()$string")
+                appendLine("move-result-object v2")
+            } else {
+                appendLine("const-string v2, \"clips_viewer_clips_tab\"")
+            }
+            appendLine("const-string v3, \"clips/discover/\"")
+            appendLine("iget-object v4, p0, $fetcher->session:$session")
+            if (fetchMakes) {
+                appendLine("new-instance v0, $callback")
+                appendLine("invoke-direct { v0, v4, v3, v2 }, $callback-><init>($session$string$string)V")
+            }
+            appendLine("return-void")
+        }
+        val fetcherClass = classDef(
+            fetcher, listOf(method(fetcher, "fetch", emptyList(), "V", 5, body = fetchBody)),
+            fields = listOf("viewer" to viewer, "session" to session),
+        )
         return converterClasses + itemClass + mediaClass + interfaces + directSource + helperClass + helpedSource + otherClass +
+            callbackClass + otherCallback + fetcherClass +
             if (extension) listOf(ExtensionDex.classDef(PAID_PARTNERSHIP_REELS)) else emptyList()
     }
 
@@ -357,6 +593,7 @@ class HidePaidPartnershipReelsHookTest {
     ): Method {
         var flags = if (public) AccessFlags.PUBLIC.value else AccessFlags.PRIVATE.value
         if (static) flags = flags or AccessFlags.STATIC.value
+        if (name == "<init>") flags = flags or AccessFlags.CONSTRUCTOR.value
         val total = registers + (if (static) 0 else 1) + parameters.size
         val mutable = MutableMethod(
             ImmutableMethod(
@@ -405,27 +642,6 @@ class HidePaidPartnershipReelsHookTest {
     private fun MethodReference.calls(target: Method) = definingClass == target.definingClass && name == target.name &&
         returnType == target.returnType && parameterTypes.map(Any::toString) == target.parameterTypes.map(Any::toString)
 
-    /** Whether [this] class is [type], or extends or implements it, by the build's [parents]. */
-    private fun String.reaches(type: String, parents: Map<String, List<String>>): Boolean {
-        val seen = mutableSetOf<String>()
-        val next = ArrayDeque(listOf(this))
-        while (next.isNotEmpty()) {
-            val at = next.removeFirst()
-            if (at == type) return true
-            if (seen.add(at)) next.addAll(parents[at].orEmpty())
-        }
-        return false
-    }
-
-    /** Whether a getter loads [value], the hash of the field it reads. */
-    private fun Method.loads(value: Int): Boolean = code().any { (it as? NarrowLiteralInstruction)?.narrowLiteral == value }
-
-    private fun MutableMethod.jumpTargets(): Set<Int> =
-        implementation!!.instructions.filterIsInstance<BuilderOffsetInstruction>().map { it.target.location.index }.toSet()
-
-    private fun MutableMethod.targetOf(index: Int): Int =
-        (implementation!!.instructions[index] as BuilderOffsetInstruction).target.location.index
-
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
     private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
@@ -438,6 +654,34 @@ class HidePaidPartnershipReelsHookTest {
 
     private fun Instruction.string(): String? = (reference() as? StringReference)?.string
 
-    private fun Instruction.rangeRegisters(): List<Int> =
-        (this as RegisterRangeInstruction).let { (it.startRegister until it.startRegister + it.registerCount).toList() }
+    private fun Instruction.invokeRegisters(): List<Int> = when (this) {
+        is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
+        is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+        else -> emptyList()
+    }
+
+    private fun Instruction.writes(register: Int): Boolean {
+        if (!opcode.setsRegister()) return false
+        val destination = (this as? OneRegisterInstruction)?.registerA ?: return false
+        return destination == register || (opcode.setsWideRegister() && destination + 1 == register)
+    }
+
+    private fun String.width() = if (this == "J" || this == "D") 2 else 1
+
+    /** Whether a getter loads [value], the hash of the field it reads. */
+    private fun Method.loads(value: Int): Boolean = code().any { (it as? NarrowLiteralInstruction)?.narrowLiteral == value }
+
+    private companion object {
+        /** The marker of the lane enum's answer for which viewer source a lane of the Reels tab shows. */
+        const val LANE_SOURCE = "ClipsContentLaneEnum_getContentSource"
+
+        /** The marker of the Reels tab's container module name, For you's under the homecoming test or not. */
+        const val TAB_CONTAINER_MODULE = "ClipsViewerSource_getClipsTabContainerModule"
+
+        /** The marker of the mapper making a profile's Reels source from its GraphQL answer. */
+        const val PROFILE_MAPPER = "ClipsProfileApiUtil_mapGraphQLResponseToREST"
+
+        const val VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
+        const val SEARCH_CONTEXT = "Lcom/instagram/search/common/analytics/SearchContext;"
+    }
 }

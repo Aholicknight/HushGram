@@ -1236,25 +1236,14 @@ once-call Lapp/hushgram/extension/instagram/profile/PostsList;->resumed(Ljava/la
 # HideReelsSuggestionsHookTest, which checks on the 449 fixture that every return passes through it.
 once-call Lapp/hushgram/extension/instagram/reels/ReelsSuggestions;->netego(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object; in static (L*;Lcom/instagram/common/session/UserSession;)LX/*; holding android_purge_26_q2_ClipsItemExt_toClipsItemCombined
 
-# Hide paid partnership Reels passes every list a page of the Reels viewer's items returns through
-# PaidPartnershipReels.page: the twelve sources' page method (BiE on 438, of 064H), each the
-# instance (UserSession)List method that calls the Reels converter above or the static helper that
-# does (0BRb.A1Q on 438). Each loads no string, so each rule picks its page by a field it reads that
-# no other method of its shape reads, on 438. One call in each. Left out, those pages keep their
-# sponsored reels; elsewhere among a field's readers, it isn't the hook the patch wrote.
-# HidePaidPartnershipReelsHookTest checks on all seven 450 builds that all twelve are hooked.
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/04LM;->A0R:Ljava/util/List;
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0ISh;->A0P:Ljava/util/List;
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVF;->A0E:Ljava/util/List;
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVG;->A0F:Ljava/util/List;
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVH;->A0F:Ljava/util/List;
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVJ;->A0G:Ljava/util/List;
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVK;->A0G:Ljava/util/List;
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVL;->A0H:Ljava/util/List;
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVM;->A0M:Ljava/util/List;
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0SUU;->A01:LX/0fyo;
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0ZAy;->A05:Lcom/instagram/search/common/analytics/SearchContext;
-shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0iHH;->A06:Ljava/util/List;
+# Hide paid partnership Reels hands each page the Reels viewer's network callback takes to
+# PaidPartnershipReels.page, with the viewer's module name, where the page and its fallback meet
+# (06ZB.A0t on 438, the one method loading the marker below), once. The extension filters only the
+# Reels tab's names, so the twelve sources answering a page (search's, a profile's, an audio or
+# hashtag page's, Saved's and the rest) aren't hooked themselves any more and no rule here names
+# them. HidePaidPartnershipReelsHookTest checks on all seven 450 builds that the callback is the
+# one method hooked, and that the extension's names are the Reels tab lanes'.
+once-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
 
 # Keep a seek bar on Reels answers the shortest ordinary reel that gets a seek bar through
 # ReelSeekBar.minSeconds, at each of the three reads of that server value, and the hidden kind of
