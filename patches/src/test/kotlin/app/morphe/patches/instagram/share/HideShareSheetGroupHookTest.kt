@@ -33,6 +33,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class HideShareSheetGroupHookTest {
     /** Both hooks the patch writes are in the ShareSheet the bundle ships, public and static. */
@@ -154,29 +155,38 @@ class HideShareSheetGroupHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.type in listOf(SHARE_SHEET, SEARCH_BOX, COMPOSER)) holders += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val context = PatchContexts.of(holders)
-
-                val sites = context.findShareSheet()
-                val send = context.findGroupSend()
-                context.guardGroupButton(sites.build)
-                context.guardGroupAction(sites.reveal)
-                context.guardGroupSend(send)
-
-                fun method(site: SheetMethod) = context.mutableClassDefBy(site.type).methods
-                    .single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
-                assertBuildGuarded("${bundle.name} ${sites.build.name}", method(sites.build))
-                assertRevealGuarded("${bundle.name} ${sites.reveal.name}", method(sites.reveal))
-                assertGroupSendGuarded("${bundle.name} ${send.show.name}", method(send.show), send.hide.name)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    @Test
+    fun eachOtherBuildGuardsTheNewGroupButtonToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.type in listOf(SHARE_SHEET, SEARCH_BOX, COMPOSER)) holders += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(holders)
+
+        val sites = context.findShareSheet()
+        val send = context.findGroupSend()
+        context.guardGroupButton(sites.build)
+        context.guardGroupAction(sites.reveal)
+        context.guardGroupSend(send)
+
+        fun method(site: SheetMethod) = context.mutableClassDefBy(site.type).methods
+            .single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
+        assertBuildGuarded("${label} ${sites.build.name}", method(sites.build))
+        assertRevealGuarded("${label} ${sites.reveal.name}", method(sites.reveal))
+        assertGroupSendGuarded("${label} ${send.show.name}", method(send.show), send.hide.name)
     }
 
     /**

@@ -41,6 +41,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Feed's action-row state: the flags its toString prints after "isShareEnabled=" and
@@ -163,48 +164,57 @@ class HideShareButtonHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val marked = FixtureDex.methodsWhere(bundle, { dex -> dex.stringSection.any { it.endsWith("_$REELS_SHOULD_SHOW_SHARE") } }) {
-                    REELS_SHOULD_SHOW_SHARE in it.markers()
-                }.mapTo(HashSet()) { it.definingClass }
-                assertEquals("${bundle.name}: one class holds the Reels marker", 1, marked.size)
-                val classes = FixtureDex.classesHolding(bundle, SHARE_ENABLED_LABEL) + FixtureDex.classes(bundle, marked).values
-                val context = PatchContexts.of(classes)
-
-                val found = context.findFeedShareState()
-                assertEquals("${bundle.name}: the button and its count", 2, found.flags.size)
-                assertEquals("${bundle.name}: each set once", 2, found.writes.size)
-                assertTrue("${bundle.name}: in place", found.writes.all { it.answer == it.value })
-                val reels = context.findReelsShareCheck()
-                context.prepareFeedShare(found)()
-                context.guardReelsShareCheck(reels)
-                val comments = context.findFeedCommentState()
-                assertEquals("${bundle.name}: the same state", found.type, comments.type)
-                context.prepareFeedComments(comments)()
-                val repost = context.findFeedRepostState()
-                assertEquals("${bundle.name}: the same state", found.type, repost.type)
-                context.hideFeedState(repost)
-
-                val code = context.mutableClassDefBy(found.type).methods.single { it.name == "<init>" }
-                    .implementation!!.instructions.toList()
-                assertEquals(bundle.name, 2, code.count { it.calls(SHARE_FEED_STATE) })
-                for (write in found.writes) {
-                    assertHooked(bundle.name, code, write.field.name, SHARE_FEED_STATE, write.value, write.answer)
-                }
-                for (write in comments.writes) assertHooked(bundle.name, code, write.field.name, COMMENTS_FEED_STATE, write.value, write.answer)
-                for (write in repost.writes) assertHooked(bundle.name, code, write.field.name, REPOSTS_FEED_STATE)
-
-                val guarded = context.mutableClassDefBy(reels.definingClass).methods.single {
-                    it.name == reels.name && it.parameterTypes.map(Any::toString) == reels.parameterTypes.map(Any::toString) &&
-                        it.returnType == "Z"
-                }.implementation!!.instructions.toList()
-                assertGuardFirst(bundle.name, guarded)
-                assertEquals(bundle.name, 1, guarded.count { it.calls(HIDE_SHARE_IN_REELS) })
-                val marker = (guarded[5] as? ReferenceInstruction)?.reference as? StringReference
-                assertTrue("${bundle.name}: the marker follows the guard", marker?.string?.endsWith("_$REELS_SHOULD_SHOW_SHARE") == true)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    @Test
+    fun eachOtherBuildTakesTheShareButtonOffToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val marked = FixtureDex.methodsWhere(bundle, { dex -> dex.stringSection.any { it.endsWith("_$REELS_SHOULD_SHOW_SHARE") } }) {
+            REELS_SHOULD_SHOW_SHARE in it.markers()
+        }.mapTo(HashSet()) { it.definingClass }
+        assertEquals("${label}: one class holds the Reels marker", 1, marked.size)
+        val classes = FixtureDex.classesHolding(bundle, SHARE_ENABLED_LABEL) + FixtureDex.classes(bundle, marked).values
+        val context = PatchContexts.of(classes)
+
+        val found = context.findFeedShareState()
+        assertEquals("${label}: the button and its count", 2, found.flags.size)
+        assertEquals("${label}: each set once", 2, found.writes.size)
+        assertTrue("${label}: in place", found.writes.all { it.answer == it.value })
+        val reels = context.findReelsShareCheck()
+        context.prepareFeedShare(found)()
+        context.guardReelsShareCheck(reels)
+        val comments = context.findFeedCommentState()
+        assertEquals("${label}: the same state", found.type, comments.type)
+        context.prepareFeedComments(comments)()
+        val repost = context.findFeedRepostState()
+        assertEquals("${label}: the same state", found.type, repost.type)
+        context.hideFeedState(repost)
+
+        val code = context.mutableClassDefBy(found.type).methods.single { it.name == "<init>" }
+            .implementation!!.instructions.toList()
+        assertEquals(label, 2, code.count { it.calls(SHARE_FEED_STATE) })
+        for (write in found.writes) {
+            assertHooked(label, code, write.field.name, SHARE_FEED_STATE, write.value, write.answer)
+        }
+        for (write in comments.writes) assertHooked(label, code, write.field.name, COMMENTS_FEED_STATE, write.value, write.answer)
+        for (write in repost.writes) assertHooked(label, code, write.field.name, REPOSTS_FEED_STATE)
+
+        val guarded = context.mutableClassDefBy(reels.definingClass).methods.single {
+            it.name == reels.name && it.parameterTypes.map(Any::toString) == reels.parameterTypes.map(Any::toString) &&
+                it.returnType == "Z"
+        }.implementation!!.instructions.toList()
+        assertGuardFirst(label, guarded)
+        assertEquals(label, 1, guarded.count { it.calls(HIDE_SHARE_IN_REELS) })
+        val marker = (guarded[5] as? ReferenceInstruction)?.reference as? StringReference
+        assertTrue("${label}: the marker follows the guard", marker?.string?.endsWith("_$REELS_SHOULD_SHOW_SHARE") == true)
     }
 
     /** The guard asks the hook, and on yes answers 0, before the check's first instruction, where a no goes. */

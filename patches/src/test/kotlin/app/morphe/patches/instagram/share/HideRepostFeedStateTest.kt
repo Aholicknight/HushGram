@@ -32,6 +32,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Feed's action-row state (#69): the flag its toString prints after "isRepostButtonEnabled=", and
@@ -159,27 +160,36 @@ class HideRepostFeedStateTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val context = PatchContexts.of(FixtureDex.classesHolding(bundle, REPOST_ENABLED_LABEL))
-                val found = context.findFeedRepostState()
-                assertEquals("${bundle.name}: the button and its count", 2, found.flags.size)
-                assertEquals("${bundle.name}: each set once", 2, found.writes.size)
-                assertEquals("${bundle.name}: one constructor", 1, found.writes.map { it.parameters }.toSet().size)
-                assertTrue("${bundle.name}: in place", found.writes.all { it.answer == it.value })
-                context.hideFeedState(found)
-
-                val code = context.mutableClassDefBy(found.type).methods.single { it.name == "<init>" }
-                    .implementation!!.instructions.toList()
-                assertEquals(bundle.name, 2, code.count { it.calls(REPOSTS_FEED_STATE) })
-                for (write in found.writes) {
-                    val at = assertHooked(bundle.name, code, write.field.name, write.value, write.answer, write.field)
-                    val before = code[at - 3]
-                    assertTrue("${bundle.name}: the value is moved in right before",
-                        before.opcode.setsRegister() && (before as OneRegisterInstruction).registerA == write.value)
-                }
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    @Test
+    fun eachOtherBuildKeepsTheFeedRowsRepostOffToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val context = PatchContexts.of(FixtureDex.classesHolding(bundle, REPOST_ENABLED_LABEL))
+        val found = context.findFeedRepostState()
+        assertEquals("${label}: the button and its count", 2, found.flags.size)
+        assertEquals("${label}: each set once", 2, found.writes.size)
+        assertEquals("${label}: one constructor", 1, found.writes.map { it.parameters }.toSet().size)
+        assertTrue("${label}: in place", found.writes.all { it.answer == it.value })
+        context.hideFeedState(found)
+
+        val code = context.mutableClassDefBy(found.type).methods.single { it.name == "<init>" }
+            .implementation!!.instructions.toList()
+        assertEquals(label, 2, code.count { it.calls(REPOSTS_FEED_STATE) })
+        for (write in found.writes) {
+            val at = assertHooked(label, code, write.field.name, write.value, write.answer, write.field)
+            val before = code[at - 3]
+            assertTrue("${label}: the value is moved in right before",
+                before.opcode.setsRegister() && (before as OneRegisterInstruction).registerA == write.value)
+        }
     }
 
     /**
