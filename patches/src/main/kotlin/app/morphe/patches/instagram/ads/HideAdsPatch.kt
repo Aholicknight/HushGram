@@ -16,7 +16,9 @@ import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 
-internal const val HIDE_ADS = "$EXTENSION_PACKAGE/ads/Ads;->hide()Z"
+internal const val PATCH = "Hide ads"
+internal const val ADS = "$EXTENSION_PACKAGE/ads/Ads;"
+internal const val HIDE_ADS = "$ADS->hide()Z"
 
 @Suppress("unused")
 val hideAdsPatch = bytecodePatch(
@@ -31,9 +33,21 @@ val hideAdsPatch = bytecodePatch(
     dependsOn(instagramExtensionPatch)
 
     execute {
-        guardAdInjector(findAdInjector())
+        hideAds()
         enableStatus("hideAds")
     }
+}
+
+/**
+ * Guards Instagram's own ad insert and takes the sponsored posts a feed's pages carry out of them.
+ * Both are found before either changes, so a build where one moved stops the patch with nothing
+ * written.
+ */
+internal fun BytecodePatchContext.hideAds() {
+    val injector = findAdInjector()
+    val sponsored = findSponsoredPosts()
+    guardAdInjector(injector)
+    sponsored.write(this)
 }
 
 /**

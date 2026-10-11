@@ -135,16 +135,7 @@ internal object FeedItemStandIns {
         val found = mutableListOf<Fixture>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = FixtureDex.classesHolding(bundle, "clips_netego")
-                val made = holders.flatMap { it.methods }.flatMap { it.instructions() }
-                    .filter { it.opcode == Opcode.NEW_INSTANCE }
-                    .map { ((it as ReferenceInstruction).reference as TypeReference).type }
-                    .toSet()
-                val candidates = FixtureDex.classes(bundle, made)
-                val itemType = candidates.values.single { classDef -> classDef.fields.any { it.type == CLIPS_NETEGO } }.type
-                val fieldTypes = candidates.getValue(itemType).fields.map { it.type }.toSet()
-                val classes = (holders + candidates.values + FixtureDex.classes(bundle, fieldTypes).values).distinctBy { it.type }
-                found += Fixture(bundle, classes, itemType)
+                found += fixture(bundle)
             }
         }
         assertEquals(
@@ -153,6 +144,23 @@ internal object FeedItemStandIns {
             versions.filter { version -> found.any { it.bundle.name.contains("-$version-") } }.toSet(),
         )
         return found
+    }
+
+    /** The same for every other build of each declared version, from its base APK ([Fixtures.otherBuilds]). */
+    fun otherBuildFixtures(): List<Fixture> = Fixtures.otherBuilds().map(::fixture)
+
+    /** One bundle's or base APK's feed item classes, as [fixtures] describes them. */
+    fun fixture(bundle: File): Fixture {
+        val holders = FixtureDex.classesHolding(bundle, "clips_netego")
+        val made = holders.flatMap { it.methods }.flatMap { it.instructions() }
+            .filter { it.opcode == Opcode.NEW_INSTANCE }
+            .map { ((it as ReferenceInstruction).reference as TypeReference).type }
+            .toSet()
+        val candidates = FixtureDex.classes(bundle, made)
+        val itemType = candidates.values.single { classDef -> classDef.fields.any { it.type == CLIPS_NETEGO } }.type
+        val fieldTypes = candidates.getValue(itemType).fields.map { it.type }.toSet()
+        val classes = (holders + candidates.values + FixtureDex.classes(bundle, fieldTypes).values).distinctBy { it.type }
+        return Fixture(bundle, classes, itemType)
     }
 
     /**

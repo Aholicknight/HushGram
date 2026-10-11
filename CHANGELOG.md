@@ -84,6 +84,8 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Hide ads:** Sponsored posts inside a page of posts, like the ones on Home's Older Posts page and Explore's chain of posts, are gone now too. Diagnostics counts them on a Feed ads line.
+
 * **Instagram - HushGram settings:** Typing in the settings search box no longer freezes Instagram on a slow phone.
 
 * **Instagram - HushGram settings:** A settings export that hits an error now says Couldn't export HushGram settings and lets you try again. Recommended flags does the same.

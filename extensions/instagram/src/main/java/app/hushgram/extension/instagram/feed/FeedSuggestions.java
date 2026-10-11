@@ -113,6 +113,9 @@ public final class FeedSuggestions {
     /** Set once {@link #homeItem} has taken a post out of Home in this run. Tests clear it. */
     static volatile boolean typesTookOut;
 
+    /** Set once Hide ads has taken a sponsored post out of a page of Home's response in this run ({@link #adTakenOut}). Tests clear it. */
+    static volatile boolean adsTookOut;
+
     /**
      * Set on the thread {@link #filter} has just taken an item out on, and cleared by its next call
      * there, so the Home read right after it can tell an item it lost to a suggestion switch from one
@@ -222,8 +225,8 @@ public final class FeedSuggestions {
 
     /**
      * Injected at each read of the home feed adapter's "no next page" flag. Answers 1 (no next
-     * page) once the suggestion switches, or the post switches {@link #homeItem} takes posts out
-     * for, have emptied Home ({@link #suggestionsEmptiedHome}), or once Hide the
+     * page) once the suggestion switches, the post switches {@link #homeItem} takes posts out
+     * for or Hide ads have emptied Home ({@link #suggestionsEmptiedHome}), or once Hide the
      * home feed has emptied Home ({@link HomeFeed#emptied}), and [noMorePages] otherwise. Turning
      * every switch off restores Instagram's answer in this run.
      *
@@ -238,12 +241,13 @@ public final class FeedSuggestions {
         READING.remove();
         if (noMorePages != 0) return noMorePages;
         if (HomeFeed.emptied()) return 1;
-        if (!tookOut && !typesTookOut) return noMorePages;
+        if (!tookOut && !typesTookOut && !adsTookOut) return noMorePages;
         try {
             if (!Utils.settingsReady()) return noMorePages;
             boolean suggestions = tookOut && suggestionSwitchOn();
             boolean posts = typesTookOut && postSwitchOn();
-            return (suggestions || posts) && suggestionsEmptiedHome(feed) ? 1 : noMorePages;
+            boolean ads = adsTookOut && Settings.HIDE_ADS.get();
+            return (suggestions || posts || ads) && suggestionsEmptiedHome(feed) ? 1 : noMorePages;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "empty feed", failure);
             return noMorePages;
@@ -370,6 +374,25 @@ public final class FeedSuggestions {
     }
 
     /**
+     * Called by Hide ads' feed filter each time it takes a sponsored post out. Inside a page of
+     * Home's response being parsed on this thread, the post counts toward that page as read and
+     * taken out, as one {@link #filter} took out does, so a page Hide ads left with no posts ends
+     * Home or the Older Posts page instead of keeping a loading row. Outside a page (Home's store,
+     * Explore and the other feeds the helper reads) it does nothing. Never throws.
+     */
+    public static void adTakenOut() {
+        try {
+            int[] page = PAGE.get();
+            if (page == null) return;
+            page[0]++;
+            page[1]++;
+            adsTookOut = true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "ad taken out", failure);
+        }
+    }
+
+    /**
      * Injected where the home feed's load more row asks whether its feed's pages come from
      * Following. Only then does Instagram hide the row under an end of feed card with no posts
      * above it, once there's no next page. Past that card the pages are suggested posts, paged from
@@ -437,7 +460,8 @@ public final class FeedSuggestions {
             if (!Utils.settingsReady()) return loading;
             boolean suggestions = tookOut && suggestionSwitchOn();
             boolean posts = typesTookOut && postSwitchOn();
-            if (!suggestions && !posts) return loading;
+            boolean ads = adsTookOut && Settings.HIDE_ADS.get();
+            if (!suggestions && !posts && !ads) return loading;
             long age = clock.getAsLong() - pageLostEverythingAt;
             if (age < 0 || age > OLDER_WINDOW_NANOS) return loading;
             if (!olderEndCounted) {

@@ -272,27 +272,27 @@ private fun BytecodePatchContext.publicGetter(type: String, field: String, retur
  * factory from a post (taking a Media and answering an item) writes. On 450 that's the field the
  * item's parser fills from "media_or_ad", where a post from an account you follow, a suggested
  * post and an ad all come. The item's other post fields hold other units' posts. It has to be a
- * public instance field of a public class, since the extension reads it.
+ * public instance field of a public class, since the extension reads it. A failure names [patch].
  */
-internal fun BytecodePatchContext.itemPost(itemType: String): FieldReference {
+internal fun BytecodePatchContext.itemPost(itemType: String, patch: String = PATCH): FieldReference {
     val item = classDefBy(itemType)
-    if (!AccessFlags.PUBLIC.isSet(item.accessFlags)) throw PatchException("$PATCH: $itemType isn't public, so the extension can't reach it")
+    if (!AccessFlags.PUBLIC.isSet(item.accessFlags)) throw PatchException("$patch: $itemType isn't public, so the extension can't reach it")
     val factories = item.methods.filter {
         AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == itemType &&
             it.parameterTypes.map(Any::toString) == listOf(MEDIA)
     }
     val factory = factories.singleOrNull()
-        ?: throw PatchException("$PATCH: expected one static method of $itemType making one from a post, found ${factories.size}")
+        ?: throw PatchException("$patch: expected one static method of $itemType making one from a post, found ${factories.size}")
     val writes = factory.implementation?.instructions?.toList().orEmpty()
         .filter { it.opcode == Opcode.IPUT_OBJECT }
         .map { (it as ReferenceInstruction).reference as FieldReference }
         .filter { it.definingClass == itemType && it.type == MEDIA }
         .distinctBy { it.name }
     val post = writes.singleOrNull()
-        ?: throw PatchException("$PATCH: expected $itemType's factory from a post to keep it in one field, found ${writes.map { it.name }}")
+        ?: throw PatchException("$patch: expected $itemType's factory from a post to keep it in one field, found ${writes.map { it.name }}")
     val field = item.fields.singleOrNull { it.name == post.name && it.type == MEDIA }
     if (field == null || !AccessFlags.PUBLIC.isSet(field.accessFlags) || AccessFlags.STATIC.isSet(field.accessFlags)) {
-        throw PatchException("$PATCH: $itemType's post field ${post.name} isn't a public instance field")
+        throw PatchException("$patch: $itemType's post field ${post.name} isn't a public instance field")
     }
     return post
 }

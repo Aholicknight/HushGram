@@ -64,6 +64,7 @@ public class FeedSuggestionsTest {
         FeedSuggestions.homePageEndCounted = false;
         FeedSuggestions.verdictFeed = null;
         FeedSuggestions.tookOut = false;
+        FeedSuggestions.adsTookOut = false;
         FeedSuggestions.pageLostEverything = false;
         FeedSuggestions.pageLostEverythingAt = 0;
         FeedSuggestions.olderEndCounted = false;
@@ -81,6 +82,8 @@ public class FeedSuggestionsTest {
         FeedSuggestions.verdictFeed = null;
         FeedSuggestions.emptiness = FeedSuggestions::feedEmpty;
         FeedSuggestions.tookOut = false;
+        FeedSuggestions.adsTookOut = false;
+        Settings.HIDE_ADS.resetToDefault();
         FeedSuggestions.pageLostEverything = false;
         FeedSuggestions.pageLostEverythingAt = 0;
         FeedSuggestions.olderEndCounted = false;
@@ -755,5 +758,92 @@ public class FeedSuggestionsTest {
         Settings.HIDE_FEED_SURVEYS.save(false);
         Settings.HIDE_FEED_SHOPPING.save(false);
         assertEquals("every switch off is Instagram's row", 1, older(feed));
+    }
+
+    /**
+     * A sponsored post Home's reads take, with Hide ads' filter ahead of this one at the helper's
+     * return: it takes the post out and says so, and this filter and homeItem see null.
+     */
+    private static Object homeAdRead() {
+        FeedSuggestions.adTakenOut();
+        return FeedSuggestions.homeItem(FeedSuggestions.filter(null), ignored -> 0);
+    }
+
+    /** The same with this filter first: it keeps the post, then Hide ads takes it out. */
+    private static Object homeAdReadAfterThisFilter() {
+        Object kept = FeedSuggestions.filter(new Item(Kind.MEDIA));
+        assertTrue("an ordinary post item passes this filter", kept != null);
+        FeedSuggestions.adTakenOut();
+        return FeedSuggestions.homeItem(null, ignored -> 0);
+    }
+
+    /**
+     * Older Posts' page came with sponsored posts in it (S25, 450). Hide ads takes them out at the
+     * helper, and a page it left with no posts drops the loading row the way one the feed switches
+     * emptied does, whichever of the two filters runs first.
+     */
+    @Test
+    public void anOlderPostsPageOfOnlyAdsStopsLoading() {
+        withHomeReads();
+        FeedSuggestions.clock = () -> 1_000L;
+        Object feed = new Object();
+        HookStatus.clear();
+        try {
+            assertEquals("the fetch starts: Instagram's row", 1, older(feed));
+            FeedSuggestions.homePageStarts();
+            assertNull(homeAdRead());
+            assertNull(homeAdReadAfterThisFilter());
+            FeedSuggestions.homePageParsed();
+            assertTrue("the page lost both", FeedSuggestions.pageLostEverything);
+            assertTrue(FeedSuggestions.adsTookOut);
+            assertEquals("the loading row is dropped", 0, older(feed));
+            assertEquals("counted once for the page", "once", olderCounted());
+            Settings.HIDE_ADS.save(false);
+            assertEquals("Hide ads off is Instagram's row", 1, older(feed));
+        } finally {
+            HookStatus.clear();
+        }
+    }
+
+    /** A page that kept a post beside its ads keeps Instagram's row, and its ads count toward it as taken out. */
+    @Test
+    public void aPageWithPostsBesideItsAdsKeepsItsRow() {
+        withHomeReads();
+        FeedSuggestions.clock = () -> 1_000L;
+        Object feed = new Object();
+        assertEquals(1, older(feed));
+        FeedSuggestions.homePageStarts();
+        assertNull(homeAdRead());
+        assertTrue("the post stays", homeRead(new Item(Kind.MEDIA)) != null);
+        FeedSuggestions.homePageParsed();
+        assertTrue("the page lost its ad", FeedSuggestions.homePageLost);
+        assertFalse("but not everything", FeedSuggestions.pageLostEverything);
+        assertEquals(1, older(feed));
+        assertEquals("a Home showing the post keeps Instagram's answer", 0, adapterReads(new Feed(false), 0));
+    }
+
+    /** A Home page Hide ads left with no posts ends an empty Home, as a page the switches emptied does. */
+    @Test
+    public void aHomePageOfOnlyAdsEndsAnEmptyHome() {
+        withHomeReads();
+        FeedSuggestions.homePageStarts();
+        assertNull(homeAdRead());
+        FeedSuggestions.homePageParsed();
+        Feed home = new Feed(true);
+        assertEquals("an empty Home ends", 1, adapterReads(home, 0));
+        home.empty = false;
+        assertEquals("a Home showing posts keeps Instagram's answer", 0, adapterReads(home, 0));
+        home.empty = true;
+        Settings.HIDE_ADS.save(false);
+        assertEquals("Hide ads off is Instagram's answer", 0, adapterReads(home, 0));
+    }
+
+    /** An ad taken out of Home's store, Explore or any other feed the helper reads is no page of Home's. */
+    @Test
+    public void anAdTakenOutOutsideAPageCountsForNothing() {
+        withHomeReads();
+        FeedSuggestions.adTakenOut();
+        assertFalse(FeedSuggestions.adsTookOut);
+        assertEquals("waiting on its first page", 0, adapterReads(new Feed(true), 0));
     }
 }

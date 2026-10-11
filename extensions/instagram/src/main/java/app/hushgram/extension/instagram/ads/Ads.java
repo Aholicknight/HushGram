@@ -4,13 +4,40 @@
  */
 package app.hushgram.extension.instagram.ads;
 
+import java.util.function.ToIntFunction;
+
+import app.hushgram.extension.instagram.feed.FeedSuggestions;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
-/** Helper for the "Hide ads" patch. */
+/**
+ * Helper for the "Hide ads" patch.
+ *
+ * <p>Instagram puts ads into a feed two ways. The app inserts some itself, through the one method
+ * {@link #hide} guards. The server also sends others inside a page of posts: Home's Older Posts page
+ * (S25, Instagram 450) came with two, each an ordinary post item whose post carries Instagram's ad
+ * details, which no insert ever saw. The patch passes every feed item Instagram's parse helper reads
+ * through {@link #feedItem}, beside the other feed filters, so those go too: Home and its Following
+ * and Older Posts pages, Home's store of the last run, Explore's chain of posts and the ad responses
+ * that read their items the same way.
+ */
 public final class Ads {
+
+    /** The diagnostic counter route of {@link #feedItem}: the items it read, and the sponsored ones taken out. */
+    static final String ROUTE = "Feed ads";
+
+    /** The counted kind of an item whose post carries Instagram's ad details. */
+    static final String SPONSORED = "sponsored";
+
+    /** The counted kind of every other item. */
+    static final String NOT_SPONSORED = "not sponsored";
+
+    /** The report's count of sponsored posts taken out of a feed's own pages. */
+    static final String REMOVED = "sponsored posts removed";
 
     private Ads() {}
 
@@ -27,5 +54,45 @@ public final class Ads {
             HookStatus.threw(FamilyNames.HIDE_ADS, "switch read", t);
             return false;
         }
+    }
+
+    /**
+     * Injected at the return of Instagram's feed item parse helper. Answers null for an item whose
+     * post is sponsored ({@link #sponsored}) while Hide ads is on, and [item] itself otherwise: with
+     * the switch off, HushGram paused, the settings not ready or anything thrown. Inside a page of
+     * Home's response the item still counts toward that page as one taken out, so a page left with
+     * no posts ends the way one the feed switches emptied does. Never throws.
+     */
+    public static Object feedItem(Object item) {
+        return feedItem(item, Ads::sponsored);
+    }
+
+    static Object feedItem(Object item, ToIntFunction<Object> sponsoredOf) {
+        if (item == null) return null;
+        HookStatus.invoked(FamilyNames.HIDE_ADS);
+        try {
+            if (!Utils.settingsReady() || !Settings.HIDE_ADS.get()) return item;
+            boolean sponsored = sponsoredOf.applyAsInt(item) == 1;
+            FeedFilterCounters.sawKind(ROUTE, sponsored ? SPONSORED : NOT_SPONSORED);
+            if (!sponsored) return item;
+            FeedFilterCounters.removed(ROUTE, 1, SPONSORED);
+            HookStatus.counted(FamilyNames.HIDE_ADS, REMOVED);
+            FeedSuggestions.adTakenOut();
+            Logger.printDebug(() -> "Hide ads: took a sponsored post out of a feed");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.HIDE_ADS, "feed item", failure);
+            return item;
+        }
+    }
+
+    /**
+     * Whether the post a feed item carries is sponsored: 1 when the post has Instagram's ad details
+     * ("injected" in its JSON, the key Instagram itself reads to tell an ad from a post), and 0 when
+     * it hasn't or the item carries no post. The patch writes the body, which reads the item's post
+     * field and the post's ad details. 0 as built.
+     */
+    public static int sponsored(Object item) {
+        return 0;
     }
 }

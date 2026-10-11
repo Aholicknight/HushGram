@@ -501,12 +501,14 @@ shared-call Lapp/hushgram/extension/instagram/misc/TranslatedStart;->protectCode
 # by its class's: "feedContent" and "feedItemType", the names its getters check, held together only
 # by the item class on 449. Of the class's three static methods taking one object and answering one
 # of Instagram's renamed classes, the helper is the one calling parseFromJsonParser. Hide suggested
-# posts and Hide Meta AI pass the same item through their own filters at the same return, so each of
-# the three gets a rule. The helper returns once on 449, and each filter is called nowhere else, so
+# posts, Hide Meta AI and Hide ads pass the same item through their own filters at the same return
+# (Hide ads takes out the sponsored posts a page carries, which the ad insert never sees), so each of
+# the four gets a rule. The helper returns once on 449, and each filter is called nowhere else, so
 # once-call. Left out, that patch's items stay in the feed; twice or elsewhere, it isn't the filter
 # the patch wrote.
 once-call Lapp/hushgram/extension/instagram/reels/FeedReels;->filter(Ljava/lang/Object;)Ljava/lang/Object; in static (L*;)LX/*; calling L*;->parseFromJsonParser(*)Ljava/lang/Object; class-holding feedContent feedItemType
 once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->filter(Ljava/lang/Object;)Ljava/lang/Object; in static (L*;)LX/*; calling L*;->parseFromJsonParser(*)Ljava/lang/Object; class-holding feedContent feedItemType
+once-call Lapp/hushgram/extension/instagram/ads/Ads;->feedItem(Ljava/lang/Object;)Ljava/lang/Object; in static (L*;)LX/*; calling L*;->parseFromJsonParser(*)Ljava/lang/Object; class-holding feedContent feedItemType
 # Stop swiping between tabs hands the main tabs' pager to TabSwipe.mainPager() right after the
 # method that sets it up (the one holding both log lines below) stores it, once. It also passes the
 # input flag each touch method of a pager's own list reads (the list class ViewPager2 makes, whose
