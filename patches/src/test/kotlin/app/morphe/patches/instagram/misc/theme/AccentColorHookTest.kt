@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -140,6 +141,38 @@ class AccentColorHookTest {
         assertListsSwapped("$label ${loader.first}->${loader.second}", context.method(loader.first, loader.second), returns)
         assertEquals("$label: the color reads", 2, colorReads.size)
         for ((type, name) in colorReads) assertColorSwapped("$label $type->$name", context.method(type, name))
+        assertReadsShareTheResolver(label, context, colorReads)
+    }
+
+    /**
+     * What the two reads are, by what they do and not by where Redex put them: each is a static
+     * (Context, int) int that asks the one same resolver for the resource of its attribute, and that
+     * resolver resolves a theme attribute (Theme.resolveAttribute, TypedValue.resourceId) and asks
+     * for no color. Where the reads sit differs from build to build (a class holding Room's schema in
+     * some, one holding the pagination limit in others), so a method of another class that merely
+     * has their shape and asks another method would fail here.
+     */
+    private fun assertReadsShareTheResolver(label: String, context: BytecodePatchContext, reads: List<Pair<String, String>>) {
+        val resolvers = reads.map { (type, name) ->
+            val code = context.method(type, name).code()
+            val at = code.indexOfFirst { it.calls(CONTEXT, "getColor") } - 2
+            val call = code[at]
+            assertEquals("$label $type->$name: asks the resolver right before getColor", Opcode.INVOKE_STATIC, call.opcode)
+            (call as ReferenceInstruction).reference as MethodReference
+        }
+        assertEquals("$label: both reads ask one resolver", 1, resolvers.map { it.toString() }.toSet().size)
+        val resolver = resolvers.first()
+        assertEquals("$label: the resolver takes the Context and the attribute", listOf(CONTEXT, "I"), resolver.parameterTypes.map(Any::toString))
+        val code = context.method(resolver.definingClass, resolver.name).code()
+        assertTrue("$label: the resolver calls Theme.resolveAttribute", code.any { it.calls(THEME, "resolveAttribute") })
+        assertTrue("$label: the resolver reads TypedValue.resourceId", code.any {
+            it.opcode == Opcode.IGET && ((it as ReferenceInstruction).reference as FieldReference).let { f ->
+                f.definingClass == "Landroid/util/TypedValue;" && f.name == "resourceId"
+            }
+        })
+        assertTrue("$label: the resolver asks for no color", code.none { it.calls(CONTEXT, "getColor") })
+        assertEquals("$label: the reads are two methods", 2, reads.toSet().size)
+        assertTrue("$label: neither read is the resolver", reads.none { it == resolver.definingClass to resolver.name })
     }
 
     /** [count] returns, each right after the list hook on its own register, and no jump past the hook. */
