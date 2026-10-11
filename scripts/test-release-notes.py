@@ -3,8 +3,9 @@
 Manager draws the notes as cards (New, Fixes, Improvements) from the headings, scopes and version
 heading it reads. This ports the parts of its ChangelogParser that decide those (sections(),
 sectionKindOf(), SCOPED_BODY_RE, VERSION_HEADING, the commit link and image strippers and the
-scope matcher), builds the notes for the current Unreleased section as if it were dated, and holds
-them to what Manager would do with them.
+scope matcher), builds the notes for the current Unreleased section as if it were dated (the newest
+release's section while Unreleased is empty after a cut), and holds them to what Manager would do
+with them.
 
     py -3.13 -I scripts/test-release-notes.py
 
@@ -100,8 +101,11 @@ def manager_sections(content):
 
 def notes_for_unreleased():
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-    section, _, _ = notes.read_section(changelog, None)
-    previous = re.search(r"^## (\d+\.\d+\.\d+) \(", changelog, re.M).group(1)
+    section, _, previous = notes.read_section(changelog, None)
+    if not any(notes.read_bullets(section).values()):
+        # Right after a release is cut, Unreleased is empty and the newest release is what ships.
+        newest = re.search(r"^## (\d+\.\d+\.\d+) \(", changelog, re.M).group(1)
+        section, _, previous = notes.read_section(changelog, newest)
     patches = notes.read_patches(ROOT / "patches-list.json")
     body, carried = notes.build_notes(section, "Validation: 1 runtime tests passed locally. All 2 patch tests passed too.",
                                       "9.9.9", "2026-01-02", previous, patches)
