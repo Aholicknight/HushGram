@@ -122,6 +122,7 @@ public final class SettingsEntry {
         FullScreenBars.install(context);
         TabStart.install(context);
         ProfileSaved.install(context);
+        ProfileMenuPress.install(context);
         LaunchScreen.install(context);
         if (SettingsStatus.messagesLock()) MessagesLock.watch(context);
         // A save Android stopped halfway left a pending gallery row, a work file or a notification.

@@ -387,6 +387,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         PreferenceCategory entry = category(screen, L10n.t("Settings entry"), SettingsIcons.SETTINGS,
                 L10n.t("How you open HushGram, and how this screen is laid out."));
         entry.addPreference(navigationRow(context));
+        entry.addPreference(profileMenuRow(context));
         entry.addPreference(toggle(context, Settings.HIDE_MENU_ROW, L10n.t("Hide the HushGram row in Instagram's menu"),
                 L10n.t("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out "
                         + "the HushGram row. Turn the long press off and the row comes back.")));
@@ -3261,6 +3262,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      */
     static NavigationRow navigationRow(Context context) {
         return tabRow(context, false);
+    }
+
+    /**
+     * The switch for opening HushGram with a long press on your profile's menu button (#84). The
+     * button already on screen takes the change once the setting has it, after this change's own
+     * sync, so no restart.
+     */
+    static SwitchPreference profileMenuRow(Context context) {
+        SwitchPreference row = toggle(context, Settings.PROFILE_MENU_LONG_PRESS,
+                L10n.t("Open settings with a long press on your profile's menu"),
+                L10n.t("A long press on the menu button, the three lines at the top right of your own profile, "
+                        + "opens HushGram. A tap still opens Instagram's menu, and other profiles stay the same."));
+        row.setOnPreferenceChangeListener((preference, value) -> {
+            Utils.runOnMainThread(ProfileMenuPress::applyChoice);
+            return true;
+        });
+        return row;
     }
 
     /** The row choosing the tab whose long press opens the playback quality list (#93). */

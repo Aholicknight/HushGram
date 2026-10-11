@@ -246,7 +246,12 @@ public final class NavigationSettings {
         }
     }
 
-    private static Activity ownerOf(View view) {
+    /**
+     * The activity [view] is on, when a press on it can be the person's: attached, shown, enabled
+     * all the way up to a focused, living window. Null otherwise. The profile's menu button asks
+     * this too ({@link ProfileMenuPress}).
+     */
+    static Activity ownerOf(View view) {
         if (view == null || !view.isAttachedToWindow() || !view.isShown()) return null;
         Context context = view.getContext();
         for (int depth = 0; depth < 16 && context instanceof ContextWrapper && !(context instanceof Activity); depth++) {

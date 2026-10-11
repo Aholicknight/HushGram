@@ -61,6 +61,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_menu_row", FALSE);
 
     /**
+     * A long press on the menu button, the three lines at the top right of your own profile, opens
+     * HushGram (#84). Off to start. Read through Pause, and only a button Instagram gave no long
+     * press of its own gets one ({@link ProfileMenuPress}), so off, paused or not ready yet, the
+     * button is Instagram's.
+     */
+    public static final BooleanSetting PROFILE_MENU_LONG_PRESS =
+            new BooleanSetting("hushgram_profile_menu_long_press", FALSE);
+
+    /**
      * HushGram's settings list their categories, and a tap opens one as its own page. Search still
      * looks through every category. On to start (#80, #100). The button under the status card, or
      * this switch, makes the page one long list. A choice about the page itself, so it's read

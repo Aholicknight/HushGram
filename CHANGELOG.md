@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - HushGram settings:** Settings entry has a new switch, Open settings with a long press on your profile's menu. Turn it on and pressing and holding the menu button (the three lines at the top right of your own profile) opens HushGram, while a tap still opens Instagram's menu. It's off by default, and other people's profiles don't change. Asked for in #84.
+
 * **Instagram - Hide the Reels tab:** New switch under Tab bar in HushGram settings, Center the logo on Home's header, off by default. It puts Instagram's logo in the middle of the top of Home without turning on the new tab bar and profile that come with Instagram's newer header, and keeps it there with Create or the heart hidden or with the Search or Ghost mode button added. A feed's name shown in its place is centered too. Asked for in #50.
 
 * **Instagram - Upload stories at full quality:** New patch that posts video stories at up to 1080 pixels wide and 9 Mbps instead of 720. Off by default, under Stories in HushGram settings. Asked for in #37.
