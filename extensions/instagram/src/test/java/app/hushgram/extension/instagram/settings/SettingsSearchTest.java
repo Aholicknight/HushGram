@@ -219,6 +219,17 @@ public class SettingsSearchTest {
         assertSame(analytics, visible(Settings.DISABLE_ANALYTICS.key));
     }
 
+    /**
+     * Each string is worked out once and the answer reused, since every row goes through it on each
+     * keystroke: done afresh, typing a query held the main thread past an ANR on the emulator.
+     */
+    @Test public void searchTextDropsAccentsAndMarksAndWorksEachStringOutOnce() {
+        String once = HushgramPreferenceFragment.searchText("Configuración DE Ubicación​");
+        assertEquals("configuracion de ubicacion", once);
+        assertSame(once, HushgramPreferenceFragment.searchText(new StringBuilder("Configuración DE Ubicación​")));
+        assertEquals("", HushgramPreferenceFragment.searchText(null));
+    }
+
     @Test @Config(qualifiers = "de-rDE-w320dp-h640dp-xhdpi")
     public void englishPatchNamesFindTheirLocalizedSwitchAndDownloadChildren() throws Exception {
         open(PatchFamily.REEL_DOWNLOAD, PatchFamily.STORY_AUTO_ADVANCE);

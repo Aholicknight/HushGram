@@ -71,6 +71,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import app.hushgram.extension.instagram.direct.ChatLocks;
 import app.hushgram.extension.instagram.direct.HiddenChats;
@@ -1644,10 +1645,34 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    private static String searchText(CharSequence text) {
-        return text == null ? "" : Normalizer.normalize(text, Normalizer.Form.NFKD)
-                .toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT).replaceAll("\\p{M}+|\\p{Cf}+", "");
+    /**
+     * [text] as search compares it: no accents or invisible marks, one case. Every row's title and
+     * summary go through here on each keystroke and resume, so the pattern is compiled once and each
+     * string worked out once: done afresh every time, typing a query held the main thread past an
+     * ANR on the emulator.
+     */
+    static String searchText(CharSequence text) {
+        if (text == null) return "";
+        String key = text.toString();
+        synchronized (SEARCH_TEXT) {
+            String found = SEARCH_TEXT.get(key);
+            if (found != null) return found;
+        }
+        String normalized = SEARCH_MARKS.matcher(Normalizer.normalize(key, Normalizer.Form.NFKD)
+                .toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT)).replaceAll("");
+        synchronized (SEARCH_TEXT) {
+            SEARCH_TEXT.put(key, normalized);
+        }
+        return normalized;
     }
+
+    private static final Pattern SEARCH_MARKS = Pattern.compile("\\p{M}+|\\p{Cf}+");
+    /** searchText's answers, the least recently used dropped past a few thousand. */
+    private static final Map<String, String> SEARCH_TEXT = new LinkedHashMap<String, String>(512, 0.75f, true) {
+        @Override protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+            return size() > 4096;
+        }
+    };
 
     void searchSettings(String query) {
         searchQuery = query == null ? "" : query;
