@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Hide paid partnership Reels:** A switch of the same name under Reels in HushGram settings, off to start, leaves out reels with a Paid partnership label and reels Instagram marks as boosted. Asked for in #12.
+
 * **Instagram - Find the reel you came from:** New patch whose switch of the same name sits under Reels in HushGram settings and starts off. Tap a reel's author, open their Reels tab, and it scrolls to that reel and outlines it. Asked for in #30.
 
 * **Instagram - Open developer options:** MetaConfig now shows flag names from piko's Instagram 447 list instead of numbers, with no import. Use HushGram's setting names, under Developer in HushGram settings, turns it off. Asked for in #91.

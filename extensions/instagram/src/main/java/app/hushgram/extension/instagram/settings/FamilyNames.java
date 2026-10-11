@@ -85,6 +85,7 @@ public final class FamilyNames {
     public static final String LIKE_ANIMATION = "Change the like animation";
     public static final String REELS_TAB = "Hide the Reels tab";
     public static final String REELS_SUGGESTIONS = "Hide suggested accounts in Reels";
+    public static final String PAID_PARTNERSHIP_REELS = "Hide paid partnership Reels";
     public static final String KEEP_REEL_SPEED = "Keep the reel speed";
     public static final String REEL_SEEK_BAR = "Keep a seek bar on Reels";
     public static final String REEL_BLUR_BARS = "Blur the bars around Reels";

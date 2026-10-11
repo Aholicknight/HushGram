@@ -742,6 +742,9 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.reels.ReelsSuggestionsTest" to listOf(
                 "offPausedAndUnreadyKeepEveryItem[28]", "offPausedAndUnreadyKeepEveryItem[37]",
                 "aThrowingReaderOrSwitchKeepsTheItemAndIsReported[28]", "aThrowingReaderOrSwitchKeepsTheItemAndIsReported[37]"),
+            "app.hushgram.extension.instagram.reels.PaidPartnershipReelsTest" to listOf(
+                "offPausedAndUnreadyKeepEveryReel[28]", "offPausedAndUnreadyKeepEveryReel[37]",
+                "aThrowingReaderOrSwitchKeepsThePageAndIsReported[28]", "aThrowingReaderOrSwitchKeepsThePageAndIsReported[37]"),
             "app.hushgram.extension.instagram.reels.ReelSeekBarTest" to listOf(
                 "offPausedAndUnreadyLeaveInstagramsAnswers[28]", "offPausedAndUnreadyLeaveInstagramsAnswers[37]",
                 "aThrowingSwitchLeavesInstagramsAnswersAndIsReported[28]", "aThrowingSwitchLeavesInstagramsAnswersAndIsReported[37]",

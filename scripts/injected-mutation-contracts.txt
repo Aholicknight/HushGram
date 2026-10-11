@@ -1225,6 +1225,26 @@ once-call Lapp/hushgram/extension/instagram/profile/PostsList;->resumed(Ljava/la
 # HideReelsSuggestionsHookTest, which checks on the 449 fixture that every return passes through it.
 once-call Lapp/hushgram/extension/instagram/reels/ReelsSuggestions;->netego(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object; in static (L*;Lcom/instagram/common/session/UserSession;)LX/*; holding android_purge_26_q2_ClipsItemExt_toClipsItemCombined
 
+# Hide paid partnership Reels passes every list a page of the Reels viewer's items returns through
+# PaidPartnershipReels.page: the twelve sources' page method (BiE on 438, of 064H), each the
+# instance (UserSession)List method that calls the Reels converter above or the static helper that
+# does (0BRb.A1Q on 438). Each loads no string, so each rule picks its page by a field it reads that
+# no other method of its shape reads, on 438. One call in each. Left out, those pages keep their
+# sponsored reels; elsewhere among a field's readers, it isn't the hook the patch wrote.
+# HidePaidPartnershipReelsHookTest checks on all seven 450 builds that all twelve are hooked.
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/04LM;->A0R:Ljava/util/List;
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0ISh;->A0P:Ljava/util/List;
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVF;->A0E:Ljava/util/List;
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVG;->A0F:Ljava/util/List;
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVH;->A0F:Ljava/util/List;
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVJ;->A0G:Ljava/util/List;
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVK;->A0G:Ljava/util/List;
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVL;->A0H:Ljava/util/List;
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0RVM;->A0M:Ljava/util/List;
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0SUU;->A01:LX/0fyo;
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0ZAy;->A05:Lcom/instagram/search/common/analytics/SearchContext;
+shared-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;)Ljava/util/List; holding LX/0iHH;->A06:Ljava/util/List;
+
 # Keep a seek bar on Reels answers the shortest ordinary reel that gets a seek bar through
 # ReelSeekBar.minSeconds, at each of the three reads of that server value, and the hidden kind of
 # bar through ReelSeekBar.lazy at its one read. The check of whether a reel gets the bar (03vg.A0M

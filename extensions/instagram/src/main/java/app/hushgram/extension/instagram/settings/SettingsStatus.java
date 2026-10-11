@@ -234,6 +234,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean paidPartnershipReels() {
+        return false;
+    }
+
     public static boolean commentCopy() {
         return false;
     }

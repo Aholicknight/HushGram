@@ -682,6 +682,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("The cards of people and creators to follow that Instagram puts between reels. "
                             + "Every reel still plays.")));
         }
+        if (build.contains(PatchFamily.PAID_PARTNERSHIP_REELS)) {
+            reels.add(toggle(context, Settings.HIDE_PAID_PARTNERSHIP_REELS, L10n.t("Hide paid partnership Reels"),
+                    L10n.t("Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. "
+                            + "Ads have their own switch.")));
+        }
         if (build.contains(PatchFamily.REEL_DECLUTTER)) {
             reels.add(toggle(context, Settings.HIDE_REEL_FOLLOW_BUTTON, L10n.t("Hide the Follow button"),
                     L10n.t("The Follow button beside a reel's author. Their profile still has one.")));

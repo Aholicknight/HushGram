@@ -274,6 +274,7 @@ Open links in external browser	외부 브라우저에서 링크 열기
 Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.	탭한 웹 링크가 Instagram의 클릭 추적 없이 평소 쓰는 브라우저에서 열립니다. Instagram 페이지와 광고는 계속 앱에서 열립니다.
 Feed	피드
 Hide suggested accounts	추천 계정 숨기기
+Hide paid partnership Reels	유료 광고 파트너십 릴스 숨기기
 Hides the rows of accounts, shops and hashtags Instagram suggests you follow.	Instagram이 팔로우를 추천하는 계정, 쇼핑몰, 해시태그 목록을 숨깁니다.
 Hide suggested posts	추천 게시물 숨기기
 Hides posts and reels from accounts you don't follow, marked Suggested for you. Posts from accounts you follow stay.	팔로우하지 않는 계정의 '회원님을 위한 추천' 표시가 있는 게시물과 릴스를 숨깁니다. 팔로우하는 계정의 게시물은 그대로 남습니다.
@@ -377,6 +378,7 @@ Takes the Threads button off the top of profiles, yours included. The menu and t
 Show profile posts as a list	프로필 게시물을 목록으로 보기
 Opening someone's profile takes you on to their posts as a scrolling list of full posts. Go Back for the grid. Your own profile keeps its grid.	다른 사람의 프로필을 열면 바로 전체 게시물이 이어지는 스크롤 목록으로 이동합니다. 뒤로 가면 그리드가 나옵니다. 내 프로필은 그리드 그대로입니다.
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	릴스 사이에 표시되는 팔로우할 사람 및 크리에이터 추천 카드를 숨깁니다. 릴스 자체는 모두 정상적으로 재생됩니다
+Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	유료 광고 파트너십 라벨이 있는 릴스와 Instagram이 홍보됨으로 표시한 릴스를 제외합니다. 광고는 별도의 스위치가 있습니다.
 Turn on Start Home on Following to use this choice.	이 옵션을 사용하려면 ‘팔로잉에서 홈 시작’을 활성화하세요
 Turn on Story ring size to use this choice.	이 옵션을 사용하려면 ‘스토리 링 크기’을 활성화하세요
 Turn on Default playback quality to use this choice.	이 옵션을 사용하려면 ‘기본 재생 화질’을 활성화하세요

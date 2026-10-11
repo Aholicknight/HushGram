@@ -877,6 +877,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_REELS_SUGGESTIONS =
             new BooleanSetting("hushgram_hide_reels_suggestions", FALSE);
 
+    /**
+     * Reels whose post Instagram marks as a paid partnership, or as boosted
+     * ({@link app.hushgram.extension.instagram.reels.PaidPartnershipReels}). Read as each page of
+     * reels arrives, so a change shows from the next page. Off to start.
+     */
+    public static final BooleanSetting HIDE_PAID_PARTNERSHIP_REELS =
+            new BooleanSetting("hushgram_hide_paid_partnership_reels", FALSE);
+
     /** An explicit Copy action for original comment text. Off until enabled. */
     public static final BooleanSetting COPY_COMMENTS =
             new BooleanSetting("hushgram_copy_comments", FALSE);

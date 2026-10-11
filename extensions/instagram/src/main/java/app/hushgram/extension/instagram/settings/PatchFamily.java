@@ -141,6 +141,8 @@ public enum PatchFamily {
             Settings.HIDE_HOME_NOTIFICATIONS_BUTTON, Settings.SEARCH_BUTTON_ON_HOME, Settings.GHOST_BUTTON_ON_HOME,
             Settings.SHOW_REELS_TAB),
     REELS_SUGGESTIONS(FamilyNames.REELS_SUGGESTIONS, "reelsSuggestions", null, Settings.HIDE_REELS_SUGGESTIONS),
+    PAID_PARTNERSHIP_REELS(FamilyNames.PAID_PARTNERSHIP_REELS, "paidPartnershipReels", null,
+            Settings.HIDE_PAID_PARTNERSHIP_REELS),
     KEEP_REEL_SPEED(FamilyNames.KEEP_REEL_SPEED, "keepReelSpeed", null, Settings.KEEP_REEL_SPEED),
     REEL_SEEK_BAR(FamilyNames.REEL_SEEK_BAR, "reelSeekBar", null, Settings.REEL_SEEK_BAR, Settings.REEL_SEEK_THUMB, Settings.BIG_REEL_SEEK_BAR),
     REEL_BLUR_BARS(FamilyNames.REEL_BLUR_BARS, "reelBlurBars", null, Settings.BLUR_REEL_BARS),
