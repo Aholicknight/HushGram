@@ -1,7 +1,7 @@
 ![HushGram. Keep the moments. Cut the noise.](assets/readme-hero.png)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.0.8-E1306C" alt="Version 0.0.8">
+  <img src="https://img.shields.io/badge/version-0.0.9-E1306C" alt="Version 0.0.9">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License GPL-3.0"></a>
   <img src="https://img.shields.io/badge/platform-Android%209%2B-3DDC84" alt="Platform Android 9+">
   <img src="https://img.shields.io/badge/Instagram-450.0.0.50.77-E1306C" alt="Instagram 450.0.0.50.77">
@@ -577,7 +577,7 @@ For a local selection of more than one source, `scripts/patch-with-sources.ps1` 
 Create a selection file such as `selected-sources.json`. Bundle paths are relative to that file, and patch names belong to their own bundle. `"*"` selects every patch for the input APK's package:
 
 ```json
-{"schemaVersion":1,"sources":[{"bundle":"patches/build/release/patches-0.0.8.mpp","patches":["*"]}]}
+{"schemaVersion":1,"sources":[{"bundle":"patches/build/release/patches-0.0.9.mpp","patches":["*"]}]}
 ```
 
 ```powershell

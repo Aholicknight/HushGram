@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+## 0.0.9 (2026-10-11)
+
 ### Features
 
 * **Instagram - Lock your messages:** New Unlock with choice. Pick HushGram PIN and a 4 to 8 digit PIN of your own unlocks your messages instead of your phone's lock. It stays on your phone and can't be recovered. Asked for in #134.
