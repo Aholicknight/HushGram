@@ -18,6 +18,7 @@ import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
@@ -75,7 +76,10 @@ public final class ReelOrigin {
     static final long HOST_WINDOW_MS = 5000;
     /** How often the grid moves on while the reel is looked for. */
     static final long STEP_MS = 150;
-    /** How often a tab whose grid isn't on screen yet is looked at again. */
+    /**
+     * How long after its window's next frame a tab whose grid isn't on screen yet is looked at again,
+     * or how often while the grid isn't in a window at all.
+     */
     static final long WAIT_MS = 300;
     /** How many times the grid is dragged on at most, and how long the search runs at most once the grid shows. */
     static final int MAX_STEPS = 20;
@@ -238,7 +242,10 @@ public final class ReelOrigin {
                 }
                 Object found = grid.get(tab);
                 if (!(found instanceof ViewGroup) || !onScreen((ViewGroup) found)) {
-                    main().postDelayed(this, WAIT_MS);
+                    // A grid already in its window comes on screen only with a frame, so it's looked
+                    // at again after the window's next one rather than every WAIT_MS while nothing
+                    // changes, as when Instagram keeps the tab resumed beside the one showing.
+                    if (!(found instanceof View) || !afterNextFrame((View) found)) main().postDelayed(this, WAIT_MS);
                     return;
                 }
                 ViewGroup list = (ViewGroup) found;
@@ -300,6 +307,24 @@ public final class ReelOrigin {
 
         private boolean onScreen(ViewGroup list) {
             return list.isShown() && list.getGlobalVisibleRect(area) && !area.isEmpty();
+        }
+
+        /**
+         * Looks again WAIT_MS after the next frame of [grid]'s window, once. False when the grid isn't
+         * in a window yet, which no frame of a window would tell.
+         */
+        private boolean afterNextFrame(View grid) {
+            if (!grid.isAttachedToWindow()) return false;
+            ViewTreeObserver observer = grid.getViewTreeObserver();
+            if (!observer.isAlive()) return false;
+            observer.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+                @Override public boolean onPreDraw() {
+                    if (observer.isAlive()) observer.removeOnPreDrawListener(this);
+                    main().postDelayed(Look.this, WAIT_MS);
+                    return true;
+                }
+            });
+            return true;
         }
     }
 
