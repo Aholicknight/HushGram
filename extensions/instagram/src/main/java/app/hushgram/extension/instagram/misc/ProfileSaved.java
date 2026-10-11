@@ -104,6 +104,10 @@ public final class ProfileSaved {
 
     static void watch(Activity activity) {
         try {
+            // Off or paused there's no bookmark to keep, and a listener would only queue looks that
+            // find nothing after every burst of layouts. The switch takes a restart, and an activity
+            // resumed before the settings are ready is watched from its next resume.
+            if (!Utils.settingsReady() || !Settings.SAVED_ON_PROFILE.get()) return;
             synchronized (watched) {
                 if (watched.containsKey(activity)) return;
                 watched.put(activity, Boolean.TRUE);
