@@ -25,6 +25,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 private const val PATCH = "Hide Notes on profile pictures"
 internal const val PROFILE_NOTES = "$EXTENSION_PACKAGE/profile/ProfileNotes;"
 internal const val NOTES_OFF = "$PROFILE_NOTES->consumptionDisabled(I)Z"
+internal const val PROMPT_OFF = "$PROFILE_NOTES->creationDisabled(I)Z"
 
 /**
  * The `is_consumption_disabled` parameter of Instagram's `ig4a_profile_unship_direct_notes` config,
@@ -35,7 +36,13 @@ internal const val NOTES_OFF = "$PROFILE_NOTES->consumptionDisabled(I)Z"
  */
 internal const val CONSUMPTION_DISABLED_FLAG = 0x8115c800017021L
 
-/** The config's other parameter, `is_creation_disabled`, which the header builder reads too. */
+/**
+ * The config's other parameter, `is_creation_disabled`. The header builder reads it once, for your
+ * own profile only, to decide whether the bubble on your picture offers a new Note ("Start your
+ * first note...") when there's no Note to draw. Nothing else holds that prompt back: a yes on
+ * [CONSUMPTION_DISABLED_FLAG] drops a Note of your own and leaves the prompt in its place. With
+ * both a yes, the builder has nothing for the bubble and leaves it out.
+ */
 internal const val CREATION_DISABLED_FLAG = 0x8115c800007020L
 
 /** The profile screen, which keeps its name in Instagram's builds. */
@@ -50,7 +57,8 @@ internal const val EXTERNAL_PROFILE = "external_profile"
  * off, so leaving Notes where they are remains the user's pick.
  *
  * It answers Instagram's own kill switch for Notes on profiles rather than hiding a view, so the
- * profile never fetches the Note and the header never draws it. The inbox's Notes tray and the
+ * profile never fetches the Note and the header never draws it, and the header's switch for the
+ * prompt to post one, so your own picture doesn't offer one either. The inbox's Notes tray and the
  * Notes composer read other flags and stay as they are.
  */
 @Suppress("unused")
@@ -73,9 +81,15 @@ val hideProfileNotesPatch = bytecodePatch(
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** Finds the two reads with [findProfileNotes] and has the extension answer both through [NOTES_OFF]. */
+/**
+ * Finds the two Notes reads with [findProfileNotes] and the prompt's with [findNotesPrompt], and has
+ * the extension answer the first two through [NOTES_OFF] and the prompt's through [PROMPT_OFF]. All
+ * three go in one pass, since two of them are in the same method.
+ */
 internal fun BytecodePatchContext.hideProfileNotes() {
-    answerFlagLoads(findProfileNotes().map { it to NOTES_OFF })
+    val notes = findProfileNotes()
+    val prompt = findNotesPrompt(notes)
+    answerFlagLoads(notes.map { it to NOTES_OFF } + (prompt to PROMPT_OFF))
 }
 
 /**
@@ -102,6 +116,25 @@ internal fun BytecodePatchContext.findProfileNotes(): List<FlagLoad> {
         refuse("$where reads $flag but doesn't name both $SELF_PROFILE and $EXTERNAL_PROFILE")
     }
     return reads
+}
+
+/**
+ * Finds the header builder's read of [CREATION_DISABLED_FLAG], the one gate on your own profile's
+ * prompt to post a Note. The builder is the method of the [notes] read that isn't the profile
+ * screen's, as [findProfileNotes] found it. It has to read the flag once, and the read has to be the
+ * flag's own. A read of the flag anywhere else stays as it is. Fails before anything changes when
+ * any of it isn't so.
+ */
+internal fun BytecodePatchContext.findNotesPrompt(notes: List<FlagLoad>): FlagLoad {
+    val flag = CREATION_DISABLED_FLAG.toString(16)
+    val header = notes.single { it.type != PROFILE_FRAGMENT }
+    val where = "${header.type}->${header.name}"
+    val reads = findFlagLoads(PATCH, CREATION_DISABLED_FLAG, "Z").filter {
+        it.type == header.type && it.name == header.name && it.parameters == header.parameters
+    }
+    if (reads.size != 1) refuse("expected one read of the Notes creation flag $flag in $where, found ${reads.size}")
+    if (reads.single().shared) refuse("the read of $flag in $where is shared with another flag")
+    return reads.single()
 }
 
 private fun Method.loads(literal: Long): Boolean = implementation?.instructions?.any {

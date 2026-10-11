@@ -80,7 +80,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide suggested stories:** New switch under Stories in HushGram settings, Hide the Music for you card, off by default. Asked for in #111.
 
-* **Instagram - Hide Notes on profile pictures:** New patch with a switch under Profiles in HushGram settings, off by default, that takes the Notes bubble off profile pictures. Notes in Messages stay.
+* **Instagram - Hide Notes on profile pictures:** New patch with a switch under Profiles in HushGram settings, off by default, that takes the Notes bubble off profile pictures, including the prompt to post one on your own. Notes in Messages stay.
 
 ### Bug Fixes
 
