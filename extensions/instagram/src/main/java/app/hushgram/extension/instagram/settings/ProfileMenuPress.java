@@ -24,6 +24,7 @@ import java.util.WeakHashMap;
 
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * Opens HushGram from a long press on the menu button, the three lines at the top right of your own
@@ -92,18 +93,27 @@ public final class ProfileMenuPress {
         }
     }
 
+    /**
+     * Whether no screen needs watching: HushGram is paused for this run (the switch reads off until
+     * the next start), or the switch is saved off.
+     */
+    private static boolean nothingToWatch() {
+        return HushgramPause.isPaused()
+                || (Utils.settingsReady() && !Settings.PROFILE_MENU_LONG_PRESS.savedValue());
+    }
+
     /** Whether a long press on the menu opens HushGram right now. */
     static boolean on() {
         return Utils.settingsReady() && Settings.PROFILE_MENU_LONG_PRESS.get();
     }
 
     /**
-     * Looks at [activity]'s screen after its layouts. With the switch saved off there's nothing to
-     * look for. Before the settings are read it can't be told, so the screen is watched and the
-     * first look that knows stops watching.
+     * Looks at [activity]'s screen after its layouts. With the switch saved off, or HushGram paused
+     * for this run, there's nothing to look for. Before the settings are read it can't be told, so
+     * the screen is watched and the first look that knows stops watching.
      */
     static void watch(Activity activity) {
-        if (Utils.settingsReady() && !Settings.PROFILE_MENU_LONG_PRESS.savedValue()) return;
+        if (nothingToWatch()) return;
         Watch watch;
         synchronized (watched) {
             if (watched.containsKey(activity)) return;
@@ -266,7 +276,7 @@ public final class ProfileMenuPress {
         @Override public void onGlobalLayout() {
             Activity activity = owner.get();
             if (activity == null) return;
-            if (Utils.settingsReady() && !Settings.PROFILE_MENU_LONG_PRESS.savedValue()) {
+            if (nothingToWatch()) {
                 stop(activity);
                 return;
             }

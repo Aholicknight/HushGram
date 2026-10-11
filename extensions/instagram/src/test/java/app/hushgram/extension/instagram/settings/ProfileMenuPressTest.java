@@ -25,6 +25,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import org.robolectric.android.controller.ActivityController;
+import org.robolectric.util.ReflectionHelpers;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -151,6 +152,30 @@ public class ProfileMenuPressTest {
         ProfileMenuPress.look(activity);
         assertTrue(menu.performLongClick());
         assertEquals(1, shown());
+    }
+
+    @Test public void aPausedRunWatchesNoScreenAndAWatchStopsOnceItsPaused() {
+        Settings.PROFILE_MENU_LONG_PRESS.save(true);
+        View decor = activity.getWindow().getDecorView();
+        int before = layoutListeners(decor);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        ProfileMenuPress.watch(activity);
+        assertEquals("paused, no screen is watched", before, layoutListeners(decor));
+
+        PauseForTests.resume();
+        ProfileMenuPress.watch(activity);
+        assertEquals("not paused, the screen is watched", before + 1, layoutListeners(decor));
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        decor.getViewTreeObserver().dispatchOnGlobalLayout();
+        assertEquals("paused, the next layout stops the watch", before, layoutListeners(decor));
+    }
+
+    /** How many layout listeners [view]'s window holds, from the observer's own list. */
+    private static int layoutListeners(View view) {
+        Object listeners = ReflectionHelpers.getField(view.getViewTreeObserver(), "mOnGlobalLayoutListeners");
+        if (listeners == null) return 0;
+        Integer size = ReflectionHelpers.callInstanceMethod(listeners, "size");
+        return size;
     }
 
     @Test public void beforeTheSettingsAreReadTheMenuIsInstagrams() {
