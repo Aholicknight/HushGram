@@ -182,6 +182,8 @@ final class ScreenColors {
         }
         paintChevron(row, preference);
         ImageView icon = row.findViewById(android.R.id.icon);
+        // Decoration: the row's title already says what it is, so a screen reader skips the icon.
+        if (icon != null) icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         if (icon != null && preference.getIcon() != null) {
             ViewGroup.LayoutParams imageSize = icon.getLayoutParams();
             imageSize.width = dp(row, 24);

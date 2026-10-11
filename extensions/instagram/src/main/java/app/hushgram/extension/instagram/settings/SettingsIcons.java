@@ -10,23 +10,61 @@
 package app.hushgram.extension.instagram.settings;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.Base64;
 
-/** Original Material icons embedded in the payload, which adds no Android resources. */
+import androidx.annotation.Nullable;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * Original Material icons embedded in the payload, which adds no Android resources. Every row on
+ * the settings page leads with one: its own, one picked by the words of its key, or its
+ * category's. They only decorate, so a screen reader never hears them.
+ */
 final class SettingsIcons {
     private SettingsIcons() { }
 
+    /** Each icon decoded once. The page is built on the main thread, and every row carries one. */
+    private static final Map<String, Bitmap> DECODED = new HashMap<>();
+
     static Drawable icon(Context context, String encoded, int color) {
-        byte[] bytes = Base64.decode(encoded, Base64.DEFAULT);
-        android.graphics.Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-        bitmap.setDensity(640); // The original 96 px icon is shown at 24 dp.
-        BitmapDrawable icon = new BitmapDrawable(context.getResources(), bitmap);
+        BitmapDrawable icon = new BitmapDrawable(context.getResources(), bitmap(encoded));
         icon.setTintList(ScreenColors.dimmedWhenDisabled(color));
         icon.setAutoMirrored(encoded == BACK);
         return icon;
+    }
+
+    private static Bitmap bitmap(String encoded) {
+        synchronized (DECODED) {
+            Bitmap found = DECODED.get(encoded);
+            if (found != null) return found;
+            byte[] bytes = Base64.decode(encoded, Base64.DEFAULT);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            bitmap.setDensity(640); // The original 96 px icon is shown at 24 dp.
+            DECODED.put(encoded, bitmap);
+            return bitmap;
+        }
+    }
+
+    /**
+     * The icon for the row keyed [key]: the first rule in {@link #BY_WORD} with a word of the key,
+     * or [fallback], the row's category's, when none has one or there's no key.
+     */
+    static String forKey(@Nullable String key, String fallback) {
+        if (key == null) return fallback;
+        List<String> words = Arrays.asList(key.toLowerCase(Locale.ROOT).split("_"));
+        for (String[] rule : BY_WORD) {
+            for (int i = 1; i < rule.length; i++) if (words.contains(rule[i])) return rule[0];
+        }
+        return fallback;
     }
 
     static final String BACK = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAQAAABIkb+zAAAAuUlEQVR42u3VSw7BYBhG4W+MNRrbRUWEVbnbV7UMxFhJ3+Y57wbOSf5LFQAAAAD8hqbW2fptt022fr9ttn6/XbZ+v322fr9Vtv69FvTp06dPnz59+vTp06dPnz59+gPp/2Ph+m26fpuuL2ACR2gCl3gCz+gEPjIJ4064SRhBwrXmEiR8n3CRIEHCc2cJI0g41UyCBAndjhIkDJFwyE9YViUnNBVGk63/mRCp/06I1X8lROsDAAAAGDMP5dIlT2gEqj8AAAAASUVORK5CYII=";
@@ -62,4 +100,52 @@ final class SettingsIcons {
     static final String BUG = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAQAAABIkb+zAAADLElEQVR42u2azUuUQRzHP26YBxHUi1QYK4hQl4x8N2IRT0HiMTGI0kvpCp57gxAs8c/oEBFeDA972YSVwmuSSopaVgfBVypfVp8OGrGzz+bzzPQ8M8J8nuMwv/l+dnd2dmcGLBaLxWKxWCzyFJOgVqpnDQmK9cefxGFNQqGGVRwm9SocxndwWKNOIr6jV+FvfAeHdeol4mtUyIzvRyEzvjaFhBDCwWGDBon4Dg6J8AVqWXNVaJSIv0qNjg9RXQ6FppMRH6CedZdAm/TwnFHmWcTBYZF53jDEPdPiAzSw4RLK+6M5PkCjgoIB8QGa2DzJ8aGSGSmBD0RNiH/DdSJ7fQ+u645/m7TSJN7jls74XewrxXdw2Oeurvit7OUI9Y2X9HH16DMepYk4L45WBbd3oVXP1F11jZPgQs4+F3mXYy5Uhh0/QsolyA96jul3igfsuvRMEQlXoM8lxDyXPPVtZtmld19QUb1OxinKPNc8zyfPdUMSWPIRH6Cc7yYJbFMt8QMkbY7AQ6nKw6YIzJIvVbmQz2YItEnXvmmCQEqp+nv9AkNK1YeDFxAZFQbo8imcSbfQOhL8GjwlDBlTErgmtE4EL7AiDFmlJHBWaJ0LXmBbGLJISaBAaN0KXuC4SeZ3UgY+aa2AFQh4ITO9vhWwAlbAClgBuxJbASvwP9kSBixQEijK2uMLnDlhyDNKAlVC60rwAhPCkM1KArGsPe7AGRGGvKMk0CW0job/f+CZUvUh/SvxW6XqKRM2d+UPq9vM2J2ekdxez2fWlAOOJ1KVH5tzQrPLFd91L7Nj0iHfF8p9VT3n6XQmRAGHjz4UzmbtcYf4f+CQXpehvnq8wFTt+ur3Eip5JF3nwtOsH3eZnOaR61WDJHmETEWOyx7LxLO23A8p5D5LOS57VKCBWNZZwZ/nF6+JU0+UCBGi1BHnFT9zHpPH0EQnB8oXng7oRCMdHr/Ncz07dKCZFoV7oxu0YAAVjEvFH9czdd2I0O/z8uU6/WHf0TqOUgY83uDdZIBSjKSEbpL/+GY6IEk3JRhOGe0MMsY0C6RJs8A0YwzS7vNWl8VisVgsFovlGH4D9Dc4z+cWYOoAAAAASUVORK5CYII=";
     static final String DELETE = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAQAAABIkb+zAAAAu0lEQVR42u3ZsQ2EMBBFwU1ohibpwBKUQx3QCDESF10OktdnTvOcoz+SISFCkiRJNZriunmmd8/vkvBsfneE5/N/QLgaHwAAAACAvgCS2rzMAAAAAADvAvT2PAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAuh2pv7mPfMCWCtjyASUVUPIBY5xp888Yo0FzGmCOJg2xpsxfY4hoRVgqX6Qzlnbzv+9Cib3CR/WIPUqbuy9JkvRvfQCtxXysUcK+VwAAAABJRU5ErkJggg==";
     static final String LICENSE = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAQAAABIkb+zAAABKElEQVR42u3bSwrCMBSF4TOpi6m4RncQaREX04GraF1IcVipA2dOLOQ+sPznzpP7QZoQSiRCCCFkS1oVTZq1VtY5o/lGvZbq1tMIjQaz5lMInXH7wYTWcPGkEIpL+4GE0Q0QRJgdASGE7ymtxgkjeAPcCf4AZ0IEwJUQA3AkRAHcCHEAJ0IkwIUQC3AgRAPMCfEAY0IGwJSQAzAkZAHMCHkAI0ImwISQC1gBANgNIG0+AAAAAAAAAAAAxwFrf3EAAAAAAID/BnASAwAAAAD3AU5iAAAAAOA+wEkMAAAAAPsE+D6A+FVzPWBMBYz1gEsqoNQDjk7PsLbUotbis7qmATqbfeGge0r7gxqrre2gm17Bi6e3a/+Tkzo99AzYOCcVm7VPCCFk/3kD5oU8DTR8py8AAAAASUVORK5CYII=";
+    static final String LOCK = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAQAAABIkb+zAAACM0lEQVR42u2aMU7DQBBFXwgUSKYJJS2i4AK5AhI99OESOQF0RgGSU0SigIpjQDgAiUQDlSuKSEuBLIHXJnZsdnbNzLSe5L/12rNfHtDQ0Gg6OvQZMuWRVwyGVx6ZMqRPx3/xe1ywwBTkggv2/BXfY8xHofg0PxjT81H+Ce8rxaf5zolf4jeZlBaf5oRNX+Rvc1dZvsFwx7Yfq3+/lnyD4d6HuzBZW/7XRhKO0wJhL9xwzD4REfscc8NLwZWnkvJ3ect92w/oWtd2GeR2iDd25QDGOYJuiQqvj7jNqRjLdV27bV2uOC50uMxpbULd+Txn9Vefdjo5d+FcQv4Gc2vvR6UqI+tZmLPhHqBvreNZ6dozq7bvHmBorWK3dG3XuntD9wDTjITrStXXmeqpe4CnjISjStVHmeon9wDZFnZQqfrAamfOI9sDdipV71i9wHlk3yOu6xVAARRAARTALcAhMc8ktSx8mUx4JuawWfFbXLH8c+nfc8kVW83Jf3AqPs2HphBGIvINhlEze38pBrBs4lmIxeQbDHF9gJkowKw+QCIKkMg3LPH/UwAFUAAFUAAFUAAFEPjB1ENX9bheANgeurzH9QCgyEOX87geAIxqeVxxgN88dBmPKw4Q1/S44gCzmh5XHCCp6XEV4N9voeAf4uBfo8E3shYcJYI/zLXgOK2OTAEUQAEUQAEUQAHaAhD8h+7gRw2CH/YIftwm+IGnFoycBT/099PjBjl2qaGhoaHR1vgEj5EY4FVkwfcAAAAASUVORK5CYII=";
+    static final String HIDDEN = "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";
+    static final String AI = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAACT0lEQVR4AezaIYzCQBSE4QsKFAYsrj5I8AIk3ifgw9l6g6w3WLzA4j36MEgEgoS8+8ViSHrs0b7SbGaSzwvCdjudL0VRFEVRojINPhRlF3wgSoZ7kKHhKAUsKNBglCGusOCKIZSGksOe5FAaSA9n2JMzenCOsoSVWMIxSgdHWIkjOnCKsoC9sIDilAPshQOUmo+dBQ6wSAcsqh1H6lq6WOEIe9MRK3TVtcRngBxnWE3OyDFQ11KeDAWuMCdXFMgQoq5lgh3usIbcscNEXYt+gPiuJf0jSF2L/0NYXYuuof5di17E/LuW5KoIdS0q46awSFMdkT61g0Xa6ZLgUztYpDsyfZL0qR1iFfoo71M7xKqpntAsJYe9Kdcwy+c8jVL93NU0cQmraKlxrsOdOvgJrKV372mQ7MTjO9AU5AO1wwX94KIpSPPN4gaPbFJuINvYrd8wwiMj3FLr4Ns88djiOdv0pyDt+b46xnPG6U9B2rEw2KMs+zqWCNpO/m2Gssxg8eIf2Mk/WCPsMcerzCP/CQk8sP1nGzdsMcZ/M8YWt/RmI/7DpQs2GKFqRtjgksBwyn26d8IafdSdPtY4pTQd1A+gI0hHkB7CuobqGqoXsd/27tgAACCIgGD/XetBQDLbwkfvgBRBiiDGtZCj4SDjJAlHebYUMGaxJrImMueyp7OnC2jsEVES0hPSE1MV1BbUVlWgrENZh7oahU0Km1SWGUhQ2qe2UnGrB1BdvER59xf19fARM2ECYhytCg4ypgzhKG/OFoxZJs1h1N/UIgAAAZjDsF+ETLy/AAAAAElFTkSuQmCC";
+    static final String EXPLORE = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAFB0lEQVR4AezcAWSUYRjA8bbZbWO4XK1qZIaEmUoU6CiJtloYEhzQQbFROoB2kOKkCjgwKFSnQAuUAFVSE2azVHWUVSdqNdvTH4Jj3/t+937P3Xvt+/MDYLtv937f977vu3VxnhUXFxcXFxcXFxcXl8JhnMFVPMAbzOMTBIJPmMcbPMBVnMFhpGBZXCeGUcBLSEReooBhdCKuqjSKqECUVVBEGmu6BLKYhTTILLJIrLVhZgwfIZ74iLG1MDwNYQ7iqTkM4b9rG0qQJlHCNvwXjeAbpMl8wwiatnZcgTj6gjuYwAnsRh8241+b0YfdOIEJ3MEXiKMraEdTtR5PIDV6jnMYhGuDOIfnkBo9wXo0Rb2YhoT0AwUMQKsBFPADEtI0euF12/EWEsJ35JFCvUohj++QEN5iO7yst4YPfxI9aFQ9mKzhIvT6OOa/hliaRxq+lMY8xNJrn+4JiZA33BKS8K0kSiFvzAk0OPtHzRXk4Hs5rFg/oja445Y/7BIyaJYyWLL8ozreyOmFr5Yf/giarRHLi/C1UdMWJcu/kAyaqWO4COJnt/uGlxoxqykWck00bZLBNARHq+4JYmEIdanLckq5BN/rxjjeV73xttTwbZ9DF9Qbs3zOT8LXNiKPBUiVDKpLWr4njEG1DnywGPfT8LF+XMcvSDW8C5j5TFvcDz6gA2plLacXfGsnblk81YwjqEmIQRYqtWDWYmJtE3zpIKYgFhbQjaA2WUzgzaIFkbcfYjCBRteKUTyDhJCHTRMQg/2IvKLFfH4KjaoDWcxAQvqJHtiUslhPKCo8ehq/egU0oiRyKENqdANhKlgMxV2IrGGIwQDq2RZcRgXiYAn9CNMAxGAYlrlf8ReoVztQxG9IBG6ill7Ub0Qwb5Q9C+32ooRlSERWsAu1dNa4ITiiNlj80oPK806PIQqmHHdbSIBlbIBzhyABPqMFGh2BKDrg+F70GRLgEJw7DQlwG1o9gih5CtduQwKchnPXIAEuQKN9EEWjcO0CJMA1OPcQEuAkNLoLCVDGPSD0O8AMWuHaSUiAh3DuFSTAHo1HzYAb/x+cRxv+1Ybz+AOxcApRtAcS4BUcM8+D99V52iNn2NEgBuUID2L0mddFXDPvME4hyrZiMeDDa8NqtaFcx2XSlHlnt3uLkAAJRNklyCruw9R9wwG9JKIqAQmw2GwXIImK4gW4BPL/AugPQYYxXGEIWsRWkIdDkAc34U7z+O10Ey7CkOZN2P/H0FMQg1ofQ5exA4a0HkP9fxFrNaxkub6I3YU5/Rcxb6ciRiGK9sGc/lSEt5NxTyFKHsGcx5Nx2tPRByCKjsCc2nS0/wsyUxAFjzEEQ7oLMr4vSe7CCiQiyyhhL6zTW5L0f1H+JiQCv1FUeNT0ZlFeY1tKP5YgDiq4jC3Qy4NtKRobs25AalRGDkko58HGLIWtiT34CQlpBll0QD9ftiYqbM7NQ0J4hlG0Qj+fNucqbE/vxkKIfTsH4Un229N9PqAxbrFX8xZ2wqv0D2joH1FqxztINfzCdfTDx6yPKPl8SC+zysmUPDbC16wP6fl8TLUF0xAI3mMc3fA962OqPh/UPgrBNDJoh7f5d1Db/V8VXMQx/G3vDmgAAEAAhPVvrSkcbn8QeCGQKgjEOsQ6yrkauZol2CRZJlkm2idbKVsp3CpdLF0s3i1fL19v4JBgYWLiY+JjY9Vn5GZliJmnnS0AAMCtAbZvjobctQ6fAAAAAElFTkSuQmCC";
+    static final String PERSON = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAACj0lEQVR4Ae3aAUScYRzH8elyh5bA5k1DQFu1IFCMQY2bGRxAgA0oFwAxDqkNHO5A2IYZAACciDpAk5pRQbcBUrua20X+++LGZD13793b3ft2vy8fAI/86XnueZ87SimllFJKKaWUUkoppZRSISqOWeSwjn2c1exjHTnMIg4VUB5yKMMaVEYOHppMJZDBOaxJ58ggAR8pD0VYQIrw0EBqAiVYwEqYgCPloQS7ISV4+E8qgSLshhWRwJVUBtYmGfyTGvRx2tnDIkZxt2YUi9jzcToahKqVh9VxgXnEcF0xzOMCVkcepOI4hTlUMYNGm0EV5nAK1lbPYHUswG8LsDpYW+VgDnuIwW+xBvYE1lbrMIc0mi0Nc2Bt9Q3mMIZmG4M5sLYqwxz60Wz9dW9NlQagf0FdnDZhHUOVfojpKkLpMk7X0UofZPRJUumjvJ6lKD3M0tNEpce5ep6ulFJKKaWUUt1XDONIYQlrKGAXR7ArjrCLAtawhBTGEYOq0wCSWMYGKrCAVLCBZSQxAFLjyGAb1mZfsIxpdFUP8QZfYSHxA2/xGLeyXqSwBQu5LaTQi8jXgzkcwiLmEHPoQSSbwg4s4nYwhcgURxaXsFviElnEEeo8bMICcowC8kgjiUkMYwh/e4BhTCKJNPIo4BgWkE14CGUeDgI4jXzEa4wiqB7hFT7gO6wFB2EcQh92WviDVjHd5v1pBfst7At9CE1ZmA9VfMZTdLon+ITfMB+yCEUjPjbcCt7hPsLWPazgl4+NeQQdbxXWgPcYQtgbxBqsAavoeNswhzO8RNR6jp8wh210vBOYwwtEtSTM4QQdz7qcBqABdDcNQAPobhqABhBWGoAGoJRSSimllFJKKaWUUkop9QcatVJQGN5GKwAAAABJRU5ErkJggg==";
+    static final String PRIVACY = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAQAAABIkb+zAAAEJklEQVR42u2bOyx0QRiGX9fErksiIqwIidhQKESjEYkICQVx6RZZQWULhYLaFkuoXBKhUKyGUi8KJAohROISCgWJ7IYo3J2/8PP7Z8bunHNmZlcy77S+d+ZZ33fO3A6gpaUlS0nowDa20YGk3zf4TAzhAsbfdoEhZP6ewRdhCndfg/9sd5hCUfwPvhoreKEG/9lesILq+M54g6PFYVX8n/E8LY6qgp3xPC0OqiJyxvO0mFUFb8aHEY6/quDN+DP44IQTPpzFT1XwZvwGWpH4FZWIVmzEvir4Mv4Zy6hixldhGc+xqQr+jB9HQUSnAoyrrgrejD+FD04uRyd8OFVTFdYynkcKqoI344M/ZDyPqhCUVxU8GR+IkvE8KkCAqyoEA5xikDPj+apiMGpVCATYQIvJjOeripaIVSEEwF7G26sK2wBhBOBSMlVxMavCNoBD6WTRIR5AtTSAXYNYx2sADaABNIAG0C8yDaABNIAG0ADW+38iDFKUDiCFiH4yD0Auq7OUAmRRWwqmdUlYuJQCuIjoS/MAx4RFmVKAMiL62DzAFmHRoBSggYjeMg8QJCz6lQL0E9FB8wBjhIVfKYCfiB4zD9BHWKwpBVgjovvMA9QQFtdKAa6J6BrzAE7qfKZQGUAhdUZj6Sxij7DxKAPwELF71mYj87aeBHYAyCfgvDWALsLmxtS5jHWARNwQsV3WAHLwShjVKgGoJSJfkWN1SrtJWC0qAVgkIjetz8lHqGNnh3QAB3W0PmIdoBTvhFmvdIBeIu4dpXbWReTB5yESpAIk4JA61LWlbmogzVIBmqm4bnsADtxSF2FkApCXem7tn45OUEPplAbQSUVN2N8dyMcDdRcuVQpAKnW37gH5IjY4ZqjBjEoBGKViZsTs0BThkTB+RLlwgHJGL8IuAAao4WwJvueZRK3BDQTE2WfgirL3CwXwU/5XyBDZgZfq4A1Nwtyb8Eb5e8XuVCZgneoiBLcQbzdClPc69xufW8WM+4vnyLPtm4dzxl3FYhn7xV7GPapdmzc7M7HLcPVCklYZne0g27JfNnYYjquQpnQcMDrcR64lt1zsM9wOkA6JKmEUnIFzVJh2qmDkvoEQSiBZ9dTRhwED92gz5dKGe4bLE+qhQO3UYv9j5TTNOfV1YJpa6X0s3tuhSN2MF8/HLn70O87V1MnD54uxGwo1wPwvGHjHUoSzHBeWmL+9gVcMQLHaqHXCv3rwM55LufAz8/5j3t+GGKgmwq3zB8x+ezJVYPZHXANhK3vPYuRmPsm/vyGGMRz1b9yIodKwYOtDuAWkIebyMF9u0VvI5Ia9ROVSG+LRW9DiBESaGnHEPfgjNCIOlQgPx+dVp/BI+P5DmJLRw5wif069e5CMX6BKzBHrtzvMoRK/SimowyROcIJJ1Jm+rKOlpcWpP4rhHG+MsY+fAAAAAElFTkSuQmCC";
+    static final String BATTERY = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgBAMAAAAQtmoLAAAAFVBMVEUAAAAAAAAAAAAAAAAAAAAAAAAAAAASAQCkAAAAB3RSTlMA/xul5uzlU+EINQAAAGdJREFUeAHt1wEGgEAUhOF0gxEBCDpAdINu0A26/yWCwA4Di9fy/2AXH/Bgpv9G+qoCgPlU07VFsMu6IzgcLBE8DtYIJG98AAAAmncBANi/BABUfxoAa2QAAADy4OifNHk0dcyy+ugFd4Bbg/94cFIAAAAASUVORK5CYII=";
+    static final String STORAGE = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgBAMAAAAQtmoLAAAALVBMVEUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADBoCg+AAAAD3RSTlMAf//y1Y4q/JIFupHUxAxsau8GAAAAy0lEQVR4AWIYtGAUMCqhAZMw/BqElNCBeid+CzCB1gT8FmCCDQD25gADQCiIomhrKQEFLa7lpqVkIHK5GqB4D/8zHNcD3O4BbvYAt3iAmzxwPI910sB6OvCAAwYcMOCAAQcMEHiAwAMEHiDwAIEFCCRQH18JOGDAAQOvwR3ogAo0QAWa4OyC4TsgAPs3CAgICAgI2EbdNcwOxyGYFLFdmiC4HJGdpnS4HJHdMm6EJHEdP85FcEkiu5YziuDSRHZeU51h8oS6xwMPRgEA0YKxDaiki4oAAAAASUVORK5CYII=";
+    static final String LAYOUT = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgAQMAAADYVuV7AAAABlBMVEUAAAAAAAClZ7nPAAAAAXRSTlMAQObYZgAAADdJREFUeAFjGNSA/////x/ABI05H4AIRNCBA7aUHhxwCNKGQ9/4AQHaewpuKY05dEtvdIufwQwA6q1+kD8TFR8AAAAASUVORK5CYII=";
+    static final String TAB_BAR = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAQAAABIkb+zAAAA0ElEQVR42u3bQQqCQBSA4bfxMh12wI7TOewisxZKF1Kk1iZinn3/27p4HygEzURIkiTp0SlKXKPGrbGp01Zl2u5tXZxjbG715xmnDbv99S9NL7/MZY/Qp1h/nn773R/TAMatb6GkWX+esgYMqQDDGlBTAeoa8PpIa33cDwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgq4Bf/5UNAAAAAAAAANASwK9RgKMD0h98TX/0OP3h7/TH79NfgDjAFZT0l4CWbyHxNSxJkqT/6g503lzSonWPvAAAAABJRU5ErkJggg==";
+    static final String CODE = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAA6ElEQVR4Ae3cCabEQABF0SB7zHJqRb3G7kZRZkJxUecQs1/c59NTcrEZAAAAAAAAAAAw5nXq+Xn877xGff7J8VeE+PyT468I/fnHxl8R+vMPjb+u59rveXH+ODn+53/d1373/NvBCOIHI4gfjCB+MIL4wQjiGyGIb4QgvhGC+EYI4hshiG8E8YMRxE9H6OMboY9vhD6+Efr4RujjG8EA/gvEN4JXQuIbwbth8Y3gE1HxjeBbMfHf86W8EcT3wywjiO/HuUYQ3w0aRhDfTXo9t6n23Kjd86iClId1BDyuBgAAAAAAAAAA4AcpM7GWbfXLhAAAAABJRU5ErkJggg==";
+    static final String LIKE = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAFFUlEQVR4Ae3bA5DlShSA4bdj1dpW4dm2bdu2bdu2zbVt27Yx5nl/Va2RnEw6uUj/VV95PLdzupO7i6FsNpvNZrPZbDabzWaz2Wy2mjgTb6IDpmIpZIP5mIZ/8ArORC6CKhdn4hX8g2mYD9lgKaaiA97EmaiJhCoNF6IDyiAelaA7LkIG/JaBi9AdJRCPytABFyINcVsKbsQsiCFL8SCy4LUsPIilEENm4UakIK46AKMgAVmAi6HtYiyABGQUDkBcdD/KICH4HfWws+rhd0gIynB/rNf6byEhm4PdsW27Yw4kZN8iLRa//P8gMbIOx2Bjx2AdJEb+C/OPUAPfQmKsAIduUACJsW9RI5w13/ta2QcP4Bi0Rg4y0BqH4UF0RjnEgzUbiAfl6IIHcRhaIwM5aI1j8AD6VOPadn8Y006ph3n+LdSHtiZ4Aqshhq3BE2gCbfXxlof9Q2mQ01GKh1GzL1qgutXDR6iCGPAx6qG6tUBfDyNqCox3o4cfNg0mOgdrfV6szzU4eHwMUbgxiKlnluqXb749sQLi0SrsDdNp/gizTE9FFyqXnXQE0b5YD1EqCHAtTlcuRxfCWB0gDorRAkF2NUTpRgRZCxRDHHSAkWopxrG3EEb/Qlx0RRi9pRi/a8F3Zyq+UAOE0d6KyehghFEDxT/mmfDdaxAHfRBmN+PpnbgDYdYH4uA1+K6jYvcXrfSnAh3hu2kQB0cgqh0BcTANvlsJcdAeUa09xMFK+K4U4iAPUS3P9WzIQG7zbhaiWpbr/shAyyAOmiCqNYE4WAbfTYc4OAhR7SCIg+nwXVeIg1sQ1W4JY1f+JsTBd4hq30EcvBnGIdhqpCNqpSvu3F0N3zVXnL+chqh1GsRBFZrDSOMhDjojanWGOBgPYz2v+Gvvhqi0m2JVeB7GaoNKiIO/EJX+gjioRBsYrQfExeFI9g6HuOgB450CcTEW6Uk++YyFuDgZgTQU4uIJJGtPQFwMRWCdDHFRgn2QbO2DksD/+xX9B3ExDXlJduw8TfmUdOC1QRHExY9Iln6EuChCG4TSYxCFB5DoPQBReBShlYrBEBcVOAWJ2imogLgYhNRY3A/NVz4guzcSrb2V77rJRzvEpCsgCovQColSKyyCKFyOmPYBRGEy6iPeq4/JEIX3EfMyMBiiMBK1EK/VwkiIwiBkIC5qhDkQhQHIQbyVgwEQhTloiLhqD6yFKPRCNuKlbPSCKKzF7ojLTkQpRKEnsuPkl98TolCKExDXXYpKiEIP5MR42ekBUajExUiIboco9UVejM53+kKUbkVC9SREaRBqhTztDIIoPY6E7AWI0gjUD2nOHwFRehYJ3esQpUloiqBqikkQpVeQFL0FUZqFtjBdW8yCKL2OpOo1iNIiw7P27lgEUXoJSdmLEKVVOBR+OxSrIrPmK3oKolSAk33ewy6AKD2KSHQvqjzsPi+F1y71sCuvwh2IVDd62DFX4i5ou8vD567ANYhkl6AMovSi4etMKS5ApDsNhRClz5GKbUvF5x6vLyeCbEdgLUTpn21OUrPxj8cJ6xDYtmgfLIUo9UftDfqb2WPY2nncrY7dQJSmoRVsDjXGOIhhI9AANkW10B9iSE/kweahLPwD8ekXZMBWjVLxBaSa3kcKfGZ7CQLE6i6WTXu8UIEbEEC2i10O2IpxDgLMdhzW7+SBqaNgC6F9sQSywWLsBVuItcMMTEcb2GJQQyAxstlsNpvNZrPZbDabzfY/eZ7SAqnSkNcAAAAASUVORK5CYII=";
+    static final String PLACE = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAFF0lEQVR4Ae3bA5BsRxiG4ayulpexbdu2bRVi27Zt2yjFtpNVdG0bu7P3y1tVcTLn7x1t90y/VU/VFHf+wUH37DweFovFYrFYLBaLxWLzYg9ciifxBQZhDPS7MRiEL/AkLsUemBcZFNsAt6AVylIrbsEGSCjWB+dhMJQng3Ee+uD3YvPiZsyACmQGbsa8KNm64XRMgbrIFJwOnktptRqaIE80YTUUfWU4GXMgz8zBySgr5kPOY5DnHivGQ1ID3oYyNBAP4hhsg8UxAEQ8xuLYBsfgQQyEMvQ2GlAU1eDTDC8ZL8ayyLRlcXGGl7afogZB1x1vQnD1A/ZHBXJVBfbHDxBcvYnuCLbHIUeTcBwqkK8qcDwmQW6YIdCOhhx9gIVQqBbCB5AbZgmsNTAbcnATKlHoKnET5GA2mCmMKvAV5OAsdHVnQQ6+QgW873jIwXnwpfMgG7N5Xl9MgQz3wLfugQxTwIz+djFk+Abd4Vvd8Q1kuBheVoeJUIJZWBa+tixmGTNMBLP610mQ4TL43mWQgVn962sowQhUw/eqMcKY5Wt41YqQ4XSE0umQgZn96RKHq4d6hFK9fTXHzB71IZTgQYTWg8ZMzOxHvRx2uLZFrloBN6AJU3/XhBuwAnLVtvYOGrN70JZQgumoQrZV4RakoDRSuCWHf286lB6ze9CJ9pp61lXhdcjR66hCVtl7GczuQbcV4M7xZqiTbs7/nT2ze5D1ydwf2bQCUlAnpbACsml/85vmQc1QgnWQTTdAGboB2bQOlB6ze9AwKMGCyKZGKEONyKYFofSY3YOs/dV6ZNNUKENTkU315j62B7VDCSoDfgMqoQTt6PJmQgl6BnwI6gmlx+weNAZKMF/AJ+H5oPSY3YNaoATrB3wZuj6UoAVd3qtQgiMDvhE7EkqP2T3IOkTcH/BSxP3mIc6DDrB/2UzhLcaR9QtrZvegRSDDagEuR68GGRaBF1mflCsQWle4f7P9Pw+MRCVCqRIjvTr+G20IGfZBKO0DGTaEN5VhkPnj1nD6yphlEMrgVWdBhh3geztAhrPgXQMcNue/Qzl8rRzf2ZvxzOpp90KGw+Brh0EGZvS3JRyWp0ejAb7VgNH28jMzet5DkOFO+NadkIHZ/G8Rhz2CDmwKX9oUHfbaP7MF0qWQYSBq0NXVYCBkuBTBVIPhkOE+dHX3QYbhqEFQ7QY5OMCDlVwDswTas5BhKpZBoVsGUyEDM4TbfBgPGRpRi0JVi0bIMB7zIeh2hxy8gDLkuzK8ANl47kXSPZCDiz35V1rwnIuoarRADg5BvjoEctCCahRVy2MqZJiDzZDrNsMcyDAVy6Mo2wtzIcNkrIZctRomQ4a52AtF3TWQg1FYEtm2JEZBNp5bCVSOlyEHv2JBZNqC+BVy8DLKURJV42vIQSvmRWebF62Qg69RjZJqIQyHHPyAfnCtH36AHAzHQijJVsJEyMF36A+r/vgOcjARK6Gk2xAzIAeNmNc47DRCDmZgQ8RoR7RDDlqwAP7dAmiBHLRjR/yt2D5IQQ4GYkkQ8RgDIQcp7IP/KXYQUpCDkVjpdyMhBykchIRiR6ADcjDhd3LQgSPgUOwIpKAcSXX+xY8diHYoS+04ELEM2httUIbasDeyKLYTZkKdNBM7IQfFNsYkyNEkbIwcFlsFoyDDKKyCWB5aAj9DafyMJRDLY/3xMfQvH6M/ClCsJ56Hfvc8eqKAxcpxI8DjQIrFYrFYLBaLxWKx3wDsosWQdHqByAAAAABJRU5ErkJggg==";
+
+    /**
+     * An icon, then the words of a key that call for it. Earlier rules win, so Don't save recent
+     * searches is a search and Download on reels a download. Declared after the icons it names.
+     */
+    private static final String[][] BY_WORD = {
+            {LOCK, "lock", "locked"},
+            {LIKE, "like", "liked"},
+            {HIDDEN, "anonymously", "seen", "receipt", "typing", "active", "screenshots", "hidden", "ghost"},
+            {AI, "meta", "ai", "muse"},
+            {SEARCH, "search", "searches", "zoom"},
+            {DOWNLOADS, "download", "downloads", "save", "filename"},
+            {PLACE, "location", "place"},
+            {COMMENTS, "comment", "comments"},
+            {REELS, "reel", "reels"},
+            {STORIES, "story", "stories", "photos", "carousels", "resolution"},
+            {NOTIFICATIONS, "notification", "notifications"},
+            {LINKS, "links"},
+            {NETWORK, "share", "sharing", "repost"},
+            {EXPLORE, "explore"},
+            {MARKETPLACE, "shopping"},
+            {PHONE, "call", "screen", "space"},
+            {CHATS, "chat", "chats", "messages", "inbox", "instants", "notes"},
+            {PERSON, "profile", "following", "follow", "friendship", "accounts"},
+            {PLAYBACK, "video", "videos", "playback", "play", "player", "sound", "muted", "hdr", "quality", "speed"},
+            {TAB_BAR, "tab", "tabs", "glass"},
+            {TELEMETRY, "analytics"},
+            {BLOCK, "ads"},
+            {APPEARANCE, "accent", "emoji"},
+            {CODE, "developer", "flag", "flags", "override", "overrides", "whitehat"},
+            {UPDATES, "expired", "time"},
+            {STORAGE, "cache"},
+            {DELETE, "clear"},
+            {MENU, "menu"},
+    };
 }
