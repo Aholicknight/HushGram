@@ -1166,10 +1166,16 @@ once-call Lapp/hushgram/extension/instagram/misc/EmojiStyle;->replaceStrategy(I)
 # below), and the color each of Instagram's two theme color reads returns to AccentColor.color (00ON.A0Y
 # and 0118.A03 on 450, each resolving the attribute through 00ON.A0b and returning getColor of the
 # answer). Left out, Instagram's blue stays wherever that path reads it. AccentColorHookTest checks all
-# three on the seven 450 builds.
+# three on the seven 450 builds. The second read is the first without its check, a thin static that
+# Redex files in a different class from build to build (one holding the pagination limit in some, Room's
+# schema or the inbox's strings in others), so no string of its class tells it. It is
+# told by what it lacks: it is a bare resolve-and-getColor, and every other method that resolves
+# a theme attribute and asks for its color (the first read, and the few that ask for one fixed
+# attribute) first calls a static helper taking an object to check it. The first read has its own
+# rule above, so each rule picks one.
 once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->list(Landroid/content/res/ColorStateList;)Landroid/content/res/ColorStateList; in static (Landroid/content/Context;I)Landroid/content/res/ColorStateList; sites 3 holding Failed\sto\sinflate\sColorStateList,\sleaving\sit\sto\sthe\sframework
 shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I holding LX/*;->*(Ljava/lang/Object;I)V LX/*;->*(Landroid/content/Context;I)I
-shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I calling static LX/*;->*(Landroid/content/Context;I)I class-holding max_highlights_to_fetch_on_pagination device_fold_orientation
+shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I lacking static LX/*;->*(Ljava/lang/Object;*)V holding Landroid/content/Context;->getColor(I)I LX/*;->*(Landroid/content/Context;I)I
 # Show if a profile follows you hands the pronouns slot beside a profile's name and the header to
 # FriendshipStatus right after the name's binder shows the slot with the pronouns in it, and right
 # after it hides the slot for an account with none (0BNk.A04 on 449, the one method loading the

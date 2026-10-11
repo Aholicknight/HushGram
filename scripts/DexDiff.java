@@ -247,6 +247,12 @@ public class DexDiff {
      *       stays as written. For a method that shares its strings and its shape with a sibling
      *       that doesn't make the call, as the story player's resume does with a stub beside it,
      *       and the home tab's static method with a few others taking a session.
+     *   <li>Any of those five with "lacking [static|instance] &lt;method reference&gt;" after the calling
+     *       clause, or where that would go: a method has the rule's shape only when it makes no call
+     *       matching that reference, written and matched as calling is. For a method whose twin makes
+     *       every call it does and one more, as Accent color's second theme color read has the first
+     *       one's resolver call and none of its Redex-named checks, and sits in a different class from
+     *       one build to the next.
      *   <li>A once-call or shared-call rule with "sites &lt;n&gt;" after its calling clause, or where
      *       that would go, and before "holding" or "class-holding": its method calls the method
      *       reference exactly n times, 2 or more, rather than once. For a filter the patch puts on
@@ -321,15 +327,22 @@ public class DexDiff {
         final int sites;
         /** The same rules: whether asking a string pool for one of its strings counts as loading it ("pooled"). */
         final boolean pooled;
+        /** The same rules: a call its method must not make, written as [call] is, or null. */
+        final String lack;
+        /** The same rules: whether the call it must not make is an invoke-static, or null when the rule doesn't say. */
+        final Boolean lackStatic;
         /** [call] as a regular expression, or null. */
         private final java.util.regex.Pattern callMatch;
+        /** [lack] as a regular expression, or null. */
+        private final java.util.regex.Pattern lackMatch;
 
         Contract(String kind, String callee, String target) {
-            this(kind, callee, target, null, null, List.of(), null, null, false, null, null, 1, false);
+            this(kind, callee, target, null, null, List.of(), null, null, false, null, null, null, null, 1, false);
         }
 
         Contract(String kind, String callee, String target, String after, String replaced, List<String> strings,
-                Boolean isStatic, String shape, boolean byClass, String call, Boolean callStatic, int sites, boolean pooled) {
+                Boolean isStatic, String shape, boolean byClass, String call, Boolean callStatic, String lack,
+                Boolean lackStatic, int sites, boolean pooled) {
             this.kind = kind;
             this.callee = callee;
             this.target = target;
@@ -341,9 +354,12 @@ public class DexDiff {
             this.byClass = byClass;
             this.call = call;
             this.callStatic = callStatic;
+            this.lack = lack;
+            this.lackStatic = lackStatic;
             this.sites = sites;
             this.pooled = pooled;
             this.callMatch = call == null ? null : java.util.regex.Pattern.compile(callPattern(call));
+            this.lackMatch = lack == null ? null : java.util.regex.Pattern.compile(callPattern(lack));
         }
 
         /** Whether this rule picks its method by strings and a shape: start-call, next-call, sole-call, once-call and shared-call. */
@@ -367,6 +383,11 @@ public class DexDiff {
                 if (callStatic != null) b.append(callStatic ? "static " : "instance ");
                 b.append(call);
             }
+            if (lack != null) {
+                b.append(" lacking ");
+                if (lackStatic != null) b.append(lackStatic ? "static " : "instance ");
+                b.append(lack);
+            }
             if (sites != 1) b.append(" sites ").append(sites);
             if (pooled) b.append(" pooled");
             List<String> written = new ArrayList<>();
@@ -383,19 +404,19 @@ public class DexDiff {
                 descriptor.append(')').append(m.getReturnType());
                 if (!descriptor.toString().matches(shapePattern(shape))) return false;
             }
-            return call == null || makesCall(m);
+            return (call == null || makesCall(m, callMatch, callStatic)) && (lack == null || !makesCall(m, lackMatch, lackStatic));
         }
 
-        /** Whether [m] makes an invoke of the kind [callStatic] asks for whose method reference matches [call]. */
-        private boolean makesCall(Method m) {
+        /** Whether [m] makes an invoke of the kind [wantStatic] asks for whose method reference matches [match]. */
+        private static boolean makesCall(Method m, java.util.regex.Pattern match, Boolean wantStatic) {
             if (m.getImplementation() == null) return false;
             for (Instruction i : m.getImplementation().getInstructions()) {
                 if (!i.getOpcode().name.startsWith("invoke") || !(i instanceof ReferenceInstruction)) continue;
                 Reference r = ((ReferenceInstruction) i).getReference();
                 if (!(r instanceof MethodReference)) continue;
                 boolean staticCall = i.getOpcode() == Opcode.INVOKE_STATIC || i.getOpcode() == Opcode.INVOKE_STATIC_RANGE;
-                if (callStatic != null && staticCall != callStatic) continue;
-                if (callMatch.matcher(r.toString()).matches()) return true;
+                if (wantStatic != null && staticCall != wantStatic) continue;
+                if (match.matcher(r.toString()).matches()) return true;
             }
             return false;
         }
@@ -504,6 +525,17 @@ public class DexDiff {
             if (at >= parts.length || !isCallReference(parts[at])) return null;
             call = parts[at++];
         }
+        String lack = null;
+        Boolean lackStatic = null;
+        if (at < parts.length && parts[at].equals("lacking")) {
+            at++;
+            if (at < parts.length && (parts[at].equals("static") || parts[at].equals("instance"))) {
+                lackStatic = parts[at].equals("static");
+                at++;
+            }
+            if (at >= parts.length || !isCallReference(parts[at])) return null;
+            lack = parts[at++];
+        }
         int sites = 1;
         if (at < parts.length && parts[at].equals("sites")) {
             at++;
@@ -520,7 +552,7 @@ public class DexDiff {
         for (String s : Arrays.asList(parts).subList(at + 1, parts.length)) strings.add(unescape(s));
         if (strings.isEmpty() || new TreeSet<>(strings).size() != strings.size()) return null;
         return new Contract(kind, parts[1], String.join(" ", strings), after, replaced, strings, isStatic, shape, byClass,
-                call, callStatic, sites, pooled);
+                call, callStatic, lack, lackStatic, sites, pooled);
     }
 
     private static List<Contract> readContracts(File file) throws Exception {
@@ -538,7 +570,7 @@ public class DexDiff {
                 Contract picked = readPicked(parts);
                 if (picked == null) {
                     throw new IllegalArgumentException("Invalid contract line " + lineNumber + ": expected " + form
-                            + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>]"
+                            + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>] [lacking [static|instance] <method reference>]"
                             + (form.startsWith("once-call") || form.startsWith("shared-call") ? " [sites <2 or more>]" : "")
                             + " [pooled] holding or class-holding <string> [<string> ...]");
                 }
@@ -565,7 +597,7 @@ public class DexDiff {
                         + " or start-call <method reference>, next-call <method reference> after <method reference>,"
                         + " sole-call <method reference> replacing <method reference>,"
                         + " once-call <method reference> or shared-call <method reference>, each then"
-                        + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>]"
+                        + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>] [lacking [static|instance] <method reference>]"
                         + " [sites <2 or more>, once-call and shared-call only] [pooled] holding or class-holding <string> [<string> ...]");
             }
             String kind = firstCallTyped ? TYPED_FIRST_CALL : firstCallOutside ? OUTSIDE_FIRST_CALL : parts[0];
@@ -2256,7 +2288,10 @@ public class DexDiff {
                 : "with the shape " + (rule.isStatic == null ? "" : rule.isStatic ? "static " : "instance ") + rule.shape;
         String call = rule.call == null ? null
                 : (rule.callStatic == null ? "a call to " : rule.callStatic ? "a static call to " : "an instance call to ") + rule.call;
+        String lacks = rule.lack == null ? null
+                : (rule.lackStatic == null ? "no call to " : rule.lackStatic ? "no static call to " : "no instance call to ") + rule.lack;
         String how = call == null ? shape : shape == null ? "with " + call : shape + " and " + call;
+        if (lacks != null) how = how == null ? "with " + lacks : how + " and " + lacks;
         String holding = rule.pooled ? "holding or asking a string pool for " : "holding ";
         if (rule.byClass) return (how == null ? "" : how + " ") + (many ? "sit in" : "in") + " a class " + holding + strings;
         return (many ? rule.pooled ? "hold or ask a string pool for " : "hold " : holding) + strings + (how == null ? "" : " " + how);

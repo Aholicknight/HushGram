@@ -889,11 +889,12 @@ try {
     $tokenLiteralRule = "once-call $tokenHookRoot->literal(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Integer;)V holding const:0x1ce57a65 const:0x811116000d5cda"
     $tokenCallRule = "once-call $tokenHookRoot->call(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Long;)V holding LX/*;->*(LX/*;)V"
     $tokenFieldRule = "once-call $tokenHookRoot->field(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Short;)V holding LX/*;->A07:Ljava/util/List; LX/*;->*:Ljava/lang/String;"
-    Assert-True ($onceCallRules.Count -eq 13 -and $onceCallRules[0] -ceq $swapRule -and $onceCallRules[1] -ceq $allowRule -and
+    $tokenLackRule = "once-call $tokenHookRoot->lack(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Byte;)V lacking static LX/*;->*(LX/*;)V holding fixture_token"
+    Assert-True ($onceCallRules.Count -eq 14 -and $onceCallRules[0] -ceq $swapRule -and $onceCallRules[1] -ceq $allowRule -and
         $onceCallRules[2] -ceq $tabRule -and $onceCallRules[3] -ceq $dmRule -and $onceCallRules[4] -ceq $inboxRule -and
         $onceCallRules[5] -ceq $swipeRule -and $onceCallRules[6] -ceq $retryRule -and $onceCallRules[7] -ceq $tokenLiteralRule -and
-        $onceCallRules[8] -ceq $tokenCallRule -and $onceCallRules[9] -ceq $tokenFieldRule -and $onceCallRules[10] -ceq $navBindRule -and
-        $onceCallRules[11] -ceq $tabInterceptOnceRule -and $onceCallRules[12] -ceq $tabTouchOnceRule) `
+        $onceCallRules[8] -ceq $tokenCallRule -and $onceCallRules[9] -ceq $tokenFieldRule -and $onceCallRules[10] -ceq $tokenLackRule -and
+        $onceCallRules[11] -ceq $navBindRule -and $onceCallRules[12] -ceq $tabInterceptOnceRule -and $onceCallRules[13] -ceq $tabTouchOnceRule) `
         "The contract file has a once-call rule without exact negative coverage:`n$($onceCallRules -join "`n")"
     Assert-True (($good.Output -join "`n") -match [regex]::Escape("contract $swapRule`: once in $swapRun")) `
         "The good build's swap guard was not reported once in the swap runnable.`n$($good.Output -join "`n")"
@@ -1209,6 +1210,8 @@ try {
         'bad-token-call-decoy' = 'contract'
         'bad-token-field-missing' = 'contract'
         'bad-token-field-decoy' = 'contract'
+        'bad-token-lack-missing' = 'contract'
+        'bad-token-lack-decoy' = 'contract'
         'bad-token-site-moved' = 'contract'
         'bad-dm-visual-guard-late' = 'contract'
         'bad-navigation-plain-missing' = 'contract'
@@ -1471,12 +1474,14 @@ try {
     $tokenLiteralHook = 'Lapp/hushgram/extension/fixture/misc/TokenHook;->literal(Ljava/lang/Object;)Ljava/lang/Object;'
     $tokenCallHook = 'Lapp/hushgram/extension/fixture/misc/TokenHook;->call(Ljava/lang/Object;)Ljava/lang/Object;'
     $tokenFieldHook = 'Lapp/hushgram/extension/fixture/misc/TokenHook;->field(Ljava/lang/Object;)Ljava/lang/Object;'
+    $tokenLackHook = 'Lapp/hushgram/extension/fixture/misc/TokenHook;->lack(Ljava/lang/Object;)Ljava/lang/Object;'
     $tokenSiteHook = 'Lapp/hushgram/extension/fixture/misc/TokenHook;->site(Ljava/lang/Object;)Ljava/lang/Object;'
     $tokenOutput = $good.Output -join "`n"
     foreach ($pick in @(
             @($tokenLiteralHook, 'Lfixture/TokenHost;->literalPick(Ljava/lang/Integer;)V'),
             @($tokenCallHook, 'Lfixture/TokenHost;->callPick(Ljava/lang/Long;)V'),
-            @($tokenFieldHook, 'Lfixture/TokenHost;->fieldPick(Ljava/lang/Short;)V'))) {
+            @($tokenFieldHook, 'Lfixture/TokenHost;->fieldPick(Ljava/lang/Short;)V'),
+            @($tokenLackHook, 'Lfixture/TokenHost;->lackPick(Ljava/lang/Byte;)V'))) {
         Assert-True ($tokenOutput -match ('(?m)^\[diff\] contract once-call ' + [regex]::Escape($pick[0]) + '.*: once in ' + [regex]::Escape($pick[1]) + '$')) `
             "The good build's $($pick[0]) was not reported once in $($pick[1]).`n$tokenOutput"
     }
@@ -1488,7 +1493,9 @@ try {
             @('bad-token-call-missing', $tokenCallHook, 'callPick', ''),
             @('bad-token-call-decoy', $tokenCallHook, 'callPick', 'Lfixture/TokenHost;->callTwin(Ljava/lang/Long;)V'),
             @('bad-token-field-missing', $tokenFieldHook, 'fieldPick', ''),
-            @('bad-token-field-decoy', $tokenFieldHook, 'fieldPick', 'Lfixture/TokenHost;->fieldTwin(Ljava/lang/Short;)V'))) {
+            @('bad-token-field-decoy', $tokenFieldHook, 'fieldPick', 'Lfixture/TokenHost;->fieldTwin(Ljava/lang/Short;)V'),
+            @('bad-token-lack-missing', $tokenLackHook, 'lackPick', ''),
+            @('bad-token-lack-decoy', $tokenLackHook, 'lackPick', 'Lfixture/TokenHost;->lackTwin(Ljava/lang/Byte;)V'))) {
         $fails = @((Get-Findings $badResults[$case[0]]).Fails)
         $expected = "[diff] FAIL: contract: $($case[1]) is not called in Lfixture/TokenHost;->$($case[2])("
         Assert-True ($fails.Count -eq 1 -and $fails[0].StartsWith($expected, [System.StringComparison]::Ordinal) -and
@@ -1504,6 +1511,7 @@ try {
     $tokenKinds = [ordered]@{
         'a literal' = '^\s*[a-z-]+-call\s.*\s(class-)?holding\s(\S+\s)*?const:0x'
         'a call or field written with LX/*;' = '^\s*[a-z-]+-call\s.*\s(class-)?holding\s(\S+\s)*?LX/\*;->'
+        'a call the method must lack' = '^\s*[a-z-]+-call\s.*\slacking\s'
         'a caller named in more than one way' = '^\s*single-call\s.*\sin\s\S+\|'
     }
     foreach ($kind in $tokenKinds.GetEnumerator()) {

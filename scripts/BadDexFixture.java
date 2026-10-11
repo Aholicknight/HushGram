@@ -368,6 +368,7 @@ public class BadDexFixture {
     private static final ImmutableMethodReference TOKEN_CALL_HOOK = method(TOKEN_HOOK, "call", OBJECT, OBJECT);
     private static final ImmutableMethodReference TOKEN_FIELD_HOOK = method(TOKEN_HOOK, "field", OBJECT, OBJECT);
     private static final ImmutableMethodReference TOKEN_SITE_HOOK = method(TOKEN_HOOK, "site", OBJECT, OBJECT);
+    private static final ImmutableMethodReference TOKEN_LACK_HOOK = method(TOKEN_HOOK, "lack", OBJECT, OBJECT);
     private static final ImmutableMethodReference TOKEN_CALLEE = method("LX/Ab12;", "c3", "V", "LX/De45;");
     private static final ImmutableFieldReference TOKEN_LIST = new ImmutableFieldReference("LX/Fg67;", "A07", "Ljava/util/List;");
     private static final ImmutableFieldReference TOKEN_NAME = new ImmutableFieldReference("LX/Hi89;", "A09", "Ljava/lang/String;");
@@ -496,6 +497,7 @@ public class BadDexFixture {
             "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->literal(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Integer;)V holding const:0x1ce57a65 const:0x811116000d5cda",
             "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->call(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Long;)V holding LX/*;->*(LX/*;)V",
             "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->field(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Short;)V holding LX/*;->A07:Ljava/util/List; LX/*;->*:Ljava/lang/String;",
+            "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->lack(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Byte;)V lacking static LX/*;->*(LX/*;)V holding fixture_token",
             "single-call Lapp/hushgram/extension/fixture/misc/TokenHook;->site(Ljava/lang/Object;)Ljava/lang/Object; in other|tokenSite",
             "story-loop-call Linstagram/features/stories/fragment/ReelViewerFragment;->*(Lcom/instagram/model/reels/ReelItem;)Z in instance (Ljava/lang/Object;)V holding fixture_finished_story",
             "start-call Lapp/hushgram/extension/fixture/settings/NavigationSettings;->remember(Landroid/view/View;Ljava/lang/Object;Landroid/view/View$OnLongClickListener;)Landroid/view/View$OnLongClickListener; in instance (Landroid/view/View$OnLongClickListener;)V calling instance Landroid/view/View;->setOnLongClickListener(Landroid/view/View$OnLongClickListener;)V holding Lfixture/NavigationPlain;->button:Landroid/view/View;",
@@ -2351,6 +2353,8 @@ public class BadDexFixture {
                 tokenMethod("callTwin", "Ljava/lang/Long;", "none", at.contains("callTwin") ? TOKEN_CALL_HOOK : null),
                 tokenMethod("fieldPick", "Ljava/lang/Short;", "fields", at.contains("fieldPick") ? TOKEN_FIELD_HOOK : null),
                 tokenMethod("fieldTwin", "Ljava/lang/Short;", "none", at.contains("fieldTwin") ? TOKEN_FIELD_HOOK : null),
+                tokenMethod("lackPick", "Ljava/lang/Byte;", "none", at.contains("lackPick") ? TOKEN_LACK_HOOK : null),
+                tokenMethod("lackTwin", "Ljava/lang/Byte;", "call", at.contains("lackTwin") ? TOKEN_LACK_HOOK : null),
                 tokenMethod("tokenSite", "Ljava/lang/Object;", "none", at.contains("tokenSite") ? TOKEN_SITE_HOOK : null),
                 tokenMethod("tokenElsewhere", "Ljava/lang/Object;", "none", at.contains("tokenElsewhere") ? TOKEN_SITE_HOOK : null)));
     }
@@ -2358,7 +2362,7 @@ public class BadDexFixture {
     /** The extension's token hooks, each answering what it was given. */
     private static ClassDef tokenHook() {
         List<Method> methods = new ArrayList<>();
-        for (String name : new String[] { "literal", "call", "field", "site" }) {
+        for (String name : new String[] { "literal", "call", "field", "lack", "site" }) {
             methods.add(define(TOKEN_HOOK, name, OBJECT, true, body(1, op(Opcode.RETURN_OBJECT, 0)), OBJECT));
         }
         return new ImmutableClassDef(TOKEN_HOOK, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(),
@@ -2550,7 +2554,7 @@ public class BadDexFixture {
                 seenStore(seenGuard(), Collections.<Instruction>emptyList(), false),
                 seenCache(Collections.<Instruction>emptyList(), false), storySeen(), storyRetryQueue(1, false, false),
                 tabBuilder(STATIC_CHECK, true, false), reelsTab(), tokenHook(),
-                tokenHost("literalPick", "callPick", "fieldPick", "tokenSite"), dmReceipts(1, false), visualSeen(),
+                tokenHost("literalPick", "callPick", "fieldPick", "lackPick", "tokenSite"), dmReceipts(1, false), visualSeen(),
                 inboxSections(true), inboxFilter(), familyProviders(1, true, false), trustedProvider(), instagramSignature(),
                 setupPresenter(true), setupOpeners(true), setupData(), analyticsSetup(), swipeMovement(1), swipeConfig(), swipeGate(), storyLoopViewer("", true), storyAdvance(),
                 navigationBinding(NAV_PLAIN, 1, false), navigationBinding(NAV_LITHO, 1, false), navigationFactory(1), navigationSettings(),
@@ -3278,13 +3282,15 @@ public class BadDexFixture {
 
         // contract: a literal, a call, a field and a caller picked the way Redex's renames leave
         // them. Each hook left out, or put in the pick's twin, fails its own rule alone.
-        dexes.put("bad-token-literal-missing", replaced(good(), tokenHost("callPick", "fieldPick", "tokenSite")));
-        dexes.put("bad-token-literal-decoy", replaced(good(), tokenHost("literalHalf", "callPick", "fieldPick", "tokenSite")));
-        dexes.put("bad-token-call-missing", replaced(good(), tokenHost("literalPick", "fieldPick", "tokenSite")));
-        dexes.put("bad-token-call-decoy", replaced(good(), tokenHost("literalPick", "callTwin", "fieldPick", "tokenSite")));
-        dexes.put("bad-token-field-missing", replaced(good(), tokenHost("literalPick", "callPick", "tokenSite")));
-        dexes.put("bad-token-field-decoy", replaced(good(), tokenHost("literalPick", "callPick", "fieldTwin", "tokenSite")));
-        dexes.put("bad-token-site-moved", replaced(good(), tokenHost("literalPick", "callPick", "fieldPick", "tokenElsewhere")));
+        dexes.put("bad-token-literal-missing", replaced(good(), tokenHost("callPick", "fieldPick", "lackPick", "tokenSite")));
+        dexes.put("bad-token-literal-decoy", replaced(good(), tokenHost("literalHalf", "callPick", "fieldPick", "lackPick", "tokenSite")));
+        dexes.put("bad-token-call-missing", replaced(good(), tokenHost("literalPick", "fieldPick", "lackPick", "tokenSite")));
+        dexes.put("bad-token-call-decoy", replaced(good(), tokenHost("literalPick", "callTwin", "fieldPick", "lackPick", "tokenSite")));
+        dexes.put("bad-token-field-missing", replaced(good(), tokenHost("literalPick", "callPick", "lackPick", "tokenSite")));
+        dexes.put("bad-token-field-decoy", replaced(good(), tokenHost("literalPick", "callPick", "fieldTwin", "lackPick", "tokenSite")));
+        dexes.put("bad-token-lack-missing", replaced(good(), tokenHost("literalPick", "callPick", "fieldPick", "tokenSite")));
+        dexes.put("bad-token-lack-decoy", replaced(good(), tokenHost("literalPick", "callPick", "fieldPick", "lackTwin", "tokenSite")));
+        dexes.put("bad-token-site-moved", replaced(good(), tokenHost("literalPick", "callPick", "fieldPick", "lackPick", "tokenElsewhere")));
 
         dexes.put("bad-dm-visual-guard-late", replaced(good(), dmReceipts(1, true)));
         dexes.put("bad-navigation-plain-missing", replaced(good(), navigationBinding(NAV_PLAIN, 0, false)));
