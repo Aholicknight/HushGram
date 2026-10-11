@@ -23,6 +23,7 @@ import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.EnumSetting;
+import app.hushgram.extension.shared.settings.LongSetting;
 import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.StringSetting;
 
@@ -331,10 +332,33 @@ public class Settings extends BaseSettings {
     public static final StringSetting HIDDEN_CHATS =
             new StringSetting("hushgram_hidden_chats", "", false, false);
 
+    /**
+     * What unlocks the messages: the phone's lock, or a HushGram PIN
+     * ({@link app.hushgram.extension.instagram.direct.PinLock}). It isn't a switch, and a backup
+     * leaves it out, since a restored choice of PIN would have no PIN behind it.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.direct.UnlockWith> UNLOCK_WITH =
+            new EnumSetting<>("hushgram_unlock_with", app.hushgram.extension.instagram.direct.UnlockWith.PHONE_LOCK,
+                    false, false);
+
+    /**
+     * The HushGram PIN as a salted hash, never the digits
+     * ({@link app.hushgram.extension.instagram.direct.PinLock}). Empty until a PIN is set. A backup
+     * leaves it out: a PIN never leaves the phone.
+     */
+    public static final StringSetting LOCK_PIN = new StringSetting("hushgram_lock_pin", "", false, false);
+
+    /** Wrong PINs in a row, kept so a restart doesn't reset the count. Left out of a backup. */
+    public static final LongSetting LOCK_PIN_MISSES = new LongSetting("hushgram_lock_pin_misses", 0L, false, false);
+
+    /** When the wait after too many wrong PINs ends, in wall clock milliseconds. Left out of a backup. */
+    public static final LongSetting LOCK_PIN_WAIT_UNTIL = new LongSetting("hushgram_lock_pin_wait_until", 0L, false, false);
+
     static {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.
-        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_AGAIN, LOCKED_CHATS);
+        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_AGAIN, LOCKED_CHATS,
+                UNLOCK_WITH, LOCK_PIN, LOCK_PIN_MISSES, LOCK_PIN_WAIT_UNTIL);
     }
 
     /**

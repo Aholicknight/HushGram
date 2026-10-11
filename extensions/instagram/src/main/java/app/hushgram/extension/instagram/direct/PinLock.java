@@ -1,0 +1,390 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.hushgram.extension.instagram.direct;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.graphics.Color;
+import android.text.InputFilter;
+import android.text.InputType;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.function.Consumer;
+import java.util.function.LongSupplier;
+
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+
+import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.L10n;
+import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
+
+/**
+ * A HushGram PIN for {@link MessagesLock}, for people whose phone's lock is known to others. It
+ * answers the same ask the phone's lock does, so every lock path gets it from one place.
+ *
+ * <p>The PIN is 4 to 8 digits and is kept as a salted PBKDF2 hash in HushGram's own preferences,
+ * never the digits. A backup leaves it, the choice of PIN and the miss count out. Five wrong tries
+ * in a row make it wait 30 seconds before another, and the count and the wait outlast a restart.
+ * Forgot PIN asks the phone's lock, and passing it lets you set a new PIN.
+ */
+public final class PinLock {
+    public static final int MIN_DIGITS = 4;
+    public static final int MAX_DIGITS = 8;
+    static final int MAX_MISSES = 5;
+    static final long WAIT_MS = 30_000;
+    static final int ITERATIONS = 120_000;
+    static final String PREFIX = "pbkdf2-sha256";
+    static final String FIELD_TAG = "hushgram_pin_field";
+    static final String CONFIRM_TAG = "hushgram_pin_confirm";
+    static final String MESSAGE_TAG = "hushgram_pin_message";
+
+    static final String PIN_STEP = "pin";
+
+    /** The clock the wait runs on, wall time so it holds across a restart. Tests move it. */
+    static volatile LongSupplier clock = System::currentTimeMillis;
+    /** Asks the phone's lock for Forgot PIN. Tests put a fake in. */
+    static volatile MessagesLock.Asker phoneAsker = MessagesLock::askPhone;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private PinLock() {
+    }
+
+    /** Messages are unlocked with the PIN: it's the choice and a PIN is set. */
+    public static boolean active() {
+        try {
+            return Utils.settingsReady() && Settings.UNLOCK_WITH.get() == UnlockWith.PIN && isSet();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, PIN_STEP, t);
+            return false;
+        }
+    }
+
+    public static boolean isSet() {
+        return parse(Settings.LOCK_PIN.get()) != null;
+    }
+
+    static boolean validFormat(CharSequence pin) {
+        if (pin == null || pin.length() < MIN_DIGITS || pin.length() > MAX_DIGITS) return false;
+        for (int i = 0; i < pin.length(); i++) {
+            char c = pin.charAt(i);
+            if (c < '0' || c > '9') return false;
+        }
+        return true;
+    }
+
+    /** Stores [pin] as a salted hash and forgets earlier misses. False when it isn't 4 to 8 digits. */
+    public static boolean set(CharSequence pin) {
+        if (!validFormat(pin)) return false;
+        try {
+            byte[] salt = new byte[16];
+            RANDOM.nextBytes(salt);
+            byte[] hash = hash(pin, salt, ITERATIONS);
+            Settings.LOCK_PIN.save(PREFIX + "$" + ITERATIONS + "$" + hex(salt) + "$" + hex(hash));
+            resetMisses();
+            return true;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, PIN_STEP, t);
+            Logger.printException(() -> "Lock your messages: could not store the PIN", t);
+            return false;
+        }
+    }
+
+    static void clear() {
+        Settings.LOCK_PIN.resetToDefault();
+        resetMisses();
+    }
+
+    /** True when [pin] is the PIN. Doesn't count a miss; {@link #attempt} does. */
+    public static boolean matches(CharSequence pin) {
+        String[] parts = parse(Settings.LOCK_PIN.get());
+        if (parts == null || !validFormat(pin)) return false;
+        try {
+            byte[] expected = unhex(parts[3]);
+            byte[] actual = hash(pin, unhex(parts[2]), Integer.parseInt(parts[1]));
+            return MessageDigest.isEqual(expected, actual);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, PIN_STEP, t);
+            return false;
+        }
+    }
+
+    enum Result { RIGHT, WRONG, WAIT }
+
+    /** Checks [pin] against the PIN, counting a miss and starting the wait after too many. */
+    static Result attempt(CharSequence pin) {
+        if (waitLeftMs() > 0) return Result.WAIT;
+        if (matches(pin)) {
+            resetMisses();
+            return Result.RIGHT;
+        }
+        long misses = Settings.LOCK_PIN_MISSES.get() + 1;
+        Settings.LOCK_PIN_MISSES.save(misses);
+        if (misses >= MAX_MISSES) Settings.LOCK_PIN_WAIT_UNTIL.save(clock.getAsLong() + WAIT_MS);
+        return Result.WRONG;
+    }
+
+    /** How long until another try is allowed, in milliseconds; 0 when one is. */
+    static long waitLeftMs() {
+        long until = Settings.LOCK_PIN_WAIT_UNTIL.get();
+        if (until <= 0) return 0;
+        long now = clock.getAsLong();
+        // A clock set back can't stretch the wait past what one wait is.
+        long left = Math.min(until - now, WAIT_MS);
+        return Math.max(left, 0);
+    }
+
+    private static void resetMisses() {
+        Settings.LOCK_PIN_MISSES.resetToDefault();
+        Settings.LOCK_PIN_WAIT_UNTIL.resetToDefault();
+    }
+
+    // ---------------------------------------------------------------- storage
+
+    private static byte[] hash(CharSequence pin, byte[] salt, int iterations) throws Exception {
+        char[] digits = new char[pin.length()];
+        for (int i = 0; i < digits.length; i++) digits[i] = pin.charAt(i);
+        PBEKeySpec spec = new PBEKeySpec(digits, salt, iterations, 256);
+        try {
+            return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded();
+        } finally {
+            spec.clearPassword();
+            Arrays.fill(digits, '\0');
+        }
+    }
+
+    /** The stored value's four parts, or null when nothing is stored or it isn't ours. */
+    private static String[] parse(String stored) {
+        if (stored == null || stored.isEmpty()) return null;
+        String[] parts = stored.split("\\$");
+        if (parts.length != 4 || !PREFIX.equals(parts[0])) return null;
+        try {
+            if (Integer.parseInt(parts[1]) < 1 || parts[2].isEmpty() || parts[3].isEmpty()) return null;
+        } catch (NumberFormatException bad) {
+            return null;
+        }
+        return parts;
+    }
+
+    private static String hex(byte[] bytes) {
+        char[] digits = "0123456789abcdef".toCharArray();
+        StringBuilder out = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) out.append(digits[(b >> 4) & 15]).append(digits[b & 15]);
+        return out.toString();
+    }
+
+    private static byte[] unhex(String text) {
+        byte[] out = new byte[text.length() / 2];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = (byte) Integer.parseInt(text.substring(i * 2, i * 2 + 2), 16);
+        }
+        return out;
+    }
+
+    // ---------------------------------------------------------------- the dialogs
+
+    /** Asks for the PIN in a HushGram dialog; the same shape as the phone's ask. */
+    static void ask(Activity activity, Runnable confirmed, Runnable notConfirmed) {
+        if (activity == null || activity.isFinishing()) {
+            notConfirmed.run();
+            return;
+        }
+        EditText field = digitsField(activity, L10n.t("PIN"), FIELD_TAG);
+        TextView message = message(activity);
+        LinearLayout body = body(activity, message, field);
+        boolean[] done = {false};
+        AlertDialog dialog = builder(activity)
+                .setTitle(L10n.t("Enter your PIN"))
+                .setView(body)
+                .setPositiveButton(L10n.t("Unlock"), null)
+                .setNeutralButton(L10n.t("Forgot PIN?"), null)
+                .setNegativeButton(L10n.t("Cancel"), null)
+                .create();
+        secure(dialog);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setOnCancelListener(d -> {
+            if (!done[0]) {
+                done[0] = true;
+                notConfirmed.run();
+            }
+        });
+        dialog.setOnShowListener(d -> {
+            showWait(message);
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> {
+                Result result = attempt(field.getText());
+                if (result == Result.RIGHT) {
+                    done[0] = true;
+                    field.setText("");
+                    dialog.dismiss();
+                    confirmed.run();
+                    return;
+                }
+                field.setText("");
+                if (result == Result.WAIT || waitLeftMs() > 0) showWait(message);
+                else message.setText(L10n.t("Wrong PIN. Try again."));
+            });
+            dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener(v -> {
+                done[0] = true;
+                field.setText("");
+                dialog.dismiss();
+                forgot(activity, confirmed, notConfirmed);
+            });
+            dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setOnClickListener(v -> {
+                done[0] = true;
+                field.setText("");
+                dialog.dismiss();
+                notConfirmed.run();
+            });
+        });
+        dialog.show();
+    }
+
+    private static void showWait(TextView message) {
+        long left = waitLeftMs();
+        message.setText(left > 0
+                ? L10n.f("Too many tries. Wait %1$d seconds.", (left + 999) / 1000)
+                : "");
+    }
+
+    /** Forgot PIN: the phone's lock, then a new PIN. Passing the phone's lock unlocks even if you skip the new PIN. */
+    private static void forgot(Activity activity, Runnable confirmed, Runnable notConfirmed) {
+        try {
+            phoneAsker.ask(activity,
+                    () -> promptNew(activity, saved -> confirmed.run()),
+                    notConfirmed);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, PIN_STEP, t);
+            notConfirmed.run();
+        }
+    }
+
+    /**
+     * Asks twice for a new 4 to 8 digit PIN and stores it. [done] hears whether it was saved; a
+     * cancel is a false. Nothing changes until both entries match.
+     */
+    public static void promptNew(Activity activity, Consumer<Boolean> done) {
+        if (activity == null || activity.isFinishing()) {
+            done.accept(false);
+            return;
+        }
+        EditText first = digitsField(activity, L10n.t("New PIN"), FIELD_TAG);
+        EditText again = digitsField(activity, L10n.t("Confirm PIN"), CONFIRM_TAG);
+        TextView message = message(activity);
+        message.setText(L10n.t("Use 4 to 8 digits."));
+        LinearLayout body = body(activity, message, first);
+        body.addView(again, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        boolean[] finished = {false};
+        AlertDialog dialog = builder(activity)
+                .setTitle(L10n.t("Set a PIN"))
+                .setView(body)
+                .setPositiveButton(L10n.t("Save"), null)
+                .setNegativeButton(L10n.t("Cancel"), null)
+                .create();
+        secure(dialog);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setOnCancelListener(d -> {
+            if (!finished[0]) {
+                finished[0] = true;
+                done.accept(false);
+            }
+        });
+        dialog.setOnShowListener(d -> {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String a = first.getText().toString();
+                String b = again.getText().toString();
+                if (!validFormat(a)) {
+                    message.setText(L10n.t("Use 4 to 8 digits."));
+                    return;
+                }
+                if (!a.equals(b)) {
+                    message.setText(L10n.t("The PINs don't match."));
+                    again.setText("");
+                    return;
+                }
+                if (!set(a)) {
+                    message.setText(L10n.t("Could not save the PIN."));
+                    return;
+                }
+                finished[0] = true;
+                first.setText("");
+                again.setText("");
+                dialog.dismiss();
+                done.accept(true);
+            });
+            dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setOnClickListener(v -> {
+                finished[0] = true;
+                dialog.dismiss();
+                done.accept(false);
+            });
+        });
+        dialog.show();
+    }
+
+    private static AlertDialog.Builder builder(Context context) {
+        return new AlertDialog.Builder(context, Utils.isDarkModeEnabled()
+                ? android.R.style.Theme_DeviceDefault_Dialog_Alert
+                : android.R.style.Theme_DeviceDefault_Light_Dialog_Alert);
+    }
+
+    /** The window can't be captured or shown in the recent apps picture while the digits are typed. */
+    private static void secure(AlertDialog dialog) {
+        dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+    }
+
+    /** A masked number field: no autofill, at most 8 digits. */
+    private static EditText digitsField(Context context, String hint, String tag) {
+        EditText field = new EditText(context);
+        field.setTag(tag);
+        field.setHint(hint);
+        field.setSingleLine(true);
+        field.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(MAX_DIGITS)});
+        field.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
+        field.setContentDescription(hint);
+        return field;
+    }
+
+    private static TextView message(Context context) {
+        TextView message = new TextView(context);
+        message.setTag(MESSAGE_TAG);
+        message.setTextSize(14);
+        message.setTextColor(Utils.isDarkModeEnabled() ? Color.rgb(255, 180, 171) : Color.rgb(179, 38, 30));
+        message.setMinHeight(Math.round(24 * context.getResources().getDisplayMetrics().density));
+        return message;
+    }
+
+    private static LinearLayout body(Context context, TextView message, EditText field) {
+        int pad = Math.round(20 * context.getResources().getDisplayMetrics().density);
+        LinearLayout body = new LinearLayout(context);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setPadding(pad, pad / 2, pad, 0);
+        body.addView(message, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        body.addView(field, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        return body;
+    }
+
+    /** Back to how a fresh start finds it. */
+    static void resetForTests() {
+        clock = System::currentTimeMillis;
+        phoneAsker = MessagesLock::askPhone;
+    }
+}

@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Lock your messages:** New choice under Lock your messages, Unlock with. Pick HushGram PIN and a 4 to 8 digit PIN you set unlocks your messages, Lock all of Instagram, Locked chats and Hidden chats in place of your phone's lock, for when other people know your screen lock. The PIN stays on your phone and isn't in a backup. Five wrong tries in a row make it wait 30 seconds, and Forgot PIN uses your phone's lock and lets you set a new one. Phone lock stays the default and works as before. Asked for in #134.
+
 * **Instagram - Clean up Reels:** New switch under Reels, Hide the Save button on reels, off by default. It takes the Save button, and the count under it, out of the column of buttons beside a reel, and the other buttons close up with no gap. It works on the Reels tab and on reels you open from Explore or a profile. Posts in your feed keep their Save button.
 
 * **Instagram - Download any video:** New switch under Downloads, Hold to download, off by default. Hold two fingers still on a feed post's picture or video, or on a reel, for a second and it saves what's under them through the same Download the menu has. You can pick three fingers and half a second or a second and a half instead. Instagram's one-finger long press stays as it was. It needs Download feed videos or Download feed photos on, and Download on reels for reels.

@@ -939,3 +939,21 @@ Hide the top bar on the Reels tab	Ocultar la barra superior de la pestaña Reels
 Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	Quita la fila de arriba de la pestaña Reels, con el título Reels, el botón de la cámara y todo lo demás que Instagram ponga ahí. Los reels que abres desde un perfil, una publicación o un chat la conservan. La cámara se sigue abriendo desde Inicio.
 Hide the Save button on reels	Ocultar el botón Guardar en los reels
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Quita el botón Guardar de la columna de botones junto a un reel, y el número que va debajo. Las publicaciones de tu feed conservan el suyo.
+Unlock with	Desbloquear con
+Phone lock	Bloqueo del teléfono
+HushGram PIN	PIN de HushGram
+A PIN you set here unlocks your messages, in place of your screen lock. Forgot PIN falls back to your screen lock.	Un PIN que pongas aquí desbloquea tus mensajes en lugar del bloqueo de pantalla. Si olvidas el PIN, se usa el bloqueo de pantalla.
+Your fingerprint, face or screen lock unlocks your messages.	La huella, la cara o el bloqueo de pantalla de tu teléfono desbloquea tus mensajes.
+Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	Pon o cambia el PIN de 4 a 8 dígitos. Se queda en este teléfono y no va en una copia de seguridad.
+PIN saved.	PIN guardado.
+PIN	PIN
+Enter your PIN	Escribe tu PIN
+Forgot PIN?	¿Olvidaste el PIN?
+Wrong PIN. Try again.	PIN incorrecto. Inténtalo otra vez.
+Too many tries. Wait %1$d seconds.	Demasiados intentos. Espera %1$d segundos.
+New PIN	PIN nuevo
+Confirm PIN	Confirma el PIN
+Set a PIN	Pon un PIN
+Use 4 to 8 digits.	Usa de 4 a 8 dígitos.
+The PINs don't match.	Los PIN no coinciden.
+Could not save the PIN.	No se pudo guardar el PIN.

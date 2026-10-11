@@ -125,7 +125,7 @@ public final class MessagesLock {
         void ask(Activity activity, Runnable confirmed, Runnable notConfirmed);
     }
 
-    static volatile Asker asker = MessagesLock::askPhone;
+    static volatile Asker asker = MessagesLock::askConfigured;
     /** View ids by name, for tests whose app has none of Instagram's. */
     static volatile Map<String, Integer> idsForTests;
 
@@ -900,6 +900,22 @@ public final class MessagesLock {
     }
 
     /**
+     * The one place every lock path asks through: the HushGram PIN while Unlock with says PIN and a
+     * PIN is set, else the phone's lock, exactly as before there was a choice.
+     */
+    private static void askConfigured(Activity activity, Runnable confirmed, Runnable notConfirmed) {
+        if (PinLock.active()) {
+            PinLock.ask(activity, confirmed, notConfirmed);
+            return;
+        }
+        askPhone(activity, confirmed, notConfirmed);
+    }
+
+    static Asker configuredAskerForTests() {
+        return MessagesLock::askConfigured;
+    }
+
+    /**
      * Android 11 and up ask in Instagram's own window, with the fingerprint or face and the PIN,
      * pattern or password as the fallback. Android 9 and 10 open the phone's own lock screen check
      * and read its answer through a small headless fragment: Android 10's prompt in the app's window
@@ -907,7 +923,7 @@ public final class MessagesLock {
      * can't at all. An ask that fails for any reason but your cancel goes to the phone's own check,
      * so there's always a way in.
      */
-    private static void askPhone(Activity activity, Runnable confirmed, Runnable notConfirmed) {
+    static void askPhone(Activity activity, Runnable confirmed, Runnable notConfirmed) {
         KeyguardManager keyguard = activity.getSystemService(KeyguardManager.class);
         if (keyguard == null || !keyguard.isDeviceSecure()) {
             HookStatus.counted(FamilyNames.MESSAGES_LOCK, NO_PHONE_LOCK);
@@ -1058,7 +1074,8 @@ public final class MessagesLock {
         unfollow();
         anchors.clear();
         secured.clear();
-        asker = MessagesLock::askPhone;
+        asker = MessagesLock::askConfigured;
+        PinLock.resetForTests();
         idsForTests = null;
         idleLookedAt = Long.MIN_VALUE / 2;
         ChatLocks.resetForTests();

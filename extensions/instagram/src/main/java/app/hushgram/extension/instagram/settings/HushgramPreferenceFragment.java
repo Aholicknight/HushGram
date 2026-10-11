@@ -77,6 +77,8 @@ import app.hushgram.extension.instagram.direct.ChatLocks;
 import app.hushgram.extension.instagram.direct.HiddenChats;
 import app.hushgram.extension.instagram.direct.LockDelay;
 import app.hushgram.extension.instagram.direct.MessagesLock;
+import app.hushgram.extension.instagram.direct.PinLock;
+import app.hushgram.extension.instagram.direct.UnlockWith;
 import app.hushgram.extension.instagram.download.DownloadQuality;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
@@ -148,6 +150,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String LOCKED_CHATS_ROW = "hushgram_locked_chats_row";
     /** The row that lists the chats hidden one at a time. */
     static final String HIDDEN_CHATS_ROW = "hushgram_hidden_chats_row";
+    /** The row that sets or changes the HushGram PIN. */
+    static final String CHANGE_PIN_ROW = "hushgram_change_pin_row";
     static final String HIDDEN_ACCOUNTS_ROW = "hushgram_hidden_accounts_row";
     private static final String SCREEN_KEY = "hushgram_settings_root";
     /** The keys of the rows that open each category's page, numbered in the page's order. */
@@ -682,6 +686,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("All of Instagram stays covered until your fingerprint, face or screen lock says it's "
                                 + "you, your messages too.")));
                 messages.addPreference(lockDelayRow(context));
+                messages.addPreference(unlockWithRow(context));
+                messages.addPreference(changePinRow(context));
                 messages.addPreference(lockedChatsRow(context));
                 messages.addPreference(hiddenChatsRow(context));
             }
@@ -1527,7 +1533,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
-                            || HIDDEN_CHATS_ROW.equals(key));
+                            || HIDDEN_CHATS_ROW.equals(key) || Settings.UNLOCK_WITH.key.equals(key)
+                            || CHANGE_PIN_ROW.equals(key));
                     belongs |= family == PatchFamily.RESUME_LONG_VIDEOS && row == clearPositions;
                     belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.STORY_DOWNLOAD
                             || family == PatchFamily.VIDEO_DOWNLOAD || family == PatchFamily.PROFILE_PICTURE
@@ -3026,6 +3033,61 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /**
+     * What unlocks the messages: the phone's lock or a HushGram PIN. Choosing the PIN asks for one
+     * first when none is set, and a change while the messages are locked asks the current lock, so
+     * the choice can't be used to get around it.
+     */
+    static UnlockWithRow unlockWithRow(Context context) {
+        UnlockWithRow row = new UnlockWithRow(context);
+        row.setKey(Settings.UNLOCK_WITH.key);
+        row.setTitle(L10n.t("Unlock with"));
+        row.setDialogTitle(L10n.t("Unlock with"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("HushGram PIN")});
+        row.setEntryValues(new CharSequence[]{UnlockWith.PHONE_LOCK.name(), UnlockWith.PIN.name()});
+        row.setValue(Settings.UNLOCK_WITH.savedValue().name());
+        row.setOnPreferenceChangeListener((preference, value) -> {
+            Activity activity = activityOf(preference.getContext());
+            if (activity == null) return true;
+            UnlockWith target = UnlockWith.PIN.name().equals(value) ? UnlockWith.PIN : UnlockWith.PHONE_LOCK;
+            UnlockWithRow unlockRow = (UnlockWithRow) preference;
+            Runnable change = () -> {
+                if (target == UnlockWith.PIN && !PinLock.isSet()) {
+                    PinLock.promptNew(activity, saved -> {
+                        if (saved) unlockRow.setValue(target.name());
+                    });
+                } else {
+                    unlockRow.setValue(target.name());
+                }
+            };
+            if (MessagesLock.locked()) MessagesLock.confirmThen(activity, change);
+            else change.run();
+            return false;
+        });
+        return row;
+    }
+
+    /** The row that sets or changes the HushGram PIN; changing it while locked asks the current lock first. */
+    private Row changePinRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(CHANGE_PIN_ROW);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("HushGram PIN"));
+        row.setSummary(L10n.t("Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup."));
+        row.setOnPreferenceClickListener(tapped -> {
+            Activity activity = getActivity();
+            if (activity == null) return true;
+            Runnable prompt = () -> PinLock.promptNew(activity, saved -> {
+                if (saved) Utils.showToastShort(L10n.t("PIN saved."));
+            });
+            if (MessagesLock.locked()) MessagesLock.confirmThen(activity, prompt);
+            else prompt.run();
+            return true;
+        });
+        return row;
+    }
+
     /** What the list calls [delay]. */
     static String lockDelayLabel(LockDelay delay) {
         switch (delay) {
@@ -3999,6 +4061,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StartTabRow) preference).showSummary();
         } else if (preference instanceof LockDelayRow) {
             ((LockDelayRow) preference).showSummary();
+        } else if (preference instanceof UnlockWithRow) {
+            ((UnlockWithRow) preference).showSummary();
         } else if (preference instanceof StoryRingRow) {
             ((StoryRingRow) preference).showSummary();
         } else if (preference instanceof LikeAnimationRow) {
@@ -4025,6 +4089,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StartTabRow) listPreference).showSummary();
         } else if (listPreference instanceof LockDelayRow) {
             ((LockDelayRow) listPreference).showSummary();
+        } else if (listPreference instanceof UnlockWithRow) {
+            ((UnlockWithRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryRingRow) {
             ((StoryRingRow) listPreference).showSummary();
         } else if (listPreference instanceof LikeAnimationRow) {
@@ -4925,6 +4991,39 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             setSummary(delay == LockDelay.RIGHT_AWAY
                     ? L10n.t("Instagram locks as soon as you leave it or the screen turns off.")
                     : L10n.f("Instagram locks once you've been away from it for %1$s.", lockDelayAway(delay)));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /** What unlocks the messages; its summary says what the choice does. */
+    static final class UnlockWithRow extends ListPreference {
+        UnlockWithRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            setSummary(UnlockWith.PIN.name().equals(getValue())
+                    ? L10n.t("A PIN you set here unlocks your messages, in place of your screen lock. Forgot PIN falls back to your screen lock.")
+                    : L10n.t("Your fingerprint, face or screen lock unlocks your messages."));
         }
 
         @Override

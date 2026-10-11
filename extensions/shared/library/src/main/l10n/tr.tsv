@@ -939,3 +939,21 @@ Hide the top bar on the Reels tab	Reels sekmesindeki üst çubuğu gizle
 Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	Reels sekmesinin en üstündeki satırı, Reels başlığı, kamera düğmesi ve Instagram'ın oraya koyduğu diğer her şeyle birlikte kaldırır. Bir profilden, gönderiden veya sohbetten açtığın reels'ler bu satırı korur. Kamera Ana sayfadan açılmaya devam eder.
 Hide the Save button on reels	Reels'te Kaydet düğmesini gizle
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Kaydet düğmesini reel'in yanındaki düğme sütunundan ve altındaki sayıyı kaldırır. Akışındaki gönderiler kendi düğmesini korur.
+Unlock with	Kilidi şununla aç
+Phone lock	Telefon kilidi
+HushGram PIN	HushGram PIN'i
+A PIN you set here unlocks your messages, in place of your screen lock. Forgot PIN falls back to your screen lock.	Burada belirlediğin PIN, ekran kilidi yerine mesajlarının kilidini açar. PIN'i unutursan ekran kilidi devreye girer.
+Your fingerprint, face or screen lock unlocks your messages.	Telefonunun parmak izi, yüz veya ekran kilidi mesajlarının kilidini açar.
+Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	4 ile 8 haneli PIN'i belirle veya değiştir. Bu telefonda kalır, yedeğe girmez.
+PIN saved.	PIN kaydedildi.
+PIN	PIN
+Enter your PIN	PIN'ini gir
+Forgot PIN?	PIN'i unuttun mu?
+Wrong PIN. Try again.	PIN yanlış. Tekrar dene.
+Too many tries. Wait %1$d seconds.	Çok fazla deneme. %1$d saniye bekle.
+New PIN	Yeni PIN
+Confirm PIN	PIN'i onayla
+Set a PIN	PIN belirle
+Use 4 to 8 digits.	4 ile 8 rakam kullan.
+The PINs don't match.	PIN'ler eşleşmiyor.
+Could not save the PIN.	PIN kaydedilemedi.
