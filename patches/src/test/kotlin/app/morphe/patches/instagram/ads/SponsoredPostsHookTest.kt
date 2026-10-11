@@ -44,8 +44,10 @@ import org.junit.Test
  * Hide ads' sponsored posts (S25, 450): the Older Posts page came with ads in its own response,
  * ordinary post items whose post carries Instagram's ad details, which the guarded insert never sees.
  * The feed item parse helper's answer goes through Ads.feedItem, and Ads.sponsored reads the item's
- * post field and the post's ad details getter. Checked on stand-ins, on each declared build and on
- * every other build of the version, with the insert's guard written beside it.
+ * post field and the post's ad details getter. The same filter takes out the item kinds Instagram
+ * gives only its rows of ads ([AD_UNITS]), which the patch checks the item's kind enum names. Checked
+ * on stand-ins, on each declared build and on every other build of the version, with the insert's
+ * guard written beside it.
  */
 class SponsoredPostsHookTest {
     @Test
@@ -94,6 +96,23 @@ class SponsoredPostsHookTest {
     fun aGetterTheExtensionCantCallFailsThePatch() {
         refuses("isn't public") { PatchContexts.of(feed() + media(Getter("A3C", public = false)) + ExtensionDex.classDef(ADS)).findSponsoredPosts() }
         refuses("isn't public") { PatchContexts.of(feed() + media(Getter("A3C"), public = false) + ExtensionDex.classDef(ADS)).findSponsoredPosts() }
+    }
+
+    /**
+     * The extension knows an ad pivot by its kind's name. An item whose kind enum doesn't name both
+     * pivots, or two enums naming them, stops the patch before anything is written.
+     */
+    @Test
+    fun anItemWhoseKindsDontNameBothAdPivotsFailsThePatch() {
+        for (kinds in listOf(listOf("MEDIA", "AD", "CLIPS_NETEGO"), listOf("MEDIA", "AD", "CLIPS_NETEGO") + AD_UNITS.first())) {
+            val context = PatchContexts.of(FeedItemStandIns.classes(kinds, postWrites = listOf("A0u")) + media(Getter("A3C")) + ExtensionDex.classDef(ADS))
+            refuses("whose type names all of $AD_UNITS") { context.findSponsoredPosts() }
+        }
+        val twice = PatchContexts.of(
+            FeedItemStandIns.classes(KINDS, fetchNames = listOf("COLD_START") + AD_UNITS, postWrites = listOf("A0u")) + media(Getter("A3C")) +
+                ExtensionDex.classDef(ADS),
+        )
+        refuses("whose type names all of $AD_UNITS") { twice.findSponsoredPosts() }
     }
 
     /** An item keeping its post in two fields can't say which is the post an ad comes in. */
@@ -169,6 +188,14 @@ class SponsoredPostsHookTest {
         val filled = parser.instructions().filter { it.opcode == Opcode.IPUT_OBJECT }.map { it.referenceTo<FieldReference>() }
             .filter { it.definingClass == fixture.itemType && it.type == MEDIA }.map { it.name }
         assertTrue("$label: the parser fills ${field.name} among $filled", field.name in filled)
+
+        // The parser reads both pivots from a page, and one enum the item keeps its kind in names them.
+        for (key in listOf("intent_aware_ad_pivot", "stand_alone_multi_ad_pivot")) assertTrue("$label: the parser reads $key", parser.holds(key))
+        val naming = context.classDefBy(fixture.itemType).fields
+            .filter { !AccessFlags.STATIC.isSet(it.accessFlags) }
+            .mapNotNull { field -> fixture.classes.singleOrNull { it.type == field.type && it.superclass == "Ljava/lang/Enum;" } }
+            .filter { enum -> AD_UNITS.all { unit -> enum.methods.any { it.name == "<clinit>" && it.holds(unit) } } }
+        assertEquals("$label: enums naming the pivots", 1, naming.size)
         val media = context.mutableClassDefBy(MEDIA)
         val read = media.methods.single { it.name == getter.name && it.parameterTypes.isEmpty() && it.returnType == getter.returnType }
         assertTrue("$label: Media is public", AccessFlags.PUBLIC.isSet(media.accessFlags))
@@ -240,7 +267,7 @@ class SponsoredPostsHookTest {
     private companion object {
         const val INJECTOR = "Lfixture/AdInjector;"
         const val DETAILS = "Lfixture/AdDetails;"
-        val KINDS = listOf("MEDIA", "AD", "CLIPS_NETEGO")
+        val KINDS = listOf("MEDIA", "AD", "CLIPS_NETEGO") + AD_UNITS
         val CONSTS = setOf(Opcode.CONST, Opcode.CONST_16, Opcode.CONST_HIGH16, Opcode.CONST_4)
 
         fun feed(): List<ClassDef> = FeedItemStandIns.classes(KINDS, postWrites = listOf("A0u"))
