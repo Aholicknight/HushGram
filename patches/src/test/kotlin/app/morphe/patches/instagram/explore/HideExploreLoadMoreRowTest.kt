@@ -32,6 +32,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class HideExploreLoadMoreRowTest {
     private val state = "Lfixture/State;"
@@ -116,55 +117,65 @@ class HideExploreLoadMoreRowTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val first = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.type == LOAD_MORE_BUTTON || classDef.methods.any { it.holds(EXPLORE_FRAGMENT_TAG) }) {
-                            first += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val wanted = first.flatMap { classDef ->
-                    classDef.methods.flatMap { method -> method.implementation?.instructions?.toList().orEmpty().mapNotNull {
-                        ((it as? ReferenceInstruction)?.reference as? MethodReference)?.definingClass
-                    } }
-                }.toSet()
-                val classes = first.toMutableList()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) if (classDef.type in wanted) classes += ImmutableClassDef.of(classDef)
-                }
-                val context = PatchContexts.of(classes.distinctBy { it.type })
-
-                val row = context.findLoadMoreRow()
-                val found = context.findExploreAdapter(context.findExploreFragment(), row)
-                context.hideLoadMoreRow(row, found)
-
-                val noted = context.classDefBy(found.fragment).methods.flatMap { method ->
-                    val code = method.implementation?.instructions?.toList().orEmpty()
-                    code.indices.filter { code[it].calls(TRACK_STATE) }.map { code to it }
-                }
-                assertEquals("${bundle.name}: ${found.fragment} notes its row state once", 1, noted.size)
-                val (create, at) = noted.single()
-                val construct = create[at - 1]
-                assertTrue("${bundle.name}: right after the adapter's built", construct.calls("${found.type}-><init>", prefix = true))
-                val registers = when (construct) {
-                    is RegisterRangeInstruction -> construct.startRegister until construct.startRegister + construct.registerCount
-                    else -> (construct as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF, it.registerG) }
-                }
-                assertTrue("${bundle.name}: an argument of the adapter", (create[at] as RegisterRangeInstruction).startRegister in registers)
-
-                val asked = context.classDefBy(LOAD_MORE_BUTTON).methods.flatMap { method ->
-                    val code = method.implementation?.instructions?.toList().orEmpty()
-                    code.indices.filter { code[it].calls(LOAD_MORE_ROW) }.map { code to it }
-                }
-                assertEquals("${bundle.name}: the button asks the extension once", 1, asked.size)
-                val (code, hook) = asked.single()
-                assertTrue("${bundle.name}: after the row check", code[hook - 2].calls(row.check.toString()))
-                assertEquals(Opcode.MOVE_RESULT, code[hook + 1].opcode)
+                builds(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildHidesTheRowToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val first = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.type == LOAD_MORE_BUTTON || classDef.methods.any { it.holds(EXPLORE_FRAGMENT_TAG) }) {
+                    first += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val wanted = first.flatMap { classDef ->
+            classDef.methods.flatMap { method -> method.implementation?.instructions?.toList().orEmpty().mapNotNull {
+                ((it as? ReferenceInstruction)?.reference as? MethodReference)?.definingClass
+            } }
+        }.toSet()
+        val classes = first.toMutableList()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) if (classDef.type in wanted) classes += ImmutableClassDef.of(classDef)
+        }
+        val context = PatchContexts.of(classes.distinctBy { it.type })
+
+        val row = context.findLoadMoreRow()
+        val found = context.findExploreAdapter(context.findExploreFragment(), row)
+        context.hideLoadMoreRow(row, found)
+
+        val noted = context.classDefBy(found.fragment).methods.flatMap { method ->
+            val code = method.implementation?.instructions?.toList().orEmpty()
+            code.indices.filter { code[it].calls(TRACK_STATE) }.map { code to it }
+        }
+        assertEquals("$label: ${found.fragment} notes its row state once", 1, noted.size)
+        val (create, at) = noted.single()
+        val construct = create[at - 1]
+        assertTrue("$label: right after the adapter's built", construct.calls("${found.type}-><init>", prefix = true))
+        val registers = when (construct) {
+            is RegisterRangeInstruction -> construct.startRegister until construct.startRegister + construct.registerCount
+            else -> (construct as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF, it.registerG) }
+        }
+        assertTrue("$label: an argument of the adapter", (create[at] as RegisterRangeInstruction).startRegister in registers)
+
+        val asked = context.classDefBy(LOAD_MORE_BUTTON).methods.flatMap { method ->
+            val code = method.implementation?.instructions?.toList().orEmpty()
+            code.indices.filter { code[it].calls(LOAD_MORE_ROW) }.map { code to it }
+        }
+        assertEquals("$label: the button asks the extension once", 1, asked.size)
+        val (code, hook) = asked.single()
+        assertTrue("$label: after the row check", code[hook - 2].calls(row.check.toString()))
+        assertEquals(Opcode.MOVE_RESULT, code[hook + 1].opcode)
     }
 
     private fun Instruction.calls(reference: String, prefix: Boolean = false) =

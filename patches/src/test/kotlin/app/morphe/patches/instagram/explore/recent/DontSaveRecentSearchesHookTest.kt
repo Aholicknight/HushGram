@@ -32,6 +32,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /** Don't save recent searches asks first in the recent searches cache's add, and nowhere else in the cache. */
 class DontSaveRecentSearchesHookTest {
@@ -100,31 +101,41 @@ class DontSaveRecentSearchesHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (dex.stringSection.none { it == RECENT_CACHE || it == REGISTER_RECENT }) return@forEach
-                    for (classDef in dex.classes) {
-                        val holds = classDef.methods.any { method ->
-                            method.code().any { (it as? ReferenceInstruction)?.reference.let { ref ->
-                                ref is StringReference && (ref.string == RECENT_CACHE || ref.string == REGISTER_RECENT)
-                            } }
-                        }
-                        if (holds) classes += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val context = PatchContexts.of(classes)
-                val add = context.findRecentAdd()
-                val register = context.mutableClassDefBy(
-                    classes.single { c -> c.methods.any { m -> m.code().any { (it as? ReferenceInstruction)?.reference.let { ref -> ref is StringReference && ref.string == REGISTER_RECENT } } } }.type,
-                ).methods.single { m -> m.code().any { (it as? ReferenceInstruction)?.reference.let { ref -> ref is StringReference && ref.string == REGISTER_RECENT } } }
-                add.askFirst()
-                register.askFirst()
-                assertAsksFirst(add)
-                assertAsksFirst(register)
+                builds(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildAsksFirstInBothToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val classes = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.stringSection.none { it == RECENT_CACHE || it == REGISTER_RECENT }) return@forEach
+            for (classDef in dex.classes) {
+                val holds = classDef.methods.any { method ->
+                    method.code().any { (it as? ReferenceInstruction)?.reference.let { ref ->
+                        ref is StringReference && (ref.string == RECENT_CACHE || ref.string == REGISTER_RECENT)
+                    } }
+                }
+                if (holds) classes += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(classes)
+        val add = context.findRecentAdd()
+        val register = context.mutableClassDefBy(
+            classes.single { c -> c.methods.any { m -> m.code().any { (it as? ReferenceInstruction)?.reference.let { ref -> ref is StringReference && ref.string == REGISTER_RECENT } } } }.type,
+        ).methods.single { m -> m.code().any { (it as? ReferenceInstruction)?.reference.let { ref -> ref is StringReference && ref.string == REGISTER_RECENT } } }
+        add.askFirst()
+        register.askFirst()
+        assertAsksFirst(add)
+        assertAsksFirst(register)
     }
 
     private fun assertAsksFirst(method: Method) {
