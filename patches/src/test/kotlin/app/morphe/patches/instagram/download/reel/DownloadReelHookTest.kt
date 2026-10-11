@@ -49,6 +49,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class DownloadReelHookTest {
     private val helper = "Lfixture/ClipsHelper;"
@@ -413,6 +414,23 @@ class DownloadReelHookTest {
     @Test
     fun eachDeclaredBuildOffersDownloadOnEveryReel() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                builds(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildOffersDownloadOnEveryReelToo() {
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    private fun builds(bundle: File, label: String) {
         val types = setOf(
             MEDIA, USER, VIDEO_VERSION, PANDO_VIDEO_VERSION, IMAGE_INFO, PANDO_IMAGE_INFO, IMAGE_URL, OPTION,
             MUSIC_INFO, PANDO_MUSIC_INFO, TRACK_DATA, PANDO_TRACK_DATA, MUSIC_CONSUMPTION, PANDO_MUSIC_CONSUMPTION,
@@ -421,99 +439,92 @@ class DownloadReelHookTest {
         // The types a post keeps its music in: interfaces whose getter answers the music.
         fun holdsMusic(classDef: ClassDef) = AccessFlags.INTERFACE.isSet(classDef.accessFlags) &&
             classDef.methods.any { it.parameterTypes.isEmpty() && it.returnType == MUSIC_INFO }
-        val checked = mutableSetOf<String>()
-        for (version in versions) {
-            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(INSTAGRAM_MEDIA))
-                FixtureDex.forEach(bundle) { dex ->
-                    val marked = dex.stringSection.any { it.startsWith("android_purge_") && PURGE_MARKER.find(it)?.groupValues?.get(1) in markers }
-                    val loads = dex.fieldSection.any { it.toString() == DOWNLOAD }
-                    if (!marked && !loads && dex.classes.none { it.type in types || holdsMusic(it) }) return@forEach
-                    for (classDef in dex.classes) {
-                        val wanted = classDef.type in types || holdsMusic(classDef) || classDef.methods.any { method ->
-                            method.markers().any { it in markers } || method.code().any { it.referenceText() == DOWNLOAD }
-                        }
-                        if (wanted) classes += ImmutableClassDef.of(classDef)
-                    }
+        val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(INSTAGRAM_MEDIA))
+        FixtureDex.forEach(bundle) { dex ->
+            val marked = dex.stringSection.any { it.startsWith("android_purge_") && PURGE_MARKER.find(it)?.groupValues?.get(1) in markers }
+            val loads = dex.fieldSection.any { it.toString() == DOWNLOAD }
+            if (!marked && !loads && dex.classes.none { it.type in types || holdsMusic(it) }) return@forEach
+            for (classDef in dex.classes) {
+                val wanted = classDef.type in types || holdsMusic(classDef) || classDef.methods.any { method ->
+                    method.markers().any { it in markers } || method.code().any { it.referenceText() == DOWNLOAD }
                 }
-                val context = PatchContexts.of(classes)
-
-                context.offerDownloadOnEveryReel()
-
-                val all = classes.flatMap { it.methods }
-                val handler = all.single { HANDLER_MARKER in it.markers() }
-                val menu = context.method(handler.definingClass, handler.name).code()
-                assertEquals("${bundle.name}: the handler's calls", listOf(OURS, SAVE),
-                    menu.filter { it.opcode == Opcode.INVOKE_STATIC }.take(2).map { it.referenceText() })
-                val adder = all.single { ROW_MARKER in it.markers() }
-                val rows = context.method(adder.definingClass, adder.name, adder.parameterTypes.map(Any::toString)).code()
-                assertEquals("${bundle.name}: the row adder's first call", ROWS,
-                    rows.first { it.opcode == Opcode.INVOKE_STATIC_RANGE }.referenceText())
-                val eligible = all.single { ELIGIBLE_MARKER in it.markers() }
-                val check = "${eligible.definingClass}->${eligible.name}(${eligible.parameterTypes.joinToString("")})${eligible.returnType}"
-                val builders = all.filter { method ->
-                    val code = method.code()
-                    code.any { it.referenceText() == DOWNLOAD } && code.any { it.referenceText() == check } &&
-                        (method.definingClass == handler.definingClass ||
-                            code.any { it.referenceText()?.startsWith("${handler.definingClass}->") == true })
-                }
-                assertTrue("${bundle.name}: no reel menu builder", builders.isNotEmpty())
-                var flags = 0
-                var toRows = 0
-                builders.forEach { builder ->
-                    val code = context.method(builder.definingClass, builder.name, builder.parameterTypes.map(Any::toString)).code()
-                    val where = "${bundle.name}: ${builder.definingClass}->${builder.name}"
-                    val rows = code.any { it.referenceText() == OFFER_ROW }
-                    val (offer, withhold) = if (rows) OFFER_ROW to WITHHOLD_ROW else OFFER to WITHHOLD
-                    assertEquals("$where offers", 1, code.count { it.referenceText() == offer })
-                    assertTrue("$where mixes the two kinds of filter",
-                        code.none { it.referenceText() in setOf(OFFER, WITHHOLD, OFFER_ROW, WITHHOLD_ROW) - setOf(offer, withhold) })
-                    val withheld = code.count { it.referenceText() == withhold }
-                    assertTrue("$where withholds $withheld times", withheld <= 1)
-                    flags += withheld
-                    if (rows) {
-                        toRows++
-                        // The player row's filter sits right after the check's move-result and is
-                        // handed the Media register the check was called with, so a reel with no
-                        // video file for the player is never let in, nor the divider after it.
-                        val at = code.indexOfFirst { it.referenceText() == OFFER_ROW }
-                        val call = code[at - 2]
-                        assertEquals("$where: the check before the filter", check, call.referenceText())
-                        val hook = code[at] as Instruction35c
-                        val (answer, reel) = hook.registerC to hook.registerD
-                        assertEquals("$where: the filter's arguments", 2, hook.registerCount)
-                        assertEquals("$where: the check's answer", (code[at - 1] as OneRegisterInstruction).registerA, answer)
-                        val types = eligible.parameterTypes.map(Any::toString)
-                        val index = (if (AccessFlags.STATIC.isSet(eligible.accessFlags)) 0 else 1) + types.indexOf(MEDIA)
-                        val handed = when (call) {
-                            is RegisterRangeInstruction -> call.startRegister + index
-                            else -> (call as Instruction35c).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF, it.registerG)[index] }
-                        }
-                        assertEquals("$where: the reel handed to the filter", handed, reel)
-                    }
-                }
-                assertTrue("${bundle.name}: no builder read the flag", flags > 0)
-                assertTrue("${bundle.name}: no builder hands Download to the adder of one row", toRows > 0)
-                val reduced = all.single { REDUCED_MARKER in it.markers() }
-                val list = context.method(reduced.definingClass, reduced.name, reduced.parameterTypes.map(Any::toString)).code()
-                val returns = list.indices.filter { list[it].opcode == Opcode.RETURN_OBJECT }
-                assertTrue("${bundle.name}: the reduced menu doesn't return", returns.isNotEmpty())
-                returns.forEach { at ->
-                    assertEquals("${bundle.name}: before the reduced menu's return at $at", listOf(DOWNLOAD, ADD_TO),
-                        listOf(list[at - 2].referenceText(), list[at - 1].referenceText()))
-                }
-                // Opcode.name is the smali name, "if-eqz" or "goto/16".
-                list.indices.filter { index -> list[index] is OffsetInstruction && list[index].opcode.name.let { it.startsWith("if-") || it.startsWith("goto") } }
-                    .forEach { jump -> assertTrue("${bundle.name}: the jump at $jump skips addTo()", list.target(jump) !in returns) }
-                val bridges = context.classDefBy(INSTAGRAM_MEDIA).methods.filter { it.name in reelBridges }
-                assertEquals("${bundle.name}: the reel's bridges", reelBridges.size, bridges.size)
-                bridges.forEach { assertEquals("${bundle.name}: ${it.name}", Opcode.CHECK_CAST, it.code().first().opcode) }
-                assertEquals("${bundle.name}: reelOption", DOWNLOAD, context.method(INSTAGRAM_MEDIA, "reelOption").code().first().referenceText())
-                assertTrue("${bundle.name}: addReelRow", context.method(INSTAGRAM_MEDIA, "addReelRow").code().any { it.opcode == Opcode.INVOKE_VIRTUAL_RANGE })
-                checked += version
+                if (wanted) classes += ImmutableClassDef.of(classDef)
             }
         }
-        assertEquals("a declared build has no fixture", versions, checked)
+        val context = PatchContexts.of(classes)
+
+        context.offerDownloadOnEveryReel()
+
+        val all = classes.flatMap { it.methods }
+        val handler = all.single { HANDLER_MARKER in it.markers() }
+        val menu = context.method(handler.definingClass, handler.name).code()
+        assertEquals("$label: the handler's calls", listOf(OURS, SAVE),
+            menu.filter { it.opcode == Opcode.INVOKE_STATIC }.take(2).map { it.referenceText() })
+        val adder = all.single { ROW_MARKER in it.markers() }
+        val rows = context.method(adder.definingClass, adder.name, adder.parameterTypes.map(Any::toString)).code()
+        assertEquals("$label: the row adder's first call", ROWS,
+            rows.first { it.opcode == Opcode.INVOKE_STATIC_RANGE }.referenceText())
+        val eligible = all.single { ELIGIBLE_MARKER in it.markers() }
+        val check = "${eligible.definingClass}->${eligible.name}(${eligible.parameterTypes.joinToString("")})${eligible.returnType}"
+        val builders = all.filter { method ->
+            val code = method.code()
+            code.any { it.referenceText() == DOWNLOAD } && code.any { it.referenceText() == check } &&
+                (method.definingClass == handler.definingClass ||
+                    code.any { it.referenceText()?.startsWith("${handler.definingClass}->") == true })
+        }
+        assertTrue("$label: no reel menu builder", builders.isNotEmpty())
+        var flags = 0
+        var toRows = 0
+        builders.forEach { builder ->
+            val code = context.method(builder.definingClass, builder.name, builder.parameterTypes.map(Any::toString)).code()
+            val where = "$label: ${builder.definingClass}->${builder.name}"
+            val rows = code.any { it.referenceText() == OFFER_ROW }
+            val (offer, withhold) = if (rows) OFFER_ROW to WITHHOLD_ROW else OFFER to WITHHOLD
+            assertEquals("$where offers", 1, code.count { it.referenceText() == offer })
+            assertTrue("$where mixes the two kinds of filter",
+                code.none { it.referenceText() in setOf(OFFER, WITHHOLD, OFFER_ROW, WITHHOLD_ROW) - setOf(offer, withhold) })
+            val withheld = code.count { it.referenceText() == withhold }
+            assertTrue("$where withholds $withheld times", withheld <= 1)
+            flags += withheld
+            if (rows) {
+                toRows++
+                // The player row's filter sits right after the check's move-result and is
+                // handed the Media register the check was called with, so a reel with no
+                // video file for the player is never let in, nor the divider after it.
+                val at = code.indexOfFirst { it.referenceText() == OFFER_ROW }
+                val call = code[at - 2]
+                assertEquals("$where: the check before the filter", check, call.referenceText())
+                val hook = code[at] as Instruction35c
+                val (answer, reel) = hook.registerC to hook.registerD
+                assertEquals("$where: the filter's arguments", 2, hook.registerCount)
+                assertEquals("$where: the check's answer", (code[at - 1] as OneRegisterInstruction).registerA, answer)
+                val types = eligible.parameterTypes.map(Any::toString)
+                val index = (if (AccessFlags.STATIC.isSet(eligible.accessFlags)) 0 else 1) + types.indexOf(MEDIA)
+                val handed = when (call) {
+                    is RegisterRangeInstruction -> call.startRegister + index
+                    else -> (call as Instruction35c).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF, it.registerG)[index] }
+                }
+                assertEquals("$where: the reel handed to the filter", handed, reel)
+            }
+        }
+        assertTrue("$label: no builder read the flag", flags > 0)
+        assertTrue("$label: no builder hands Download to the adder of one row", toRows > 0)
+        val reduced = all.single { REDUCED_MARKER in it.markers() }
+        val list = context.method(reduced.definingClass, reduced.name, reduced.parameterTypes.map(Any::toString)).code()
+        val returns = list.indices.filter { list[it].opcode == Opcode.RETURN_OBJECT }
+        assertTrue("$label: the reduced menu doesn't return", returns.isNotEmpty())
+        returns.forEach { at ->
+            assertEquals("$label: before the reduced menu's return at $at", listOf(DOWNLOAD, ADD_TO),
+                listOf(list[at - 2].referenceText(), list[at - 1].referenceText()))
+        }
+        // Opcode.name is the smali name, "if-eqz" or "goto/16".
+        list.indices.filter { index -> list[index] is OffsetInstruction && list[index].opcode.name.let { it.startsWith("if-") || it.startsWith("goto") } }
+            .forEach { jump -> assertTrue("$label: the jump at $jump skips addTo()", list.target(jump) !in returns) }
+        val bridges = context.classDefBy(INSTAGRAM_MEDIA).methods.filter { it.name in reelBridges }
+        assertEquals("$label: the reel's bridges", reelBridges.size, bridges.size)
+        bridges.forEach { assertEquals("$label: ${it.name}", Opcode.CHECK_CAST, it.code().first().opcode) }
+        assertEquals("$label: reelOption", DOWNLOAD, context.method(INSTAGRAM_MEDIA, "reelOption").code().first().referenceText())
+        assertTrue("$label: addReelRow", context.method(INSTAGRAM_MEDIA, "addReelRow").code().any { it.opcode == Opcode.INVOKE_VIRTUAL_RANGE })
     }
 
     /**
