@@ -195,14 +195,51 @@ final class ScreenColors {
                 frame.setLayoutParams(size);
             }
         }
-        PreferenceGroup parent = preference.getParent();
-        boolean grouped = parent instanceof PreferenceCategory;
-        boolean first = !grouped || parent.getPreference(0) == preference;
-        boolean last = !grouped || parent.getPreference(parent.getPreferenceCount() - 1) == preference;
-        paintSurface(row, preference, first, last);
+        paintSurface(row, preference, opensCard(preference), closesCard(preference));
     }
 
-    /** Group boundaries follow the visible rows, including a filtered search result. */
+    /**
+     * Whether [preference] is the top row of the card it sits in. A section's rows share one card.
+     * On the page itself, the rows that open each category's page share one too, and Support
+     * HushGram joins the About row it follows; every other row there is a card of its own.
+     */
+    static boolean opensCard(Preference preference) {
+        PreferenceGroup parent = preference.getParent();
+        if (parent == null) return true;
+        int at = indexIn(parent, preference);
+        if (at <= 0) return true;
+        return !(parent instanceof PreferenceCategory) && !sharesCard(parent.getPreference(at - 1), preference);
+    }
+
+    /** Whether [preference] is the bottom row of its card. */
+    static boolean closesCard(Preference preference) {
+        PreferenceGroup parent = preference.getParent();
+        if (parent == null) return true;
+        int at = indexIn(parent, preference);
+        if (at < 0 || at == parent.getPreferenceCount() - 1) return true;
+        return !(parent instanceof PreferenceCategory) && !sharesCard(preference, parent.getPreference(at + 1));
+    }
+
+    /** Two neighbours on the page itself that draw as one card: both open a page, or Support follows one. */
+    private static boolean sharesCard(Preference above, Preference below) {
+        return opensPage(above) && (opensPage(below) || HushgramPreferenceFragment.SUPPORT_ROW_KEY.equals(below.getKey()));
+    }
+
+    private static boolean opensPage(Preference preference) {
+        String key = preference.getKey();
+        return key != null && key.startsWith(HushgramPreferenceFragment.CATEGORY_ROW_KEY);
+    }
+
+    /** Where [preference] stands among the rows [group] shows, which it keeps in their order. */
+    private static int indexIn(PreferenceGroup group, Preference preference) {
+        for (int i = 0; i < group.getPreferenceCount(); i++) if (group.getPreference(i) == preference) return i;
+        return -1;
+    }
+
+    /**
+     * Group boundaries follow the visible rows, including a filtered search result. The card's
+     * height is the row's: its text wraps at any font size and the row grows to fit.
+     */
     void paintSurface(View row, Preference preference, boolean first, boolean last) {
         float radius = dp(row, 10);
         GradientDrawable surface = new GradientDrawable();
