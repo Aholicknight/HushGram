@@ -140,10 +140,17 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->track(Landroid/ap
 # before the inbox's list of chats is written to the holder the row factory reads it from (a case
 # of the merged lambda 09kY.accept writing 07HZ.A03 on 450), in the unread badge snapshot after it
 # reads the thread store (00b3.A03), and in that snapshot's folder count after it reads each folder
-# tab's chats (00b3.A01). No rule for them: the lambda case and the folder count hold no string of
-# their own to anchor a rule on, and the snapshot's anchor is a shape, not a string.
-# HiddenChatHookTest proves each hook, and that each anchor is one method, on every Instagram 450
-# fixture, the declared bundles and the other 450 folders, and DexDiff needs a built APK.
+# tab's chats (00b3.A01). The first is handed the holder too, so a chat ticked or unticked in HushGram
+# settings shows at once: its rule picks the lambda by the holder's list field and the lambda's own
+# case field, the one (Object) method touching both, and its call of the holder's starter (07HZ.A01).
+# The extension's redraw bridge, which the patch fills with the subscriber's own write of that list
+# and call of that starter, has to leave the extension before it returns. No rule for the other two:
+# the folder count holds no string of its own to anchor a rule on, and the snapshot's anchor is a
+# shape, not a string. HiddenChatHookTest proves each hook and the bridge, and that each anchor is
+# one method, on every Instagram 450 fixture, the declared bundles and the other 450 folders, and
+# DexDiff needs a built APK.
+once-call Lapp/hushgram/extension/instagram/direct/HiddenChats;->inbox(Ljava/lang/Object;Ljava/util/List;)Ljava/util/List; in instance (Ljava/lang/Object;)V calling static LX/07HZ;->A01(LX/07HZ;)V holding LX/07HZ;->A03:Ljava/util/List; LX/09kY;->$t:I
+first-call Lapp/hushgram/extension/instagram/direct/HiddenChats;->redraw(Ljava/lang/Object;Ljava/util/List;)V outside Lapp/hushgram/extension/
 # They also filter the Messages search in three places: the row builder, the See all reader and the
 # message match builder. No rule here either: HiddenChatHookTest proves those hooks the same way.
 # The recent searches the search lists before you type go through the same filter in the recent

@@ -4,10 +4,12 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -15,6 +17,7 @@ import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * The chats "Lock your messages" hides, one at a time.
@@ -31,6 +34,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * hidden chat is back until HushGram is turned on again; the settings screen still shows what was
  * chosen ({@link #saved}).
  *
+ * <p>A chat ticked or unticked in HushGram settings shows in the inbox as soon as you're back
+ * ({@link #changed}): each inbox that drew its rows is handed Instagram's own list again without the
+ * chats hidden now, and draws them again.
+ *
  * <p>Nothing here throws into Instagram. A list that can't be read hides nothing, and a summary
  * whose id can't be read stays in the inbox.
  */
@@ -42,10 +49,12 @@ public final class HiddenChats {
     static final String LEFT_OUT_SEARCH = "hidden chats left out of search";
     static final String LEFT_OUT_RECENTS = "hidden chats left out of recent searches";
     static final String SILENCED = "hidden chat notifications dropped";
+    static final String REDRAWN = "inbox redrawn after hidden chats changed";
 
     /** Steps a failure is reported under. */
     static final String LIST = "hidden chats";
     static final String FILTER = "inbox filter";
+    static final String REDRAW = "inbox redraw";
     static final String FOLDER_FILTER = "folder count filter";
     static final String BADGE_FILTER = "unread badge filter";
     static final String SEARCH = "inbox search filter";
@@ -66,6 +75,13 @@ public final class HiddenChats {
     /** Reads the thread id of a chat in the inbox search's results. Tests put a fake in. */
     static volatile Reader searchReader = HiddenChats::targetThreadId;
 
+    /** Hands an inbox holder a list and has it draw its rows from it. Tests put a fake in. */
+    interface Redrawer {
+        void redraw(Object holder, List<Object> summaries);
+    }
+
+    static volatile Redrawer redrawer = HiddenChats::redraw;
+
     private HiddenChats() {
     }
 
@@ -81,14 +97,25 @@ public final class HiddenChats {
     // ---------------------------------------------------------------- the inbox
 
     /**
-     * Asked with the list of chats the inbox screen is about to keep and turn into rows, each time
-     * Instagram hands it one: the one read from the phone at start, a fresh page from the server, a
-     * pull to refresh, a switch of folder tab. A list with no hidden chat in it comes back as it is,
-     * and otherwise a copy without the hidden ones does. Instagram's own list is left as it was, so
-     * the inbox's state, its next page and what it saves to the phone still have every chat.
+     * Asked with the inbox's holder and the list of chats it is about to keep and turn into rows,
+     * each time Instagram hands it one: the one read from the phone at start, a fresh page from the
+     * server, a pull to refresh, a switch of folder tab. A list with no hidden chat in it comes back
+     * as it is, and otherwise a copy without the hidden ones does. Instagram's own list is left as it
+     * was, so the inbox's state, its next page and what it saves to the phone still have every chat.
+     * The holder is remembered weakly with Instagram's own list, so a change to the hidden chats can
+     * draw it again ({@link #changed}).
      */
-    public static List<Object> inbox(List<Object> summaries) {
-        return leaveOut(summaries, LEFT_OUT, FILTER);
+    public static List<Object> inbox(Object holder, List<Object> summaries) {
+        try {
+            HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
+            Set<String> hidden = ids();
+            remember(holder, summaries, hidden);
+            if (summaries == null || summaries.isEmpty()) return summaries;
+            return without(summaries, hidden, LEFT_OUT);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, FILTER, t);
+            return summaries;
+        }
     }
 
     /**
@@ -97,23 +124,23 @@ public final class HiddenChats {
      * messages don't count on any tab.
      */
     public static List<Object> folder(List<Object> summaries) {
-        return leaveOut(summaries, LEFT_OUT_FOLDERS, FOLDER_FILTER);
-    }
-
-    private static List<Object> leaveOut(List<Object> summaries, String counted, String step) {
         try {
             HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
             if (summaries == null || summaries.isEmpty()) return summaries;
-            Set<String> hidden = ids();
-            if (hidden.isEmpty()) return summaries;
-            ArrayList<Object> shown = shown(summaries, hidden);
-            if (shown.size() == summaries.size()) return summaries;
-            HookStatus.counted(FamilyNames.MESSAGES_LOCK, counted);
-            return shown;
+            return without(summaries, ids(), LEFT_OUT_FOLDERS);
         } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, step, t);
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, FOLDER_FILTER, t);
             return summaries;
         }
+    }
+
+    /** [summaries] as they are when none is [hidden], and otherwise a copy without those, counted when [counted] isn't null. */
+    private static List<Object> without(List<Object> summaries, Set<String> hidden, String counted) {
+        if (hidden.isEmpty() || summaries.isEmpty()) return summaries;
+        ArrayList<Object> shown = shown(summaries, hidden);
+        if (shown.size() == summaries.size()) return summaries;
+        if (counted != null) HookStatus.counted(FamilyNames.MESSAGES_LOCK, counted);
+        return shown;
     }
 
     /**
@@ -153,6 +180,124 @@ public final class HiddenChats {
         } catch (Throwable t) {
             // One summary that can't be read stays in the inbox; the rest are still filtered.
             return null;
+        }
+    }
+
+    // ---------------------------------------------------------------- drawing the inbox again
+
+    /**
+     * Hands the inbox holder [holder] the list [summaries] and runs its row factory on it: the two
+     * steps Instagram's own subscriber takes each time the inbox's state hands the holder a list. The
+     * patch writes the body at patch time, from the holder's list field and its own starter, and a
+     * build without it does nothing. The starter does nothing while its inbox is paused or gone, and
+     * the inbox runs it again when it resumes, so the rows are drawn from this list then.
+     */
+    public static void redraw(Object holder, List<Object> summaries) {
+    }
+
+    /** An inbox holder Instagram handed a list, that list, and the chats that were hidden from it. */
+    private static final class Drawn {
+        final WeakReference<Object> holder;
+        final List<Object> summaries;
+        Set<String> hidden;
+
+        Drawn(Object holder, List<Object> summaries, Set<String> hidden) {
+            this.holder = new WeakReference<>(holder);
+            this.summaries = summaries;
+            this.hidden = hidden;
+        }
+    }
+
+    /** The inbox holders Instagram handed a list, one entry each. A holder Instagram dropped goes the next time it's read. */
+    private static final ArrayList<Drawn> drawn = new ArrayList<>();
+
+    /**
+     * Keeps [holder] with Instagram's own list [summaries] and the chats [hidden] from it, in place of
+     * what it had. A null list forgets the holder. Nothing is kept while HushGram is paused or its
+     * settings aren't ready, so nothing is drawn again then either.
+     */
+    private static void remember(Object holder, List<Object> summaries, Set<String> hidden) {
+        if (holder == null || !Utils.settingsReady() || HushgramPause.isPaused()) return;
+        synchronized (drawn) {
+            for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
+                Object kept = it.next().holder.get();
+                if (kept == null || kept == holder) it.remove();
+            }
+            if (summaries != null) drawn.add(new Drawn(holder, summaries, hidden));
+        }
+    }
+
+    /**
+     * Asked after the hidden chats were saved. Each inbox holder Instagram still has, whose rows the
+     * change adds a chat to or takes one from, is handed its list again without the chats hidden now
+     * and draws its rows from it ({@link #redraw}). Nothing runs while HushGram is paused or its
+     * settings aren't ready, for a holder whose rows stay the same (nothing hidden before or after,
+     * the same chats hidden, or a chat that isn't in its list), or for one Instagram dropped. No
+     * listener or timer is left behind: this runs once for each change and is done.
+     */
+    static void changed() {
+        try {
+            if (!Utils.settingsReady() || HushgramPause.isPaused()) return;
+            List<Object> holders = new ArrayList<>();
+            List<List<Object>> lists = new ArrayList<>();
+            synchronized (drawn) {
+                if (drawn.isEmpty()) return;
+                Set<String> now = ids();
+                for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
+                    Drawn one = it.next();
+                    Object holder = one.holder.get();
+                    if (holder == null) {
+                        it.remove();
+                        continue;
+                    }
+                    if (one.hidden.equals(now)) continue;
+                    List<Object> before = without(one.summaries, one.hidden, null);
+                    List<Object> after = without(one.summaries, now, null);
+                    one.hidden = now;
+                    if (sameRows(before, after)) continue;
+                    holders.add(holder);
+                    lists.add(after);
+                }
+            }
+            for (int i = 0; i < holders.size(); i++) {
+                try {
+                    redrawer.redraw(holders.get(i), lists.get(i));
+                    HookStatus.counted(FamilyNames.MESSAGES_LOCK, REDRAWN);
+                } catch (Throwable t) {
+                    HookStatus.threw(FamilyNames.MESSAGES_LOCK, REDRAW, t);
+                }
+            }
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, REDRAW, t);
+        }
+    }
+
+    /** The same summaries in the same order. */
+    private static boolean sameRows(List<Object> a, List<Object> b) {
+        if (a == b) return true;
+        if (a.size() != b.size()) return false;
+        for (int i = 0; i < a.size(); i++) {
+            if (a.get(i) != b.get(i)) return false;
+        }
+        return true;
+    }
+
+    /** Asks {@link #changed} on the main thread, where Instagram hands the inbox its lists. */
+    private static void changedSoon() {
+        Utils.runOnMainThreadNowOrLater(HiddenChats::changed);
+    }
+
+    /** Instagram dropped every inbox holder, as the garbage collector does once its screens are gone. */
+    static void holdersDroppedForTests() {
+        synchronized (drawn) {
+            for (Drawn one : drawn) one.holder.clear();
+        }
+    }
+
+    /** How many inbox holders are kept now. */
+    static int keptForTests() {
+        synchronized (drawn) {
+            return drawn.size();
         }
     }
 
@@ -392,19 +537,25 @@ public final class HiddenChats {
         return ChatLocks.lastOpenedUnless(HiddenChats::savedListed);
     }
 
-    /** Hides a chat, or renames it on the list. */
+    /** Hides a chat, or renames it on the list, and the inbox shows it. */
     public static void add(String id, String name) {
         Settings.HIDDEN_CHATS.save(ChatList.added(saved(), id, name));
+        changedSoon();
     }
 
-    /** Brings a chat back. */
+    /** Brings a chat back, in the inbox too. */
     public static void remove(String id) {
         Settings.HIDDEN_CHATS.save(ChatList.removed(saved(), id));
+        changedSoon();
     }
 
     /** Back to how a fresh start finds it. */
     static void resetForTests() {
         reader = HiddenChats::threadId;
         searchReader = HiddenChats::targetThreadId;
+        redrawer = HiddenChats::redraw;
+        synchronized (drawn) {
+            drawn.clear();
+        }
     }
 }

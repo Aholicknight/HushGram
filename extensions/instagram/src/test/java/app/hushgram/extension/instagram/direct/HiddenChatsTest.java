@@ -10,8 +10,10 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.os.Looper;
 
 import org.junit.After;
 import org.junit.Before;
@@ -57,10 +59,14 @@ public class HiddenChatsTest {
         }
     }
 
+    /** Each inbox holder the extension had draw its rows again, with the list it was handed. */
+    private final List<Object[]> redrawn = new ArrayList<>();
+
     @Before
     public void enable() {
         MessagesLock.resetForTests();
         HiddenChats.reader = summary -> ((Summary) summary).id;
+        HiddenChats.redrawer = (holder, summaries) -> redrawn.add(new Object[]{holder, summaries});
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -96,7 +102,7 @@ public class HiddenChatsTest {
         HiddenChats.add(ALICE, "Alice");
         List<Object> inbox = Collections.unmodifiableList(list(ALICE, BOB, "7"));
 
-        List<Object> shown = HiddenChats.inbox(inbox);
+        List<Object> shown = HiddenChats.inbox(null,inbox);
 
         assertEquals(Arrays.asList(BOB, "7"), ids(shown));
         assertEquals("Instagram's own list is untouched", Arrays.asList(ALICE, BOB, "7"), ids(inbox));
@@ -104,7 +110,7 @@ public class HiddenChatsTest {
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains("hidden chats left out of the inbox 1"));
         assertFalse("the badge wasn't asked", report.contains("hidden chats left out of the unread badge"));
-        assertEquals("the next list Instagram hands over is filtered too", Arrays.asList("7"), ids(HiddenChats.inbox(list("7", ALICE))));
+        assertEquals("the next list Instagram hands over is filtered too", Arrays.asList("7"), ids(HiddenChats.inbox(null,list("7", ALICE))));
         assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("hidden chats left out of the inbox 2"));
     }
 
@@ -124,21 +130,21 @@ public class HiddenChatsTest {
     @Test
     public void inboxAndFolderListsWithNothingHiddenComeBackAsTheyAre() {
         List<Object> inbox = list(ALICE, BOB);
-        assertSame("no hidden chat", inbox, HiddenChats.inbox(inbox));
+        assertSame("no hidden chat", inbox, HiddenChats.inbox(null,inbox));
         assertSame("no hidden chat", inbox, HiddenChats.folder(inbox));
 
         HiddenChats.add(ALICE, "Alice");
         List<Object> other = list(BOB, "7");
-        assertSame("a list with no hidden chat in it", other, HiddenChats.inbox(other));
+        assertSame("a list with no hidden chat in it", other, HiddenChats.inbox(null,other));
         assertSame("a list with no hidden chat in it", other, HiddenChats.folder(other));
-        assertNull(HiddenChats.inbox(null));
+        assertNull(HiddenChats.inbox(null,null));
         assertNull(HiddenChats.folder(null));
         List<Object> empty = new ArrayList<>();
-        assertSame(empty, HiddenChats.inbox(empty));
+        assertSame(empty, HiddenChats.inbox(null,empty));
         assertSame(empty, HiddenChats.folder(empty));
 
         HiddenChats.remove(ALICE);
-        assertSame("shown again", inbox, HiddenChats.inbox(inbox));
+        assertSame("shown again", inbox, HiddenChats.inbox(null,inbox));
         assertSame("counted again", inbox, HiddenChats.folder(inbox));
         assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains("left out of the inbox"));
     }
@@ -152,24 +158,24 @@ public class HiddenChatsTest {
             return id.equals("none") ? null : id;
         };
 
-        assertEquals(Arrays.asList("bad", "none", BOB), ids(HiddenChats.inbox(list("bad", ALICE, "none", BOB))));
+        assertEquals(Arrays.asList("bad", "none", BOB), ids(HiddenChats.inbox(null,list("bad", ALICE, "none", BOB))));
         assertEquals(Arrays.asList("bad", BOB), ids(HiddenChats.folder(list("bad", ALICE, BOB))));
         assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
 
         // The unpatched bridge answers null for everything, so nothing is hidden.
         HiddenChats.resetForTests();
         List<Object> inbox = list(ALICE, BOB);
-        assertSame(inbox, HiddenChats.inbox(inbox));
+        assertSame(inbox, HiddenChats.inbox(null,inbox));
         assertSame(inbox, HiddenChats.folder(inbox));
 
         HiddenChats.reader = summary -> ((Summary) summary).id;
         for (HushgramPause.Reason reason : new HushgramPause.Reason[]{HushgramPause.Reason.SWITCH, HushgramPause.Reason.CRASH_LOOP}) {
             PauseForTests.pause(reason);
-            assertSame(reason.name(), inbox, HiddenChats.inbox(inbox));
+            assertSame(reason.name(), inbox, HiddenChats.inbox(null,inbox));
             assertSame(reason.name(), inbox, HiddenChats.folder(inbox));
 
             PauseForTests.resume();
-            assertEquals(reason.name(), Arrays.asList(BOB), ids(HiddenChats.inbox(inbox)));
+            assertEquals(reason.name(), Arrays.asList(BOB), ids(HiddenChats.inbox(null,inbox)));
             assertEquals(reason.name(), Arrays.asList(BOB), ids(HiddenChats.folder(inbox)));
         }
     }
@@ -184,7 +190,7 @@ public class HiddenChatsTest {
             }
         };
 
-        assertSame(broken, HiddenChats.inbox(broken));
+        assertSame(broken, HiddenChats.inbox(null,broken));
         assertSame(broken, HiddenChats.folder(broken));
 
         String missing = HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString();
@@ -501,6 +507,159 @@ public class HiddenChatsTest {
         MessagesLock.confirmHiddenThen(activity, () -> opened[0] = true);
         asks.get(1)[0].run();
         assertTrue(opened[0]);
+    }
+
+    @Test
+    public void tickingAChatDrawsTheInboxAgainAtOnce() {
+        Object inbox = new Object();
+        List<Object> instagrams = Collections.unmodifiableList(list(ALICE, BOB, "7"));
+        assertSame("nothing hidden yet", instagrams, HiddenChats.inbox(inbox, instagrams));
+        assertTrue(redrawn.isEmpty());
+
+        HiddenChats.add(ALICE, "Alice");
+
+        assertEquals(1, redrawn.size());
+        assertSame("the inbox's own holder", inbox, redrawn.get(0)[0]);
+        assertEquals(Arrays.asList(BOB, "7"), ids(rows(0)));
+        assertEquals("Instagram's own list is untouched", Arrays.asList(ALICE, BOB, "7"), ids(instagrams));
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("inbox redrawn after hidden chats changed 1"));
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+        assertTrue("nothing left waiting on the main thread", shadowOf(Looper.getMainLooper()).isIdle());
+
+        HiddenChats.add(BOB, "Bob");
+
+        assertEquals("a second tick draws it again", 2, redrawn.size());
+        assertEquals(Arrays.asList("7"), ids(rows(1)));
+    }
+
+    @Test
+    public void untickingAChatDrawsTheInboxAgainAtOnce() {
+        HiddenChats.add(ALICE, "Alice");
+        HiddenChats.add(BOB, "Bob");
+        Object inbox = new Object();
+        List<Object> instagrams = list(ALICE, BOB, "7");
+        assertEquals(Arrays.asList("7"), ids(HiddenChats.inbox(inbox, instagrams)));
+
+        HiddenChats.remove(ALICE);
+
+        assertEquals(1, redrawn.size());
+        assertSame(inbox, redrawn.get(0)[0]);
+        assertEquals("Alice is back where Instagram put her", Arrays.asList(ALICE, "7"), ids(rows(0)));
+
+        HiddenChats.remove(BOB);
+
+        assertEquals(2, redrawn.size());
+        assertSame("nothing hidden, so Instagram's own list", instagrams, rows(1));
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("inbox redrawn after hidden chats changed 2"));
+        assertTrue("nothing left waiting on the main thread", shadowOf(Looper.getMainLooper()).isIdle());
+    }
+
+    @Test
+    public void nothingHiddenOrNoRowChangedDrawsNothing() {
+        Object inbox = new Object();
+        List<Object> instagrams = list(ALICE, BOB);
+        HiddenChats.inbox(inbox, instagrams);
+
+        HiddenChats.remove(ALICE);
+        assertTrue("nothing hidden before or after", redrawn.isEmpty());
+        HiddenChats.add("5", "Eve");
+        assertTrue("a chat that isn't in this inbox", redrawn.isEmpty());
+        HiddenChats.add("5", "Eva");
+        assertTrue("renamed, the same chats hidden", redrawn.isEmpty());
+        HiddenChats.remove("5");
+        assertTrue("shown again, still not in this inbox", redrawn.isEmpty());
+
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains("inbox redrawn"));
+        assertTrue("nothing left waiting on the main thread", shadowOf(Looper.getMainLooper()).isIdle());
+        assertEquals("the inbox is still known, for a chat ticked later", 1, HiddenChats.keptForTests());
+        HiddenChats.add(BOB, "Bob");
+        assertEquals(Arrays.asList(ALICE), ids(rows(0)));
+    }
+
+    @Test
+    public void pausedOrNotReadyDrawsNothing() {
+        Object inbox = new Object();
+        List<Object> instagrams = list(ALICE, BOB);
+        HiddenChats.inbox(inbox, instagrams);
+        for (HushgramPause.Reason reason : new HushgramPause.Reason[]{HushgramPause.Reason.SWITCH, HushgramPause.Reason.CRASH_LOOP}) {
+            PauseForTests.pause(reason);
+
+            assertSame(reason.name(), instagrams, HiddenChats.inbox(new Object(), instagrams));
+            HiddenChats.add(ALICE, "Alice");
+            HiddenChats.remove(ALICE);
+            HiddenChats.add(ALICE, "Alice");
+
+            assertTrue(reason.name(), redrawn.isEmpty());
+            assertEquals(reason.name() + ": an inbox handed a list while paused isn't kept", 1, HiddenChats.keptForTests());
+            assertTrue("nothing left waiting on the main thread", shadowOf(Looper.getMainLooper()).isIdle());
+            HiddenChats.remove(ALICE);
+            PauseForTests.resume();
+        }
+        Settings.HIDDEN_CHATS.save(ALICE + "\tAlice");
+        SettingsContextRule.withoutContext(() -> {
+            assertSame(instagrams, HiddenChats.inbox(new Object(), instagrams));
+            HiddenChats.changed();
+        });
+        assertTrue("settings not ready", redrawn.isEmpty());
+        assertEquals(1, HiddenChats.keptForTests());
+
+        // On again, the same change draws it: the pause and the settings were why nothing did.
+        HiddenChats.changed();
+        assertEquals(1, redrawn.size());
+        assertSame(inbox, redrawn.get(0)[0]);
+        assertEquals(Arrays.asList(BOB), ids(rows(0)));
+    }
+
+    @Test
+    public void anInboxThatsGoneDrawsNothing() {
+        HiddenChats.inbox(new Object(), list(ALICE, BOB));
+        // Instagram dropped the holder once its screen went away, and the collector took it.
+        HiddenChats.holdersDroppedForTests();
+
+        HiddenChats.add(ALICE, "Alice");
+
+        assertTrue(redrawn.isEmpty());
+        assertEquals("a dropped inbox is let go", 0, HiddenChats.keptForTests());
+
+        Object cleared = new Object();
+        HiddenChats.inbox(cleared, list(ALICE, BOB));
+        HiddenChats.inbox(cleared, null);
+        HiddenChats.remove(ALICE);
+        assertTrue("an inbox Instagram took its list from", redrawn.isEmpty());
+        assertEquals(0, HiddenChats.keptForTests());
+
+        HiddenChats.add(BOB, "Bob");
+        assertTrue("no inbox at all", redrawn.isEmpty());
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains("inbox redrawn"));
+        assertTrue("nothing left waiting on the main thread", shadowOf(Looper.getMainLooper()).isIdle());
+    }
+
+    @Test
+    public void eachInboxDrawsFromItsNewestListAndOneThatFailsLeavesTheOthers() {
+        Object first = new Object();
+        Object second = new Object();
+        HiddenChats.inbox(first, list(ALICE, "7"));
+        HiddenChats.inbox(first, list(BOB, ALICE));
+        HiddenChats.inbox(second, list(ALICE));
+        HiddenChats.redrawer = (holder, summaries) -> {
+            if (holder == second) throw new IllegalStateException("gone");
+            redrawn.add(new Object[]{holder, summaries});
+        };
+
+        HiddenChats.add(ALICE, "Alice");
+
+        assertEquals(1, redrawn.size());
+        assertSame(first, redrawn.get(0)[0]);
+        assertEquals("the newest list it was handed", Arrays.asList(BOB), ids(rows(0)));
+        String missing = HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString();
+        assertTrue(missing, missing.contains("'inbox redraw'"));
+        assertEquals(2, HiddenChats.keptForTests());
+    }
+
+    /** The list the inbox was asked to draw its rows from the [n]th time. */
+    @SuppressWarnings("unchecked")
+    private List<Object> rows(int n) {
+        return (List<Object>) redrawn.get(n)[1];
     }
 
     private static ArrayList<Object> list(String... ids) {

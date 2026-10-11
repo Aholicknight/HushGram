@@ -90,6 +90,8 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Lock your messages:** Ticking or unticking a chat under Hidden chats now shows in your inbox as soon as you go back to it. Before, the inbox kept its old rows until you pulled to refresh or a new message came in.
+
 * **Instagram - Hide ads:** Sponsored posts inside a page of posts, like the ones on Home's Older Posts page and Explore's chain of posts, are gone now too, and so are the rows of several ads Instagram puts between posts. Diagnostics counts both on a Feed ads line.
 
 * **Instagram - HushGram settings:** Typing in the settings search box no longer freezes Instagram on a slow phone.

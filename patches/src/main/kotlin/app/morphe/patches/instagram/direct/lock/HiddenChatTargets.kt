@@ -36,8 +36,11 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 internal const val HIDDEN_CHATS = "$EXTENSION_PACKAGE/direct/HiddenChats;"
 
-/** The filter for the chats the inbox screen turns into rows. */
-internal const val HIDDEN_INBOX = "$HIDDEN_CHATS->inbox(Ljava/util/List;)Ljava/util/List;"
+/** The filter for the chats the inbox screen turns into rows, handed the holder that keeps them too. */
+internal const val HIDDEN_INBOX = "$HIDDEN_CHATS->inbox(Ljava/lang/Object;Ljava/util/List;)Ljava/util/List;"
+
+/** The bridge that hands the inbox's holder a list and runs its row factory on it, as Instagram's own subscriber does. */
+internal const val HIDDEN_REDRAW = "$HIDDEN_CHATS->redraw(Ljava/lang/Object;Ljava/util/List;)V"
 
 /** The filter for one folder tab's chats, which Instagram counts the tab's unread chats from. */
 internal const val HIDDEN_FOLDER = "$HIDDEN_CHATS->folder(Ljava/util/List;)Ljava/util/List;"
@@ -116,17 +119,28 @@ internal class SummaryList(val method: MutableMethod, val returnAt: Int, val reg
 internal class ListSite(val method: MutableMethod, val at: Int, val register: Int)
 
 /**
+ * The write of the inbox's list of chats ([site], the register holding the list), the register
+ * holding the holder it is written to, the holder's list field, and the holder's own starter of the
+ * row factory, which Instagram calls on the holder right after the write.
+ */
+internal class InboxRows(val site: ListSite, val holder: Int, val list: FieldReference, val starter: Method)
+
+/**
  * What hiding chats from the inbox needs from Instagram, proved before anything changes: the write
- * of the list the inbox draws its rows from, the unread badge snapshot's read of the store's
- * summaries, its read of each folder tab's chats for the tabs' unread counts, and the body of the
- * extension's bridge from a summary to its chat's thread id.
+ * of the list the inbox draws its rows from and the holder it goes to, the unread badge snapshot's
+ * read of the store's summaries, its read of each folder tab's chats for the tabs' unread counts,
+ * the body of the extension's bridge from a summary to its chat's thread id, and the body of its
+ * bridge that has the inbox draw its rows again.
  */
 internal class HiddenChatTargets(
     val rows: ListSite,
+    val holder: Int,
     val badge: ListSite,
     val folders: ListSite,
     val bridge: MutableMethod,
     val bridgeBody: String,
+    val redraw: MutableMethod,
+    val redrawBody: String,
 )
 
 /**
@@ -187,9 +201,30 @@ internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
         iget-object p0, p0, ${idField.signature()}
         return-object p0
     """.trimIndent()
+    val redraw = mutableClassDefBy(HIDDEN_CHATS).methods.filter {
+        it.name == HIDDEN_REDRAW_NAME && it.parameters() == listOf("Ljava/lang/Object;", LIST) && it.returnType == "V" &&
+            AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
+    }.one("extension's inbox redraw bridge")
     requireFilter()
-    return HiddenChatTargets(rows, ListSite(view, after, register), folders, bridge, bridgeBody)
+    return HiddenChatTargets(
+        rows.site, rows.holder, ListSite(view, after, register), folders, bridge, bridgeBody, redraw, redrawBody(rows),
+    )
 }
+
+private const val HIDDEN_REDRAW_NAME = "redraw"
+
+/**
+ * The redraw bridge's body: the two steps Instagram's subscriber takes when the inbox's state hands
+ * the holder a list, the write of the holder's list and the call of its starter on the holder. The
+ * starter does nothing while the inbox is paused and the inbox calls it again when it resumes, so a
+ * list handed over while you're in HushGram settings is drawn when you're back.
+ */
+private fun redrawBody(rows: InboxRows) = """
+    check-cast p0, ${rows.list.definingClass}
+    iput-object p1, p0, ${rows.list.signature()}
+    invoke-static { p0 }, ${rows.starter.signature()}
+    return-void
+""".trimIndent()
 
 /** The no-argument, non-static calls of [type] that answer a chat key. */
 private fun keyGetters(type: ClassDef): List<Method> = type.methods.filter {
@@ -212,8 +247,14 @@ private fun keyGetters(type: ClassDef): List<Method> = type.methods.filter {
  * messages don't count there either. The inbox's state, its pagination and Instagram's save to the
  * phone keep every chat. The write's value must be read nowhere after it, so handing the field the
  * filter's answer changes nothing else the method does.
+ *
+ * The filter is handed the holder too, from the write's own register, so the extension can hand it
+ * a list again when the hidden chats change. It does that the way the subscriber does, by writing
+ * the list and calling the starter on the holder, so the starter has to be a public static call
+ * taking the holder (07HZ.A01) and the list a public field. The starter checks a flag of its holder
+ * that the inbox's onPause turns off and its resume turns back on, starting the factory again.
  */
-internal fun BytecodePatchContext.findInboxRows(): ListSite {
+internal fun BytecodePatchContext.findInboxRows(): InboxRows {
     val factory = uniqueMethod(LOCK_PATCH, "inbox row factory", InboxRowsFingerprint)
     val factoryType = factory.definingClass
     val starters = classesCreating(factoryType).flatMap { classDef ->
@@ -243,12 +284,19 @@ internal fun BytecodePatchContext.findInboxRows(): ListSite {
     }
     val put = writer.visualCode()[at] as TwoRegisterInstruction
     val value = put.registerA
-    if (value == put.registerB) refuse("the write of the inbox's list of chats stores v$value into itself")
+    val holder = put.registerB
+    if (value == holder) refuse("the write of the inbox's list of chats stores v$value into itself")
+    if (value > 15 || holder > 15) refuse("the write of the inbox's list of chats uses v$value and v$holder, past v15")
     if (at in writer.jumpTargets()) refuse("something jumps straight to the write of the inbox's list of chats")
     if (value in writer.liveAcrossInjection(at + 1)) {
         refuse("${writer.definingClass}->${writer.name} reads the inbox's list of chats again after it writes it")
     }
-    return ListSite(writer, at, value)
+    if (!AccessFlags.STATIC.isSet(starter.accessFlags) || starter.parameters() != listOf(list.definingClass) || starter.returnType != "V") {
+        refuse("the inbox row factory's starter ${starter.signature()} isn't a static call taking its holder")
+    }
+    requirePublic(list.definingClass, list)
+    requirePublic(list.definingClass, starter)
+    return InboxRows(ListSite(writer, at, value), holder, list, starter)
 }
 
 /** The inbox's row factory: a runnable logging [INBOX_ROWS]. */
@@ -293,15 +341,24 @@ private fun BytecodePatchContext.findFolderCounts(badge: Method, storeRead: Meth
 }
 
 /**
- * Writes the thread summary bridge and puts the filters in. The inbox's list of chats goes through
- * the extension right before it's written to its holder, the list the badge snapshot has just read
- * goes through it before it is wrapped, and each folder's chats go through it right after the
- * folder count reads them. Each answer comes back in the register the list was in, a List where a
- * List was, an ArrayList where an ArrayList was.
+ * Writes the thread summary bridge and the redraw bridge and puts the filters in. The inbox's list
+ * of chats goes through the extension right before it's written to its holder, with the holder, the
+ * list the badge snapshot has just read goes through it before it is wrapped, and each folder's
+ * chats go through it right after the folder count reads them. Each answer comes back in the
+ * register the list was in, a List where a List was, an ArrayList where an ArrayList was.
  */
 internal fun hideChatsFromInbox(targets: HiddenChatTargets) {
     targets.bridge.addInstructionsWithLabels(0, targets.bridgeBody)
-    for ((site, filter) in listOf(targets.rows to HIDDEN_INBOX, targets.badge to HIDDEN_FILTER, targets.folders to HIDDEN_FOLDER)) {
+    targets.redraw.addInstructions(0, targets.redrawBody)
+    val rows = targets.rows
+    rows.method.addInstructions(
+        rows.at,
+        """
+            invoke-static { v${targets.holder}, v${rows.register} }, $HIDDEN_INBOX
+            move-result-object v${rows.register}
+        """,
+    )
+    for ((site, filter) in listOf(targets.badge to HIDDEN_FILTER, targets.folders to HIDDEN_FOLDER)) {
         val register = "v${site.register}"
         site.method.addInstructions(
             site.at,
@@ -313,10 +370,10 @@ internal fun hideChatsFromInbox(targets: HiddenChatTargets) {
     }
 }
 
-/** Throws unless the extension has the public static filters. */
+/** Throws unless the extension has the public static filters and the redraw bridge. */
 private fun BytecodePatchContext.requireFilter() {
     val extension = classDefByOrNull(HIDDEN_CHATS) ?: refuse("the extension has no $HIDDEN_CHATS")
-    for ((signature, returns) in listOf(HIDDEN_FILTER to ARRAY_LIST, HIDDEN_INBOX to LIST, HIDDEN_FOLDER to LIST)) {
+    for ((signature, returns) in listOf(HIDDEN_FILTER to ARRAY_LIST, HIDDEN_INBOX to LIST, HIDDEN_FOLDER to LIST, HIDDEN_REDRAW to "V")) {
         val name = signature.substringAfter("->").substringBefore("(")
         val parameters = signature.substringAfter("(").substringBefore(")")
         if (extension.methods.none {

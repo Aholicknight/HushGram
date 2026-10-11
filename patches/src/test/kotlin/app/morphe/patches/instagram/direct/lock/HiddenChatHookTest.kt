@@ -56,6 +56,7 @@ class HiddenChatHookTest {
             assertTrue("$filter is not in the extension: $declared", filter.substringAfter("->") in declared)
         }
         assertTrue("no thread summary bridge: $declared", "threadId(Ljava/lang/Object;)Ljava/lang/String;" in declared)
+        assertTrue("no inbox redraw bridge: $declared", HIDDEN_REDRAW.substringAfter("->") in declared)
     }
 
     @Test
@@ -86,6 +87,11 @@ class HiddenChatHookTest {
             assertEquals("$name: ${rows.starters.map { it.signature() }}", 1, rows.starters.size)
             assertEquals("$name: ${rows.lists.map { it.signature() }}", 1, rows.lists.size)
             assertEquals("$name: ${rows.writes.map { (method, at) -> "${method.signature()}@$at" }}", 1, rows.writes.size)
+            // The flag the starter checks: screens' onPause turn it off, so a redraw while you're in
+            // HushGram settings waits for the inbox's resume, which starts the factory again.
+            val holder = rows.starters.single().definingClass
+            assertTrue("$name: an onPause outside $holder turns its flag off: ${rows.flagWriters.map { it.signature() }}",
+                rows.flagWriters.any { it.definingClass != holder && it.name == "onPause" })
         }
     }
 
@@ -95,9 +101,11 @@ class HiddenChatHookTest {
         val context = PatchContexts.of(FixtureDex.classesAsRead(bundle, types).values + ExtensionDex.classDef(HIDDEN_CHATS))
         val found = context.findHiddenChatTargets()
         hideChatsFromInbox(found)
-        for (site in listOf(found.rows, found.badge, found.folders)) {
+        assertEquals(Opcode.INVOKE_STATIC, found.rows.method.visualCode()[found.rows.at].opcode)
+        for (site in listOf(found.badge, found.folders)) {
             assertEquals(Opcode.INVOKE_STATIC_RANGE, site.method.visualCode()[site.at].opcode)
         }
+        assertEquals(Opcode.INVOKE_STATIC, found.redraw.visualCode()[2].opcode)
     }
 
     @Test
@@ -389,8 +397,8 @@ class HiddenChatHookTest {
         val writer = found.rows.method
         val badge = found.badge.method
         val counter = found.folders.method
-        val hooked = listOf(writer, badge, counter, found.bridge).map { it.signature() }
-        assertEquals("$name: three hooks in three methods", 4, hooked.toSet().size)
+        val hooked = listOf(writer, badge, counter, found.bridge, found.redraw).map { it.signature() }
+        assertEquals("$name: three hooks in three methods, and two bridges", 5, hooked.toSet().size)
         for (method in listOf(writer, badge, counter)) {
             assertTrue("$name: ${method.signature()} is a store reader", method.signature() !in readerIds)
         }
@@ -407,10 +415,34 @@ class HiddenChatHookTest {
         val list = put.visualReference() as FieldReference
         assertEquals("$name: of a list", "Ljava/util/List;", list.type)
         assertEquals("$name: from the hooked register", found.rows.register, (put as TwoRegisterInstruction).registerA)
+        assertEquals("$name: into the holder the filter is handed", found.holder, put.registerB)
         val factory = classes.values.flatMap { it.methods }.single { method -> method.visualCode().any { it.visualString() == INBOX_ROWS } }
         val starter = classes.values.flatMap { it.methods }.single { method -> method.visualCode().any { it.makesOneOf(setOf(factory.definingClass)) } }
         assertTrue("$name: ${starter.signature()} starts the row factory on ${list.signature()}",
             starter.visualCode().any { it.opcode == Opcode.IGET_OBJECT && (it.visualReference() as? FieldReference)?.signature() == list.signature() })
+        // Right after the write the subscriber starts the row factory on the holder. The redraw
+        // bridge takes the same two steps.
+        val start = writer.visualCode()[found.rows.at + 1]
+        assertEquals("$name: the subscriber starts the row factory next", "${Opcode.INVOKE_STATIC.name} ${starter.signature()}", text(start))
+        assertEquals("$name: on the holder", found.holder, (start as FiveRegisterInstruction).registerC)
+        assertEquals(1, start.registerCount)
+        // The starter does nothing while a flag of its holder is off, and the holder's resume turns
+        // the flag on and starts the factory again.
+        val starterCode = starter.visualCode()
+        val flagAt = starterCode.indexOfFirst { it.opcode == Opcode.IGET_BOOLEAN }
+        val flag = starterCode[flagAt].visualReference() as FieldReference
+        assertEquals("$name: the starter's flag is its holder's", starter.definingClass, flag.definingClass)
+        assertEquals("$name: and it branches on the flag", Opcode.IF_EQZ, starterCode[flagAt + 1].opcode)
+        assertTrue("$name: before it calls anything", starterCode.take(flagAt).none { it.opcode.name.startsWith("INVOKE") })
+        val resumes = classes.getValue(starter.definingClass).methods.filter { method ->
+            val code = method.visualCode()
+            code.any { it.opcode == Opcode.IPUT_BOOLEAN && (it.visualReference() as? FieldReference)?.signature() == flag.signature() } &&
+                code.any { (it.visualReference() as? MethodReference)?.signature() == starter.signature() }
+        }
+        assertEquals("$name: one method of the holder turns the flag on and starts the factory", 1, resumes.size)
+        assertTrue("$name: the starter is a public static call taking its holder",
+            AccessFlags.STATIC.isSet(starter.accessFlags) && AccessFlags.PUBLIC.isSet(starter.accessFlags) &&
+                starter.parameterTypes.map(Any::toString) == listOf(starter.definingClass))
         // The folders: a folder's chats, just read into the hooked register by the snapshot's own
         // folder count, which the snapshot calls.
         val counterCode = counter.visualCode()
@@ -434,8 +466,30 @@ class HiddenChatHookTest {
         })
 
         val rows = writer.visualCode()
-        checkFiltered(name, "inbox's list of chats", rows, writerBefore, found.rows, HIDDEN_INBOX)
+        val call = rows[found.rows.at]
+        assertEquals("$name: the inbox's list of chats goes through the filter", HIDDEN_INBOX, (call as ReferenceInstruction).reference.toString())
+        assertEquals(Opcode.INVOKE_STATIC, call.opcode)
+        assertEquals("$name: handed the holder", found.holder, (call as FiveRegisterInstruction).registerC)
+        assertEquals("$name: and the list", found.rows.register, call.registerD)
+        assertEquals(2, call.registerCount)
+        assertEquals("$name: the answer goes back in the list's register", Opcode.MOVE_RESULT_OBJECT, rows[found.rows.at + 1].opcode)
+        assertEquals(found.rows.register, (rows[found.rows.at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$name: nothing else around the list moved", writerBefore, rows.take(found.rows.at).map(::text) + rows.drop(found.rows.at + 2).map(::text))
+        assertEquals("$name: the filter is called once there", 1, rows.count { it.visualReference()?.toString() == HIDDEN_INBOX })
         assertEquals("$name: then the list is written", writerBefore[found.rows.at], text(rows[found.rows.at + 2]))
+
+        val redraw = found.redraw.visualCode()
+        val holderParameter = found.redraw.parameterRegisterNumber(0)
+        val listParameter = found.redraw.parameterRegisterNumber(1)
+        assertEquals("$name: the redraw bridge casts to the holder", "${Opcode.CHECK_CAST.name} ${starter.definingClass}", text(redraw[0]))
+        assertEquals(holderParameter, (redraw[0] as OneRegisterInstruction).registerA)
+        assertEquals("$name: writes the holder's list as the subscriber does", text(put), text(redraw[1]))
+        assertEquals("$name: the list handed over", listParameter, (redraw[1] as TwoRegisterInstruction).registerA)
+        assertEquals("$name: into the holder", holderParameter, redraw[1].let { (it as TwoRegisterInstruction).registerB })
+        assertEquals("$name: then starts the row factory as the subscriber does", text(start), text(redraw[2]))
+        assertEquals("$name: on the holder", holderParameter, (redraw[2] as FiveRegisterInstruction).registerC)
+        assertEquals(1, (redraw[2] as FiveRegisterInstruction).registerCount)
+        assertEquals("$name: and returns", Opcode.RETURN_VOID, redraw[3].opcode)
 
         val code = badge.visualCode()
         val at = found.badge.at
@@ -519,9 +573,16 @@ class HiddenChatHookTest {
         /**
          * The inbox's row factory and what leads to it, searched across the whole APK: the methods
          * logging [INBOX_ROWS], the methods making one of their classes, the List fields of their
-         * own class those read, and every write of one of those fields (the method and the index).
+         * own class those read, every write of one of those fields (the method and the index), and
+         * every method writing one of the boolean fields of their own class the starters read.
          */
-        private class RowAnchors(val factories: List<Method>, val starters: List<Method>, val lists: List<FieldReference>, val writes: List<Pair<Method, Int>>)
+        private class RowAnchors(
+            val factories: List<Method>,
+            val starters: List<Method>,
+            val lists: List<FieldReference>,
+            val writes: List<Pair<Method, Int>>,
+            val flagWriters: List<Method>,
+        )
 
         private val rowCached = FixtureCache<RowAnchors>()
 
@@ -537,15 +598,19 @@ class HiddenChatHookTest {
                     .filter { it.type == "Ljava/util/List;" && it.definingClass == starter.definingClass }
             }.distinctBy { it.signature() }
             val listIds = lists.mapTo(HashSet()) { it.signature() }
+            val flagIds = starters.flatMap { starter ->
+                starter.visualCode().filter { it.opcode == Opcode.IGET_BOOLEAN }.mapNotNull { it.visualReference() as? FieldReference }
+                    .filter { it.definingClass == starter.definingClass }
+            }.mapTo(HashSet()) { it.signature() }
             val owners = lists.mapTo(HashSet()) { it.definingClass }
             val writers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it in owners } }) { method ->
-                method.visualCode().any { it.writesOneOf(listIds) }
+                method.visualCode().any { it.writesOneOf(listIds) || it.setsOneOf(flagIds) }
             }
             val writes = writers.flatMap { method ->
                 val code = method.visualCode()
                 code.indices.filter { code[it].writesOneOf(listIds) }.map { method to it }
             }
-            RowAnchors(factories, starters, lists, writes)
+            RowAnchors(factories, starters, lists, writes, writers.filter { method -> method.visualCode().any { it.setsOneOf(flagIds) } })
         }
 
         private fun Instruction.makesOneOf(types: Set<String>): Boolean =
@@ -553,6 +618,9 @@ class HiddenChatHookTest {
 
         private fun Instruction.writesOneOf(fields: Set<String>): Boolean =
             opcode == Opcode.IPUT_OBJECT && (visualReference() as? FieldReference)?.signature()?.let { it in fields } == true
+
+        private fun Instruction.setsOneOf(fields: Set<String>): Boolean =
+            opcode == Opcode.IPUT_BOOLEAN && (visualReference() as? FieldReference)?.signature()?.let { it in fields } == true
 
         /**
          * The thread store, the chat key, every type the store's readers load fields of, the unread
