@@ -68,7 +68,8 @@ val disableAnalyticsPatch = bytecodePatch(
                     }
                 }
                 // The address the MQTT client posts its analytics to, which the server can set in the
-                // client's settings. Its fallback is the Graph address, which "graph" covers already.
+                // client's settings. Its fallback is the Graph address, which the hook on the value
+                // read covers, so "graph" leaves that constructor's load alone.
                 "mqtt" -> wrapMqttAnalyticsEndpoint(ENDPOINT)
                 // Lacrima's crash and reliability reports, to an address it builds on
                 // b-www.facebook.com before the settings are ready and reads again for each send.
@@ -92,7 +93,7 @@ val disableAnalyticsPatch = bytecodePatch(
                     "no code loads $ERROR_PING_ENDPOINT"
                 }
                 // The same events to Facebook's Graph API, as a constant wherever Instagram names it.
-                else -> if (filterEveryStringLoad(GRAPH_LOGGING_ENDPOINT, ENDPOINT) > 0) {
+                else -> if (filterGraphEndpointLoads(ENDPOINT) > 0) {
                     null
                 } else {
                     "no code loads $GRAPH_LOGGING_ENDPOINT"

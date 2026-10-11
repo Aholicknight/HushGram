@@ -42,6 +42,7 @@ class MqttAnalyticsEndpointTest {
     fun theAnalyticsAddressGoesThroughTheExtension() {
         val context = PatchContexts.of(listOf(settingsClass()))
 
+        context.filterGraphEndpointLoads(endpoint)
         assertNull(context.wrapMqttAnalyticsEndpoint(endpoint))
 
         val code = context.constructor().code()
@@ -107,12 +108,16 @@ class MqttAnalyticsEndpointTest {
         }
         val context = PatchContexts.of(classes)
 
+        // The patch's own order: the Graph address's loads first, then the MQTT constructor's value.
+        context.filterGraphEndpointLoads(endpoint)
         assertNull(label, context.wrapMqttAnalyticsEndpoint(endpoint))
 
         val constructor = classes.flatMap { it.methods }.single { method ->
             method.name == "<init>" && MQTT_SETTINGS_STRINGS.all { it in method.strings() }
         }
         val code = context.classDefBy(constructor.definingClass).methods.single { it.name == "<init>" && it.parameterTypes.map(Any::toString) == constructor.parameterTypes.map(Any::toString) }.code()
+        assertEquals("${label}: endpoint() calls in the constructor, the Graph fallback and the value read share one", 1,
+            code.count { it.referenceText() == endpoint })
         val call = code.indices.single { code[it].referenceText() == endpoint }
         assertEquals("${label}: endpoint() follows optString()", optString, code[call - 2].referenceText())
         assertTrue("${label}: the key isn't loaded in place", constructor.strings().none { it == ANALYTICS_KEY })

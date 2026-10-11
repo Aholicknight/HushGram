@@ -6,6 +6,7 @@ package app.morphe.patches.instagram.misc.analytics
 
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.filterEveryStringLoad
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -34,17 +35,8 @@ internal val MQTT_SETTINGS_STRINGS = listOf("php_sandbox_host_name", "mqtt-mini.
  *
  * Answers null when the call went in, or why not.
  */
-internal fun BytecodePatchContext.wrapMqttAnalyticsEndpoint(endpoint: String): String? {
-    val constructors = mutableListOf<Method>()
-    classesHolding(*MQTT_SETTINGS_STRINGS.toTypedArray()).forEach { classDef ->
-        classDef.methods.forEach { method ->
-            if (method.name == "<init>" && method.parameterTypes.map(Any::toString) == listOf("Lorg/json/JSONObject;") &&
-                MQTT_SETTINGS_STRINGS.all { it in method.strings() }
-            ) {
-                constructors += method
-            }
-        }
-    }
+internal fun BytecodePatchContext.wrapMqttAnalyticsEndpoint(endpoint: String, dryRun: Boolean = false): String? {
+    val constructors = mqttSettingsConstructors()
     val settings = constructors.singleOrNull()
         ?: return "expected one constructor reading the MQTT client's settings, found ${constructors.size}"
     // Read from the copy that gets changed, so an earlier target's change to it can't shift the index.
@@ -70,6 +62,7 @@ internal fun BytecodePatchContext.wrapMqttAnalyticsEndpoint(endpoint: String): S
             address.indexOf(address[index] + jump.codeOffset) in read + 1..read + 2
     }
     if (landsInside) return "${settings.definingClass} jumps to where $ANALYTICS_KEY's value is kept, with no value read"
+    if (dryRun) return null
     mutable.addInstructionsAtControlFlowLabel(
         read + 2,
         """
@@ -78,6 +71,42 @@ internal fun BytecodePatchContext.wrapMqttAnalyticsEndpoint(endpoint: String): S
         """,
     )
     return null
+}
+
+/** Every constructor taking a JSONObject that holds both of [MQTT_SETTINGS_STRINGS]. */
+internal fun BytecodePatchContext.mqttSettingsConstructors(): List<Method> {
+    val constructors = mutableListOf<Method>()
+    classesHolding(*MQTT_SETTINGS_STRINGS.toTypedArray()).forEach { classDef ->
+        classDef.methods.forEach { method ->
+            if (method.name == "<init>" && method.parameterTypes.map(Any::toString) == listOf("Lorg/json/JSONObject;") &&
+                MQTT_SETTINGS_STRINGS.all { it in method.strings() }
+            ) {
+                constructors += method
+            }
+        }
+    }
+    return constructors
+}
+
+/**
+ * Passes every load of Facebook's Graph logging address through [endpoint], except the one in the
+ * MQTT settings constructor [wrapMqttAnalyticsEndpoint] hooks, whose value read already goes
+ * through it fallback and all. Answers how many loads it found, that one included.
+ */
+internal fun BytecodePatchContext.filterGraphEndpointLoads(endpoint: String): Int =
+    filterEveryStringLoad(GRAPH_LOGGING_ENDPOINT, endpoint) { isWrappedMqttConstructor(it, endpoint) }
+
+/**
+ * Whether [method] is the MQTT settings constructor [wrapMqttAnalyticsEndpoint] hooks, and the hook
+ * would go in. That hook sits on the value read under [ANALYTICS_KEY], whose fallback is the Graph
+ * address, so a second hook on the Graph address's own load in the same constructor would pass one
+ * value through [endpoint] twice.
+ */
+internal fun BytecodePatchContext.isWrappedMqttConstructor(method: Method, endpoint: String): Boolean {
+    val settings = mqttSettingsConstructors().singleOrNull() ?: return false
+    return settings.definingClass == method.definingClass && method.name == "<init>" &&
+        method.parameterTypes.map(Any::toString) == listOf("Lorg/json/JSONObject;") &&
+        wrapMqttAnalyticsEndpoint(endpoint, dryRun = true) == null
 }
 
 /**

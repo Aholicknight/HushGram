@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -71,8 +72,14 @@ internal fun MutableMethod.filterEveryBooleanReturn(patch: String, filter: Strin
  * Passes every `const-string` of [value] in the app's own code through [filter], a static
  * `(String)String` call, right after the string is loaded. Only the path through the load reaches
  * the call: a branch to the next instruction still lands on it. Answers how many loads it found.
+ * A load in a method [covered] says another hook already passes the value through [filter] is
+ * counted and left alone, so it isn't passed through twice.
  */
-internal fun BytecodePatchContext.filterEveryStringLoad(value: String, filter: String): Int {
+internal fun BytecodePatchContext.filterEveryStringLoad(
+    value: String,
+    filter: String,
+    covered: (Method) -> Boolean = { false },
+): Int {
     val owners = mutableListOf<String>()
     classesHolding(value).forEach { classDef ->
         if (classDef.methods.any { method -> method.stringLoads(value).isNotEmpty() }) owners += classDef.type
@@ -80,6 +87,10 @@ internal fun BytecodePatchContext.filterEveryStringLoad(value: String, filter: S
     var count = 0
     owners.forEach { type ->
         mutableClassDefBy(type).methods.forEach { method ->
+            if (covered(method)) {
+                count += method.stringLoads(value).size
+                return@forEach
+            }
             method.stringLoads(value).asReversed().forEach { (index, register) ->
                 method.addInstructions(
                     index + 1,
