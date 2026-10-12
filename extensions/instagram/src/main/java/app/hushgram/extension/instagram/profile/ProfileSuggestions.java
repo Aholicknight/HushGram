@@ -33,7 +33,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *       it.</li>
  * </ul>
  * Every other row of the header (bio, counts, links, highlights) and the action buttons themselves
- * are left alone, and so are the follower and following lists, which are built elsewhere.
+ * are left alone.
+ *
+ * <p>The followers and following lists are built elsewhere, and only one thing there belongs to this
+ * class: the Suggested for you section under the list. The list reads, as it opens, whether to fetch
+ * accounts to suggest, and the patch hands that answer to {@link #followList}. A 0 means it never
+ * asks, so the section is never fetched or drawn and every account in the list stays.
  *
  * <p>Each hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer stands.
@@ -45,6 +50,7 @@ public final class ProfileSuggestions {
     static final String INLINE_ROW = "inline row";
     static final String STANDALONE_ROW = "standalone row";
     static final String CHAINING_BUTTON = "discover people button";
+    static final String FOLLOW_LIST = "follow list section";
 
     /**
      * The person-plus buttons this class hid, with the visibility each had. Instagram reuses the
@@ -112,6 +118,20 @@ public final class ProfileSuggestions {
         }
     }
 
+    /**
+     * Injected right after the followers or following list reads whether to fetch the accounts it
+     * suggests under the list. Answers 0 while Hide Suggested for you on follow lists is on, and
+     * [fetch] otherwise, or when anything goes wrong. A 0 coming in stays 0. Never throws.
+     */
+    public static int followList(int fetch) {
+        return followList(fetch, ProfileSuggestions::followListOn);
+    }
+
+    static int followList(int fetch, BooleanSupplier on) {
+        if (fetch == 0) return 0;
+        return hides(FOLLOW_LIST, on) ? 0 : fetch;
+    }
+
     /** Whether to hide this part now, counting it either way. False when anything goes wrong. */
     private static boolean hides(String part, BooleanSupplier on) {
         try {
@@ -129,5 +149,9 @@ public final class ProfileSuggestions {
 
     private static boolean switchedOn() {
         return Utils.settingsReady() && Settings.HIDE_PROFILE_SUGGESTIONS.get();
+    }
+
+    private static boolean followListOn() {
+        return Utils.settingsReady() && Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.get();
     }
 }

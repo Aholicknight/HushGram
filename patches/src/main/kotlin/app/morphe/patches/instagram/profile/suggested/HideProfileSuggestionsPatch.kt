@@ -76,8 +76,9 @@ private const val INTEGER = "Ljava/lang/Integer;"
 @Suppress("unused")
 val hideProfileSuggestionsPatch = bytecodePatch(
     name = "Hide suggested people on profiles",
-    description = "Takes Suggested for you and the Discover people button off profiles. Bios, counts, posts and " +
-        "follower lists stay. Starts off. Turn it on in HushGram settings > Profiles.",
+    description = "Takes Suggested for you and the Discover people button off profiles. Bios, counts and posts stay. " +
+        "A second switch takes Suggested for you off the followers and following lists. Starts off. Turn it on in " +
+        "HushGram settings > Profiles.",
 ) {
     category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -86,7 +87,9 @@ val hideProfileSuggestionsPatch = bytecodePatch(
     execute {
         requireStatusMethod("profileSuggestions")
         val sites = findProfileSuggestions()
+        val followList = findFollowListSuggestions()
         hideProfileSuggestions(sites)
+        hideFollowListSuggestions(followList)
         enableStatus("profileSuggestions")
     }
 }

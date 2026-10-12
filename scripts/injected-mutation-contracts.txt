@@ -1237,6 +1237,14 @@ once-call Lapp/hushgram/extension/instagram/comment/CommentAuthor;->label(Landro
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->inlineRow(I)I in instance (L*;L*;L*;L*;Ljava/lang/Integer;Ljava/util/List;Ljava/util/List;I)V holding No\ssuggested\sViewBinder\sto\sbind\ssuggested\susers
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->chainingButton(Landroid/view/View;)V in instance (L*;L*;L*;L*;Ljava/lang/Integer;Ljava/util/List;Ljava/util/List;I)V holding No\ssuggested\sViewBinder\sto\sbind\ssuggested\susers
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->keepStandaloneRow()I in instance (L*;Ljava/lang/Object;Ljava/lang/Object;)V class-holding ProfileHeaderBinderGroup.bindView ProfileHeaderBinderGroup.createView
+#
+# Hide Suggested for you on follow lists, Hide suggested people on profiles' second switch, hands the
+# followers and following list's read of its FollowListFragment.ShouldFetchSuggestedUsers argument to
+# ProfileSuggestions.followList right after the getBoolean's move-result, in FollowListFragment's
+# onCreate (LX/0E6X on 385611438), the one method loading that key. Left out, the Suggested for you
+# section comes back; twice or elsewhere, it isn't the hook the patch wrote. FollowListSuggestionsHookTest
+# checks on all seven 450 builds that the read is that one and where the hook lands.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->followList(I)I in instance (Landroid/os/Bundle;)V pooled holding FollowListFragment.ShouldFetchSuggestedUsers
 
 # Hide highlights asks ProfileHighlights before the same row list (0BNk.buildRowViewTypes on 449)
 # adds the row of story highlights, in place of its read of the tray's row type. It's called once

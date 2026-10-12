@@ -54,6 +54,7 @@ public class ProfileSuggestionsTest {
     @After
     public void restore() {
         Settings.HIDE_PROFILE_SUGGESTIONS.resetToDefault();
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -187,5 +188,43 @@ public class ProfileSuggestionsTest {
         String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.CHAINING_BUTTON + "'"));
         assertTrue(missing, missing.contains(UnsupportedOperationException.class.getName()));
+    }
+
+    /**
+     * The follow list's section goes only with its own switch: on, the list's fetch reads as no and
+     * is counted, with the profile switch on or off; off, paused or unready, the list's own answer
+     * stands, and a list that wasn't going to fetch stays that way.
+     */
+    @Test
+    public void theFollowListSectionGoesOnlyWithItsOwnSwitch() {
+        assertEquals("the profile switch alone", 1, ProfileSuggestions.followList(1));
+
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(true);
+        assertEquals(0, ProfileSuggestions.followList(1));
+        assertEquals(0, ProfileSuggestions.followList(0));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.ROUTE));
+        assertTrue(report, report.contains("1 removed"));
+        assertTrue(report, report.contains(ProfileSuggestions.FOLLOW_LIST));
+        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
+        assertEquals("with the profile switch off", 0, ProfileSuggestions.followList(1));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 1, ProfileSuggestions.followList(1));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertEquals("unready", 1, ProfileSuggestions.followList(1)));
+
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(false);
+        assertEquals("off", 1, ProfileSuggestions.followList(1));
+    }
+
+    /** A follow list switch that throws leaves the list's answer and says which hook threw. */
+    @Test
+    public void aThrowingFollowListSwitchFailsOpenAndIsReported() {
+        assertEquals(1, ProfileSuggestions.followList(1, THROWS));
+        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.FOLLOW_LIST + "'"));
     }
 }

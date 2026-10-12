@@ -1,0 +1,88 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.hushgram.extension.instagram.settings;
+
+import static org.junit.Assert.*;
+import android.app.Activity;
+import android.preference.PreferenceGroup;
+import java.util.Arrays;
+import java.util.EnumSet;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.android.controller.ActivityController;
+import org.robolectric.annotation.Config;
+import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
+
+/** Hide Suggested for you on follow lists: a Profiles row that starts off, follows Hide suggested people, is kept in a backup and answers off while paused. */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = {28, 37})
+@SuppressWarnings("deprecation")
+public class FollowListSuggestionsSettingsTest {
+    @Rule public final SettingsContextRule settings = new SettingsContextRule();
+    private ActivityController<Activity> controller;
+    private HushgramPreferenceFragment page;
+
+    @Before public void prepare() {
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.resetToDefault();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        BaseSettings.SAFE_MODE.save(false);
+        Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
+    }
+    @After public void close() throws Exception {
+        if (controller != null) controller.close();
+        Utils.awaitBackgroundTasksForTests();
+        PatchFamily.inBuildForTests = null;
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.resetToDefault();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
+    }
+    private void open(EnumSet<PatchFamily> build) throws Exception {
+        PatchFamily.inBuildForTests = build;
+        controller = Robolectric.buildActivity(Activity.class).setup();
+        page = new HushgramPreferenceFragment();
+        controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
+        Utils.awaitBackgroundTasksForTests();
+    }
+    @Test public void theSwitchIsUnderProfilesAfterSuggestedPeopleAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.key);
+        assertNotNull(row);
+        assertEquals("Hide Suggested for you on follow lists", row.getTitle().toString());
+        assertEquals("Profiles", ((PreferenceGroup) row.getParent()).getTitle().toString());
+        assertFalse(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.get());
+        PreferenceGroup profiles = row.getParent();
+        String[] keys = new String[profiles.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = profiles.getPreference(i).getKey();
+        assertEquals(Arrays.toString(keys), Settings.HIDE_PROFILE_SUGGESTIONS.key, keys[Arrays.asList(keys).indexOf(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.key) - 1]);
+        assertTrue(PatchFamily.PROFILE_SUGGESTIONS.switches.contains(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.key));
+    }
+    @Test public void aSavedSwitchAnswersOffWhilePaused() throws Exception {
+        open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(true);
+        assertTrue(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.get());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.get());
+        assertTrue(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.savedValue());
+    }
+    @Test public void missingPatchHasNoSwitch() throws Exception {
+        open(EnumSet.of(PatchFamily.PROFILE_HIGHLIGHTS));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.key));
+    }
+}

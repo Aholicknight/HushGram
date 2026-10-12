@@ -925,6 +925,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_profile_suggestions", FALSE);
 
     /**
+     * The Suggested for you section under the followers and following lists
+     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#followList}). Read as a list
+     * opens, so off or paused, the section is back on the next list. Off to start.
+     */
+    public static final BooleanSetting HIDE_FOLLOW_LIST_SUGGESTIONS =
+            new BooleanSetting("hushgram_hide_follow_list_suggestions", FALSE);
+
+    /**
      * The row of story highlights on profiles
      * ({@link app.hushgram.extension.instagram.profile.ProfileHighlights}). Read each time Instagram
      * lays out a profile's header, so a change shows on the next profile opened. Off to start.

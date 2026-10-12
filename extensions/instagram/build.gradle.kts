@@ -244,7 +244,9 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.profile.ProfileSuggestionsTest" to listOf(
                 "offPausedAndUnreadyLeaveInstagramsAnswers[28]", "offPausedAndUnreadyLeaveInstagramsAnswers[37]",
                 "aButtonHiddenEarlierComesBackWhenTheSwitchGoesOff[28]", "aButtonHiddenEarlierComesBackWhenTheSwitchGoesOff[37]",
-                "aButtonThatThrowsIsLeftAndReported[28]", "aButtonThatThrowsIsLeftAndReported[37]"),
+                "aButtonThatThrowsIsLeftAndReported[28]", "aButtonThatThrowsIsLeftAndReported[37]",
+                "theFollowListSectionGoesOnlyWithItsOwnSwitch[28]", "theFollowListSectionGoesOnlyWithItsOwnSwitch[37]",
+                "aThrowingFollowListSwitchFailsOpenAndIsReported[28]", "aThrowingFollowListSwitchFailsOpenAndIsReported[37]"),
             "app.hushgram.extension.instagram.profile.ProfileHighlightsTest" to listOf(
                 "withTheSwitchOnTheRowIsLeftOut[28]", "withTheSwitchOnTheRowIsLeftOut[37]",
                 "offToStartAndOffKeepsTheRow[28]", "offToStartAndOffKeepsTheRow[37]",
@@ -487,6 +489,10 @@ tasks.register("verifyAndroidBoundaries") {
                 "pausedHushGramLeavesTheSoundAlone[28]", "pausedHushGramLeavesTheSoundAlone[37]",
                 "beforeTheSettingsAreReadyItIsInstagramsOwnSound[28]", "beforeTheSettingsAreReadyItIsInstagramsOwnSound[37]",
                 "withoutAViewerItSaysNo[28]", "withoutAViewerItSaysNo[37]"),
+            "app.hushgram.extension.instagram.settings.FollowListSuggestionsSettingsTest" to listOf(
+                "theSwitchIsUnderProfilesAfterSuggestedPeopleAndStartsOff[28]", "theSwitchIsUnderProfilesAfterSuggestedPeopleAndStartsOff[37]",
+                "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
+                "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
             "app.hushgram.extension.instagram.settings.MusicCardSettingsTest" to listOf(
                 "theSwitchIsUnderStoriesAfterTheTrayAndStartsOff[28]", "theSwitchIsUnderStoriesAfterTheTrayAndStartsOff[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
