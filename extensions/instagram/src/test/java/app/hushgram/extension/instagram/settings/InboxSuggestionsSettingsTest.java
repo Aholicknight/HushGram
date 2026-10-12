@@ -65,7 +65,7 @@ public class InboxSuggestionsSettingsTest {
         open(true);
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_INBOX_SUGGESTIONS.key);
         assertNotNull(row);
-        assertEquals("Hide Accounts to follow", row.getTitle().toString());
+        assertEquals("Hide suggested accounts in Messages", row.getTitle().toString());
         assertEquals("Messages", row.getParent().getTitle().toString());
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_INBOX_SUGGESTIONS.get());

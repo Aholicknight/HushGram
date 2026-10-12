@@ -73,7 +73,6 @@ Ads and privacy	Iklan dan privasi
 Back	Kembali
 Before you sign in	Sebelum Anda masuk
 Cancel	Batal
-Changing these	Mengubah pilihan ini
 Clear diagnostic data	Hapus data diagnostik
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Salin laporan singkat atau simpan laporan lengkap ke %1$s. Tautan, ID, cookie, dan data masuk tidak disertakan. Periksa apakah ada teks pribadi lain sebelum membagikannya.
 Copy a short report to the clipboard.	Salin laporan singkat ke papan klip.
@@ -120,7 +119,7 @@ Not saved: the file is over 512 MB	Tidak disimpan: file lebih dari 512 MB
 OK	Oke
 Pause HushGram	Jeda HushGram
 Pause and diagnostics	Jeda dan diagnostik
-Re-signed build fix	Perbaikan build yang ditandatangani ulang
+Instagram accepts this build	Instagram menerima build ini
 Record patch activity and show errors for a bug report. Leave off during normal use.	Catat aktivitas patch dan tampilkan kesalahan untuk laporan bug. Matikan saat penggunaan biasa.
 Remove build expired popup	Hapus popup build kedaluwarsa
 Retry	Coba lagi
@@ -153,7 +152,6 @@ The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.
 The setting couldn't finish updating. Its saved value is shown.	Pengaturan ini tidak dapat selesai diperbarui. Nilai yang tersimpan ditampilkan.
 There's no diagnostic data to clear.	Tidak ada data diagnostik yang dapat dihapus.
 There's no diagnostic data to put back.	Tidak ada data diagnostik yang dapat dikembalikan.
-They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.	Semua ini dipilih di Morphe Manager saat Anda menambal, dan Jeda tidak mematikannya. Tambal ulang untuk mengubahnya.
 Try again, or go back to Instagram.	Coba lagi, atau kembali ke Instagram.
 Updates	Pembaruan
 Version	Versi
@@ -336,7 +334,7 @@ Opens Instagram's own developer options, where you can look at and change its hi
 Pure black dark mode	Mode gelap hitam pekat
 Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.	Mode gelap Instagram memakai hitam pekat, bukan abu-abu yang hampir hitam. Menu, lembar, dan tombol tetap memakai abu-abunya sendiri.
 the pure black dark mode	mode gelap hitam pekat
-Version code raised	Kode versi dinaikkan
+No Play Store updates	Tanpa pembaruan Play Store
 Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	Google Play tidak akan menawarkan pembaruan Meta untuk build ini. Untuk kembali ke Instagram biasa, copot dulu yang ini, yang menghapus data Instagram di ponsel ini. Build HushGram berikutnya juga perlu Change version code, kalau tidak tidak bisa dipasang di atas yang ini.
 the raised version code	kode versi yang dinaikkan
 Sharing	Berbagi
@@ -502,7 +500,7 @@ Diagnostic report saved.	Laporan diagnostik disimpan.
 Choose a file for the settings export.	Pilih file untuk mengekspor pengaturan.
 Exporting HushGram settings...	Mengekspor pengaturan HushGram...
 Settings export canceled.	Ekspor pengaturan dibatalkan.
-Show a Reel seek thumb	Tampilkan pegangan penggeser Reel
+Round handle on the seek bar	Tampilkan pegangan penggeser Reel
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Menambahkan gagang bundar putih pada bilah geser yang bisa kamu seret. Iklan tetap memakai bilahnya sendiri.
 Bigger seek bar on reels	Bilah geser lebih besar di Reel
 Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.	Membuat bilah geser lebih tebal, dengan pegangan putih bulat dan waktu di atasnya, di atas gradasi gelap lembut agar terlihat di video apa pun. Seret untuk mencari posisi. Bilah juga tetap tampil di Reel pendek.
@@ -797,7 +795,7 @@ That file has no setting names in it. Nothing changed.	File itu tidak berisi nam
 Couldn't remove the setting names. Try again.	Tidak bisa menghapus nama pengaturan. Coba lagi.
 Couldn't save the setting names. Nothing changed.	Tidak bisa menyimpan nama pengaturan. Tidak ada yang berubah.
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Pada build Instagram ini, fitur ini mencakup %1$d dari %2$d jalur. Laporan diagnostik mencantumkan sisanya.
-Hide Accounts to follow	Sembunyikan Akun untuk diikuti
+Hide suggested accounts in Messages	Sembunyikan akun yang disarankan di Pesan
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Menghapus akun yang disarankan Instagram dari bagian bawah pesan kamu. Chat dan permintaan mengikuti tetap ada. Mulai ulang Instagram untuk melihat perubahannya.
 A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Getaran halus setiap kali sorotan melewati sebuah tab, jadi mengikuti bilah saat kamu mengetuk atau menggeser antar layar.
 Blur behind the tab bar	Blur di belakang bilah tab
@@ -928,7 +926,7 @@ Save photos, videos and more, and choose where they go.	Simpan foto, video, dan 
 Stop background work Instagram doesn't need.	Hentikan kerja latar belakang yang tidak dibutuhkan Instagram.
 Stop Instagram from saying this version is too old.	Cegah Instagram menyebut versi ini terlalu lama.
 Instagram's own testing tools. Change them only if you know what they do.	Alat uji milik Instagram sendiri. Ubah hanya jika kamu tahu fungsinya.
-Chosen when you patched. Patch again to change them.	Dipilih saat kamu menambal. Tambal ulang untuk mengubahnya.
+Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. Patch again to change them.	Dipilih di Morphe Manager saat kamu menambal, dan Jeda tidak mematikannya. Tambal ulang untuk mengubahnya.
 Save your HushGram choices to a file, or bring them back.	Simpan pilihan HushGram kamu ke file, atau pulihkan kembali.
 Your version, the source code and licenses.	Versimu, kode sumber, dan lisensi.
 Open settings with a long press on your profile's menu	Buka pengaturan dengan menekan lama menu profilmu
@@ -957,7 +955,7 @@ The PINs don't match.	PIN tidak sama.
 Couldn't save the PIN.	PIN tidak bisa disimpan.
 The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN tidak bisa dipulihkan. Untuk menghapusnya, hapus penyimpanan Instagram di pengaturan aplikasi Android. Kamu akan keluar dari akun dan pengaturan HushGram kembali ke awal. Cadangan pengaturan yang tersimpan mengembalikan sisanya, tapi tidak dengan PIN.
 Open app info	Buka info aplikasi
-Hide 'Are you interested' questions	Sembunyikan pertanyaan 'Apakah kamu tertarik'
+Hide 'Are you interested?' bubbles	Sembunyikan pertanyaan 'Apakah kamu tertarik'
 Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	Menyembunyikan gelembung di bawah postingan yang bertanya 'Apakah kamu tertarik dengan postingan ini?' dengan tombol Tidak tertarik dan Tertarik. Tidak ada yang dijawab untukmu.
 Show when someone was last active	Tampilkan waktu persis terakhir aktif
 Under a name in your messages and in a chat, the exact time they were last on, like Active at 3:42 PM, replaces Active 3h ago. Active now stays as it is.	Di bawah nama di pesan dan di dalam chat, waktu persis terakhir aktif, seperti Aktif pukul 15.42, menggantikan Aktif 3 jam lalu. Aktif sekarang tidak berubah.

@@ -14,6 +14,12 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** The two About rows are in Korean now, and two error messages read like the rest ("Couldn't" rather than "Could not"). Four Korean rows that spelled HushGram or Instagram wrong are fixed.
 
+* **Instagram - HushGram settings:** Set when you patched uses plain names now. Re-signed build fix is Instagram accepts this build, and Version code raised is No Play Store updates. The last row only repeated the intro, so it's gone.
+
+* **Instagram - HushGram settings:** Three switches have clearer names. Hide Accounts to follow is now Hide suggested accounts in Messages, Hide 'Are you interested' questions is Hide 'Are you interested?' bubbles, and Show a Reel seek thumb is Round handle on the seek bar.
+
+* **Instagram - HushGram settings:** The Before you sign in notice puts Tap to hide this on its own line, so a translated notice no longer runs it into the last sentence.
+
 * **Instagram - Hide the Reels tab:** TalkBack reads the Ghost mode button on Home's header as "Ghost mode" with an on or off state, the way it reads a switch, instead of a sentence about what tapping does.
 
 * **Tooling:** Unreleased version headings now work with both the changelog checker and the release notes generator. Full-screen patch checks also verify control flow when jumps need a wider encoding.

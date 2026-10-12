@@ -73,7 +73,6 @@ Ads and privacy	Anuncios y privacidad
 Back	Atrás
 Before you sign in	Antes de iniciar sesión
 Cancel	Cancelar
-Changing these	Cómo cambiarlos
 Clear diagnostic data	Borrar datos de diagnóstico
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Copia un informe rápido o guarda el completo en %1$s. Se omiten enlaces, ID, cookies y datos de inicio de sesión. Revisa si hay otro texto privado antes de compartirlo.
 Copy a short report to the clipboard.	Copia un informe breve en el portapapeles.
@@ -120,7 +119,7 @@ Not saved: the file is over 512 MB	No se guardó: el archivo supera los 512 MB
 OK	Aceptar
 Pause HushGram	Pausar HushGram
 Pause and diagnostics	Pausa y diagnóstico
-Re-signed build fix	Arreglo para la nueva firma
+Instagram accepts this build	Instagram acepta esta versión
 Record patch activity and show errors for a bug report. Leave off during normal use.	Registra la actividad de los parches y muestra errores para un informe. Déjalo desactivado en el uso normal.
 Remove build expired popup	Quitar el aviso de versión caducada
 Retry	Reintentar
@@ -153,7 +152,6 @@ The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.
 The setting couldn't finish updating. Its saved value is shown.	No se pudo terminar de actualizar el ajuste. Se muestra su valor guardado.
 There's no diagnostic data to clear.	No hay datos de diagnóstico que borrar.
 There's no diagnostic data to put back.	No hay datos de diagnóstico que restaurar.
-They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.	Se eligen en Morphe Manager al parchear, y Pausar no los desactiva. Vuelve a parchear para cambiarlos.
 Try again, or go back to Instagram.	Inténtalo de nuevo o vuelve a Instagram.
 Updates	Actualizaciones
 Version	Versión
@@ -336,7 +334,7 @@ Opens Instagram's own developer options, where you can look at and change its hi
 Pure black dark mode	Modo oscuro negro puro
 Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.	El modo oscuro de Instagram usa negro puro en lugar de su gris casi negro. Los menús, las hojas y los botones conservan sus propios grises.
 the pure black dark mode	el modo oscuro negro puro
-Version code raised	Código de versión aumentado
+No Play Store updates	Sin actualizaciones de Play Store
 Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	Google Play no ofrecerá las actualizaciones de Meta sobre esta versión. Para volver al Instagram normal, desinstala primero esta, lo que borra los datos de Instagram en este teléfono. Las próximas versiones de HushGram también necesitan Change version code, o no se instalarán sobre esta.
 the raised version code	el código de versión aumentado
 Sharing	Compartir
@@ -502,7 +500,7 @@ Diagnostic report saved.	Informe de diagnóstico guardado.
 Choose a file for the settings export.	Elige un archivo para exportar los ajustes.
 Exporting HushGram settings...	Exportando los ajustes de HushGram...
 Settings export canceled.	Exportación de ajustes cancelada.
-Show a Reel seek thumb	Mostrar control circular en Reels
+Round handle on the seek bar	Mostrar control circular en Reels
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Añade a la barra de búsqueda un control redondo blanco que puedes arrastrar. Los anuncios conservan su propia barra.
 Bigger seek bar on reels	Barra de progreso más grande en Reels
 Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.	Hace la barra de progreso más gruesa, con un control redondo blanco y el tiempo encima, sobre un degradado oscuro suave para que se vea en cualquier video. Arrástrala para avanzar. También mantiene la barra en los Reels cortos.
@@ -797,7 +795,7 @@ That file has no setting names in it. Nothing changed.	Ese archivo no tiene nomb
 Couldn't remove the setting names. Try again.	No se pudieron quitar los nombres de ajustes. Inténtalo de nuevo.
 Couldn't save the setting names. Nothing changed.	No se pudieron guardar los nombres de ajustes. No cambió nada.
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	En esta compilación de Instagram cubre %1$d de %2$d vías. El informe de diagnóstico indica el resto.
-Hide Accounts to follow	Ocultar Cuentas para seguir
+Hide suggested accounts in Messages	Ocultar cuentas sugeridas en Mensajes
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Quita de la parte inferior de tus mensajes las cuentas que Instagram te sugiere. Tus chats y las solicitudes de seguimiento se quedan. Reinicia Instagram para ver el cambio.
 A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Un toque suave cada vez que el resaltado pasa por una pestaña, para que siga la barra al tocar o deslizar entre pantallas.
 Blur behind the tab bar	Desenfoque tras la barra de pestañas
@@ -928,7 +926,7 @@ Save photos, videos and more, and choose where they go.	Guarda fotos, videos y m
 Stop background work Instagram doesn't need.	Detén el trabajo en segundo plano que Instagram no necesita.
 Stop Instagram from saying this version is too old.	Evita que Instagram diga que esta versión es demasiado antigua.
 Instagram's own testing tools. Change them only if you know what they do.	Las herramientas de prueba de Instagram. Cámbialas solo si sabes lo que hacen.
-Chosen when you patched. Patch again to change them.	Se eligieron al parchear. Vuelve a parchear para cambiarlos.
+Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. Patch again to change them.	Se eligieron en Morphe Manager al parchear, y Pausar no los desactiva. Vuelve a parchear para cambiarlos.
 Save your HushGram choices to a file, or bring them back.	Guarda tus opciones de HushGram en un archivo o recupéralas.
 Your version, the source code and licenses.	Tu versión, el código fuente y las licencias.
 Open settings with a long press on your profile's menu	Abrir ajustes al mantener pulsado el menú de tu perfil
@@ -957,7 +955,7 @@ The PINs don't match.	Los PIN no coinciden.
 Couldn't save the PIN.	No se pudo guardar el PIN.
 The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	El PIN no se puede recuperar. Para quitarlo, borra el almacenamiento de Instagram en los ajustes de apps de Android. Eso cierra tu sesión y restablece los ajustes de HushGram. Una copia de seguridad de los ajustes recupera el resto, pero no el PIN.
 Open app info	Abrir info de la app
-Hide 'Are you interested' questions	Ocultar las preguntas «¿Te interesa esta publicación?»
+Hide 'Are you interested?' bubbles	Ocultar las preguntas «¿Te interesa esta publicación?»
 Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	Oculta el globo bajo una publicación que pregunta «¿Te interesa esta publicación?» con los botones No me interesa y Me interesa. No se responde nada por ti.
 Show when someone was last active	Mostrar la hora exacta de la última actividad
 Under a name in your messages and in a chat, the exact time they were last on, like Active at 3:42 PM, replaces Active 3h ago. Active now stays as it is.	Bajo un nombre en tus mensajes y en un chat, la hora exacta de la última actividad, como Activo a las 15:42, reemplaza a Activo hace 3 h. Activo ahora se queda como está.

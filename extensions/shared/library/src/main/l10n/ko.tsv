@@ -74,7 +74,6 @@ Ads and privacy	광고 및 개인정보 보호
 Back	뒤로
 Before you sign in	로그인 전에 읽어보세요
 Cancel	취소
-Changing these	이 기능을 변경하려면...
 Clear diagnostic data	진단 데이터 지우기
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	간단한 보고서를 복사하거나 전체 보고서를 %1$s에 저장하세요. 링크, ID, 쿠키, 로그인 정보는 제외됩니다. 공유하기 전에 다른 개인 정보가 없는지 확인하세요.
 Copy a short report to the clipboard.	간단한 진단 보고서를 클립보드에 복사합니다
@@ -121,7 +120,7 @@ Not saved: the file is over 512 MB	저장되지 않음: 파일 크기가 512MB�
 OK	확인
 Pause HushGram	HushGram 일시 정지
 Pause and diagnostics	일시 정지 및 진단
-Re-signed build fix	다시 서명된 빌드 수정
+Instagram accepts this build	Instagram에서 이 빌드 허용
 Record patch activity and show errors for a bug report. Leave off during normal use.	패치 작업을 기록하고 버그 신고를 위한 오류를 표시합니다. 일반적으로 사용할 때는 비활성화하세요
 Remove build expired popup	빌드 만료 팝업 제거
 Retry	다시 시도
@@ -154,7 +153,6 @@ The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.
 The setting couldn't finish updating. Its saved value is shown.	설정 업데이트를 완료하지 못하였습니다. 저장된 값이 표시됩니다
 There's no diagnostic data to clear.	삭제할 진단 데이터가 없습니다
 There's no diagnostic data to put back.	복원할 진단 데이터가 없습니다
-They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.	패치할 때 Morphe Manager에서 선택되며, HushGram을 일시 정지해도 비활성화되지 않습니다. 변경하려면 다시 패치하세요
 Try again, or go back to Instagram.	다시 시도하거나 Instagram으로 돌아가세요
 Updates	업데이트
 Version	버전
@@ -337,7 +335,7 @@ Opens Instagram's own developer options, where you can look at and change its hi
 Pure black dark mode	순수 검정 어두운 모드
 Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.	Instagram의 어두운 모드에서 기존의 짙은 회색 대신 순수 검정색을 사용합니다. 메뉴, 시트 및 버튼은 각각 기존의 회색을 유지합니다
 the pure black dark mode	순수 검정 어두운 모드
-Version code raised	버전 코드 높임
+No Play Store updates	Play 스토어 업데이트 없음
 Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	Google Play가 이 빌드 위에 Meta의 업데이트를 제안하지 않습니다. 일반 Instagram으로 돌아가려면 먼저 이 앱을 삭제해야 하며, 이 휴대폰의 Instagram 데이터가 지워집니다. 이후의 HushGram 빌드에도 Change version code가 필요하며, 없으면 이 빌드 위에 설치되지 않습니다.
 the raised version code	높인 버전 코드
 Sharing	공유
@@ -502,7 +500,7 @@ Diagnostic report saved.	진단 보고서가 저장되었습니다.
 Choose a file for the settings export.	설정을 내보낼 파일을 선택하세요.
 Exporting HushGram settings...	HushGram 설정 내보내는 중...
 Settings export canceled.	설정 내보내기가 취소되었습니다.
-Show a Reel seek thumb	릴스 탐색 핸들 표시
+Round handle on the seek bar	릴스 탐색 핸들 표시
 Settings entry	설정 열기
 Open settings with a tab long press	탭을 길게 탭하여 설정 열기
 Choose a tab	탭 선택
@@ -796,7 +794,7 @@ That file has no setting names in it. Nothing changed.	그 파일에는 설정 �
 Couldn't remove the setting names. Try again.	설정 이름을 제거하지 못했습니다. 다시 시도하세요.
 Couldn't save the setting names. Nothing changed.	설정 이름을 저장하지 못했습니다. 바뀐 것은 없습니다.
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	이 Instagram 빌드에서는 경로 %2$d개 중 %1$d개를 다룹니다. 나머지는 진단 보고서에 나와 있습니다.
-Hide Accounts to follow	팔로우할 계정 숨기기
+Hide suggested accounts in Messages	메시지에서 추천 계정 숨기기
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	메시지 하단에서 Instagram이 추천하는 계정을 숨깁니다. 채팅과 팔로우 요청은 그대로 유지됩니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	하이라이트가 탭을 지날 때마다 가벼운 진동이 울려, 탭하거나 화면 사이를 넘길 때 막대를 따라갑니다.
 Blur behind the tab bar	탭 바 뒤 흐림 효과
@@ -927,7 +925,7 @@ Save photos, videos and more, and choose where they go.	사진, 동영상 등을
 Stop background work Instagram doesn't need.	Instagram에 필요 없는 백그라운드 작업을 멈춥니다.
 Stop Instagram from saying this version is too old.	Instagram이 이 버전이 너무 오래되었다고 알리지 않게 합니다.
 Instagram's own testing tools. Change them only if you know what they do.	Instagram 자체 테스트 도구입니다. 무엇을 하는지 알 때만 바꾸세요.
-Chosen when you patched. Patch again to change them.	패치할 때 선택한 항목입니다. 변경하려면 다시 패치하세요.
+Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. Patch again to change them.	패치할 때 Morphe Manager에서 선택한 항목이며, HushGram을 일시 정지해도 꺼지지 않습니다. 변경하려면 다시 패치하세요.
 Save your HushGram choices to a file, or bring them back.	HushGram 설정을 파일로 저장하거나 다시 불러옵니다.
 Your version, the source code and licenses.	사용 중인 버전, 소스 코드, 라이선스입니다.
 Open settings with a long press on your profile's menu	프로필 메뉴를 길게 탭하여 설정 열기
@@ -956,7 +954,7 @@ The PINs don't match.	PIN이 서로 다릅니다.
 Couldn't save the PIN.	PIN을 저장하지 못했습니다.
 The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN은 복구할 수 없습니다. 없애려면 Android 앱 설정에서 Instagram 저장소를 지우세요. 로그아웃되고 HushGram 설정이 초기화됩니다. 저장해 둔 설정 백업으로 나머지는 되돌릴 수 있지만 PIN은 돌아오지 않습니다.
 Open app info	앱 정보 열기
-Hide 'Are you interested' questions	'이 게시물에 관심이 있으신가요?' 질문 숨기기
+Hide 'Are you interested?' bubbles	'이 게시물에 관심이 있으신가요?' 질문 숨기기
 Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	게시물 아래에 '이 게시물에 관심이 있으신가요?'라고 묻고 관심 없음과 관심 있음 버튼이 있는 말풍선을 숨깁니다. 대신 답해 주지는 않습니다.
 Show when someone was last active	마지막 활동 시간을 정확히 표시
 Under a name in your messages and in a chat, the exact time they were last on, like Active at 3:42 PM, replaces Active 3h ago. Active now stays as it is.	메시지 목록의 이름 아래와 채팅에서 3시간 전 활동 대신 오후 3:42에 활동처럼 마지막으로 활동한 정확한 시간을 보여줍니다. 지금 활동 중은 그대로입니다.

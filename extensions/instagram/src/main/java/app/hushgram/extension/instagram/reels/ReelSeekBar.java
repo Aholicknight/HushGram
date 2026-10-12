@@ -111,7 +111,7 @@ public final class ReelSeekBar {
         return Utils.settingsReady() && (Settings.REEL_SEEK_BAR.get() || Settings.BIG_REEL_SEEK_BAR.get());
     }
 
-    /** Whether the bar gets a thumb: Show a Reel seek thumb, or the bigger bar, which always has one. */
+    /** Whether the bar gets a thumb: Round handle on the seek bar, or the bigger bar, which always has one. */
     static boolean thumbOn() {
         return Utils.settingsReady() && (Settings.REEL_SEEK_THUMB.get() || Settings.BIG_REEL_SEEK_BAR.get());
     }

@@ -10,7 +10,7 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
- * Hide 'Are you interested' questions, a switch of the "Hide suggested posts" patch.
+ * Hide 'Are you interested?' bubbles, a switch of the "Hide suggested posts" patch.
  *
  * <p>Instagram's Home feed adapter adds a row of its own after some posts: a bubble asking "Are you
  * interested in this post?" with Not interested and Interested buttons. The server sends it, so the

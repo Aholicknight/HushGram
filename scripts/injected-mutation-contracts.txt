@@ -703,7 +703,7 @@ once-call Lapp/hushgram/extension/instagram/explore/ExploreShopping;->section(Lj
 # both schema names.
 once-call Lapp/hushgram/extension/instagram/feed/ProductTags;->indicator(I)I in instance (Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Lcom/instagram/feed/media/Media;)LX/*; holding itas-android ig4a-instagram-schema
 #
-# Hide 'Are you interested' questions asks FeedInterest once in Home's row builder, where its two
+# Hide 'Are you interested?' bubbles asks FeedInterest once in Home's row builder, where its two
 # module checks meet and the question's row is about to be added, and a yes goes on to the builder's
 # return. The builder is the one instance method of the shape (adapter list, Object, Object)V that
 # holds both feed module names: the feed adapter's other builder takes three objects of its own

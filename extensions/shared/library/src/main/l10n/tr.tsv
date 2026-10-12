@@ -73,7 +73,6 @@ Ads and privacy	Reklamlar ve gizlilik
 Back	Geri
 Before you sign in	Giriş yapmadan önce
 Cancel	İptal
-Changing these	Bunları değiştirmek
 Clear diagnostic data	Tanılama verilerini temizle
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Kısa bir rapor kopyala veya tam raporu %1$s konumuna kaydet. Bağlantılar, kimlikler, çerezler ve oturum açma bilgileri dahil edilmez. Paylaşmadan önce başka özel metin olup olmadığına bak.
 Copy a short report to the clipboard.	Kısa raporu panoya kopyalar.
@@ -120,7 +119,7 @@ Not saved: the file is over 512 MB	Kaydedilmedi: Dosya 512 MB'tan büyük
 OK	Tamam
 Pause HushGram	HushGram'u duraklat
 Pause and diagnostics	Duraklatma ve tanılama
-Re-signed build fix	Yeniden imzalanmış sürüm düzeltmesi
+Instagram accepts this build	Instagram bu sürümü kabul eder
 Record patch activity and show errors for a bug report. Leave off during normal use.	Hata raporu için yama etkinliğini kaydeder ve hataları gösterir. Normal kullanımda kapalı bırakın.
 Remove build expired popup	Süresi dolan sürüm uyarısını kaldır
 Retry	Yeniden dene
@@ -153,7 +152,6 @@ The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.
 The setting couldn't finish updating. Its saved value is shown.	Ayarın güncellenmesi tamamlanamadı. Kayıtlı değeri gösteriliyor.
 There's no diagnostic data to clear.	Temizlenecek tanılama verisi yok.
 There's no diagnostic data to put back.	Geri getirilecek tanılama verisi yok.
-They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.	Bunlar yamalarken Morphe Manager'da seçilir ve Duraklatma bunları kapatmaz. Değiştirmek için yeniden yamala.
 Try again, or go back to Instagram.	Tekrar dene veya Instagram'a geri dön.
 Updates	Güncellemeler
 Version	Sürüm
@@ -336,7 +334,7 @@ Opens Instagram's own developer options, where you can look at and change its hi
 Pure black dark mode	Saf siyah karanlık mod
 Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.	Instagram'ın karanlık modu, siyaha yakın grisi yerine saf siyah kullanır. Menüler, sayfalar ve düğmeler kendi gri tonlarını korur.
 the pure black dark mode	saf siyah karanlık mod
-Version code raised	Sürüm kodu yükseltildi
+No Play Store updates	Play Store güncellemesi yok
 Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	Google Play bu sürümün üzerine Meta güncellemeleri sunmaz. Normal Instagram'a dönmek için önce bunu kaldır. Bu işlem Instagram'ın bu telefondaki verilerini siler. Sonraki HushGram sürümlerinin de Change version code'a ihtiyacı var, yoksa bunun üzerine kurulmazlar.
 the raised version code	yükseltilmiş sürüm kodu
 Sharing	Paylaşım
@@ -502,7 +500,7 @@ Diagnostic report saved.	Tanılama raporu kaydedildi.
 Choose a file for the settings export.	Ayarları dışa aktarmak için bir dosya seçin.
 Exporting HushGram settings...	HushGram ayarları dışa aktarılıyor...
 Settings export canceled.	Ayar dışa aktarma işlemi iptal edildi.
-Show a Reel seek thumb	Reel ilerleme tutamacını göster
+Round handle on the seek bar	Reel ilerleme tutamacını göster
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Arama çubuğuna sürükleyebileceğin beyaz, yuvarlak bir tutamaç ekler. Reklamlar kendi çubuklarını korur.
 Bigger seek bar on reels	Reel'lerde daha büyük ilerleme çubuğu
 Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.	İlerleme çubuğunu daha kalın yapar. Yuvarlak beyaz tutamaç ve üstünde süre gösterir, her videoda görünsün diye yumuşak koyu bir geçişin üzerinde durur. Sürükleyerek ilerle. Kısa Reel'lerde de çubuğu tutar.
@@ -797,7 +795,7 @@ That file has no setting names in it. Nothing changed.	Bu dosyada ayar adı yok.
 Couldn't remove the setting names. Try again.	Ayar adları kaldırılamadı. Tekrar dene.
 Couldn't save the setting names. Nothing changed.	Ayar adları kaydedilemedi. Hiçbir şey değişmedi.
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Bu Instagram sürümünde %2$d yolun %1$d tanesini kapsıyor. Kalanlar tanılama raporunda listelenir.
-Hide Accounts to follow	Takip edilecek hesapları gizle
+Hide suggested accounts in Messages	Mesajlar'daki önerilen hesapları gizle
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Instagram'ın önerdiği hesapları mesajlarının altından kaldırır. Sohbetlerin ve takip istekleri kalır. Değişikliği görmek için Instagram'ı yeniden başlat.
 A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Vurgu bir sekmenin üzerinden her geçtiğinde hafif bir titreşim verir; ekranlar arasında dokunurken veya kaydırırken çubuğu takip eder.
 Blur behind the tab bar	Sekme çubuğunun arkasında bulanıklık
@@ -928,7 +926,7 @@ Save photos, videos and more, and choose where they go.	Fotoğraf, video ve daha
 Stop background work Instagram doesn't need.	Instagram'ın ihtiyaç duymadığı arka plan işlerini durdur.
 Stop Instagram from saying this version is too old.	Instagram'ın bu sürümün çok eski olduğunu söylemesini engelle.
 Instagram's own testing tools. Change them only if you know what they do.	Instagram'ın kendi test araçları. Yalnızca ne yaptıklarını biliyorsan değiştir.
-Chosen when you patched. Patch again to change them.	Yamalarken seçildi. Değiştirmek için yeniden yamala.
+Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. Patch again to change them.	Yamalarken Morphe Manager'da seçildi ve Duraklatma bunları kapatmaz. Değiştirmek için yeniden yamala.
 Save your HushGram choices to a file, or bring them back.	HushGram seçimlerini bir dosyaya kaydet ya da geri getir.
 Your version, the source code and licenses.	Sürümün, kaynak kodu ve lisanslar.
 Open settings with a long press on your profile's menu	Profilinin menüsüne uzun basarak ayarları aç
@@ -957,7 +955,7 @@ The PINs don't match.	PIN'ler eşleşmiyor.
 Couldn't save the PIN.	PIN kaydedilemedi.
 The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN geri alınamaz. Kaldırmak için Android uygulama ayarlarında Instagram'ın depolamasını temizle. Bu, oturumunu kapatır ve HushGram ayarlarını sıfırlar. Kayıtlı bir ayar yedeği geri kalanı getirir, ama PIN'i getirmez.
 Open app info	Uygulama bilgisini aç
-Hide 'Are you interested' questions	'Bu gönderiyle ilgileniyor musun?' sorularını gizle
+Hide 'Are you interested?' bubbles	'Bu gönderiyle ilgileniyor musun?' sorularını gizle
 Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	Bir gönderinin altında 'Bu gönderiyle ilgileniyor musun?' diye soran, İlgilenmiyorum ve İlgileniyorum düğmeleri olan balonu gizler. Senin yerine hiçbir şey yanıtlanmaz.
 Show when someone was last active	Son aktif olma saatini tam göster
 Under a name in your messages and in a chat, the exact time they were last on, like Active at 3:42 PM, replaces Active 3h ago. Active now stays as it is.	Mesajlarındaki isimlerin altında ve sohbette, 3 sa. önce aktifti yerine 15:42'de aktifti gibi en son aktif olduğu tam saat görünür. Şu an aktif olduğu gibi kalır.

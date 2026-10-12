@@ -494,7 +494,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Hides the rows of products to shop and live shopping that Instagram puts between posts, "
                             + "and the shop tiles in Explore. Posts with tagged products don't show the shopping "
                             + "bag.")));
-            feed.addPreference(toggle(context, Settings.HIDE_FEED_INTEREST, L10n.t("Hide 'Are you interested' questions"),
+            feed.addPreference(toggle(context, Settings.HIDE_FEED_INTEREST, L10n.t("Hide 'Are you interested?' bubbles"),
                     L10n.t("Hides the bubble under a post that asks 'Are you interested in this post?' with Not "
                             + "interested and Interested buttons. Nothing is answered for you.")));
             if (PatchFamily.feedTypesInBuild()) {
@@ -648,7 +648,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             if (build.contains(PatchFamily.INBOX_SUGGESTIONS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_INBOX_SUGGESTIONS,
-                        L10n.t("Hide Accounts to follow"),
+                        L10n.t("Hide suggested accounts in Messages"),
                         L10n.t("Takes the accounts Instagram suggests off the bottom of your messages. Your chats "
                                 + "and follow requests stay. Restart Instagram to see the change.")));
             }
@@ -807,7 +807,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.REEL_SEEK_BAR, L10n.t("Keep a seek bar"),
                     L10n.t("Instagram's seek bar stays under every reel, short ones too, with the time played and "
                             + "the reel's length above it. Ads keep Instagram's own rules.")));
-            reels.add(toggle(context, Settings.REEL_SEEK_THUMB, L10n.t("Show a Reel seek thumb"),
+            reels.add(toggle(context, Settings.REEL_SEEK_THUMB, L10n.t("Round handle on the seek bar"),
                     L10n.t("Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.")));
             reels.add(toggle(context, Settings.BIG_REEL_SEEK_BAR, L10n.t("Bigger seek bar on reels"),
                     L10n.t("Makes the seek bar thicker, with a round white handle and the time above it, over a soft "
@@ -1398,9 +1398,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (build.contains(PatchFamily.RESTORE_TRUST) || build.contains(PatchFamily.REMOVE_AD_ID)
                 || build.contains(PatchFamily.PURE_BLACK) || build.contains(PatchFamily.VERSION_CODE)) {
             PreferenceCategory patched = category(screen, L10n.t("Set when you patched"), SettingsIcons.BUILD,
-                    L10n.t("Chosen when you patched. Patch again to change them."));
+                    L10n.t("Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. "
+                            + "Patch again to change them."));
             if (build.contains(PatchFamily.RESTORE_TRUST)) {
-                patched.addPreference(mark(info(context, L10n.t("Re-signed build fix"),
+                patched.addPreference(mark(info(context, L10n.t("Instagram accepts this build"),
                         L10n.t("Instagram's own checks of who signed the app keep passing on this patched build.")), SettingsIcons.BUILD));
             }
             if (build.contains(PatchFamily.REMOVE_AD_ID)) {
@@ -1415,15 +1416,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                                 + "and buttons keep their own grays.")), SettingsIcons.MOON));
             }
             if (build.contains(PatchFamily.VERSION_CODE)) {
-                patched.addPreference(mark(info(context, L10n.t("Version code raised"),
+                patched.addPreference(mark(info(context, L10n.t("No Play Store updates"),
                         L10n.t("Google Play won't offer Meta's updates over this build. To go back to the normal "
                                 + "Instagram, uninstall this one first, which deletes Instagram's data on this "
                                 + "phone. Later HushGram builds need Change version code too, or they won't install "
                                 + "over this one.")), SettingsIcons.UPDATES));
             }
-            patched.addPreference(info(context, L10n.t("Changing these"),
-                    L10n.t("They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. "
-                            + "Patch again to change them.")));
         }
 
         PreferenceCategory backup = category(screen, L10n.t("Settings backup"), SettingsIcons.TOOLS,
@@ -1563,10 +1561,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             && (Settings.DOWNLOAD_QUALITY.key.equals(key)
                             || Settings.SAVE_FOLDER.key.equals(key) || Settings.FILENAME_TEMPLATE.key.equals(key)
                             || Settings.DOWNLOAD_COMPATIBLE.key.equals(key));
-                    belongs |= family == PatchFamily.RESTORE_TRUST && L10n.t("Re-signed build fix").equals(row.getTitle());
+                    belongs |= family == PatchFamily.RESTORE_TRUST && L10n.t("Instagram accepts this build").equals(row.getTitle());
                     belongs |= family == PatchFamily.REMOVE_AD_ID && L10n.t("Advertising ID removed").equals(row.getTitle());
                     belongs |= family == PatchFamily.PURE_BLACK && L10n.t("Pure black dark mode").equals(row.getTitle());
-                    belongs |= family == PatchFamily.VERSION_CODE && L10n.t("Version code raised").equals(row.getTitle());
+                    belongs |= family == PatchFamily.VERSION_CODE && L10n.t("No Play Store updates").equals(row.getTitle());
                     if (!belongs) continue;
                     aliases.append(' ').append(family.patchName);
                     if (family == PatchFamily.DISABLE_ANALYTICS) aliases.append(" contacts contact location setup analytics ")
@@ -2885,7 +2883,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 + "rather not risk your account, try a spare one first. Installing updates over the top with the "
                 + "same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install "
                 + "keeps the sign-in you already have.")
-                + " " + L10n.t("Tap to hide this."));
+                // Its own line: two translations joined by a space can read as one broken sentence.
+                + "\n\n" + L10n.t("Tap to hide this."));
         notice.actsAtOnce = true;
         notice.setOnPreferenceClickListener(row -> {
             if (Settings.SIGN_IN_NOTICE_HIDDEN.save(true)) screen.removePreference(row);

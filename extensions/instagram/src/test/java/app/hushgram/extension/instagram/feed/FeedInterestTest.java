@@ -24,7 +24,7 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
- * Hide 'Are you interested' questions: the hook the patch puts where Home's row builder is about to
+ * Hide 'Are you interested?' bubbles: the hook the patch puts where Home's row builder is about to
  * add the question's row answers yes only with the switch on, ready and not paused, and counts each
  * row it leaves out.
  */

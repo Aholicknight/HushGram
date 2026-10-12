@@ -73,7 +73,6 @@ Ads and privacy	Anúncios e privacidade
 Back	Voltar
 Before you sign in	Antes de entrar
 Cancel	Cancelar
-Changing these	Como alterar estas opções
 Clear diagnostic data	Limpar dados de diagnóstico
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Copie um relatório rápido ou salve o completo em %1$s. Links, IDs, cookies e dados de login ficam de fora. Confira se há outro texto privado antes de compartilhar.
 Copy a short report to the clipboard.	Copie um relatório curto para a área de transferência.
@@ -120,7 +119,7 @@ Not saved: the file is over 512 MB	Não foi salvo: o arquivo tem mais de 512 MB
 OK	OK
 Pause HushGram	Pausar o HushGram
 Pause and diagnostics	Pausa e diagnóstico
-Re-signed build fix	Correção para versão com nova assinatura
+Instagram accepts this build	O Instagram aceita esta versão
 Record patch activity and show errors for a bug report. Leave off during normal use.	Registra a atividade dos patches e mostra os erros para um relatório de problema. Mantenha desativado durante o uso normal.
 Remove build expired popup	Remover aviso de versão expirada
 Retry	Tentar novamente
@@ -153,7 +152,6 @@ The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.
 The setting couldn't finish updating. Its saved value is shown.	Não foi possível concluir a atualização da configuração. O valor salvo está sendo mostrado.
 There's no diagnostic data to clear.	Não há dados de diagnóstico para limpar.
 There's no diagnostic data to put back.	Não há dados de diagnóstico para restaurar.
-They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.	Eles são escolhidos no Morphe Manager quando você aplica os patches, e a pausa não os desativa. Aplique os patches novamente para alterá-los.
 Try again, or go back to Instagram.	Tente novamente ou volte para o Instagram.
 Updates	Atualizações
 Version	Versão
@@ -336,7 +334,7 @@ Opens Instagram's own developer options, where you can look at and change its hi
 Pure black dark mode	Modo escuro preto puro
 Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.	O modo escuro do Instagram usa preto puro em vez do cinza quase preto. Menus, painéis e botões mantêm os próprios tons de cinza.
 the pure black dark mode	o modo escuro preto puro
-Version code raised	Código de versão aumentado
+No Play Store updates	Sem atualizações da Play Store
 Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	O Google Play não vai oferecer as atualizações da Meta sobre esta versão. Para voltar ao Instagram normal, desinstale esta primeiro, o que apaga os dados do Instagram neste celular. As próximas versões do HushGram também precisam de Change version code, ou não serão instaladas por cima desta.
 the raised version code	o código de versão aumentado
 Sharing	Compartilhamento
@@ -502,7 +500,7 @@ Diagnostic report saved.	Relatório de diagnóstico salvo.
 Choose a file for the settings export.	Escolha um arquivo para exportar as configurações.
 Exporting HushGram settings...	Exportando as configurações do HushGram...
 Settings export canceled.	Exportação das configurações cancelada.
-Show a Reel seek thumb	Mostrar controle circular nos Reels
+Round handle on the seek bar	Mostrar controle circular nos Reels
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Adiciona à barra de progresso uma alça redonda branca que você pode arrastar. Os anúncios mantêm a barra deles.
 Bigger seek bar on reels	Barra de progresso maior nos Reels
 Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.	Deixa a barra de progresso mais grossa, com um controle redondo branco e o tempo acima, sobre um degradê escuro suave para aparecer em qualquer vídeo. Arraste para avançar. Também mantém a barra em Reels curtos.
@@ -797,7 +795,7 @@ That file has no setting names in it. Nothing changed.	Esse arquivo não tem nom
 Couldn't remove the setting names. Try again.	Não foi possível remover os nomes de configurações. Tente de novo.
 Couldn't save the setting names. Nothing changed.	Não foi possível salvar os nomes de configurações. Nada mudou.
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Nesta versão do Instagram, cobre %1$d de %2$d caminhos. O relatório de diagnóstico lista o restante.
-Hide Accounts to follow	Ocultar Contas para seguir
+Hide suggested accounts in Messages	Ocultar contas sugeridas nas Mensagens
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Tira da parte de baixo das suas mensagens as contas que o Instagram sugere. Suas conversas e as solicitações para seguir continuam lá. Reinicie o Instagram para ver a mudança.
 A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Um toque leve cada vez que o destaque passa por uma aba, para acompanhar a barra quando você toca ou desliza entre telas.
 Blur behind the tab bar	Desfoque atrás da barra de abas
@@ -928,7 +926,7 @@ Save photos, videos and more, and choose where they go.	Salve fotos, vídeos e m
 Stop background work Instagram doesn't need.	Pare o trabalho em segundo plano de que o Instagram não precisa.
 Stop Instagram from saying this version is too old.	Impeça o Instagram de dizer que esta versão é antiga demais.
 Instagram's own testing tools. Change them only if you know what they do.	As ferramentas de teste do próprio Instagram. Mude só se você souber o que elas fazem.
-Chosen when you patched. Patch again to change them.	Escolhidos quando você aplicou os patches. Aplique os patches novamente para alterá-los.
+Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. Patch again to change them.	Escolhidos no Morphe Manager quando você aplicou os patches, e a pausa não os desativa. Aplique os patches novamente para alterá-los.
 Save your HushGram choices to a file, or bring them back.	Salve suas escolhas do HushGram em um arquivo ou traga-as de volta.
 Your version, the source code and licenses.	Sua versão, o código-fonte e as licenças.
 Open settings with a long press on your profile's menu	Abrir configurações ao manter o menu do seu perfil pressionado
@@ -957,7 +955,7 @@ The PINs don't match.	Os PINs não são iguais.
 Couldn't save the PIN.	Não deu para salvar o PIN.
 The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	O PIN não pode ser recuperado. Para removê-lo, limpe o armazenamento do Instagram nas configurações de apps do Android. Isso desconecta você e redefine as configurações do HushGram. Um backup das configurações traz o resto de volta, mas não o PIN.
 Open app info	Abrir info do app
-Hide 'Are you interested' questions	Ocultar as perguntas “Você tem interesse nesta publicação?”
+Hide 'Are you interested?' bubbles	Ocultar as perguntas “Você tem interesse nesta publicação?”
 Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	Oculta o balão sob uma publicação que pergunta “Você tem interesse nesta publicação?” com os botões Não tenho interesse e Tenho interesse. Nada é respondido por você.
 Show when someone was last active	Mostrar a hora exata da última atividade
 Under a name in your messages and in a chat, the exact time they were last on, like Active at 3:42 PM, replaces Active 3h ago. Active now stays as it is.	Abaixo do nome nas mensagens e no chat, a hora exata da última atividade, como Ativo às 15:42, no lugar de Ativo há 3 h. Ativo agora continua como está.

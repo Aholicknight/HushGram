@@ -57,7 +57,7 @@ public class SignInNoticeTest {
             assertTrue(summary, summary.contains("sign-in"));
             assertTrue(summary, summary.startsWith("Nobody outside Meta knows what gets an account suspended."));
             assertTrue(summary, summary.contains("same signing key"));
-            assertTrue(summary, summary.endsWith("Tap to hide this."));
+            assertTrue(summary, summary.endsWith("keeps the sign-in you already have.\n\nTap to hide this."));
             assertTrue("a tap on it acts at once", ((HushgramPreferenceFragment.Row) notice).actsOnTap());
         }
     }

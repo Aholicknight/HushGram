@@ -24,7 +24,7 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Hide 'Are you interested' questions sits under Feed with Hide suggested posts' switches, starts off and is kept in a backup. */
+/** Hide 'Are you interested?' bubbles sits under Feed with Hide suggested posts' switches, starts off and is kept in a backup. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
@@ -59,7 +59,7 @@ public class FeedInterestSettingsTest {
         open(EnumSet.of(PatchFamily.FEED_SUGGESTIONS));
         Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_FEED_INTEREST.key);
         assertNotNull(row);
-        assertEquals("Hide 'Are you interested' questions", row.getTitle().toString());
+        assertEquals("Hide 'Are you interested?' bubbles", row.getTitle().toString());
         assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("Nothing is answered for you."));
         PreferenceGroup feed = (PreferenceGroup) row.getParent();
         assertEquals("Feed", feed.getTitle().toString());
