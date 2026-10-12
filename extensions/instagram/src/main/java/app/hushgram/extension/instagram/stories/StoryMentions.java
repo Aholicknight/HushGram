@@ -59,8 +59,9 @@ import app.hushgram.extension.shared.ui.Dim;
  *
  * <p>Instagram's story viewer gives each of its pages the story it shows in one place, its item
  * binder's bindMedia step. The patch calls {@link #bind} right after that, with the page and the
- * story. Once Instagram has bound the page's header, a pill goes under the name in it saying how
- * many accounts the story mentions, from the story's own list of mentions, so a mention sticker
+ * story. Once Instagram has bound the page's header, a pill goes after the name and time in it
+ * (under the name when they share no row) saying how many accounts the story mentions, from the
+ * story's own list of mentions, so a mention sticker
  * that's hidden, shrunk or dragged off screen still counts. A story with none gets no pill.
  * Tapping the pill lists the accounts with their pictures, names and usernames, and tapping one
  * opens that profile through Instagram's own handling of a link to it. The story viewer takes every
@@ -83,10 +84,17 @@ public final class StoryMentions {
      */
     static final long[] TRIES = {0, 250, 750};
 
+    /** The id of the header's name, whose row the pill goes at the end of when it has one. */
+    static final String TITLE = "reel_viewer_title";
+
     /** Set by tests that have no Instagram resources: the header column's id. */
     static int headerIdForTests;
     /** The header column's id in this app, or -1 before the first lookup. */
     private static volatile int headerId = -1;
+    /** Set by tests that have no Instagram resources: the name's id. */
+    static int titleIdForTests;
+    /** The name's id in this app, or -1 before the first lookup. */
+    private static volatile int titleId = -1;
 
     /** Set by tests: fetches a profile picture instead of the network. */
     @Nullable static PictureSource picturesForTests;
@@ -282,8 +290,10 @@ public final class StoryMentions {
             }
             Context context = header.getContext();
             if (pill == null) {
-                pill = newPill(context, header.getOrientation() == LinearLayout.HORIZONTAL);
-                header.addView(pill);
+                LinearLayout row = titleRow(header);
+                LinearLayout into = row != null ? row : header;
+                pill = newPill(context, into.getOrientation() == LinearLayout.HORIZONTAL);
+                into.addView(pill);
                 anyPill = true;
             }
             String text = label(context, people.size());
@@ -322,12 +332,40 @@ public final class StoryMentions {
         return null;
     }
 
+    /** The pill already in [header], in the name's row or in the column itself, or null. */
     @Nullable
     static Pill pillIn(ViewGroup header) {
-        for (int i = 0; i < header.getChildCount(); i++) {
-            if (header.getChildAt(i) instanceof Pill) return (Pill) header.getChildAt(i);
+        LinearLayout row = titleRow(header);
+        if (row != null) {
+            Pill inRow = pillAmong(row);
+            if (inRow != null) return inRow;
+        }
+        return pillAmong(header);
+    }
+
+    @Nullable
+    private static Pill pillAmong(ViewGroup group) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            if (group.getChildAt(i) instanceof Pill) return (Pill) group.getChildAt(i);
         }
         return null;
+    }
+
+    /**
+     * The row the name sits in, when it's a row of its own inside the header's column, so the pill
+     * goes at the end of it, after the name and the time. Under the name, the pill made the column
+     * taller, and on each story with mentions the name moved up toward the progress bars (#151).
+     * Null when the name sits in the column itself or isn't there, and the pill goes under it.
+     */
+    @Nullable
+    static LinearLayout titleRow(ViewGroup header) {
+        int id = titleId(header.getContext());
+        if (id == 0) return null;
+        View title = header.findViewById(id);
+        ViewParent parent = title == null ? null : title.getParent();
+        if (!(parent instanceof LinearLayout) || parent == header) return null;
+        LinearLayout row = (LinearLayout) parent;
+        return row.getOrientation() == LinearLayout.HORIZONTAL ? row : null;
     }
 
     /** The header's id, looked up once: a name lookup on every story frame adds up. */
@@ -335,6 +373,13 @@ public final class StoryMentions {
         if (headerIdForTests != 0) return headerIdForTests;
         if (headerId == -1) headerId = context.getResources().getIdentifier(HEADER, "id", context.getPackageName());
         return headerId;
+    }
+
+    /** The name's id, looked up once like the header's. */
+    private static int titleId(Context context) {
+        if (titleIdForTests != 0) return titleIdForTests;
+        if (titleId == -1) titleId = context.getResources().getIdentifier(TITLE, "id", context.getPackageName());
+        return titleId;
     }
 
     /**
@@ -569,10 +614,19 @@ public final class StoryMentions {
         for (Pill pill : PILLS) {
             if (!pill.isShown() || pill.getWidth() == 0 || pill.getRootView() != decor) continue;
             pill.getLocationInWindow(at);
-            if (x >= at[0] && x < at[0] + pill.getWidth() && y >= at[1] && y < at[1] + pill.getHeight()) return pill;
+            // The pill is drawn about 22dp tall; a finger gets the 48dp Android asks of a target.
+            int padX = Math.max(0, Dim.dp(MIN_TARGET_DP) - pill.getWidth()) / 2;
+            int padY = Math.max(0, Dim.dp(MIN_TARGET_DP) - pill.getHeight()) / 2;
+            if (x >= at[0] - padX && x < at[0] + pill.getWidth() + padX
+                    && y >= at[1] - padY && y < at[1] + pill.getHeight() + padY) {
+                return pill;
+            }
         }
         return null;
     }
+
+    /** The smallest box a tap on the pill is taken from, in dp. */
+    static final int MIN_TARGET_DP = 48;
 
     private static boolean beyondSlop(Pill pill, float x, float y) {
         int slop = ViewConfiguration.get(pill.getContext()).getScaledTouchSlop();

@@ -64,7 +64,7 @@ private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 private const val STRING = "Ljava/lang/String;"
 
 /**
- * See who a story mentions (#44): a pill under the name in a story's header saying how many
+ * See who a story mentions (#44): a pill after the name in a story's header saying how many
  * accounts the story mentions, from the story's own list, and a list of them on a tap. In the
  * default selection with its switch off, since it adds to Instagram's own header.
  */

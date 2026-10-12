@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -51,6 +52,7 @@ import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.ui.Dim;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -150,6 +152,7 @@ public class StoryMentionsTest {
         StoryMentions.readsForTests = null;
         StoryMentions.picturesForTests = null;
         StoryMentions.headerIdForTests = 0;
+        StoryMentions.titleIdForTests = 0;
         StoryMentions.resetForTests();
         Settings.SHOW_STORY_MENTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -388,6 +391,51 @@ public class StoryMentionsTest {
     public void aProfileLinkKeepsTheUsernameWhole() {
         assertEquals("https://www.instagram.com/a.b_c/", StoryMentions.profileLink("a.b_c").toString());
         assertEquals("https://www.instagram.com/a%2Fb/", StoryMentions.profileLink("a/b").toString());
+    }
+
+    /**
+     * #151: with the name in a row of its own, the pill goes at the end of that row, so the column
+     * doesn't grow and the name stays where Instagram put it.
+     */
+    @Test
+    public void withTheNameInARowThePillGoesAtTheEndOfIt() {
+        LinearLayout row = new LinearLayout(activity);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        TextView title = new TextView(activity);
+        title.setId(View.generateViewId());
+        title.setText("someone");
+        TextView time = new TextView(activity);
+        time.setText("2h");
+        row.addView(title);
+        row.addView(time);
+        header.removeAllViews();
+        header.addView(row);
+        StoryMentions.titleIdForTests = title.getId();
+
+        bind(ANA, BO);
+
+        StoryMentions.Pill pill = pill();
+        assertNotNull(pill);
+        assertSame("the pill isn't in the name's row", row, pill.getParent());
+        assertEquals("the pill goes after the time", row.getChildCount() - 1, row.indexOfChild(pill));
+        assertEquals("the column grew", 1, header.getChildCount());
+        bind(BO);
+        assertSame("a later story made a second pill", pill, pill());
+        assertEquals("1 mention", pill.getText().toString());
+    }
+
+    /** The pill is drawn small, but a finger gets the 48dp box Android asks of a target. */
+    @Test
+    public void aTapJustAboveThePillStillTapsIt() {
+        bind(ANA);
+        StoryMentions.Pill pill = pill();
+        float[] center = layOut(pill);
+        int target = Dim.dp(StoryMentions.MIN_TARGET_DP);
+        assertTrue("the pill is drawn smaller than a target", pill.getHeight() < target);
+        float above = center[1] - target / 2f + 1;
+        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], above)));
+        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], above)));
+        assertNotNull("the tap didn't open the list", ShadowDialog.getLatestDialog());
     }
 
     private void bind(Account... mentioned) {
