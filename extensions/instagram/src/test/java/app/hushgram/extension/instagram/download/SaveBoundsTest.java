@@ -281,7 +281,7 @@ public class SaveBoundsTest {
 
         Downloader.Result result = saveDash(video, null);
 
-        assertEquals("WRITE_ERROR (the tracks could not be joined)", result.toString());
+        assertEquals("BUILD_ERROR (the tracks could not be joined)", result.toString());
         assertEquals(0, workBytes());
     }
 

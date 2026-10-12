@@ -244,7 +244,7 @@ public class DashJoinTest {
         assertTrue(report, report.contains("declares samples of 1500000000 bytes"));
         assertFalse(report, report.contains("heap space"));
         assertTrue(report, report.contains("Saved in place of the manifest's tracks because the DASH save ended with "
-                + "WRITE_ERROR (the tracks could not be joined)"));
+                + "BUILD_ERROR (the tracks could not be joined)"));
         assertEquals(0, workFiles());
     }
 
@@ -362,7 +362,7 @@ public class DashJoinTest {
         assertEquals("both extractors", 2, Samples.released.get());
         assertEquals(1, FaultyMuxer.released.get());
         assertTrue(report, report.contains("DashSave | ERROR | the DASH save failed"));
-        assertTrue(report, report.contains("save finished: WRITE_ERROR (the tracks could not be joined)"));
+        assertTrue(report, report.contains("save finished: BUILD_ERROR (the tracks could not be joined)"));
     }
 
     @Test

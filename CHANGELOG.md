@@ -44,7 +44,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Ghost mode and Search buttons on Home's header:** Their icons take Instagram's own icon color. With Instagram's dark mode set differently from the phone's, they could come out dark on dark or white on white.
 
-* **Instagram - Downloads:** A save that fails says what to check when it can tell. A dropped connection says to check the connection, and a save that didn't finish writing says to check the connection and free storage. Other failures still say "Download failed".
+* **Instagram - Downloads:** A save that fails says what to check when it can tell. A dropped connection says to check the connection. A file that arrived cut short or couldn't be stored says to check the connection and free storage. Anything else, like a post with nothing to save, still says "Download failed".
 
 * **Instagram - Lock your messages:** If the HushGram PIN dialog goes away without an answer, say because Instagram closed the screen behind it, Unlock on the cover asks again right away. Before, it did nothing for about a minute.
 

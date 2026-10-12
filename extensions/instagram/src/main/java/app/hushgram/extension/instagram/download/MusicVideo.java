@@ -200,7 +200,7 @@ final class MusicVideo {
         } catch (Throwable t) {
             if (progress.cancelled()) return cancelled();
             Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "the video of a photo with music failed", t);
-            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "the video could not be built");
+            return Downloader.Result.fail(Downloader.Status.BUILD_ERROR, "the video could not be built");
         } finally {
             DashSave.discard(pictureFile);
             DashSave.discard(soundFile);
@@ -235,7 +235,7 @@ final class MusicVideo {
             final String what = AUDIO_UNREADABLE.equals(label) ? "the music could not be read" : "the video could not be built";
             HookStatus.counted(FamilyNames.REEL_DOWNLOAD, label);
             Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE, () -> what, t);
-            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, what);
+            return Downloader.Result.fail(Downloader.Status.BUILD_ERROR, what);
         }
     }
 

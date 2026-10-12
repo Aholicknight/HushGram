@@ -57,6 +57,12 @@ final class Downloader {
         NETWORK_ERROR,
         /** The bytes arrived incomplete, or they cannot be stored. */
         WRITE_ERROR,
+        /**
+         * There was nothing to save, or what arrived couldn't be made into one file (tracks that
+         * wouldn't join, a photo's music that couldn't be read). Checking the connection or the
+         * storage won't help, so the message doesn't ask for it.
+         */
+        BUILD_ERROR,
         /** The address, a redirect or the answer is not a media file from Meta. */
         REFUSED,
         /** The file is bigger than a save will hold. */

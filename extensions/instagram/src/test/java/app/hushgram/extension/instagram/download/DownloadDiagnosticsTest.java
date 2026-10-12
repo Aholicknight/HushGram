@@ -119,7 +119,7 @@ public class DownloadDiagnosticsTest {
         String report = LogBufferManager.buildExportText();
         assertTrue(report, report.contains("MediaSave | ERROR | save finished: HTTP_ERROR (the server answered 404)"));
         assertTrue(report, report.contains("DashSave | ERROR | the DASH save failed"));
-        assertTrue(report, report.contains("save finished: WRITE_ERROR (the tracks could not be joined)"));
+        assertTrue(report, report.contains("save finished: BUILD_ERROR (the tracks could not be joined)"));
         assertTrue(report, report.contains("save finished: WRITE_ERROR (the gallery refused the file: IOException)"));
         assertTrue(report, report.contains("downloads |"));
 

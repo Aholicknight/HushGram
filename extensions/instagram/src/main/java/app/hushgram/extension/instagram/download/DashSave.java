@@ -181,7 +181,7 @@ final class DashSave {
             // for one. It's still the person's cancel.
             if (progress.cancelled()) return cancelledJoining();
             Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "the DASH save failed", t);
-            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "the tracks could not be joined");
+            return Downloader.Result.fail(Downloader.Status.BUILD_ERROR, "the tracks could not be joined");
         } finally {
             discard(videoFile);
             discard(audioFile);

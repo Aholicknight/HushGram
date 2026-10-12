@@ -279,11 +279,11 @@ public final class MediaSave {
                                 ? singleJob(application, page.renditions, page.video, !page.video, quality)
                                 : (into, progress) -> saveDash(application, "the carousel page", page.manifest,
                                         page.renditions, into, progress, quality, compatible);
-                        result = job == null ? Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "nothing to save")
+                        result = job == null ? Downloader.Result.fail(Downloader.Status.BUILD_ERROR, "nothing to save")
                                 : job.run(writer, save);
                     } catch (Throwable failure) {
                         failure(() -> "a carousel page could not be saved", failure);
-                        result = Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "the page could not be saved");
+                        result = Downloader.Result.fail(Downloader.Status.BUILD_ERROR, "the page could not be saved");
                     }
                     final int number = index + 1;
                     final Downloader.Result ended = result;
@@ -953,7 +953,7 @@ public final class MediaSave {
             final int found = renditions.size();
             failure(() -> "nothing to save: the manifest gave no track and none of the " + found
                 + " addresses was a video file on Meta's media servers", null);
-            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "nothing to save");
+            return Downloader.Result.fail(Downloader.Status.BUILD_ERROR, "nothing to save");
         }
         DashManifest.Track better = better(tracks, RenditionPicker.qualityOf(video), quality);
         saving(true, video, meta, quality, dash, better);
