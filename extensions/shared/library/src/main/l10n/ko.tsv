@@ -972,3 +972,7 @@ Large	크게
 Small	작게
 # context: a toast shown once when safe mode has paused HushGram on its own after crashes at start
 HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.	Instagram이 시작할 때 계속 충돌해서 HushGram이 스스로 일시 중지되었습니다. HushGram 설정에서 다시 켤 때까지 스위치는 꺼진 상태로 유지됩니다.
+# context: a toast when a save couldn't reach Instagram's servers or the connection dropped
+Download failed. Check your connection and try again.	다운로드에 실패했습니다. 연결을 확인하고 다시 시도하세요.
+# context: a toast when a save arrived incomplete or couldn't be written to the phone
+Download didn't finish. Check your connection and free storage, then try again.	다운로드가 완료되지 않았습니다. 연결과 남은 저장 공간을 확인한 뒤 다시 시도하세요.

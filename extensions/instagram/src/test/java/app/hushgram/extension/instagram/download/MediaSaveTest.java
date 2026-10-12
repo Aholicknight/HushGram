@@ -764,6 +764,17 @@ public class MediaSaveTest {
         assertEquals(0, published.size());
     }
 
+    /** A failed save says what to check when the failure tells: the connection, or that and free storage. */
+    @Test
+    public void aFailedSaveSaysWhatToCheckWhenItKnows() {
+        assertEquals("Download failed. Check your connection and try again.",
+                MediaSave.message(context, Downloader.Status.NETWORK_ERROR, null, false));
+        assertEquals("Download didn't finish. Check your connection and free storage, then try again.",
+                MediaSave.message(context, Downloader.Status.WRITE_ERROR, null, false));
+        assertEquals("the server's own refusal", "Download failed",
+                MediaSave.message(context, Downloader.Status.HTTP_ERROR, null, false));
+    }
+
     /**
      * A DASH save whose tracks couldn't be fetched falls back to the single file, which is below the
      * picture the manifest offered. The person saving is told it's lower than on Instagram, not just

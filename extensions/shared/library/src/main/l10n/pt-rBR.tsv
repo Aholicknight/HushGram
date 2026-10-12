@@ -973,3 +973,7 @@ Large	Grande
 Small	Pequeno
 # context: a toast shown once when safe mode has paused HushGram on its own after crashes at start
 HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.	O HushGram foi pausado automaticamente porque o Instagram fechava com erro ao iniciar. As opções dele ficam desativadas até você reativá-lo nas Configurações do HushGram.
+# context: a toast when a save couldn't reach Instagram's servers or the connection dropped
+Download failed. Check your connection and try again.	Falha no download. Verifique sua conexão e tente novamente.
+# context: a toast when a save arrived incomplete or couldn't be written to the phone
+Download didn't finish. Check your connection and free storage, then try again.	O download não terminou. Verifique sua conexão e o espaço livre e tente novamente.

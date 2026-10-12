@@ -1261,6 +1261,10 @@ public final class MediaSave {
                 return L10n.t(application, "Not saved: the file is over 512 MB");
             case CANCELLED:
                 return L10n.t(application, "Save canceled");
+            case NETWORK_ERROR:
+                return L10n.t(application, "Download failed. Check your connection and try again.");
+            case WRITE_ERROR:
+                return L10n.t(application, "Download didn't finish. Check your connection and free storage, then try again.");
             default:
                 return L10n.t(application, "Download failed");
         }
