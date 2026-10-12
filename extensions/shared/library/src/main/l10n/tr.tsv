@@ -973,3 +973,6 @@ HushGram paused itself because Instagram kept crashing as it started. Its switch
 Download failed. Check your connection and try again.	İndirme başarısız oldu. Bağlantını kontrol edip tekrar dene.
 # context: a toast when a save arrived incomplete or couldn't be written to the phone
 Download didn't finish. Check your connection and free storage, then try again.	İndirme tamamlanmadı. Bağlantını ve boş depolama alanını kontrol edip tekrar dene.
+Some changes apply when Instagram restarts. Tap to restart it now.	Bazı değişiklikler Instagram yeniden başladığında uygulanır. Şimdi yeniden başlatmak için dokun.
+A save or an export is still running. Restart once it's done.	Bir kaydetme ya da dışa aktarma hâlâ sürüyor. Bitince yeniden başlat.
+Couldn't restart Instagram. Close it and open it again.	Instagram yeniden başlatılamadı. Kapatıp yeniden aç.

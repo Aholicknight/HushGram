@@ -973,3 +973,6 @@ HushGram paused itself because Instagram kept crashing as it started. Its switch
 Download failed. Check your connection and try again.	No se pudo descargar. Revisa tu conexión e inténtalo de nuevo.
 # context: a toast when a save arrived incomplete or couldn't be written to the phone
 Download didn't finish. Check your connection and free storage, then try again.	La descarga no terminó. Revisa tu conexión y el espacio libre, y vuelve a intentarlo.
+Some changes apply when Instagram restarts. Tap to restart it now.	Algunos cambios se aplican cuando Instagram se reinicia. Toca para reiniciarlo ahora.
+A save or an export is still running. Restart once it's done.	Todavía hay un guardado o una exportación en curso. Reinicia cuando termine.
+Couldn't restart Instagram. Close it and open it again.	No se pudo reiniciar Instagram. Ciérralo y vuelve a abrirlo.

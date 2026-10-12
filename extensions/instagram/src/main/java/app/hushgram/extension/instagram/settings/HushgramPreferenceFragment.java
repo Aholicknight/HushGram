@@ -2957,7 +2957,21 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (!HushgramPause.isPaused()) {
             String version = L10n.f("Version %1$s for Instagram %2$s",
                     L10n.isolate(Utils.getPatchesReleaseVersion()), L10n.isolate(Utils.getAppVersionName()));
-            status = pausedNext ? version + " " + L10n.t("HushGram pauses when Instagram restarts.") : version;
+            // A change Instagram only reads as it starts makes the card a Restart now button (#146).
+            // Not while a pause is on its way: that restart would come up paused.
+            boolean restart = !pausedNext && RestartNow.owed();
+            status = pausedNext ? version + " " + L10n.t("HushGram pauses when Instagram restarts.")
+                    : restart ? version + "\n\n" + L10n.t("Some changes apply when Instagram restarts. Tap to restart it now.")
+                    : version;
+            if (card instanceof Row) {
+                Row row = (Row) card;
+                row.setSelectable(restart);
+                row.actsAtOnce = restart;
+                row.setOnPreferenceClickListener(restart ? tapped -> {
+                    restartNow();
+                    return true;
+                } : null);
+            }
         } else if (pausedNext) {
             status = pausedSummary(HushgramPause.reason(), context.getPackageName())
                     + " " + L10n.t("Tap to turn it back on.");
@@ -2965,6 +2979,22 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             status = L10n.t("HushGram turns back on when Instagram restarts.");
         }
         card.setSummary(status);
+    }
+
+    /** The status card's Restart now. A save or an export still running keeps Instagram up and says so. */
+    void restartNow() {
+        Activity activity = getActivity();
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+        switch (RestartNow.restart(activity)) {
+            case BUSY:
+                Utils.showToastLong(L10n.t(activity, "A save or an export is still running. Restart once it's done."));
+                break;
+            case FAILED:
+                Utils.showToastLong(L10n.t(activity, "Couldn't restart Instagram. Close it and open it again."));
+                break;
+            default:
+                break;
+        }
     }
 
     @Override

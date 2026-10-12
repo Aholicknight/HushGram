@@ -1,0 +1,63 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.hushgram.extension.instagram.settings;
+
+import android.app.Activity;
+import android.content.Intent;
+
+import app.hushgram.extension.instagram.download.SaveControl;
+import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
+import app.hushgram.extension.shared.settings.preference.ExportStatus;
+
+/**
+ * Restart now: ends Instagram's process and opens Instagram again in a new one, for the choices
+ * Instagram only reads as it starts. Only ever on a tap. The sign-in is in Instagram's own storage
+ * and comes through the restart, and every setting is already committed when it's saved.
+ */
+final class RestartNow {
+    private RestartNow() {}
+
+    enum Outcome {
+        RESTARTING,
+        /** A save or an export is running, and a restart would cut it off. */
+        BUSY,
+        FAILED
+    }
+
+    /** Stands in for ending the process in a test, which would end the test run. */
+    static volatile Runnable endProcessForTests;
+
+    /** Whether a change made since Instagram started waits on a restart. */
+    static boolean owed() {
+        return !AbstractPreferenceFragment.restartPending.isEmpty();
+    }
+
+    static boolean busy() {
+        return !SaveControl.running().isEmpty() || ExportStatus.CONFIGURATION.active()
+                || ExportStatus.DIAGNOSTICS.active();
+    }
+
+    /** Opens Instagram's launcher activity in a fresh task, then ends this process. */
+    static Outcome restart(Activity activity) {
+        if (busy()) return Outcome.BUSY;
+        try {
+            String packageName = activity.getPackageName();
+            Intent launch = activity.getPackageManager().getLaunchIntentForPackage(packageName);
+            if (launch == null || launch.getComponent() == null) return Outcome.FAILED;
+            Intent again = Intent.makeRestartActivityTask(launch.getComponent());
+            // Android 14 and later want the package named on an intent like this one.
+            again.setPackage(packageName);
+            activity.startActivity(again);
+        } catch (RuntimeException failure) {
+            Logger.printInfo(() -> "Restart now couldn't open Instagram again", failure);
+            return Outcome.FAILED;
+        }
+        Runnable end = endProcessForTests;
+        if (end != null) end.run();
+        else System.exit(0);
+        return Outcome.RESTARTING;
+    }
+}

@@ -22,6 +22,8 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** Recommended flags no longer shows Keep Reels auto scroll between sessions next to the Keep auto scroll on setting, unless you'd already set it. Then it stays so you can set it back.
 
+* **Instagram - HushGram settings:** When a change only takes effect after a restart, the card at the top of HushGram settings says so, and a tap restarts Instagram for you. Nothing restarts without that tap. Asked for in #146.
+
 * **Instagram - Hide the Reels tab:** TalkBack reads the Ghost mode button on Home's header as "Ghost mode" with an on or off state, the way it reads a switch, instead of a sentence about what tapping does.
 
 * **Tooling:** Unreleased version headings now work with both the changelog checker and the release notes generator. Full-screen patch checks also verify control flow when jumps need a wider encoding.
