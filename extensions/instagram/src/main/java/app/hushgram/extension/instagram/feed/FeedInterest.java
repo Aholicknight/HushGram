@@ -17,7 +17,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * words are in no resource of the app. The adapter's row builder adds it once a post carries the
  * question and the feed is Home's (the feed_timeline module, or its Older Posts page). Home can also
  * be built by the feed item binder group, which adds the same row when the server styles the
- * question its unified way (#131). The patch asks {@link #hide} right before both adds, and a yes
+ * question UNIFIED_NO_SUBTEXT, without a subtitle (#131). The patch asks {@link #hide} right before both adds, and a yes
  * skips the add, so the row is never added and no blank one is left. Nothing here answers the
  * question for you.
  *

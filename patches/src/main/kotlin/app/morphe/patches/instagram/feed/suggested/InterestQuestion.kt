@@ -12,6 +12,7 @@ import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -168,15 +169,17 @@ internal fun BytecodePatchContext.findInterestQuestion(): InterestQuestion {
 /**
  * Finds the other place the question's row goes in (#131): the feed item binder group, which Home
  * can be built with too. It reads the same question from the post's data and adds the row when the
- * server styles it Instagram's unified way, again only for [HOME_MODULE] and [OLDER_MODULE]. It's
- * the one other method holding both names that loads [home]'s row type, and it loads it once: the
- * load, its ordinal and the add, right after a Home check and a style check that both skip the add.
- * The hook goes on the load, and a yes goes on to the instruction after the add. On 450's 385611438
- * that's LX/02dI->A05 and the load at instruction 774. Anything else stops the patch.
+ * server styles it UNIFIED_NO_SUBTEXT (the question without a subtitle, `LX/04My.A0F` on 450), again
+ * only for [HOME_MODULE] and [OLDER_MODULE]. It's the one other method loading both names, held or
+ * asked of a string pool, that loads [home]'s row type, and it loads it once: the load, its ordinal
+ * and the add, right after a Home check and a style check that both skip the add. The hook goes on
+ * the load, and a yes goes on to the instruction after the add. On 450's 385611438 that's
+ * LX/02dI->A05 and the load at instruction 774. Anything else stops the patch.
  */
 internal fun BytecodePatchContext.findGroupedInterestQuestion(home: InterestQuestion): InterestQuestion {
     val found = mutableListOf<Triple<Method, List<Instruction>, Int>>()
-    classesHolding(HOME_MODULE, OLDER_MODULE).forEach { classDef ->
+    val older = classesLoadingString(OLDER_MODULE).mapTo(HashSet()) { it.type }
+    classesLoadingString(HOME_MODULE).filter { it.type in older }.forEach { classDef ->
         classDef.methods.forEach { method ->
             val parameters = method.parameterTypes.map(CharSequence::toString)
             if (AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "V" ||
