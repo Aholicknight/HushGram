@@ -526,13 +526,18 @@ public final class ChatLocks {
         return id.isEmpty() || id.indexOf(',') >= 0 ? null : id;
     }
 
-    /** The id of the account in Instagram's tag for a message notification, between the bar and {@link #TAG_THREAD}, or null. */
+    /**
+     * The id of the account in Instagram's tag for a message notification, between the bar and
+     * {@link #TAG_THREAD}, or null. A tag with no bar names no account, so every account's list
+     * counts; reading its kind as one would match no list and leave a locked chat's text showing.
+     */
     static String tagAccount(String tag) {
         if (empty(tag)) return null;
         int at = tag.indexOf(TAG_THREAD);
         if (at < 0) return null;
         String key = tag.substring(0, at);
-        return ChatAccounts.clean(key.substring(key.lastIndexOf('|') + 1));
+        int bar = key.lastIndexOf('|');
+        return bar < 0 ? null : ChatAccounts.clean(key.substring(bar + 1));
     }
 
     private static boolean empty(String text) {

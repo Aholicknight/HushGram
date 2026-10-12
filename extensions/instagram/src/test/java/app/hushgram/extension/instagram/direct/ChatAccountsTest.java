@@ -213,6 +213,8 @@ public class ChatAccountsTest {
         assertTrue("a tag that names no account", ChatLocks.listedIn(unmarked, "direct|" + ChatLocks.TAG_THREAD + ALICE));
         assertEquals(ME, ChatLocks.tagAccount("direct|" + ME + ChatLocks.TAG_THREAD + ALICE + ";type:rr"));
         assertNull(ChatLocks.tagAccount("direct|" + ME));
+        assertNull("a tag with no bar names no account", ChatLocks.tagAccount("direct" + ChatLocks.TAG_THREAD + ALICE));
+        assertTrue("so every account's list counts", ChatLocks.listedIn(unmarked, "direct" + ChatLocks.TAG_THREAD + ALICE));
 
         assertTrue(HiddenChats.add(BOB, "Bob"));
         resume(OTHER);
