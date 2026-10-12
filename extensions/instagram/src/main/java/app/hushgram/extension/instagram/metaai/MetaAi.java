@@ -34,6 +34,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * stub goes through {@link #followUpStub} as the page finds it, before inflating it, and the view
  * the page then looks the pills up in goes through {@link #followUpBar}.
  *
+ * <p>The results page keeps Instagram's answer for that flag, since it opens a tapped reel by its
+ * place in the server's list and leaving Meta AI's rows out shifted every reel after them (#152).
+ * The rows Meta AI's summary card sits in go through {@link #summaryCard} as they're made instead,
+ * which folds them away without taking them out of the list.
+ *
  * <p>Home's top bar is built from a list of button names the server sends. Meta AI's ("meta_ai")
  * goes through {@link #homeButton}, and a fourth flag, which adds a Meta AI chats button when the
  * list has no messages button, goes through {@link #searchFlag} with the others.
@@ -137,6 +142,70 @@ public final class MetaAi {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.META_AI, "follow-up bar stub", failure);
             return stub;
+        }
+    }
+
+    /**
+     * Injected where the search results page makes a row of Meta AI's summary card, with the row's
+     * view, before the row's holder takes it. The row stays in the page's list, which opens a tapped
+     * reel by its row's place in the list the server sent (#152). Instead it's folded away: each time
+     * it's attached it takes no height and draws nothing while the search switch is on, and gets its
+     * own height back once the switch is off or HushGram is paused. Answers the row. Never throws.
+     */
+    public static View summaryCard(View row) {
+        if (row == null) return null;
+        try {
+            HookStatus.invoked(FamilyNames.META_AI);
+            SummaryRow folding = new SummaryRow(row);
+            row.addOnAttachStateChangeListener(folding);
+            folding.apply();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.META_AI, "summary card", failure);
+        }
+        return row;
+    }
+
+    /** Folds one summary card row away while the search switch is on, and back out when it's off. */
+    static final class SummaryRow implements View.OnAttachStateChangeListener {
+        private final View row;
+        private boolean folded;
+        private int height;
+        private int visibility;
+
+        SummaryRow(View row) {
+            this.row = row;
+        }
+
+        @Override
+        public void onViewAttachedToWindow(View view) {
+            apply();
+        }
+
+        @Override
+        public void onViewDetachedFromWindow(View view) {
+        }
+
+        void apply() {
+            try {
+                boolean fold = Utils.settingsReady() && Settings.HIDE_META_AI_SEARCH.get();
+                ViewGroup.LayoutParams params = row.getLayoutParams();
+                if (fold == folded || params == null) return;
+                if (fold) {
+                    height = params.height;
+                    visibility = row.getVisibility();
+                    params.height = 0;
+                    row.setVisibility(View.GONE);
+                    Logger.printDebug(() -> "Meta AI: folded the summary card out of search results");
+                } else {
+                    params.height = height;
+                    // Instagram's own visibility, unless it changed it while the row was folded.
+                    if (row.getVisibility() == View.GONE) row.setVisibility(visibility);
+                }
+                folded = fold;
+                row.setLayoutParams(params);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.META_AI, "summary card", failure);
+            }
         }
     }
 

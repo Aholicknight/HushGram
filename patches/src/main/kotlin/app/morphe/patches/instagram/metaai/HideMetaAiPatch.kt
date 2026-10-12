@@ -108,6 +108,7 @@ val hideMetaAiPatch = bytecodePatch(
         val reads = searchFlagSites(findSearchFlagReads())
         val followUp = findFollowUpBarCheck()
         val followUpStub = findFollowUpBarStub()
+        val summaryRows = findSummaryRows()
         val homeButtons = findHomeButtonNames()
         val composer = findComposerButtonVisibility()
         val inbox = findOptionalInboxRow()
@@ -122,6 +123,7 @@ val hideMetaAiPatch = bytecodePatch(
         dropFollowUpBar(followUp)
         // After the pills' check, which comes later in the same method, so this site hasn't moved.
         dropFollowUpBarStub(followUpStub)
+        foldSummaryRows(summaryRows)
         dropHomeButton(homeButtons)
         holdComposerButtons(composer)
         holdOptionalInboxRow(inbox)
@@ -489,7 +491,7 @@ internal fun BytecodePatchContext.findHomeButtonNames(): HookSite {
 internal fun BytecodePatchContext.dropHomeButton(names: HookSite) = passThrough(names, HOME_BUTTON)
 
 /** Puts [hook] on [site]'s register right after the instruction that sets it, and the answer back in it. */
-private fun BytecodePatchContext.passThrough(site: HookSite, hook: String) {
+internal fun BytecodePatchContext.passThrough(site: HookSite, hook: String) {
     val method = mutableClassDefBy(site.type).methods.single {
         it.name == site.name && it.returnType == site.returnType &&
             it.parameterTypes.map(CharSequence::toString) == site.parameters

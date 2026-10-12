@@ -10,12 +10,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
 import android.view.View;
 import android.widget.FrameLayout;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 
@@ -202,6 +204,88 @@ public class MetaAiTest {
         } finally {
             PauseForTests.resume();
         }
+    }
+
+    /**
+     * The summary card's row is folded away as it's made, and each time it's attached after that the
+     * search switch decides again: its own height back with the switch off or paused, folded with it on.
+     */
+    @Test
+    public void theSummaryCardFoldsWithTheSearchSwitch() {
+        FrameLayout page = page();
+        FrameLayout row = new FrameLayout(page.getContext());
+        row.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 300));
+        assertNull(MetaAi.summaryCard(null));
+        assertSame(row, MetaAi.summaryCard(row));
+        assertFolded("as it's made", row);
+        Settings.HIDE_META_AI_SEARCH.save(false);
+        try {
+            page.addView(row);
+            assertEquals("its own height, attached with the switch off", 300, row.getLayoutParams().height);
+            assertEquals(View.VISIBLE, row.getVisibility());
+            page.removeView(row);
+        } finally {
+            Settings.HIDE_META_AI_SEARCH.save(true);
+        }
+        page.addView(row);
+        assertFolded("attached with the switch on", row);
+        page.removeView(row);
+        Settings.HIDE_META_AI_POSTS.save(false);
+        try {
+            page.addView(row);
+            assertFolded("the posts switch doesn't matter", row);
+            page.removeView(row);
+        } finally {
+            Settings.HIDE_META_AI_POSTS.save(true);
+        }
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        try {
+            page.addView(row);
+            assertEquals("paused, Instagram's own height", 300, row.getLayoutParams().height);
+            assertEquals(View.VISIBLE, row.getVisibility());
+        } finally {
+            PauseForTests.resume();
+        }
+    }
+
+    /** Folded and back, a row keeps the visibility Instagram gave it, and one it gave meanwhile. */
+    @Test
+    public void anUnfoldedSummaryCardKeepsInstagramsVisibility() {
+        FrameLayout page = page();
+        View row = new View(page.getContext());
+        row.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+        row.setVisibility(View.INVISIBLE);
+        MetaAi.summaryCard(row);
+        assertFolded("as it's made", row);
+        Settings.HIDE_META_AI_SEARCH.save(false);
+        try {
+            page.addView(row);
+            assertEquals(FrameLayout.LayoutParams.WRAP_CONTENT, row.getLayoutParams().height);
+            assertEquals("Instagram's own visibility", View.INVISIBLE, row.getVisibility());
+            page.removeView(row);
+            Settings.HIDE_META_AI_SEARCH.save(true);
+            page.addView(row);
+            assertFolded("again", row);
+            page.removeView(row);
+            row.setVisibility(View.VISIBLE);
+            Settings.HIDE_META_AI_SEARCH.save(false);
+            page.addView(row);
+            assertEquals("the one Instagram gave while it was folded", View.VISIBLE, row.getVisibility());
+        } finally {
+            Settings.HIDE_META_AI_SEARCH.save(true);
+        }
+    }
+
+    private static FrameLayout page() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        FrameLayout page = new FrameLayout(activity);
+        activity.setContentView(page);
+        return page;
+    }
+
+    private static void assertFolded(String when, View row) {
+        assertEquals("no height " + when, 0, row.getLayoutParams().height);
+        assertEquals("not drawn " + when, View.GONE, row.getVisibility());
     }
 
     /** Home's Meta AI button is left out with the search switch; every other name comes back as it was. */

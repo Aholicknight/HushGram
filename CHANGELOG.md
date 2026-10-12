@@ -68,7 +68,7 @@ Every HushGram release, newest first.
 
 #### Bug Fixes
 
-* **Instagram - Hide Meta AI:** A reel opened from search results plays the one you tapped again. With Hide Meta AI in search and Home's bar on, results below Meta AI's summary opened an earlier reel. Reported in #152.
+* **Instagram - Hide Meta AI:** A reel opened from search results plays the one you tapped again. With Hide Meta AI in search and Home's bar on, results below Meta AI's summary opened an earlier reel. The summary card is still hidden, it's just folded away now instead of being taken out of the results. Reported in #152.
 
 * **Instagram - Glass tab bar:** Feed videos started with a tap stay in place. On some phones they dropped behind the tab bar, leaving a black gap. Reported in #136.
 
