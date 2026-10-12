@@ -9,7 +9,6 @@ import android.app.Activity;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import org.junit.After;
 import org.junit.Before;
@@ -27,7 +26,10 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** The Find the reel you came from switch: last under Reels, off to start, off while paused, and no restart needed. */
+/**
+ * The Find the reel you came from switch and its Wait for a tap to find it: last under Reels, off to
+ * start, off while paused, and no restart needed.
+ */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
@@ -39,6 +41,7 @@ public class ReelOriginSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.FIND_REEL_ORIGIN.resetToDefault();
+        Settings.FIND_REEL_ORIGIN_ON_TAP.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -49,6 +52,7 @@ public class ReelOriginSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.FIND_REEL_ORIGIN.resetToDefault();
+        Settings.FIND_REEL_ORIGIN_ON_TAP.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -63,6 +67,7 @@ public class ReelOriginSettingsTest {
     @Test public void missingPatchHasNoReelOriginSwitch() throws Exception {
         open(EnumSet.of(PatchFamily.REEL_SCROLLING));
         assertNull(page.getPreferenceScreen().findPreference(Settings.FIND_REEL_ORIGIN.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FIND_REEL_ORIGIN_ON_TAP.key));
         assertNotNull(page.getPreferenceScreen().findPreference(Settings.STOP_REELS_SCROLLING.key));
     }
     /** Without the other Reels patches, Reels still opens for this switch alone. */
@@ -79,26 +84,39 @@ public class ReelOriginSettingsTest {
         assertNotNull(row);
         assertEquals("Find the reel you came from", row.getTitle().toString());
         assertEquals("Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and "
-                + "outlines it for a moment.", row.getSummary().toString());
+                + "outlines it for a moment. Stop looking ends the search where it is.", row.getSummary().toString());
         PreferenceGroup reels = row.getParent();
         assertEquals("Reels", reels.getTitle().toString());
         String[] keys = new String[reels.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = reels.getPreference(i).getKey();
         int cap = Arrays.asList(keys).indexOf(Settings.REEL_CAP.key);
         assertTrue(Arrays.toString(keys), cap >= 0);
-        assertEquals("right after Stop after 20 reels, and last", Settings.FIND_REEL_ORIGIN.key, keys[cap + 1]);
-        assertEquals(keys.length - 1, cap + 1);
+        assertEquals("right after Stop after 20 reels", Settings.FIND_REEL_ORIGIN.key, keys[cap + 1]);
+        assertEquals("then Wait for a tap, last", Settings.FIND_REEL_ORIGIN_ON_TAP.key, keys[cap + 2]);
+        assertEquals(keys.length - 1, cap + 2);
         assertFalse(row.isChecked());
         assertFalse(Settings.FIND_REEL_ORIGIN.get());
         assertFalse("each profile opened from a reel reads the switch, so no restart prompt", Settings.FIND_REEL_ORIGIN.rebootApp);
-        assertEquals(Collections.singletonList(Settings.FIND_REEL_ORIGIN), PatchFamily.REEL_ORIGIN.switches);
+        assertEquals(Arrays.asList(Settings.FIND_REEL_ORIGIN, Settings.FIND_REEL_ORIGIN_ON_TAP), PatchFamily.REEL_ORIGIN.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FIND_REEL_ORIGIN.key));
+
+        SwitchPreference tap = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.FIND_REEL_ORIGIN_ON_TAP.key);
+        assertEquals("Wait for a tap to find it", tap.getTitle().toString());
+        assertEquals("When the reel isn't on the first screen, the Reels tab shows a Find the reel button instead of "
+                + "scrolling on its own.", tap.getSummary().toString());
+        assertFalse(tap.isChecked());
+        assertFalse(Settings.FIND_REEL_ORIGIN_ON_TAP.defaultValue);
+        assertFalse("read each time the tab comes up", Settings.FIND_REEL_ORIGIN_ON_TAP.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FIND_REEL_ORIGIN_ON_TAP.key));
+        Settings.FIND_REEL_ORIGIN_ON_TAP.save(true);
+        assertTrue(Settings.FIND_REEL_ORIGIN_ON_TAP.get());
 
         Settings.FIND_REEL_ORIGIN.save(true);
         assertTrue(Settings.FIND_REEL_ORIGIN.get());
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse(Settings.FIND_REEL_ORIGIN.get());
+        assertFalse(Settings.FIND_REEL_ORIGIN_ON_TAP.get());
         assertTrue(Settings.FIND_REEL_ORIGIN.savedValue());
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();

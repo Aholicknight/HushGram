@@ -1347,6 +1347,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_find_reel_origin", FALSE);
 
     /**
+     * With Find the reel you came from on, a reel past the first screen of the Reels tab is looked for
+     * only once its Find the reel button is tapped, instead of right away
+     * ({@link app.hushgram.extension.instagram.reels.ReelOrigin}). Read each time the tab comes up. Off
+     * to start.
+     */
+    public static final BooleanSetting FIND_REEL_ORIGIN_ON_TAP =
+            new BooleanSetting("hushgram_find_reel_origin_on_tap", FALSE);
+
+    /**
      * Whether auto scroll in Reels was last left on, as
      * {@link app.hushgram.extension.instagram.reels.ReelAutoScroll} last saw it. It isn't a switch:
      * a pause doesn't change it, and a settings backup leaves it out.

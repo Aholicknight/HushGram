@@ -6,7 +6,9 @@ package app.hushgram.extension.instagram.reels;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
@@ -16,7 +18,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -58,6 +63,7 @@ public class ReelOriginTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     private static final BooleanSupplier ON = () -> true;
+    private static final BooleanSupplier OFF = () -> false;
     private static final BooleanSupplier THROWS = () -> {
         throw new IllegalStateException("settings went away");
     };
@@ -257,6 +263,8 @@ public class ReelOriginTest {
         assertEquals("back at the top", 0, grid.firstRow());
         assertEquals("Couldn't find the reel you came from", ShadowToast.getTextOfLatestToast());
         assertNull(ReelOrigin.heldForTests());
+        assertNull(ReelOrigin.buttonForTests());
+        assertEquals("Stop looking went with the search", 1, content().getChildCount());
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(ReelOrigin.NOT_FOUND + " 1"));
     }
@@ -326,6 +334,146 @@ public class ReelOriginTest {
         idleSeconds(5);
         assertEquals(List.of(REEL), shown);
         assertNull(ReelOrigin.heldForTests());
+    }
+
+    /**
+     * While the grid is dragged, Stop looking is up on the profile's screen. A tap on it ends the
+     * search where the grid is, with no toast and no scroll back, and drops the reel.
+     */
+    @Test
+    public void stopLookingEndsTheSearchWhereItIs() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(reels(12, 9000), null);
+        int[] page = {0};
+        grid.atEnd = () -> grid.reels.addAll(reels(12, 8000 - 100 * page[0]++));
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON, OFF);
+        idleSeconds(1);
+        TextView button = ReelOrigin.buttonForTests();
+        assertNotNull("up while the grid is dragged", button);
+        assertEquals("Stop looking", button.getText().toString());
+        assertSame(content(), button.getParent());
+        assertEquals("a button to a screen reader", Button.class.getName(), String.valueOf(role(button)));
+        int row = grid.firstRow();
+        assertTrue("it had moved on", row > 0);
+        int moved = grid.drags.size();
+
+        assertTrue(button.performClick());
+        idleSeconds(5);
+        assertEquals("no drag after the tap", moved, grid.drags.size());
+        assertTrue("never scrolled back", grid.scrolls.isEmpty());
+        assertEquals("the grid stays where it was stopped", row, grid.firstRow());
+        assertNull(button.getParent());
+        assertNull(ReelOrigin.buttonForTests());
+        assertNull(ReelOrigin.heldForTests());
+        assertNull("no toast", ShadowToast.getTextOfLatestToast());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.STOPPED + " 1"));
+        assertFalse(report, report.contains(ReelOrigin.NOT_FOUND));
+        assertFalse("nothing waited for a tap", report.contains(ReelOrigin.OFFERED));
+    }
+
+    /**
+     * With Wait for a tap on, a reel past the first screen isn't looked for until Find the reel is
+     * tapped. Then the button reads Stop looking until the reel is found, and goes with the search.
+     */
+    @Test
+    public void waitForATapLooksOnlyOnceFindTheReelIsTapped() {
+        List<String> reels = reels(30, 9000);
+        reels.set(25, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(reels, null);
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON, ON);
+        idleSeconds(5);
+        TextView button = ReelOrigin.buttonForTests();
+        assertNotNull(button);
+        assertEquals("Find the reel", button.getText().toString());
+        assertSame(content(), button.getParent());
+        assertTrue("nothing moved before the tap", grid.drags.isEmpty());
+        assertTrue(shown.isEmpty());
+        assertEquals(REEL, ReelOrigin.heldForTests());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ReelOrigin.OFFERED + " 1"));
+
+        assertTrue(button.performClick());
+        ShadowLooper.idleMainLooper();
+        assertEquals("Stop looking", button.getText().toString());
+        assertSame("the same button, relabeled", button, ReelOrigin.buttonForTests());
+        idleSeconds(5);
+        assertEquals(List.of(REEL), shown);
+        assertFalse(grid.drags.isEmpty());
+        assertNull("gone once found", button.getParent());
+        assertNull(ReelOrigin.heldForTests());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.FOUND + " 1"));
+        assertTrue(report, report.contains(ReelOrigin.OFFERED + " 1"));
+    }
+
+    /** With Wait for a tap on, a reel on the first screen is outlined straight away, with no button. */
+    @Test
+    public void waitForATapStillOutlinesAReelOnTheFirstScreen() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(List.of("3000_7", REEL, "2900_7"), null);
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON, ON);
+        ShadowLooper.idleMainLooper();
+        assertEquals(List.of(REEL), shown);
+        assertNull(ReelOrigin.buttonForTests());
+        assertEquals("nothing but the grid on the screen", 1, content().getChildCount());
+    }
+
+    /** Waiting for the tap, a reel scrolled to by hand is outlined, and the button goes. */
+    @Test
+    public void whileWaitingAReelScrolledToByHandIsOutlined() {
+        List<String> reels = reels(30, 9000);
+        reels.set(25, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(reels, null);
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON, ON);
+        idleSeconds(1);
+        TextView button = ReelOrigin.buttonForTests();
+        assertNotNull(button);
+
+        grid.scrollBy(0, 7 * RecyclerView.ROW);
+        idleSeconds(1);
+        assertEquals(List.of(REEL), shown);
+        assertNull(button.getParent());
+        assertTrue("never dragged", grid.drags.isEmpty());
+        assertNull(ReelOrigin.heldForTests());
+    }
+
+    /**
+     * Leaving the tab takes the button down and keeps the reel, coming back puts one button up again,
+     * and a reel tapped elsewhere takes the old search's button down.
+     */
+    @Test
+    public void leavingTheTabTakesTheButtonDown() {
+        List<String> reels = reels(30, 9000);
+        reels.set(25, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(reels, null);
+        Tab tab = new Tab(profile, grid, AUTHOR);
+        ReelOrigin.reelsTabResumed(tab, ON, ON);
+        idleSeconds(1);
+        TextView button = ReelOrigin.buttonForTests();
+        assertNotNull(button);
+
+        tab.resumed = false;
+        idleSeconds(1);
+        assertNull(button.getParent());
+        assertNull(ReelOrigin.buttonForTests());
+        assertEquals(REEL, ReelOrigin.heldForTests());
+
+        tab.resumed = true;
+        ReelOrigin.reelsTabResumed(tab, ON, ON);
+        ReelOrigin.reelsTabResumed(tab, ON, ON);
+        idleSeconds(1);
+        assertNotNull(ReelOrigin.buttonForTests());
+        assertEquals("one button, not two", 2, content().getChildCount());
+
+        ReelOrigin.opening(new Reel("3200_" + AUTHOR), ON);
+        assertEquals(1, content().getChildCount());
+        assertNull(ReelOrigin.buttonForTests());
     }
 
     /**
@@ -458,6 +606,18 @@ public class ReelOriginTest {
         profile.setContentView(root);
         grid.bind();
         layout();
+    }
+
+    /** The profile screen's content, where the button goes. */
+    private FrameLayout content() {
+        return profile.findViewById(android.R.id.content);
+    }
+
+    /** What a screen reader is told [view] is. */
+    private static CharSequence role(View view) {
+        AccessibilityNodeInfo info = AccessibilityNodeInfo.obtain();
+        view.onInitializeAccessibilityNodeInfo(info);
+        return info.getClassName();
     }
 
     /** [count] reels by the author, none of them the one looked for, numbered down from [from]. */

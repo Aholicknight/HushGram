@@ -9,16 +9,24 @@ import android.app.Application;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.WindowInsets;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
@@ -52,6 +60,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * was, a toast says so, and the id is dropped. Leaving the tab first stops the search and keeps the
  * id for the next time the tab opens.
  *
+ * <p>While the grid is dragged, a Stop looking button sits near the bottom of the profile's screen,
+ * and a tap on it ends the search where the grid is and drops the id. With Wait for a tap on, a
+ * reel that isn't on the first screen isn't looked for until the button, reading Find the reel
+ * then, is tapped; until then a reel scrolled to by hand is still outlined.
+ *
  * <p>The hooks fail open: with the switch off, HushGram paused, the settings not read yet, a member
  * missing or anything thrown, nothing is held and the grid stays as Instagram shows it.
  */
@@ -71,6 +84,9 @@ public final class ReelOrigin {
     static final String FOUND = "reel found";
     static final String NOT_FOUND = "reel not found";
     static final String LEFT = "tab left first";
+    /** Counted when the Find the reel button is put up for a tap, and when Stop looking ends a search. */
+    static final String OFFERED = "find button shown";
+    static final String STOPPED = "search stopped";
 
     /** How long after the tap the profile's activity may take to be created. */
     static final long HOST_WINDOW_MS = 5000;
@@ -94,6 +110,8 @@ public final class ReelOrigin {
     static final long HOLD_MS = 100;
     /** How long the found tile stays outlined. */
     static final long OUTLINE_MS = 1500;
+    /** How far above the bottom of the profile's screen, past the navigation bar, the button sits, clear of a tab bar. */
+    static final int BUTTON_ABOVE_DP = 72;
 
     private static final Object LOCK = new Object();
     private static final Watcher WATCHER = new Watcher();
@@ -126,7 +144,7 @@ public final class ReelOrigin {
             Application application = application();
             if (application == null) return;
             synchronized (LOCK) {
-                looking = null;
+                stopLooking();
                 held = id;
                 heldAt = SystemClock.uptimeMillis();
                 host = null;
@@ -148,6 +166,10 @@ public final class ReelOrigin {
     }
 
     static void reelsTabResumed(Object tab, BooleanSupplier on) {
+        reelsTabResumed(tab, on, ReelOrigin::waitsForTap);
+    }
+
+    static void reelsTabResumed(Object tab, BooleanSupplier on, BooleanSupplier waits) {
         try {
             HookStatus.invoked(FamilyNames.REEL_ORIGIN);
             if (tab == null || !on.getAsBoolean()) return;
@@ -172,12 +194,13 @@ public final class ReelOrigin {
             Method resumed = method(tab, "isResumed");
             Field grid = gridField(tab);
             if (resumed == null || grid == null) return;
-            Look look = new Look(tab, resumed, grid, id, on);
+            Look look = new Look(tab, resumed, grid, id, on, profile, !waits.getAsBoolean());
             synchronized (LOCK) {
                 if (!id.equals(held)) return;
+                stopLooking();
                 looking = look;
             }
-            main().post(look);
+            look.handler.post(look);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_ORIGIN, RESUME, failure);
         }
@@ -195,7 +218,7 @@ public final class ReelOrigin {
         synchronized (LOCK) {
             held = null;
             host = null;
-            looking = null;
+            stopLooking();
             if (watched != null) {
                 watched.unregisterActivityLifecycleCallbacks(WATCHER);
                 watched = null;
@@ -203,18 +226,43 @@ public final class ReelOrigin {
         }
     }
 
+    /** Ends the search running, if any, and takes its button down. Called holding LOCK. */
+    private static void stopLooking() {
+        Look was = looking;
+        looking = null;
+        if (was == null) return;
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            was.takeButtonDown();
+        } else {
+            was.handler.post(was::takeButtonDown);
+        }
+    }
+
+    /** The search's button, for tests: null while none is up. */
+    static TextView buttonForTests() {
+        synchronized (LOCK) {
+            return looking == null ? null : looking.button;
+        }
+    }
+
     /**
      * Drags the tab's grid on most of a screen at a time until the reel's tile is bound, the grid
-     * ends, or the steps or the time run out. Stops without a word when the tab is left, and keeps
-     * the id.
+     * ends, the steps or the time run out, or Stop looking is tapped. Made not going, it waits for a
+     * tap on Find the reel first. Stops without a word when the tab is left, and keeps the id.
      */
     private static final class Look implements Runnable {
+        final Handler handler = main();
         private final WeakReference<Object> tab;
         private final Method resumed;
         private final Field grid;
         private final String id;
         private final BooleanSupplier on;
+        private final WeakReference<Activity> screen;
         private final Rect area = new Rect();
+        /** Whether the grid is being dragged, from the start or since Find the reel was tapped. */
+        private boolean going;
+        /** The button on the profile's screen while it's up, touched only on the main thread. */
+        private TextView button;
         private long started;
         private long endSince;
         private long dragged;
@@ -222,12 +270,14 @@ public final class ReelOrigin {
         /** Where the grid was when the search started. */
         private int start;
 
-        Look(Object tab, Method resumed, Field grid, String id, BooleanSupplier on) {
+        Look(Object tab, Method resumed, Field grid, String id, BooleanSupplier on, Activity screen, boolean going) {
             this.tab = new WeakReference<>(tab);
             this.resumed = resumed;
             this.grid = grid;
             this.id = id;
             this.on = on;
+            this.screen = new WeakReference<>(screen);
+            this.going = going;
         }
 
         @Override public void run() {
@@ -242,18 +292,14 @@ public final class ReelOrigin {
                 }
                 Object found = grid.get(tab);
                 if (!(found instanceof ViewGroup) || !onScreen((ViewGroup) found)) {
+                    takeButtonDown();
                     // A grid already in its window comes on screen only with a frame, so it's looked
                     // at again after the window's next one rather than every WAIT_MS while nothing
                     // changes, as when Instagram keeps the tab resumed beside the one showing.
-                    if (!(found instanceof View) || !afterNextFrame((View) found)) main().postDelayed(this, WAIT_MS);
+                    if (!(found instanceof View) || !afterNextFrame((View) found)) handler.postDelayed(this, WAIT_MS);
                     return;
                 }
                 ViewGroup list = (ViewGroup) found;
-                long now = SystemClock.uptimeMillis();
-                if (started == 0) {
-                    started = now;
-                    start = offset(list);
-                }
                 View tile = tile(list, id);
                 if (tile != null) {
                     show(tile);
@@ -261,6 +307,20 @@ public final class ReelOrigin {
                     forget();
                     return;
                 }
+                if (!going) {
+                    // Up while the tab shows; a screen with no place for it looks straight away.
+                    if (putButtonUp(list)) {
+                        handler.postDelayed(this, WAIT_MS);
+                        return;
+                    }
+                    going = true;
+                }
+                long now = SystemClock.uptimeMillis();
+                if (started == 0) {
+                    started = now;
+                    start = offset(list);
+                }
+                putButtonUp(list);
                 if (steps >= MAX_STEPS || now - started >= GIVE_UP_MS) {
                     giveUp(list);
                     return;
@@ -282,7 +342,27 @@ public final class ReelOrigin {
                         dragged = now;
                     }
                 }
-                main().postDelayed(this, STEP_MS);
+                handler.postDelayed(this, STEP_MS);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.REEL_ORIGIN, LOOK, failure);
+                forget();
+            }
+        }
+
+        /** Find the reel starts the search; Stop looking ends it where the grid is and drops the id. */
+        private void tapped() {
+            try {
+                synchronized (LOCK) {
+                    if (looking != this) return;
+                }
+                if (going) {
+                    HookStatus.counted(FamilyNames.REEL_ORIGIN, STOPPED);
+                    forget();
+                    return;
+                }
+                going = true;
+                handler.removeCallbacks(this);
+                handler.post(this);
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.REEL_ORIGIN, LOOK, failure);
                 forget();
@@ -293,7 +373,38 @@ public final class ReelOrigin {
             synchronized (LOCK) {
                 if (looking == this) looking = null;
             }
+            takeButtonDown();
             HookStatus.counted(FamilyNames.REEL_ORIGIN, LEFT);
+        }
+
+        /**
+         * Puts the button up near the bottom of the profile's screen, reading Find the reel while the
+         * search waits and Stop looking while it goes, or relabels it. False when the screen's content
+         * has no place for it.
+         */
+        private boolean putButtonUp(View list) {
+            Activity activity = screen.get();
+            View content = activity == null ? null : activity.findViewById(android.R.id.content);
+            if (!(content instanceof FrameLayout)) return false;
+            Context context = list.getContext();
+            String label = going ? L10n.t(context, "Stop looking") : L10n.t(context, "Find the reel");
+            if (button == null) {
+                button = button(context, this::tapped);
+                FrameLayout.LayoutParams place = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+                place.bottomMargin = buttonMargin(content);
+                ((FrameLayout) content).addView(button, place);
+                if (!going) HookStatus.counted(FamilyNames.REEL_ORIGIN, OFFERED);
+            }
+            if (!label.contentEquals(button.getText())) button.setText(label);
+            return true;
+        }
+
+        /** Takes the button off the profile's screen, on the main thread. */
+        void takeButtonDown() {
+            TextView up = button;
+            button = null;
+            if (up != null && up.getParent() instanceof ViewGroup) ((ViewGroup) up.getParent()).removeView(up);
         }
 
         /** Not found: the grid goes back to where it was, a toast says so, and the id is dropped. */
@@ -320,7 +431,7 @@ public final class ReelOrigin {
             observer.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
                 @Override public boolean onPreDraw() {
                     if (observer.isAlive()) observer.removeOnPreDrawListener(this);
-                    main().postDelayed(Look.this, WAIT_MS);
+                    handler.postDelayed(Look.this, WAIT_MS);
                     return true;
                 }
             });
@@ -378,6 +489,45 @@ public final class ReelOrigin {
             scrollOffset = found;
         }
         return (Integer) found.invoke(list);
+    }
+
+    /**
+     * The button the search is started and stopped with: white on dark and rounded, a finger's height,
+     * and a button to a screen reader.
+     */
+    static TextView button(Context context, Runnable tapped) {
+        float density = context.getResources().getDisplayMetrics().density;
+        TextView button = new TextView(context);
+        button.setTextColor(Color.WHITE);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        button.setTypeface(Typeface.DEFAULT_BOLD);
+        button.setGravity(Gravity.CENTER);
+        button.setMinHeight(Math.round(48 * density));
+        int across = Math.round(20 * density);
+        int down = Math.round(10 * density);
+        button.setPadding(across, down, across, down);
+        GradientDrawable back = new GradientDrawable();
+        back.setColor(0xE6262626);
+        back.setCornerRadius(24 * density);
+        button.setBackground(back);
+        button.setElevation(6 * density);
+        button.setFocusable(true);
+        button.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName(Button.class.getName());
+            }
+        });
+        button.setOnClickListener(view -> tapped.run());
+        return button;
+    }
+
+    /** How far above the bottom of [content] the button sits: BUTTON_ABOVE_DP past the navigation bar. */
+    @SuppressWarnings("deprecation")
+    static int buttonMargin(View content) {
+        WindowInsets insets = content.getRootWindowInsets();
+        int bar = insets == null ? 0 : insets.getSystemWindowInsetBottom();
+        return Math.round(BUTTON_ABOVE_DP * content.getResources().getDisplayMetrics().density) + bar;
     }
 
     /** Brings [tile] fully on screen, the header folding away if it must, and outlines it for a moment. */
@@ -495,5 +645,9 @@ public final class ReelOrigin {
 
     private static boolean switchedOn() {
         return Utils.settingsReady() && Settings.FIND_REEL_ORIGIN.get();
+    }
+
+    private static boolean waitsForTap() {
+        return Utils.settingsReady() && Settings.FIND_REEL_ORIGIN_ON_TAP.get();
     }
 }

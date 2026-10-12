@@ -26,7 +26,8 @@ internal const val REEL_ORIGIN_PATCH = "Find the reel you came from"
 val findReelOriginPatch = bytecodePatch(
     name = "Find the reel you came from",
     description = "Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and " +
-        "outlines it for a moment. Starts off. Turn it on in HushGram settings > Reels.",
+        "outlines it for a moment. Stop looking ends the search, and Wait for a tap to find it holds it until you " +
+        "tap Find the reel. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
