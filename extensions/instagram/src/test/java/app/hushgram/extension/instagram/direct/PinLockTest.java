@@ -247,6 +247,21 @@ public class PinLockTest {
     }
 
     @Test
+    public void aDialogClosedByAnythingElseEndsTheAskToo() {
+        Activity activity = inbox();
+        MessagesLock.check(activity);
+        AlertDialog dialog = latest();
+
+        dialog.dismiss();
+
+        assertTrue(MessagesLock.locked());
+        assertEquals(View.VISIBLE, cover(activity).getVisibility());
+        MessagesLock.confirmChatsThen(activity, () -> { });
+        assertNotSame("Unlock didn't ask again", dialog, latest());
+        assertTrue(latest().isShowing());
+    }
+
+    @Test
     public void aLockedChatOpensOnlyWithThePin() {
         Settings.LOCK_MESSAGES.resetToDefault();
         Settings.LOCKED_CHATS.save(ALICE + "\tAlice");

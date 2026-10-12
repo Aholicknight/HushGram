@@ -240,6 +240,14 @@ public final class PinLock {
                 notConfirmed.run();
             }
         });
+        // Closed some other way, by Instagram or Android rather than a button: the ask is over all
+        // the same, or the cover's Unlock would do nothing until the ask timed out.
+        dialog.setOnDismissListener(d -> {
+            if (!done[0]) {
+                done[0] = true;
+                notConfirmed.run();
+            }
+        });
         dialog.setOnShowListener(d -> {
             showWait(message);
             dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> {

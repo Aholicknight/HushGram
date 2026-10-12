@@ -30,6 +30,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** The unlock prompt now waits until Instagram is the thing you're looking at. The cover still goes up right away, but pulling down the notification shade or swiping home doesn't bring the prompt up over them. Reported in #153.
 
+* **Instagram - Lock your messages:** If the HushGram PIN dialog gets closed by something other than its buttons, Unlock on the cover asks again right away. Before, it did nothing for about a minute.
+
 * **Instagram - Hide suggested stories and Hide Meta AI:** Their descriptions in Manager and the README said they start off, but their main switches start on. They now say which switches start on, and a test keeps every "Starts on" and "Starts off" in line with the switch it names.
 
 ## 0.0.9 (2026-10-11)
