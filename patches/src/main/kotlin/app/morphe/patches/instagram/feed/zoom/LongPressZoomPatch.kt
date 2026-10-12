@@ -73,8 +73,9 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 val longPressZoomPatch = bytecodePatch(
     name = "Long press to zoom",
     description = "Press and hold a photo in a feed to see it twice as big around your finger, and let go to " +
-        "close it. Pinch to zoom still works. While its switch is on, it takes the place of Instagram's own long " +
-        "press on a photo. Starts off. Turn it on in HushGram settings > Feed.",
+        "close it. Pinch to zoom still works. Keep the zoom open leaves it up after you let go, to drag and pinch " +
+        "from 1x to 4x until a tap or Back closes it. While its switch is on, it takes the place of Instagram's " +
+        "own long press on a photo. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)
