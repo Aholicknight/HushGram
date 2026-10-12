@@ -59,7 +59,7 @@ class NativeMarkReadTest {
         assertEquals("Ljava/util/List;", found.builder.parameterTypes[found.rows].toString())
         assertEquals(USER_SESSION, found.session.type)
         assertEquals(found.action.definingClass, found.session.definingClass)
-        assertEquals(9, found.bridges.size)
+        assertEquals("the account id bridge is written on its own, so either patch can write it", 8, found.bridges.size)
 
         val first = seen.handler.visualCode().first()
         val rows = found.builder.visualCode()

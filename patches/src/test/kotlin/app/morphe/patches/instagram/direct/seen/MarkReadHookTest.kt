@@ -56,7 +56,7 @@ class MarkReadHookTest {
         assertEquals("on the branch past Instagram's check for a blocked action", 4, found.tapAt)
         assertEquals(M.PICKED, found.together.definingClass)
         assertEquals(7, found.togetherAt)
-        assertEquals(9, found.bridges.size)
+        assertEquals("the account id bridge is written on its own, so either patch can write it", 8, found.bridges.size)
 
         val before = input.associate { it.type to snapshot(it.methods) }
         val original = input.associate { it.type to it.methods.associate { method -> method.name to method.visualCode() } }

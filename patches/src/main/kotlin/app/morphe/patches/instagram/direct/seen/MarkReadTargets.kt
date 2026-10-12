@@ -76,7 +76,6 @@ internal const val MARK_READ_TOGETHER_ACTION = "multiple_thread_mark_read"
 internal const val RECEIPT_ITEM = "item_id"
 
 private const val LIST = "Ljava/util/List;"
-private const val GET_USER_ID = "getUserId"
 private const val LIST_ADD = "Ljava/util/List;->add(Ljava/lang/Object;)Z"
 private const val ENUM = "Ljava/lang/Enum;"
 private const val STRING_TYPE = "Ljava/lang/String;"
@@ -132,6 +131,8 @@ internal data class MarkReadTargets(
     val together: MutableMethod,
     val togetherAt: Int,
     val bridges: List<ChatBridge>,
+    /** The account id bridge, which "Lock your messages" may have written already. */
+    val accountId: AccountIdBridge,
 )
 
 private fun refuse(why: String): Nothing = throw PatchException("$THREAD_SEEN_PATCH: $why")
@@ -233,18 +234,13 @@ internal fun BytecodePatchContext.findMarkRead(seen: ThreadSeenTargets): MarkRea
         !it.static() && it.public() && it.parameterTypes.isEmpty() && it.returnType == THREAD_KEY
     }.one("receipt's chat key")
     val (details, message) = receiptMessage(seen, receipt, byType)
-    val account = byType[USER_SESSION] ?: refuse("$USER_SESSION is missing")
-    if (AccessFlags.INTERFACE.isSet(account.accessFlags)) refuse("$USER_SESSION is an interface")
-    val accountId = account.methods.filter {
-        it.name == GET_USER_ID && it.parameterTypes.isEmpty() && it.returnType == STRING_TYPE && !it.static()
-    }.one("account id $USER_SESSION answers")
+    val accountId = findAccountId(THREAD_SEEN_PATCH)
 
     requirePublic(byType, keyClass.type, threadId)
     requirePublic(byType, receipt.type, receiptKey)
     requirePublic(byType, receipt.type, details)
     requirePublic(byType, details.type, null)
     requirePublic(byType, message.definingClass, message)
-    requirePublic(byType, USER_SESSION, accountId)
     requirePublic(byType, pick.message.parameterTypes.single().toString(), null)
     requirePublic(byType, pick.message.definingClass, pick.message)
     requirePublic(byType, pick.id.definingClass, pick.id)
@@ -257,12 +253,6 @@ internal fun BytecodePatchContext.findMarkRead(seen: ThreadSeenTargets): MarkRea
     requireHook(extension, "markRead", List(5) { JAVA_OBJECT_TYPE }, "Z")
     requireHook(extension, "markReadTogether", listOf(JAVA_OBJECT_TYPE, JAVA_OBJECT_TYPE, STRING_TYPE, STRING_TYPE, STRING_TYPE), "V")
     val bridges = chatBridges(listOf(
-        Triple("accountId", listOf(JAVA_OBJECT_TYPE), STRING_TYPE) to """
-            check-cast p0, $USER_SESSION
-            invoke-virtual { p0 }, ${accountId.key()}
-            move-result-object p0
-            return-object p0
-        """,
         Triple("threadId", listOf(JAVA_OBJECT_TYPE), STRING_TYPE) to """
             check-cast p0, $THREAD_KEY
             iget-object p0, p0, $threadId
@@ -311,7 +301,7 @@ internal fun BytecodePatchContext.findMarkRead(seen: ThreadSeenTargets): MarkRea
         """,
     ))
     return MarkReadTargets(markAsRead, builder, rows, offerAt, offerRegister, action, chosen, thread, key, session,
-        tapAt, tapRegisters, together, togetherAt, bridges)
+        tapAt, tapRegisters, together, togetherAt, bridges, accountId)
 }
 
 private const val JAVA_OBJECT_TYPE = "Ljava/lang/Object;"
@@ -633,4 +623,5 @@ internal fun markReadByHand(found: MarkReadTargets) {
     // At the call's own label, so a jump straight to the call tells the extension too.
     found.together.addInstructionsAtControlFlowLabel(found.togetherAt, "$arguments, $MARK_READ_TOGETHER")
     found.bridges.forEach { it.stub.addInstructions(0, it.body) }
+    found.accountId.write()
 }
