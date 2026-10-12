@@ -251,6 +251,8 @@ public final class GlassTabBar {
      */
     static final int FIT_GAP_DP = 1;
     static final int BLUR_DP = 18;
+    static final int CORNER_DP = 12;
+    static final int HIGHLIGHT_CORNER_DP = 8;
     /** The selected tab's capsule sits 4dp in from the pill's top and bottom and stands 4dp past its slot. */
     static final int HIGHLIGHT_INSET_DP = 4;
     static final int HIGHLIGHT_GROW_DP = 4;
@@ -832,7 +834,7 @@ public final class GlassTabBar {
 
             private void drawPill(@NonNull Canvas canvas) {
                 if (!pillBounds(rect)) return;
-                float radius = rect.height() / 2f;
+                float radius = dp(CORNER_DP);
                 boolean dark = isDark(base);
 
                 // The content stops above the bar, so the bar's own colour fills round the pill.
@@ -906,7 +908,7 @@ public final class GlassTabBar {
                 capsule.set(nowLeft, rect.top + inset, nowRight, rect.bottom - inset);
                 tick((nowLeft + nowRight) / 2f);
                 fill.setColor(highlight(base));
-                float capsuleRadius = capsule.height() / 2f;
+                float capsuleRadius = dp(HIGHLIGHT_CORNER_DP);
                 canvas.drawRoundRect(capsule, capsuleRadius, capsuleRadius, fill);
                 if (progress < 1f) invalidateSelf();
             }
@@ -1016,7 +1018,7 @@ public final class GlassTabBar {
                 try {
                     float scale = 1f / DOWNSAMPLE;
                     float pad = dp(BLUR_DP);
-                    float radius = area.height() / 2f;
+                    float radius = dp(CORNER_DP);
                     float wide = area.width() + 2 * pad;
                     float tall = area.height() + 2 * pad;
                     int width = Math.max(1, (int) Math.ceil(wide * scale));

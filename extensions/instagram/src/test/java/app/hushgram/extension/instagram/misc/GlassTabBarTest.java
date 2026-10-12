@@ -6,33 +6,271 @@ package app.hushgram.extension.instagram.misc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
+import android.view.Gravity;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.After;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.android.controller.ActivityController;
+import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
+import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.util.ReflectionHelpers;
+
+import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
 
 /** The colour and size choices Glass tab bar makes from Instagram's bar colour and the screen's width. */
 @RunWith(RobolectricTestRunner.class)
 public class GlassTabBarTest {
+    @Rule public final SettingsContextRule settings = new SettingsContextRule();
+
+    @After public void resetGlassSettings() {
+        GlassTabBar.animationsOnForTests = null;
+        Settings.GLASS_TAB_BAR.resetToDefault();
+        Settings.GLASS_TAB_BAR_BLUR.resetToDefault();
+        Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
+        Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
+        Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
+        Settings.GLASS_TAB_BAR_HAPTICS.resetToDefault();
+        Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void nativeGlassHasTwelveDpCornersAndEightDpSelectionWithoutMovingTouches() throws Exception {
+        GlassTabBar.animationsOnForTests = false;
+        for (int base : new int[]{Color.BLACK, Color.WHITE}) {
+            for (boolean floating : new boolean[]{false, true}) {
+                for (GlassHeight height : new GlassHeight[]{GlassHeight.STANDARD, GlassHeight.COMPACT}) {
+                    for (boolean rtl : new boolean[]{false, true}) {
+                        try (GlassHost host = new GlassHost(base, floating, height, rtl, false)) {
+                            GlassTabBar.apply(host.activity);
+                            host.layout();
+                            Rect[] touches = new Rect[host.bar.getChildCount()];
+                            for (int i = 0; i < touches.length; i++) {
+                                View tab = host.bar.getChildAt(i);
+                                touches[i] = new Rect(tab.getLeft(), tab.getTop(), tab.getRight(), tab.getBottom());
+                                assertTrue("native tab remains at least 48dp wide", tab.getWidth() >= host.dp(48));
+                                assertTrue("compact styling preserves the 48dp touch height", tab.getHeight() >= host.dp(48));
+                            }
+                            try (Pixels plain = host.background()) {
+                                int outer = GlassTabBar.outerPx(host.bar.getWidth(), host.density);
+                                int top = host.dp(1) + GlassTabBar.pillInsetPx(height, host.bar.getHeight(), host.dp(1), host.density);
+                                RectF drawn = ReflectionHelpers.getField(host.bar.getBackground(), "rect");
+                                assertEquals(outer + host.density / 2f, drawn.left, 0.01f);
+                                assertEquals(top + host.density / 2f, drawn.top, 0.01f);
+                                int corner = plain.bitmap.getPixel(outer + host.dp(3), top + host.dp(6));
+                                if (base == Color.BLACK) assertTrue("a 12dp corner fills where an oval did not", Color.red(corner) > 5);
+                                else if (floating) assertTrue("light glass has the same corner footprint", Color.alpha(corner) > 200);
+                                if (floating && base == Color.BLACK) {
+                                    assertEquals("the panel corner remains clear", 0, plain.bitmap.getPixel(outer, top));
+                                }
+                                for (int index : new int[]{0, touches.length - 1}) {
+                                    View selected = host.bar.getChildAt(index);
+                                    assertTrue("the host's real click handler still runs", selected.performClick());
+                                    try (Pixels active = host.background()) {
+                                        RectF slot = ReflectionHelpers.getField(host.bar.getBackground(), "capsule");
+                                        int x = Math.round(slot.left) + host.dp(2);
+                                        int y = Math.round(slot.top) + host.dp(4);
+                                        int before = Color.red(plain.bitmap.getPixel(x, y));
+                                        int after = Color.red(active.bitmap.getPixel(x, y));
+                                        assertTrue("the selected slot has an 8dp corner", base == Color.BLACK ? after > before + 10 : after < before - 10);
+                                        assertEquals(Math.max(outer + host.dp(4), selected.getLeft() - host.dp(4)), slot.left, 0.01f);
+                                        assertEquals(top + host.dp(4), slot.top, 0.01f);
+                                    }
+                                    for (int i = 0; i < touches.length; i++) {
+                                        View tab = host.bar.getChildAt(i);
+                                        assertEquals("only the clicked native tab is selected", i == index, tab.isSelected());
+                                        assertEquals(touches[i], new Rect(tab.getLeft(), tab.getTop(), tab.getRight(), tab.getBottom()));
+                                    }
+                                    host.capture((base == Color.BLACK ? "dark" : "light") + (floating ? "-floating" : "-inset")
+                                            + "-" + height.name().toLowerCase(java.util.Locale.ROOT) + (rtl ? "-rtl" : "-ltr") + "-selected-" + index);
+                                }
+                            }
+                            assertEquals("selection keeps the host's callbacks", 2, host.clicks.get());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void unavailableBlurUsesTheSameCornerFootprintAndOffOrPauseKeepsTheNativeBar() throws Exception {
+        for (int base : new int[]{Color.BLACK, Color.WHITE}) {
+            try (GlassHost host = new GlassHost(base, true, GlassHeight.STANDARD, false, true)) {
+                GlassTabBar.apply(host.activity);
+                host.layout();
+                assertTrue(host.bar.getChildAt(2).performClick());
+                try (Pixels pixels = host.background()) {
+                    int outer = GlassTabBar.outerPx(host.bar.getWidth(), host.density);
+                    int corner = pixels.bitmap.getPixel(outer + host.dp(3), host.dp(7));
+                    assertTrue("unsupported blur still paints the rounded surface", Color.alpha(corner) > 200);
+                }
+                host.capture((base == Color.BLACK ? "dark" : "light") + "-blur-unavailable");
+            }
+        }
+        for (boolean paused : new boolean[]{false, true}) {
+            try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.COMPACT, false, false)) {
+                Object nativeBackground = host.bar.getBackground();
+                Rect padding = new Rect(host.bar.getPaddingLeft(), host.bar.getPaddingTop(), host.bar.getPaddingRight(), host.bar.getPaddingBottom());
+                Settings.GLASS_TAB_BAR.save(paused);
+                BaseSettings.PAUSED.save(paused);
+                if (paused) PauseForTests.pause(HushgramPause.Reason.SWITCH);
+                GlassTabBar.apply(host.activity);
+                assertSame(nativeBackground, host.bar.getBackground());
+                assertEquals(padding, new Rect(host.bar.getPaddingLeft(), host.bar.getPaddingTop(), host.bar.getPaddingRight(), host.bar.getPaddingBottom()));
+                assertTrue(host.bar.getChildAt(0).performClick());
+                assertEquals(1, host.clicks.get());
+                host.capture(paused ? "glass-paused" : "glass-off");
+            }
+        }
+    }
+
+    /** A native host strip. The tab bar and its listeners remain the host's views. */
+    private static final class GlassHost implements AutoCloseable {
+        private static final int BAR_ID = 0x7f0b0120;
+        final ActivityController<Activity> controller;
+        final Activity activity;
+        final FrameLayout root;
+        final LinearLayout bar;
+        final float density;
+        final AtomicInteger clicks = new AtomicInteger();
+        private final Integer previousId;
+
+        GlassHost(int base, boolean floating, GlassHeight height, boolean rtl, boolean blur) {
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+            Settings.GLASS_TAB_BAR.save(true);
+            Settings.GLASS_TAB_BAR_FLOAT.save(floating);
+            Settings.GLASS_TAB_BAR_HEIGHT.save(height);
+            Settings.GLASS_TAB_BAR_OPACITY.save(GlassOpacity.STANDARD);
+            Settings.GLASS_TAB_BAR_BLUR.save(blur);
+            Settings.GLASS_TAB_BAR_HAPTICS.save(false);
+            Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(false);
+            controller = Robolectric.buildActivity(Activity.class).setup();
+            activity = controller.get();
+            activity.getApplicationInfo().flags |= android.content.pm.ApplicationInfo.FLAG_SUPPORTS_RTL;
+            density = activity.getResources().getDisplayMetrics().density;
+            root = new FrameLayout(activity);
+            root.setLayoutDirection(rtl ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
+            root.setBackgroundColor(base == Color.BLACK ? 0xff0c1014 : 0xffeff2f5);
+            bar = new LinearLayout(activity);
+            bar.setId(BAR_ID);
+            bar.setOrientation(LinearLayout.HORIZONTAL);
+            bar.setBackgroundColor(base);
+            int[] icons = {android.R.drawable.ic_menu_view, android.R.drawable.ic_menu_search,
+                    android.R.drawable.ic_input_add, android.R.drawable.ic_media_play, android.R.drawable.ic_menu_myplaces};
+            String[] labels = {"Home", "Search", "Create", "Reels", "Profile"};
+            for (int i = 0; i < icons.length; i++) {
+                ImageView tab = new ImageView(activity);
+                tab.setImageResource(icons[i]);
+                tab.setContentDescription(labels[i]);
+                tab.setImageTintList(new ColorStateList(new int[][]{{android.R.attr.state_selected}, {}},
+                        new int[]{0xffcb2861, base == Color.BLACK ? Color.WHITE : Color.BLACK}));
+                tab.setPadding(dp(12), dp(10), dp(12), dp(10));
+                tab.setOnClickListener(view -> {
+                    clicks.incrementAndGet();
+                    for (int child = 0; child < bar.getChildCount(); child++) bar.getChildAt(child).setSelected(bar.getChildAt(child) == view);
+                });
+                bar.addView(tab, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+            }
+            root.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52), Gravity.BOTTOM));
+            activity.setContentView(root);
+            Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+            synchronized (ids) { previousId = ids.put(GlassTabBar.TAB_BAR, BAR_ID); }
+            layout();
+        }
+
+        int dp(int value) { return Math.round(value * density); }
+
+        void layout() {
+            ShadowLooper.idleMainLooper();
+            root.measure(View.MeasureSpec.makeMeasureSpec(dp(411), View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(dp(104), View.MeasureSpec.EXACTLY));
+            root.layout(0, 0, dp(411), dp(104));
+        }
+
+        Pixels background() {
+            Pixels pixels = new Pixels(bar.getWidth(), bar.getHeight());
+            bar.getBackground().setBounds(0, 0, bar.getWidth(), bar.getHeight());
+            bar.getBackground().draw(new Canvas(pixels.bitmap));
+            return pixels;
+        }
+
+        void capture(String name) throws Exception {
+            try (Pixels pixels = new Pixels(root.getWidth(), root.getHeight())) {
+                root.draw(new Canvas(pixels.bitmap));
+                String output = System.getenv("HUSHGRAM_UI_CAPTURES");
+                if (output == null || output.isEmpty()) output = System.getProperty("HUSHGRAM_UI_CAPTURES");
+                if (output == null || output.isEmpty()) return;
+                File directory = new File(output, "overlays");
+                assertTrue(directory.mkdirs() || directory.isDirectory());
+                try (FileOutputStream stream = new FileOutputStream(new File(directory, "glass-" + name + ".png"))) {
+                    assertTrue(pixels.bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream));
+                }
+            }
+        }
+
+        @Override public void close() {
+            root.removeView(bar);
+            Map<View, ?> applied = ReflectionHelpers.getStaticField(GlassTabBar.class, "applied");
+            applied.remove(bar);
+            Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+            synchronized (ids) {
+                if (previousId == null) ids.remove(GlassTabBar.TAB_BAR);
+                else ids.put(GlassTabBar.TAB_BAR, previousId);
+            }
+            controller.close();
+        }
+    }
+
+    private static final class Pixels implements AutoCloseable {
+        final Bitmap bitmap;
+        Pixels(int width, int height) { bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888); }
+        @Override public void close() { bitmap.recycle(); }
+    }
+
     /**
      * A missing shadow or content view is looked for again only every RESEARCH_MS, and a run of misses
      * asks for a few redraws so a view that turns up after a screen switch is found without anything
