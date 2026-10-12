@@ -8,21 +8,23 @@ Every HushGram release, newest first.
 
 #### Improvements
 
-* **Instagram - HushGram settings:** Settings have clearer category descriptions, a rounded search field and quieter cards with pink icon tiles. Text wraps at larger sizes, and choices keep their native switches and selection controls. PIN screens, photo controls and other dialogs share the same styling.
+* **Instagram - HushGram settings:** Settings now use clearer category descriptions, a rounded search field and pink icon tiles. Dialogs share the same styling, and controls stay readable at larger text sizes.
+
+* **Tooling:** Unreleased version headings now work with both the changelog checker and the release notes generator.
 
 #### Bug Fixes
 
-* **Instagram - Glass tab bar:** A feed video you start with a tap plays where it is. On some phones it dropped to the bottom of the screen, under the bar, and left black where it should have played. Reported in #136.
+* **Instagram - Glass tab bar:** Feed videos started with a tap stay in place. On some phones they dropped behind the tab bar, leaving a black gap. Reported in #136.
 
-* **Instagram - Glass tab bar:** The pill stays glass over videos. Before, any video on screen turned it flat and nearly solid until the video scrolled away, so the blur, opacity and edge kept dropping out as you scrolled a feed of videos. On some phones a video right under the pill shows through the tint without the blur. Reported in #144.
+* **Instagram - Glass tab bar:** The bar keeps its glass appearance over videos. Its opacity and edge no longer change as videos scroll past. Video directly beneath the bar may show through without blur on some phones. Reported in #144.
 
-* **Instagram - Glass tab bar:** With Show content behind the tab bar on, Reels stops at the top of the bar again, over black, the way it does with Instagram's own bar. Its seek bar, caption and buttons aren't hidden under the pill anymore, and Home and Profile on the pill work from Reels. Before, a tap on the lower half of the pill went to the reel instead. Refs #65.
+* **Instagram - Glass tab bar:** With Show content behind the tab bar on, Reels stops above the bar again. Its seek bar, caption and buttons stay visible, and Home and Profile respond across the full pill. Refs #65.
 
-* **Instagram - Keep a seek bar on Reels:** Bigger seek bar on reels really is bigger now, about twice Instagram's line, and it runs through the round handle. It's white only as far as the reel has played. Before, it came out as thin as Instagram's, and once a reel had loaded the whole line turned white. Reported in #10.
+* **Instagram - Keep a seek bar on Reels:** Bigger seek bar on reels now draws at about twice the standard thickness and runs through the handle. Only the played portion turns white. Reported in #10.
 
-* **Instagram - Full screen Reels and Home:** Reels and Home really go full screen now. Instagram kept room for the status bar and the navigation bar after they hid, so an empty strip stayed at the top and the bottom, black in dark mode, and it looked like the bars were still there. Reported in #147, and it's the black strips from #14 too.
+* **Instagram - Full screen Reels and Home:** Reels and Home now use the space left by hidden system bars. The empty strips at the top and bottom are gone. Reported in #147 and #14.
 
-* **Instagram - HushGram settings:** Hide the HushGram row in Instagram's menu now also counts the long press on your profile's menu. With that long press on and no tab long press chosen, the HushGram row leaves Settings and activity like it should. Turn both long presses off, or pause HushGram, and the row comes back. Reported in #148.
+* **Instagram - HushGram settings:** The HushGram row can now hide when settings opens through a long press on your profile's menu. Turning off both long press entries, or pausing HushGram, brings it back. Reported in #148.
 
 ## 0.0.9 (2026-10-11)
 

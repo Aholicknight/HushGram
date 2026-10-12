@@ -34,6 +34,8 @@ Before a change goes in:
 
 ## Releasing
 
+While a version is being prepared, keep its notes under `## Unreleased`, followed by `### HushGram v<version>` and `#### Features`, `#### Bug Fixes` or `#### Improvements`. When releasing it, replace that version heading with the dated heading below and promote the type headings to `###`.
+
 A release waits for the maintainer. The pre-push hook stops a push that carries a tag or `patches-bundle.json` unless `HUSHGRAM_ALLOW_RELEASE=1` is set for that one push. With it set, the hook's builds and patch runs also go ahead of everything else in the machine's build queue. It takes two commits:
 
 1. The source commit. The CHANGELOG moves the version's notes out of `## Unreleased` into a dated `## <version> (YYYY-MM-DD)` heading, and its bullets, sorted under `### Features`, `### Bug Fixes` and `### Improvements`, are what Morphe Manager shows. A bullet opens with `**Instagram:**`, or `**Instagram - <Patch name>:**` when it's about one patch (the name as `patches-list.json` spells it), or `**Tooling:**`. The README's latest-release sentence keeps naming the previous release until the index commit. Before pushing, run `scripts/release/preflight.ps1 -Version <version>`. In a few minutes it checks the checkout, the fixtures and the desktop CLI, the release facts, the CHANGELOG section the notes come from (every bullet under a type heading and scoped, no dashes) and the patch tests that read no Instagram build, so a slip turns up before the gate's long run does.

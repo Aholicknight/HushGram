@@ -8,6 +8,7 @@ bullet under them exactly once, and a last Validation section with the one sente
 gate holds to the test results. The README has the intro, the install steps and the requirements.
 
 The CHANGELOG section sorts its bullets under ### Features, ### Bug Fixes and ### Improvements,
+or under #### type headings after a ### HushGram v<version> heading in Unreleased,
 and each bullet opens with a scope, **Instagram:** or **Instagram - Patch name:** (Manager keeps a
 scoped bullet for an app when the scope, or the part before " - ", is the app's name), or
 **Tooling:**. The run stops on a bullet outside a type heading, an unknown heading, an unscoped
@@ -81,10 +82,15 @@ def read_bullets(section: str) -> dict[str, list[str]]:
     found: dict[str, list[str]] = {}
     current: str | None = None
     last: list[str] | None = None
+    type_level = "###"
     for line in section.split("\n"):
         heading = re.match(r"(#{1,6}) (.+?)\s*$", line)
         if heading:
-            if heading.group(1) != "###" or heading.group(2) not in SECTIONS:
+            if (type_level == "###" and not found and heading.group(1) == "###"
+                    and re.fullmatch(r"HushGram v\d+\.\d+\.\d+", heading.group(2))):
+                type_level = "####"
+                continue
+            if heading.group(1) != type_level or heading.group(2) not in SECTIONS:
                 raise NotesError(f"an unknown sub-heading, the section wants {', '.join(SECTIONS)}: {line[:80]}")
             current, last = heading.group(2), None
             found.setdefault(current, [])

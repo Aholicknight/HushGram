@@ -144,10 +144,10 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertEqual([title for _, title, _ in self.sections],
                          [t for t in ("Features", "Bug Fixes", "Improvements", "Validation") if t in by_title])
         kinds = {title: kind for kind, title, _ in self.sections}
-        self.assertEqual(kinds["Features"], "FEATURES")
-        self.assertEqual(kinds["Bug Fixes"], "FIXES")
-        self.assertEqual(kinds.get("Improvements", "IMPROVEMENTS"), "IMPROVEMENTS")
-        self.assertTrue(by_title["Features"] and by_title["Bug Fixes"])
+        for title, kind in (("Features", "FEATURES"), ("Bug Fixes", "FIXES"), ("Improvements", "IMPROVEMENTS")):
+            if title in by_title:
+                self.assertEqual(kinds[title], kind)
+                self.assertTrue(by_title[title])
         changes = sum(1 for title, items in by_title.items() if title != "Validation" for i in items if i[2])
         self.assertEqual(changes, len(self.bullets))
         self.assertEqual(changes, self.carried)
@@ -203,6 +203,28 @@ class RefusalTests(unittest.TestCase):
         body, carried = self.build(self.SECTION, {"Hide Meta AI"})
         self.assertEqual(carried, 2)
         self.assertTrue(body.endswith("### Validation\n\n" + self.VALIDATION + "\n"))
+
+    def test_unreleased_version_wrapper_keeps_the_same_release_cards(self):
+        wrapped = "\n### HushGram v1.0.0\n" + self.SECTION.replace("### ", "#### ")
+        self.assertEqual(self.build(wrapped), self.build(self.SECTION))
+
+    def test_updates_can_contain_only_fixes_or_improvements(self):
+        for title, kind in (("Bug Fixes", "FIXES"), ("Improvements", "IMPROVEMENTS")):
+            section = f"\n### {title}\n\n* **Instagram:** A clearer row.\n"
+            body, carried = self.build(section)
+            self.assertEqual(carried, 1)
+            self.assertEqual(manager_sections(body.split("\n", 1)[1])[0][:2], (kind, title))
+
+    def test_version_wrapper_must_be_first_and_use_nested_types(self):
+        for section in (
+            "### HushGram v1.0.0\n" + self.SECTION,
+            self.SECTION + "\n### HushGram v1.0.0\n",
+            "### HushGram v1.0.0\n### HushGram v1.0.0\n#### Features\n* **Instagram:** A row.\n",
+            "### HushGram v1.0\n#### Features\n* **Instagram:** A row.\n",
+            "#### Features\n* **Instagram:** A row.\n",
+        ):
+            with self.subTest(section=section), self.assertRaises(notes.NotesError):
+                self.build(section)
 
     def test_refusals(self):
         cases = {
