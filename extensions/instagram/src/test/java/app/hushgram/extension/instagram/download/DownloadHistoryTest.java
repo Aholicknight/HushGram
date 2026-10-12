@@ -50,7 +50,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import app.hushgram.extension.instagram.settings.Settings;
@@ -194,6 +196,43 @@ public class DownloadHistoryTest {
         saveClip();
         waitForSaves();
         assertEquals("a moved file kept a save from happening", 3, server.hits("/clip.mp4"));
+    }
+
+    /**
+     * A double tap: the second save starts while the first is still fetching, before either is
+     * written down, and only the first runs. Once the first ends, its hold on the reel is gone.
+     */
+    @Test public void aSecondSaveWhileTheFirstRunsIsSkipped() throws Exception {
+        CountDownLatch inside = new CountDownLatch(1);
+        CountDownLatch go = new CountDownLatch(1);
+        AtomicInteger runs = new AtomicInteger();
+        MediaSave.Job job = (writer, progress) -> {
+            runs.incrementAndGet();
+            inside.countDown();
+            try {
+                go.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                throw new AssertionError(e);
+            }
+            return Downloader.Result.ok("video/mp4");
+        };
+        Thread first = MediaSave.start(context, true, reel(), job);
+        assertNotNull(first);
+        assertTrue(inside.await(10, TimeUnit.SECONDS));
+        Thread second = MediaSave.start(context, true, reel(), job);
+        assertNotNull(second);
+        second.join(10_000);
+        assertEquals("the second tap fetched too", 1, runs.get());
+        go.countDown();
+        first.join(10_000);
+        waitForSaves();
+
+        // The first published nothing, so nothing was written down: a save now runs again.
+        Thread third = MediaSave.start(context, true, reel(), job);
+        assertNotNull(third);
+        third.join(10_000);
+        waitForSaves();
+        assertEquals("the first save kept its hold after it ended", 2, runs.get());
     }
 
     @Test public void aFailedOrCancelledSaveIsNeverRemembered() throws Exception {

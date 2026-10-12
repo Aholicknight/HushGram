@@ -185,22 +185,26 @@ public final class SaveControl {
     }
 
     static Save begin(Context application, boolean video, int pages) {
-        return begin(application, video, false, pages);
+        return begin(application, video, false, pages, true);
     }
 
     /** A save of a sound recording, which its notification and the settings list call a voice message. */
     static Save beginAudio(Context application) {
-        return begin(application, false, true, 0);
+        return begin(application, false, true, 0, true);
     }
 
-    private static Save begin(Context application, boolean video, boolean audio, int pages) {
+    /**
+     * As above. With [shown] false the notification and the settings list's line wait for
+     * {@link Save#reveal}: a save that may turn out to be of something already saved, which then
+     * says only that.
+     */
+    static Save begin(Context application, boolean video, boolean audio, int pages, boolean shown) {
         NotificationManager manager = notifications(application);
         Save save = new Save(application, NEXT_ID.getAndIncrement(), video, audio, pages, manager);
         if (pages > 0) lastBatch = null;
         RUNNING.put(save.id, save);
         if (save.manager != null) listen(application);
-        save.show(-1, 0, -1);
-        tell();
+        if (shown) save.reveal();
         return save;
     }
 
@@ -340,6 +344,7 @@ public final class SaveControl {
         private long shownAt;
         private int shownPercent = -2;
         private boolean ended;
+        private boolean revealed;
 
         Save(Context application, int id, boolean video, NotificationManager manager) {
             this(application, id, video, 0, manager);
@@ -445,6 +450,16 @@ public final class SaveControl {
         }
 
         /** The save is over, however it ended, and its notification goes. */
+        /** Shows the notification and tells the settings list, once. */
+        void reveal() {
+            synchronized (this) {
+                if (revealed) return;
+                revealed = true;
+            }
+            show(-1, 0, -1);
+            tell();
+        }
+
         void end() {
             synchronized (this) {
                 ended = true;

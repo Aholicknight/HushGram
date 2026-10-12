@@ -754,6 +754,22 @@ public class SaveProgressTest {
         }
     }
 
+    /** A save begun unshown, one that may be skipped, posts nothing until it's revealed, and then once. */
+    @Test
+    public void anUnshownSavePostsItsNotificationOnlyWhenRevealed() {
+        SaveControl.Save save = SaveControl.begin(context, true, false, 0, false);
+        try {
+            assertNull("posted before it was known to go ahead", saveNotification());
+            save.reveal();
+            assertNotNull(saveNotification());
+            save.reveal();
+            assertEquals(1, Shadows.shadowOf(notifications()).getAllNotifications().size());
+        } finally {
+            save.end();
+        }
+        assertNull(saveNotification());
+    }
+
     /** Cancel closes the connection being read, and one opened after the cancel as soon as it's handed over. */
     @Test
     public void cancelClosesTheConnectionTheSaveIsReading() throws Exception {

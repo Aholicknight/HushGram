@@ -24,9 +24,11 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import app.hushgram.extension.instagram.direct.ChatAccounts;
@@ -81,6 +83,7 @@ public final class DownloadHistory {
     static final String COUNT_SKIPPED = "save skipped, already saved";
     static final String COUNT_AGAIN = "saved again after a skip";
     static final String COUNT_GONE = "saved file gone, saving again";
+    static final String COUNT_SAVING = "save skipped, already being saved";
 
     private static final String FAMILY = FamilyNames.VIDEO_DOWNLOAD;
 
@@ -121,6 +124,8 @@ public final class DownloadHistory {
     }
 
     private static final Object LOCK = new Object();
+    /** The keys of saves running now that {@link #saved} let through, under {@link #LOCK}. */
+    private static final Set<String> SAVING = new HashSet<>();
 
     /** Oldest first. Read from {@link #loadedFrom} the first time it's needed. */
     private static final LinkedHashMap<String, Entry> ENTRIES = new LinkedHashMap<>();
@@ -200,9 +205,38 @@ public final class DownloadHistory {
      * skipped. A second ask within {@link #AGAIN_MS} of a skip answers no, once, and that save goes
      * ahead. An entry whose file is gone or was moved is forgotten. A null key answers no. Never
      * throws: anything that fails answers no.
+     *
+     * <p>A save answered no holds [key] until it calls {@link #release}, and another save of it
+     * meanwhile, a double tap's second say, answers yes: two saves of one thing at once would both
+     * pass before either was written down.
      */
     static boolean saved(Context application, String key) {
         if (application == null || key == null) return false;
+        synchronized (LOCK) {
+            if (!SAVING.add(key)) {
+                HookStatus.counted(FAMILY, COUNT_SAVING);
+                return true;
+            }
+        }
+        boolean skip = savedBefore(application, key);
+        if (skip) release(key);
+        return skip;
+    }
+
+    /** Lets go of [key], which a save {@link #saved} answered no for held. Null does nothing. */
+    static void release(String key) {
+        if (key == null) return;
+        synchronized (LOCK) {
+            SAVING.remove(key);
+        }
+    }
+
+    /** {@link #release} for each of [keys]. */
+    static void release(Collection<String> keys) {
+        for (String key : keys) release(key);
+    }
+
+    private static boolean savedBefore(Context application, String key) {
         try {
             Entry entry;
             synchronized (LOCK) {
@@ -322,6 +356,7 @@ public final class DownloadHistory {
         synchronized (LOCK) {
             ENTRIES.clear();
             AGAIN.clear();
+            SAVING.clear();
             lines = 0;
             loadedFrom = null;
         }
@@ -337,8 +372,11 @@ public final class DownloadHistory {
     static boolean present(Context application, Entry entry) {
         Uri item = Uri.parse(entry.item);
         if ("file".equals(item.getScheme())) {
-            String path = item.getPath();
-            return path != null && new File(path).isFile();
+            // All after "file:", not getPath(), which reads a path with no slash in front (a Windows
+            // test host's C:\...) as the authority and answers an empty one.
+            String path = item.getSchemeSpecificPart();
+            if (path != null && path.startsWith("//")) path = path.substring(2);
+            return path != null && !path.isEmpty() && new File(path).isFile();
         }
         if (!"content".equals(item.getScheme())) return false;
         try (Cursor row = application.getContentResolver().query(item,

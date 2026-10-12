@@ -273,6 +273,8 @@ public final class MediaSave {
             boolean compatible = compatibleSaves();
             BatchResult[] outcome = new BatchResult[1];
             List<String> passedOver = new ArrayList<>();
+            // The pages the check let through, each held until the carousel ends.
+            List<String> held = new ArrayList<>();
             boolean started = launch(application, false, snapshot.size(), save -> {
                 int saved = 0, failed = 0, skipped = 0, lower = 0, already = 0;
                 boolean cancelled = false;
@@ -294,6 +296,7 @@ public final class MediaSave {
                         info(() -> "carousel page " + number + " skipped: already saved");
                         continue;
                     }
+                    if (key != null) held.add(key);
                     save.page(index + 1, page.video);
                     if (save.cancelled()) {
                         skipped += snapshot.size() - index;
@@ -337,6 +340,7 @@ public final class MediaSave {
                         : save.cancelled() ? new BatchResult(0, 0, snapshot.size(), 0, true)
                         : new BatchResult(0, snapshot.size(), 0, 0, false);
                 outcome[0] = result;
+                DownloadHistory.release(held);
                 // Asked again within the time the message gives, the pages passed over are saved.
                 DownloadHistory.offerAgain(passedOver);
                 // The settings can show the complete outcome when Android clips a long toast.
@@ -1206,26 +1210,29 @@ public final class MediaSave {
         // or for a save that doesn't know the media's id: it's saved as it always was.
         final String key = DownloadHistory.key(DownloadHistory.ownerIfOn(), known, kind);
         return launch(application, video, audio, 0, key != null, save -> {
-            if (key != null) {
-                if (DownloadHistory.saved(application, key)) {
-                    info(() -> "save skipped: already saved");
-                    DownloadHistory.offerAgain(Collections.singletonList(key));
-                    Feedback.show(application, L10n.t(application,
-                            "Already saved. Download it again within 30 seconds to save another copy."), true);
-                    return;
-                }
-                announce(application, save);
+            if (key != null && DownloadHistory.saved(application, key)) {
+                info(() -> "save skipped: already saved");
+                DownloadHistory.offerAgain(Collections.singletonList(key));
+                Feedback.show(application, L10n.t(application,
+                        "Already saved. Download it again within 30 seconds to save another copy."), true);
+                return;
             }
-            observeDetails(known);
-            MediaStoreWriter writer = audio ? MediaStoreWriter.forAudio(application, known)
-                : new MediaStoreWriter(application, video, known);
-            Downloader.Result result = job.run(writer, save);
-            boolean cancelled = result.status == Downloader.Status.CANCELLED;
-            if (result.ok() || cancelled) info(() -> "save finished: " + result);
-            else failure(() -> "save finished: " + result, null);
-            if (result.ok()) DownloadHistory.record(application, key, writer, known);
-            Feedback.show(application, message(application, result.status, writer.savedLocation(), result.lower),
-                    !result.ok() && !cancelled);
+            try {
+                if (key != null) announce(application, save);
+                observeDetails(known);
+                MediaStoreWriter writer = audio ? MediaStoreWriter.forAudio(application, known)
+                    : new MediaStoreWriter(application, video, known);
+                Downloader.Result result = job.run(writer, save);
+                boolean cancelled = result.status == Downloader.Status.CANCELLED;
+                if (result.ok() || cancelled) info(() -> "save finished: " + result);
+                else failure(() -> "save finished: " + result, null);
+                if (result.ok()) DownloadHistory.record(application, key, writer, known);
+                Feedback.show(application, message(application, result.status, writer.savedLocation(), result.lower),
+                        !result.ok() && !cancelled);
+            } finally {
+                // The check let this save through and held its key, so a double tap saves it once.
+                DownloadHistory.release(key);
+            }
         }, save -> {}, () -> {});
     }
 
@@ -1242,6 +1249,7 @@ public final class MediaSave {
      * is the only way to stop it, so the start says where that is, for long enough to read.
      */
     private static void announce(Context application, SaveControl.Save save) {
+        save.reveal();
         if (save.manager != null) {
             Feedback.show(application, L10n.t(application, "Saving..."), false);
         } else {
@@ -1266,7 +1274,8 @@ public final class MediaSave {
         } while (!IN_FLIGHT.compareAndSet(running, running + 1));
         SaveControl.Save save;
         try {
-            save = audio ? SaveControl.beginAudio(application) : SaveControl.begin(application, video, pages);
+            // A quiet save shows its notification once announce() says it's going ahead.
+            save = SaveControl.begin(application, video && !audio, audio, pages, !quiet);
         } catch (Throwable failure) {
             IN_FLIGHT.decrementAndGet();
             throw failure;
