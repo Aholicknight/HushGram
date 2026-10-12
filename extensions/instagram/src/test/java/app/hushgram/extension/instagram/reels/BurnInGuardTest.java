@@ -135,10 +135,15 @@ public class BurnInGuardTest {
         Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(millis));
     }
 
-    /** A finger event the way the system delivers it: to the decor view, which hands it to the window's callback. */
+    /**
+     * A finger event the way the system delivers it: to the decor view, which hands it to the window's
+     * callback. It lands inside the screen's content, below the action bar a plain test activity has.
+     */
     private void send(int action) {
+        int[] at = new int[2];
+        root.getLocationInWindow(at);
         long now = SystemClock.uptimeMillis();
-        MotionEvent event = MotionEvent.obtain(now, now, action, 10f, 10f, 0);
+        MotionEvent event = MotionEvent.obtain(now, now, action, at[0] + 10f, at[1] + 10f, 0);
         try {
             activity.getWindow().getDecorView().dispatchTouchEvent(event);
         } finally {
@@ -320,6 +325,21 @@ public class BurnInGuardTest {
         focusBack();
         assertUp("off again");
         assertFalse(BurnInGuard.watchingLayoutsForTests());
+    }
+
+    /** Turned off, the watcher stays on the window, but a finger no longer asks for a pass. */
+    @Test public void aTouchWithTheGuardOffAsksForNothing() {
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        Settings.BURN_IN_GUARD.save(BurnInMode.OFF);
+        focusBack();
+        assertFalse(BurnInGuard.watchingLayoutsForTests());
+        assertTrue(Shadows.shadowOf(Looper.getMainLooper()).isIdle());
+        // Not tap(), which runs what the main thread has due.
+        send(MotionEvent.ACTION_DOWN);
+        send(MotionEvent.ACTION_UP);
+        assertTrue("no pass posted for a lift", Shadows.shadowOf(Looper.getMainLooper()).isIdle());
+        assertEquals(-1L, BurnInGuard.nextPassAtForTests());
     }
 
     @Test public void theWatcherPassesTouchesOnToTheActivity() {

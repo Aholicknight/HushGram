@@ -303,7 +303,10 @@ public final class BurnInGuard {
     }
 
     private static void place(Activity activity, boolean shifting, long now) {
-        View content = activity.findViewById(android.R.id.content);
+        // peekDecorView, so an activity that never made its views doesn't get them made here as it leaves.
+        Window window = activity.getWindow();
+        View decor = window == null ? null : window.peekDecorView();
+        View content = decor == null ? null : decor.findViewById(android.R.id.content);
         if (content == null) return;
         float[] held = MOVED.get(content);
         if (!shifting) {
@@ -358,7 +361,9 @@ public final class BurnInGuard {
 
     /**
      * A finger on the window ([action] is its MotionEvent action, or -1 for the window getting focus
-     * back): dimmed controls come back now, and a lift asks for a pass so the wait is timed from it.
+     * back): dimmed controls come back now, and a lift on the Reels screen asks for a pass so the wait
+     * is timed from it. The watcher stays on a window once added, so off or elsewhere a lift asks for
+     * nothing; the focus coming back still does, which is how a choice made in the settings is seen.
      */
     static void touched(int action) {
         touchedAt = SystemClock.uptimeMillis();
@@ -366,7 +371,7 @@ public final class BurnInGuard {
         if (action == MotionEvent.ACTION_DOWN) fingerDown = true;
         else if (lifted) fingerDown = false;
         undim();
-        if (lifted && front.get() != null) passSoon();
+        if (lifted && (guarding || action < 0) && front.get() != null) passSoon();
     }
 
     /** Adds or takes off the layout listener on the window in front. */
