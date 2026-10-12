@@ -463,6 +463,29 @@ public class LongPressZoomTest {
         assertTrue("a cancel leaves it up too", LongPressZoom.isShown());
     }
 
+    /**
+     * On a phone the tap that closes a kept zoom comes through its parent, so the zoom is the
+     * parent's touch target while it's taken off and gets a cancel in the middle of that. The
+     * close runs once: nothing throws, and a view the window added after the zoom stays put.
+     */
+    @Test
+    public void aTapThroughItsParentClosesTheZoomOnce() {
+        LongPressZoom.ZoomView view = keptOpen();
+        android.view.ViewGroup parent = (android.view.ViewGroup) view.getParent();
+        View after = new View(controller.get());
+        parent.addView(after, new android.view.ViewGroup.LayoutParams(1, 1));
+        idle();
+        assertTrue("the zoom has a size to tap", view.getWidth() > 100 && view.getHeight() > 100);
+
+        assertTrue(onZoom(parent, MotionEvent.ACTION_DOWN, 100f, 100f));
+        onZoom(parent, MotionEvent.ACTION_UP, 100f, 100f);
+
+        assertFalse("a tap closes it", LongPressZoom.isShown());
+        assertNull(view.getParent());
+        assertSame("the view after the zoom was taken off with it", parent, after.getParent());
+        assertFalse(report(), report().contains(LongPressZoom.STEER));
+    }
+
     /** With the choice off, the default, a lift closes the zoom as it always did, and a new touch on it does too. */
     @Test
     public void withoutKeepALiftOrATouchOnTheZoomClosesIt() {

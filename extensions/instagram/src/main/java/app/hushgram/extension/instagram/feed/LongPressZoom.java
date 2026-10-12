@@ -257,8 +257,7 @@ public final class LongPressZoom {
             return;
         }
         view.letGo();
-        ViewParent parent = view.getParent();
-        if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(view);
+        view.leave();
     }
 
     /** Closes any zoom and forgets the gesture. For tests. */
@@ -333,8 +332,7 @@ public final class LongPressZoom {
         void remove() {
             view.animate().cancel();
             view.letGo();
-            ViewParent parent = view.getParent();
-            if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(view);
+            view.leave();
         }
 
         /** Whether [frame] holds a video surface under the finger at ([x], [y]) on the screen: a video playing there, not a photo. */
@@ -415,6 +413,13 @@ public final class LongPressZoom {
 
         /** Whether the zoom stays up after the finger that opened it lifted. Main thread only. */
         boolean kept;
+
+        /**
+         * Whether the zoom is being taken off its parent now. A finger still on it gets a cancel in
+         * the middle of that, before the parent lets go of it, and a close from that cancel would
+         * remove it a second time and leave the first removal on a stale index. Main thread only.
+         */
+        private boolean leaving;
 
         /** How big the photo shows against the feed. */
         private float scale = ZOOM;
@@ -552,7 +557,22 @@ public final class LongPressZoom {
             }
         }
 
+        /** Takes the zoom off its parent, once, whatever a cancel sent meanwhile asks. */
+        void leave() {
+            if (leaving) return;
+            ViewParent parent = getParent();
+            if (!(parent instanceof ViewGroup)) return;
+            leaving = true;
+            try {
+                ((ViewGroup) parent).removeView(this);
+            } finally {
+                leaving = false;
+            }
+        }
+
         @Override public boolean onTouchEvent(MotionEvent event) {
+            // The cancel a finger on it gets while it's being taken off: the close is under way.
+            if (leaving) return true;
             try {
                 if (!kept && down && event.getActionMasked() == MotionEvent.ACTION_DOWN && staysOpen()) {
                     // A second finger while the first still holds the photo: the zoom stays, and this one drags it.
@@ -576,7 +596,7 @@ public final class LongPressZoom {
 
         @Override public boolean performClick() {
             super.performClick();
-            close(this);
+            if (!leaving) close(this);
             return true;
         }
 
