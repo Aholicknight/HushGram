@@ -40,7 +40,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** With the phone in a right-to-left language like Arabic or Hebrew, the cover stays over the messages. It used to slide to the right edge when the screen laid itself out again, which could leave part of the inbox showing on a split or narrower screen.
 
-* **Instagram - Mark as seen button:** The eye button in a story's header is easier to hit. Its touch area is 48dp now, and the header is no taller for it.
+* **Instagram - Mark as seen button:** The eye button in a story's header is easier to hit. Its touch area is wider, and the header is no taller for it.
 
 * **Instagram - Ghost mode and Search buttons on Home's header:** Their icons take Instagram's own icon color. With Instagram's dark mode set differently from the phone's, they could come out dark on dark or white on white.
 
