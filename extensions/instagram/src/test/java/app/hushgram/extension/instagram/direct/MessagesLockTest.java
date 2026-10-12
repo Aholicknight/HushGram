@@ -129,6 +129,36 @@ public class MessagesLockTest {
         assertSame(like, MessagesLock.notification(like));
     }
 
+    /** A message that came with no small icon still loses its text, under Android's own chat icon. */
+    @Test
+    public void aMessageWithNoSmallIconIsStillHidden() {
+        Context context = RuntimeEnvironment.getApplication();
+        Notification original = new Notification.Builder(context, "ig_direct").setContentTitle("Bob")
+                .setContentText("see you there").setCategory(Notification.CATEGORY_MESSAGE).build();
+        assertNull(original.getSmallIcon());
+
+        Notification hidden = MessagesLock.notification(original);
+
+        assertNotSame("it went as it was", original, hidden);
+        assertTrue(MessagesLock.isHidden(hidden));
+        assertEquals("New message", hidden.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertFalse(String.valueOf(hidden.extras.getCharSequence(Notification.EXTRA_TITLE)).contains("Bob"));
+        assertNotNull(hidden.getSmallIcon());
+        assertEquals(MessagesLock.NO_ICON, hidden.getSmallIcon().getResId());
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+
+        // In the shade too, when the lock comes back.
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        manager.notify("thread", 3, original);
+        MessagesLock.check(inbox().get());
+        asks.get(0)[0].run();
+        MessagesLock.left();
+        Notification shown = Shadows.shadowOf(manager).getNotification("thread", 3);
+        assertTrue(MessagesLock.isHidden(shown));
+        assertEquals("New message", shown.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertEquals(MessagesLock.NO_ICON, shown.getSmallIcon().getResId());
+    }
+
     @Test
     public void offUnreadyAndUnlockedLeaveEverythingToInstagram() {
         Notification original = message("ig_direct", Notification.CATEGORY_MESSAGE);
@@ -561,8 +591,8 @@ public class MessagesLockTest {
     }
 
     /**
-     * One message notification that can't be written over (here, one with no small icon) is
-     * reported, and the message notifications around it still lose their text.
+     * One message notification that can't be written over (here, one whose channel can't be read)
+     * is reported, and the message notifications around it still lose their text.
      */
     @Test
     public void oneNotificationThatFailsLeavesTheRestHidden() {
@@ -574,8 +604,13 @@ public class MessagesLockTest {
         for (int id = 1; id <= 7; id++) manager.notify("thread", id, message("ig_direct", Notification.CATEGORY_MESSAGE));
         // The shade's first message is replaced by one that fails, so the others come after it.
         int brokenId = manager.getActiveNotifications()[0].getId();
-        Notification broken = new Notification.Builder(context, "ig_direct").setContentTitle("Bob")
-                .setContentText("see you there").setCategory(Notification.CATEGORY_MESSAGE).build();
+        Notification broken = new Notification() {
+            @Override
+            public String getChannelId() {
+                throw new IllegalStateException("the channel can't be read");
+            }
+        };
+        broken.category = Notification.CATEGORY_MESSAGE;
         manager.notify("thread", brokenId, broken);
         StatusBarNotification[] order = manager.getActiveNotifications();
         assertEquals(7, order.length);
@@ -593,7 +628,7 @@ public class MessagesLockTest {
             assertEquals("New message", shown.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
         }
         String missing = HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString();
-        assertTrue(missing, missing.contains(IllegalArgumentException.class.getName()));
+        assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
     }
 
     /** Only your own cancel ends an ask; a prompt that couldn't ask goes on to the phone's own check. */

@@ -15,6 +15,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.graphics.drawable.Icon;
 import android.hardware.biometrics.BiometricManager;
 import android.hardware.biometrics.BiometricPrompt;
 import android.os.Build;
@@ -120,6 +121,12 @@ public final class MessagesLock {
 
     /** Marks a notification this class wrote, so it isn't hidden twice. */
     static final String HIDDEN_EXTRA = "hushgram_lock_hidden";
+
+    /**
+     * The small icon of a copy whose message came without one: Android's own chat icon, which every
+     * phone has and which draws as a status bar icon should, unlike Instagram's colored app icon.
+     */
+    static final int NO_ICON = android.R.drawable.stat_notify_chat;
 
     /** Asks the phone's lock, then runs one of the two. Tests put a fake in. */
     interface Asker {
@@ -360,10 +367,12 @@ public final class MessagesLock {
 
     /** A copy written over one already in the shade alerts only once, so it doesn't ring again. */
     private static Notification hide(Context context, Notification original, boolean alertOnce) {
-        // Android refuses a notification with no small icon when it's posted, so a copy of one
-        // that has none fails here, before anything is posted.
-        if (original.getSmallIcon() == null) throw new IllegalArgumentException("the notification has no small icon");
         Notification.Builder builder = new Notification.Builder(context, original.getChannelId());
+        // Android refuses a notification with no small icon when it's posted. One that came without
+        // any still loses its text, under the phone's own chat icon, rather than going as it is.
+        Icon icon = original.getSmallIcon();
+        if (icon != null) builder.setSmallIcon(icon);
+        else builder.setSmallIcon(NO_ICON);
         Bundle marked = new Bundle();
         marked.putBoolean(HIDDEN_EXTRA, true);
         // Its chat and account stay on the copy, so what is in the shade can still be matched to the chat.
@@ -371,8 +380,7 @@ public final class MessagesLock {
         if (chat != null) marked.putString(ChatLocks.CHAT_EXTRA, chat);
         String account = ChatLocks.accountOf(original);
         if (account != null) marked.putString(ChatLocks.ACCOUNT_EXTRA, account);
-        builder.setSmallIcon(original.getSmallIcon())
-                .setContentTitle(appName(context))
+        builder.setContentTitle(appName(context))
                 .setContentText(L10n.t("New message"))
                 .setContentIntent(original.contentIntent)
                 .setDeleteIntent(original.deleteIntent)
@@ -409,7 +417,7 @@ public final class MessagesLock {
      * The lock just came back: each message notification Instagram has in the shade, posted while
      * the messages were open, is written over with a copy that says only that a message came. The
      * copy keeps its place, its group and where a tap goes, and doesn't ring again. One that can't
-     * be written over (no small icon, a channel deleted since) is reported and the rest still are.
+     * be written over (a channel deleted since) is reported and the rest still are.
      */
     static void hideShade() {
         hideShade(switchedOn());
