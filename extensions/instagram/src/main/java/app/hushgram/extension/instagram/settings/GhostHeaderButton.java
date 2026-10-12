@@ -5,9 +5,7 @@
 package app.hushgram.extension.instagram.settings;
 
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -18,8 +16,11 @@ import android.graphics.drawable.Drawable;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Switch;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -27,6 +28,7 @@ import androidx.annotation.Nullable;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
+import app.hushgram.extension.instagram.download.FeedDownloadButton;
 import app.hushgram.extension.instagram.reels.HomeHeader;
 import app.hushgram.extension.instagram.reels.HomeLogo;
 import app.hushgram.extension.instagram.reels.SearchHeaderButton;
@@ -140,7 +142,7 @@ public final class GhostHeaderButton {
     private static ImageView create(Context context, List<BooleanSetting> switches, @Nullable View neighbor) {
         ImageView button = new ImageView(context);
         BooleanSupplier on = () -> GhostMode.on(switches);
-        button.setImageDrawable(new Ghost(context.getResources().getDisplayMetrics().density, night(context), on));
+        button.setImageDrawable(new Ghost(context.getResources().getDisplayMetrics().density, FeedDownloadButton.iconColor(context), on));
         button.setScaleType(ImageView.ScaleType.CENTER);
         // A neighbor's own padding, Messages' where it's there, sizes the touch target the same as theirs.
         HomeHeader.padLike(button, neighbor);
@@ -152,7 +154,8 @@ public final class GhostHeaderButton {
                 && ripple.resourceId != 0) {
             button.setBackgroundResource(ripple.resourceId);
         }
-        describe(button, on.getAsBoolean());
+        button.setContentDescription(L10n.t("Ghost mode"));
+        button.setAccessibilityDelegate(SWITCH);
         button.setOnClickListener(GhostHeaderButton::press);
         return button;
     }
@@ -164,7 +167,6 @@ public final class GhostHeaderButton {
             List<BooleanSetting> switches = GhostMode.switches(PatchFamily.inThisBuild());
             if (switches.isEmpty()) return;
             boolean on = GhostMode.flip(switches);
-            describe(view, GhostMode.on(switches));
             view.invalidate();
             Logger.printDebug(() -> "Ghost mode: the header button turned it " + (on ? "on" : "off"));
         } catch (Throwable failure) {
@@ -173,21 +175,38 @@ public final class GhostHeaderButton {
         }
     }
 
-    static void describe(View button, boolean on) {
-        button.setContentDescription(on
-                ? L10n.t("Ghost mode is on. Tap to turn it off.")
-                : L10n.t("Ghost mode is off. Tap to turn it on."));
-    }
+    /**
+     * Tells accessibility services the button is a switch, on while its ghost is: TalkBack reads
+     * "Ghost mode", then on or off, rather than an instruction. The state is read from the ghost
+     * each time, so Ghost mode turned on in settings reads right too.
+     */
+    static final View.AccessibilityDelegate SWITCH = new View.AccessibilityDelegate() {
+        @Override
+        public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(host, info);
+            info.setClassName(Switch.class.getName());
+            info.setCheckable(true);
+            info.setChecked(on(host));
+        }
 
-    private static boolean night(Context context) {
-        return (context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
-                == Configuration.UI_MODE_NIGHT_YES;
-    }
+        @Override
+        public void onInitializeAccessibilityEvent(View host, AccessibilityEvent event) {
+            super.onInitializeAccessibilityEvent(host, event);
+            event.setClassName(Switch.class.getName());
+            event.setChecked(on(host));
+        }
+
+        private boolean on(View host) {
+            return host instanceof ImageView && ((ImageView) host).getDrawable() instanceof Ghost
+                    && ((Ghost) ((ImageView) host).getDrawable()).isOn();
+        }
+    };
 
     /**
      * The ghost, drawn rather than taken from Instagram's resources: an outline with two dots for
-     * eyes while Ghost mode is off, solid with the eyes cut out while it's on. The color follows the
-     * app's light or dark mode, like Instagram's own header icons.
+     * eyes while Ghost mode is off, solid with the eyes cut out while it's on. The color is Instagram's
+     * own icon color for the screen's theme, so it follows Instagram's dark mode setting even when
+     * that differs from the phone's.
      */
     static final class Ghost extends Drawable {
         private final float unit;
@@ -196,10 +215,10 @@ public final class GhostHeaderButton {
         private final Path body = new Path();
         private final RectF head = new RectF();
 
-        Ghost(float density, boolean night, BooleanSupplier on) {
+        Ghost(float density, int color, BooleanSupplier on) {
             unit = density;
             this.on = on;
-            paint.setColor(night ? Color.WHITE : 0xFF262626);
+            paint.setColor(color);
             paint.setStrokeWidth(1.8f * density);
             paint.setStrokeJoin(Paint.Join.ROUND);
             paint.setStrokeCap(Paint.Cap.ROUND);
@@ -207,6 +226,10 @@ public final class GhostHeaderButton {
 
         boolean isOn() {
             return on.getAsBoolean();
+        }
+
+        int color() {
+            return paint.getColor();
         }
 
         @Override

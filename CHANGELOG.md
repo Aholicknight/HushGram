@@ -14,6 +14,8 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** The two About rows are in Korean now, and two error messages read like the rest ("Couldn't" rather than "Could not").
 
+* **Instagram - Ghost mode button on Home's header:** TalkBack reads it as "Ghost mode" with an on or off state, the way it reads a switch, instead of a sentence about what tapping does.
+
 * **Tooling:** Unreleased version headings now work with both the changelog checker and the release notes generator. Full-screen patch checks also verify control flow when jumps need a wider encoding.
 
 #### Bug Fixes
@@ -39,6 +41,8 @@ Every HushGram release, newest first.
 * **Instagram - Lock your messages:** With the phone in a right-to-left language like Arabic or Hebrew, the cover stays over the messages. It used to slide to the right edge when the screen laid itself out again, which could leave part of the inbox showing on a split or narrower screen.
 
 * **Instagram - Mark as seen button:** The eye button in a story's header is easier to hit. Its touch area is 48dp now, and the header is no taller for it.
+
+* **Instagram - Ghost mode and Search buttons on Home's header:** Their icons take Instagram's own icon color. With Instagram's dark mode set differently from the phone's, they could come out dark on dark or white on white.
 
 * **Instagram - Downloads:** A save that fails says what to check when it can tell. A dropped connection says to check the connection, and a save that didn't finish writing says to check the connection and free storage. Other failures still say "Download failed".
 

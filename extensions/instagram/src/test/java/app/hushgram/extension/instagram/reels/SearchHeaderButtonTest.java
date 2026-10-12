@@ -31,6 +31,7 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
+import app.hushgram.extension.instagram.download.FeedDownloadButton;
 import app.hushgram.extension.instagram.settings.GhostHeaderButton;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -138,7 +139,8 @@ public class SearchHeaderButtonTest {
         SearchHeaderButton.Magnifier icon = (SearchHeaderButton.Magnifier) button.getDrawable();
         float density = activity.getResources().getDisplayMetrics().density;
         assertEquals("the ghost button's size", Math.round(24 * density), icon.getIntrinsicWidth());
-        assertEquals("the ghost button's color in light mode", 0xFF262626, icon.color());
+        assertEquals("Instagram's icon color for the theme, as the ghost and download buttons use",
+                FeedDownloadButton.iconColor(activity), icon.color());
 
         SearchHeaderButton.place(header);
         assertSame(button, searchIn(end));

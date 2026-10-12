@@ -682,7 +682,7 @@ public final class FeedDownloadButton {
     }
 
     /** Instagram's primary icon color for [context]'s theme, then the theme's own text color, then black or white by mode. */
-    static int iconColor(Context context) {
+    public static int iconColor(Context context) {
         Resources resources = context.getResources();
         int attr = resources.getIdentifier(ICON_COLOR_ATTR, "attr", context.getPackageName());
         Integer found = attr == 0 ? null : themeColor(context, attr);

@@ -13,9 +13,13 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
+import android.view.ContextThemeWrapper;
 import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Switch;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -31,6 +35,7 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.shadows.ShadowLooper;
 
+import app.hushgram.extension.instagram.download.FeedDownloadButton;
 import app.hushgram.extension.instagram.reels.HomeHeader;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -106,12 +111,37 @@ public class GhostHeaderButtonTest {
         assertEquals(3, row.getChildCount());
         assertEquals("Messages' padding", 7, button.getPaddingStart());
         assertEquals("Messages' padding", 9, button.getPaddingTop());
-        assertEquals("Ghost mode is off. Tap to turn it on.", String.valueOf(button.getContentDescription()));
+        assertEquals("Ghost mode", String.valueOf(button.getContentDescription()));
+        AccessibilityNodeInfo read = button.createAccessibilityNodeInfo();
+        assertEquals("a switch to TalkBack", Switch.class.getName(), String.valueOf(read.getClassName()));
+        assertTrue(read.isCheckable());
+        assertFalse("off", read.isChecked());
         GhostHeaderButton.place(header);
         assertSame(button, ghost());
         assertEquals(3, row.getChildCount());
         assertEquals(List.of(FamilyNames.REELS_TAB + ": invoked 0, 0 found, 0 missing. Counted: "
                 + GhostHeaderButton.PLACED + " 1"), HookStatus.report());
+    }
+
+    /**
+     * The ghost takes the header theme's icon color, so a dark Instagram on a phone in light mode
+     * gets a light ghost, not the dark one the phone's mode would pick.
+     */
+    @Test public void theGhostTakesTheHeadersIconColorNotThePhonesMode() {
+        Settings.GHOST_BUTTON_ON_HOME.save(true);
+        Context dark = new ContextThemeWrapper(context, android.R.style.Theme_DeviceDefault);
+        MainFeedActionBar darkHeader = new MainFeedActionBar(dark);
+        LinearLayout darkRow = new LinearLayout(dark);
+        ImageView darkInbox = new ImageView(dark);
+        darkRow.addView(darkInbox);
+        darkHeader.addView(darkRow);
+        darkHeader.setDirectInbox(darkInbox);
+
+        GhostHeaderButton.place(darkHeader);
+
+        GhostHeaderButton.Ghost icon = (GhostHeaderButton.Ghost) ghostIn(darkRow).getDrawable();
+        assertEquals(FeedDownloadButton.iconColor(dark), icon.color());
+        assertTrue("a light ghost on the dark theme", Color.luminance(icon.color()) > 0.5f);
     }
 
     @Test public void aTapTurnsEveryGhostSwitchOnAndOffAndTheIconFollows() {
@@ -125,13 +155,14 @@ public class GhostHeaderButtonTest {
         assertTrue(Settings.READ_WITHOUT_SEEN_RECEIPT.savedValue());
         assertTrue(Settings.HIDE_TYPING.savedValue());
         assertTrue(icon.isOn());
-        assertEquals("Ghost mode is on. Tap to turn it off.", String.valueOf(button.getContentDescription()));
+        assertEquals("Ghost mode", String.valueOf(button.getContentDescription()));
+        assertTrue("read as on", button.createAccessibilityNodeInfo().isChecked());
 
         button.performClick();
         assertFalse(Settings.READ_WITHOUT_SEEN_RECEIPT.savedValue());
         assertFalse(Settings.HIDE_TYPING.savedValue());
         assertFalse(icon.isOn());
-        assertEquals("Ghost mode is off. Tap to turn it on.", String.valueOf(button.getContentDescription()));
+        assertFalse("read as off", button.createAccessibilityNodeInfo().isChecked());
     }
 
     @Test public void theIconShowsGhostModeTurnedOnElsewhere() {

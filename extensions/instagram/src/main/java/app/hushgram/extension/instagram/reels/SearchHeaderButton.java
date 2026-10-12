@@ -7,9 +7,7 @@ package app.hushgram.extension.instagram.reels;
 import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
-import android.content.res.Configuration;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
@@ -27,6 +25,7 @@ import androidx.annotation.Nullable;
 import java.util.function.ToIntBiFunction;
 import java.util.function.ToIntFunction;
 
+import app.hushgram.extension.instagram.download.FeedDownloadButton;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
@@ -196,7 +195,7 @@ public final class SearchHeaderButton {
 
     private static ImageView create(Context context, @Nullable View neighbor) {
         ImageView button = new ImageView(context);
-        button.setImageDrawable(new Magnifier(context.getResources().getDisplayMetrics().density, night(context)));
+        button.setImageDrawable(new Magnifier(context.getResources().getDisplayMetrics().density, FeedDownloadButton.iconColor(context)));
         button.setScaleType(ImageView.ScaleType.CENTER);
         HomeHeader.padLike(button, neighbor);
         button.setClickable(true);
@@ -212,23 +211,18 @@ public final class SearchHeaderButton {
         return button;
     }
 
-    private static boolean night(Context context) {
-        return (context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
-                == Configuration.UI_MODE_NIGHT_YES;
-    }
-
     /**
      * A magnifier, drawn rather than taken from Instagram's resources: a ring and a handle to the
-     * lower right, in the stroke and color of the ghost button, which follow the app's light or dark
-     * mode like Instagram's own header icons.
+     * lower right, in the stroke and color of the ghost button: Instagram's own icon
+     * color for the screen's theme.
      */
     static final class Magnifier extends Drawable {
         private final float unit;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        Magnifier(float density, boolean night) {
+        Magnifier(float density, int color) {
             unit = density;
-            paint.setColor(night ? Color.WHITE : 0xFF262626);
+            paint.setColor(color);
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(1.8f * density);
             paint.setStrokeCap(Paint.Cap.ROUND);
