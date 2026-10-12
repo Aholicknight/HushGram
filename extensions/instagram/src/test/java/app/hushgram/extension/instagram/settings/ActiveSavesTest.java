@@ -69,9 +69,11 @@ public class ActiveSavesTest {
         // With the sign-in notice and the view button both above the list, Downloads sits under
         // the fold of this small screen. The notice has nothing to do with saves.
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
+        Settings.CATEGORY_PAGES.save(false);
     }
 
     private void show() {
+        new android.app.Instrumentation().setInTouchMode(true);
         controller = Robolectric.buildActivity(Activity.class).setup().visible();
         page = new HushgramPreferenceFragment();
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page, PAGE_TAG).commitNow();
@@ -86,6 +88,7 @@ public class ActiveSavesTest {
         PatchFamily.inBuildForTests = null;
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
+        Settings.CATEGORY_PAGES.resetToDefault();
     }
 
     private static NotificationManager notifications() {
@@ -114,6 +117,18 @@ public class ActiveSavesTest {
 
     /** The shown row of save [id], or null. */
     private View row(int id) {
+        View visible = visibleRow(id);
+        if (visible != null) return visible;
+        int position = positionOf(id);
+        if (position < 0) return null;
+        // Category descriptions may put Downloads below the fold. Inspect its real visible row.
+        assertTrue("scrolling to a save requires touchscreen positioning", list().isInTouchMode());
+        list().setSelectionFromTop(position, 0);
+        layout();
+        return visibleRow(id);
+    }
+
+    private View visibleRow(int id) {
         for (int i = 0; i < list().getChildCount(); i++) {
             int position = list().getFirstVisiblePosition() + i;
             Preference item = (Preference) list().getItemAtPosition(position);
@@ -159,7 +174,9 @@ public class ActiveSavesTest {
         assertEquals("a notification went up with notifications off", 0,
                 Shadows.shadowOf(notifications()).getAllNotifications().size());
         View row = row(id);
-        assertNotNull("the running save isn't under Downloads", row);
+        assertNotNull("the running save isn't under Downloads: pages=" + Settings.CATEGORY_PAGES.savedValue()
+                + ", position=" + positionOf(id) + ", rows=" + list().getCount()
+                + ", visible=" + list().getChildCount() + ", first=" + list().getFirstVisiblePosition(), row);
         int at = positionOf(id);
         assertEquals("the save isn't first under Downloads", "Downloads",
                 String.valueOf(((Preference) list().getItemAtPosition(at - 1)).getTitle()));
@@ -195,6 +212,30 @@ public class ActiveSavesTest {
         assertEquals("Cancel saving this photo", String.valueOf(cancelOf(row).getContentDescription()));
         assertTrue(cancelOf(row).performClick());
         assertTrue(SavesForTests.cancelled(id));
+    }
+
+    @Test public void theDownloadsCategoryListsTheSaveAndCancelsIt() {
+        Settings.CATEGORY_PAGES.save(true);
+        int id = SavesForTests.begin(RuntimeEnvironment.getApplication(), false);
+        show();
+        assertEquals("the overview unexpectedly lists inline settings", -1, positionOf(id));
+        Preference downloads = null;
+        for (int position = 0; position < list().getCount(); position++) {
+            Preference candidate = (Preference) list().getItemAtPosition(position);
+            if ("Downloads".contentEquals(candidate.getTitle())) downloads = candidate;
+        }
+        assertNotNull("the overview has no Downloads entry", downloads);
+        assertTrue(downloads.getOnPreferenceClickListener().onPreferenceClick(downloads));
+        layout();
+        View row = row(id);
+        assertNotNull("the Downloads page has no running save", row);
+        assertTrue(cancelOf(row).performClick());
+        assertTrue("the page's Cancel didn't reach the save", SavesForTests.cancelled(id));
+        layout();
+        assertNull(row(id));
+        assertTrue(page.closeCategory());
+        layout();
+        assertEquals(0, savesListed());
     }
 
     /**
