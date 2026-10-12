@@ -142,6 +142,7 @@ public final class MessagesLock {
     private static long toldRecentsAt;
     private static WeakReference<Activity> watched = new WeakReference<>(null);
     private static ViewTreeObserver.OnPreDrawListener drawListener;
+    private static ViewTreeObserver.OnWindowFocusChangeListener focusListener;
     /** Each window's screens as last found in it, so one activity's frames never move another's. */
     private static final Map<View, Map<String, WeakReference<View>>> anchors = new WeakHashMap<>();
     /** Windows this class marked secure, so it only ever takes away a mark it put there. */
@@ -514,7 +515,11 @@ public final class MessagesLock {
         if (wasOpen && (switchedOn() || ChatLocks.any())) hideShade();
     }
 
-    /** Checks the activity in front before each of its frames, so a cover is in place before the messages draw. */
+    /**
+     * Checks the activity in front before each of its frames, so a cover is in place before the
+     * messages draw, and again when its window gets the focus back, since the phone's lock is only
+     * asked while it has it.
+     */
     static void follow(Activity activity) {
         unfollow();
         try {
@@ -524,8 +529,14 @@ public final class MessagesLock {
                 check(activity);
                 return true;
             };
-            activity.getWindow().getDecorView().getViewTreeObserver().addOnPreDrawListener(listener);
+            ViewTreeObserver.OnWindowFocusChangeListener focus = hasFocus -> {
+                if (hasFocus) check(activity);
+            };
+            ViewTreeObserver observer = activity.getWindow().getDecorView().getViewTreeObserver();
+            observer.addOnPreDrawListener(listener);
             drawListener = listener;
+            observer.addOnWindowFocusChangeListener(focus);
+            focusListener = focus;
             check(activity);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, SCREEN, t);
@@ -535,12 +546,16 @@ public final class MessagesLock {
     private static void unfollow() {
         Activity activity = watched.get();
         ViewTreeObserver.OnPreDrawListener listener = drawListener;
+        ViewTreeObserver.OnWindowFocusChangeListener focus = focusListener;
         drawListener = null;
+        focusListener = null;
         watched = new WeakReference<>(null);
-        if (activity == null || listener == null) return;
+        if (activity == null || (listener == null && focus == null)) return;
         try {
             ViewTreeObserver observer = activity.getWindow().getDecorView().getViewTreeObserver();
-            if (observer.isAlive()) observer.removeOnPreDrawListener(listener);
+            if (!observer.isAlive()) return;
+            if (listener != null) observer.removeOnPreDrawListener(listener);
+            if (focus != null) observer.removeOnWindowFocusChangeListener(focus);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, SCREEN, t);
         }
@@ -551,7 +566,8 @@ public final class MessagesLock {
      * are locked, or over the whole screen with Lock all of Instagram, and takes them away otherwise.
      * Each window has covers of its own, so a second activity coming up never touches the covers of
      * the one under it. The first time one shows after Instagram comes back, the phone's lock is
-     * asked once; a cancel leaves the cover with its Unlock button.
+     * asked once, as soon as Instagram's window has the focus; a cancel leaves the cover with its
+     * Unlock button.
      */
     static void check(Activity activity) {
         try {
@@ -589,7 +605,10 @@ public final class MessagesLock {
                 if (askedAt == 0) askedThisTime = false;
                 return;
             }
-            if (!askedThisTime) {
+            // Asked only while Instagram's window has the focus, so the prompt never comes up under
+            // the notification shade or over the home screen a home gesture is heading to (#153).
+            // The cover is up either way, and the focus coming back checks again.
+            if (!askedThisTime && decor.hasWindowFocus()) {
                 askedThisTime = true;
                 HookStatus.counted(FamilyNames.MESSAGES_LOCK, COVERED);
                 ask(activity, null);

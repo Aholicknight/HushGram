@@ -170,6 +170,32 @@ public class MessagesLockTest {
         assertEquals(1, asks.size());
     }
 
+    /**
+     * #153: pulling the notification shade down, or a home gesture under way, takes the focus from
+     * Instagram's window. The cover goes up as always, but the phone's lock waits for the focus to
+     * come back, so its prompt never pops up over the shade or the home screen.
+     */
+    @Test
+    public void thePhoneIsAskedOnlyWhileInstagramHasTheFocus() {
+        ActivityController<Activity> controller = inbox();
+        Activity activity = controller.get();
+        controller.windowFocusChanged(false);
+        ShadowLooper.idleMainLooper();
+
+        MessagesLock.follow(activity);
+        MessagesLock.check(activity);
+
+        assertNotNull("no cover over the inbox", cover(activity));
+        assertEquals(View.VISIBLE, cover(activity).getVisibility());
+        assertEquals("asked while Instagram's window didn't have the focus", 0, asks.size());
+
+        controller.windowFocusChanged(true);
+        ShadowLooper.idleMainLooper();
+        assertEquals("not asked once the focus came back", 1, asks.size());
+        MessagesLock.check(activity);
+        assertEquals("asked twice", 1, asks.size());
+    }
+
     @Test
     public void confirmedOpensUntilInstagramLeavesTheScreen() {
         Application app = RuntimeEnvironment.getApplication();
