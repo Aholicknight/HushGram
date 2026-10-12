@@ -19,8 +19,13 @@ import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import androidx.annotation.Nullable;
+
 import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.SaveFolder;
+import app.hushgram.extension.instagram.misc.SpoofLocation;
+import app.hushgram.extension.instagram.reels.TabOrder;
+import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.Setting;
@@ -31,6 +36,8 @@ public final class ConfigurationBackup {
     public static final int MAX_BYTES = 256 * 1024;
     public static final int MAX_ENTRIES = 512;
     public static final long UNDO_WINDOW_MS = 10_000;
+    /** The longest text a file may set. The longest real one, a sharing domain, is 253. */
+    static final int MAX_TEXT = 256;
     private static final SettingsJson.Limits LIMITS =
             new SettingsJson.Limits(4, 2048, 4096, MAX_ENTRIES, MAX_BYTES);
     private static Map<Setting<?>, Object> undoValues;
@@ -151,7 +158,13 @@ public final class ConfigurationBackup {
         }
     }
 
-    /** Validate every entry before starting the only write transaction. Unknown/ineligible keys skip. */
+    /**
+     * Validate every entry before starting the only write transaction. A file whose shape is wrong
+     * is refused whole. An entry this build can't take is skipped and counted: an unknown or
+     * ineligible key, a value of another type than its setting's, an enum constant this build
+     * doesn't have, or text its setting's own check refuses. A file from a newer HushGram can carry
+     * any of these, and one of them no longer costs every other choice in it.
+     */
     public static synchronized Result restore(byte[] bytes) throws IOException {
         final Map<Setting<?>, Object> updates = new LinkedHashMap<>();
         final Map<String, Setting<?>> allowed = eligible();
@@ -167,26 +180,10 @@ public final class ConfigurationBackup {
                 String key = keys.next();
                 if (!key.matches("[A-Za-z0-9_.-]{1,128}") || !(values.get(key) instanceof JSONObject)) throw invalid();
                 JSONObject entry = values.getJSONObject(key);
-                if (entry.length() != 2 || !(entry.get("type") instanceof String)) throw invalid();
-                String declared = entry.getString("type");
-                Object value = entry.get("value");
-                if (!declared.equals(type(value)) && !(declared.equals("enum") && value instanceof String)) throw invalid();
-                Setting<?> known = Setting.getSettingFromPath(key);
-                if (known != null && (known.defaultValue instanceof Boolean
-                        || known.defaultValue instanceof Enum || known.defaultValue instanceof String)
-                        && !declared.equals(type(known.defaultValue))) throw invalid();
-                if (known != null && known.defaultValue instanceof Enum) {
-                    Object matched = null;
-                    for (Object choice : ((Enum<?>) known.defaultValue).getDeclaringClass().getEnumConstants()) {
-                        if (((Enum<?>) choice).name().equals(value)) matched = choice;
-                    }
-                    if (matched == null) throw invalid();
-                    value = matched;
-                }
-                if (known == Settings.SAVE_FOLDER && !SaveFolder.isImportable((String) value)) throw invalid();
-                if (known == Settings.FILENAME_TEMPLATE && !FileNameTemplate.isImportable((String) value)) throw invalid();
+                if (entry.length() != 2 || !(entry.get("type") instanceof String) || !entry.has("value")) throw invalid();
                 Setting<?> setting = allowed.get(key);
-                if (setting == null || !setting.includeWithImportExport || heldByPin(setting)) {
+                Object value = setting == null ? null : accepted(setting, entry.getString("type"), entry.get("value"));
+                if (value == null || !setting.includeWithImportExport || heldByPin(setting)) {
                     skipped++;
                     continue;
                 }
@@ -217,6 +214,42 @@ public final class ConfigurationBackup {
             }
             return new Result(updates.size(), skipped, restart);
         }
+    }
+
+    /**
+     * [value] as [setting] would save it, declared as [declared], or null when this build can't take
+     * it: another type than the setting's, an enum constant it doesn't have, text over
+     * {@link #MAX_TEXT} characters or text {@link #textAllowed} refuses.
+     */
+    @Nullable
+    static Object accepted(Setting<?> setting, String declared, Object value) {
+        Object fallback = setting.defaultValue;
+        if (fallback instanceof Boolean) return "boolean".equals(declared) && value instanceof Boolean ? value : null;
+        if (!(value instanceof String) || ((String) value).length() > MAX_TEXT) return null;
+        if (fallback instanceof Enum) {
+            if (!"enum".equals(declared)) return null;
+            for (Object choice : ((Enum<?>) fallback).getDeclaringClass().getEnumConstants()) {
+                if (((Enum<?>) choice).name().equals(value)) return choice;
+            }
+            return null;
+        }
+        if (fallback instanceof String) return "string".equals(declared) && textAllowed(setting, (String) value) ? value : null;
+        return null;
+    }
+
+    /**
+     * Whether [text] may be saved as [setting], by the same rule that setting's own reader or row
+     * uses. A text setting with no check here isn't taken from a file at all.
+     */
+    static boolean textAllowed(Setting<?> setting, String text) {
+        if (setting == Settings.SAVE_FOLDER) return SaveFolder.isImportable(text);
+        if (setting == Settings.FILENAME_TEMPLATE) return FileNameTemplate.isImportable(text);
+        if (setting == Settings.SHARING_DOMAIN) return SharingDomain.normalize(text) != null;
+        if (setting == Settings.SPOOF_LOCATION_PLACE) return text.isEmpty() || SpoofLocation.parse(text) != null;
+        if (setting == Settings.TAB_ORDER) return text.equals(TabOrder.join(TabOrder.parse(text)));
+        // An enum constant name of Instagram's; a name this Instagram lacks keeps its heart.
+        if (setting == Settings.LIKE_ANIMATION) return text.matches("[A-Za-z0-9_$]{0,64}");
+        return false;
     }
 
     /**

@@ -34,6 +34,8 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** The HushGram row can now hide when settings opens through a long press on your profile's menu. Turning off both long press entries, or pausing HushGram, brings it back. Reported in #148.
 
+* **Instagram - HushGram settings:** Importing a settings file no longer fails because of one choice this version can't use. That choice, or a sharing domain, place or tab order that doesn't check out, is skipped and counted while the rest applies.
+
 * **Instagram - Lock your messages:** The unlock prompt now waits until Instagram is the thing you're looking at. The cover still goes up right away, but pulling down the notification shade or swiping home doesn't bring the prompt up over them. Reported in #153.
 
 * **Instagram - See who a story mentions:** The mentions pill sits at the end of the name and time row, not under the name, so the header keeps its height on stories with mentions. A tap around the pill opens the list too. Reported in #151.

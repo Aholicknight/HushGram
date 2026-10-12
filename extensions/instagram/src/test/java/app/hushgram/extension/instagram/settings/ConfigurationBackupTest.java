@@ -160,17 +160,16 @@ public class ConfigurationBackupTest {
         assertFalse(BaseSettings.PAUSED.savedValue());
     }
 
-    @Test public void malformedSchemaDuplicatesUtf8AndValuesCannotPartiallyApply() throws Exception {
+    @Test public void malformedShapeSchemaDuplicatesAndUtf8CannotPartiallyApply() throws Exception {
         String first = entry(Settings.HIDE_ADS.key, "boolean", false);
         String[] entries = {
                 first + "," + first,
-                first + "," + entry(Settings.PLAYBACK_QUALITY.key, "enum", "P9999"),
-                first + "," + entry(Settings.HIDE_REELS_TAB.key, "boolean", "true"),
-                first + "," + entry(Settings.SAVE_FOLDER.key, "string", "../../Outside"),
-                first + "," + entry(Settings.FILENAME_TEMPLATE.key, "string", "../bad.mp4"),
                 first + ",\"unknown\":{\"type\":\"boolean\",\"value\":false,\"value\":true}",
-                first + ",\"unknown\":{\"type\":\"boolean\",\"value\":null}",
-                first + ",\"unknown\":{\"type\":\"enum\",\"value\":99}",
+                first + ",\"unknown\":{\"type\":\"boolean\"}",
+                first + ",\"unknown\":{\"type\":\"boolean\",\"value\":true,\"extra\":1}",
+                first + ",\"unknown\":{\"type\":7,\"value\":true}",
+                first + ",\"unknown\":true",
+                first + ",\"bad key!\":{\"type\":\"boolean\",\"value\":true}",
         };
         for (String malformed : entries) rejected(file(malformed));
         rejected(new String(file(first), StandardCharsets.UTF_8).replace("\"schema\":1", "\"schema\":2").getBytes(StandardCharsets.UTF_8));
@@ -178,8 +177,80 @@ public class ConfigurationBackupTest {
         rejected(new String(file(first), StandardCharsets.UTF_8).replace("HushGram", "OtherProject").getBytes(StandardCharsets.UTF_8));
         rejected(new byte[]{(byte) 0xc3, (byte) 0x28});
         rejected((new String(file(first), StandardCharsets.UTF_8) + "{}").getBytes(StandardCharsets.UTF_8));
+    }
+
+    // A file from a newer HushGram can name a choice this build lacks or carry a value it can't
+    // read. Each of those used to refuse the whole file, so one entry cost every other choice in it.
+    @Test public void entriesThisBuildCannotTakeSkipWhileTheRestApply() throws Exception {
+        Settings.HIDE_REELS_TAB.save(false);
+        String[] unusable = {
+                entry(Settings.PLAYBACK_QUALITY.key, "enum", "P9999"),
+                entry(Settings.PLAYBACK_QUALITY.key, "string", "HIGHEST"),
+                entry(Settings.HIDE_REELS_TAB.key, "boolean", "true"),
+                entry(Settings.HIDE_REELS_TAB.key, "enum", "TRUE"),
+                "\"" + Settings.HIDE_REELS_TAB.key + "\":{\"type\":\"boolean\",\"value\":null}",
+                entry(Settings.SAVE_FOLDER.key, "string", "../../Outside"),
+                entry(Settings.SAVE_FOLDER.key, "boolean", true),
+                entry(Settings.FILENAME_TEMPLATE.key, "string", "../bad.mp4"),
+                entry(Settings.SHARING_DOMAIN.key, "string", "not a domain"),
+                entry(Settings.SHARING_DOMAIN.key, "string", "192.168.1.1"),
+                entry(Settings.SPOOF_LOCATION_PLACE.key, "string", "91,0"),
+                entry(Settings.SPOOF_LOCATION_PLACE.key, "string", "somewhere"),
+                entry(Settings.TAB_ORDER.key, "string", "FEED,FEED"),
+                entry(Settings.TAB_ORDER.key, "string", "FEED, SEARCH"),
+                entry(Settings.TAB_ORDER.key, "string", "FEED,NOT_A_TAB"),
+                entry(Settings.LIKE_ANIMATION.key, "string", "<heart>"),
+                entry(Settings.LIKE_ANIMATION.key, "string", new String(new char[ConfigurationBackup.MAX_TEXT + 1]).replace('\0', 'A')),
+                "\"future_key\":{\"type\":\"boolean\",\"value\":null}",
+                "\"future_key\":{\"type\":\"enum\",\"value\":99}",
+                "\"future_key\":{\"type\":\"number\",\"value\":3}",
+        };
+        for (String entry : unusable) {
+            ConfigurationBackup.Result result = ConfigurationBackup.restore(
+                    file(entry(Settings.HIDE_ADS.key, "boolean", false) + "," + entry));
+            assertEquals(entry, 1, result.applied);
+            assertEquals(entry, 1, result.skipped);
+            assertFalse(entry, Settings.HIDE_ADS.savedValue());
+            Settings.HIDE_ADS.resetToDefault();
+            ConfigurationBackup.forgetUndo();
+        }
+        assertEquals(PlaybackQuality.AUTO, Settings.PLAYBACK_QUALITY.savedValue());
+        assertFalse(Settings.HIDE_REELS_TAB.savedValue());
+        for (Setting<?> text : new Setting<?>[]{Settings.SAVE_FOLDER, Settings.FILENAME_TEMPLATE,
+                Settings.SHARING_DOMAIN, Settings.SPOOF_LOCATION_PLACE, Settings.TAB_ORDER, Settings.LIKE_ANIMATION}) {
+            assertEquals(text.key, text.defaultValue, text.savedValue());
+        }
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
-        rejected(file(first + "," + entry(Settings.PLAYBACK_QUALITY.key, "enum", "P9999")));
+        ConfigurationBackup.Result absent = ConfigurationBackup.restore(file(entry(Settings.HIDE_ADS.key, "boolean", false)
+                + "," + entry(Settings.PLAYBACK_QUALITY.key, "enum", "P9999")));
+        assertEquals(1, absent.applied);
+        assertEquals(1, absent.skipped);
+    }
+
+    @Test public void textChoicesThatPassTheirOwnChecksApply() throws Exception {
+        String entries = entry(Settings.SHARING_DOMAIN.key, "string", "dd.example.com") + ","
+                + entry(Settings.SPOOF_LOCATION_PLACE.key, "string", "40.7128, -74.006") + ","
+                + entry(Settings.TAB_ORDER.key, "string", "SEARCH,FEED") + ","
+                + entry(Settings.LIKE_ANIMATION.key, "string", "FIRE") + ","
+                + entry(Settings.SAVE_FOLDER.key, "string", "Clips");
+        ConfigurationBackup.Result result = ConfigurationBackup.restore(file(entries));
+        assertEquals(5, result.applied);
+        assertEquals(0, result.skipped);
+        assertEquals("dd.example.com", Settings.SHARING_DOMAIN.savedValue());
+        assertEquals("40.7128, -74.006", Settings.SPOOF_LOCATION_PLACE.savedValue());
+        assertEquals("SEARCH,FEED", Settings.TAB_ORDER.savedValue());
+        assertEquals("FIRE", Settings.LIKE_ANIMATION.savedValue());
+        assertEquals("Clips", Settings.SAVE_FOLDER.savedValue());
+    }
+
+    // A text choice added to the file without a check of its own would never restore; its default
+    // must pass the check too, or a file exported before it was ever changed would lose it.
+    @Test public void everyExportedTextChoiceHasACheckItsDefaultPasses() {
+        for (Setting<?> setting : ConfigurationBackup.eligible().values()) {
+            if (!(setting.defaultValue instanceof String)) continue;
+            assertTrue(setting.key, ConfigurationBackup.textAllowed(setting, (String) setting.defaultValue));
+            assertNotNull(setting.key, ConfigurationBackup.accepted(setting, "string", setting.defaultValue));
+        }
     }
 
     @Test public void byteAndEntryBoundsRejectOversizeAndAcceptExactly512Entries() throws Exception {
