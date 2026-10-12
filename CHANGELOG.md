@@ -48,7 +48,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** If the HushGram PIN dialog goes away without an answer, say because Instagram closed the screen behind it, Unlock on the cover asks again right away. Before, it did nothing for about a minute.
 
-* **Instagram - Hide suggested stories and Hide Meta AI:** Their descriptions in Manager and the README said they start off, but their main switches start on. They now say which switches start on, and a test keeps every "Starts on" and "Starts off" in line with the switch it names.
+* **Instagram - Hide suggested stories and Hide Meta AI:** Their descriptions in Manager and the README said they start off, but their main switches start on. They now say which switches start on, and a test checks each "Starts on" and "Starts off" against the patch's main switch.
 
 ## 0.0.9 (2026-10-11)
 

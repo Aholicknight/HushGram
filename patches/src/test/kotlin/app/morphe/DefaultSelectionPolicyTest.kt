@@ -83,7 +83,8 @@ class DefaultSelectionPolicyTest {
     /**
      * "Starts off" or "Starts on" is a promise about the switch the patch turns on, so it has to be
      * that switch's default. Hide suggested stories and Hide Meta AI said "Starts off" while their
-     * switches started on.
+     * switches started on. It's checked against each family's main switch, the first one
+     * PatchFamily lists for it.
      */
     @Test
     fun `a description that says how its switch starts matches the switch`() {
@@ -107,6 +108,7 @@ class DefaultSelectionPolicyTest {
                 only to Regex("""enableStatus\("(\w+)"\)""").findAll(text).mapNotNull { masters[it.groupValues[1]] }.toSet()
             }
         }.toMap()
+        val checked = mutableMapOf<String, Boolean>()
         val wrong = shippedPatches().mapNotNull { patch ->
             val description = patch.get("description").asString
             val says = when {
@@ -115,9 +117,14 @@ class DefaultSelectionPolicyTest {
                 else -> return@mapNotNull null
             }
             val patchName = patch.get("name").asString
-            val off = switchesOf[patchName].orEmpty().filter { defaults[it] != null && defaults[it] != says }
+            val known = switchesOf[patchName].orEmpty().filter { defaults[it] != null }
+            if (known.isNotEmpty()) checked[patchName] = says
+            val off = known.filter { defaults[it] != says }
             if (off.isEmpty()) null else "$patchName says it starts ${if (says) "on" else "off"}, but $off doesn't"
         }
         assertEquals("a description that disagrees with its switch's default", emptyList<String>(), wrong)
+        // A pattern that stops matching would leave nothing to compare and pass on its own.
+        assertEquals("Hide suggested stories wasn't checked against its switch", true, checked["Hide suggested stories"])
+        assertTrue("no \"Starts off\" description was checked against its switch", checked.containsValue(false))
     }
 }
