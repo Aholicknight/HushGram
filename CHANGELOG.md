@@ -8,6 +8,8 @@ Every HushGram release, newest first.
 
 #### Features
 
+* **Instagram - Install next to Instagram:** New Mark the icon option, off by default. It puts a small HushGram badge on the second Instagram's home screen icon, and on the other icons Instagram lets you pick. Asked for in #145.
+
 * **Instagram - Hide the Reels tab:** New Center the name on profiles switch under Tab bar, off by default. The username at the top of a profile sits in the middle, and the buttons stay put. Asked for in #140.
 
 * **Instagram - Clean up Reels:** New Burn-in guard, off by default. It fades a reel's buttons and bars after 5 idle seconds, and can also move the screen a step every 2 minutes. Asked for in #162.

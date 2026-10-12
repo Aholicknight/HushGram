@@ -56,9 +56,10 @@ class CloneNamesTest {
 
     @Test fun theOptionsRefuseWhatThePatchWould() {
         val options = installNextToInstagramPatch.options
-        assertEquals(setOf("packageName", "appName"), options.keys)
+        assertEquals(setOf("packageName", "appName", "markIcon"), options.keys)
         assertEquals(DEFAULT_PACKAGE, options.getValue("packageName").default)
         assertEquals(DEFAULT_LABEL, options.getValue("appName").default)
+        assertEquals("the badge is asked for (#145)", false, options.getValue("markIcon").default)
         try {
             assertThrows(OptionException.ValueValidationException::class.java) { options.set("packageName", "nodots") }
             assertThrows(OptionException.ValueValidationException::class.java) { options.set("packageName", "com.instagram.android") }

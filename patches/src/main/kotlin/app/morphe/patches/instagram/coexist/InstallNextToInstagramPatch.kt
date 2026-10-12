@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.coexist
 
+import app.morphe.patcher.patch.booleanOption
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.resourcePatch
 import app.morphe.patcher.patch.stringOption
@@ -17,27 +18,41 @@ import app.morphe.patches.shared.compat.AppCompatibilities
  * runs on Instagram's own strings, since some find their code by its package name. Finalize blocks
  * run in reverse, so the code half's comes next: it sorts again, refuses if the sort changed, and
  * writes the copy's names. Only then does it ask the manifest half's finalize to rename the
- * manifest, so a refusal anywhere leaves an ordinary build that installs over Instagram as before.
+ * manifest, and to badge the icons when asked, so a refusal anywhere leaves an ordinary build that
+ * installs over Instagram as before. The icons are read in the first step too, and a problem with
+ * them only refuses with Mark the icon on.
  */
 
 private var manifestFacts: CloneManifestFacts? = null
+private var cloneIcons: CloneIcons? = null
 private var checkedSort: Map<String, Int>? = null
 
 /** The package and name the manifest takes, set once the code has moved. */
 private var renameRequest: Pair<String, String>? = null
 
+/** The adaptive icons that take the badge, set with [renameRequest] when Mark the icon is on. */
+private var markRequest: List<String>? = null
+
 private val cloneManifestPatch = resourcePatch {
     execute {
         manifestFacts = null
+        cloneIcons = null
         checkedSort = null
         renameRequest = null
-        manifestFacts = document("AndroidManifest.xml").use(::readCloneManifest)
+        markRequest = null
+        document("AndroidManifest.xml").use { manifest ->
+            manifestFacts = readCloneManifest(manifest)
+            cloneIcons = readCloneIcons(get("res"), manifestIcons(manifest))
+        }
     }
 
     finalize {
         val (clone, label) = renameRequest ?: return@finalize
+        val marks = markRequest
         renameRequest = null
+        markRequest = null
         document("AndroidManifest.xml").use { renameManifest(it, clone, label) }
+        if (marks != null) markCloneIcons(marks)
     }
 }
 
@@ -51,7 +66,8 @@ private val cloneManifestPatch = resourcePatch {
 val installNextToInstagramPatch = bytecodePatch(
     name = "Install next to Instagram",
     description = "Installs this build as a second Instagram beside your normal one, with its own data and sign-in. " +
-        "Pick its package name and app name in the patch's options. Works as soon as you patch it in, with no switch.",
+        "Pick its package name and app name in the patch's options, and whether its icon gets a HushGram badge. " +
+        "Works as soon as you patch it in, with no switch.",
     default = false,
 ) {
     category("Updates")
@@ -73,6 +89,13 @@ val installNextToInstagramPatch = bytecodePatch(
         description = "The name under the second Instagram's icon. It starts with a letter and holds up to 50 characters.",
         required = true,
     ) { cloneLabelProblem(it) == null }
+    val markIcon = booleanOption(
+        key = "markIcon",
+        default = false,
+        title = "Mark the icon",
+        description = "Puts a small HushGram badge on the second Instagram's home screen icon, so the two are easy to " +
+            "tell apart. Instagram's other icons you can pick in its settings get it too.",
+    )
 
     fun chosen(): Pair<String, String> {
         val clone = packageName.value
@@ -82,11 +105,20 @@ val installNextToInstagramPatch = bytecodePatch(
         return clone!! to label!!
     }
 
+    /** The icons to badge, or null with Mark the icon off. Refuses one the badge can't go on. */
+    fun iconsToMark(): List<String>? {
+        if (markIcon.value != true) return null
+        val icons = cloneIcons ?: refuse("the manifest half didn't read the icons")
+        icons.problem?.let { refuse("Mark the icon can't badge this build's icons: $it") }
+        return icons.files
+    }
+
     execute {
         val (clone, _) = chosen()
         val facts = manifestFacts ?: refuse("the manifest half didn't read AndroidManifest.xml")
         val plan = planClone(clone, facts.authorities)
         plan.requireComplete()
+        iconsToMark()
         checkedSort = plan.summary()
     }
 
@@ -97,7 +129,9 @@ val installNextToInstagramPatch = bytecodePatch(
         plan.requireComplete()
         val checked = checkedSort
         if (plan.summary() != checked) refuse("another patch changed Instagram's uses of its name: $checked became ${plan.summary()}")
+        val marks = iconsToMark()
         applyClone(plan)
+        markRequest = marks
         renameRequest = clone to label
     }
 }
