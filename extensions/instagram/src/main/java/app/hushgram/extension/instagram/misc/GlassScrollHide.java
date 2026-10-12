@@ -25,6 +25,7 @@ import java.lang.reflect.Proxy;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.download.HoldDownload;
+import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -181,15 +182,20 @@ final class GlassScrollHide {
     static void install(Window window, GlassScrollHide hide) {
         Window.Callback inner = window.getCallback();
         if (inner == null) return;
-        // Hold to download's watcher may have wrapped this one since, so it's looked through.
-        Window.Callback seen = HoldDownload.innerOf(inner);
-        if (seen != null && Proxy.isProxyClass(seen.getClass()) && Proxy.getInvocationHandler(seen) instanceof Watcher) {
-            Watcher watcher = (Watcher) Proxy.getInvocationHandler(seen);
-            if (watcher.hide != hide) {
-                watcher.hide.restoreNow();
-                watcher.hide = hide;
+        // Hold to download's and Burn-in guard's watchers may have wrapped this one since, in either
+        // order, so they're looked through.
+        for (Window.Callback seen = inner; seen != null; ) {
+            if (Proxy.isProxyClass(seen.getClass()) && Proxy.getInvocationHandler(seen) instanceof Watcher) {
+                Watcher watcher = (Watcher) Proxy.getInvocationHandler(seen);
+                if (watcher.hide != hide) {
+                    watcher.hide.restoreNow();
+                    watcher.hide = hide;
+                }
+                return;
             }
-            return;
+            Window.Callback next = BurnInGuard.innerOf(HoldDownload.innerOf(seen));
+            if (next == seen) break;
+            seen = next;
         }
         window.setCallback((Window.Callback) Proxy.newProxyInstance(GlassScrollHide.class.getClassLoader(),
                 new Class<?>[] {Window.Callback.class}, new Watcher(inner, hide)));

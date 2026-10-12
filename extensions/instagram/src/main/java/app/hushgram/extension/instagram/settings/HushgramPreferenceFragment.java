@@ -102,6 +102,7 @@ import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.AccentHue;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
 import app.hushgram.extension.instagram.misc.HapticStyle;
+import app.hushgram.extension.instagram.reels.BurnInMode;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.StartTab;
 import app.hushgram.extension.instagram.reels.TabOrder;
@@ -761,6 +762,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.HIDE_REEL_SAVE_BUTTON, L10n.t("Hide the Save button on reels"),
                     L10n.t("Takes the Save button out of the column of buttons beside a reel, and the count under it. "
                             + "Posts in your feed keep theirs.")));
+            reels.add(burnInGuardRow(context));
         }
         if (build.contains(PatchFamily.REEL_WATCH_HISTORY)) {
             reels.add(toggle(context, Settings.DONT_SEND_REEL_WATCH_HISTORY, L10n.t("Don't send reel watch history"),
@@ -1563,6 +1565,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.STORY_RING && Settings.STORY_RING_SCALE.key.equals(key);
                     belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
+                    belongs |= family == PatchFamily.REEL_DECLUTTER && Settings.BURN_IN_GUARD.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
@@ -3708,6 +3711,53 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    /** Burn-in guard on the Reels screen. Its summary says what the choice does. */
+    static BurnInGuardRow burnInGuardRow(Context context) {
+        BurnInGuardRow row = new BurnInGuardRow(context);
+        row.setKey(Settings.BURN_IN_GUARD.key);
+        row.setTitle(L10n.t("Burn-in guard"));
+        row.setDialogTitle(L10n.t("Burn-in guard"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        BurnInMode[] modes = BurnInMode.values();
+        CharSequence[] entries = new CharSequence[modes.length];
+        CharSequence[] values = new CharSequence[modes.length];
+        for (int i = 0; i < modes.length; i++) {
+            entries[i] = burnInLabel(modes[i]);
+            values[i] = modes[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.BURN_IN_GUARD.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [mode]. */
+    static String burnInLabel(BurnInMode mode) {
+        switch (mode) {
+            case DIM:
+                return L10n.t("Dim when idle");
+            case DIM_AND_SHIFT:
+                return L10n.t("Dim when idle and shift");
+            default:
+                return L10n.t("Off");
+        }
+    }
+
+    /** What [mode] does, for the row's summary. */
+    static String burnInSummary(BurnInMode mode) {
+        switch (mode) {
+            case DIM:
+                return L10n.t("On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch. "
+                        + "A touch brings them back.");
+            case DIM_AND_SHIFT:
+                return L10n.t("On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch, "
+                        + "and the screen moves a step every 2 minutes. A touch brings them back.");
+            default:
+                return L10n.t("Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into "
+                        + "an OLED screen.");
+        }
+    }
+
     /** What a single tap on a reel does. Its summary says what the choice does. */
     static ReelTapChoiceRow reelTapChoiceRow(Context context) {
         ReelTapChoiceRow row = new ReelTapChoiceRow(context);
@@ -5123,6 +5173,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /** The choice of what a tap on a reel does. Its summary follows its value, as Tap to play's choice does. */
+    static final class BurnInGuardRow extends ListPreference {
+        BurnInGuardRow(Context context) {
+            super(context);
+        }
+
+        /** The summary says what the choice does. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            BurnInMode mode = BurnInMode.OFF;
+            for (BurnInMode candidate : BurnInMode.values()) {
+                if (candidate.name().equals(value)) mode = candidate;
+            }
+            setSummary(burnInSummary(mode));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
     static final class ReelTapChoiceRow extends ListPreference {
         ReelTapChoiceRow(Context context) {
             super(context);

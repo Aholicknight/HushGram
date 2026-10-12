@@ -8,6 +8,8 @@ Every HushGram release, newest first.
 
 #### Features
 
+* **Instagram - Clean up Reels:** New Burn-in guard, off by default. It fades a reel's buttons and bars after 5 idle seconds, and can also move the screen a step every 2 minutes. Asked for in #162.
+
 * **Instagram - Long press to zoom:** New Keep the zoom open choice under it, off by default. The zoom stays up after you let go, so you can drag around and pinch from 1x to 4x. A tap or Back closes it. Asked for in #149.
 
 * **Instagram - Hide suggested people on profiles:** A new switch under Profiles, Hide Suggested for you on follow lists, leaves that section off the bottom of followers and following lists. Every account in the list stays. Asked for in #139.

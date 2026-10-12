@@ -397,6 +397,16 @@
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/HushGram",
       "license": "GPL-3.0-only"
+    },
+    {
+      "paths": [
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/reels/BurnInGuard.java"
+      ],
+      "origin": "ported",
+      "upstream": "https://github.com/SysAdminDoc/hushfeed",
+      "commit": "476d7e9d804dc8fb73ec7f9887e91edf2f9e1233",
+      "license": "GPL-3.0-only",
+      "changes": "Hushfeed's Burn-in guard, moved from TikTok's feed to Instagram's Reels screen. The shift's content-frame translation and its place cycle are Hushfeed's as they were. The dim no longer rides an overlay fade pass, which HushGram doesn't have: it lowers the alpha of the reel overlay, top bar and tab bar it finds by Instagram's view ids, and puts back only what it wrote. Its own activity watcher, focus and throttled layout listeners take the place of the overlay pass's timing, and the screen check is Full screen Reels'. The file says it was modified for HushGram."
     }
   ]
 }

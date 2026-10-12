@@ -1132,6 +1132,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_save_button", FALSE);
 
     /**
+     * Burn-in guard on the Reels screen (#162): dims a reel's controls after a few seconds without a
+     * touch, and can also move the screen a step every few minutes
+     * ({@link app.hushgram.extension.instagram.reels.BurnInGuard}). Off to start.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.reels.BurnInMode> BURN_IN_GUARD =
+            new EnumSetting<>("hushgram_burn_in_guard", app.hushgram.extension.instagram.reels.BurnInMode.OFF);
+
+    /**
      * Download in every reel's more menu, saving the reel through the save pipeline below instead
      * of Instagram's own save, which only some reels offer and which stamps a watermark on.
      */

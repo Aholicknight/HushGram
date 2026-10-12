@@ -955,6 +955,12 @@ A long press on the menu button, the three lines at the top right of your own pr
 Hide the top bar on the Reels tab	Ocultar a barra superior da aba Reels
 Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	Tira a linha do topo da aba Reels, com o título Reels, o botão da câmera e tudo o mais que o Instagram colocar ali. Os reels que você abre de um perfil, de uma publicação ou de uma conversa continuam com ela. A câmera continua abrindo pelo Início.
 Hide the Save button on reels	Ocultar o botão Salvar nos reels
+Burn-in guard	Proteção contra burn-in
+Dim when idle	Escurecer quando parado
+Dim when idle and shift	Escurecer quando parado e mover
+On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch. A touch brings them back.	Na tela de Reels, os botões, a legenda e as barras ficam mais fracos após 5 segundos sem toque. Um toque os traz de volta.
+On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch, and the screen moves a step every 2 minutes. A touch brings them back.	Na tela de Reels, os botões, a legenda e as barras ficam mais fracos após 5 segundos sem toque, e a tela se move um pouco a cada 2 minutos. Um toque os traz de volta.
+Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Desativado. Pode deixar os botões de um reel mais fracos enquanto a tela fica sem toque, para que não marquem uma tela OLED.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Tira o botão Salvar da coluna de botões ao lado de um reel, junto com o número embaixo dele. As publicações do seu feed continuam com o delas.
 Unlock with	Desbloquear com
 Phone lock	Bloqueio do celular

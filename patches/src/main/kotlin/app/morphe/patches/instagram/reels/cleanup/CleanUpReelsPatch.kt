@@ -63,7 +63,8 @@ val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
     description = "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban " +
         "Meta glasses, friends' activity, the Add a comment bar, the Save button and the Reels tab's top bar. Each one has its own " +
-        "switch. Starts off. Turn it on in HushGram settings > Reels.",
+        "switch, and Burn-in guard can dim a reel's buttons while you aren't touching the screen. Starts off. Turn it on " +
+        "in HushGram settings > Reels.",
 ) {
     category("Reels")
     dependsOn(settingsPatch)

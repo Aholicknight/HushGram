@@ -955,6 +955,12 @@ A long press on the menu button, the three lines at the top right of your own pr
 Hide the top bar on the Reels tab	Sembunyikan bilah atas di tab Reels
 Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	Menghapus baris di bagian atas tab Reels, berisi judul Reels, tombol kamera, dan apa pun yang ditaruh Instagram di sana. Reels yang kamu buka dari profil, postingan, atau chat tetap memilikinya. Kamera tetap bisa dibuka dari Beranda.
 Hide the Save button on reels	Sembunyikan tombol Simpan di reel
+Burn-in guard	Pelindung burn-in
+Dim when idle	Redupkan saat diam
+Dim when idle and shift	Redupkan saat diam dan geser
+On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch. A touch brings them back.	Di layar Reels, tombol, keterangan, dan bilah memudar setelah 5 detik tanpa sentuhan. Sentuhan mengembalikannya.
+On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch, and the screen moves a step every 2 minutes. A touch brings them back.	Di layar Reels, tombol, keterangan, dan bilah memudar setelah 5 detik tanpa sentuhan, dan layar bergeser sedikit setiap 2 menit. Sentuhan mengembalikannya.
+Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Nonaktif. Bisa meredupkan tombol reel saat layar tidak disentuh, agar tidak membekas di layar OLED.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Menghapus tombol Simpan dari deretan tombol di samping reel, beserta angka di bawahnya. Postingan di feed-mu tetap punya tombolnya.
 Unlock with	Buka kunci dengan
 Phone lock	Kunci ponsel

@@ -28,6 +28,8 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.shadows.ShadowLooper;
 
+import app.hushgram.extension.instagram.reels.BurnInGuardForTests;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -303,6 +305,42 @@ public class GlassScrollHideTest {
         }
         assertTrue("the rebuilt bar gets the touches", next.isHidden());
         assertFalse(hide.isHidden());
+    }
+
+    /**
+     * Burn-in guard's watcher wrapped over the glass one is looked through: a rebuilt bar still takes
+     * over the one glass watcher instead of wrapping a second, and touches through both reach it.
+     */
+    @Test public void aRebuiltBarLooksThroughBurnInGuardsWatcher() {
+        Window window = activity.getWindow();
+        try {
+            GlassScrollHide.install(window, hide);
+            BurnInGuardForTests.watch(window);
+            Window.Callback outer = window.getCallback();
+
+            View rebuilt = new View(activity);
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(1080, 150);
+            params.topMargin = 1770;
+            root.addView(rebuilt, params);
+            root.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
+            root.layout(0, 0, 1080, 1920);
+            GlassScrollHide next = new GlassScrollHide(rebuilt, running::get);
+            GlassScrollHide.install(window, next);
+            assertSame("no second glass watcher", outer, window.getCallback());
+
+            list.awayFromTop = true;
+            outer.dispatchTouchEvent(MotionEvent.obtain(clock, clock, MotionEvent.ACTION_DOWN, 500, 900, 0));
+            for (int i = 1; i <= 10; i++) {
+                clock += 16;
+                outer.dispatchTouchEvent(MotionEvent.obtain(clock, clock, MotionEvent.ACTION_MOVE, 500, 900 - 30 * i, 0));
+            }
+            assertTrue("the rebuilt bar gets the touches", next.isHidden());
+            assertFalse(hide.isHidden());
+            assertEquals("each touch reached the activity once", 11, activity.touches);
+        } finally {
+            BurnInGuardForTests.reset();
+        }
     }
 
     @Test public void aVideoFillingTheScreenIsReelsAndKeepsTheBar() {

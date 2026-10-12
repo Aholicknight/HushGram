@@ -1,0 +1,495 @@
+/*
+ * Copyright 2026 Hushfeed contributors
+ * https://github.com/SysAdminDoc/hushfeed
+ *
+ * Modified for HushGram (Instagram), 2026.
+ */
+package app.hushgram.extension.instagram.reels;
+
+import android.app.Activity;
+import android.app.Application;
+import android.content.Context;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.view.Window;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import java.lang.ref.WeakReference;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.WeakHashMap;
+
+import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
+import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.HushgramPause;
+
+/**
+ * Burn-in guard (#162), Hushfeed's ported to the Reels screen: keeps a reel's fixed controls from
+ * sitting on the same pixels of an OLED screen for hours.
+ *
+ * <p>The dim: once the Reels screen has gone {@link #IDLE_AFTER_MS} without a touch, the reel's
+ * overlay (its button column, author and caption), the top bar and the tab bar are drawn at
+ * {@link #IDLE_LEVEL} of what Instagram draws them at, and the next finger brings them back. Only
+ * their alpha changes, so a dimmed button still takes its tap. They're found by the ids Instagram
+ * 450 gives them ({@link #DIMMED_IDS}), and a view inside one already dimmed is left alone, so
+ * nothing is dimmed twice. A finger held on the screen counts as a touch until it lifts.
+ *
+ * <p>The shift moves the window's content around a small square, {@link #STEP_DP} at a time, every
+ * {@link #SHIFT_EVERY_MS}. It's one view's translation, the content frame's, which Instagram doesn't
+ * animate, where each control's would be fought over with Instagram's own animations.
+ *
+ * <p>Both run only while the Reels screen shows ({@link FullScreenBars#screenOf}), with the choice on,
+ * HushGram not paused and the activity in front. Anywhere else nothing dims and the content goes back
+ * where it was. A view whose alpha, or a content frame whose translation, something else changed
+ * after HushGram wrote it is left the way that left it. The window getting focus back counts as a
+ * touch, so coming back from the settings or another screen doesn't land on dimmed controls.
+ *
+ * <p>No layout listener runs for nothing: with the choice off an activity gets only a window focus
+ * listener, which hears the choice turned on once the settings close. While it's on, a layout
+ * (a new reel, another screen) asks for a look at most every {@link #LOOK_MS}.
+ */
+public final class BurnInGuard {
+    /** How long the screen goes untouched before the controls dim. */
+    static final long IDLE_AFTER_MS = 5_000L;
+    /** The share of Instagram's own opacity the controls dim to. */
+    static final float IDLE_LEVEL = 0.25f;
+    /** How long the content stays in one place. */
+    static final long SHIFT_EVERY_MS = 120_000L;
+    static final float STEP_DP = 2f;
+    /** The most often a layout asks for a look. */
+    static final long LOOK_MS = 250L;
+    /** The most views looked at in one search, so a strange tree can't make a long one. */
+    static final int MAX_VIEWS = 4000;
+
+    /**
+     * The ids of what dims, as Instagram 450 names them: a reel's overlay and its parts (the button
+     * column, the author and caption), the Reels top bar and the tab bar.
+     */
+    static final String[] DIMMED_IDS = {
+            "clips_item_overlay_component", "clips_ufi_component", "clips_media_info_component",
+            "clips_viewer_media_info_container", "clips_viewer_media_info", "clips_viewer_action_bar", "tab_bar"
+    };
+
+    /** Where the content goes, in steps: where Instagram put it, then once around it. */
+    private static final int[][] PLACES = {
+            {0, 0}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}
+    };
+
+    static final String COUNT_DIMMED = "Reels controls dimmed while idle";
+    static final String COUNT_SHIFTED = "Reels screen moved a step";
+
+    private static final HashMap<String, Integer> IDS = new HashMap<>();
+    private static volatile boolean registered;
+    private static final Map<Window, Boolean> WRAPPED = new WeakHashMap<>();
+    /** Views this class dimmed: the alpha they had, then the alpha written here. */
+    private static final Map<View, float[]> DIMMED = new WeakHashMap<>();
+    /** Content views this class moved: the [x, y] they had, then the [x, y] written here. */
+    private static final Map<View, float[]> MOVED = new WeakHashMap<>();
+    private static final Runnable TICK = BurnInGuard::tick;
+    private static final Focus FOCUS = new Focus();
+    private static final Layout LAYOUT = new Layout();
+
+    private static Handler handler;
+    /** The activity in front, the one every pass looks at. */
+    private static WeakReference<Activity> front = new WeakReference<>(null);
+    /** The decor view whose observer has the listeners. */
+    private static WeakReference<View> observed = new WeakReference<>(null);
+    private static boolean layoutWatched;
+    /** When a finger last touched the screen. */
+    private static long touchedAt;
+    /** A finger is on the screen: holding still is still a touch, and the wait starts when it lifts. */
+    private static boolean fingerDown;
+    /** The last pass found the Reels screen with the choice on. */
+    private static boolean guarding;
+    /** When the next timed pass is due, or -1 when none is. */
+    private static long tickAt = -1L;
+
+    private BurnInGuard() {
+    }
+
+    /** Called as the application starts. Does nothing in a build without Clean up Reels. */
+    public static void install(Context context) {
+        try {
+            if (registered || !(context instanceof Application) || !SettingsStatus.reelDeclutter()) return;
+            registered = true;
+            ((Application) context).registerActivityLifecycleCallbacks(new Lifecycle());
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard start", failure);
+        }
+    }
+
+    /** The choice now: off until the settings are read and while HushGram is paused. */
+    static BurnInMode mode() {
+        if (!Utils.settingsReady() || HushgramPause.isPaused()) return BurnInMode.OFF;
+        BurnInMode mode = Settings.BURN_IN_GUARD.get();
+        return mode == null ? BurnInMode.OFF : mode;
+    }
+
+    /** The place the content is in at [now], in steps of {@link #STEP_DP}. */
+    static int[] placeAt(long now) {
+        return PLACES[(int) ((now / SHIFT_EVERY_MS) % PLACES.length)];
+    }
+
+    static int id(Context context, String name) {
+        synchronized (IDS) {
+            Integer found = IDS.get(name);
+            if (found == null) {
+                found = context.getResources().getIdentifier(name, "id", context.getPackageName());
+                IDS.put(name, found);
+            }
+            return found;
+        }
+    }
+
+    /** Tests give each view an id of their own, since a test app has none of Instagram's. */
+    static void idForTests(String name, int id) {
+        synchronized (IDS) {
+            IDS.put(name, id);
+        }
+    }
+
+    /** As [activity] comes to the front: listens to it and looks once. */
+    static void resumed(Activity activity) {
+        try {
+            leave();
+            front = new WeakReference<>(activity);
+            View decor = activity.getWindow() == null ? null : activity.getWindow().peekDecorView();
+            if (decor == null) return;
+            ViewTreeObserver observer = decor.getViewTreeObserver();
+            if (!observer.isAlive()) return;
+            observer.addOnWindowFocusChangeListener(FOCUS);
+            observed = new WeakReference<>(decor);
+            touchedAt = SystemClock.uptimeMillis();
+            fingerDown = false;
+            pass();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard watch", failure);
+        }
+    }
+
+    /** As [activity] leaves the front: puts back what it changed and takes its listeners off. */
+    static void paused(Activity activity) {
+        try {
+            if (front.get() == activity) leave();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard release", failure);
+        }
+    }
+
+    private static void leave() {
+        Activity activity = front.get();
+        undim();
+        if (activity != null) place(activity, false, 0L);
+        watchLayouts(false);
+        View decor = observed.get();
+        if (decor != null && decor.getViewTreeObserver().isAlive()) {
+            decor.getViewTreeObserver().removeOnWindowFocusChangeListener(FOCUS);
+        }
+        observed = new WeakReference<>(null);
+        front = new WeakReference<>(null);
+        guarding = false;
+        fingerDown = false;
+        schedule(Long.MAX_VALUE);
+    }
+
+    /**
+     * Looks at the activity in front: dims or brings back its controls, moves its content or puts it
+     * back, and asks for a pass at the moment either next changes, since nothing lays out on its own
+     * while a reel just plays.
+     */
+    static void pass() {
+        Activity activity = front.get();
+        if (activity == null) return;
+        try {
+            Window window = activity.getWindow();
+            View decor = window == null ? null : window.peekDecorView();
+            BurnInMode mode = mode();
+            watchLayouts(mode != BurnInMode.OFF);
+            boolean on = mode != BurnInMode.OFF && decor != null
+                    && FullScreenBars.screenOf(decor) == FullScreenBars.Screen.REELS;
+            long now = SystemClock.uptimeMillis();
+            if (on) {
+                watch(window);
+                // Coming onto the Reels screen starts the wait.
+                if (!guarding) touchedAt = now;
+            }
+            guarding = on;
+            boolean dim = on && !fingerDown && now - touchedAt >= IDLE_AFTER_MS;
+            if (dim) dimAll(decor);
+            else undim();
+            boolean shifting = on && mode == BurnInMode.DIM_AND_SHIFT;
+            place(activity, shifting, now);
+            schedule(Math.min(on && !dim && !fingerDown ? touchedAt + IDLE_AFTER_MS : Long.MAX_VALUE,
+                    shifting ? (now / SHIFT_EVERY_MS + 1) * SHIFT_EVERY_MS : Long.MAX_VALUE));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard", failure);
+            try {
+                undim();
+                place(activity, false, 0L);
+            } catch (Throwable again) {
+                HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard put back", again);
+            }
+        }
+    }
+
+    /** Dims each of {@link #DIMMED_IDS} shown in [root], the first one on each path down. */
+    private static void dimAll(View root) {
+        int[] ids = new int[DIMMED_IDS.length];
+        for (int i = 0; i < ids.length; i++) ids[i] = id(root.getContext(), DIMMED_IDS[i]);
+        ArrayDeque<View> pending = new ArrayDeque<>();
+        pending.add(root);
+        int seen = 0;
+        while (!pending.isEmpty() && seen++ < MAX_VIEWS) {
+            View view = pending.poll();
+            if (view.getVisibility() != View.VISIBLE) continue;
+            if (dims(view, ids)) {
+                dim(view);
+                continue;
+            }
+            if (view instanceof ViewGroup) {
+                ViewGroup group = (ViewGroup) view;
+                for (int i = 0; i < group.getChildCount(); i++) pending.add(group.getChildAt(i));
+            }
+        }
+    }
+
+    private static boolean dims(View view, int[] ids) {
+        int id = view.getId();
+        if (id == View.NO_ID) return false;
+        for (int wanted : ids) if (wanted != 0 && wanted == id) return true;
+        return false;
+    }
+
+    private static void dim(View view) {
+        float alpha = view.getAlpha();
+        float[] held = DIMMED.get(view);
+        if (held == null) {
+            held = new float[]{alpha, alpha * IDLE_LEVEL};
+            DIMMED.put(view, held);
+            HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_DIMMED);
+        } else if (alpha != held[1]) {
+            // Instagram set its own since; that's what the dim is taken from now.
+            held[0] = alpha;
+            held[1] = alpha * IDLE_LEVEL;
+        }
+        if (alpha != held[1]) view.setAlpha(held[1]);
+    }
+
+    /** Brings back each view dimmed here, if its alpha is still the one written here. */
+    private static void undim() {
+        if (DIMMED.isEmpty()) return;
+        for (Map.Entry<View, float[]> entry : DIMMED.entrySet()) {
+            View view = entry.getKey();
+            float[] held = entry.getValue();
+            if (view != null && view.getAlpha() == held[1]) view.setAlpha(held[0]);
+        }
+        DIMMED.clear();
+    }
+
+    private static void place(Activity activity, boolean shifting, long now) {
+        View content = activity.findViewById(android.R.id.content);
+        if (content == null) return;
+        float[] held = MOVED.get(content);
+        if (!shifting) {
+            if (held != null) {
+                MOVED.remove(content);
+                if (content.getTranslationX() == held[2]) content.setTranslationX(held[0]);
+                if (content.getTranslationY() == held[3]) content.setTranslationY(held[1]);
+            }
+            return;
+        }
+        float x = content.getTranslationX();
+        float y = content.getTranslationY();
+        if (held == null) {
+            held = new float[]{x, y, x, y};
+            MOVED.put(content, held);
+        } else {
+            // Something else wrote its own since the last pass; that's where the content is now.
+            if (x != held[2]) held[0] = x;
+            if (y != held[3]) held[1] = y;
+        }
+        int[] at = placeAt(now);
+        float step = STEP_DP * content.getResources().getDisplayMetrics().density;
+        held[2] = held[0] + at[0] * step;
+        held[3] = held[1] + at[1] * step;
+        if (x == held[2] && y == held[3]) return;
+        content.setTranslationX(held[2]);
+        content.setTranslationY(held[3]);
+        HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_SHIFTED);
+    }
+
+    private static void schedule(long next) {
+        if (next == Long.MAX_VALUE) next = -1L;
+        if (next == tickAt) return;
+        Handler main = handler();
+        main.removeCallbacks(TICK);
+        tickAt = next;
+        if (next >= 0L) main.postAtTime(TICK, next);
+    }
+
+    private static void tick() {
+        tickAt = -1L;
+        pass();
+    }
+
+    /** A pass as soon as the main thread is free, in place of any timed one. */
+    private static void passSoon() {
+        Handler main = handler();
+        main.removeCallbacks(TICK);
+        tickAt = -1L;
+        main.post(TICK);
+    }
+
+    /**
+     * A finger on the window ([action] is its MotionEvent action, or -1 for the window getting focus
+     * back): dimmed controls come back now, and a lift asks for a pass so the wait is timed from it.
+     */
+    static void touched(int action) {
+        touchedAt = SystemClock.uptimeMillis();
+        boolean lifted = action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL || action < 0;
+        if (action == MotionEvent.ACTION_DOWN) fingerDown = true;
+        else if (lifted) fingerDown = false;
+        undim();
+        if (lifted && front.get() != null) passSoon();
+    }
+
+    /** Adds or takes off the layout listener on the window in front. */
+    private static void watchLayouts(boolean on) {
+        if (on == layoutWatched) return;
+        View decor = observed.get();
+        if (on && decor == null) return;
+        layoutWatched = on;
+        if (decor == null || !decor.getViewTreeObserver().isAlive()) return;
+        if (on) decor.getViewTreeObserver().addOnGlobalLayoutListener(LAYOUT);
+        else decor.getViewTreeObserver().removeOnGlobalLayoutListener(LAYOUT);
+    }
+
+    private static Handler handler() {
+        Looper main = Looper.getMainLooper();
+        if (handler == null || handler.getLooper() != main) handler = new Handler(main);
+        return handler;
+    }
+
+    /** Wraps [window]'s callback once, as Hold to download does, to see touches. */
+    private static void watch(@Nullable Window window) {
+        if (window == null || WRAPPED.containsKey(window)) return;
+        Window.Callback inner = window.getCallback();
+        if (inner == null) return;
+        window.setCallback((Window.Callback) Proxy.newProxyInstance(BurnInGuard.class.getClassLoader(),
+                new Class<?>[]{Window.Callback.class}, new Watcher(inner)));
+        WRAPPED.put(window, Boolean.TRUE);
+    }
+
+    /** The callback [callback] passes calls on to when it's a Burn-in guard watcher, else [callback]. */
+    public static Window.Callback innerOf(Window.Callback callback) {
+        if (callback != null && Proxy.isProxyClass(callback.getClass())
+                && Proxy.getInvocationHandler(callback) instanceof Watcher) {
+            return ((Watcher) Proxy.getInvocationHandler(callback)).inner;
+        }
+        return callback;
+    }
+
+    /** Passes every call on to the callback it wraps, and looks at touches on the way. */
+    private static final class Watcher implements InvocationHandler {
+        final Window.Callback inner;
+
+        Watcher(Window.Callback inner) {
+            this.inner = inner;
+        }
+
+        @Override public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if (args != null && args.length == 1 && args[0] instanceof MotionEvent
+                    && "dispatchTouchEvent".equals(method.getName())) {
+                try {
+                    touched(((MotionEvent) args[0]).getActionMasked());
+                } catch (Throwable failure) {
+                    HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard touch", failure);
+                }
+            }
+            try {
+                return method.invoke(inner, args);
+            } catch (InvocationTargetException failure) {
+                throw failure.getCause() == null ? failure : failure.getCause();
+            }
+        }
+    }
+
+    /** The window getting focus back: the settings closing, or a screen over it going away. */
+    private static final class Focus implements ViewTreeObserver.OnWindowFocusChangeListener {
+        @Override public void onWindowFocusChanged(boolean hasFocus) {
+            if (!hasFocus) return;
+            try {
+                touched(-1);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard focus", failure);
+            }
+        }
+    }
+
+    /** A layout: a new reel, or another screen, so a look soon. */
+    private static final class Layout implements ViewTreeObserver.OnGlobalLayoutListener {
+        private long lastLook = Long.MIN_VALUE / 2;
+
+        @Override public void onGlobalLayout() {
+            long now = SystemClock.uptimeMillis();
+            long due = Math.max(now, lastLook + LOOK_MS);
+            if (tickAt >= 0L && tickAt <= due) return;
+            lastLook = due;
+            schedule(due);
+        }
+    }
+
+    private static final class Lifecycle implements Application.ActivityLifecycleCallbacks {
+        @Override public void onActivityResumed(@NonNull Activity activity) {
+            resumed(activity);
+        }
+
+        @Override public void onActivityPaused(@NonNull Activity activity) {
+            paused(activity);
+        }
+
+        @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) { }
+        @Override public void onActivityStarted(@NonNull Activity activity) { }
+        @Override public void onActivityStopped(@NonNull Activity activity) { }
+        @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle state) { }
+        @Override public void onActivityDestroyed(@NonNull Activity activity) { }
+    }
+
+    static long nextPassAtForTests() {
+        return tickAt;
+    }
+
+    static void watchForTests(Window window) {
+        watch(window);
+    }
+
+    static boolean watchingLayoutsForTests() {
+        return layoutWatched;
+    }
+
+    static void resetForTests() {
+        leave();
+        if (handler != null) handler.removeCallbacks(TICK);
+        tickAt = -1L;
+        touchedAt = 0L;
+        DIMMED.clear();
+        MOVED.clear();
+        WRAPPED.clear();
+    }
+}
