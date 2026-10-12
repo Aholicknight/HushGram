@@ -14,6 +14,7 @@ import app.morphe.patches.instagram.feed.FeedItemStandIns
 import app.morphe.patches.instagram.feed.FeedItemStandIns.assertFilteredBeforeReturn
 import app.morphe.patches.instagram.feed.FeedItemStandIns.instructions
 import app.morphe.patches.instagram.feed.filterParsedFeedItems
+import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -48,6 +49,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodRefere
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
 import com.android.tools.smali.dexlib2.immutable.value.ImmutableStringEncodedValue
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -554,62 +556,67 @@ class HideMetaAiHookTest {
     }
 
     /**
-     * #152 in each declared build: every call of the wrapper the Search tab's flag is read in keeps
-     * Instagram's answer in both results page fragments and the row builder, and the Explore tab and
-     * Home answer through the extension.
+     * #152 in each declared build and the other 450 builds: every call of the wrapper the Search
+     * tab's flag is read in keeps Instagram's answer in both results page fragments and the row
+     * builder, and the Explore tab and Home answer through the extension.
      */
     @Test
-    fun eachDeclaredBuildKeepsTheResultsPagesAnswer() {
+    fun eachBuildKeepsTheResultsPagesAnswer() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.loadsAFlag() }) holders += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val wrappers = holders.flatMap { holder ->
-                    holder.methods.filter { it.returnType == "Z" && AccessFlags.STATIC.isSet(it.accessFlags) && it.loads(RESULTS_FLAG) }
-                        .map { "${holder.type}->${it.name}" }
-                }.toSet()
-                val classes = holders.associateByTo(LinkedHashMap()) { it.type }
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.type !in classes && classDef.methods.any { it.calls(wrappers) }) classes[classDef.type] = ImmutableClassDef.of(classDef)
-                    }
-                }
-                val context = PatchContexts.of(classes.values)
-
-                context.answerSearchFlagReads(context.searchFlagSites(context.findSearchFlagReads()))
-
-                val kept = mutableListOf<String>()
-                val answered = mutableListOf<String>()
-                for (classDef in classes.values) {
-                    for (method in context.mutableClassDefBy(classDef.type).methods) {
-                        val code = method.instructions()
-                        for (at in code.indices) {
-                            if (!code[at].callsOneOf(wrappers) || code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT) continue
-                            val where = "${classDef.originalName() ?: classDef.type}->${method.name}"
-                            if ((code.getOrNull(at + 2) as? ReferenceInstruction)?.reference?.toString() == SEARCH_FLAG) {
-                                answered += where
-                            } else {
-                                kept += where
-                                if (method.holdsAll(listOf(SUMMARY_ROWS))) kept += "rows"
-                            }
-                        }
-                    }
-                }
-                for (page in RESULTS_PAGES + "rows") assertTrue("${bundle.name}: $page keeps Instagram's answer, kept $kept", kept.any { it == page || it.startsWith("$page->") })
-                assertTrue("${bundle.name}: the results page answered through the extension: $answered", answered.none { name -> RESULTS_PAGES.any { name.startsWith("$it->") } })
-                for (tab in listOf("ExploreFragment", "MainFeedFragment")) {
-                    assertTrue("${bundle.name}: $tab doesn't answer through the extension: $answered", answered.any { it.startsWith("$tab->") })
-                }
+                keepsTheResultsPagesAnswerIn(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+        for (base in Fixtures.otherBuilds()) keepsTheResultsPagesAnswerIn(base, base.parentFile.name)
+    }
+
+    private fun keepsTheResultsPagesAnswerIn(bundle: File, name: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.loadsAFlag() }) holders += ImmutableClassDef.of(classDef)
+            }
+        }
+        val wrappers = holders.flatMap { holder ->
+            holder.methods.filter { it.returnType == "Z" && AccessFlags.STATIC.isSet(it.accessFlags) && it.loads(RESULTS_FLAG) }
+                .map { "${holder.type}->${it.name}" }
+        }.toSet()
+        val classes = holders.associateByTo(LinkedHashMap()) { it.type }
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.type !in classes && classDef.methods.any { it.calls(wrappers) }) classes[classDef.type] = ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, classes.values))
+
+        context.answerSearchFlagReads(context.searchFlagSites(context.findSearchFlagReads()))
+
+        val kept = mutableListOf<String>()
+        val answered = mutableListOf<String>()
+        for (classDef in classes.values) {
+            for (method in context.mutableClassDefBy(classDef.type).methods) {
+                val code = method.instructions()
+                for (at in code.indices) {
+                    if (!code[at].callsOneOf(wrappers) || code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT) continue
+                    val where = "${classDef.originalName() ?: classDef.type}->${method.name}"
+                    if ((code.getOrNull(at + 2) as? ReferenceInstruction)?.reference?.toString() == SEARCH_FLAG) {
+                        answered += where
+                    } else {
+                        kept += where
+                        if (code.indices.any { context.stringLoadedAt(code, it) == SUMMARY_ROWS }) kept += "rows"
+                    }
+                }
+            }
+        }
+        for (page in RESULTS_PAGES + "rows") assertTrue("$name: $page keeps Instagram's answer, kept $kept", kept.any { it == page || it.startsWith("$page->") })
+        assertTrue("$name: the results page answered through the extension: $answered", answered.none { where -> RESULTS_PAGES.any { where.startsWith("$it->") } })
+        for (tab in listOf("ExploreFragment", "MainFeedFragment")) {
+            assertTrue("$name: $tab doesn't answer through the extension: $answered", answered.any { it.startsWith("$tab->") })
+        }
     }
 
     private fun Method.loads(flag: Long): Boolean = implementation?.instructions?.any {

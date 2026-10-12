@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.feed.filterParsedFeedItems
+import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
@@ -150,7 +151,7 @@ internal fun BytecodePatchContext.findSearchFlagReads(): List<FlagRead> = findFl
  *
  * Each call of the wrapper whose answer is kept is a site, as is a read of the flag outside a
  * wrapper. A site is on the results page when its class is one of [RESULTS_PAGES] or names either
- * one's type anywhere, or its method holds [SUMMARY_ROWS] (the row builder). The other flags'
+ * one's type anywhere, or its method loads [SUMMARY_ROWS] (the row builder), held or pooled. The other flags'
  * reads are answered where they are. Fails when either fragment doesn't read the flag, the row
  * builder doesn't, or nothing off the page does.
  */
@@ -163,7 +164,10 @@ internal fun BytecodePatchContext.searchFlagSites(reads: List<FlagRead>): List<F
         refuse("${pages.size} of the search results page's ${RESULTS_PAGES.size} fragments read ${RESULTS_FLAG.toString(16)}")
     }
     val onPage = callers.filter { it.type in pages || it.names(pages) }.map { it.type }.toSet()
-    fun buildsRows(site: FlagRead) = SUMMARY_ROWS in methodOf(site).strings()
+    fun buildsRows(site: FlagRead): Boolean {
+        val code = methodOf(site).implementation?.instructions?.toList().orEmpty()
+        return code.indices.any { stringLoadedAt(code, it) == SUMMARY_ROWS }
+    }
     val (kept, answered) = sites.partition { it.type in onPage || buildsRows(it) }
     if (kept.none(::buildsRows)) refuse("the search results page's row builder doesn't read ${RESULTS_FLAG.toString(16)}")
     if (answered.isEmpty()) refuse("only the search results page reads ${RESULTS_FLAG.toString(16)}")
