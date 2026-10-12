@@ -145,6 +145,34 @@ public class ChatListTest {
         assertEquals("a placeholder is never kept as the name", "", ChatList.added(rows, ME, ALICE, ChatList.placeholder(ALICE)).get(0).name);
     }
 
+    @Test
+    public void aNameThatOnlyStandsInIsNeverKept() {
+        for (String standIn : Arrays.asList("", " ", "...", "…", "-", " • ", "?", ChatList.placeholder(ALICE))) {
+            assertTrue("'" + standIn + "'", ChatList.standsIn(ALICE, ChatList.clean(standIn)));
+            List<ChatList.Row> rows = ChatList.added(new ArrayList<>(), ME, ALICE, standIn);
+            assertEquals("'" + standIn + "' is no name", "", rows.get(0).name);
+            assertEquals(Collections.singletonList(ChatList.placeholder(ALICE)), names(ChatList.shown(rows, ME)));
+            assertSame("'" + standIn + "' doesn't rename a chat", rows, ChatList.named(rows, ME, ALICE, standIn));
+            List<ChatList.Row> read = ChatList.parse(ChatList.HEADER + "\n" + ME + "\t" + ALICE + "\t" + standIn);
+            assertEquals("'" + standIn + "' kept before is read as no name", "", read.get(0).name);
+        }
+        for (String name : Arrays.asList("Al", "7", "🔥🔥", "Chat 9999", "A.")) {
+            assertFalse(name, ChatList.standsIn(ALICE, name));
+            assertEquals(name, ChatList.added(new ArrayList<>(), ME, ALICE, name).get(0).name);
+        }
+    }
+
+    @Test
+    public void aRealNameTakesTheStandInsPlace() {
+        List<ChatList.Row> rows = ChatList.parse(ChatList.HEADER + "\n" + ME + "\t" + ALICE + "\t...\n" + OTHER + "\t" + ALICE + "\tAl");
+
+        rows = ChatList.named(rows, ME, ALICE, "Alice Smith");
+
+        assertEquals(Collections.singletonList("Alice Smith"), names(ChatList.shown(rows, ME)));
+        assertEquals("the other account's name stays", Collections.singletonList("Al"), names(ChatList.shown(rows, OTHER)));
+        assertEquals(Collections.singletonList("Alice Smith"), names(ChatList.shown(ChatList.parse(ChatList.format(rows)), ME)));
+    }
+
     private static List<String> names(List<ChatLocks.Chat> chats) {
         List<String> names = new ArrayList<>();
         for (ChatLocks.Chat chat : chats) names.add(chat.name);

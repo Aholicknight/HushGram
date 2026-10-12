@@ -409,6 +409,42 @@ public class ChatAccountsTest {
         }
     }
 
+    /**
+     * A header that only stands in for the chat's name, before the chat has loaded, is looked past
+     * and never kept, on the list or as the chat opened last, and the real name that follows it is.
+     */
+    @Test
+    public void aNameThatOnlyStandsInIsLookedPastAndTheRealOneKept() {
+        resume(ME);
+        assertTrue(ChatLocks.add(ALICE, ""));
+        Activity activity = chatScreen("…");
+        open(ME, ALICE);
+        ChatLocks.learnName(activity.findViewById(CHAT));
+        assertEquals(Collections.singletonList(ChatLocks.placeholder(ALICE)), names(ChatLocks.chats(ME)));
+        assertTrue("still looking for the name", ChatLocks.wantsName());
+
+        ((TextView) activity.findViewById(TITLE)).setText("Alice Smith");
+        ChatLocks.learnName(activity.findViewById(CHAT));
+        assertEquals(Collections.singletonList("Alice Smith"), names(ChatLocks.chats(ME)));
+        assertFalse(ChatLocks.wantsName());
+
+        // The chat opened last is offered under the real name, never the stand-in.
+        activity = chatScreen(" - ");
+        open(ME, BOB);
+        ChatLocks.learnName(activity.findViewById(CHAT));
+        assertEquals(ChatLocks.placeholder(BOB), ChatLocks.lastOpened(ME).name);
+        ((TextView) activity.findViewById(TITLE)).setText("Bob Smith");
+        ChatLocks.learnName(activity.findViewById(CHAT));
+        assertEquals("Bob Smith", ChatLocks.lastOpened(ME).name);
+
+        // A stand-in kept before is no name, and the real one takes its place.
+        Settings.LOCKED_CHATS.save(ChatList.HEADER + "\n" + ME + "\t" + BOB + "\t...");
+        assertEquals(Collections.singletonList(ChatLocks.placeholder(BOB)), names(ChatLocks.chats(ME)));
+        open(ME, BOB);
+        ChatLocks.learnName(activity.findViewById(CHAT));
+        assertEquals(Collections.singletonList("Bob Smith"), names(ChatLocks.chats(ME)));
+    }
+
     /** A chat screen whose header shows [name]. */
     private static Activity chatScreen(String name) {
         Activity activity = MessagesLockTest.focused().get();

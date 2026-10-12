@@ -331,14 +331,16 @@ public final class ChatLocks {
      * Looks for the name of the chat on screen in its [root] while it has none, a bounded number of
      * frames, and keeps it for the list. A chat already on its account's list takes the name it is
      * found under there, and so does one kept from before accounts were, which gets a line of that
-     * account's own. A chat whose account isn't known changes no list.
+     * account's own. A chat whose account isn't known changes no list. A header that only stands in
+     * for the name ({@link ChatList#standsIn}) isn't kept, and the name is looked for again.
      */
     static void learnName(View root) {
         Open open = current;
         if (open == null || !wantsName()) return;
         nameAttempts++;
         String name = findName(root);
-        if (name == null) return;
+        // A header that only stands in for the name, before the chat has loaded, is looked at again.
+        if (name == null || ChatList.standsIn(open.id, name)) return;
         currentName = name;
         Open opened = last;
         if (opened != null && opened.id.equals(open.id) && Objects.equals(opened.account, open.account)) lastName = name;
@@ -399,7 +401,7 @@ public final class ChatLocks {
         CharSequence text = view.getText();
         if (text == null) return null;
         String name = clean(text.toString());
-        if (name.isEmpty()) return null;
+        if (ChatList.standsIn(name)) return null;
         return name.length() > NAME_LENGTH ? name.substring(0, NAME_LENGTH) : name;
     }
 

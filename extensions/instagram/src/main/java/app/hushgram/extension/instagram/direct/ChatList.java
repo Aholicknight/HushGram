@@ -96,7 +96,8 @@ final class ChatList {
         String id = fields[1].trim();
         if (id.isEmpty()) return null;
         String account = fields[0].trim();
-        String name = fields.length > 2 ? fields[2].trim() : "";
+        // A name that only stood in for the chat's name, kept before such names were left out, isn't one.
+        String name = fields.length > 2 ? keptName(id, fields[2]) : "";
         Set<String> released = new LinkedHashSet<>();
         if (account.isEmpty() && fields.length > 3) {
             for (String each : fields[3].split(",")) {
@@ -229,10 +230,34 @@ final class ChatList {
         return changed;
     }
 
-    /** The name kept for [id]: "" for none, or for "Chat" and the end of its id, which is shown anyway. */
+    /** The name kept for [id]: "" for none, or for one that only stands in for its name ({@link #standsIn}). */
     static String keptName(String id, @Nullable String name) {
         String kept = clean(name);
-        return kept.equals(placeholder(id)) ? "" : kept;
+        return standsIn(id, kept) ? "" : kept;
+    }
+
+    /**
+     * [name] only stands in for the name of the chat [id], so it's never kept and a real one found
+     * later takes its place: one {@link #standsIn(String)} says so of, or "Chat" and the end of [id],
+     * which is shown for a chat with no name anyway.
+     */
+    static boolean standsIn(String id, String name) {
+        return standsIn(name) || name.equals(placeholder(id));
+    }
+
+    /**
+     * [name], as {@link #clean} leaves it, isn't a chat's name: it's empty, or nothing but dots,
+     * dashes or other marks, as a chat's header can show before the chat has loaded. A name with a
+     * letter, a digit or an emoji in it is a name.
+     */
+    static boolean standsIn(String name) {
+        if (name.isEmpty()) return true;
+        for (int at = 0; at < name.length(); ) {
+            int c = name.codePointAt(at);
+            if (Character.isLetterOrDigit(c) || Character.getType(c) == Character.OTHER_SYMBOL) return false;
+            at += Character.charCount(c);
+        }
+        return true;
     }
 
     static String clean(@Nullable String text) {
