@@ -71,14 +71,14 @@ private const val INTEGER = "Ljava/lang/Integer;"
 /**
  * Takes the accounts Instagram suggests off profiles. In the default selection with its switch off:
  * suggestions are one of Instagram's features, so leaving them out is the user's pick. Asked for in
- * #15 and #20.
+ * #15 and #20, its follow list switch in #139 and its Complete your profile switch in #159.
  */
 @Suppress("unused")
 val hideProfileSuggestionsPatch = bytecodePatch(
     name = "Hide suggested people on profiles",
     description = "Takes Suggested for you and the Discover people button off profiles. Bios, counts and posts stay. " +
-        "A second switch takes Suggested for you off the followers and following lists. Starts off. Turn it on in " +
-        "HushGram settings > Profiles.",
+        "Two more switches take Suggested for you off the followers and following lists and the Complete your " +
+        "profile cards off your own profile. Starts off. Turn it on in HushGram settings > Profiles.",
 ) {
     category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -88,8 +88,10 @@ val hideProfileSuggestionsPatch = bytecodePatch(
         requireStatusMethod("profileSuggestions")
         val sites = findProfileSuggestions()
         val followList = findFollowListSuggestions()
+        val completion = findCompletionGate()
         hideProfileSuggestions(sites)
         hideFollowListSuggestions(followList)
+        hideCompletionCards(completion)
         enableStatus("profileSuggestions")
     }
 }

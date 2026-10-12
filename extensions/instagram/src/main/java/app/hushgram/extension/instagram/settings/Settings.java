@@ -949,6 +949,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_follow_list_suggestions", FALSE);
 
     /**
+     * The Complete your profile cards on your own profile, like Add bio and Find people to follow
+     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#hideCompletionCards}). Read
+     * each time your profile's posts are laid out, so off or paused, the cards are back on the next
+     * one. Off to start (#159).
+     */
+    public static final BooleanSetting HIDE_PROFILE_COMPLETION =
+            new BooleanSetting("hushgram_hide_profile_completion", FALSE);
+
+    /**
      * The row of story highlights on profiles
      * ({@link app.hushgram.extension.instagram.profile.ProfileHighlights}). Read each time Instagram
      * lays out a profile's header, so a change shows on the next profile opened. Off to start.

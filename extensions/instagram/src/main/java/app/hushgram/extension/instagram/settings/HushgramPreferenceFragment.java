@@ -1056,6 +1056,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("Hide Suggested for you on follow lists"),
                         L10n.t("Leaves the Suggested for you section off the bottom of the followers and following "
                                 + "lists. Every account in the list stays.")));
+                profiles.addPreference(toggle(context, Settings.HIDE_PROFILE_COMPLETION,
+                        L10n.t("Hide Complete your profile"),
+                        L10n.t("Takes the Complete your profile cards, like Add bio and Find people to follow, off "
+                                + "your own profile. Your bio, counts and posts stay.")));
             }
             if (build.contains(PatchFamily.PROFILE_HIGHLIGHTS)) {
                 profiles.addPreference(toggle(context, Settings.HIDE_HIGHLIGHTS, L10n.t("Hide highlights"),

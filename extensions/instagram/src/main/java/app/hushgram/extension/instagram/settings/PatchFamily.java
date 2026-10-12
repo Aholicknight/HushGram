@@ -125,7 +125,7 @@ public enum PatchFamily {
     FRIENDSHIP_STATUS(FamilyNames.FRIENDSHIP_STATUS, "friendshipStatus", null, Settings.SHOW_FRIENDSHIP_STATUS,
             Settings.MARK_FOLLOWING_LIST, Settings.FRIENDSHIP_STATUS_CHIP, Settings.FOLLOWING_NOT_BACK_FIRST),
     PROFILE_SUGGESTIONS(FamilyNames.PROFILE_SUGGESTIONS, "profileSuggestions", null, Settings.HIDE_PROFILE_SUGGESTIONS,
-            Settings.HIDE_FOLLOW_LIST_SUGGESTIONS),
+            Settings.HIDE_FOLLOW_LIST_SUGGESTIONS, Settings.HIDE_PROFILE_COMPLETION),
     PROFILE_HIGHLIGHTS(FamilyNames.PROFILE_HIGHLIGHTS, "profileHighlights", null, Settings.HIDE_HIGHLIGHTS),
     THREADS_BUTTON(FamilyNames.THREADS_BUTTON, "threadsButton", null, Settings.HIDE_THREADS_BUTTON),
     PROFILE_NOTES(FamilyNames.PROFILE_NOTES, "profileNotes", null, Settings.HIDE_PROFILE_NOTES),

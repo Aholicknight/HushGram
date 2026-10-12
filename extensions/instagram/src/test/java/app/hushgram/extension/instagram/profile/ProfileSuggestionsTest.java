@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.profile;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -55,6 +56,7 @@ public class ProfileSuggestionsTest {
     public void restore() {
         Settings.HIDE_PROFILE_SUGGESTIONS.resetToDefault();
         Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.resetToDefault();
+        Settings.HIDE_PROFILE_COMPLETION.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -226,5 +228,41 @@ public class ProfileSuggestionsTest {
         assertEquals(1, ProfileSuggestions.followList(1, THROWS));
         String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.FOLLOW_LIST + "'"));
+    }
+
+    /**
+     * #159: the Complete your profile cards go only with their own switch. A hidden set is counted,
+     * with the profile switch on or off; off, paused or unready, Instagram's own check stands.
+     */
+    @Test
+    public void theCompletionCardsGoOnlyWithTheirOwnSwitch() {
+        assertFalse("the profile switch alone", ProfileSuggestions.hideCompletionCards());
+
+        Settings.HIDE_PROFILE_COMPLETION.save(true);
+        assertTrue(ProfileSuggestions.hideCompletionCards());
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.ROUTE));
+        assertTrue(report, report.contains("1 removed"));
+        assertTrue(report, report.contains(ProfileSuggestions.COMPLETION_CARDS));
+        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
+        assertTrue("with the profile switch off", ProfileSuggestions.hideCompletionCards());
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", ProfileSuggestions.hideCompletionCards());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", ProfileSuggestions.hideCompletionCards()));
+
+        Settings.HIDE_PROFILE_COMPLETION.save(false);
+        assertFalse("off", ProfileSuggestions.hideCompletionCards());
+    }
+
+    /** A completion switch that throws leaves Instagram's check alone and says which hook threw. */
+    @Test
+    public void aThrowingCompletionSwitchFailsOpenAndIsReported() {
+        assertFalse(ProfileSuggestions.hideCompletionCards(THROWS));
+        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.COMPLETION_CARDS + "'"));
     }
 }

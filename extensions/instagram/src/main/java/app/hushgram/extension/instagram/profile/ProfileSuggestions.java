@@ -40,6 +40,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * accounts to suggest, and the patch hands that answer to {@link #followList}. A 0 means it never
  * asks, so the section is never fetched or drawn and every account in the list stays.
  *
+ * <p>Your own profile can also show Complete your profile's cards (Add bio, Find people to follow)
+ * above its posts. Its posts ask one check whether to add them, and {@link #hideCompletionCards}
+ * answers first: a yes makes that check say no, so the cards are never added.
+ *
  * <p>Each hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer stands.
  */
@@ -51,6 +55,7 @@ public final class ProfileSuggestions {
     static final String STANDALONE_ROW = "standalone row";
     static final String CHAINING_BUTTON = "discover people button";
     static final String FOLLOW_LIST = "follow list section";
+    static final String COMPLETION_CARDS = "complete your profile cards";
 
     /**
      * The person-plus buttons this class hid, with the visibility each had. Instagram reuses the
@@ -132,6 +137,19 @@ public final class ProfileSuggestions {
         return hides(FOLLOW_LIST, on) ? 0 : fetch;
     }
 
+    /**
+     * Injected first in the check your own profile's posts make before adding the Complete your
+     * profile cards (#159). True, which answers that check no, while Hide Complete your profile is
+     * on, and false, Instagram's own check, otherwise or when anything goes wrong. Never throws.
+     */
+    public static boolean hideCompletionCards() {
+        return hideCompletionCards(ProfileSuggestions::completionOn);
+    }
+
+    static boolean hideCompletionCards(BooleanSupplier on) {
+        return hides(COMPLETION_CARDS, on);
+    }
+
     /** Whether to hide this part now, counting it either way. False when anything goes wrong. */
     private static boolean hides(String part, BooleanSupplier on) {
         try {
@@ -153,5 +171,9 @@ public final class ProfileSuggestions {
 
     private static boolean followListOn() {
         return Utils.settingsReady() && Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.get();
+    }
+
+    private static boolean completionOn() {
+        return Utils.settingsReady() && Settings.HIDE_PROFILE_COMPLETION.get();
     }
 }

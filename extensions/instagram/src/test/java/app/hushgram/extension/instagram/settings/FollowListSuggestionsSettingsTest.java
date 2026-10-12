@@ -37,6 +37,7 @@ public class FollowListSuggestionsSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.resetToDefault();
+        Settings.HIDE_PROFILE_COMPLETION.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -47,6 +48,7 @@ public class FollowListSuggestionsSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.resetToDefault();
+        Settings.HIDE_PROFILE_COMPLETION.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -72,6 +74,23 @@ public class FollowListSuggestionsSettingsTest {
         assertTrue(PatchFamily.PROFILE_SUGGESTIONS.switches.contains(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.key));
     }
+    /** #159: Hide Complete your profile comes right after the follow list switch, starts off and is kept in a backup. */
+    @Test public void hideCompleteYourProfileComesNextAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_PROFILE_COMPLETION.key);
+        assertNotNull(row);
+        assertEquals("Hide Complete your profile", row.getTitle().toString());
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("off your own profile"));
+        PreferenceGroup profiles = row.getParent();
+        assertEquals("Profiles", profiles.getTitle().toString());
+        String[] keys = new String[profiles.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = profiles.getPreference(i).getKey();
+        assertEquals(Arrays.toString(keys), Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.key,
+                keys[Arrays.asList(keys).indexOf(Settings.HIDE_PROFILE_COMPLETION.key) - 1]);
+        assertFalse(Settings.HIDE_PROFILE_COMPLETION.get());
+        assertTrue(PatchFamily.PROFILE_SUGGESTIONS.switches.contains(Settings.HIDE_PROFILE_COMPLETION));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_PROFILE_COMPLETION.key));
+    }
     @Test public void aSavedSwitchAnswersOffWhilePaused() throws Exception {
         open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
         Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(true);
@@ -84,5 +103,6 @@ public class FollowListSuggestionsSettingsTest {
     @Test public void missingPatchHasNoSwitch() throws Exception {
         open(EnumSet.of(PatchFamily.PROFILE_HIGHLIGHTS));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_PROFILE_COMPLETION.key));
     }
 }

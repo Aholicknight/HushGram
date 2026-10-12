@@ -12,6 +12,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide suggested people on profiles:** A new switch under Profiles, Hide Suggested for you on follow lists, leaves that section off the bottom of followers and following lists. Every account in the list stays. Asked for in #139.
 
+* **Instagram - Hide suggested people on profiles:** Another new switch under Profiles, Hide Complete your profile, takes those cards (Add bio, Find people to follow and the rest) off your own profile. Your bio, counts and posts stay. Asked for in #159.
+
 * **Instagram - Hide suggested stories:** A new switch under Stories, Hide Suggested for you between stories, leaves out the cards of accounts to follow that Instagram slips between the stories you tap through. Asked for in #154.
 
 * **Instagram - Hide the Explore grid:** A new switch under Explore, Hide suggested accounts in search, keeps Suggested for you accounts out of what shows when you tap the search bar. Your recent searches stay. Asked for in #143.

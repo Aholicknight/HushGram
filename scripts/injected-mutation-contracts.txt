@@ -1267,6 +1267,15 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->keepSta
 # section comes back; twice or elsewhere, it isn't the hook the patch wrote. FollowListSuggestionsHookTest
 # checks on all seven 450 builds that the read is that one and where the hook lands.
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->followList(I)I in instance (Landroid/os/Bundle;)V pooled holding FollowListFragment.ShouldFetchSuggestedUsers
+#
+# Hide Complete your profile, Hide suggested people on profiles' third switch, asks
+# ProfileSuggestions.hideCompletionCards first in the check your own profile's posts make before adding
+# the Complete your profile cards (LX/0806;->A02(LX/0Ha3;)Z on 385611438), the one boolean method of one
+# object loading the counts id 0x3e940ede, two counts' ids and 3500. A yes answers the check false.
+# Left out, the cards come back; elsewhere or twice, it isn't the guard the patch wrote.
+# ProfileCompletionHookTest checks on all seven 450 builds that the check is that one.
+start-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->hideCompletionCards()Z in instance (L*;)Z holding const:0x3e940ede const:0x8263c5ae const:0xff70a8f4 const:0xdac
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->hideCompletionCards()Z in instance (L*;)Z holding const:0x3e940ede const:0x8263c5ae const:0xff70a8f4 const:0xdac
 
 # Hide highlights asks ProfileHighlights before the same row list (0BNk.buildRowViewTypes on 449)
 # adds the row of story highlights, in place of its read of the tray's row type. It's called once
