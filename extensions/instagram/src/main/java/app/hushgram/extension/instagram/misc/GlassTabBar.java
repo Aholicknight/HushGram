@@ -44,7 +44,6 @@ import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
 import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;
@@ -79,7 +78,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  *
  * <p>What the pill blurs is Instagram's own screens, the views drawn under the bar, recorded into a render node of its own and blurred
  * on the GPU, never read back from the screen. It's the views as they draw, so photos, text and video
- * in a TextureView come through. The glass shows the strip just above the bar, upside down. With the
+ * in a TextureView come through. A video in a SurfaceView is left out and shows through the tint
+ * instead, so the glass stays glass over videos. The glass shows the strip just above the bar, upside down. With the
  * float switch on, the content container also runs to the bottom of the screen, so nothing of
  * Instagram's own colour is left round the pill. Reels viewers still stop at the bar's top, over black,
  * so their seek bar, caption and touch strip stay clear of the pill.
@@ -175,16 +175,57 @@ public final class GlassTabBar {
     }
 
     /**
-     * Drops what the glass last recorded and has the bar draw again without it, once a video shows under
-     * the bar (#136). A recording holds the views under the bar themselves, not a picture of them, so a
-     * video that started after it, such as a feed video started with a tap, is in it too. A SurfaceView
-     * drawn there a second time has its picture moved to the pill: the video dropped to the bottom of the
-     * screen, under the bar, and left black where it played.
+     * Puts each SurfaceView under [parent]'s first [count] children in [into], with every view on the way
+     * down to one, and says whether there was any. The glass draws those views itself so it can leave the
+     * SurfaceViews out. A recording holds the views under the bar, not a picture of them, and a SurfaceView
+     * drawn a second time, into the glass, has its picture moved there (#136): the video dropped to the
+     * bottom of the screen, under the bar, and left black where it played.
      */
-    @RequiresApi(Build.VERSION_CODES.Q)
-    static void forgetBackdrop(@Nullable RenderNode node, View bar) {
-        if (node != null) node.discardDisplayList();
-        bar.invalidate();
+    static boolean surfacePaths(ViewGroup parent, int count, java.util.Set<View> into) {
+        into.clear();
+        boolean found = false;
+        for (int i = 0; i < count; i++) found |= findSurfaces(parent.getChildAt(i), into, 0);
+        return found;
+    }
+
+    private static boolean findSurfaces(View view, java.util.Set<View> into, int depth) {
+        if (view instanceof android.view.SurfaceView) {
+            into.add(view);
+            return true;
+        }
+        if (!(view instanceof ViewGroup) || depth > 100) return false;
+        ViewGroup group = (ViewGroup) view;
+        boolean found = false;
+        for (int i = 0, n = group.getChildCount(); i < n; i++) found |= findSurfaces(group.getChildAt(i), into, depth + 1);
+        if (found) into.add(view);
+        return found;
+    }
+
+    /**
+     * Draws [view] into [canvas] where its parent would, leaving out the SurfaceViews in [paths]. A view on
+     * the way down to one is drawn piece by piece, its background and then each child, and any other view
+     * draws itself whole. A video in a SurfaceView is a layer under the window, never in the views, so
+     * nothing of it is lost: the pill shows it through its tint, unblurred.
+     */
+    static void drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths, int depth) {
+        if (view.getVisibility() != View.VISIBLE || view.getAlpha() <= 0f || view instanceof android.view.SurfaceView) return;
+        int saved = canvas.save();
+        canvas.translate(view.getLeft(), view.getTop());
+        if (!view.getMatrix().isIdentity()) canvas.concat(view.getMatrix());
+        if (!(view instanceof ViewGroup) || !paths.contains(view) || depth > 100) {
+            canvas.translate(-view.getScrollX(), -view.getScrollY());
+            view.draw(canvas);
+        } else {
+            ViewGroup group = (ViewGroup) view;
+            if (group.getClipChildren()) canvas.clipRect(0, 0, view.getWidth(), view.getHeight());
+            Drawable background = view.getBackground();
+            if (background != null) background.draw(canvas);
+            canvas.translate(-view.getScrollX(), -view.getScrollY());
+            for (int i = 0, n = group.getChildCount(); i < n; i++) {
+                drawLeavingOutSurfaces(canvas, group.getChildAt(i), paths, depth + 1);
+            }
+        }
+        canvas.restoreToCount(saved);
     }
 
     @Nullable
@@ -222,8 +263,6 @@ public final class GlassTabBar {
      * more, which nothing here can shorten but nothing here should add to.
      */
     static final long LATE_FRAME_MS = 5;
-    /** How long a video seen under the bar keeps the blur off before the views are walked again. */
-    static final long VIDEO_HOLD_MS = 100;
     /** A blur this old is recorded even in a late frame, so the glass never trails what's under it for long. */
     static final long MAX_STALE_MS = 150;
     /**
@@ -245,6 +284,8 @@ public final class GlassTabBar {
     static final long REELS_LOOK_MS = 100;
     /** Counted in the glass family's Diagnostics line each time a Reels viewer is moved to clear the pill. */
     static final String COUNT_REELS_LIFTED = "Reels viewer kept above the pill";
+    /** Counted each time a video in a SurfaceView shows up under the bar, with none there before, and is kept out of the blur. */
+    static final String COUNT_VIDEO_LEFT_OUT = "Video kept out of the blur";
 
     static final String TAG = "HushGlass";
     private static final boolean DIAGNOSE = false;
@@ -706,7 +747,11 @@ public final class GlassTabBar {
                 // every RECORD_EVERY_MS, and once more shortly after a frame it skipped so it never stays behind.
                 // Only its own render node is recorded, not a view, so this asks for no frame of its own: the
                 // screen stops drawing as soon as nothing else changes.
-                if (!blurBroken && blurWanted && (scrollHide == null || !scrollHide.isOffScreen())) pill.recordIfDue();
+                // Off screen the bar is still drawn, so a video that starts under it is still kept out.
+                if (!blurBroken && blurWanted) {
+                    if (scrollHide == null || !scrollHide.isOffScreen()) pill.recordIfDue();
+                    else pill.recordIfSurfaceAppeared();
+                }
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "draw", failure);
                 diagnose("pre-draw failed", failure);
@@ -915,13 +960,37 @@ public final class GlassTabBar {
                 long since = now - lastRecorded;
                 // The animation clock holds the frame's start while it lays out and draws, so this is how far in we are.
                 long inFrame = now - AnimationUtils.currentAnimationTimeMillis();
-                if (shouldRecord(recorded, since, inFrame)) {
+                if (shouldRecord(recorded, since, inFrame) || surfaceAppeared()) {
                     lastRecorded = now;
                     recordBackdrop();
                 } else if (!catchUpPending) {
                     catchUpPending = true;
                     bar.postDelayed(catchUp, Math.max(RECORD_EVERY_MS - since, 0) + 4);
                 }
+            }
+
+            /** Each SurfaceView under the bar, and the views down to it, that the last recording left out. */
+            private final java.util.Set<View> leftOut = new java.util.HashSet<>();
+            private final java.util.Set<View> surfaces = new java.util.HashSet<>();
+
+            void recordIfSurfaceAppeared() {
+                if (!surfaceAppeared()) return;
+                lastRecorded = SystemClock.uptimeMillis();
+                recordBackdrop();
+            }
+
+            /**
+             * Whether a SurfaceView under the bar isn't one the last recording left out, such as a feed video
+             * started with a tap. The recording draws the views under the bar as they are when the frame draws,
+             * so it would draw that video too: it has to be recorded again in this frame, not when it's due.
+             */
+            private boolean surfaceAppeared() {
+                if (!recorded || !(bar.getParent() instanceof ViewGroup)) return false;
+                ViewGroup parent = (ViewGroup) bar.getParent();
+                int barIndex = parent.indexOfChild(bar);
+                if (barIndex <= 0) return false;
+                surfacePaths(parent, barIndex, surfaces);
+                return !leftOut.containsAll(surfaces);
             }
 
             /**
@@ -942,12 +1011,6 @@ public final class GlassTabBar {
                 ViewGroup parent = (ViewGroup) bar.getParent();
                 int barIndex = parent.indexOfChild(bar);
                 if (barIndex <= 0) return;
-                if (videoUnder(parent, barIndex)) {
-                    // Flagging the recording stale isn't enough: the bar draws it until the bar is drawn again.
-                    if (recorded) forgetBackdrop(node, bar);
-                    recorded = false;
-                    return;
-                }
                 Trace.beginSection("hushgram:recordBackdrop");
                 drawingBackdrop = true;
                 try {
@@ -992,15 +1055,14 @@ public final class GlassTabBar {
                         recording.scale(1f, -1f);
                         recording.translate(-x0, -edge);
                         recording.clipRect(x0, edge - tall, x0 + wide, edge);
+                        boolean hadVideo = !leftOut.isEmpty();
+                        if (surfacePaths(parent, barIndex, leftOut) && !hadVideo) {
+                            HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_VIDEO_LEFT_OUT);
+                        }
                         for (int i = 0; i < barIndex; i++) {
                             View sibling = parent.getChildAt(i);
-                            if (sibling.getVisibility() != View.VISIBLE || sibling.getWidth() <= 0
-                                    || sibling.getBottom() <= edge - tall || sibling.getTop() >= edge) continue;
-                            recording.save();
-                            recording.translate(sibling.getLeft(), sibling.getTop());
-                            if (!sibling.getMatrix().isIdentity()) recording.concat(sibling.getMatrix());
-                            sibling.draw(recording);
-                            recording.restore();
+                            if (sibling.getWidth() <= 0 || sibling.getBottom() <= edge - tall || sibling.getTop() >= edge) continue;
+                            drawLeavingOutSurfaces(recording, sibling, leftOut, 0);
                         }
                     } finally {
                         backdrop.endRecording();
@@ -1017,44 +1079,6 @@ public final class GlassTabBar {
                     Trace.endSection();
                 }
             }
-
-            private long videoSeen;
-
-            /**
-             * Whether a video is on screen under the bar. The blur draws the views under the bar a second time, and a
-             * SurfaceView drawn in two places has its video layer moved and cropped to the second, so the reel
-             * shrinks to a strip behind the bar and the rest of the screen is black. A TextureView is left out of
-             * the copy for the same reason. A video can't be blurred from its own layer anyway, so while one shows
-             * the pill is the frosted tint. A video that has been seen holds for {@link #VIDEO_HOLD_MS}, so the
-             * views aren't walked again every frame.
-             */
-            private boolean videoUnder(ViewGroup parent, int barIndex) {
-                long now = SystemClock.uptimeMillis();
-                if (now - videoSeen < VIDEO_HOLD_MS) return true;
-                for (int i = 0; i < barIndex; i++) {
-                    View sibling = parent.getChildAt(i);
-                    if (sibling.getVisibility() == View.VISIBLE && hasVideo(sibling, 0)) {
-                        videoSeen = now;
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            private boolean hasVideo(View view, int depth) {
-                if (view.getVisibility() != View.VISIBLE || depth > 40) return false;
-                if (view instanceof android.view.SurfaceView || view instanceof android.view.TextureView) {
-                    return view.getGlobalVisibleRect(videoRect);
-                }
-                if (!(view instanceof ViewGroup)) return false;
-                ViewGroup group = (ViewGroup) view;
-                for (int i = 0, count = group.getChildCount(); i < count; i++) {
-                    if (hasVideo(group.getChildAt(i), depth + 1)) return true;
-                }
-                return false;
-            }
-
-            private final android.graphics.Rect videoRect = new android.graphics.Rect();
 
             private void report(String what) {
                 if (reported) return;

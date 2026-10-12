@@ -9,21 +9,25 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.RenderNode;
+import android.graphics.drawable.ColorDrawable;
+import android.view.SurfaceView;
+import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
-import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 
 /** The colour and size choices Glass tab bar makes from Instagram's bar colour and the screen's width. */
@@ -277,26 +281,113 @@ public class GlassTabBarTest {
     }
 
     /**
-     * #136: once a video shows under the bar, the backdrop recorded before it stops drawing. The recording
-     * holds the views under the bar, so a video that started after it is in it too, and a SurfaceView drawn
-     * there a second time had its picture moved under the pill, leaving black where it played.
+     * #136 and #144: the glass finds each SurfaceView under the bar and the views on the way down to it, and
+     * nothing else. A TextureView draws like any view, so it isn't one, and the bar's own branch isn't looked at.
      */
     @Test
-    @Config(sdk = 37)
+    public void theGlassFindsEachSurfaceViewUnderTheBarAndTheWayDownToIt() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout holder = new FrameLayout(context);
+        FrameLayout pager = new FrameLayout(context);
+        FrameLayout page = new FrameLayout(context);
+        FrameLayout media = new FrameLayout(context);
+        SurfaceView video = new SurfaceView(context);
+        View cover = new View(context);
+        View caption = new View(context);
+        FrameLayout other = new FrameLayout(context);
+        TextureView texture = new TextureView(context);
+        FrameLayout bar = new FrameLayout(context);
+        SurfaceView inBar = new SurfaceView(context);
+        media.addView(video);
+        media.addView(cover);
+        page.addView(media);
+        page.addView(caption);
+        pager.addView(page);
+        other.addView(texture);
+        bar.addView(inBar);
+        holder.addView(pager);
+        holder.addView(other);
+        holder.addView(bar);
+        Set<View> paths = new HashSet<>();
+        paths.add(caption);
+
+        assertTrue(GlassTabBar.surfacePaths(holder, 2, paths));
+        assertEquals(new HashSet<>(java.util.Arrays.asList(pager, page, media, video)), paths);
+
+        assertFalse("only the views under the bar count", GlassTabBar.surfacePaths(holder, 0, paths));
+        assertTrue(paths.isEmpty());
+        pager.removeView(page);
+        assertFalse("a TextureView isn't left out", GlassTabBar.surfacePaths(holder, 2, paths));
+        assertTrue(paths.isEmpty());
+    }
+
+    /**
+     * #136 and #144: the glass draws the views under the bar without their SurfaceViews, everything else where
+     * it sits. Drawn into the glass a second time, a SurfaceView had its video moved under the pill and left
+     * black where it played, so the glass gave up its blur whenever a video was on screen anywhere, and the
+     * pill went flat and nearly opaque as a feed of videos scrolled. Drawing the views whole, the old way,
+     * draws the SurfaceView, so the count below proves it's seen.
+     */
+    @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    public void aVideoUnderTheBarDropsTheBackdropTheBarStillDrew() {
-        RenderNode node = new RenderNode("glass-test");
-        node.setPosition(0, 0, 10, 10);
-        Canvas recording = node.beginRecording(10, 10);
-        recording.drawColor(Color.RED);
-        node.endRecording();
-        assertTrue(node.hasDisplayList());
-        View bar = new View(RuntimeEnvironment.getApplication());
+    public void theGlassDrawsTheViewsUnderTheBarWithoutTheirSurfaceViews() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout holder = new FrameLayout(context);
+        FrameLayout feed = new FrameLayout(context);
+        feed.setBackground(new ColorDrawable(Color.RED));
+        CountingSurface video = new CountingSurface(context);
+        View caption = new View(context);
+        caption.setBackground(new ColorDrawable(Color.GREEN));
+        View faded = new View(context);
+        faded.setBackground(new ColorDrawable(Color.BLUE));
+        faded.setAlpha(0f);
+        feed.addView(video);
+        feed.addView(caption);
+        feed.addView(faded);
+        holder.addView(feed);
+        holder.layout(0, 0, 100, 100);
+        feed.layout(0, 10, 100, 100);
+        video.layout(0, 0, 100, 50);
+        caption.layout(0, 60, 100, 80);
+        faded.layout(0, 0, 100, 20);
+        feed.scrollTo(0, 5);
+        Set<View> paths = new HashSet<>();
+        assertTrue(GlassTabBar.surfacePaths(holder, 1, paths));
 
-        GlassTabBar.forgetBackdrop(node, bar);
+        Bitmap old = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888);
+        Canvas oldCanvas = new Canvas(old);
+        oldCanvas.translate(feed.getLeft(), feed.getTop());
+        feed.draw(oldCanvas);
+        assertTrue("drawn whole, the feed draws its SurfaceView", video.drawn > 0);
 
-        assertFalse("nothing of the old recording is left for the bar to draw", node.hasDisplayList());
-        GlassTabBar.forgetBackdrop(null, bar);
+        video.drawn = 0;
+        Bitmap glass = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888);
+        GlassTabBar.drawLeavingOutSurfaces(new Canvas(glass), feed, paths, 0);
+
+        assertEquals("the SurfaceView is left out", 0, video.drawn);
+        assertEquals("the feed's own background still shows", Color.RED, glass.getPixel(50, 30));
+        assertEquals("a child draws where it sits, scrolled", Color.GREEN, glass.getPixel(50, 66));
+        assertEquals(Color.RED, glass.getPixel(50, 86));
+        assertEquals("a see-through child isn't drawn", Color.RED, glass.getPixel(50, 12));
+        assertEquals("nothing above the feed", 0, glass.getPixel(50, 5));
+    }
+
+    private static final class CountingSurface extends SurfaceView {
+        int drawn;
+
+        CountingSurface(Context context) {
+            super(context);
+        }
+
+        @Override public void draw(Canvas canvas) {
+            drawn++;
+            super.draw(canvas);
+        }
+
+        @Override protected void dispatchDraw(Canvas canvas) {
+            drawn++;
+            super.dispatchDraw(canvas);
+        }
     }
 
     /**
