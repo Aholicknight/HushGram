@@ -78,8 +78,8 @@ internal val META_AI_UNITS = listOf("VIBES_IN_FEED_UNIT", "HATCH_IMMERSIVE_IN_FE
 val hideMetaAiPatch = bytecodePatch(
     name = "Hide Meta AI",
     description = "Removes Meta AI from Instagram's search bars, messages, home top bar, reels menus, share sheet " +
-        "and feed. Each part has its own switch, and some start on. Starts off. Turn it on in HushGram settings > " +
-        "Meta AI.",
+        "and feed. Each part has its own switch. The search one and the Meta AI posts one start on, the rest " +
+        "start off. Change them in HushGram settings > Meta AI.",
 ) {
     category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)

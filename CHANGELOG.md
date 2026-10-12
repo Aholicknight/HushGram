@@ -26,6 +26,8 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** The HushGram row can now hide when settings opens through a long press on your profile's menu. Turning off both long press entries, or pausing HushGram, brings it back. Reported in #148.
 
+* **Instagram - Hide suggested stories and Hide Meta AI:** Their descriptions in Manager and the README said they start off, but their main switches start on. They now say which switches start on, and a test keeps every "Starts on" and "Starts off" in line with the switch it names.
+
 ## 0.0.9 (2026-10-11)
 
 ### Features

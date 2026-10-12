@@ -79,4 +79,45 @@ class DefaultSelectionPolicyTest {
         }.map { it.get("name").asString }
         assertEquals("a description that doesn't say where its switch is", emptyList<String>(), unexplained.sorted())
     }
+
+    /**
+     * "Starts off" or "Starts on" is a promise about the switch the patch turns on, so it has to be
+     * that switch's default. Hide suggested stories and Hide Meta AI said "Starts off" while their
+     * switches started on.
+     */
+    @Test
+    fun `a description that says how its switch starts matches the switch`() {
+        val settings = listOf("../extensions", "extensions")
+            .map { File(it, "instagram/src/main/java/app/hushgram/extension/instagram/settings") }
+            .firstOrNull { it.isDirectory }
+        assertTrue("could not find the extension's settings from ${File(".").absolutePath}", settings != null)
+        val defaults = Regex("""public static final \w+Setting (\w+) =\s*new \w+Setting\("[^"]+",\s*(TRUE|FALSE)""")
+            .findAll(File(settings, "Settings.java").readText())
+            .associate { it.groupValues[1] to (it.groupValues[2] == "TRUE") }
+        val masters = Regex("""\n {4}[A-Z_]+\(FamilyNames\.\w+, "(\w+)", (?:null|"[^"]*")((?:,\s*Settings\.\w+)*)""")
+            .findAll(File(settings, "PatchFamily.java").readText())
+            .mapNotNull { family ->
+                Regex("""Settings\.(\w+)""").find(family.groupValues[2])?.let { family.groupValues[1] to it.groupValues[1] }
+            }.toMap()
+        val root = File("src/main/kotlin").takeIf { it.isDirectory } ?: File("patches/src/main/kotlin")
+        val name = Regex("""(?:bytecodePatch|resourcePatch|rawResourcePatch)\(\s*\n(?:\s*//[^\n]*\n)*\s*name = "([^"]+)",""")
+        val switchesOf = root.walkTopDown().filter { it.extension == "kt" }.mapNotNull { file ->
+            val text = file.readText()
+            name.findAll(text).map { it.groupValues[1] }.toList().singleOrNull()?.let { only ->
+                only to Regex("""enableStatus\("(\w+)"\)""").findAll(text).mapNotNull { masters[it.groupValues[1]] }.toSet()
+            }
+        }.toMap()
+        val wrong = shippedPatches().mapNotNull { patch ->
+            val description = patch.get("description").asString
+            val says = when {
+                "Starts off." in description -> false
+                "Starts on." in description -> true
+                else -> return@mapNotNull null
+            }
+            val patchName = patch.get("name").asString
+            val off = switchesOf[patchName].orEmpty().filter { defaults[it] != null && defaults[it] != says }
+            if (off.isEmpty()) null else "$patchName says it starts ${if (says) "on" else "off"}, but $off doesn't"
+        }
+        assertEquals("a description that disagrees with its switch's default", emptyList<String>(), wrong)
+    }
 }

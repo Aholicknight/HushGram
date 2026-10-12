@@ -1120,7 +1120,7 @@
     },
     {
       "name": "Hide Meta AI",
-      "description": "Removes Meta AI from Instagram's search bars, messages, home top bar, reels menus, share sheet and feed. Each part has its own switch, and some start on. Starts off. Turn it on in HushGram settings > Meta AI.",
+      "description": "Removes Meta AI from Instagram's search bars, messages, home top bar, reels menus, share sheet and feed. Each part has its own switch. The search one and the Meta AI posts one start on, the rest start off. Change them in HushGram settings > Meta AI.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -1564,7 +1564,7 @@
     },
     {
       "name": "Hide suggested stories",
-      "description": "Removes stories from accounts you don't follow from the row at the top of Home. More switches hide rewinds and memories, or the whole row. Starts off. Turn it on in HushGram settings > Stories.",
+      "description": "Removes stories from accounts you don't follow from the row at the top of Home. More switches hide rewinds and memories, or the whole row. Starts on. Turn it off in HushGram settings > Stories.",
       "category": "Stories",
       "use": true,
       "dependencies": [
