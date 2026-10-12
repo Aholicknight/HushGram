@@ -34,7 +34,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** The unlock prompt now waits until Instagram is the thing you're looking at. The cover still goes up right away, but pulling down the notification shade or swiping home doesn't bring the prompt up over them. Reported in #153.
 
-* **Instagram - See who a story mentions:** The mentions pill now sits at the end of the name's row, after the time, instead of under the name. Under the name it made the header taller, which pushed the username up toward the progress bars on stories with mentions. A tap anywhere in a 48dp box around the pill opens the list. Reported in #151.
+* **Instagram - See who a story mentions:** The mentions pill now sits at the end of the name's row, after the time, instead of under the name. Under the name it made the header taller, which pushed the username up toward the progress bars on stories with mentions. A tap just around the pill opens the list too, unless it lands on the name or something else in the header. Reported in #151.
 
 * **Instagram - Hide 'Are you interested' questions:** The switch now also covers the second way Home gets built. Instagram adds the same "Are you interested in this post?" bubble from another part of its feed code when the question comes without a subtitle, and the switch didn't reach that one. Reported in #131.
 

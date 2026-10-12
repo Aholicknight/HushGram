@@ -424,17 +424,35 @@ public class StoryMentionsTest {
         assertEquals("1 mention", pill.getText().toString());
     }
 
-    /** The pill is drawn small, but a finger gets the 48dp box Android asks of a target. */
+    /**
+     * The pill is drawn small, and a finger gets the room around it, up to the 48dp Android asks of
+     * a target. A tap on the name just above it is still Instagram's.
+     */
     @Test
-    public void aTapJustAboveThePillStillTapsIt() {
+    public void aTapJustAboveThePillTapsItButNotOnTheName() {
         bind(ANA);
         StoryMentions.Pill pill = pill();
         float[] center = layOut(pill);
         int target = Dim.dp(StoryMentions.MIN_TARGET_DP);
         assertTrue("the pill is drawn smaller than a target", pill.getHeight() < target);
-        float above = center[1] - target / 2f + 1;
-        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], above)));
-        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], above)));
+        int[] at = new int[2];
+        pill.getLocationInWindow(at);
+        int pillTop = at[1];
+        int pillRight = at[0] + pill.getWidth();
+        View name = header.getChildAt(0);
+        name.getLocationInWindow(at);
+        int nameBottom = at[1] + name.getHeight();
+        float nameX = at[0] + name.getWidth() / 2f;
+        assertTrue("no room between the name and the pill", nameBottom < pillTop);
+        float onName = nameBottom - 1;
+        assertTrue("the name is out of the pill's reach, so this proves nothing",
+                pillTop - onName < (target - pill.getHeight()) / 2f && nameX < pillRight);
+
+        assertFalse("a tap on the name went to the pill",
+                StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, nameX, onName)));
+        float between = pillTop - 1;
+        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], between)));
+        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], between)));
         assertNotNull("the tap didn't open the list", ShadowDialog.getLatestDialog());
     }
 

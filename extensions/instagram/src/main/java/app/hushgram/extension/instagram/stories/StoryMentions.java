@@ -610,19 +610,36 @@ public final class StoryMentions {
         Window window = activity == null ? null : activity.getWindow();
         View decor = window == null ? null : window.peekDecorView();
         if (decor == null) return null;
-        int[] at = new int[2];
         for (Pill pill : PILLS) {
             if (!pill.isShown() || pill.getWidth() == 0 || pill.getRootView() != decor) continue;
-            pill.getLocationInWindow(at);
-            // The pill is drawn about 22dp tall; a finger gets the 48dp Android asks of a target.
+            if (holds(pill, x, y, 0, 0)) return pill;
+            // The pill is drawn about 22dp tall. A finger gets room around it, up to the 48dp
+            // Android asks of a target, but only room: never past the row or column the pill is
+            // in, and never on the name or anything else next to it, which are Instagram's taps.
             int padX = Math.max(0, Dim.dp(MIN_TARGET_DP) - pill.getWidth()) / 2;
             int padY = Math.max(0, Dim.dp(MIN_TARGET_DP) - pill.getHeight()) / 2;
-            if (x >= at[0] - padX && x < at[0] + pill.getWidth() + padX
-                    && y >= at[1] - padY && y < at[1] + pill.getHeight() + padY) {
-                return pill;
-            }
+            if (!holds(pill, x, y, padX, padY) || !(pill.getParent() instanceof ViewGroup)) continue;
+            ViewGroup parent = (ViewGroup) pill.getParent();
+            if (holds(parent, x, y, 0, 0) && !onAnother(parent, pill, x, y)) return pill;
         }
         return null;
+    }
+
+    /** Whether [view]'s box in its window, grown by [padX] and [padY] on each side, holds [x], [y]. */
+    private static boolean holds(View view, float x, float y, int padX, int padY) {
+        int[] at = new int[2];
+        view.getLocationInWindow(at);
+        return x >= at[0] - padX && x < at[0] + view.getWidth() + padX
+                && y >= at[1] - padY && y < at[1] + view.getHeight() + padY;
+    }
+
+    /** Whether [x], [y] is on a view showing in [parent] other than [pill]. */
+    private static boolean onAnother(ViewGroup parent, View pill, float x, float y) {
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View child = parent.getChildAt(i);
+            if (child != pill && child.getVisibility() == View.VISIBLE && holds(child, x, y, 0, 0)) return true;
+        }
+        return false;
     }
 
     /** The smallest box a tap on the pill is taken from, in dp. */
