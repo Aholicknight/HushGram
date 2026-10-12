@@ -13,7 +13,7 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
-import android.graphics.drawable.ClipDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
@@ -100,8 +100,11 @@ final class ReelTimeLabel {
      */
     private static final int HOST_REACH = 4;
 
-    /** The bigger bar's track height, thumb size and the height of the dark fade behind it, in dp. */
-    static final float BIG_TRACK_DP = 4f;
+    /**
+     * The bigger bar's track height, thumb size and the height of the dark fade behind it, in dp. The track
+     * is about twice Instagram's own, which is 7px on a 2.625 density phone.
+     */
+    static final float BIG_TRACK_DP = 5f;
     static final float BIG_THUMB_DP = 14f;
     static final float BIG_FADE_DP = 64f;
     /** The bigger bar's track behind the progress, white at about a third, and the fade's darkest end, 40% black. */
@@ -400,6 +403,9 @@ final class ReelTimeLabel {
         int top = Math.max(-bar.getPaddingTop(),
                 Math.min(bounds.top, bar.getHeight() - bar.getPaddingTop() - diameter));
         if (bounds.top != top) state.thumb.setBounds(bounds.left, top, bounds.right, top + diameter);
+        // The bigger track runs through the handle's middle, inside the view, rather than on Instagram's
+        // few pixels at its bottom, where the view's edge cut it to Instagram's thickness.
+        if (big && state.bigTrack != null) centerTrack(state.bigTrack, top + diameter / 2f);
     }
 
     /**
@@ -484,33 +490,77 @@ final class ReelTimeLabel {
         state.unclippedCount = 0;
     }
 
-    /** A translucent track with the progress over it in white, both [BIG_TRACK_DP] thick, drawn in code. */
+    /**
+     * A translucent track with the progress over it in white, both [BIG_TRACK_DP] thick, drawn in code (#10).
+     * The progress draws as far across as its level says. A ClipDrawable clipped it to the track's bounds,
+     * which Instagram keeps a few pixels high at the bottom of the bar, so the thicker line came out no
+     * thicker than Instagram's. The bar puts how much of the reel has loaded on the layer called
+     * secondaryProgress, or on the whole drawable when there's none, and from there it reached the progress
+     * layer as well: once a reel had loaded, the line was white from end to end. The empty layer takes it.
+     */
     private static LayerDrawable bigTrack(float density) {
         float thickness = BIG_TRACK_DP * density;
-        ClipDrawable progress = new ClipDrawable(new Pill(Color.WHITE, thickness), Gravity.START, ClipDrawable.HORIZONTAL);
-        LayerDrawable track = new LayerDrawable(new Drawable[] {new Pill(BIG_TRACK_COLOR, thickness), progress});
+        LayerDrawable track = new LayerDrawable(new Drawable[] {new Pill(BIG_TRACK_COLOR, thickness, false),
+                new ColorDrawable(Color.TRANSPARENT), new Pill(Color.WHITE, thickness, true)});
         track.setId(0, android.R.id.background);
-        track.setId(1, android.R.id.progress);
+        track.setId(1, android.R.id.secondaryProgress);
+        track.setId(2, android.R.id.progress);
         return track;
     }
 
-    /** A rounded bar of a fixed thickness, centered in its bounds' height and as wide as they are. */
+    /** Lines the bigger bar's track up on [middle], a height in the bar's track space: the handle's middle. */
+    private static void centerTrack(LayerDrawable track, float middle) {
+        for (int id : new int[] {android.R.id.background, android.R.id.progress}) {
+            Drawable layer = track.findDrawableByLayerId(id);
+            if (layer instanceof Pill) ((Pill) layer).centerOn(middle);
+        }
+    }
+
+    /**
+     * A rounded bar of a fixed thickness, as wide as its bounds, or as far across them as its level says
+     * when it's the progress, from the start side. It's centered on the handle's middle once that's known,
+     * which can be above the track's own bounds, and on the middle of its bounds until then.
+     */
     static final class Pill extends Drawable {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF rect = new RectF();
         private final float thickness;
+        private final boolean progress;
+        private float center = Float.NaN;
 
-        Pill(int color, float thickness) {
+        Pill(int color, float thickness, boolean progress) {
             this.paint.setColor(color);
             this.thickness = thickness;
+            this.progress = progress;
+        }
+
+        void centerOn(float middle) {
+            if (Float.compare(center, middle) == 0) return;
+            center = middle;
+            invalidateSelf();
         }
 
         @Override
         public void draw(Canvas canvas) {
             Rect bounds = getBounds();
-            float middle = (bounds.top + bounds.bottom) / 2f;
-            rect.set(bounds.left, middle - thickness / 2f, bounds.right, middle + thickness / 2f);
+            float middle = Float.isNaN(center) ? (bounds.top + bounds.bottom) / 2f : center;
+            float left = bounds.left;
+            float right = bounds.right;
+            if (progress) {
+                float across = bounds.width() * (getLevel() / 10000f);
+                if (across <= 0f) return;
+                if (getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) left = right - across;
+                else right = left + across;
+            }
+            rect.set(left, middle - thickness / 2f, right, middle + thickness / 2f);
             canvas.drawRoundRect(rect, thickness / 2f, thickness / 2f, paint);
+        }
+
+        @Override
+        protected boolean onLevelChange(int level) {
+            if (!progress) return false;
+            invalidateSelf();
+            return true;
         }
 
         @Override

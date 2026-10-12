@@ -13,6 +13,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -270,6 +271,35 @@ public class ReelSeekThumbTest {
         refresh();
         assertSame(styled, bar.getProgressDrawable());
         assertSame(backdrop, bar.getBackground());
+    }
+
+    /**
+     * #10: Instagram keeps its reel track a few pixels high at the bottom of the bar, and marks how much of
+     * the reel has loaded as the bar's secondary progress. The bigger bar is as thick as it says, through
+     * the handle's middle, and white only as far as the reel has played, however much has loaded.
+     */
+    @Test @Config(qualifiers = "xxhdpi")
+    public void theBiggerBarIsThickerThanInstagramsTrackAndWhiteOnlyAsFarAsPlayed() {
+        bar.setPadding(0, 21, 0, 0);
+        bar.setSecondaryProgress(80);
+        Settings.REEL_SEEK_BAR.save(false);
+        Settings.BIG_REEL_SEEK_BAR.save(true);
+        refresh();
+        bar.setSecondaryProgress(100);
+        LayerDrawable track = (LayerDrawable) bar.getProgressDrawable();
+        assertEquals("the played share, not the loaded one", 2500, track.findDrawableByLayerId(android.R.id.progress).getLevel());
+
+        Bitmap pixels = Bitmap.createBitmap(400, 28, Bitmap.Config.ARGB_8888);
+        bar.draw(new Canvas(pixels));
+        int thickness = Math.round(ReelTimeLabel.BIG_TRACK_DP * bar.getResources().getDisplayMetrics().density);
+        assertTrue("thicker than Instagram's 7 px", thickness > 7);
+        int middle = bar.getPaddingTop() + bar.getThumb().getBounds().centerY();
+        for (int y = middle - thickness / 2 + 1; y < middle + thickness / 2; y++) {
+            assertEquals("played, row " + y, Color.WHITE, pixels.getPixel(10, y));
+        }
+        int unplayed = pixels.getPixel(350, middle);
+        assertNotEquals("loaded but not played", Color.WHITE, unplayed);
+        assertTrue(Color.alpha(unplayed) > 0);
     }
 
     @Test public void theBiggerBarAlsoShowsTheTimeLabelAndKeepsShortReelsInstagramsBar() {
