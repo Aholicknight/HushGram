@@ -10,6 +10,9 @@ local.properties
 *.log
 *.bak
 
+# Local visual references and parity captures
+.mockups/
+
 # Android Studio generated files and folders
 captures/
 .externalNativeBuild/

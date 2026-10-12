@@ -8,12 +8,17 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.res.ColorStateList;
-import android.content.res.TypedArray;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.text.format.DateUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -23,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
@@ -165,15 +171,56 @@ public final class PostInfo {
             String link = facts.link();
             if (link != null) builder.setPositiveButton(L10n.t(activity, "Copy media link"), (dialog, which) -> copy(activity, link));
             AlertDialog dialog = builder.create();
-            View copies = copies(builder.getContext(), activity, facts, dialog);
-            if (copies != null) dialog.setView(copies);
             dialog.show();
+            ScreenColors.dialog(dialog);
             TextView message = dialog.findViewById(android.R.id.message);
-            // So the ID or the name can be copied on its own.
-            if (message != null) message.setTextIsSelectable(true);
+            if (message != null && message.getParent() instanceof ViewGroup) {
+                // Reuse the framework's scrolling content, so large text never pushes the footer away.
+                ViewGroup content = (ViewGroup) message.getParent();
+                int position = content.indexOfChild(message);
+                ViewGroup.LayoutParams size = message.getLayoutParams();
+                LinearLayout rows = factRows(builder.getContext(), facts.lines(activity));
+                rows.setPaddingRelative(message.getPaddingStart(), message.getPaddingTop(),
+                        message.getPaddingEnd(), message.getPaddingBottom());
+                View copies = copies(builder.getContext(), activity, facts, dialog);
+                if (copies != null) rows.addView(copies);
+                content.removeView(message);
+                content.addView(rows, position, size);
+            }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed details", failure);
         }
+    }
+
+    /** One selectable row per localized fact. Unknown facts never get a placeholder row. */
+    private static LinearLayout factRows(Context themed, List<String> facts) {
+        LinearLayout rows = new LinearLayout(themed);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        rows.setDividerDrawable(divider());
+        rows.setShowDividers(LinearLayout.SHOW_DIVIDER_MIDDLE);
+        for (String fact : facts) {
+            TextView row = new TextView(themed);
+            if (rows.getChildCount() == 0) row.setId(android.R.id.message);
+            row.setText(fact);
+            row.setTextColor(ScreenColors.DEFAULT.summary);
+            row.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            row.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+            row.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+            row.setMinHeight(Dim.dp(44));
+            row.setPaddingRelative(0, Dim.dp(10), 0, Dim.dp(10));
+            row.setLineSpacing(Dim.dp(2), 1);
+            row.setTextIsSelectable(true);
+            rows.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+        return rows;
+    }
+
+    private static GradientDrawable divider() {
+        GradientDrawable divider = new GradientDrawable();
+        divider.setColor(ScreenColors.DEFAULT.outline);
+        divider.setSize(Dim.dp(1), Dim.dp(1));
+        return divider;
     }
 
     /**
@@ -185,7 +232,8 @@ public final class PostInfo {
     static View copies(Context themed, Activity activity, Facts facts, AlertDialog dialog) {
         LinearLayout rows = new LinearLayout(themed);
         rows.setOrientation(LinearLayout.VERTICAL);
-        rows.setPadding(0, Dim.dp(8), 0, 0);
+        rows.setDividerDrawable(divider());
+        rows.setShowDividers(LinearLayout.SHOW_DIVIDER_MIDDLE | LinearLayout.SHOW_DIVIDER_END);
         String owner = facts.owner;
         if (owner != null) {
             rows.addView(row(themed, L10n.t(activity, "Copy username"), () -> {
@@ -207,23 +255,19 @@ public final class PostInfo {
 
     /** A row reading [label], in the dialog's accent like its buttons, that runs [action] on a tap. */
     private static TextView row(Context themed, String label, Runnable action) {
-        TextView row = new TextView(themed);
+        TextView row = new Button(themed);
         row.setText(label);
+        ScreenColors.styleAction(row, false);
+        row.setTextColor(ScreenColors.DEFAULT.summary);
+        row.setBackground(new RippleDrawable(ColorStateList.valueOf(ScreenColors.half(ScreenColors.DEFAULT.heading)),
+                null, null));
         row.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-        row.setMinHeight(Dim.dp(48));
-        row.setPadding(Dim.dp(24), 0, Dim.dp(24), 0);
-        row.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        // In ascending order, as obtainStyledAttributes reads them.
-        TypedArray theme = themed.obtainStyledAttributes(
-                new int[]{android.R.attr.selectableItemBackground, android.R.attr.colorAccent});
-        try {
-            Drawable touch = theme.getDrawable(0);
-            if (touch != null) row.setBackground(touch);
-            ColorStateList accent = theme.getColorStateList(1);
-            if (accent != null) row.setTextColor(accent);
-        } finally {
-            theme.recycle();
-        }
+        row.setPaddingRelative(0, Dim.dp(12), 0, Dim.dp(12));
+        row.setCompoundDrawablePadding(Dim.dp(16));
+        row.setCompoundDrawablesRelative(copyIcon(), null, null, null);
+        LinearLayout.LayoutParams place = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        row.setLayoutParams(place);
         row.setOnClickListener(view -> {
             try {
                 action.run();
@@ -232,6 +276,24 @@ public final class PostInfo {
             }
         });
         return row;
+    }
+
+    private static Drawable copyIcon() {
+        GradientDrawable back = copyOutline();
+        GradientDrawable front = copyOutline();
+        front.setColor(ScreenColors.DEFAULT.dialog);
+        LayerDrawable copy = new LayerDrawable(new Drawable[]{back, front});
+        copy.setLayerInset(0, 0, Dim.dp(6), Dim.dp(6), 0);
+        copy.setLayerInset(1, Dim.dp(6), 0, 0, Dim.dp(6));
+        copy.setBounds(0, 0, Dim.dp(24), Dim.dp(24));
+        return copy;
+    }
+
+    private static GradientDrawable copyOutline() {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setCornerRadius(Dim.dp(4));
+        shape.setStroke(Dim.dp(2), ScreenColors.DEFAULT.heading);
+        return shape;
     }
 
     /** Puts [link] on the clipboard, marked sensitive, and says so. Never throws. */
@@ -389,8 +451,13 @@ public final class PostInfo {
             return file == null ? null : file.url;
         }
 
-        /** One line for each fact known, in the phone's language. */
+        /** The known facts as one text value, also used by the framework's message metadata. */
         String text(Context context) {
+            return String.join("\n", lines(context));
+        }
+
+        /** One localized sentence for each fact known, without splitting translated text. */
+        List<String> lines(Context context) {
             List<String> lines = new ArrayList<>();
             if (posted != null && posted <= LAST_SECOND) {
                 lines.add(L10n.f(context, "Posted %1$s", DateUtils.formatDateTime(context, posted * 1000L, FORMAT)));
@@ -405,7 +472,7 @@ public final class PostInfo {
                 // Download joins its picture from the manifest, so the link is a file of its own size.
                 lines.add(L10n.f(context, "Media link is the %1$d × %2$d file", file.width, file.height));
             }
-            return String.join("\n", lines);
+            return lines;
         }
 
         static boolean empty(String text) {

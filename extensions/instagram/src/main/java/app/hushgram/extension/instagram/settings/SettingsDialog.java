@@ -112,7 +112,7 @@ public final class SettingsDialog extends DialogFragment {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         // Start and end, not left and right: in a right-to-left language the bar is mirrored.
-        bar.setPaddingRelative(dp(4), dp(12), dp(16), dp(12));
+        bar.setPaddingRelative(dp(4), dp(8), dp(18), dp(8));
 
         ImageButton back = new ImageButton(getContext());
         android.graphics.drawable.Drawable arrow = SettingsIcons.icon(getContext(), SettingsIcons.BACK, palette.title);
@@ -120,7 +120,9 @@ public final class SettingsDialog extends DialogFragment {
         arrow.setLayoutDirection(rightToLeft() ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
         back.setImageDrawable(arrow);
         back.setPadding(dp(12), dp(12), dp(12), dp(12));
-        back.setBackgroundColor(Color.TRANSPARENT);
+        back.setBackground(new android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(ScreenColors.half(palette.heading)), null,
+                new android.graphics.drawable.ColorDrawable(Color.WHITE)));
         back.setMinimumWidth(dp(48));
         back.setMinimumHeight(dp(48));
         back.setContentDescription(L10n.t(getContext(), "Back"));
@@ -313,25 +315,32 @@ public final class SettingsDialog extends DialogFragment {
         ScrollView scroll = new ScrollView(getContext());
         LinearLayout content = new LinearLayout(getContext());
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPaddingRelative(dp(24), dp(24), dp(24), dp(24));
+        content.setGravity(Gravity.CENTER_HORIZONTAL);
+        content.setPaddingRelative(dp(32), dp(64), dp(32), dp(24));
+        android.widget.ImageView icon = new android.widget.ImageView(getContext());
+        icon.setImageDrawable(SettingsIcons.icon(getContext(), SettingsIcons.PRIVACY, palette.heading));
+        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        LinearLayout.LayoutParams iconSize = new LinearLayout.LayoutParams(dp(64), dp(64));
+        iconSize.bottomMargin = dp(24);
+        content.addView(icon, iconSize);
         TextView title = new TextView(getContext());
         title.setText(L10n.t(getContext(), "Settings couldn't open"));
         title.setTextColor(palette.title);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        title.setGravity(Gravity.CENTER);
         title.setAccessibilityHeading(true);
         content.addView(title);
         TextView explanation = new TextView(getContext());
         explanation.setText(L10n.t(getContext(), "Try again, or go back to Instagram."));
         explanation.setTextColor(palette.summary);
         explanation.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        explanation.setGravity(Gravity.CENTER);
         explanation.setPaddingRelative(0, dp(16), 0, dp(16));
         content.addView(explanation);
         Button button = new Button(getContext());
         button.setText(L10n.t(getContext(), "Retry"));
-        button.setAllCaps(false);
-        button.setTextColor(palette.onAccent);
-        button.setBackgroundTintList(android.content.res.ColorStateList.valueOf(palette.accent));
-        button.setMinHeight(dp(48));
+        ScreenColors.styleAction(button, true);
         button.setEnabled(canOpenPage(owner));
         button.setOnClickListener(v -> {
             if (retry == button && failed) openPage(owner);
@@ -339,6 +348,17 @@ public final class SettingsDialog extends DialogFragment {
         retry = button;
         content.addView(button, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        Button back = new Button(getContext());
+        back.setText(L10n.t(getContext(), "Back"));
+        ScreenColors.styleAction(back, false);
+        back.setOnClickListener(v -> {
+            SettingsEntry.onClosedByUser();
+            dismissAllowingStateLoss();
+        });
+        LinearLayout.LayoutParams backSize = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        backSize.topMargin = dp(8);
+        content.addView(back, backSize);
         scroll.addView(content);
         scroll.setAccessibilityPaneTitle(title.getText());
         ((FrameLayout) owner.findViewById(CONTAINER_ID)).addView(scroll,

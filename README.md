@@ -1,7 +1,7 @@
 ![HushGram. Keep the moments. Cut the noise.](assets/readme-hero.png)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.0.9-E1306C" alt="Version 0.0.9">
+  <img src="https://img.shields.io/badge/version-0.0.10-E1306C" alt="Version 0.0.10">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License GPL-3.0"></a>
   <img src="https://img.shields.io/badge/platform-Android%209%2B-3DDC84" alt="Platform Android 9+">
   <img src="https://img.shields.io/badge/Instagram-450.0.0.50.77-E1306C" alt="Instagram 450.0.0.50.77">
@@ -25,6 +25,8 @@ HushGram is a Morphe patch bundle for Instagram on Android. It blocks sponsored-
 It's the Instagram member of a small family. [Hushfacebook](https://github.com/SysAdminDoc/Hushfacebook) does the same job for Facebook, and HushGram is built on its foundation: the same settings screen, pause switch, diagnostics and checks.
 
 The latest release is [v0.0.9](https://github.com/SysAdminDoc/HushGram/releases/tag/v0.0.9), with 101 patches. Add it to Morphe Manager with [this link](https://morphe.software/add-source?github=SysAdminDoc%2FHushGram).
+
+Main is preparing v0.0.10, with a new settings design. It hasn't been released yet.
 
 This project has no connection to Meta or to the Morphe project. Neither endorses it, and neither wrote it.
 
@@ -220,12 +222,12 @@ Reused navigation buttons ignore callbacks from their previous bindings, includi
 Each settings or override file picker keeps its own request identity. A late result from an earlier picker can't consume the current choice or write to the older document.
 
 <p>
-  <img src="assets/settings-switches.png" alt="Published HushGram v0.0.3 settings, showing the on status and Ads and privacy controls" width="270">
-  <img src="assets/settings-pause-and-diagnostics.png" alt="Published HushGram v0.0.3 settings, showing Pause, Debug mode and diagnostic report controls" width="270">
-  <img src="assets/settings-about.png" alt="Published HushGram v0.0.3 About section on Instagram 449.0.0.52.84" width="270">
+  <img src="assets/settings-switches.png" alt="HushGram settings with category navigation and search" width="270">
+  <img src="assets/settings-pause-and-diagnostics.png" alt="HushGram Pause and diagnostics controls" width="270">
+  <img src="assets/settings-about.png" alt="HushGram About page with version and licenses" width="270">
 </p>
 
-Captured on 2026-10-02 from the published v0.0.3 bundle with 33 of its 35 patches selected. Open developer options and Pure black dark mode were left out. The controls you see depend on the patches you select.
+Native development previews for v0.0.10 captured on 2026-10-12 with all settings sections enabled. The controls you see depend on the patches you select.
 
 HushGram's settings also have **Search settings**. Search by a control's label or description in your phone's language, or by its English patch name. Contacts and location setup lead to Disable analytics. Following and Reels find their installed controls. Actions keep matching their original names when their labels change, including Clear remembered positions while Undo is available. Pause, diagnostics and any running save's Cancel stay available while searching. Clear the search to return to the same sections and choices. The page opens as a list of its categories. A tap opens one on its own page, and Back goes to the list where you left it. Each page starts with a line about what it's for, and its settings share one rounded card under the section's name. Every row starts with an icon, and a row that opens a list, a dialog, another page or a website ends in an arrow. The button under the status card switches to one long list and back, and so does Open categories as pages under Settings entry. Search still looks through every category from any page, and Pause and diagnostics sits at the bottom of the list of categories. Search works offline. The query clears when settings closes or Android rebuilds the page, and it never becomes stored history.
 
@@ -577,7 +579,7 @@ For a local selection of more than one source, `scripts/patch-with-sources.ps1` 
 Create a selection file such as `selected-sources.json`. Bundle paths are relative to that file, and patch names belong to their own bundle. `"*"` selects every patch for the input APK's package:
 
 ```json
-{"schemaVersion":1,"sources":[{"bundle":"patches/build/release/patches-0.0.9.mpp","patches":["*"]}]}
+{"schemaVersion":1,"sources":[{"bundle":"patches/build/release/patches-0.0.10.mpp","patches":["*"]}]}
 ```
 
 ```powershell

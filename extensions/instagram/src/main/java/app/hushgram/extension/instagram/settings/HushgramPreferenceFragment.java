@@ -1601,7 +1601,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             CharSequence title = each.getTitle();
             if (title != null && title.length() > 0) titles.add(title.toString());
         }
-        row.setSummary(String.join(", ", titles));
+        String description = group instanceof Heading ? ((Heading) group).intro : null;
+        row.setSummary(description == null ? String.join(", ", titles) : description);
         mark(row, iconOf(group));
         // The category itself is off the screen while its row is on, so the row takes its place.
         row.setOrder(group.getOrder());
@@ -2689,9 +2690,22 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(android.view.Gravity.CENTER_VERTICAL);
             int touch = Math.round(48 * context.getResources().getDisplayMetrics().density);
-            int inset = Math.round(16 * context.getResources().getDisplayMetrics().density);
-            row.setPaddingRelative(inset, 0, inset, 0);
-            row.setMinimumHeight(touch);
+            float density = context.getResources().getDisplayMetrics().density;
+            int inset = Math.round(18 * density);
+            int gap = Math.round(6 * density);
+            android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
+            for (boolean focused : new boolean[]{true, false}) {
+                android.graphics.drawable.GradientDrawable surface = new android.graphics.drawable.GradientDrawable();
+                surface.setColor(ScreenColors.DEFAULT.card);
+                surface.setCornerRadius(Math.round(12 * density));
+                surface.setStroke(Math.round(density), focused ? ScreenColors.DEFAULT.heading : ScreenColors.DEFAULT.outline);
+                states.addState(focused ? new int[]{android.R.attr.state_focused} : new int[]{},
+                        new android.graphics.drawable.InsetDrawable(surface, inset, gap, inset, gap));
+            }
+            row.setBackground(states);
+            row.setAddStatesFromChildren(true);
+            row.setPaddingRelative(inset + Math.round(14 * density), gap, inset + Math.round(4 * density), gap);
+            row.setMinimumHeight(touch + 2 * gap);
             // Legacy ListView refocuses a row during layout. Keep focus on its typing field.
             row.setDescendantFocusability(android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS);
             EditText field = new EditText(context);
@@ -2699,6 +2713,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             field.setSaveEnabled(false);
             field.setSingleLine(true);
             field.setTextSize(16);
+            ScreenColors.styleField(field);
+            // The whole search row owns the surface, including its clear action.
+            field.setBackground(null);
+            field.setPaddingRelative(0, Math.round(10 * density), 0, Math.round(10 * density));
             field.setTextColor(ScreenColors.DEFAULT.title);
             field.setHintTextColor(ScreenColors.DEFAULT.summary);
             field.setHint(L10n.t("Search settings"));
@@ -2718,13 +2736,19 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             row.addOnAttachStateChangeListener(focus);
             row.addView(field, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
             Button clear = new Button(context);
-            clear.setText("×");
+            clear.setText("");
             clear.setAllCaps(false);
             clear.setTextSize(24);
             clear.setTextColor(ScreenColors.DEFAULT.heading);
+            android.graphics.drawable.Drawable cross = SettingsIcons.icon(context, SettingsIcons.CLOSE,
+                    ScreenColors.DEFAULT.heading);
+            int crossSize = Math.round(20 * density);
+            cross.setBounds(0, 0, crossSize, crossSize);
+            clear.setCompoundDrawablesRelative(cross, null, null, null);
             clear.setBackgroundColor(Color.TRANSPARENT);
             clear.setContentDescription(L10n.t("Clear search"));
-            clear.setPadding(0, 0, 0, 0);
+            int crossPadding = (touch - crossSize) / 2;
+            clear.setPaddingRelative(crossPadding, 0, crossPadding, 0);
             clear.setMinimumWidth(touch);
             clear.setMinimumHeight(touch);
             clear.setEnabled(!searchQuery.isEmpty());

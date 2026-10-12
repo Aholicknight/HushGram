@@ -13,6 +13,7 @@ import java.lang.ref.WeakReference;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
@@ -131,6 +132,7 @@ public final class CallConfirm {
             });
             open = new WeakReference<>(question);
             question.show();
+            ScreenColors.dialog(question);
             HookStatus.counted(FamilyNames.ASK_BEFORE_CALL, ASKED);
             return true;
         } catch (Throwable failure) {

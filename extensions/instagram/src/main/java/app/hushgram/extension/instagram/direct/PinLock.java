@@ -10,12 +10,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.graphics.Color;
 import android.text.InputFilter;
 import android.text.InputType;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -30,6 +31,7 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -251,7 +253,7 @@ public final class PinLock {
                 }
                 field.setText("");
                 if (result == Result.WAIT || waitLeftMs() > 0) showWait(message);
-                else message.setText(L10n.t("Wrong PIN. Try again."));
+                else error(message, L10n.t("Wrong PIN. Try again."));
             });
             // Forgot PIN only explains; the PIN dialog stays under it and nothing is reset.
             dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener(v -> forgot(activity));
@@ -263,10 +265,23 @@ public final class PinLock {
             });
         });
         dialog.show();
+        ScreenColors.dialog(dialog);
+        // Keep recovery beside the field, with the answer buttons left together below it.
+        Button forgot = dialog.getButton(DialogInterface.BUTTON_NEUTRAL);
+        ((ViewGroup) forgot.getParent()).removeView(forgot);
+        forgot.setBackground(null);
+        forgot.setTextColor(ScreenColors.DEFAULT.heading);
+        forgot.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        forgot.setPaddingRelative(0, 0, 0, 0);
+        LinearLayout.LayoutParams recovery = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        recovery.topMargin = dp(activity, 8);
+        body.addView(forgot, recovery);
     }
 
     private static void showWait(TextView message) {
         long left = waitLeftMs();
+        message.setTextColor(left > 0 ? 0xFFFFB4AB : ScreenColors.DEFAULT.summary);
         message.setText(left > 0
                 ? L10n.f("Too many tries. Wait %1$d seconds.", (left + 999) / 1000)
                 : "");
@@ -296,6 +311,7 @@ public final class PinLock {
             dialog.dismiss();
         }));
         dialog.show();
+        ScreenColors.dialog(dialog);
     }
 
     /**
@@ -312,8 +328,10 @@ public final class PinLock {
         TextView message = message(activity);
         message.setText(L10n.t("Use 4 to 8 digits."));
         LinearLayout body = body(activity, message, first);
-        body.addView(again, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout.LayoutParams confirmation = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        confirmation.topMargin = dp(activity, 12);
+        body.addView(again, confirmation);
         boolean[] finished = {false};
         AlertDialog dialog = builder(activity)
                 .setTitle(L10n.t("Set a PIN"))
@@ -334,16 +352,16 @@ public final class PinLock {
                 String a = first.getText().toString();
                 String b = again.getText().toString();
                 if (!validFormat(a)) {
-                    message.setText(L10n.t("Use 4 to 8 digits."));
+                    error(message, L10n.t("Use 4 to 8 digits."));
                     return;
                 }
                 if (!a.equals(b)) {
-                    message.setText(L10n.t("The PINs don't match."));
+                    error(message, L10n.t("The PINs don't match."));
                     again.setText("");
                     return;
                 }
                 if (!set(a)) {
-                    message.setText(L10n.t("Could not save the PIN."));
+                    error(message, L10n.t("Could not save the PIN."));
                     return;
                 }
                 finished[0] = true;
@@ -359,6 +377,7 @@ public final class PinLock {
             });
         });
         dialog.show();
+        ScreenColors.dialog(dialog);
     }
 
     private static AlertDialog.Builder builder(Context context) {
@@ -382,6 +401,7 @@ public final class PinLock {
         field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(MAX_DIGITS)});
         field.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
         field.setContentDescription(hint);
+        ScreenColors.styleField(field);
         return field;
     }
 
@@ -389,13 +409,23 @@ public final class PinLock {
         TextView message = new TextView(context);
         message.setTag(MESSAGE_TAG);
         message.setTextSize(14);
-        message.setTextColor(Utils.isDarkModeEnabled() ? Color.rgb(255, 180, 171) : Color.rgb(179, 38, 30));
-        message.setMinHeight(Math.round(24 * context.getResources().getDisplayMetrics().density));
+        message.setTextColor(ScreenColors.DEFAULT.summary);
+        message.setMinHeight(dp(context, 24));
+        message.setPadding(0, 0, 0, dp(context, 8));
         return message;
     }
 
+    private static void error(TextView message, String text) {
+        message.setTextColor(0xFFFFB4AB);
+        message.setText(text);
+    }
+
+    private static int dp(Context context, int value) {
+        return Math.round(value * context.getResources().getDisplayMetrics().density);
+    }
+
     private static LinearLayout body(Context context, TextView message, EditText field) {
-        int pad = Math.round(20 * context.getResources().getDisplayMetrics().density);
+        int pad = dp(context, 20);
         LinearLayout body = new LinearLayout(context);
         body.setOrientation(LinearLayout.VERTICAL);
         body.setPadding(pad, pad / 2, pad, 0);

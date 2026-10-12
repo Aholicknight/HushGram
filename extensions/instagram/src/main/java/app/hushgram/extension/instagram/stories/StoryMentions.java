@@ -9,13 +9,13 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
-import android.content.res.TypedArray;
+import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.LruCache;
@@ -47,6 +47,7 @@ import java.util.WeakHashMap;
 import app.hushgram.extension.instagram.download.InstagramMedia;
 import app.hushgram.extension.instagram.download.PictureFetch;
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
@@ -401,6 +402,7 @@ public final class StoryMentions {
         scroll.addView(rows);
         dialog.setView(scroll);
         dialog.show();
+        ScreenColors.dialog(dialog);
         HookStatus.counted(FamilyNames.STORY_MENTIONS, LIST_SHOWN);
         return dialog;
     }
@@ -410,18 +412,20 @@ public final class StoryMentions {
         LinearLayout row = new LinearLayout(themed);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setMinimumHeight(Dim.dp(56));
-        row.setPadding(Dim.dp(24), Dim.dp(6), Dim.dp(24), Dim.dp(6));
-        int secondary;
-        TypedArray theme = themed.obtainStyledAttributes(
-                new int[]{android.R.attr.selectableItemBackground, android.R.attr.textColorSecondary});
-        try {
-            Drawable touch = theme.getDrawable(0);
-            if (touch != null) row.setBackground(touch);
-            secondary = theme.getColor(1, Color.GRAY);
-        } finally {
-            theme.recycle();
-        }
+        row.setMinimumHeight(Dim.dp(64));
+        row.setPadding(Dim.dp(16), Dim.dp(10), Dim.dp(16), Dim.dp(10));
+        ScreenColors colors = ScreenColors.DEFAULT;
+        int secondary = colors.summary;
+        GradientDrawable surface = new GradientDrawable();
+        surface.setColor(colors.card);
+        surface.setCornerRadius(Dim.dp(12));
+        surface.setStroke(Dim.dp(1), colors.outline);
+        row.setBackground(new RippleDrawable(ColorStateList.valueOf(ScreenColors.half(colors.heading)), surface, null));
+        LinearLayout.LayoutParams place = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        place.setMargins(Dim.dp(16), Dim.dp(4), Dim.dp(16), Dim.dp(4));
+        row.setLayoutParams(place);
+        row.setFocusable(true);
 
         ImageView picture = new ImageView(themed);
         int size = Dim.dp(40);
@@ -452,6 +456,7 @@ public final class StoryMentions {
             TextView name = new TextView(themed);
             name.setText(person.fullName);
             name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            name.setTextColor(colors.title);
             name.setTypeface(Typeface.DEFAULT_BOLD);
             name.setSingleLine(true);
             name.setEllipsize(TextUtils.TruncateAt.END);
@@ -460,7 +465,7 @@ public final class StoryMentions {
         TextView username = new TextView(themed);
         username.setText(handle);
         username.setTextSize(TypedValue.COMPLEX_UNIT_SP, person.fullName != null ? 14 : 16);
-        if (person.fullName != null) username.setTextColor(secondary);
+        username.setTextColor(person.fullName != null ? secondary : colors.title);
         username.setSingleLine(true);
         username.setEllipsize(TextUtils.TruncateAt.END);
         names.addView(username);

@@ -8,15 +8,19 @@ package app.hushgram.extension.instagram.settings;
 
 import android.content.res.ColorStateList;
 import android.database.DataSetObserver;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.CheckedTextView;
 import android.widget.ListAdapter;
+import android.widget.TextView;
 
-/** Styles the framework's real single-choice rows without replacing their selection behavior. */
+/** Styles the framework's real list rows without replacing selection or checkbox behavior. */
 final class DialogChoices extends BaseAdapter {
     private final ListAdapter source;
     private final ScreenColors colors;
@@ -39,29 +43,59 @@ final class DialogChoices extends BaseAdapter {
 
     @Override public View getView(int position, View recycled, ViewGroup parent) {
         View row = source.getView(position, recycled, parent);
-        if (row instanceof CheckedTextView) {
-            CheckedTextView choice = (CheckedTextView) row;
+        if (row instanceof TextView) {
+            TextView choice = (TextView) row;
             float density = row.getResources().getDisplayMetrics().density;
-            choice.setTextColor(colors.title);
+            choice.setTextColor(ScreenColors.dimmedWhenDisabled(colors.title));
             choice.setTextSize(16);
+            choice.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             choice.setSingleLine(false);
             choice.setMaxLines(Integer.MAX_VALUE);
-            choice.setMinHeight(Math.round(48 * density));
-            ColorStateList indicator = new ColorStateList(new int[][]{{android.R.attr.state_checked}, {}},
-                    new int[]{colors.accent, colors.summary});
-            choice.setCheckMarkTintList(indicator);
-            // Material's framework layout uses a start drawable for its radio indicator.
-            for (android.graphics.drawable.Drawable drawable : choice.getCompoundDrawablesRelative()) {
-                if (drawable != null) drawable.mutate().setTintList(indicator);
+            if (choice instanceof CheckedTextView) {
+                choice.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+                choice.setMinHeight(Math.round(48 * density));
+                choice.setMinimumHeight(Math.round(48 * density));
+                ColorStateList indicator = new ColorStateList(new int[][]{
+                        {-android.R.attr.state_enabled, android.R.attr.state_checked},
+                        {-android.R.attr.state_enabled}, {android.R.attr.state_checked}, {}},
+                        new int[]{ScreenColors.half(colors.heading), ScreenColors.half(colors.summary),
+                                colors.heading, colors.summary});
+                ((CheckedTextView) choice).setCheckMarkTintList(indicator);
+                // Material's framework layout uses a start drawable for its radio indicator.
+                for (android.graphics.drawable.Drawable drawable : choice.getCompoundDrawablesRelative()) {
+                    if (drawable != null) drawable.mutate().setTintList(indicator);
+                }
+                StateListDrawable background = new StateListDrawable();
+                background.addState(new int[]{android.R.attr.state_checked},
+                        new ColorDrawable((colors.accent & 0xFFFFFF) | 0x22000000));
+                background.addState(new int[]{}, new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                choice.setBackground(background);
+                // A native choice is a compact full-width row, with room to grow when text wraps.
+                int verticalPadding = (int) (8 * density);
+                choice.setPaddingRelative(Math.round(24 * density), verticalPadding,
+                        Math.round(24 * density), verticalPadding);
+                return row;
             }
+            int gap = Math.round(4 * density);
+            int side = Math.round(18 * density);
+            choice.setMinHeight(Math.round(48 * density) + 2 * gap);
             StateListDrawable background = new StateListDrawable();
-            background.addState(new int[]{android.R.attr.state_checked}, new ColorDrawable((colors.accent & 0xFFFFFF) | 0x22000000));
-            background.addState(new int[]{}, new ColorDrawable(android.graphics.Color.TRANSPARENT));
+            GradientDrawable selected = new GradientDrawable();
+            selected.setColor((colors.accent & 0xFFFFFF) | 0x22000000);
+            selected.setStroke(Math.round(density), colors.heading);
+            selected.setCornerRadius(Math.round(12 * density));
+            GradientDrawable ordinary = new GradientDrawable();
+            ordinary.setColor(colors.card);
+            ordinary.setStroke(Math.round(density), colors.outline);
+            ordinary.setCornerRadius(Math.round(12 * density));
+            background.addState(new int[]{android.R.attr.state_checked},
+                    new InsetDrawable(selected, side, gap, side, gap));
+            background.addState(new int[]{}, new InsetDrawable(ordinary, side, gap, side, gap));
             choice.setBackground(background);
             // Rounding both sides up at densities such as 450dpi exceeds the measured 48dp row.
-            int verticalPadding = (int) (8 * density);
-            choice.setPaddingRelative(Math.round(20 * density), verticalPadding,
-                    Math.round(20 * density), verticalPadding);
+            int verticalPadding = (int) (12 * density) + gap;
+            choice.setPaddingRelative(side + Math.round(16 * density), verticalPadding,
+                    side + Math.round(16 * density), verticalPadding);
         }
         return row;
     }

@@ -237,7 +237,7 @@ Raw packets, diagnostic dumps and account screens stay local. Published evidence
 
 #### Repeating the observation for a patch change
 
-1. Identify the exact APK hash, signer, Instagram build and embedded HushGram build. Keep a genuinely original Meta-signed installation as a separate control. Pause cannot turn a re-signed APK into stock or restore manifest edits.
+1. Identify the exact APK hash, signer, Instagram build and embedded HushGram build. Keep an original Meta-signed installation as a separate control. Pause cannot turn a re-signed APK into stock or restore manifest edits.
 2. Resolve the UID for the intended Android user. Save the relevant switches and playback quality. Keep brightness, network, capture configuration and the content workload consistent.
 3. Physically disconnect external power. Check actual power flags and discharge status before collecting. A simulated unplug only changes Android's reported state and is unsuitable for measuring physical drain.
 4. Start one app-filtered capture, then collect complete before/after snapshots for a stopped-app idle control, a timed foreground workload and natural background use. Leave the app alive for the background condition. Keep launch/setup traffic outside those windows and report it separately if needed.

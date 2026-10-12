@@ -8,19 +8,19 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.ContextWrapper;
-import android.content.res.TypedArray;
+import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -33,6 +33,7 @@ import java.io.File;
 import java.util.List;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -245,17 +246,20 @@ final class ProfilePictureViewer {
                     FrameLayout.LayoutParams.MATCH_PARENT));
 
             spinner = new ProgressBar(activity);
+            spinner.setIndeterminateTintList(ColorStateList.valueOf(ScreenColors.DEFAULT.heading));
             root.addView(spinner, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,
                     FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
 
             LinearLayout bar = new LinearLayout(activity);
             bar.setOrientation(LinearLayout.HORIZONTAL);
             bar.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-            bar.setBackgroundColor(0x99000000);
-            bar.setPadding(Dim.dp(8), Dim.dp(4), Dim.dp(8), Dim.dp(4));
+            bar.setBackgroundColor(Color.BLACK);
+            bar.setPadding(Dim.dp(16), Dim.dp(16), Dim.dp(16), Dim.dp(24));
             close = button(activity, L10n.t(activity, "Close"));
+            ScreenColors.styleAction(close, false);
             close.setOnClickListener(view -> dialog.dismiss());
             save = button(activity, L10n.t(activity, "Save"));
+            ScreenColors.styleAction(save, true);
             save.setOnClickListener(view -> {
                 try {
                     if (!ProfilePicture.viewing()) return;
@@ -265,8 +269,14 @@ final class ProfilePictureViewer {
                     ProfilePicture.failed(activity);
                 }
             });
-            bar.addView(close);
-            bar.addView(save);
+            LinearLayout.LayoutParams closeSize = new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+            closeSize.setMarginEnd(Dim.dp(8));
+            bar.addView(close, closeSize);
+            LinearLayout.LayoutParams saveSize = new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+            saveSize.setMarginStart(Dim.dp(8));
+            bar.addView(save, saveSize);
             root.addView(bar, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
 
@@ -292,21 +302,8 @@ final class ProfilePictureViewer {
         }
 
         private static TextView button(Activity activity, String label) {
-            TextView button = new TextView(activity);
+            TextView button = new Button(activity);
             button.setText(label);
-            button.setTextColor(Color.WHITE);
-            button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            button.setGravity(Gravity.CENTER);
-            button.setMinHeight(Dim.dp(48));
-            button.setMinWidth(Dim.dp(64));
-            button.setPadding(Dim.dp(16), 0, Dim.dp(16), 0);
-            TypedArray theme = activity.obtainStyledAttributes(new int[]{android.R.attr.selectableItemBackground});
-            try {
-                Drawable touch = theme.getDrawable(0);
-                if (touch != null) button.setBackground(touch);
-            } finally {
-                theme.recycle();
-            }
             return button;
         }
     }

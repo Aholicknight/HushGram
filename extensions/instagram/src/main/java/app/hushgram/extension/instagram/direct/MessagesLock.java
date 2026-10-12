@@ -13,8 +13,8 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.hardware.biometrics.BiometricManager;
 import android.hardware.biometrics.BiometricPrompt;
 import android.os.Build;
@@ -47,6 +47,7 @@ import java.util.WeakHashMap;
 import androidx.annotation.RequiresApi;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -802,11 +803,10 @@ public final class MessagesLock {
 
     private static Cover buildCover(Activity activity, String screen) {
         boolean wholeApp = APP.equals(screen);
-        boolean dark = Utils.isDarkModeEnabled();
-        int text = dark ? Color.WHITE : Color.BLACK;
+        ScreenColors colors = ScreenColors.DEFAULT;
         Cover cover = new Cover(activity, screen);
         cover.setTag(COVER_TAG);
-        cover.setBackgroundColor(dark ? Color.BLACK : Color.WHITE);
+        cover.setBackgroundColor(colors.background);
         // Takes every touch, so nothing under it can be scrolled or opened.
         cover.setClickable(true);
         cover.setFocusable(true);
@@ -822,27 +822,25 @@ public final class MessagesLock {
 
         ImageView icon = new ImageView(activity);
         icon.setImageResource(android.R.drawable.ic_lock_lock);
-        icon.setColorFilter(text);
-        int size = dp(activity, 48);
+        icon.setColorFilter(colors.heading);
+        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        int size = dp(activity, 72);
         column.addView(icon, new LinearLayout.LayoutParams(size, size));
 
         TextView title = new TextView(activity);
         title.setText(wholeApp ? L10n.t("Instagram is locked") : L10n.t("Your messages are locked"));
-        title.setTextColor(text);
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        title.setTextColor(colors.title);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         title.setGravity(Gravity.CENTER);
-        title.setPadding(0, dp(activity, 12), 0, dp(activity, 12));
+        title.setPadding(0, dp(activity, 24), 0, dp(activity, 32));
         column.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         cover.title = title;
 
         TextView unlock = new TextView(activity);
         unlock.setText(L10n.t("Unlock"));
-        // Instagram's blue reads on black, but on white it's about 3:1, so a darker blue takes over there.
-        unlock.setTextColor(dark ? Color.rgb(0, 149, 246) : Color.rgb(0, 100, 224));
-        unlock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        unlock.setGravity(Gravity.CENTER);
-        unlock.setPadding(dp(activity, 24), dp(activity, 12), dp(activity, 24), dp(activity, 12));
+        ScreenColors.styleAction(unlock, true);
         // A finger's worth of height, and a button to a screen reader and a keyboard.
         unlock.setMinHeight(dp(activity, 48));
         unlock.setFocusable(true);
@@ -853,7 +851,7 @@ public final class MessagesLock {
             }
         });
         unlock.setOnClickListener(v -> ask(activity, null));
-        column.addView(unlock, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+        column.addView(unlock, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         return cover;
     }

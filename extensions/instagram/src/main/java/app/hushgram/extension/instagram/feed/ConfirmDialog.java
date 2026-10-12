@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 
 import java.util.function.Consumer;
 
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.shared.L10n;
 
 /** The question Ask before a like and Ask before a refresh put up, over the screen they act on. */
@@ -50,6 +51,7 @@ final class ConfirmDialog {
                 })
                 .create();
         dialog.show();
+        ScreenColors.dialog(dialog);
         return dialog;
     }
 

@@ -75,7 +75,7 @@ final class ChoiceCards extends BaseAdapter {
     /** One choice on a card set in from the dialog's edges. */
     static final class Card extends LinearLayout {
         /** How far the card sits in from the list's sides, and from the next card. */
-        static final int SIDE_INSET_DP = 16;
+        static final int SIDE_INSET_DP = 18;
         static final int GAP_INSET_DP = 4;
 
         final TextView name;
@@ -91,12 +91,12 @@ final class ChoiceCards extends BaseAdapter {
             // The shared row surface, with its outline separating it from the dialog.
             surface.setColor(colors.card);
             surface.setStroke(dp(context, 1), colors.outline);
-            surface.setCornerRadius(dp(context, 10));
+            surface.setCornerRadius(dp(context, 12));
             setBackground(new RippleDrawable(ColorStateList.valueOf(ScreenColors.half(colors.accent)),
                     new InsetDrawable(surface, side, gap, side, gap), null));
             // Set after the background, which puts its insets in as the padding.
-            setPaddingRelative(side + dp(context, 16), gap + dp(context, 12),
-                    side + dp(context, 16), gap + dp(context, 12));
+            setPaddingRelative(side + dp(context, 16), gap + dp(context, 14),
+                    side + dp(context, 16), gap + dp(context, 14));
             // 48 dp of card to tap at the least, at any text size.
             setMinimumHeight(2 * gap + dp(context, 48));
 
@@ -107,14 +107,17 @@ final class ChoiceCards extends BaseAdapter {
             name = new TextView(context);
             name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
             name.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-            name.setTextColor(colors.title);
+            name.setTextColor(ScreenColors.dimmedWhenDisabled(colors.title));
+            name.setSingleLine(false);
+            name.setMaxLines(Integer.MAX_VALUE);
             ScreenColors.Chevron chevron = new ScreenColors.Chevron(colors.summary, dp(context, 2));
             chevron.setBounds(0, 0, dp(context, 24), dp(context, 24));
             text.addView(name, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 
             detail = new TextView(context);
             detail.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            detail.setTextColor(colors.summary);
+            detail.setTextColor(ScreenColors.dimmedWhenDisabled(colors.summary));
+            detail.setLineSpacing(dp(context, 2), 1);
             LayoutParams under = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
             under.topMargin = dp(context, 2);
             text.addView(detail, under);

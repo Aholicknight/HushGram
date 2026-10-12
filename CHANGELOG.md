@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Improvements
+
+* **Instagram - HushGram settings:** Settings have clearer category descriptions, a rounded search field and quieter cards with pink icon tiles. Text wraps at larger sizes, and choices keep their native switches and selection controls. PIN screens, photo controls and other dialogs share the same styling.
+
 ### Bug Fixes
 
 * **Instagram - Glass tab bar:** A feed video you start with a tap plays where it is. On some phones it dropped to the bottom of the screen, under the bar, and left black where it should have played. Reported in #136.
