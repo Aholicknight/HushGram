@@ -16,10 +16,12 @@ import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Hide suggested posts"
@@ -32,11 +34,12 @@ internal const val HOME_MODULE = "feed_timeline"
 internal const val OLDER_MODULE = "feed_timeline_older"
 
 /**
- * Where Home's row builder adds the "Are you interested in this post?" row, found: the builder
- * (an instance method of the feed adapter taking the row list, a post and its state), the index of
- * the instruction that starts the add, the register that instruction writes (dead until then), and
- * the index of the builder's return. [write] puts a call to FeedInterest.hide() right before the add,
- * and a yes goes on to the return, so the row is never added and none is left blank.
+ * Where a row builder adds the "Are you interested in this post?" row, found: the builder (an
+ * instance method of a feed adapter taking the row list, a post and its state), the index of the
+ * instruction that starts the add, the register that instruction writes (dead until then), the
+ * index a yes goes on to (the builder's return, or the instruction after the add), and the row
+ * type's field. [write] puts a call to FeedInterest.hide() right before the add, and a yes skips
+ * it, so the row is never added and none is left blank.
  */
 internal class InterestQuestion(
     val type: String,
@@ -45,12 +48,13 @@ internal class InterestQuestion(
     val rowAt: Int,
     val register: Int,
     val endAt: Int,
+    val rowType: String,
 ) {
     fun write(context: BytecodePatchContext) {
         val method = context.mutableClassDefBy(type).methods.single {
             it.name == name && it.returnType == "V" && it.parameterTypes.map(CharSequence::toString) == parameters
         }
-        // Taken before the insert, so the label lands on the return itself.
+        // Taken before the insert, so the label lands on that instruction itself.
         val end = method.getInstruction(endAt)
         // At the add's own label, so every way to it, Home's and Older Posts', passes the hook.
         method.addInstructionsAtControlFlowLabel(
@@ -157,7 +161,92 @@ internal fun BytecodePatchContext.findInterestQuestion(): InterestQuestion {
     // Nothing between the hook's write and the add may read the register: the add starts with its overwrite.
     return InterestQuestion(
         method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString), addAt, register, endAt,
+        ((add as ReferenceInstruction).reference as FieldReference).toString(),
     )
+}
+
+/**
+ * Finds the other place the question's row goes in (#131): the feed item binder group, which Home
+ * can be built with too. It reads the same question from the post's data and adds the row when the
+ * server styles it Instagram's unified way, again only for [HOME_MODULE] and [OLDER_MODULE]. It's
+ * the one other method holding both names that loads [home]'s row type, and it loads it once: the
+ * load, its ordinal and the add, right after a Home check and a style check that both skip the add.
+ * The hook goes on the load, and a yes goes on to the instruction after the add. On 450's 385611438
+ * that's LX/02dI->A05 and the load at instruction 774. Anything else stops the patch.
+ */
+internal fun BytecodePatchContext.findGroupedInterestQuestion(home: InterestQuestion): InterestQuestion {
+    val found = mutableListOf<Triple<Method, List<Instruction>, Int>>()
+    classesHolding(HOME_MODULE, OLDER_MODULE).forEach { classDef ->
+        classDef.methods.forEach { method ->
+            val parameters = method.parameterTypes.map(CharSequence::toString)
+            if (AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "V" ||
+                method.definingClass == home.type && method.name == home.name && parameters == home.parameters
+            ) {
+                return@forEach
+            }
+            val code = method.implementation?.instructions?.toList() ?: return@forEach
+            val loads = code.indices.filter { code[it].opcode == Opcode.SGET_OBJECT && code[it].fieldReference() == home.rowType }
+            if (loads.isEmpty()) return@forEach
+            val names = code.indices.mapNotNull { stringLoadedAt(code, it) }.toSet()
+            if (HOME_MODULE in names && OLDER_MODULE in names) loads.forEach { found += Triple(method, code, it) }
+        }
+    }
+    val (method, code, loadAt) = found.singleOrNull()
+        ?: refuse("expected one other load of the row type next to $HOME_MODULE and $OLDER_MODULE, found ${found.size}")
+    val where = "${method.definingClass}->${method.name}"
+    val addresses = code.runningFold(0) { at, instruction -> at + instruction.codeUnits }
+    fun targetOf(at: Int): Int {
+        val target = addresses[at] + (code[at] as OffsetInstruction).codeOffset
+        return addresses.indexOf(target)
+    }
+
+    // sget-object (row type) -> ordinal -> move-result -> the add, taking the ordinal last
+    val register = (code[loadAt] as OneRegisterInstruction).registerA
+    val ordinal = code.getOrNull(loadAt + 1)
+    val called = (ordinal as? ReferenceInstruction)?.reference as? MethodReference
+    if (ordinal?.opcode != Opcode.INVOKE_VIRTUAL || called?.name != "ordinal" || called.returnType != "I" ||
+        (ordinal as FiveRegisterInstruction).registerC != register
+    ) {
+        refuse("$where doesn't take the row type's ordinal right after loading it")
+    }
+    val result = code.getOrNull(loadAt + 2)
+    if (result?.opcode != Opcode.MOVE_RESULT) refuse("$where doesn't keep the row type's ordinal")
+    val ordinalIn = (result as OneRegisterInstruction).registerA
+    val add = code.getOrNull(loadAt + 3)
+    val adds = (add as? ReferenceInstruction)?.reference as? MethodReference
+    if (add?.opcode != Opcode.INVOKE_VIRTUAL || adds?.returnType != "V" || adds.parameterTypes.lastOrNull()?.toString() != "I" ||
+        (add as FiveRegisterInstruction).lastRegister() != ordinalIn
+    ) {
+        refuse("$where doesn't add the row with the row type's ordinal")
+    }
+    val skipAt = loadAt + 4
+    if (skipAt >= code.size) refuse("$where ends at its add")
+
+    // The style check falls into the load and skips the add otherwise.
+    val style = code.getOrNull(loadAt - 1)
+    if (style !is OffsetInstruction || !style.opcode.name.startsWith("IF_") || targetOf(loadAt - 1) != skipAt) {
+        refuse("$where doesn't check the question's style right before the add")
+    }
+    // The last Older Posts check before it: a feed that's neither Home's nor Older Posts' skips the add too.
+    val olderAt = (0 until loadAt).lastOrNull { stringLoadedAt(code, it) == OLDER_MODULE }
+        ?: refuse("$where doesn't compare the module with $OLDER_MODULE before the add")
+    val neither = (olderAt + 1 until loadAt).firstOrNull { code[it].opcode == Opcode.IF_EQZ }
+    if (neither == null || targetOf(neither) != skipAt) refuse("$where doesn't skip the add when the module is neither")
+    return InterestQuestion(
+        method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString), loadAt, register, skipAt,
+        home.rowType,
+    )
+}
+
+private fun Instruction.fieldReference(): String? = ((this as? ReferenceInstruction)?.reference as? FieldReference)?.toString()
+
+private fun FiveRegisterInstruction.lastRegister(): Int = when (registerCount) {
+    1 -> registerC
+    2 -> registerD
+    3 -> registerE
+    4 -> registerF
+    5 -> registerG
+    else -> -1
 }
 
 private const val OBJECT = "Ljava/lang/Object;"

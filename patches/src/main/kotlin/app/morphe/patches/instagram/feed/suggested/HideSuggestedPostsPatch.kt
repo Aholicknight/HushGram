@@ -82,6 +82,8 @@ val hideSuggestedPostsPatch = bytecodePatch(
         val productTags = findProductTagIndicator()
         // Where Home's row builder adds the "Are you interested in this post?" row, found with the rest.
         val interest = findInterestQuestion()
+        // And where the feed item binder group adds the same row, which Home can be built with too (#131).
+        val groupedInterest = findGroupedInterestQuestion(interest)
         // Asking for For you's next page after a page the switches left short (#52), found before the
         // show check changes. A build without it waits for the scroll as Instagram has it.
         val nextPage = homeNextPageOrWarn()
@@ -93,6 +95,7 @@ val hideSuggestedPostsPatch = bytecodePatch(
         exploreShops.write(this)
         productTags.write(this)
         interest.write(this)
+        groupedInterest.write(this)
         // The post type switches are found whole before their part changes anything, so a build
         // where Home's reads or a post's type moved gets the rest of the patch alone.
         homeFeedTypesOrWarn()?.let {

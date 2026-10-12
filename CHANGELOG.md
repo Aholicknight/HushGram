@@ -34,6 +34,8 @@ Every HushGram release, newest first.
 
 * **Instagram - See who a story mentions:** The mentions pill now sits at the end of the name's row, after the time, instead of under the name. Under the name it made the header taller, which pushed the username up toward the progress bars on stories with mentions. A tap anywhere in a 48dp box around the pill opens the list. Reported in #151.
 
+* **Instagram - Hide 'Are you interested' questions:** The switch now also covers the second way Home gets built. Instagram adds the same "Are you interested in this post?" bubble from another part of its feed code when the question comes without a subtitle, and the switch didn't reach that one. Reported in #131.
+
 * **Instagram - Lock your messages:** If the HushGram PIN dialog gets closed by something other than its buttons, Unlock on the cover asks again right away. Before, it did nothing for about a minute.
 
 * **Instagram - Hide suggested stories and Hide Meta AI:** Their descriptions in Manager and the README said they start off, but their main switches start on. They now say which switches start on, and a test keeps every "Starts on" and "Starts off" in line with the switch it names.

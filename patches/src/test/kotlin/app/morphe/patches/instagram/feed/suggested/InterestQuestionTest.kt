@@ -52,7 +52,53 @@ class InterestQuestionTest {
         assertEquals("the sget of the row type", 21, found.rowAt)
         assertEquals("the register the module check left behind", 1, found.register)
         assertEquals("the builder's return", 4, found.endAt)
+        assertEquals("the row type", "Lfixture/RowType;->A0E:Lfixture/RowType;", found.rowType)
     }
+
+    /** The binder group's add (#131): the one other load of the row type, Home's own builder left out. */
+    @Test
+    fun theGroupedAddIsFound() {
+        val context = PatchContexts.of(groupedClasses())
+        val found = context.findGroupedInterestQuestion(context.findInterestQuestion())
+
+        assertEquals(GROUP_TYPE, found.type)
+        assertEquals("A05", found.name)
+        assertEquals(listOf(ROWS, "Lfixture/Post;", "Lfixture/State;"), found.parameters)
+        assertEquals("the sget of the row type", 14, found.rowAt)
+        assertEquals("the register the load writes", 0, found.register)
+        assertEquals("the instruction after the add", 18, found.endAt)
+    }
+
+    @Test
+    fun theGroupedHookSkipsTheAdd() {
+        val context = PatchContexts.of(groupedClasses())
+        val home = context.findInterestQuestion()
+        val found = context.findGroupedInterestQuestion(home)
+
+        home.write(context)
+        found.write(context)
+
+        assertHooked("stand-in", context, home)
+        assertGroupedHooked("stand-in", context, found)
+    }
+
+    @Test
+    fun noGroupedAddFailsThePatch() = groupedRefused("found 0", groupedClasses(leaveOut = true))
+
+    @Test
+    fun twoGroupedAddsFailThePatch() = groupedRefused("found 2", groupedClasses(variant = "twice"))
+
+    @Test
+    fun aGroupedLoadWithoutItsOrdinalFailsThePatch() = groupedRefused("take the row type's ordinal", groupedClasses(variant = "noordinal"))
+
+    @Test
+    fun aGroupedAddOfSomethingElseFailsThePatch() = groupedRefused("add the row with the row type's ordinal", groupedClasses(variant = "otheradd"))
+
+    @Test
+    fun aStyleCheckThatGoesElsewhereFailsThePatch() = groupedRefused("check the question's style", groupedClasses(variant = "stylelsewhere"))
+
+    @Test
+    fun aGroupedNeitherThatDoesNotSkipFailsThePatch() = groupedRefused("when the module is neither", groupedClasses(variant = "neitherelsewhere"))
 
     /** The hook goes where both module checks meet, and a yes goes on to the builder's return. */
     @Test
@@ -143,15 +189,49 @@ class InterestQuestionTest {
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, holders))
 
         val found = context.findInterestQuestion()
+        val grouped = context.findGroupedInterestQuestion(found)
         val before = context.mutableClassDefBy(found.type).methods.single {
             it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
         }.implementation!!.instructions.toList()
         assertEquals("$label: the add's place", 442, found.rowAt)
         assertEquals("$label: the builder's return", 65, found.endAt)
         assertEquals("$label: the row type's load", Opcode.SGET_OBJECT, before[found.rowAt].opcode)
+        assertEquals("$label: the binder group", "A05", grouped.name)
+        assertEquals("$label: the binder group's load", 774, grouped.rowAt)
+        assertEquals("$label: after the binder group's add", 778, grouped.endAt)
         found.write(context)
+        grouped.write(context)
 
         assertHooked("$label ${found.type}->${found.name}", context, found)
+        assertGroupedHooked("$label ${grouped.type}->${grouped.name}", context, grouped)
+    }
+
+    /**
+     * Right before the binder group's load: the same question and answer, and a yes jumping to what
+     * followed the add. The load, its ordinal and the add still follow, and the style check still
+     * skips to what followed the add rather than past the hook.
+     */
+    private fun assertGroupedHooked(what: String, context: BytecodePatchContext, found: InterestQuestion) {
+        val code = context.mutableClassDefBy(found.type).methods.single {
+            it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
+        }.implementation!!.instructions.toList()
+        val calls = code.indices.filter { code[it].reference()?.toString() == HIDE_INTEREST }
+        assertEquals("$what: one hook, where the load was", listOf(found.rowAt), calls)
+        val at = calls.single()
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[at + 1].opcode)
+        assertEquals("$what: in the register", found.register, (code[at + 1] as OneRegisterInstruction).registerA)
+        val branch = code[at + 2]
+        assertEquals("$what: the branch", Opcode.IF_NEZ, branch.opcode)
+        assertEquals("$what: a no loads the row type", found.rowType, code[at + 3].reference()?.toString())
+        val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        fun targetOf(index: Int) = addresses.indexOf(addresses[index] + (code[index] as OffsetInstruction).codeOffset)
+        val after = found.endAt + 3
+        assertEquals("$what: a yes skips the load, the ordinal and the add", after, targetOf(at + 2))
+        assertEquals("$what: the style check still skips the add", after, targetOf(at - 1))
+        for (index in code.indices) {
+            if (index == at + 2 || code[index] !is OffsetInstruction) continue
+            assertTrue("$what: instruction $index jumps past the hook", targetOf(index) != at + 3)
+        }
     }
 
     /**
@@ -200,11 +280,19 @@ class InterestQuestionTest {
         assertTrue(failure.message!!, failure.message!!.contains(why))
     }
 
+    private fun groupedRefused(why: String, classes: List<ClassDef>) {
+        val context = PatchContexts.of(classes)
+        val home = context.findInterestQuestion()
+        val failure = assertThrows(PatchException::class.java) { context.findGroupedInterestQuestion(home) }
+        assertTrue(failure.message!!, failure.message!!.contains(why))
+    }
+
     private companion object {
         const val OBJECT = "Ljava/lang/Object;"
         const val ROWS = "Lfixture/RowList;"
         const val BUILDER_TYPE = "Lfixture/FeedAdapter;"
         const val OTHER_TYPE = "Lfixture/OtherAdapter;"
+        const val GROUP_TYPE = "Lfixture/GroupAdapter;"
         const val MEDIA_TYPE = "Lcom/instagram/feed/media/Media;"
 
         /**
@@ -296,6 +384,74 @@ class InterestQuestionTest {
                 builder("Lfixture/SiblingAdapter;", "ok", false, listOf(ROWS, "Lfixture/A;", "Lfixture/B;")),
             )
             return found + other + sibling + listOf(
+                ImmutableClassDef(
+                    "Lfixture/Unrelated;", AccessFlags.PUBLIC.value, OBJECT, null, null, null, null, emptyList(),
+                ),
+            )
+        }
+
+        /**
+         * Shaped like 450's binder group (LX/02dI->A05): the module compared with the Home module and
+         * then the Older Posts one, neither skipping the add; the question's style compared, another
+         * style skipping it too; then the row type, its ordinal and the add.
+         *   0 the Home module   6 the Older Posts module   9 neither skips   13 the style check
+         *   14 the row type load   15 ordinal   17 the add   18 what follows the add
+         */
+        fun groupedSmali(variant: String): String {
+            val neither = if (variant == "neitherelsewhere") "if-eqz v0, :elsewhere" else "if-eqz v0, :skip"
+            val style = if (variant == "stylelsewhere") "if-ne v1, v0, :elsewhere" else "if-ne v1, v0, :skip"
+            val ordinal = if (variant == "noordinal") "invoke-virtual {v0}, Ljava/lang/Object;->hashCode()I" else "invoke-virtual {v0}, Ljava/lang/Enum;->ordinal()I"
+            val added = if (variant == "otheradd") "v1" else "v0"
+            return """
+                const-string v3, "feed_timeline"
+                invoke-interface {p3}, Lfixture/Module;->getModuleName()Ljava/lang/String;
+                move-result-object v1
+                invoke-virtual {v3, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+                move-result v0
+                if-nez v0, :home
+                const-string v0, "feed_timeline_older"
+                invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+                move-result v0
+                $neither
+                :home
+                invoke-virtual {p2}, Lfixture/Post;->style()Lfixture/Style;
+                move-result-object v1
+                sget-object v0, Lfixture/Style;->A0F:Lfixture/Style;
+                $style
+                sget-object v0, Lfixture/RowType;->A0E:Lfixture/RowType;
+                $ordinal
+                move-result v0
+                invoke-virtual {p0, p1, p2, p3, $added}, $GROUP_TYPE->add(${ROWS}Ljava/lang/Object;Ljava/lang/Object;I)V
+                :skip
+                const/4 v2, 0x0
+                return-void
+                :elsewhere
+                return-void
+            """.trimIndent()
+        }
+
+        /** Home's builder, the binder group (left out, or twice), and an unrelated class. */
+        fun groupedClasses(leaveOut: Boolean = false, variant: String = "ok"): List<ClassDef> {
+            fun adapter(type: String, method: Method) = ImmutableClassDef(
+                type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, OBJECT, null, null, null, null, listOf(method),
+            )
+            fun group(type: String): ClassDef {
+                val method = MutableMethod(
+                    ImmutableMethod(
+                        type, "A05", listOf(ROWS, "Lfixture/Post;", "Lfixture/State;").map { ImmutableMethodParameter(it, null, null) },
+                        "V", AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null,
+                        ImmutableMethodImplementation(8, emptyList(), null, null),
+                    ),
+                )
+                method.addInstructionsWithLabels(0, groupedSmali(variant))
+                return adapter(type, ImmutableMethod.of(method))
+            }
+            val groups = when {
+                leaveOut -> emptyList()
+                variant == "twice" -> listOf(group(GROUP_TYPE), group("Lfixture/SecondGroupAdapter;"))
+                else -> listOf(group(GROUP_TYPE))
+            }
+            return listOf(adapter(BUILDER_TYPE, builder(BUILDER_TYPE, "ok", false, listOf(ROWS, OBJECT, OBJECT)))) + groups + listOf(
                 ImmutableClassDef(
                     "Lfixture/Unrelated;", AccessFlags.PUBLIC.value, OBJECT, null, null, null, null, emptyList(),
                 ),
