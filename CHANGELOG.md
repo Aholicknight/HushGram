@@ -10,11 +10,11 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** Settings now use clearer category descriptions, a rounded search field and pink icon tiles. Dialogs share the same styling, and controls stay readable at larger text sizes.
 
-* **Instagram - Safe mode:** When HushGram pauses itself because Instagram kept crashing at start, a message now says so on the first screen. Every switch is off until it's turned back on, so Ghost mode and the locks would otherwise stop without a word.
+* **Instagram - HushGram settings:** When HushGram pauses itself because Instagram kept crashing at start, a message now says so on the first screen. Every switch is off until it's turned back on, so Ghost mode and the locks would otherwise stop without a word.
 
 * **Instagram - HushGram settings:** The two About rows are in Korean now, and two error messages read like the rest ("Couldn't" rather than "Could not"). Four Korean rows that spelled HushGram or Instagram wrong are fixed.
 
-* **Instagram - Ghost mode button on Home's header:** TalkBack reads it as "Ghost mode" with an on or off state, the way it reads a switch, instead of a sentence about what tapping does.
+* **Instagram - Hide the Reels tab:** TalkBack reads the Ghost mode button on Home's header as "Ghost mode" with an on or off state, the way it reads a switch, instead of a sentence about what tapping does.
 
 * **Tooling:** Unreleased version headings now work with both the changelog checker and the release notes generator. Full-screen patch checks also verify control flow when jumps need a wider encoding.
 
@@ -34,21 +34,21 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** The unlock prompt now waits until Instagram is the thing you're looking at. The cover still goes up right away, but pulling down the notification shade or swiping home doesn't bring the prompt up over them. Reported in #153.
 
-* **Instagram - See who a story mentions:** The mentions pill now sits at the end of the name's row, after the time, instead of under the name. Under the name it made the header taller, which pushed the username up toward the progress bars on stories with mentions. A tap just around the pill opens the list too, unless it lands on the name or something else in the header. Reported in #151.
+* **Instagram - See who a story mentions:** The mentions pill sits at the end of the name and time row, not under the name, so the header keeps its height on stories with mentions. A tap around the pill opens the list too. Reported in #151.
 
-* **Instagram - Hide 'Are you interested' questions:** The switch now also covers the second way Home gets built. Instagram adds the same "Are you interested in this post?" bubble from another part of its feed code when the question comes without a subtitle, and the switch didn't reach that one. Reported in #131.
+* **Instagram - Hide suggested posts:** Hide 'Are you interested' questions now also catches the bubble Instagram adds from a second part of its feed code, when the question comes without a subtitle. Reported in #131.
 
-* **Instagram - Lock your messages:** With the phone in a right-to-left language like Arabic or Hebrew, the cover stays over the messages. It used to slide to the right edge when the screen laid itself out again, which could leave part of the inbox showing on a split or narrower screen.
+* **Instagram - Lock your messages:** With the phone in a right-to-left language like Arabic or Hebrew, the cover stays over the messages. It used to slide to the right edge on a new layout, which could leave part of the inbox showing.
 
-* **Instagram - Mark as seen button:** The eye button in a story's header is easier to hit. Its touch area is wider, and the header is no taller for it.
+* **Instagram - View stories anonymously:** The Mark as seen button in a story's header is easier to hit. Its touch area is wider, and the header is no taller for it.
 
-* **Instagram - Ghost mode and Search buttons on Home's header:** Their icons take Instagram's own icon color. With Instagram's dark mode set differently from the phone's, they could come out dark on dark or white on white.
+* **Instagram - Hide the Reels tab:** The Ghost mode and Search buttons on Home's header take Instagram's own icon color. With Instagram's dark mode set differently from the phone's, they could come out dark on dark or white on white.
 
-* **Instagram - Downloads:** A save that fails says what to check when it can tell. A dropped connection says to check the connection. A file that arrived cut short or couldn't be stored says to check the connection and free storage. Anything else, like a post with nothing to save, still says "Download failed".
+* **Instagram:** A failed download says what to check when it can tell. A dropped connection points to the connection, and a file cut short or not stored points to the connection and free storage. Anything else says "Download failed".
 
 * **Instagram - Lock your messages:** If the HushGram PIN dialog goes away without an answer, say because Instagram closed the screen behind it, Unlock on the cover asks again right away. Before, it did nothing for about a minute.
 
-* **Instagram - Hide suggested stories and Hide Meta AI:** Their descriptions in Manager and the README said they start off, but their main switches start on. They now say which switches start on, and a test checks each "Starts on" and "Starts off" against the patch's main switch.
+* **Instagram:** The Hide suggested stories and Hide Meta AI descriptions said they start off, but their main switches start on. They now say which switches start on, and a test checks every description's "Starts on" and "Starts off".
 
 ## 0.0.9 (2026-10-11)
 
