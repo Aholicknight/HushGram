@@ -677,6 +677,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_explore_grid", FALSE);
 
     /**
+     * The Suggested for you accounts {@link app.hushgram.extension.instagram.explore.SearchSuggestions}
+     * leaves out of what shows when you tap the search bar. Recent searches stay. Off to start.
+     */
+    public static final BooleanSetting HIDE_SEARCH_SUGGESTIONS =
+            new BooleanSetting("hushgram_hide_search_suggestions", FALSE);
+
+    /**
      * What you open from search stays out of Recent, in the app's cache and on Instagram's side
      * ({@link app.hushgram.extension.instagram.explore.RecentSearches}). Read at each save. Off to start.
      */

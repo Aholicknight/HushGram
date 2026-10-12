@@ -623,6 +623,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 explore.addPreference(toggle(context, Settings.HIDE_EXPLORE_GRID, L10n.t("Hide the Explore grid"),
                         L10n.t("Hides the grid of posts and reels under the Search tab's bar. Search, recent "
                                 + "searches and results stay.")));
+                explore.addPreference(toggle(context, Settings.HIDE_SEARCH_SUGGESTIONS,
+                        L10n.t("Hide suggested accounts in search"),
+                        L10n.t("Leaves the Suggested for you accounts out of what shows when you tap the search "
+                                + "bar. Recent searches stay.")));
             }
             if (build.contains(PatchFamily.RECENT_SEARCHES)) {
                 explore.addPreference(toggle(context, Settings.DONT_SAVE_RECENT_SEARCHES,

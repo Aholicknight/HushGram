@@ -692,6 +692,19 @@ once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->hide(Ljava/uti
 once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->track(Ljava/lang/Object;)V in instance (Landroid/os/Bundle;)V holding ExploreFragment.setupGrid loadMoreInterface
 once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->loadMoreRow(Ljava/lang/Object;I)I in instance (L*;L*;)V holding INDEX_NO_ITEMS INDEX_LOAD_MORE
 #
+# Its second switch, Hide suggested accounts in search, asks the extension first thing in both
+# builders of what shows when you tap the search bar, the two methods loading
+# "null_state_suggested_users" and "search_follow_chaining_unit" (0H2f.A02 and 0I5d.A00 on 450).
+# The older one adds the Suggested for you section and answers nothing; it returns at once on
+# SearchSuggestions.hideSection()'s yes. The newer one builds the screen out of the list of items it's
+# handed, and also loads "show_more_recents"; its list goes through SearchSuggestions.items(List)
+# first. Left out, the suggested accounts stay under the search bar; twice or elsewhere, it isn't
+# the guard the patch wrote. HideSearchSuggestionsHookTest checks both on all seven 450 builds.
+start-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->hideSection()Z in static (L*;L*;)V holding null_state_suggested_users search_follow_chaining_unit
+once-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->hideSection()Z in static (L*;L*;)V holding null_state_suggested_users search_follow_chaining_unit
+start-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->items(Ljava/util/List;)Ljava/util/List; in static (L*;L*;Ljava/util/List;Z)L*; holding null_state_suggested_users show_more_recents
+once-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->items(Ljava/util/List;)Ljava/util/List; in static (L*;L*;Ljava/util/List;Z)L*; holding null_state_suggested_users show_more_recents
+#
 # Hide suggested posts' Hide shopping asks the extension once, at the return of a section Explore's
 # section parser built (the page parser reads "sectional_items" with it), with that section. The
 # parser is the one method holding "DiscoverySection", so no other read of Explore's JSON passes it.
