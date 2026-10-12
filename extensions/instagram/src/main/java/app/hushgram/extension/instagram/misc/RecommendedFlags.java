@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.shared.L10n;
 
 /**
@@ -183,11 +184,27 @@ public final class RecommendedFlags {
         Page page = new Page();
         for (Flag flag : candidates) {
             if (!offered(snapshot, flag)) continue;
+            Choice choice = choice(snapshot, flag, current);
+            if (choice == Choice.DEFAULT && coveredBySetting(flag)) continue;
             page.flags.add(flag);
-            page.choices.add(choice(snapshot, flag, current));
+            page.choices.add(choice);
         }
         return page;
     }
+
+    /**
+     * Keep Reels auto scroll between sessions (83371::10) beside the Keep auto scroll on setting
+     * reads as two choices for one thing. With that setting in this build the switch shows only
+     * while it's set, so a choice made before can still be taken back.
+     */
+    private static boolean coveredBySetting(Flag flag) {
+        if (flag.config[0] != 83371 || flag.index[0] != 10) return false;
+        Boolean forced = keepAutoScrollInBuildForTests;
+        return forced != null ? forced : PatchFamily.REEL_AUTO_SCROLL.inBuild();
+    }
+
+    /** Whether a test says Keep auto scroll on is in this build, instead of asking {@link PatchFamily}. */
+    static volatile Boolean keepAutoScrollInBuildForTests;
 
     /** Where the first parameter is a boolean in this build, the switch is offered. */
     private static boolean offered(OverrideExchange.Snapshot snapshot, Flag flag) {

@@ -120,6 +120,32 @@ public class RecommendedFlagsTest {
         assertEquals(RecommendedFlags.Choice.OTHER, page.choices.get(0));
     }
 
+    /**
+     * With Keep auto scroll on in the build, Keep Reels auto scroll between sessions would be a second
+     * switch for the same choice, so it shows only while it's set, to be taken back.
+     */
+    @Test public void keepReelsAutoScrollStandsDownBesideTheSettingUnlessItIsSet() throws Exception {
+        List<OverrideExchange.Parameter> schema = new ArrayList<>(OverrideImportTest.NativeTable.schema);
+        schema.add(new OverrideExchange.Parameter(83371, 10, "cfg_r", "per_session", 1, OverrideImportTest.NativeTable.id(1, 16)));
+        OverrideImportTest.NativeTable.schema = schema;
+        RecommendedFlags.Flag keep = shipped("Keep Reels auto scroll between sessions");
+        List<RecommendedFlags.Flag> only = Arrays.asList(keep);
+        try {
+            RecommendedFlags.keepAutoScrollInBuildForTests = false;
+            assertEquals(Arrays.asList(keep), RecommendedFlags.load(OverrideExchange.capture(activity), only).flags);
+            RecommendedFlags.keepAutoScrollInBuildForTests = true;
+            assertTrue(RecommendedFlags.load(OverrideExchange.capture(activity), only).flags.isEmpty());
+            assertEquals(OverrideImport.Outcome.APPLIED, RecommendedFlags.set(activity, keep, RecommendedFlags.Choice.ON).outcome);
+            RecommendedFlags.Page set = RecommendedFlags.load(OverrideExchange.capture(activity), only);
+            assertEquals(Arrays.asList(keep), set.flags);
+            assertEquals(Arrays.asList(RecommendedFlags.Choice.ON), set.choices);
+            // The rest of the list isn't touched by it.
+            assertSame(mixed, page().flags.get(0));
+        } finally {
+            RecommendedFlags.keepAutoScrollInBuildForTests = null;
+        }
+    }
+
     @Test public void turningASwitchOnChangesOnlyItsParametersAndLeavesTheRestAlone() throws Exception {
         OverrideImport.Result result = RecommendedFlags.set(activity, mixed, RecommendedFlags.Choice.ON);
         assertEquals(OverrideImport.Outcome.APPLIED, result.outcome);

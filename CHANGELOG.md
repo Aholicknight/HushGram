@@ -20,6 +20,8 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** The Before you sign in notice puts Tap to hide this on its own line, so a translated notice no longer runs it into the last sentence.
 
+* **Instagram - HushGram settings:** Recommended flags no longer shows Keep Reels auto scroll between sessions next to the Keep auto scroll on setting, unless you'd already set it. Then it stays so you can set it back.
+
 * **Instagram - Hide the Reels tab:** TalkBack reads the Ghost mode button on Home's header as "Ghost mode" with an on or off state, the way it reads a switch, instead of a sentence about what tapping does.
 
 * **Tooling:** Unreleased version headings now work with both the changelog checker and the release notes generator. Full-screen patch checks also verify control flow when jumps need a wider encoding.
