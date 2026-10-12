@@ -248,6 +248,25 @@ public class MessagesLockTest {
         assertEquals(2, asks.size());
     }
 
+    /**
+     * A screen destroyed while the lock is asking takes the PIN dialog with it, and Android doesn't
+     * dismiss it, so nothing answers the ask. It's over all the same: the next screen's Unlock asks
+     * at once, not a minute later.
+     */
+    @Test
+    public void aScreenDestroyedWhileAskingEndsTheAsk() {
+        MessagesLock.watch(RuntimeEnvironment.getApplication());
+        ActivityController<Activity> first = inbox();
+        MessagesLock.check(first.get());
+        assertEquals(1, asks.size());
+
+        first.pause().stop().destroy();
+        Activity next = inbox().get();
+        MessagesLock.confirmChatsThen(next, () -> { });
+
+        assertEquals("the next screen's Unlock waited out the old ask", 2, asks.size());
+    }
+
     @Test
     public void aChatIsCoveredTooAndNothingElseIs() {
         Activity activity = focused().get();

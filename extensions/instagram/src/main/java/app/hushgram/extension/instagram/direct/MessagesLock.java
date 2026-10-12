@@ -136,6 +136,8 @@ public final class MessagesLock {
     private static volatile boolean watching;
     private static int started;
     private static long askedAt;
+    /** The screen the open ask belongs to. Its dialog goes with it without a word when it's destroyed. */
+    private static WeakReference<Activity> askedBy = new WeakReference<>(null);
     private static boolean askedThisTime;
     /** What the activity in front was last told about the recent apps picture, and when. */
     private static Boolean keptOutOfRecents;
@@ -483,7 +485,14 @@ public final class MessagesLock {
 
         @Override public void onActivityCreated(Activity activity, Bundle state) { }
         @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
-        @Override public void onActivityDestroyed(Activity activity) { }
+        @Override public void onActivityDestroyed(Activity activity) {
+            // Android drops a destroyed screen's dialog without dismissing it, so the PIN ask never
+            // hears back. Over all the same, or the cover's Unlock would wait out ASK_TIMEOUT_MS.
+            if (askedAt != 0 && askedBy.get() == activity) {
+                askedAt = 0;
+                askedBy = new WeakReference<>(null);
+            }
+        }
     }
 
     /** Instagram left the screen: locked now, or once it's been away as long as Lock again says. */
@@ -921,6 +930,7 @@ public final class MessagesLock {
         long now = SystemClock.elapsedRealtime();
         if (askedAt != 0 && now - askedAt < ASK_TIMEOUT_MS) return;
         askedAt = now;
+        askedBy = new WeakReference<>(activity);
         try {
             asker.ask(activity, () -> {
                 askedAt = 0;
@@ -1102,6 +1112,7 @@ public final class MessagesLock {
         watching = false;
         started = 0;
         askedAt = 0;
+        askedBy = new WeakReference<>(null);
         askedThisTime = false;
         keptOutOfRecents = null;
         toldRecentsAt = 0;

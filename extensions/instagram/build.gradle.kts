@@ -620,6 +620,7 @@ tasks.register("verifyAndroidBoundaries") {
                 "aRightToLeftLayoutKeepsTheCoverOverTheMessages[28]", "aRightToLeftLayoutKeepsTheCoverOverTheMessages[37]",
                 "thePhoneIsAskedOnlyWhileInstagramHasTheFocus[28]", "thePhoneIsAskedOnlyWhileInstagramHasTheFocus[37]",
                 "confirmedOpensUntilInstagramLeavesTheScreen[28]", "confirmedOpensUntilInstagramLeavesTheScreen[37]",
+                "aScreenDestroyedWhileAskingEndsTheAsk[28]", "aScreenDestroyedWhileAskingEndsTheAsk[37]",
                 "aChatIsCoveredTooAndNothingElseIs[28]", "aChatIsCoveredTooAndNothingElseIs[37]",
                 "lockAllOfInstagramCoversTheWholeScreen[28]", "lockAllOfInstagramCoversTheWholeScreen[37]",
                 "lockAgainWaitsAsLongAsYouPicked[28]", "lockAgainWaitsAsLongAsYouPicked[37]",
