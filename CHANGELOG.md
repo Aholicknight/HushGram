@@ -32,6 +32,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** Each account's settings list shows only its own chats, and a message notification follows the account it was sent to, whichever account is open.
 
+* **Instagram - Download any video:** New switch under Downloads, Skip what's already saved, off by default. Something you saved isn't saved twice unless you ask again within 30 seconds. Clear download history forgets the list. Asked for in #150.
+
 #### Improvements
 
 * **Instagram - HushGram settings:** Settings now use clearer category descriptions, a rounded search field and pink icon tiles. Dialogs share the same styling, and controls stay readable at larger text sizes.
