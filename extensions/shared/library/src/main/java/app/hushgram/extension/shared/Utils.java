@@ -441,8 +441,11 @@ public class Utils {
         // Intentionally use logger before context is set,
         // to expose any bugs in the 'no context available' logger code.
         Logger.printInfo(() -> "Set context: " + appContext);
-        // Must initially set context to check the app language.
-        context = appContext;
+        // Must initially set context to check the app language. Never an activity: this field
+        // outlives it, and would keep its window and views after the host closes or recreates it.
+        // The activity itself is followed weakly below.
+        Context application = appContext instanceof Activity ? appContext.getApplicationContext() : null;
+        context = application != null ? application : appContext;
 
         // Before any hook reads a setting: whether this process runs with HushGram paused, and
         // the record that lets three crashed starts in a row turn safe mode on.
@@ -463,9 +466,10 @@ public class Utils {
         if (language != AppLanguage.DEFAULT) {
             // Create a new context with the desired language.
             Logger.printDebug(() -> "Using app language: " + language);
-            Configuration config = new Configuration(appContext.getResources().getConfiguration());
+            Context base = context;
+            Configuration config = new Configuration(base.getResources().getConfiguration());
             config.setLocale(language.getLocale());
-            context = appContext.createConfigurationContext(config);
+            context = base.createConfigurationContext(config);
         }
 
         setThemeLightColor(getThemeColor(getThemeLightColorResourceName(), Color.WHITE));

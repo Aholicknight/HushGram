@@ -28,6 +28,8 @@ Every HushGram release, newest first.
 
 * **Tooling:** The build moves to Gradle 9.8.1, fixing three high severity advisories in 9.8.0 (GHSA-xwqc-3h47-hg64, GHSA-mvvg-497x-hmj8, GHSA-j5m7-59rp-24f5). The dependency audit now checks Gradle itself too. Gradle only runs at build time, so the bundle was never affected.
 
+* **Instagram:** The context HushGram shares between its features is always Instagram's application now, never a screen. A closed screen can't be held in memory through it, whatever hands it in.
+
 #### Bug Fixes
 
 * **Instagram - Glass tab bar:** Feed videos started with a tap stay in place. On some phones they dropped behind the tab bar, leaving a black gap. Reported in #136.
