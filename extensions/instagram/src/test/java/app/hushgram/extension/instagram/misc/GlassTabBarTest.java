@@ -9,7 +9,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.RenderNode;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -18,6 +20,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 
 /** The colour and size choices Glass tab bar makes from Instagram's bar colour and the screen's width. */
 @RunWith(RobolectricTestRunner.class)
@@ -267,6 +271,29 @@ public class GlassTabBarTest {
         holder.addView(noPager);
         GlassTabBar.screensAboveTheBar(content, 0, 126, 0);
         assertEquals("no pager id, no sibling touched", 126, margin(noPager));
+    }
+
+    /**
+     * #136: once a video shows under the bar, the backdrop recorded before it stops drawing. The recording
+     * holds the views under the bar, so a video that started after it is in it too, and a SurfaceView drawn
+     * there a second time had its picture moved under the pill, leaving black where it played.
+     */
+    @Test
+    @Config(sdk = 37)
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aVideoUnderTheBarDropsTheBackdropTheBarStillDrew() {
+        RenderNode node = new RenderNode("glass-test");
+        node.setPosition(0, 0, 10, 10);
+        Canvas recording = node.beginRecording(10, 10);
+        recording.drawColor(Color.RED);
+        node.endRecording();
+        assertTrue(node.hasDisplayList());
+        View bar = new View(RuntimeEnvironment.getApplication());
+
+        GlassTabBar.forgetBackdrop(node, bar);
+
+        assertFalse("nothing of the old recording is left for the bar to draw", node.hasDisplayList());
+        GlassTabBar.forgetBackdrop(null, bar);
     }
 
     private static View withMargin(View view, int bottom) {

@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Bug Fixes
+
+* **Instagram - Glass tab bar:** A feed video you start with a tap plays where it is. On some phones it dropped to the bottom of the screen, under the bar, and left black where it should have played. Reported in #136.
+
 ## 0.0.9 (2026-10-11)
 
 ### Features

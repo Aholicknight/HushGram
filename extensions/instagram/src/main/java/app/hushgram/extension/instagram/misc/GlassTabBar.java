@@ -44,6 +44,7 @@ import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;
@@ -132,6 +133,19 @@ public final class GlassTabBar {
             margins.bottomMargin = wanted;
             screen.setLayoutParams(margins);
         }
+    }
+
+    /**
+     * Drops what the glass last recorded and has the bar draw again without it, once a video shows under
+     * the bar (#136). A recording holds the views under the bar themselves, not a picture of them, so a
+     * video that started after it, such as a feed video started with a tap, is in it too. A SurfaceView
+     * drawn there a second time has its picture moved to the pill: the video dropped to the bottom of the
+     * screen, under the bar, and left black where it played.
+     */
+    @RequiresApi(Build.VERSION_CODES.Q)
+    static void forgetBackdrop(@Nullable RenderNode node, View bar) {
+        if (node != null) node.discardDisplayList();
+        bar.invalidate();
     }
 
     @Nullable
@@ -829,6 +843,8 @@ public final class GlassTabBar {
                 int barIndex = parent.indexOfChild(bar);
                 if (barIndex <= 0) return;
                 if (videoUnder(parent, barIndex)) {
+                    // Flagging the recording stale isn't enough: the bar draws it until the bar is drawn again.
+                    if (recorded) forgetBackdrop(node, bar);
                     recorded = false;
                     return;
                 }
