@@ -1988,8 +1988,8 @@ public final class L10nTranslations {
                 "Wenn Instagram mehr als 500 MB gespeicherte Fotos und Videos hat, werden die Fotos gel\u00f6scht, sobald du die App verl\u00e4sst, und die Videos beim n\u00e4chsten Start. Anmeldung, Entw\u00fcrfe und Einstellungen bleiben.");
         table.put("Where videos wait",
                 "Wo Videos warten");
-        table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
-                "Solange langes Dr\u00fccken auf einen Tab HushGram \u00f6ffnet, fehlt die HushGram-Zeile auf Instagrams Seite Einstellungen und Aktivit\u00e4t. Schaltest du das lange Dr\u00fccken aus, ist die Zeile wieder da.");
+        table.put("While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.",
+                "Solange langes Dr\u00fccken auf einen Tab oder auf das Men\u00fc deines Profils HushGram \u00f6ffnet, fehlt die HushGram-Zeile auf Instagrams Seite Einstellungen und Aktivit\u00e4t. Schaltest du das lange Dr\u00fccken aus, ist die Zeile wieder da.");
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "W\u00e4hrend du Stories anonym ansiehst, wird eine angesehene Story grau und r\u00fcckt ans Ende der Reihe, nur auf diesem Handy. Instagram erf\u00e4hrt weiterhin nicht, dass du sie angesehen hast.");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
@@ -3963,8 +3963,8 @@ public final class L10nTranslations {
                 "Cuando Instagram tiene m\u00e1s de 500 MB de fotos y videos guardados, borra las fotos al salir de la app y los videos la pr\u00f3xima vez que se inicie. Tu inicio de sesi\u00f3n, borradores y ajustes se quedan.");
         table.put("Where videos wait",
                 "D\u00f3nde esperan los videos");
-        table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
-                "Mientras mantener pulsada una pesta\u00f1a abra HushGram, la pantalla Configuraci\u00f3n y actividad de Instagram no muestra la fila de HushGram. Desactiva la pulsaci\u00f3n larga y la fila vuelve.");
+        table.put("While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.",
+                "Mientras mantener pulsada una pesta\u00f1a o el men\u00fa de tu perfil abra HushGram, la pantalla Configuraci\u00f3n y actividad de Instagram no muestra la fila de HushGram. Desactiva esas pulsaciones largas y la fila vuelve.");
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "Mientras ves de forma an\u00f3nima, una historia que ya viste se pone en gris y pasa al final de la fila, solo en este tel\u00e9fono. Instagram sigue sin saber que la viste.");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
@@ -5938,8 +5938,8 @@ public final class L10nTranslations {
                 "Saat Instagram punya lebih dari 500 MB foto dan video tersimpan, foto dihapus ketika kamu keluar dari aplikasi dan video dihapus saat Instagram dimulai berikutnya. Login, draf, dan pengaturan tetap ada.");
         table.put("Where videos wait",
                 "Tempat video menunggu");
-        table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
-                "Selama menekan lama tab membuka HushGram, layar Pengaturan dan aktivitas Instagram tidak menampilkan baris HushGram. Matikan tekan lama itu dan barisnya kembali.");
+        table.put("While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.",
+                "Selama menekan lama tab atau menu profilmu membuka HushGram, layar Pengaturan dan aktivitas Instagram tidak menampilkan baris HushGram. Matikan tekan lama itu dan barisnya kembali.");
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "Saat kamu melihat secara anonim, cerita yang sudah kamu tonton berubah abu-abu dan pindah ke ujung baris, hanya di ponsel ini. Instagram tetap tidak diberi tahu bahwa kamu menontonnya.");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
@@ -7913,8 +7913,8 @@ public final class L10nTranslations {
                 "Instagram\uc5d0 \uc800\uc7a5\ub41c \uc0ac\uc9c4\uacfc \ub3d9\uc601\uc0c1\uc774 500MB\ub97c \ub118\uc73c\uba74, \uc571\uc5d0\uc11c \ub098\uac08 \ub54c \uc0ac\uc9c4\uc744, \ub2e4\uc74c \uc2e4\ud589 \ub54c \ub3d9\uc601\uc0c1\uc744 \uc0ad\uc81c\ud569\ub2c8\ub2e4. \ub85c\uadf8\uc778 \uc815\ubcf4, \uc784\uc2dc \uc800\uc7a5 \uae00, \uc124\uc815\uc740 \uadf8\ub300\ub85c\uc785\ub2c8\ub2e4.");
         table.put("Where videos wait",
                 "\ub3d9\uc601\uc0c1\uc774 \ub300\uae30\ud558\ub294 \uacf3");
-        table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
-                "\ud0ed\uc744 \uae38\uac8c \ud0ed\ud574 HushGram\uc744 \uc5ec\ub294 \ub3d9\uc548\uc5d0\ub294 Instagram\uc758 \uc124\uc815 \ubc0f \ud65c\ub3d9 \ud654\uba74\uc5d0 HushGram \ud56d\ubaa9\uc774 \ud45c\uc2dc\ub418\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \uae38\uac8c \ud0ed\ud558\uae30\ub97c \ub044\uba74 \ud56d\ubaa9\uc774 \ub2e4\uc2dc \ub098\ud0c0\ub0a9\ub2c8\ub2e4.");
+        table.put("While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.",
+                "\ud0ed\uc774\ub098 \ud504\ub85c\ud544 \uba54\ub274\ub97c \uae38\uac8c \ud0ed\ud574 HushGram\uc744 \uc5ec\ub294 \ub3d9\uc548\uc5d0\ub294 Instagram\uc758 \uc124\uc815 \ubc0f \ud65c\ub3d9 \ud654\uba74\uc5d0 HushGram \ud56d\ubaa9\uc774 \ud45c\uc2dc\ub418\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \uae38\uac8c \ud0ed\ud558\uae30\ub97c \ub044\uba74 \ud56d\ubaa9\uc774 \ub2e4\uc2dc \ub098\ud0c0\ub0a9\ub2c8\ub2e4.");
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "\uc2a4\ud1a0\ub9ac\ub97c \ubab0\ub798 \ubcf4\ub294 \ub3d9\uc548 \uc774\ubbf8 \ubcf8 \uc2a4\ud1a0\ub9ac\uac00 \ud68c\uc0c9\uc73c\ub85c \ubc14\ub00c\uace0 \uc904\uc758 \ub9e8 \ub05d\uc73c\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4. \uc774 \ubcc0\ud654\ub294 \uc774 \ud734\ub300\ud3f0\uc5d0\uc11c\ub9cc \ubcf4\uc774\uba70, Instagram\uc5d0\ub294 \uc5ec\uc804\ud788 \uc2dc\uccad \uc0ac\uc2e4\uc774 \uc804\ub2ec\ub418\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
@@ -9888,8 +9888,8 @@ public final class L10nTranslations {
                 "Quando o Instagram tem mais de 500 MB de fotos e v\u00eddeos salvos, apaga as fotos quando voc\u00ea sai dele e os v\u00eddeos na pr\u00f3xima vez que ele iniciar. Seu login, rascunhos e configura\u00e7\u00f5es continuam.");
         table.put("Where videos wait",
                 "Onde os v\u00eddeos esperam");
-        table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
-                "Enquanto manter uma aba pressionada abrir o HushGram, a tela Configura\u00e7\u00f5es e atividade do Instagram n\u00e3o mostra a linha do HushGram. Desative o toque longo e a linha volta.");
+        table.put("While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.",
+                "Enquanto manter uma aba ou o menu do seu perfil pressionado abrir o HushGram, a tela Configura\u00e7\u00f5es e atividade do Instagram n\u00e3o mostra a linha do HushGram. Desative esses toques longos e a linha volta.");
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "Enquanto voc\u00ea assiste anonimamente, um Story que voc\u00ea j\u00e1 viu fica cinza e vai para o fim da fila, s\u00f3 neste celular. O Instagram continua sem saber que voc\u00ea viu.");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
@@ -11863,8 +11863,8 @@ public final class L10nTranslations {
                 "Instagram'da 500 MB'dan fazla kay\u0131tl\u0131 foto\u011fraf ve video oldu\u011funda, foto\u011fraflar\u0131 uygulamadan \u00e7\u0131kt\u0131\u011f\u0131nda, videolar\u0131 ise bir sonraki a\u00e7\u0131l\u0131\u015fta siler. Oturum a\u00e7ma bilgilerin, taslaklar\u0131n ve ayarlar\u0131n kal\u0131r.");
         table.put("Where videos wait",
                 "Videolar\u0131n bekledi\u011fi yer");
-        table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
-                "Bir sekmeye uzun basmak HushGram'\u0131 a\u00e7t\u0131\u011f\u0131 s\u00fcrece Instagram'\u0131n Ayarlar ve hareketler ekran\u0131nda HushGram sat\u0131r\u0131 g\u00f6sterilmez. Uzun basmay\u0131 kapat\u0131nca sat\u0131r geri gelir.");
+        table.put("While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.",
+                "Bir sekmeye ya da profilinin men\u00fcs\u00fcne uzun basmak HushGram'\u0131 a\u00e7t\u0131\u011f\u0131 s\u00fcrece Instagram'\u0131n Ayarlar ve hareketler ekran\u0131nda HushGram sat\u0131r\u0131 g\u00f6sterilmez. Uzun basmalar\u0131 kapat\u0131nca sat\u0131r geri gelir.");
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "Anonim izlerken izledi\u011fin bir hikaye griye d\u00f6ner ve s\u0131ran\u0131n sonuna ge\u00e7er, yaln\u0131zca bu telefonda. Instagram yine de onu izledi\u011fini \u00f6\u011frenmez.");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",

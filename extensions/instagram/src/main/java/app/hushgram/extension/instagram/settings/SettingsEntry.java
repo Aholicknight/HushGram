@@ -534,13 +534,15 @@ public final class SettingsEntry {
      * the screen's arguments and the view it made. On the top screen, Settings and activity, it
      * answers that view with the HushGram settings row above it; on every other screen, and when
      * anything goes wrong, the view as it came. With {@link Settings#HIDE_MENU_ROW} on, the row
-     * is left out while the chosen tab long press can open HushGram instead (#84).
+     * is left out while the chosen tab long press (#84) or the long press on your profile's menu (#148)
+     * can open HushGram instead.
      */
     public static View withSettingsRow(Bundle arguments, View screen) {
         try {
             if (screen == null || !SettingsScreenRow.isMainScreen(arguments)) return screen;
-            if (Utils.settingsReady() && Settings.HIDE_MENU_ROW.get() && NavigationSettings.opensFromATab()) {
-                Logger.printInfo(() -> "Settings entry: menu row left out, the tab long press opens HushGram");
+            if (Utils.settingsReady() && Settings.HIDE_MENU_ROW.get()
+                    && (NavigationSettings.opensFromATab() || ProfileMenuPress.opensHushGram())) {
+                Logger.printInfo(() -> "Settings entry: menu row left out, a long press opens HushGram");
                 return screen;
             }
             return SettingsScreenRow.above(screen);

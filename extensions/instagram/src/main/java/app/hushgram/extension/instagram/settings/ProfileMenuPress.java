@@ -218,6 +218,21 @@ public final class ProfileMenuPress {
         }
     }
 
+    /**
+     * Whether a long press on your profile's menu opens HushGram on this account: the switch is on and a
+     * menu button carries the long press. Off, paused, or no button found yet (or one with a long press of
+     * its own), it's false, so Instagram's menu keeps the HushGram row and there's still a way in (#148).
+     */
+    static boolean opensHushGram() {
+        if (!on()) return false;
+        synchronized (bound) {
+            for (View view : bound.keySet()) {
+                if (view != null) return true;
+            }
+        }
+        return false;
+    }
+
     /** Whether [view] carries HushGram's long press right now. */
     static boolean carries(View view) {
         synchronized (bound) {

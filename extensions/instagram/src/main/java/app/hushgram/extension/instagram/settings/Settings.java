@@ -55,10 +55,11 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_quality_tab_target", NavigationTarget.OFF, false);
 
     /**
-     * Leaves the HushGram row out of Instagram's own settings menu while a tab long press opens
-     * HushGram (#84). Off to start. The row is left out only while the chosen tab is on a button
-     * Instagram built ({@link NavigationSettings#opensFromATab}), so turning the long press off,
-     * or Pause, brings the row back and there's always a way in.
+     * Leaves the HushGram row out of Instagram's own settings menu while a tab long press (#84) or
+     * the long press on your profile's menu (#148) opens HushGram. Off to start. The row is left out
+     * only while the chosen tab is on a button Instagram built ({@link NavigationSettings#opensFromATab})
+     * or a profile menu button carries the long press ({@link ProfileMenuPress#opensHushGram}), so
+     * turning the long presses off, or Pause, brings the row back and there's always a way in.
      */
     public static final BooleanSetting HIDE_MENU_ROW =
             new BooleanSetting("hushgram_hide_menu_row", FALSE);

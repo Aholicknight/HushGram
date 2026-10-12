@@ -17,6 +17,7 @@ import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -49,8 +50,10 @@ public class SettingsScreenRowTest {
     public void setUp() {
         PauseForTests.resume();
         NavigationSettings.forgetTabsForTests();
+        ProfileMenuPress.forgetForTests();
         Settings.NAVIGATION_SETTINGS_TARGET.resetToDefault();
         Settings.HIDE_MENU_ROW.resetToDefault();
+        Settings.PROFILE_MENU_LONG_PRESS.resetToDefault();
     }
 
     @After
@@ -58,8 +61,10 @@ public class SettingsScreenRowTest {
         SettingsEntry.onClosedByUser();
         PauseForTests.resume();
         NavigationSettings.forgetTabsForTests();
+        ProfileMenuPress.forgetForTests();
         Settings.NAVIGATION_SETTINGS_TARGET.resetToDefault();
         Settings.HIDE_MENU_ROW.resetToDefault();
+        Settings.PROFILE_MENU_LONG_PRESS.resetToDefault();
         Utils.awaitBackgroundTasksForTests();
     }
 
@@ -167,6 +172,41 @@ public class SettingsScreenRowTest {
 
         ((ViewGroup) profile.getParent()).removeView(profile);
         assertRow("a button off the screen kept the row away", activity);
+    }
+
+    /**
+     * #148: with the long press on your profile's menu on and a menu button carrying it, Instagram's menu
+     * leaves the row out with no tab long press chosen. A button that kept a long press of its own, the
+     * switch off, or Pause brings the row back.
+     */
+    @Test
+    public void theRowStepsAsideWhileTheProfileMenuLongPressOpensHushGram() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Settings.HIDE_MENU_ROW.save(true);
+        Settings.PROFILE_MENU_LONG_PRESS.save(true);
+        assertRow("no menu button carries the long press yet", activity);
+
+        ImageView taken = new ImageView(activity);
+        taken.setOnLongClickListener(view -> true);
+        ProfileMenuPress.bind(taken);
+        assertRow("a button with a long press of its own isn't a way in", activity);
+
+        ImageView menu = new ImageView(activity);
+        activity.setContentView(menu);
+        ProfileMenuPress.bind(menu);
+        assertTrue(ProfileMenuPress.carries(menu));
+        View screen = new FrameLayout(activity);
+        assertSame("the profile menu opens HushGram and the row stayed", screen,
+                SettingsEntry.withSettingsRow(arguments(Screen.MAIN_SETTINGS_SCREEN), screen));
+
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertRow("Pause left the menu without the row", activity);
+        PauseForTests.resume();
+
+        Settings.PROFILE_MENU_LONG_PRESS.save(false);
+        ProfileMenuPress.applyChoice();
+        assertFalse(ProfileMenuPress.carries(menu));
+        assertRow("turning the long press off left no way in", activity);
     }
 
     @Test
