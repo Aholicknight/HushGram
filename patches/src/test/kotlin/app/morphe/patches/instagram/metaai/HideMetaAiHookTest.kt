@@ -14,6 +14,7 @@ import app.morphe.patches.instagram.feed.FeedItemStandIns
 import app.morphe.patches.instagram.feed.FeedItemStandIns.assertFilteredBeforeReturn
 import app.morphe.patches.instagram.feed.FeedItemStandIns.instructions
 import app.morphe.patches.instagram.feed.filterParsedFeedItems
+import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -26,6 +27,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
@@ -45,6 +47,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReferen
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
+import com.android.tools.smali.dexlib2.immutable.value.ImmutableStringEncodedValue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -119,6 +122,52 @@ class HideMetaAiHookTest {
 
         assertEquals(setOf(SEARCH, INBOX, RING, HOME), reads.map { it.type }.toSet())
         assertEquals(4, reads.size)
+    }
+
+    /**
+     * #152: the results page's fragments, a class naming one of them and the row builder keep
+     * Instagram's answer to the Search tab's flag. The Search tab, Home and the other flags' reads
+     * get the switch's, and the wrapper the flag is read in is left as it is.
+     */
+    @Test
+    fun theResultsPageKeepsInstagramsAnswerAndTheRestGetsTheSwitchs() {
+        val context = PatchContexts.of(resultsPage())
+
+        context.answerSearchFlagReads(context.searchFlagSites(context.findSearchFlagReads()))
+
+        for (type in listOf(GRID, TABS, ROWS, OPENER, WRAPPER)) {
+            val code = context.mutableClassDefBy(type).methods.single { it.name == "A00" || it.name == "A01" }.instructions()
+            assertTrue("$type answers through the extension", code.none { (it as? ReferenceInstruction)?.reference?.toString() == SEARCH_FLAG })
+        }
+        for (type in listOf(EXPLORE, FEED)) {
+            val code = context.mutableClassDefBy(type).methods.single { it.name == "A01" }.instructions()
+            val result = code.indexOfFirst { it.opcode == Opcode.MOVE_RESULT }
+            assertEquals("$type: the hook", SEARCH_FLAG, (code[result + 1] as ReferenceInstruction).reference.toString())
+            assertEquals("$type: the answer", Opcode.MOVE_RESULT, code[result + 2].opcode)
+            assertEquals("$type: the register", (code[result] as OneRegisterInstruction).registerA, (code[result + 2] as OneRegisterInstruction).registerA)
+        }
+        for (type in listOf(INBOX, RING, HOME)) {
+            assertAnsweredAfterEveryRead(type, context.mutableClassDefBy(type).methods.single { it.name == "A00" })
+        }
+    }
+
+    @Test
+    fun aResultsPageFragmentThatDoesntReadTheFlagFailsThePatch() {
+        val context = PatchContexts.of(resultsPage().filterNot { it.type == TABS })
+        assertThrows(PatchException::class.java) { context.searchFlagSites(context.findSearchFlagReads()) }
+    }
+
+    @Test
+    fun aRowBuilderThatDoesntReadTheFlagFailsThePatch() {
+        val context = PatchContexts.of(resultsPage().filterNot { it.type == ROWS })
+        assertThrows(PatchException::class.java) { context.searchFlagSites(context.findSearchFlagReads()) }
+    }
+
+    /** With only the results page reading it, the switch would hide nothing, an update the patch hasn't seen. */
+    @Test
+    fun onlyTheResultsPageReadingTheFlagFailsThePatch() {
+        val context = PatchContexts.of(resultsPage().filterNot { it.type == EXPLORE || it.type == FEED })
+        assertThrows(PatchException::class.java) { context.searchFlagSites(context.findSearchFlagReads()) }
     }
 
     /** The bar's stub check answers through the extension; the pills' stub inside the bar is left alone. */
@@ -504,6 +553,76 @@ class HideMetaAiHookTest {
         assertTrue("no fixture of a declared build", checked > 0)
     }
 
+    /**
+     * #152 in each declared build: every call of the wrapper the Search tab's flag is read in keeps
+     * Instagram's answer in both results page fragments and the row builder, and the Explore tab and
+     * Home answer through the extension.
+     */
+    @Test
+    fun eachDeclaredBuildKeepsTheResultsPagesAnswer() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        var checked = 0
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                val holders = mutableListOf<ClassDef>()
+                FixtureDex.forEach(bundle) { dex ->
+                    for (classDef in dex.classes) {
+                        if (classDef.methods.any { method -> method.loadsAFlag() }) holders += ImmutableClassDef.of(classDef)
+                    }
+                }
+                val wrappers = holders.flatMap { holder ->
+                    holder.methods.filter { it.returnType == "Z" && AccessFlags.STATIC.isSet(it.accessFlags) && it.loads(RESULTS_FLAG) }
+                        .map { "${holder.type}->${it.name}" }
+                }.toSet()
+                val classes = holders.associateByTo(LinkedHashMap()) { it.type }
+                FixtureDex.forEach(bundle) { dex ->
+                    for (classDef in dex.classes) {
+                        if (classDef.type !in classes && classDef.methods.any { it.calls(wrappers) }) classes[classDef.type] = ImmutableClassDef.of(classDef)
+                    }
+                }
+                val context = PatchContexts.of(classes.values)
+
+                context.answerSearchFlagReads(context.searchFlagSites(context.findSearchFlagReads()))
+
+                val kept = mutableListOf<String>()
+                val answered = mutableListOf<String>()
+                for (classDef in classes.values) {
+                    for (method in context.mutableClassDefBy(classDef.type).methods) {
+                        val code = method.instructions()
+                        for (at in code.indices) {
+                            if (!code[at].callsOneOf(wrappers) || code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT) continue
+                            val where = "${classDef.originalName() ?: classDef.type}->${method.name}"
+                            if ((code.getOrNull(at + 2) as? ReferenceInstruction)?.reference?.toString() == SEARCH_FLAG) {
+                                answered += where
+                            } else {
+                                kept += where
+                                if (method.holdsAll(listOf(SUMMARY_ROWS))) kept += "rows"
+                            }
+                        }
+                    }
+                }
+                for (page in RESULTS_PAGES + "rows") assertTrue("${bundle.name}: $page keeps Instagram's answer, kept $kept", kept.any { it == page || it.startsWith("$page->") })
+                assertTrue("${bundle.name}: the results page answered through the extension: $answered", answered.none { name -> RESULTS_PAGES.any { name.startsWith("$it->") } })
+                for (tab in listOf("ExploreFragment", "MainFeedFragment")) {
+                    assertTrue("${bundle.name}: $tab doesn't answer through the extension: $answered", answered.any { it.startsWith("$tab->") })
+                }
+                checked++
+            }
+        }
+        assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    private fun Method.loads(flag: Long): Boolean = implementation?.instructions?.any {
+        it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == flag
+    } == true
+
+    private fun Method.calls(methods: Set<String>): Boolean = implementation?.instructions?.any { it.callsOneOf(methods) } == true
+
+    private fun Instruction.callsOneOf(methods: Set<String>): Boolean {
+        val call = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+        return (opcode == Opcode.INVOKE_STATIC || opcode == Opcode.INVOKE_STATIC_RANGE) && "${call.definingClass}->${call.name}" in methods
+    }
+
     private fun Method.loadsAFlag(): Boolean = implementation?.instructions?.any {
         it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral in SEARCH_FLAGS
     } == true
@@ -600,6 +719,48 @@ class HideMetaAiHookTest {
         const val HOME = "Lfixture/HomeBarGate;"
         const val CONFIG = "Lfixture/MobileConfig;"
         const val SESSION = "Lfixture/UserSession;"
+        const val WRAPPER = "Lfixture/SearchFlag;"
+        const val GRID = "Lfixture/SerpGrid;"
+        const val TABS = "Lfixture/SerpTabs;"
+        const val ROWS = "Lfixture/SerpRows;"
+        const val OPENER = "Lfixture/SerpOpener;"
+        const val EXPLORE = "Lfixture/Explore;"
+        const val FEED = "Lfixture/MainFeed;"
+
+        /**
+         * Shaped like 450's #152 setup: the Search tab's flag read in a wrapper, called by the two
+         * results page fragments, the row builder, a class opening the tabbed page, Explore and Home,
+         * with the other three flags read where 449 reads them.
+         */
+        fun resultsPage(): List<ClassDef> = listOf(
+            gate(WRAPPER, RESULTS_FLAG), wrapped(INBOX, SEARCH_FLAGS[1]), gate(RING, SEARCH_FLAGS[2]), gate(HOME, SEARCH_FLAGS[3]),
+            caller(GRID, name = "BaseSerpGridFragment"), caller(TABS, name = "CompositeSerpTabbedFragment"),
+            caller(ROWS, strings = listOf("SUGGESTED", SUMMARY_ROWS)), caller(OPENER, opens = TABS),
+            caller(EXPLORE, name = "ExploreFragment"), caller(FEED, name = "MainFeedFragment"),
+        )
+
+        /** A class whose A01 hands back what [WRAPPER] answers, with its kept [name], [strings] loaded first, and an A02 answering [opens]. */
+        fun caller(type: String, name: String? = null, strings: List<String> = emptyList(), opens: String? = null): ClassDef {
+            val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+            val code = strings.map { ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference(it)) } + listOf(
+                ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 2, 0, 0, 0, 0, ImmutableMethodReference(WRAPPER, "A00", listOf(SESSION), "Z")),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+                ImmutableInstruction11x(Opcode.RETURN, 0),
+            )
+            val methods = listOfNotNull(
+                ImmutableMethod(
+                    type, "A01", listOf(ImmutableMethodParameter(SESSION, null, null)), "Z", static, null, null,
+                    ImmutableMethodImplementation(3, code, null, null),
+                ),
+                opens?.let { ImmutableMethod(type, "A02", emptyList(), it, static or AccessFlags.NATIVE.value, null, null, null) },
+            )
+            val fields = listOfNotNull(
+                name?.let {
+                    ImmutableField(type, "__redex_internal_original_name", "Ljava/lang/String;", static or AccessFlags.FINAL.value, ImmutableStringEncodedValue(it), null, null)
+                },
+            )
+            return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, fields, methods)
+        }
 
         /** Shaped like 449's search gate: the id, a cast of the config, and the interface's boolean read. */
         fun gate(type: String, flag: Long, returns: String = "Z", result: Opcode? = Opcode.MOVE_RESULT) = holder(

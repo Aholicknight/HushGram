@@ -10,9 +10,11 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.feed.filterParsedFeedItems
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.flags.FlagRead
 import app.morphe.patches.instagram.misc.flags.answerFlagReads
@@ -20,6 +22,7 @@ import app.morphe.patches.instagram.misc.flags.findFlagReads
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
@@ -28,8 +31,11 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.Reference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 private const val PATCH = "Hide Meta AI"
 private const val META_AI = "$EXTENSION_PACKAGE/metaai/MetaAi;"
@@ -71,6 +77,15 @@ private const val VIEW = "Landroid/view/View;"
  */
 internal val SEARCH_FLAGS = listOf(0x81067f00111f66L, 0x81041600061138L, 0x810414001b112eL, 0x8116a000017225L)
 
+/** The Search tab's flag, which the search results page reads too (#152). */
+internal val RESULTS_FLAG = SEARCH_FLAGS[0]
+
+/** The search results page's two fragments, by the names Instagram's build keeps for them. */
+internal val RESULTS_PAGES = listOf("BaseSerpGridFragment", "CompositeSerpTabbedFragment")
+
+/** What the results page's row builder keys Meta AI's summary rows with. It names neither fragment. */
+internal const val SUMMARY_ROWS = "hcm_sources_"
+
 /** Meta AI's feed item kinds: Vibes videos, Meta AI chats and Imagine pictures of you. */
 internal val META_AI_UNITS = listOf("VIBES_IN_FEED_UNIT", "HATCH_IMMERSIVE_IN_FEED_UNIT", "MEMU_IN_FEED_UNIT")
 
@@ -89,7 +104,7 @@ val hideMetaAiPatch = bytecodePatch(
         // Every read is found and checked, and SettingsStatus is confirmed to carry the switch's
         // method, before any hook changes an instruction.
         requireStatusMethod("metaAi")
-        val reads = findSearchFlagReads()
+        val reads = searchFlagSites(findSearchFlagReads())
         val followUp = findFollowUpBarCheck()
         val followUpStub = findFollowUpBarStub()
         val homeButtons = findHomeButtonNames()
@@ -125,8 +140,94 @@ val hideMetaAiPatch = bytecodePatch(
  */
 internal fun BytecodePatchContext.findSearchFlagReads(): List<FlagRead> = findFlagReads(PATCH, SEARCH_FLAGS)
 
-/** Passes each read's answer through MetaAi.searchFlag, right after its move-result. */
+/**
+ * Where the switch answers [reads] (#152). [RESULTS_FLAG]'s read sits in a static wrapper that hands
+ * the answer straight back, called from 26 places on 450, and the search results page is among them.
+ * The page builds its rows from that answer and opens a tapped reel by its row's place in the list
+ * the server sent, so with Meta AI's rows left out, a reel past them opened another one. So the
+ * page keeps Instagram's answer, and everything else that reads it, the Search tab's bar and Home's
+ * included, gets the switch's.
+ *
+ * Each call of the wrapper whose answer is kept is a site, as is a read of the flag outside a
+ * wrapper. A site is on the results page when its class is one of [RESULTS_PAGES] or names either
+ * one's type anywhere, or its method holds [SUMMARY_ROWS] (the row builder). The other flags'
+ * reads are answered where they are. Fails when either fragment doesn't read the flag, the row
+ * builder doesn't, or nothing off the page does.
+ */
+internal fun BytecodePatchContext.searchFlagSites(reads: List<FlagRead>): List<FlagRead> {
+    val (results, others) = reads.partition { it.flag == RESULTS_FLAG }
+    val sites = results.flatMap { read -> if (handsBack(read)) wrapperCalls(read) else listOf(read) }
+    val callers = sites.map { it.type }.distinct().map { classDefBy(it) }
+    val pages = callers.filter { it.originalName() in RESULTS_PAGES }.map { it.type }.toSet()
+    if (pages.size != RESULTS_PAGES.size) {
+        refuse("${pages.size} of the search results page's ${RESULTS_PAGES.size} fragments read ${RESULTS_FLAG.toString(16)}")
+    }
+    val onPage = callers.filter { it.type in pages || it.names(pages) }.map { it.type }.toSet()
+    fun buildsRows(site: FlagRead) = SUMMARY_ROWS in methodOf(site).strings()
+    val (kept, answered) = sites.partition { it.type in onPage || buildsRows(it) }
+    if (kept.none(::buildsRows)) refuse("the search results page's row builder doesn't read ${RESULTS_FLAG.toString(16)}")
+    if (answered.isEmpty()) refuse("only the search results page reads ${RESULTS_FLAG.toString(16)}")
+    return others + answered
+}
+
+/** Passes each site's answer through MetaAi.searchFlag, right after its move-result. */
 internal fun BytecodePatchContext.answerSearchFlagReads(reads: List<FlagRead>) = answerFlagReads(reads, SEARCH_FLAG)
+
+private fun BytecodePatchContext.methodOf(read: FlagRead): Method = classDefBy(read.type).methods.single {
+    it.name == read.name && it.returnType == read.returnType && it.parameterTypes.map(CharSequence::toString) == read.parameters
+}
+
+/** Whether [read] is a static method's, which returns the answer right after reading it. */
+private fun BytecodePatchContext.handsBack(read: FlagRead): Boolean {
+    val method = methodOf(read)
+    val next = method.implementation!!.instructions.toList().getOrNull(read.moveResult + 1)
+    return AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" &&
+        next?.opcode == Opcode.RETURN && (next as OneRegisterInstruction).registerA == read.register
+}
+
+/**
+ * Each call of [read]'s method outside the extension whose answer is kept, as a read of
+ * [read]'s flag at the call's move-result. Fails when nothing calls it.
+ */
+private fun BytecodePatchContext.wrapperCalls(read: FlagRead): List<FlagRead> {
+    val calls = mutableListOf<FlagRead>()
+    classesCalling(read.type, read.name).forEach { classDef ->
+        classDef.methods.forEach { method ->
+            val code = method.implementation?.instructions?.toList() ?: return@forEach
+            code.forEachIndexed { index, instruction ->
+                val call = instruction.methodReference() ?: return@forEachIndexed
+                if (instruction.opcode != Opcode.INVOKE_STATIC && instruction.opcode != Opcode.INVOKE_STATIC_RANGE) return@forEachIndexed
+                if (call.definingClass != read.type || call.name != read.name || call.returnType != read.returnType ||
+                    call.parameterTypes.map(CharSequence::toString) != read.parameters
+                ) {
+                    return@forEachIndexed
+                }
+                val result = code.getOrNull(index + 1)
+                if (result?.opcode != Opcode.MOVE_RESULT) return@forEachIndexed
+                calls += FlagRead(
+                    read.flag, classDef.type, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType,
+                    index + 1, (result as OneRegisterInstruction).registerA,
+                )
+            }
+        }
+    }
+    if (calls.isEmpty()) refuse("nothing uses ${read.type}->${read.name}'s answer for ${read.flag.toString(16)}")
+    return calls
+}
+
+/** Whether this class names any of [types]: as its superclass, a field's, in a signature or in its code. */
+private fun ClassDef.names(types: Set<String>): Boolean =
+    superclass in types || fields.any { it.type in types } || methods.any { method ->
+        method.returnType in types || method.parameterTypes.any { it.toString() in types } ||
+            method.implementation?.instructions?.any { (it as? ReferenceInstruction)?.reference?.names(types) == true } == true
+    }
+
+private fun Reference.names(types: Set<String>): Boolean = when (this) {
+    is TypeReference -> type in types
+    is FieldReference -> definingClass in types || type in types
+    is MethodReference -> definingClass in types || returnType in types || parameterTypes.any { it.toString() in types }
+    else -> false
+}
 
 /** A value one of the hooks passes through: the method, and the index and register of the instruction that last sets it. */
 internal class HookSite(
