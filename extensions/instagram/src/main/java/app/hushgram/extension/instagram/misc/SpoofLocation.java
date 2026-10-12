@@ -43,9 +43,21 @@ public final class SpoofLocation {
     /** The providers a fix from the phone comes from: Android's three and Google Play services' fused one. */
     static final String[] PHONE_PROVIDERS = {"gps", "network", "passive", "fused"};
 
-    /** The last place text read and what it parsed to, so a feed of fixes doesn't parse it each time. */
-    @Nullable private static volatile String lastText;
-    @Nullable private static volatile double[] lastPlace;
+    /**
+     * The last place text read and what it parsed to, so a feed of fixes doesn't parse it each time.
+     * One object, so a thread never pairs one text with another text's place.
+     */
+    @Nullable private static volatile Parsed last;
+
+    private static final class Parsed {
+        final String text;
+        final double[] place;
+
+        Parsed(String text, double[] place) {
+            this.text = text;
+            this.place = place;
+        }
+    }
 
     private SpoofLocation() {
     }
@@ -106,12 +118,11 @@ public final class SpoofLocation {
     private static double[] place() {
         if (!Utils.settingsReady() || !Settings.SPOOF_LOCATION.get()) return null;
         String text = Settings.SPOOF_LOCATION_PLACE.get();
-        double[] known = lastPlace;
-        if (known != null && text.equals(lastText)) return known;
+        Parsed known = last;
+        if (known != null && text.equals(known.text)) return known.place;
         double[] parsed = parse(text);
         double[] place = parsed == null ? NO_PLACE : parsed;
-        lastPlace = place;
-        lastText = text;
+        last = new Parsed(text, place);
         return place;
     }
 
