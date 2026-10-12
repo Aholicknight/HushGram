@@ -102,11 +102,11 @@ How far a photo or video you're saving has got, with a button to cancel it	저�
 HushGram %1$s on Instagram %2$s	Instagram %2$s의 HushGram %1$s
 HushGram is on	HushGram 실행 중
 HushGram is paused	HushGram 일시 정지됨
-HushGram pauses when Instagram restarts.	Instagram을 다시 시작하면 HashGram이 일시 정지됩니다
-HushGram saves	HashGram 저장
+HushGram pauses when Instagram restarts.	Instagram을 다시 시작하면 HushGram이 일시 정지됩니다
+HushGram saves	HushGram 저장
 HushGram settings	HushGram 설정
 HushGram settings couldn't open	HushGram 설정을 열 수 없습니다
-HushGram turns back on when Instagram restarts.	Instaram을 다시 시작하면 HashGram이 다시 실행됩니다
+HushGram turns back on when Instagram restarts.	Instagram을 다시 시작하면 HushGram이 다시 실행됩니다
 Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	Instagram이 시작한 지 1분 이내에 연속으로 세 번 충돌하거나 멈춰서 HushGram이 일시적으로 작동을 정지하였습니다
 Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	Instagram에서 이 버전이 만료되었다라는 화면이 더 이상 표시되지 않습니다. 패치된 빌드는 자동으로 업데이트되지 않으므로, 이 설정을 통해 계속 사용할 수 있습니다
 Instagram's own checks of who signed the app keep passing on this patched build.	앱에 누가 서명했는지 확인하는 Instagram의 자체 검사가 패치된 이 빌드에서도 계속 통과합니다.
@@ -154,7 +154,7 @@ The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.
 The setting couldn't finish updating. Its saved value is shown.	설정 업데이트를 완료하지 못하였습니다. 저장된 값이 표시됩니다
 There's no diagnostic data to clear.	삭제할 진단 데이터가 없습니다
 There's no diagnostic data to put back.	복원할 진단 데이터가 없습니다
-They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.	패치할 때 Morphe Manager에서 선택되며, HashGram을 일시 정지해도 비활성화되지 않습니다. 변경하려면 다시 패치하세요
+They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.	패치할 때 Morphe Manager에서 선택되며, HushGram을 일시 정지해도 비활성화되지 않습니다. 변경하려면 다시 패치하세요
 Try again, or go back to Instagram.	다시 시도하거나 Instagram으로 돌아가세요
 Updates	업데이트
 Version	버전
@@ -969,7 +969,7 @@ Corner size	모서리 크기
 Large	크게
 Small	작게
 # context: a toast shown once when safe mode has paused HushGram on its own after crashes at start
-HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.	Instagram이 시작할 때 계속 충돌해서 HushGram이 스스로 일시 중지되었습니다. HushGram 설정에서 다시 켤 때까지 스위치는 꺼진 상태로 유지됩니다.
+HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.	Instagram이 시작할 때 계속 충돌해서 HushGram이 스스로 일시 정지되었습니다. HushGram 설정에서 다시 켤 때까지 스위치는 꺼진 상태로 유지됩니다.
 # context: a toast when a save couldn't reach Instagram's servers or the connection dropped
 Download failed. Check your connection and try again.	다운로드에 실패했습니다. 연결을 확인하고 다시 시도하세요.
 # context: a toast when a save arrived incomplete or couldn't be written to the phone

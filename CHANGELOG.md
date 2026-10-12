@@ -12,7 +12,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Safe mode:** When HushGram pauses itself because Instagram kept crashing at start, a message now says so on the first screen. Every switch is off until it's turned back on, so Ghost mode and the locks would otherwise stop without a word.
 
-* **Instagram - HushGram settings:** The two About rows are in Korean now, and two error messages read like the rest ("Couldn't" rather than "Could not").
+* **Instagram - HushGram settings:** The two About rows are in Korean now, and two error messages read like the rest ("Couldn't" rather than "Could not"). Four Korean rows that spelled HushGram or Instagram wrong are fixed.
 
 * **Instagram - Ghost mode button on Home's header:** TalkBack reads it as "Ghost mode" with an on or off state, the way it reads a switch, instead of a sentence about what tapping does.
 
