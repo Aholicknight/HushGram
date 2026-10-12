@@ -98,6 +98,7 @@ import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.misc.GlassHeight;
+import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.AccentHue;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
 import app.hushgram.extension.instagram.misc.HapticStyle;
@@ -1174,6 +1175,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
                         L10n.t("Home and the other tabs run down behind the pill, so the glass has real content to blur. "
                                 + "Reels still stops above it.")));
+                glass.addPreference(glassLiftRow(context));
             }
         }
 
@@ -1567,7 +1569,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)
-                            || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key));
+                            || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key));
                     belongs |= family == PatchFamily.VIDEO_DOWNLOAD && (Settings.HOLD_TO_DOWNLOAD.key.equals(key)
                             || Settings.HOLD_FINGERS.key.equals(key) || Settings.HOLD_TIME.key.equals(key));
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
@@ -3831,6 +3833,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** How much room a floating glass pill leaves under itself. Its summary is the step chosen. */
+    static GlassLiftRow glassLiftRow(Context context) {
+        GlassLiftRow row = new GlassLiftRow(context);
+        row.setKey(Settings.GLASS_TAB_BAR_LIFT.key);
+        row.setTitle(L10n.t("Space under the tab bar"));
+        row.setDialogTitle(L10n.t("Space under the tab bar"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        GlassLift[] steps = GlassLift.values();
+        CharSequence[] entries = new CharSequence[steps.length];
+        CharSequence[] values = new CharSequence[steps.length];
+        for (int i = 0; i < steps.length; i++) {
+            entries[i] = glassLiftLabel(steps[i]);
+            values[i] = steps[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.GLASS_TAB_BAR_LIFT.savedValue().name());
+        return row;
+    }
+
     /** How many fingers Hold to download waits for. Its summary is the count chosen. */
     static HoldFingersRow holdFingersRow(Context context) {
         HoldFingersRow row = new HoldFingersRow(context);
@@ -4047,6 +4069,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Clear");
             case FROSTED:
                 return L10n.t("Frosted");
+            default:
+                return L10n.t("Standard");
+        }
+    }
+
+    /** What the list calls [step]. */
+    static String glassLiftLabel(GlassLift step) {
+        switch (step) {
+            case MORE:
+                return L10n.t("A little more");
+            case MOST:
+                return L10n.t("More");
             default:
                 return L10n.t("Standard");
         }
@@ -5250,6 +5284,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(value)) step = candidate;
             }
             setSummary(glassOpacityLabel(step));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class GlassLiftRow extends ListPreference {
+        GlassLiftRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the step chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            GlassLift step = GlassLift.STANDARD;
+            for (GlassLift candidate : GlassLift.values()) {
+                if (candidate.name().equals(value)) step = candidate;
+            }
+            setSummary(glassLiftLabel(step));
         }
 
         @Override

@@ -825,6 +825,15 @@ public class Settings extends BaseSettings {
                     app.hushgram.extension.instagram.misc.GlassHeight.STANDARD, parent(GLASS_TAB_BAR));
 
     /**
+     * Under {@link #GLASS_TAB_BAR_FLOAT}: how much room a floating pill leaves under itself
+     * ({@link app.hushgram.extension.instagram.misc.GlassLift}, #87). Starts where the pill has always sat.
+     * A change shows after a restart.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassLift> GLASS_TAB_BAR_LIFT =
+            new EnumSetting<>("hushgram_glass_tab_bar_lift",
+                    app.hushgram.extension.instagram.misc.GlassLift.STANDARD, parent(GLASS_TAB_BAR_FLOAT));
+
+    /**
      * Your own profile's tabs get one more, a bookmark, that opens Saved
      * ({@link app.hushgram.extension.instagram.misc.ProfileSaved}). The tabs are built as the profile
      * opens, so a change takes a restart. Off to start.

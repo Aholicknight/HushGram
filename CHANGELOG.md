@@ -20,6 +20,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Find the reel you came from:** A Stop looking button shows while the grid scrolls, and tapping it leaves the grid where it is. A new switch, Wait for a tap to find it, holds the search until you tap Find the reel. Off by default. Asked for in #30.
 
+* **Instagram - Glass tab bar:** New Space under the tab bar choice after Show content behind the tab bar. A little more or More lifts the floating pill higher off the bottom of the screen, and it keeps its size. Starts on Standard. Asked for in #87.
+
 * **Instagram - Hide the Reels tab:** New switch under Tab bar, Show the Messages tab, off by default. If Instagram left Messages off your tab bar, it goes back on before Profile, and Tab order can move it. Asked for in #160.
 
 * **Instagram - Lock your messages:** Locked and hidden chats belong to the account you picked them on. A group two of your accounts share can be locked on one and left open on the other.

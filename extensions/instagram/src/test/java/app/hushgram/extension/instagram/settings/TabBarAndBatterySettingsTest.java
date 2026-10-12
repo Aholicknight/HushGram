@@ -9,6 +9,7 @@ import static org.junit.Assert.*;
 
 import android.app.Activity;
 import android.preference.Preference;
+import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
 
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
 
 import app.hushgram.extension.instagram.misc.GlassHeight;
+import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -70,6 +72,8 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
+        Settings.GLASS_TAB_BAR_LIFT.resetToDefault();
+        Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
         Settings.SAVED_ON_PROFILE.resetToDefault();
         Settings.STOP_HEARTBEAT.resetToDefault();
         Settings.STOP_UPLOAD_ALARM.resetToDefault();
@@ -92,7 +96,7 @@ public class TabBarAndBatterySettingsTest {
     @Test public void withoutThePatchesNoneOfTheirRowsShow() throws Exception {
         open();
         for (String key : List.of(Settings.GLASS_TAB_BAR.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_HEIGHT.key,
-                Settings.SAVED_ON_PROFILE.key, Settings.STOP_HEARTBEAT.key, Settings.STOP_UPLOAD_ALARM.key)) {
+                Settings.GLASS_TAB_BAR_LIFT.key, Settings.SAVED_ON_PROFILE.key, Settings.STOP_HEARTBEAT.key, Settings.STOP_UPLOAD_ALARM.key)) {
             assertNull(key, row(key));
         }
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key));
@@ -155,6 +159,43 @@ public class TabBarAndBatterySettingsTest {
         assertEquals("Tall", String.valueOf(height.getSummary()));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_OPACITY.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HEIGHT.key));
+    }
+
+    /**
+     * Space under the tab bar (#87) is a list right after Show content behind the tab bar, starting on
+     * where the pill has always sat, offered only while that switch is on, and backed up.
+     */
+    @Test public void spaceUnderTheTabBarFollowsShowContentBehindItAndIsBackedUp() throws Exception {
+        open(PatchFamily.GLASS_TAB_BAR);
+        Preference found = row(Settings.GLASS_TAB_BAR_LIFT.key);
+        assertTrue(found instanceof HushgramPreferenceFragment.GlassLiftRow);
+        HushgramPreferenceFragment.GlassLiftRow lift = (HushgramPreferenceFragment.GlassLiftRow) found;
+        assertEquals("Space under the tab bar", String.valueOf(lift.getTitle()));
+        assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), lift).getTitle()));
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), lift);
+        int floatAt = -1;
+        int liftAt = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            String key = section.getPreference(i).getKey();
+            if (Settings.GLASS_TAB_BAR_FLOAT.key.equals(key)) floatAt = i;
+            if (Settings.GLASS_TAB_BAR_LIFT.key.equals(key)) liftAt = i;
+        }
+        assertEquals("right after Show content behind the tab bar", floatAt + 1, liftAt);
+        List<String> entries = new ArrayList<>();
+        for (CharSequence entry : lift.getEntries()) entries.add(String.valueOf(entry));
+        assertEquals(Arrays.asList("Standard", "A little more", "More"), entries);
+        assertEquals("STANDARD", lift.getValue());
+        assertEquals("Standard", String.valueOf(lift.getSummary()));
+        lift.setValue("MOST");
+        ShadowLooper.idleMainLooper();
+        assertEquals(GlassLift.MOST, Settings.GLASS_TAB_BAR_LIFT.savedValue());
+        assertEquals("More", String.valueOf(lift.getSummary()));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_LIFT.key));
+
+        Settings.GLASS_TAB_BAR_FLOAT.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_LIFT.isAvailable());
+        Settings.GLASS_TAB_BAR_FLOAT.save(false);
+        assertFalse("nothing floats, so there's no space to choose", Settings.GLASS_TAB_BAR_LIFT.isAvailable());
     }
 
     @Test public void savedOnYourProfileStartsOffUnderProfiles() throws Exception {

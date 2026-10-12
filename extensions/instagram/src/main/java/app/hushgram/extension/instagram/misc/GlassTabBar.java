@@ -400,6 +400,14 @@ public final class GlassTabBar {
         return Math.min(originalPx + Math.round(TALL_EXTRA_DP * density), limit);
     }
 
+    /**
+     * How much higher a floating pill sits, with the bar that much taller so the pill and its tabs keep
+     * their size: [lift]'s dp, or 0 for a pill that doesn't float or no choice read.
+     */
+    static int liftPx(GlassLift lift, boolean floating, float density) {
+        return floating && lift != null ? Math.round(lift.dp * density) : 0;
+    }
+
     /** The selected tab's capsule: a quarter of white on dark glass, a sixth of grey on light. */
     static int highlight(int base) {
         return isDark(base) ? 0x40ffffff : 0x2a787880;
@@ -483,6 +491,8 @@ public final class GlassTabBar {
         private final HapticStyle hapticStyle;
         private final GlassOpacity opacity;
         private final GlassHeight height;
+        /** How much higher the pill sits, in pixels: the room under a floating pill. */
+        private final int lift;
         /** Hides the bar while a list scrolls down, when that switch is on; otherwise null. */
         @Nullable private final GlassScrollHide scrollHide;
         /** Whether this slide has had its tick: one tick for a change of tab, however many tabs the capsule crosses. */
@@ -524,6 +534,7 @@ public final class GlassTabBar {
             this.hapticStyle = Settings.GLASS_TAB_BAR_HAPTIC_STYLE.get();
             this.opacity = Settings.GLASS_TAB_BAR_OPACITY.get();
             this.height = Settings.GLASS_TAB_BAR_HEIGHT.get();
+            this.lift = liftPx(Settings.GLASS_TAB_BAR_LIFT.get(), floating, density);
             this.scrollHide = Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get()
                     ? new GlassScrollHide(bar, () -> !HushgramPause.isPaused()) : null;
             this.base = baseColor(bar.getBackground());
@@ -567,7 +578,7 @@ public final class GlassTabBar {
 
         /** How far a compact pill is drawn in from the top and bottom, beyond the gap. */
         private int pillInset() {
-            return pillInsetPx(height, bar.getHeight(), gap(), density);
+            return pillInsetPx(height, bar.getHeight() - lift, gap(), density);
         }
 
         /** The colour Instagram gave the bar, or white or black by the theme when it wasn't a plain one. */
@@ -589,11 +600,12 @@ public final class GlassTabBar {
                     : bar.getResources().getDisplayMetrics().widthPixels;
             outer = outerPx(width, density);
 
-            // Height: the bar's own, which is what Instagram keeps every screen's own controls above.
+            // Height: the bar's own, which is what Instagram keeps every screen's own controls above, and
+            // the room asked for under a floating pill.
             ViewGroup.LayoutParams params = bar.getLayoutParams();
             if (params != null && params.height > 0) {
                 if (originalBarHeight < 0) originalBarHeight = params.height;
-                int wanted = barHeightPx(height, originalBarHeight, density);
+                int wanted = barHeightPx(height, originalBarHeight, density) + lift;
                 if (params.height != wanted) {
                     params.height = wanted;
                     bar.setLayoutParams(params);
@@ -611,7 +623,7 @@ public final class GlassTabBar {
             int left = originalLeft + outer + dp(INNER_DP);
             int right = originalRight + outer + dp(INNER_DP);
             int above = originalTop + gap();
-            int under = originalBottom + gap();
+            int under = originalBottom + gap() + lift;
             if (left != bar.getPaddingLeft() || right != bar.getPaddingRight()
                     || above != bar.getPaddingTop() || under != bar.getPaddingBottom()) {
                 bar.setPadding(left, above, right, under);
@@ -826,7 +838,7 @@ public final class GlassTabBar {
                 float left = outer;
                 float top = gap() + pillInset();
                 float right = bar.getWidth() - outer;
-                float bottomEdge = bar.getHeight() - gap() - pillInset();
+                float bottomEdge = bar.getHeight() - lift - gap() - pillInset();
                 if (right - left <= 0 || bottomEdge - top <= 0) return false;
                 into.set(left, top, right, bottomEdge);
                 return true;

@@ -65,6 +65,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_BLUR.resetToDefault();
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
+        Settings.GLASS_TAB_BAR_LIFT.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTICS.resetToDefault();
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
@@ -165,6 +166,56 @@ public class GlassTabBarTest {
                 host.capture(paused ? "glass-paused" : "glass-off");
             }
         }
+    }
+
+    /**
+     * Space under a floating pill makes the bar that much taller and raises the pill and its tabs by it,
+     * so neither gets shorter and the room under the pill shows what's behind. Over Instagram's own bar
+     * the choice changes nothing.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void spaceUnderAFloatingPillRaisesItWithoutShrinkingIt() throws Exception {
+        for (boolean floating : new boolean[]{true, false}) {
+            for (GlassLift lift : GlassLift.values()) {
+                try (GlassHost host = new GlassHost(Color.BLACK, floating, GlassHeight.STANDARD, false, false)) {
+                    Settings.GLASS_TAB_BAR_LIFT.save(lift);
+                    GlassTabBar.apply(host.activity);
+                    host.layout();
+                    int extra = floating ? host.dp(lift.dp) : 0;
+                    String where = lift + (floating ? " floating" : " inset");
+                    assertEquals(where, host.dp(52) + extra, host.bar.getHeight());
+                    for (int i = 0; i < host.bar.getChildCount(); i++) {
+                        View tab = host.bar.getChildAt(i);
+                        assertEquals(where + ": the tab keeps its height", host.dp(52) - 2 * host.dp(1), tab.getHeight());
+                        assertEquals(where + ": the tab sits above the space", host.dp(1), tab.getTop());
+                    }
+                    try (Pixels pixels = host.background()) {
+                        RectF drawn = ReflectionHelpers.getField(host.bar.getBackground(), "rect");
+                        assertEquals(where, host.dp(1) + host.density / 2f, drawn.top, 0.01f);
+                        assertEquals(where, host.bar.getHeight() - extra - host.dp(1) - host.density / 2f, drawn.bottom, 0.01f);
+                        if (extra > 0) {
+                            assertEquals(where + ": the space under the pill is clear", 0,
+                                    Color.alpha(pixels.bitmap.getPixel(host.bar.getWidth() / 2, host.bar.getHeight() - extra / 2)));
+                        }
+                    }
+                    host.capture("lift-" + lift.name().toLowerCase(java.util.Locale.ROOT) + (floating ? "-floating" : "-inset"));
+                }
+            }
+        }
+    }
+
+    /** Only a floating pill is lifted, by its step's dp; Standard, no choice and a bar that doesn't float stay put. */
+    @Test
+    public void onlyAFloatingPillIsLiftedByItsStep() {
+        float density = 2.625f;
+        assertEquals(0, GlassTabBar.liftPx(GlassLift.STANDARD, true, density));
+        assertEquals(Math.round(8 * density), GlassTabBar.liftPx(GlassLift.MORE, true, density));
+        assertEquals(Math.round(16 * density), GlassTabBar.liftPx(GlassLift.MOST, true, density));
+        for (GlassLift lift : GlassLift.values()) assertEquals(lift.name(), 0, GlassTabBar.liftPx(lift, false, density));
+        assertEquals(0, GlassTabBar.liftPx(null, true, density));
+        assertEquals(GlassLift.STANDARD, Settings.GLASS_TAB_BAR_LIFT.defaultValue);
     }
 
     /** A native host strip. The tab bar and its listeners remain the host's views. */
