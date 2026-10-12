@@ -418,6 +418,38 @@ public class CarouselSaveTest {
         assertClean();
     }
 
+    /** #155: a cover whose sizes are listed smallest first saves the largest one, not the first. */
+    @Test public void aCoverListedSmallestFirstSavesItsLargest() throws Exception {
+        for (String size : new String[] {"/144.jpg", "/540.jpg", "/1080.jpg"}) server.serve(size, "image/jpeg", body(false));
+        MediaSave.Item reel = new MediaSave.Item(false, Arrays.asList(
+                new MediaSave.Rendition(server.origin() + "/144.jpg?stp=dst-jpg_e15_s144x256", 144, 256, 0),
+                new MediaSave.Rendition(server.origin() + "/540.jpg?stp=dst-jpg_e15_s540x960", 540, 960, 0),
+                new MediaSave.Rendition(server.origin() + "/1080.jpg?stp=dst-jpg_e15_s1080x1920", 1080, 1920, 0)),
+                null, PostDetails.of("7"));
+        assertEquals("3 picture size(s) (candidates 3), largest from candidates 1080x1920", StoryDownload.cover(reel).summary());
+        assertTrue(ReelDownload.saveCover(context, reel));
+        waitForSaves();
+        assertEquals(1, server.hits("/1080.jpg")); assertEquals(0, server.hits("/144.jpg")); assertEquals(0, server.hits("/540.jpg"));
+        assertClean();
+    }
+
+    /**
+     * #155: when the app states no size for any of a cover's addresses, the size each address
+     * names decides, so a thumbnail listed first doesn't save in place of the full picture.
+     */
+    @Test public void aCoverWithNoStatedSizesGoesByWhatItsAddressesName() throws Exception {
+        server.serve("/thumb.jpg", "image/jpeg", body(false));
+        server.serve("/full.jpg", "image/jpeg", body(false));
+        MediaSave.Item reel = new MediaSave.Item(false, Arrays.asList(
+                MediaSave.Rendition.of(server.origin() + "/thumb.jpg?stp=dst-jpg_e15_s150x150_tt6"),
+                MediaSave.Rendition.of(server.origin() + "/full.jpg?stp=dst-jpg_e15_p1080x1080_tt6")),
+                null, PostDetails.of("7"));
+        assertTrue(ReelDownload.saveCover(context, reel));
+        waitForSaves();
+        assertEquals(1, server.hits("/full.jpg")); assertEquals(0, server.hits("/thumb.jpg"));
+        assertClean();
+    }
+
     /**
      * A reel whose model keeps a larger still in additional_candidates than its candidates state
      * saves that still, and the log names where the largest came from.

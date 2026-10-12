@@ -90,6 +90,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** A chat no longer keeps a placeholder name it saw before the chat loaded. The real name replaces it.
 
+* **Instagram - Download any reel:** When Instagram gives no sizes for a cover, Download cover now goes by the size each address names, so a thumbnail listed first doesn't save in place of the full picture. From #155.
+
 ## 0.0.9 (2026-10-11)
 
 ### Features

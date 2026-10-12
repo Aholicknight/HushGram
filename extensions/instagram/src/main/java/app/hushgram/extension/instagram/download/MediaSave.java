@@ -430,7 +430,8 @@ public final class MediaSave {
      * Save a picture by the sizes the app states for it: the largest of [renditions] on Meta's
      * media servers. For a picture whose address names its size, such as a profile picture, which
      * {@link #savePhoto}'s ranking takes for a thumbnail's and turns down. A rendition with no
-     * stated size loses to any with one.
+     * stated size loses to any with one, and between two with none the size the address names
+     * decides, so a list that starts with its smallest doesn't save that (#155).
      *
      * @return whether a save started. Never throws.
      */
@@ -441,7 +442,7 @@ public final class MediaSave {
             List<Rendition> found = metaOnly(usable(renditions));
             Rendition chosen = null;
             for (Rendition rendition : found) {
-                if (chosen == null || pixels(rendition) > pixels(chosen)) chosen = rendition;
+                if (chosen == null || biggerPicture(rendition, chosen)) chosen = rendition;
             }
             if (chosen == null) {
                 failure(() -> "nothing to save: no picture address on Meta's media servers", null);
@@ -495,6 +496,16 @@ public final class MediaSave {
 
     private static long pixels(Rendition rendition) {
         return (long) rendition.width * rendition.height;
+    }
+
+    /**
+     * Whether [a] is a bigger picture than [b] for {@link #savePictureBySize}: by the sizes the app
+     * states, and when neither states one, by the size each address names. A tie keeps [b].
+     */
+    static boolean biggerPicture(Rendition a, Rendition b) {
+        long stated = pixels(a) - pixels(b);
+        if (stated != 0) return stated > 0;
+        return pixels(a) == 0 && RenditionPicker.qualityOf(a.url) > RenditionPicker.qualityOf(b.url);
     }
 
     // ---------------------------------------------------------------- internals

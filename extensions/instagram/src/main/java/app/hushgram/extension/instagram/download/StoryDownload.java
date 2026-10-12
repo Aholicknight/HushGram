@@ -234,8 +234,7 @@ public final class StoryDownload {
         String chosenSource() {
             int best = -1;
             for (int i = 0; i < sizes.size(); i++) {
-                MediaSave.Rendition r = sizes.get(i);
-                if (best < 0 || (long) r.width * r.height > (long) sizes.get(best).width * sizes.get(best).height) best = i;
+                if (best < 0 || MediaSave.biggerPicture(sizes.get(i), sizes.get(best))) best = i;
             }
             if (best < 0) return "none";
             MediaSave.Rendition r = sizes.get(best);
