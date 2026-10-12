@@ -1195,6 +1195,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_show_reels_tab", FALSE, true);
 
     /**
+     * Messages is put on the tab bar, before Profile, when Instagram's tab list leaves it out (#160).
+     * Tab order can move it like any tab. The list is built as Instagram starts, so a change takes a
+     * restart. Off to start.
+     */
+    public static final BooleanSetting SHOW_MESSAGES_TAB =
+            new BooleanSetting("hushgram_show_messages_tab", FALSE, true);
+
+    /**
      * Search is off the tab bar, and a switch meant for it lands on Home. Built into the same tab
      * list as {@link #HIDE_REELS_TAB}, so a change takes a restart. Off to start.
      */

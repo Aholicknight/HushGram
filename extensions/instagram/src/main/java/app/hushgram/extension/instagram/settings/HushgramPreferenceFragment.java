@@ -1128,6 +1128,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 glass.addPreference(toggle(context, Settings.HIDE_PROFILE_TAB, L10n.t("Hide the Profile tab"),
                         L10n.t("Takes Profile off the tab bar. Your profile still opens from other places in the app. "
                                 + "Restart Instagram to see the change.")));
+                glass.addPreference(toggle(context, Settings.SHOW_MESSAGES_TAB, L10n.t("Show the Messages tab"),
+                        L10n.t("Puts Messages on the tab bar, before Profile, if Instagram left it off yours. Tab order "
+                                + "can move it. Restart Instagram to see the change.")));
                 glass.addPreference(toggle(context, Settings.HIDE_HOME_CREATE_BUTTON, L10n.t("Hide Create on Home's header"),
                         L10n.t("Takes the plus button off the top of Home and closes up the gap. The Create tab and "
                                 + "swiping to create are separate. Restart Instagram to see the change.")));

@@ -22,6 +22,7 @@ import java.util.List;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /** What the Reels tab hooks answer. */
 @RunWith(RobolectricTestRunner.class)
@@ -40,6 +41,74 @@ public class ReelsTabTest {
     public void tearDown() {
         Settings.HIDE_REELS_TAB.resetToDefault();
         Settings.SHOW_REELS_TAB.resetToDefault();
+        Settings.SHOW_MESSAGES_TAB.resetToDefault();
+        Settings.TAB_ORDER.resetToDefault();
+    }
+
+    /** Show Messages on, a list without Messages comes back as a copy with it before Profile, counted. */
+    @Test
+    public void withShowMessagesOnAListWithoutItGetsItBeforeProfile() {
+        Settings.HIDE_REELS_TAB.save(false);
+        Settings.SHOW_MESSAGES_TAB.save(true);
+        HookStatus.clear();
+        List<Tab> built = Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.CLIPS, Tab.PROFILE);
+
+        List<?> shown = ReelsTab.tabs(built);
+
+        assertEquals(Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.CLIPS, Tab.DIRECT, Tab.PROFILE), shown);
+        assertEquals("the built list was changed", 4, built.size());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelsTab.MESSAGES_ADDED));
+    }
+
+    /** Show Messages on and no Profile on the bar (hidden or never there), Messages goes last. */
+    @Test
+    public void withShowMessagesOnAndNoProfileMessagesGoesLast() {
+        Settings.HIDE_REELS_TAB.save(false);
+        Settings.SHOW_MESSAGES_TAB.save(true);
+        Settings.HIDE_PROFILE_TAB.save(true);
+        try {
+            List<Tab> built = Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.PROFILE);
+
+            assertEquals(Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.DIRECT), ReelsTab.tabs(built));
+        } finally {
+            Settings.HIDE_PROFILE_TAB.resetToDefault();
+        }
+    }
+
+    /** Show Messages on, a list that has Messages, is empty, isn't tabs or has no Messages in its enum stays. */
+    @Test
+    public void withShowMessagesOnAListItCantGiveMessagesStays() {
+        Settings.HIDE_REELS_TAB.save(false);
+        Settings.SHOW_MESSAGES_TAB.save(true);
+        List<Tab> has = Arrays.asList(Tab.FEED, Tab.DIRECT, Tab.PROFILE);
+        List<Tab> none = Arrays.asList();
+        List<String> strings = Arrays.asList("FEED", "PROFILE");
+
+        assertSame(has, ReelsTab.tabs(has));
+        assertSame(none, ReelsTab.tabs(none));
+        assertSame(strings, ReelsTab.tabs(strings));
+        assertSame("an enum with no Messages keeps its list", NoReels.list, ReelsTab.tabs(NoReels.list));
+    }
+
+    /** Show Messages off, a list without Messages is left alone. */
+    @Test
+    public void withShowMessagesOffAListWithoutItStays() {
+        Settings.HIDE_REELS_TAB.save(false);
+        List<Tab> built = Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.PROFILE);
+
+        assertSame(built, ReelsTab.tabs(built));
+    }
+
+    /** Tab order moves an added Messages tab like any other, since the order applies after it's added. */
+    @Test
+    public void tabOrderMovesAnAddedMessagesTab() {
+        Settings.HIDE_REELS_TAB.save(false);
+        Settings.SHOW_MESSAGES_TAB.save(true);
+        Settings.TAB_ORDER.save("DIRECT,FEED");
+        List<Tab> built = Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.PROFILE);
+
+        assertEquals(Arrays.asList(Tab.DIRECT, Tab.FEED, Tab.SEARCH, Tab.PROFILE), ReelsTab.tabs(built));
     }
 
     /** Show on and Hide off, a list without Reels comes back as a copy with Reels right after Home. */

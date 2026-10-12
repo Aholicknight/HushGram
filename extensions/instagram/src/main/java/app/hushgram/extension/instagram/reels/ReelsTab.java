@@ -37,7 +37,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * The Tab order choice puts the list in the order picked, as a copy, see {@link TabOrder}.
  *
  * <p>With Show the Reels tab on, a list Instagram built without Reels gets it back right after
- * Home, from the same enum, and Hide the Reels tab wins when both are on.
+ * Home, from the same enum, and Hide the Reels tab wins when both are on. With Show the Messages tab
+ * on, a list without Messages gets it before Profile, or last without one (#160).
  *
  * <p>Reels themselves aren't touched. A reel in the feed, a shared reel and the Reels viewer open as
  * before. The list is built as Instagram starts, so a change to the switch shows after a restart.
@@ -55,6 +56,12 @@ public final class ReelsTab {
     static final String SEARCH = "SEARCH";
     static final String CREATE = "CREATION";
     static final String PROFILE = "PROFILE";
+
+    /** The Messages tab's name in the same enum. */
+    static final String MESSAGES = "DIRECT";
+
+    /** What a list given the Messages tab is counted under. */
+    static final String MESSAGES_ADDED = "Messages tab added";
 
     /** The diagnostic counter route: each tab list Instagram builds, and the tabs taken out of it. */
     static final String ROUTE = "Reels tab";
@@ -92,6 +99,7 @@ public final class ReelsTab {
             FeedFilterCounters.sawList(ROUTE, tabs.size());
             List<?> shown = withoutHidden(tabs);
             if (!hiddenByName(REELS) && showing()) shown = withReels(shown);
+            if (showingMessages()) shown = withMessages(shown);
             shown = TabOrder.apply(shown);
             TabStart.remember(shown);
             return shown;
@@ -188,6 +196,34 @@ public final class ReelsTab {
     }
 
     /**
+     * A copy of [tabs] with Messages before Profile, or last when there's no Profile, when the list
+     * has no Messages; otherwise [tabs] as it came: when it has Messages already, is empty, holds
+     * something that isn't a tab, or its enum has no Messages.
+     */
+    static List<?> withMessages(List<?> tabs) {
+        if (tabs.isEmpty() || !(tabs.get(0) instanceof Enum)) return tabs;
+        int at = tabs.size();
+        for (int index = 0; index < tabs.size(); index++) {
+            Object tab = tabs.get(index);
+            if (!(tab instanceof Enum)) return tabs;
+            String name = ((Enum<?>) tab).name();
+            if (MESSAGES.equals(name)) return tabs;
+            if (PROFILE.equals(name)) at = index;
+        }
+        Object messages;
+        try {
+            messages = named((Enum<?>) tabs.get(0), MESSAGES);
+        } catch (IllegalArgumentException noMessages) {
+            return tabs;
+        }
+        List<Object> shown = new ArrayList<>(tabs);
+        shown.add(at, messages);
+        HookStatus.counted(FamilyNames.REELS_TAB, MESSAGES_ADDED);
+        Logger.printDebug(() -> "Reels tab: put Messages on a list of " + tabs.size() + " tabs");
+        return shown;
+    }
+
+    /**
      * Handed a tab Instagram is about to open, or the one it treats as home. Home in place of Reels,
      * Search or Profile while its switch hides it, otherwise the tab as it came. Create is left
      * alone: Instagram opens its camera from other places too. The one switch the Search button on
@@ -260,5 +296,9 @@ public final class ReelsTab {
 
     private static boolean showing() {
         return Utils.settingsReady() && Settings.SHOW_REELS_TAB.get();
+    }
+
+    private static boolean showingMessages() {
+        return Utils.settingsReady() && Settings.SHOW_MESSAGES_TAB.get();
     }
 }

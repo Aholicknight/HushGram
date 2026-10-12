@@ -88,6 +88,7 @@ public class TabSwitchesSettingsTest {
         assertEquals("Hide the Search tab", String.valueOf(row(Settings.HIDE_SEARCH_TAB.key).getTitle()));
         assertEquals("Hide the Create tab", String.valueOf(row(Settings.HIDE_CREATE_TAB.key).getTitle()));
         assertEquals("Hide the Profile tab", String.valueOf(row(Settings.HIDE_PROFILE_TAB.key).getTitle()));
+        assertEquals("Show the Messages tab", String.valueOf(row(Settings.SHOW_MESSAGES_TAB.key).getTitle()));
         assertNotNull("Hide the Reels tab stays under Reels", row(Settings.HIDE_REELS_TAB.key));
         assertNull("the glass bar's rows need their own patch", row(Settings.GLASS_TAB_BAR.key));
     }
@@ -126,6 +127,6 @@ public class TabSwitchesSettingsTest {
 
     private static List<BooleanSettingKey> keys() {
         return Arrays.asList(new BooleanSettingKey(Settings.HIDE_SEARCH_TAB), new BooleanSettingKey(Settings.HIDE_CREATE_TAB),
-                new BooleanSettingKey(Settings.HIDE_PROFILE_TAB));
+                new BooleanSettingKey(Settings.HIDE_PROFILE_TAB), new BooleanSettingKey(Settings.SHOW_MESSAGES_TAB));
     }
 }
