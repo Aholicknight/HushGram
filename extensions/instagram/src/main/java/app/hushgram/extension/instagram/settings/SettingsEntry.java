@@ -48,6 +48,7 @@ import app.hushgram.extension.instagram.misc.LaunchScreen;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * How the HushGram screen is reached.
@@ -315,6 +316,29 @@ public final class SettingsEntry {
         state.remove(key);
     }
 
+    /** Whether this start has said that safe mode paused HushGram. */
+    private static final AtomicBoolean pauseSaid = new AtomicBoolean();
+
+    /**
+     * Once a start, as the first Instagram screen comes up: safe mode paused HushGram after crashes,
+     * which nobody asked for, so every switch is off without the person knowing. Ghost mode, the
+     * locks and the rest would quietly stop working. The Pause switch and the marker file are the
+     * person's own doing, so they get nothing here.
+     */
+    static void sayWhyPaused() {
+        try {
+            if (HushgramPause.reason() != HushgramPause.Reason.CRASH_LOOP || !pauseSaid.compareAndSet(false, true)) return;
+            Utils.showToastLong(L10n.t("HushGram paused itself because Instagram kept crashing as it started. "
+                    + "Its switches stay off until you turn it back on in HushGram settings."));
+        } catch (Throwable failure) {
+            Logger.printException(() -> "Settings entry: could not say why HushGram is paused", failure);
+        }
+    }
+
+    static void resetPauseSaidForTests() {
+        pauseSaid.set(false);
+    }
+
     static final class OpenWhenResumed implements Application.ActivityLifecycleCallbacks {
         /** The Instagram screen in front right now, if any. */
         private WeakReference<Activity> resumed;
@@ -339,6 +363,7 @@ public final class SettingsEntry {
         public void onActivityResumed(Activity activity) {
             resumed = new WeakReference<>(activity);
             SaveLeftovers.showInterrupted(activity);
+            sayWhyPaused();
             followToFront(activity);
             if (openPending) openWhenSettled(activity);
             relabelIfStale(activity);

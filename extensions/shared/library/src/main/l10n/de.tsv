@@ -971,3 +971,5 @@ Rounds the corners of a post's photo, video and carousel pages in Home and Follo
 Corner size	Eckengröße
 Large	Groß
 Small	Klein
+# context: a toast shown once when safe mode has paused HushGram on its own after crashes at start
+HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.	HushGram hat sich selbst pausiert, weil Instagram beim Start immer wieder abgestürzt ist. Seine Schalter bleiben aus, bis du es in den HushGram-Einstellungen wieder einschaltest.
