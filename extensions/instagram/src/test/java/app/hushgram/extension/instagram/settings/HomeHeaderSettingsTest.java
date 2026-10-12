@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.preference.Preference;
+import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
 
 import java.util.Arrays;
@@ -132,6 +133,36 @@ public class HomeHeaderSettingsTest {
         assertTrue(Settings.CENTER_HOME_LOGO.rebootApp);
         assertTrue(PatchFamily.REELS_TAB.switches.contains(Settings.CENTER_HOME_LOGO));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CENTER_HOME_LOGO.key));
+    }
+
+    /** Center the name on profiles (#140) follows the centered logo under Tab bar, starts off and needs no restart. */
+    @Test public void theCenteredProfileNameSwitchFollowsTheLogoOneAndStartsOff() throws Exception {
+        open();
+        assertNull(row(Settings.CENTER_PROFILE_NAME.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.CENTER_PROFILE_NAME.key));
+        controller.close();
+        controller = null;
+
+        open(PatchFamily.REELS_TAB);
+        SwitchPreference toggle = (SwitchPreference) row(Settings.CENTER_PROFILE_NAME.key);
+        assertNotNull(toggle);
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), toggle);
+        assertEquals("Tab bar", String.valueOf(section.getTitle()));
+        int logo = -1;
+        int name = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            String key = section.getPreference(i).getKey();
+            if (Settings.CENTER_HOME_LOGO.key.equals(key)) logo = i;
+            if (Settings.CENTER_PROFILE_NAME.key.equals(key)) name = i;
+        }
+        assertEquals("right after Center the logo on Home's header", logo + 1, name);
+        assertEquals("Center the name on profiles", String.valueOf(toggle.getTitle()));
+        assertTrue(String.valueOf(toggle.getSummary()), String.valueOf(toggle.getSummary()).contains("The buttons stay where they are."));
+        assertFalse(toggle.isChecked());
+        assertEquals(Boolean.FALSE, Settings.CENTER_PROFILE_NAME.defaultValue);
+        assertFalse("it's moved after each layout, so no restart", Settings.CENTER_PROFILE_NAME.rebootApp);
+        assertTrue(PatchFamily.REELS_TAB.switches.contains(Settings.CENTER_PROFILE_NAME));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CENTER_PROFILE_NAME.key));
     }
 
     @Test public void eachHeaderButtonHasASwitchUnderTabBarThatStartsOffAndAsksForARestart() throws Exception {

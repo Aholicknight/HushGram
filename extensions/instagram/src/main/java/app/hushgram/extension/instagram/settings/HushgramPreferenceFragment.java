@@ -1156,6 +1156,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 glass.addPreference(toggle(context, Settings.CENTER_HOME_LOGO, L10n.t("Center the logo on Home's header"),
                         L10n.t("Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden "
                                 + "or added. A feed's name shown there is centered too. Restart Instagram to see the change.")));
+                glass.addPreference(toggle(context, Settings.CENTER_PROFILE_NAME, L10n.t("Center the name on profiles"),
+                        L10n.t("Puts the username in the middle of the bar at the top of a profile, yours and other "
+                                + "people's. The buttons stay where they are.")));
                 glass.addPreference(tabOrderRow(context));
                 glass.addPreference(startTabRow(context));
             }

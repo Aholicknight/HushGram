@@ -1277,6 +1277,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_center_home_logo", FALSE, true);
 
     /**
+     * The username at the top of a profile sits in the middle of the bar, with the buttons where they
+     * are ({@link app.hushgram.extension.instagram.profile.ProfileTitle}, #140). It's moved after each
+     * layout, so a change shows without a restart. Off to start.
+     */
+    public static final BooleanSetting CENTER_PROFILE_NAME =
+            new BooleanSetting("hushgram_center_profile_name", FALSE);
+
+    /**
      * The order the tab bar shows its tabs in, as the tab enum's names, comma separated, first tab
      * first ({@link app.hushgram.extension.instagram.reels.TabOrder}). Empty keeps Instagram's order.
      * The bar is built as Instagram starts, so a change takes a restart.

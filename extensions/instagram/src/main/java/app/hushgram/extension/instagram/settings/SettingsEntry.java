@@ -46,6 +46,7 @@ import app.hushgram.extension.instagram.reels.ReelsTopBar;
 import app.hushgram.extension.instagram.reels.TabStart;
 import app.hushgram.extension.instagram.misc.ProfileSaved;
 import app.hushgram.extension.instagram.misc.LaunchScreen;
+import app.hushgram.extension.instagram.profile.ProfileTitle;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -128,6 +129,7 @@ public final class SettingsEntry {
         TabStart.install(context);
         ProfileSaved.install(context);
         ProfileMenuPress.install(context);
+        ProfileTitle.install(context);
         LaunchScreen.install(context);
         if (SettingsStatus.messagesLock()) MessagesLock.watch(context);
         // A save Android stopped halfway left a pending gallery row, a work file or a notification.
