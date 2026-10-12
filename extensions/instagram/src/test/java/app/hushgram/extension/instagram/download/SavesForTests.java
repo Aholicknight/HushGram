@@ -90,6 +90,25 @@ public final class SavesForTests {
         SaveLeftovers.forgetSweepForTests();
     }
 
+    /**
+     * Writes down a video save of [mediaId] for the account in front, as a finished save does, at
+     * [item] in Movies/Instagram.
+     */
+    public static void rememberSave(Context context, String mediaId, String item) throws Exception {
+        String key = DownloadHistory.key(DownloadHistory.owner(), PostDetails.of(mediaId), DownloadHistory.Kind.VIDEO);
+        DownloadHistory.remember(context, key, item, "Movies/Instagram", null);
+    }
+
+    /** How many saves Skip what's already saved remembers. */
+    public static int historyCount(Context context) {
+        return DownloadHistory.count(context);
+    }
+
+    /** Forgets what the history holds in memory, so the next ask reads its file again. */
+    public static void forgetHistoryForTests() {
+        DownloadHistory.forgetForTests();
+    }
+
     /** The single files a caller hands a save, as addresses alone. A null address is left out. */
     public static List<MediaSave.Rendition> renditions(String... urls) {
         List<MediaSave.Rendition> renditions = new ArrayList<>();

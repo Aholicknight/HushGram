@@ -15,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
+import android.content.Context;
 import android.graphics.drawable.GradientDrawable;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
@@ -24,14 +25,18 @@ import android.preference.SwitchPreference;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 
+import app.hushgram.extension.instagram.download.DownloadHistory;
 import app.hushgram.extension.instagram.download.DownloadQuality;
+import app.hushgram.extension.instagram.download.SavesForTests;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 import org.junit.After;
@@ -40,6 +45,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
@@ -78,6 +84,9 @@ public class DownloadSettingsTest {
         Settings.HOLD_TO_DOWNLOAD.resetToDefault();
         Settings.HOLD_FINGERS.resetToDefault();
         Settings.HOLD_TIME.resetToDefault();
+        Settings.DOWNLOAD_SKIP_SAVED.resetToDefault();
+        DownloadHistory.clear(RuntimeEnvironment.getApplication());
+        SavesForTests.forgetHistoryForTests();
     }
 
     /** The reel switch sits in Reels, starts on, and says Instagram's menu comes back when it's off. */
@@ -416,6 +425,75 @@ public class DownloadSettingsTest {
             }
             assertEquals(account + 1, byPost);
             assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SAVE_NAME_BY_POST.key));
+        }
+    }
+
+    /**
+     * Skip what's already saved sits right under Name saves by account and post time, with Clear
+     * download history under it. The switch starts off and goes in a settings file, the list it keeps
+     * never does, and Clear forgets the list at once and says so (#150).
+     */
+    @Test
+    public void skipWhatsAlreadySavedSitsUnderTheNameSwitchWithItsClearRow() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        SavesForTests.rememberSave(context, "3100000000000000042", "content://media/external/video/media/42");
+        assertEquals(1, SavesForTests.historyCount(context));
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            PreferenceGroup downloads = section(pageIn(controller).getPreferenceScreen(), "Downloads");
+            int byPost = -1;
+            int skip = -1;
+            int clear = -1;
+            for (int i = 0; i < downloads.getPreferenceCount(); i++) {
+                String key = downloads.getPreference(i).getKey();
+                if (Settings.SAVE_NAME_BY_POST.key.equals(key)) byPost = i;
+                if (Settings.DOWNLOAD_SKIP_SAVED.key.equals(key)) skip = i;
+                if (HushgramPreferenceFragment.CLEAR_DOWNLOAD_HISTORY.equals(key)) clear = i;
+            }
+            assertEquals(byPost + 1, skip);
+            assertEquals(skip + 1, clear);
+
+            Preference row = downloads.getPreference(skip);
+            assertTrue(row instanceof SwitchPreference);
+            assertEquals("Skip what's already saved", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()), String.valueOf(row.getSummary()).contains("30 seconds"));
+            assertFalse(((SwitchPreference) row).isChecked());
+            assertFalse(Settings.DOWNLOAD_SKIP_SAVED.get());
+            assertTrue(PatchFamily.VIDEO_DOWNLOAD.switches.contains(Settings.DOWNLOAD_SKIP_SAVED));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_SKIP_SAVED.key));
+
+            String exported = new String(ConfigurationBackup.export(), StandardCharsets.UTF_8);
+            assertTrue(exported.contains(Settings.DOWNLOAD_SKIP_SAVED.key));
+            assertFalse("the download history went into a settings file", exported.contains("3100000000000000042"));
+            assertFalse("the download history went into a settings file", exported.contains("content://media"));
+
+            Preference clearRow = downloads.getPreference(clear);
+            assertEquals("Clear download history", String.valueOf(clearRow.getTitle()));
+            assertTrue("Clear download history doesn't act at once",
+                    ((HushgramPreferenceFragment.Row) clearRow).actsOnTap());
+            assertTrue(clearRow.getOnPreferenceClickListener().onPreferenceClick(clearRow));
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            assertEquals("Download history cleared.", ShadowToast.getTextOfLatestToast());
+            assertEquals(0, SavesForTests.historyCount(context));
+        }
+
+        // Reels alone still save by the media's id, so the rows are there.
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            assertNotNull(page.findPreference(Settings.DOWNLOAD_SKIP_SAVED.key));
+            assertNotNull(page.findPreference(HushgramPreferenceFragment.CLEAR_DOWNLOAD_HISTORY));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_SKIP_SAVED.key));
+        }
+
+        // Voice messages and profile pictures are never remembered, so alone they don't offer it.
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VOICE_MESSAGE, PatchFamily.PROFILE_PICTURE);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            assertNotNull(section(page.getPreferenceScreen(), "Downloads"));
+            assertNull(page.findPreference(Settings.DOWNLOAD_SKIP_SAVED.key));
+            assertNull(page.findPreference(HushgramPreferenceFragment.CLEAR_DOWNLOAD_HISTORY));
         }
     }
 

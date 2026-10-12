@@ -1622,6 +1622,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_compatible", FALSE);
 
     /**
+     * A save remembers what reached the gallery, and the same post, carousel page, reel, story,
+     * cover or recording isn't saved again while its file is still where the save put it (#150).
+     * Save all saves only the pages not saved before. Asked again within 30 seconds of being
+     * told, it saves anyway. The list stays in HushGram's private files, out of settings backups
+     * and the diagnostic report. Starts off, so every tap saves the way it always has.
+     */
+    public static final BooleanSetting DOWNLOAD_SKIP_SAVED =
+            new BooleanSetting("hushgram_download_skip_saved", FALSE);
+
+    /**
      * The name a saved video gets: {date}, {video_id}, {owner} and {posted} fill in per save, the
      * last three only when the save knows them, and the default is IG_VID_ and the date and time.
      * Photos keep their IG_IMG_ names. Cleaned like the folder wherever it's read

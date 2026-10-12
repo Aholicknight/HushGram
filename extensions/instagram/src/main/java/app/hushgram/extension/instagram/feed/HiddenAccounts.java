@@ -147,6 +147,14 @@ public final class HiddenAccounts {
     }
 
     /**
+     * {@link #current()} for the download history, which keeps each account's saves apart: the
+     * signed-in account's id, or "" when none has been seen. Never throws.
+     */
+    public static String signedInAccount() {
+        return current();
+    }
+
+    /**
      * The names Home leaves out now: none while HushGram is paused or its settings aren't ready.
      * Parsed once per change of the list or the account. Never throws.
      */

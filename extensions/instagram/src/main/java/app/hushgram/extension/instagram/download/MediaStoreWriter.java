@@ -77,6 +77,9 @@ final class MediaStoreWriter implements Downloader.Sink {
     private OutputStream stream;
     private String location;
 
+    /** The gallery entry the last commit published, as text, or null before one is. */
+    private String published;
+
     /** Android 9 only: the folder, the hidden file being written, and the name it takes when done. */
     private File legacyFolder;
     private File legacyWork;
@@ -122,6 +125,15 @@ final class MediaStoreWriter implements Downloader.Sink {
      */
     String savedLocation() {
         return location;
+    }
+
+    /**
+     * The gallery entry the save published: its content:// address, or on Android 9 the finished
+     * file's file:// one. Null until a commit succeeds, and again once an abandon removed the entry.
+     * Skip what's already saved writes it down to find the file again.
+     */
+    String publishedItem() {
+        return published;
     }
 
     /** Whether this phone's MediaStore is the one without RELATIVE_PATH and IS_PENDING. For tests too. */
@@ -229,6 +241,7 @@ final class MediaStoreWriter implements Downloader.Sink {
             throw new IOException("the gallery did not publish the pending entry");
         }
         SaveLeftovers.settled(context, item);
+        published = item.toString();
     }
 
     /** Android 9: the finished file takes its name, never over another's, and the scanner is told. */
@@ -242,6 +255,7 @@ final class MediaStoreWriter implements Downloader.Sink {
             legacyWork = null;
         }
         SaveLeftovers.settled(context, Uri.fromFile(work));
+        published = Uri.fromFile(legacyFile).toString();
         try {
             MediaScannerConnection.scanFile(context, new String[] { legacyFile.getPath() },
                 new String[] { legacyMime }, null);
@@ -275,6 +289,7 @@ final class MediaStoreWriter implements Downloader.Sink {
         if (item == null) return;
         Uri row = item;
         item = null;
+        published = null;
 
         try {
             if (context.getContentResolver().delete(row, null, null) > 0) {

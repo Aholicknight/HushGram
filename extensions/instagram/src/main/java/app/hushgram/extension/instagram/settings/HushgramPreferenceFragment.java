@@ -106,6 +106,7 @@ import app.hushgram.extension.instagram.reels.BurnInMode;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.StartTab;
 import app.hushgram.extension.instagram.reels.TabOrder;
+import app.hushgram.extension.instagram.download.DownloadHistory;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.HoldFingers;
 import app.hushgram.extension.instagram.download.HoldTime;
@@ -150,6 +151,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** The Before you sign in notice's key, which finds it on the screen. */
     static final String SIGN_IN_NOTICE_KEY = "hushgram_sign_in_notice";
     static final String CLEAR_MEDIA_CACHE_NOW = "hushgram_clear_media_cache_now";
+    static final String CLEAR_DOWNLOAD_HISTORY = "hushgram_clear_download_history";
     /** The row that lists the chats locked one at a time. */
     static final String LOCKED_CHATS_ROW = "hushgram_locked_chats_row";
     /** The row that lists the chats hidden one at a time. */
@@ -1291,6 +1293,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "username_20261005_143012, so an account's saves sort by date. A carousel page gets its "
                             + "number on the end. Takes the place of the video file name. A save that doesn't know who "
                             + "posted or when keeps its usual name.")));
+            // Only the saves of a post, a reel or a story know the media's id, which the list keeps.
+            if (build.contains(PatchFamily.REEL_DOWNLOAD) || build.contains(PatchFamily.STORY_DOWNLOAD)
+                    || build.contains(PatchFamily.VIDEO_DOWNLOAD)) {
+                downloads.addPreference(toggle(context, Settings.DOWNLOAD_SKIP_SAVED, L10n.t("Skip what's already saved"),
+                        L10n.t("Remembers what you save while it's on, so a post, carousel page, reel or story isn't "
+                                + "saved twice. Save all skips the pages you already have. Download again within "
+                                + "30 seconds to save another copy. A file you deleted or moved saves again.")));
+                Row clearHistory = new Row(context);
+                clearHistory.setKey(CLEAR_DOWNLOAD_HISTORY);
+                clearHistory.setPersistent(false);
+                clearHistory.actsAtOnce = true;
+                clearHistory.setTitle(L10n.t("Clear download history"));
+                clearHistory.setSummary(L10n.t("Forgets everything Skip what's already saved remembers, for all your "
+                        + "accounts. Your saved files stay."));
+                clearHistory.setOnPreferenceClickListener(p -> {
+                    clearDownloadHistory(p);
+                    return true;
+                });
+                downloads.addPreference(mark(clearHistory, SettingsIcons.DELETE));
+            }
         }
 
         if (build.contains(PatchFamily.STOP_HEARTBEAT)) {
@@ -1593,6 +1615,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             && (Settings.DOWNLOAD_QUALITY.key.equals(key)
                             || Settings.SAVE_FOLDER.key.equals(key) || Settings.FILENAME_TEMPLATE.key.equals(key)
                             || Settings.DOWNLOAD_COMPATIBLE.key.equals(key));
+                    belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.STORY_DOWNLOAD)
+                            && (Settings.DOWNLOAD_SKIP_SAVED.key.equals(key) || CLEAR_DOWNLOAD_HISTORY.equals(key));
+                    belongs |= family == PatchFamily.VIDEO_DOWNLOAD && CLEAR_DOWNLOAD_HISTORY.equals(key);
                     belongs |= family == PatchFamily.RESTORE_TRUST && L10n.t("Instagram accepts this build").equals(row.getTitle());
                     belongs |= family == PatchFamily.REMOVE_AD_ID && L10n.t("Advertising ID removed").equals(row.getTitle());
                     belongs |= family == PatchFamily.PURE_BLACK && L10n.t("Pure black dark mode").equals(row.getTitle());
@@ -3668,6 +3693,20 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             });
         })) {
             Utils.showToastLong(L10n.t("Couldn't clear the saved copies. Try again."));
+        }
+    }
+
+    /** Forgets every save Skip what's already saved remembers, off the main thread, and says so. */
+    private static void clearDownloadHistory(Preference row) {
+        Context context = row.getContext();
+        if (!Utils.runOnBackgroundThread(() -> {
+            boolean cleared = DownloadHistory.clear(context);
+            Utils.runOnMainThread(() -> {
+                if (cleared) Utils.showToastShort(L10n.t("Download history cleared."));
+                else Utils.showToastLong(L10n.t("Couldn't clear the download history. Try again."));
+            });
+        })) {
+            Utils.showToastLong(L10n.t("Couldn't clear the download history. Try again."));
         }
     }
 
