@@ -77,10 +77,12 @@ internal val SUGGESTED_REELS = listOf("SUGGESTED_USER", "SUGGESTED_USER_REEL", "
 
 /**
  * The reel types of the cards Instagram makes for the tray, which StoriesTray drops on their own
- * switches: a rewind, then memories, your week, the year in review, follow anniversaries and birthdays.
+ * switches: a rewind, then memories, your week, the year in review, follow anniversaries and
+ * birthdays, and the empty story state's cards of accounts to follow.
  */
 internal val MADE_REELS = listOf(
     "HIGHLIGHT_REWIND_REEL", "MEMORY_REEL", "MY_WEEK_REEL", "END_OF_YEAR", "FOLLOW_VERSARIES", "BIRTHDAY_HIGHLIGHTS",
+    "EMPTY_STORY_STATE_REEL",
 )
 
 @Suppress("unused")
@@ -98,8 +100,10 @@ val hideSuggestedStoriesPatch = bytecodePatch(
         guardTray(findTrayRowBuild())
         guardTray(findFloatingTrayShow())
         val parse = findTrayItemParse()
+        val netegoCheck = findStoryNetegoCheck()
         hookTrayParser(parse, findTrayRemaining(parse.site))
         hideMusicCard()
+        hideStorySuggestions(netegoCheck)
         enableStatus("storiesTray")
     }
 }

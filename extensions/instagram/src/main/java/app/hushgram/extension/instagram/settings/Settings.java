@@ -570,6 +570,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_music_card", FALSE);
 
     /**
+     * The Suggested for you cards of accounts to follow between the stories you tap through: the
+     * netegos {@link app.hushgram.extension.instagram.stories.StoriesTray#netego} leaves out and the
+     * empty story state reel {@link app.hushgram.extension.instagram.stories.StoriesTray#filter}
+     * drops. Off to start.
+     */
+    public static final BooleanSetting HIDE_STORY_SUGGESTIONS =
+            new BooleanSetting("hushgram_hide_story_suggestions", FALSE);
+
+    /**
      * The rings in the stories row at the top of Home are drawn at the size in
      * {@link #STORY_RING_SCALE} ({@link app.hushgram.extension.instagram.stories.StoryRing}). The
      * switch starts on, and the size starts as Instagram's own, so nothing changes until a size is

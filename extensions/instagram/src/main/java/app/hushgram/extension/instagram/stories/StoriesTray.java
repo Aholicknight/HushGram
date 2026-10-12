@@ -36,6 +36,14 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * that didn't parse. With Stop loading stories on, every item goes, and {@link #remaining} empties
  * the list of reels the tray would fetch after them, so nothing in the row loads.
  *
+ * <p>Instagram also puts cards of accounts to follow between the stories you tap through, two ways.
+ * One is a reel of its own in the tray's answer, the empty story state, whose cards suggest
+ * accounts, and {@link #filter} answers null for it while Hide Suggested for you between stories is
+ * on. The other is a netego, a unit the viewer takes in beside the ads, whose type names it. The
+ * patch hands that type to {@link #netego} first thing in the viewer's check of each ad or netego,
+ * and a yes makes the check answer no, so the viewer leaves the unit out the way it leaves out one
+ * that isn't valid.
+ *
  * <p>The Music for you card isn't a tray item. Instagram puts it between the stories in the viewer,
  * when a server flag says the card is on, so the patch passes that flag's answer through
  * {@link #musicCard} and a yes becomes a no while Hide the Music for you card is on.
@@ -58,6 +66,16 @@ public final class StoriesTray {
     static final Set<String> RECAPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "MEMORY_REEL", "MY_WEEK_REEL", "END_OF_YEAR", "FOLLOW_VERSARIES", "BIRTHDAY_HIGHLIGHTS")));
 
+    /** The empty story state's reel, whose cards suggest accounts to follow. */
+    static final Set<String> SUGGESTION_CARDS = Collections.singleton("EMPTY_STORY_STATE_REEL");
+
+    /**
+     * The netego types of a Suggested for you card between stories, by the names Instagram 450
+     * gives them: accounts, businesses and creators to follow.
+     */
+    static final Set<String> SUGGESTED_NETEGOS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "suggested_users_in_story", "suggested_businesses_in_story", "cymf_in_stories")));
+
     /** Every reel type a switch can take out. */
     static final Set<String> FILTERED;
 
@@ -65,6 +83,7 @@ public final class StoriesTray {
         Set<String> all = new HashSet<>(SUGGESTED);
         all.addAll(REWINDS);
         all.addAll(RECAPS);
+        all.addAll(SUGGESTION_CARDS);
         FILTERED = Collections.unmodifiableSet(all);
     }
 
@@ -73,6 +92,7 @@ public final class StoriesTray {
     static final String REWIND_ROUTE = "Story rewinds";
     static final String RECAP_ROUTE = "Memories and recaps";
     static final String STOP_ROUTE = "Stop loading stories";
+    static final String SUGGESTION_ROUTE = "Suggested for you between stories";
 
     /** The diagnostic counter route for Music for you card checks answered no, one for each time Instagram asked. */
     static final String MUSIC_CARD_ROUTE = "Music for you card";
@@ -128,7 +148,7 @@ public final class StoriesTray {
             }
             String kind = FeedItemKinds.kindIn(item, FILTERED, FamilyNames.STORIES_TRAY);
             if (kind == null) return item;
-            String route = SUGGESTED.contains(kind) ? ROUTE : REWINDS.contains(kind) ? REWIND_ROUTE : RECAP_ROUTE;
+            String route = routeFor(kind);
             FeedFilterCounters.sawKind(route, kind);
             if (!Utils.settingsReady() || !switchFor(kind).get()) return item;
             FeedFilterCounters.removed(route, 1, kind);
@@ -159,6 +179,28 @@ public final class StoriesTray {
     }
 
     /**
+     * Injected first thing in the stories viewer's check of an ad or a netego it's about to take
+     * in, with the netego's type (null for an ad). Answers true, leave it out, for a Suggested for
+     * you card while Hide Suggested for you between stories is on, and false otherwise, or when
+     * anything goes wrong. Never throws, and never waits for the settings.
+     */
+    public static boolean netego(String type) {
+        if (type == null) return false;
+        try {
+            HookStatus.invoked(FamilyNames.STORIES_TRAY);
+            if (!SUGGESTED_NETEGOS.contains(type)) return false;
+            FeedFilterCounters.sawKind(SUGGESTION_ROUTE, type);
+            if (!Utils.settingsReady() || !Settings.HIDE_STORY_SUGGESTIONS.get()) return false;
+            FeedFilterCounters.removed(SUGGESTION_ROUTE, 1, type);
+            Logger.printDebug(() -> "Stories: left out a " + type + " card");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORIES_TRAY, "story netego", failure);
+            return false;
+        }
+    }
+
+    /**
      * Injected right after Instagram reads the server flag that lets its Music for you card into
      * the stories viewer ([enabled] nonzero for yes). Answers no while Hide the Music for you card
      * is on, and Instagram's own answer otherwise, or when the settings aren't ready or anything
@@ -181,8 +223,15 @@ public final class StoriesTray {
         return Utils.settingsReady() && Settings.STOP_LOADING_STORIES.get();
     }
 
+    private static String routeFor(String kind) {
+        if (SUGGESTED.contains(kind)) return ROUTE;
+        if (REWINDS.contains(kind)) return REWIND_ROUTE;
+        return SUGGESTION_CARDS.contains(kind) ? SUGGESTION_ROUTE : RECAP_ROUTE;
+    }
+
     private static BooleanSetting switchFor(String kind) {
         if (SUGGESTED.contains(kind)) return Settings.HIDE_SUGGESTED_STORIES;
-        return REWINDS.contains(kind) ? Settings.HIDE_STORY_REWINDS : Settings.HIDE_STORY_RECAPS;
+        if (REWINDS.contains(kind)) return Settings.HIDE_STORY_REWINDS;
+        return SUGGESTION_CARDS.contains(kind) ? Settings.HIDE_STORY_SUGGESTIONS : Settings.HIDE_STORY_RECAPS;
     }
 }

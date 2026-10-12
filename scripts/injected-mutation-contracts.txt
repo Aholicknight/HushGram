@@ -785,6 +785,15 @@ once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->remaining(Ljav
 # the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->musicCard(I)Z in static (Lcom/instagram/common/session/UserSession;)Z holding const:0x810cca0001477f
 #
+# Hide Suggested for you between stories reads a story item's netego type and asks
+# StoriesTray.netego(String)Z first thing in the viewer's static check of an ad or a netego (05hZ.A07
+# on 450), the one static (UserSession, ReelResponseItemIntf)Z method calling the reader that hands
+# the type to the mapper loading "Unsupported story netego type: ". The type's getter is called
+# before the hook, so it isn't a start-call. Left out, the Suggested for you cards keep coming
+# between stories; twice or elsewhere, it isn't the guard the patch wrote. HideStorySuggestionsHookTest
+# checks the chain and where the guard lands on all seven 450 builds.
+once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->netego(Ljava/lang/String;)Z in static (Lcom/instagram/common/session/UserSession;Lcom/instagram/model/reels/ReelResponseItemIntf;)Z holding LX/*;->*(Lcom/instagram/model/reels/ReelResponseItemIntf;)Ljava/lang/Integer;
+#
 # Download any reel lets the Download row into each builder of the reel's more menu: the download
 # check's answer goes through offer() in the legacy builder and both redesigned ones, and the flag
 # that holds the row back goes through withhold() in the two redesigned ones. Each builder is the one

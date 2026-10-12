@@ -493,6 +493,10 @@ tasks.register("verifyAndroidBoundaries") {
                 "theSwitchIsUnderProfilesAfterSuggestedPeopleAndStartsOff[28]", "theSwitchIsUnderProfilesAfterSuggestedPeopleAndStartsOff[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
                 "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
+            "app.hushgram.extension.instagram.settings.StorySuggestionsSettingsTest" to listOf(
+                "theSwitchIsUnderStoriesAfterTheMusicCardAndStartsOff[28]", "theSwitchIsUnderStoriesAfterTheMusicCardAndStartsOff[37]",
+                "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
+                "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
             "app.hushgram.extension.instagram.settings.MusicCardSettingsTest" to listOf(
                 "theSwitchIsUnderStoriesAfterTheTrayAndStartsOff[28]", "theSwitchIsUnderStoriesAfterTheTrayAndStartsOff[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
