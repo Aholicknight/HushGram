@@ -351,11 +351,14 @@ public final class BurnInGuard {
         pass();
     }
 
-    /** A pass as soon as the main thread is free, in place of any timed one. */
+    /**
+     * A pass as soon as the main thread is free, in place of any timed one. It counts as due now, so
+     * a layout before it runs leaves it be rather than putting it off by up to {@link #LOOK_MS}.
+     */
     private static void passSoon() {
         Handler main = handler();
         main.removeCallbacks(TICK);
-        tickAt = -1L;
+        tickAt = SystemClock.uptimeMillis();
         main.post(TICK);
     }
 
@@ -493,6 +496,7 @@ public final class BurnInGuard {
         if (handler != null) handler.removeCallbacks(TICK);
         tickAt = -1L;
         touchedAt = 0L;
+        LAYOUT.lastLook = Long.MIN_VALUE / 2;
         DIMMED.clear();
         MOVED.clear();
         WRAPPED.clear();

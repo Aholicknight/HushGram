@@ -137,13 +137,14 @@ public class BurnInGuardTest {
 
     /**
      * A finger event the way the system delivers it: to the decor view, which hands it to the window's
-     * callback. It lands inside the screen's content, below the action bar a plain test activity has.
+     * callback. It lands in the middle of the screen's content, clear of the action bar a plain test
+     * activity has, which on API 35 and newer is drawn over the top of the content.
      */
     private void send(int action) {
         int[] at = new int[2];
         root.getLocationInWindow(at);
         long now = SystemClock.uptimeMillis();
-        MotionEvent event = MotionEvent.obtain(now, now, action, at[0] + 10f, at[1] + 10f, 0);
+        MotionEvent event = MotionEvent.obtain(now, now, action, at[0] + root.getWidth() / 2f, at[1] + root.getHeight() / 2f, 0);
         try {
             activity.getWindow().getDecorView().dispatchTouchEvent(event);
         } finally {
@@ -327,14 +328,27 @@ public class BurnInGuardTest {
         assertFalse(BurnInGuard.watchingLayoutsForTests());
     }
 
-    /** Turned off, the watcher stays on the window, but a finger no longer asks for a pass. */
+    /**
+     * Turned off in the settings, the focus coming back still asks for a pass, and a layout before
+     * that pass runs (the settings screen closing brings one) doesn't put it off. Then the watcher
+     * stays on the window, but a finger no longer asks for a pass.
+     */
     @Test public void aTouchWithTheGuardOffAsksForNothing() {
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
         BurnInGuard.resumed(activity);
+        ViewTreeObserver observer = activity.getWindow().getDecorView().getViewTreeObserver();
+        observer.dispatchOnGlobalLayout();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertTrue(BurnInGuard.watchingLayoutsForTests());
+
         Settings.BURN_IN_GUARD.save(BurnInMode.OFF);
-        focusBack();
-        assertFalse(BurnInGuard.watchingLayoutsForTests());
+        ReflectionHelpers.callInstanceMethod(observer, "dispatchOnWindowFocusChange",
+                ReflectionHelpers.ClassParameter.from(boolean.class, true));
+        observer.dispatchOnGlobalLayout();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertFalse("a layout put the focus pass off", BurnInGuard.watchingLayoutsForTests());
         assertTrue(Shadows.shadowOf(Looper.getMainLooper()).isIdle());
+
         // Not tap(), which runs what the main thread has due.
         send(MotionEvent.ACTION_DOWN);
         send(MotionEvent.ACTION_UP);
