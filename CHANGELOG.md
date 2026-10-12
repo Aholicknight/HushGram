@@ -10,7 +10,7 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** Settings now use clearer category descriptions, a rounded search field and pink icon tiles. Dialogs share the same styling, and controls stay readable at larger text sizes.
 
-* **Tooling:** Unreleased version headings now work with both the changelog checker and the release notes generator.
+* **Tooling:** Unreleased version headings now work with both the changelog checker and the release notes generator. Full-screen patch checks also verify control flow when jumps need a wider encoding.
 
 #### Bug Fixes
 

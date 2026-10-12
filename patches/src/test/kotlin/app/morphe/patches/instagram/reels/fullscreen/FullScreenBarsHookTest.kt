@@ -8,6 +8,7 @@ import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -60,6 +61,7 @@ class FullScreenBarsHookTest {
             val context = PatchContexts.of(classes)
             val listener = context.findBarHeights()
             val before = listener.code()
+            val native = NeutralNativePath(listener)
             val stores = listener.barHeightStores()
 
             routeBarHeights(listener)
@@ -84,10 +86,8 @@ class FullScreenBarsHookTest {
                     code.getOrNull(at - 2)?.referenceText() != BAR_HEIGHT_HOOK
             }
             assertEquals("$what: a height stored without asking", emptyList<Int>(), unasked)
-            val untouched = before.filterIndexed { at, _ -> stores.none { it.index == at } }.map { it.opcode }
-            val added = asks.flatMap { listOf(it, it + 1, it + 2) }.toSet()
-            val rest = code.filterIndexed { at, _ -> at !in added }.map { it.opcode }
-            assertEquals("$what: the rest of the listener", untouched, rest)
+            val added = asks.flatMap { listOf(it + 1, it + 2) }.toSet()
+            native.assertPreserved(what, listener, added, asks.toSet())
         }
     }
 
