@@ -380,8 +380,8 @@ public final class L10nTranslations {
                 "W\u00e4hle, was Reels zeigen, wie sie abgespielt werden und wie sie scrollen.");
         table.put("Choose which stories you see and what people see you do.",
                 "W\u00e4hle, welche Stories du siehst und was andere von dir sehen.");
-        table.put("Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. Patch again to change them.",
-                "Beim Patchen in Morphe Manager gew\u00e4hlt, und die Pause schaltet sie nicht aus. Patche erneut, um sie zu \u00e4ndern.");
+        table.put("Chosen when you patched, so Pause leaves them on. Patch again to change them.",
+                "Beim Patchen gew\u00e4hlt, daher l\u00e4sst die Pause sie an. Patche erneut, um sie zu \u00e4ndern.");
         table.put("Clear",
                 "Klar");
         table.put("Clear diagnostic data",
@@ -2381,8 +2381,8 @@ public final class L10nTranslations {
                 "Elige qu\u00e9 muestran los reels y c\u00f3mo se reproducen y se desplazan.");
         table.put("Choose which stories you see and what people see you do.",
                 "Elige qu\u00e9 historias ves y qu\u00e9 ven los dem\u00e1s de lo que haces.");
-        table.put("Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. Patch again to change them.",
-                "Se eligieron en Morphe Manager al parchear, y Pausar no los desactiva. Vuelve a parchear para cambiarlos.");
+        table.put("Chosen when you patched, so Pause leaves them on. Patch again to change them.",
+                "Se eligieron al parchear, as\u00ed que Pausar no los apaga. Vuelve a parchear para cambiarlos.");
         table.put("Clear",
                 "Transparente");
         table.put("Clear diagnostic data",
@@ -4382,8 +4382,8 @@ public final class L10nTranslations {
                 "Pilih apa yang ditampilkan reel, serta cara memutar dan menggulirnya.");
         table.put("Choose which stories you see and what people see you do.",
                 "Pilih cerita yang kamu lihat dan apa yang orang lain lihat dari aktivitasmu.");
-        table.put("Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. Patch again to change them.",
-                "Dipilih di Morphe Manager saat kamu menambal, dan Jeda tidak mematikannya. Tambal ulang untuk mengubahnya.");
+        table.put("Chosen when you patched, so Pause leaves them on. Patch again to change them.",
+                "Dipilih saat kamu menambal, jadi Jeda tidak mematikannya. Tambal ulang untuk mengubahnya.");
         table.put("Clear",
                 "Bening");
         table.put("Clear diagnostic data",
@@ -6383,8 +6383,8 @@ public final class L10nTranslations {
                 "\ub9b4\uc2a4\uc5d0 \ud45c\uc2dc\ub418\ub294 \ub0b4\uc6a9\uacfc \uc7ac\uc0dd \ubc0f \uc2a4\ud06c\ub864 \ubc29\uc2dd\uc744 \uc120\ud0dd\ud569\ub2c8\ub2e4.");
         table.put("Choose which stories you see and what people see you do.",
                 "\ubcf4\uc774\ub294 \uc2a4\ud1a0\ub9ac\uc640 \ub2e4\ub978 \uc0ac\ub78c\uc5d0\uac8c \ubcf4\uc774\ub294 \ub0b4 \ud65c\ub3d9\uc744 \uc120\ud0dd\ud569\ub2c8\ub2e4.");
-        table.put("Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. Patch again to change them.",
-                "\ud328\uce58\ud560 \ub54c Morphe Manager\uc5d0\uc11c \uc120\ud0dd\ud55c \ud56d\ubaa9\uc774\uba70, HushGram\uc744 \uc77c\uc2dc \uc815\uc9c0\ud574\ub3c4 \uaebc\uc9c0\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \ubcc0\uacbd\ud558\ub824\uba74 \ub2e4\uc2dc \ud328\uce58\ud558\uc138\uc694.");
+        table.put("Chosen when you patched, so Pause leaves them on. Patch again to change them.",
+                "\ud328\uce58\ud560 \ub54c \uc120\ud0dd\ud55c \ud56d\ubaa9\uc774\ub77c \uc77c\uc2dc \uc815\uc9c0\ud574\ub3c4 \uaebc\uc9c0\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \ubcc0\uacbd\ud558\ub824\uba74 \ub2e4\uc2dc \ud328\uce58\ud558\uc138\uc694.");
         table.put("Clear",
                 "\ud22c\uba85\ud558\uac8c");
         table.put("Clear diagnostic data",
@@ -8384,8 +8384,8 @@ public final class L10nTranslations {
                 "Escolha o que os reels mostram e como eles tocam e rolam.");
         table.put("Choose which stories you see and what people see you do.",
                 "Escolha quais stories voc\u00ea v\u00ea e o que os outros veem voc\u00ea fazer.");
-        table.put("Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. Patch again to change them.",
-                "Escolhidos no Morphe Manager quando voc\u00ea aplicou os patches, e a pausa n\u00e3o os desativa. Aplique os patches novamente para alter\u00e1-los.");
+        table.put("Chosen when you patched, so Pause leaves them on. Patch again to change them.",
+                "Escolhidos quando voc\u00ea aplicou os patches, ent\u00e3o a pausa n\u00e3o os desativa. Aplique os patches de novo para alter\u00e1-los.");
         table.put("Clear",
                 "Transparente");
         table.put("Clear diagnostic data",
@@ -10385,8 +10385,8 @@ public final class L10nTranslations {
                 "Reels'in ne g\u00f6sterdi\u011fini, nas\u0131l oynat\u0131l\u0131p kayd\u0131r\u0131ld\u0131\u011f\u0131n\u0131 se\u00e7.");
         table.put("Choose which stories you see and what people see you do.",
                 "Hangi hikayeleri g\u00f6rece\u011fini ve ba\u015fkalar\u0131n\u0131n senin yapt\u0131klar\u0131ndan neyi g\u00f6rece\u011fini se\u00e7.");
-        table.put("Chosen in Morphe Manager when you patched, and Pause doesn't turn them off. Patch again to change them.",
-                "Yamalarken Morphe Manager'da se\u00e7ildi ve Duraklatma bunlar\u0131 kapatmaz. De\u011fi\u015ftirmek i\u00e7in yeniden yamala.");
+        table.put("Chosen when you patched, so Pause leaves them on. Patch again to change them.",
+                "Yamalarken se\u00e7ildi, bu y\u00fczden Duraklatma bunlar\u0131 kapatmaz. De\u011fi\u015ftirmek i\u00e7in yeniden yamala.");
         table.put("Clear",
                 "Saydam");
         table.put("Clear diagnostic data",
