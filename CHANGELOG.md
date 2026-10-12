@@ -8,6 +8,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** A feed video you start with a tap plays where it is. On some phones it dropped to the bottom of the screen, under the bar, and left black where it should have played. Reported in #136.
 
+* **Instagram - Glass tab bar:** With Show content behind the tab bar on, Reels stops at the top of the bar again, over black, the way it does with Instagram's own bar. Its seek bar, caption and buttons aren't hidden under the pill anymore, and Home and Profile on the pill work from Reels. Before, a tap on the lower half of the pill went to the reel instead. Refs #65.
+
 ## 0.0.9 (2026-10-11)
 
 ### Features

@@ -16,6 +16,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -294,6 +297,54 @@ public class GlassTabBarTest {
 
         assertFalse("nothing of the old recording is left for the bar to draw", node.hasDisplayList());
         GlassTabBar.forgetBackdrop(null, bar);
+    }
+
+    /**
+     * A floating pill keeps each Reels viewer above it, so its seek bar, caption and the touch strip
+     * Instagram lays over the bar's top don't sit under the pill and take its taps: the Reels tab's in the
+     * swipe pager and one opened over another tab get the bar's height as their margin. A margin Instagram
+     * set stays, the bar's own branch is never touched, a taller pill moves them with it, and a hidden bar
+     * gives the room back.
+     */
+    @Test
+    public void reelsViewersStopAtAFloatingBarsTopAndGetTheRoomBackWhenItHides() {
+        Context context = RuntimeEnvironment.getApplication();
+        int reels = 0x7f0b0010;
+        FrameLayout holder = new FrameLayout(context);
+        FrameLayout pager = new FrameLayout(context);
+        FrameLayout page = new FrameLayout(context);
+        View tab = withMargin(new FrameLayout(context), 0);
+        tab.setId(reels);
+        page.addView(tab);
+        pager.addView(page);
+        View overHome = withMargin(new FrameLayout(context), 0);
+        overHome.setId(reels);
+        pager.addView(overHome);
+        View instagrams = withMargin(new View(context), 40);
+        instagrams.setId(reels);
+        pager.addView(instagrams);
+        FrameLayout bar = new FrameLayout(context);
+        View insideBar = withMargin(new View(context), 0);
+        insideBar.setId(reels);
+        bar.addView(insideBar);
+        holder.addView(pager);
+        holder.addView(bar);
+        Map<View, Integer> given = new HashMap<>();
+
+        assertEquals(2, GlassTabBar.reelsAboveTheBar(holder, bar, reels, 126, given));
+        assertEquals("the Reels tab", 126, margin(tab));
+        assertEquals("a reel opened over Home", 126, margin(overHome));
+        assertEquals("Instagram's own margin", 40, margin(instagrams));
+        assertEquals("the bar's own branch", 0, margin(insideBar));
+        assertEquals("settled, nothing changes", 0, GlassTabBar.reelsAboveTheBar(holder, bar, reels, 126, given));
+
+        assertEquals(2, GlassTabBar.reelsAboveTheBar(holder, bar, reels, 150, given));
+        assertEquals("a taller pill", 150, margin(tab));
+        assertEquals(2, GlassTabBar.reelsAboveTheBar(holder, bar, reels, 0, given));
+        assertEquals("a hidden bar", 0, margin(tab));
+        assertEquals(40, margin(instagrams));
+        assertTrue(given.isEmpty());
+        assertEquals("no id, nothing found", 0, GlassTabBar.reelsAboveTheBar(holder, bar, 0, 126, given));
     }
 
     private static View withMargin(View view, int bottom) {

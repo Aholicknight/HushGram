@@ -81,7 +81,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * on the GPU, never read back from the screen. It's the views as they draw, so photos, text and video
  * in a TextureView come through. The glass shows the strip just above the bar, upside down. With the
  * float switch on, the content container also runs to the bottom of the screen, so nothing of
- * Instagram's own colour is left round the pill.
+ * Instagram's own colour is left round the pill. Reels viewers still stop at the bar's top, over black,
+ * so their seek bar, caption and touch strip stay clear of the pill.
  *
  * <p>Instagram sets the bar's colour, padding and visibility from time to time, so a draw listener
  * puts the pieces back whenever one is changed. Anything that throws turns the blur off for the
@@ -97,6 +98,8 @@ public final class GlassTabBar {
     static final String CONTENT = "layout_container_main";
     /** Home's pager on an account whose tabs swipe sideways. It sits beside the content, not in it. */
     static final String SWIPE_PAGER = "swipeable_tab_view_pager";
+    /** The root of the Reels viewer, in the Reels tab and wherever a reel opens over another tab. */
+    static final String REELS_ROOT = "root_clips_layout";
 
     private static final java.util.HashMap<String, Integer> IDS = new java.util.HashMap<>();
 
@@ -133,6 +136,42 @@ public final class GlassTabBar {
             margins.bottomMargin = wanted;
             screen.setLayoutParams(margins);
         }
+    }
+
+    /**
+     * Gives each view under [root] whose id is [id], outside [bar]'s branch, a bottom margin of [wanted].
+     * These are the Reels viewers on a floating bar. Run down behind the pill, a reel's seek bar and caption
+     * sat under it, and so did the strip Instagram lays over the bar for the seek bar's touches, a later
+     * sibling of the bar that took every tap on the pill's lower half: Home and Profile did nothing from
+     * Reels. A margin that is neither 0 nor one this gave, which [given] remembers, is Instagram's and stays.
+     * Returns how many changed.
+     */
+    static int reelsAboveTheBar(View root, View bar, int id, int wanted, java.util.Map<View, Integer> given) {
+        return liftReels(root, bar, id, wanted, given, 0);
+    }
+
+    private static int liftReels(View view, View bar, int id, int wanted, java.util.Map<View, Integer> given, int depth) {
+        if (view == bar || depth > 60) return 0;
+        if (view.getId() == id && id != 0) {
+            if (!(view.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return 0;
+            ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+            Integer ours = given.get(view);
+            if (margins.bottomMargin == wanted) {
+                if (wanted != 0) given.put(view, wanted);
+                return 0;
+            }
+            if (margins.bottomMargin != 0 && (ours == null || ours != margins.bottomMargin)) return 0;
+            margins.bottomMargin = wanted;
+            view.setLayoutParams(margins);
+            if (wanted == 0) given.remove(view);
+            else given.put(view, wanted);
+            return 1;
+        }
+        if (!(view instanceof ViewGroup)) return 0;
+        ViewGroup group = (ViewGroup) view;
+        int changed = 0;
+        for (int i = 0; i < group.getChildCount(); i++) changed += liftReels(group.getChildAt(i), bar, id, wanted, given, depth + 1);
+        return changed;
     }
 
     /**
@@ -202,6 +241,10 @@ public final class GlassTabBar {
      * found even when nothing else draws the bar, without a bar that never has one drawing forever.
      */
     static final int MISS_REDRAWS = 4;
+    /** How often the views are walked for a Reels viewer to keep above a floating pill. */
+    static final long REELS_LOOK_MS = 100;
+    /** Counted in the glass family's Diagnostics line each time a Reels viewer is moved to clear the pill. */
+    static final String COUNT_REELS_LIFTED = "Reels viewer kept above the pill";
 
     static final String TAG = "HushGlass";
     private static final boolean DIAGNOSE = false;
@@ -421,6 +464,13 @@ public final class GlassTabBar {
         @Nullable private WeakReference<View> contentRef;
         /** When the shadow or the content was last missed, so a miss isn't repeated every frame. */
         private final Misses misses = new Misses();
+        /** The Reels viewers kept above a floating pill, with the margin each was given. */
+        private final WeakHashMap<View, Integer> lifted = new WeakHashMap<>();
+        private long reelsLookedAt = Long.MIN_VALUE / 2;
+        /** The stretch of the bar, in its own coordinates, under the Reels viewers kept above it, as of the last frame. */
+        private int reelsLeft, reelsRight;
+        private final Rect reelsRect = new Rect();
+        private final int[] barOnScreen = new int[2];
 
         Glass(ViewGroup bar) {
             this.bar = bar;
@@ -575,6 +625,51 @@ public final class GlassTabBar {
                     }
                 }
                 if (content instanceof ViewGroup) keepScreensAboveTheBar((ViewGroup) content, params);
+                if (floating) keepReelsAboveThePill(parent, params, now);
+            }
+        }
+
+        /**
+         * With the screens running behind a floating pill, each Reels viewer still stops at the bar's top, as
+         * it does over Instagram's own bar ({@link #reelsAboveTheBar}), and the bar paints black under it, as
+         * Instagram paints its bar on Reels. The views are walked for viewers at most every
+         * {@link #REELS_LOOK_MS}. While Instagram hides the bar, the viewers get the room back.
+         */
+        private void keepReelsAboveThePill(View holder, @Nullable ViewGroup.LayoutParams params, long now) {
+            if (params == null || params.height <= 0 || now - reelsLookedAt < REELS_LOOK_MS) return;
+            reelsLookedAt = now;
+            int wanted = bar.getVisibility() == View.VISIBLE ? params.height : 0;
+            if (reelsAboveTheBar(holder, bar, id(holder.getContext(), REELS_ROOT), wanted, lifted) > 0) {
+                HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_REELS_LIFTED);
+            }
+        }
+
+        /**
+         * Where the Reels viewers kept above the bar sit across it, so the bar can paint black under them.
+         * A swipe between tabs moves them without drawing the bar, so a change asks for a redraw.
+         */
+        private void followReels() {
+            int left = 0, right = 0;
+            if (floating && !lifted.isEmpty()) {
+                bar.getLocationOnScreen(barOnScreen);
+                for (View viewer : lifted.keySet()) {
+                    if (viewer == null || !viewer.isShown() || !viewer.getGlobalVisibleRect(reelsRect)) continue;
+                    int from = Math.max(0, reelsRect.left - barOnScreen[0]);
+                    int to = Math.min(bar.getWidth(), reelsRect.right - barOnScreen[0]);
+                    if (to <= from) continue;
+                    if (right <= left) {
+                        left = from;
+                        right = to;
+                    } else {
+                        left = Math.min(left, from);
+                        right = Math.max(right, to);
+                    }
+                }
+            }
+            if (left != reelsLeft || right != reelsRight) {
+                reelsLeft = left;
+                reelsRight = right;
+                bar.invalidate();
             }
         }
 
@@ -597,6 +692,7 @@ public final class GlassTabBar {
             Trace.beginSection("hushgram:preDraw");
             try {
                 keep();
+                followReels();
                 // A tab's own selected state redraws that tab, not the bar behind it, so the capsule would
                 // wait for something else to redraw the bar. Look at it every frame instead.
                 View selected = selectedTab();
@@ -698,6 +794,10 @@ public final class GlassTabBar {
                 if (!floating) {
                     fill.setColor(base);
                     canvas.drawRect(0, 0, bar.getWidth(), bar.getHeight(), fill);
+                } else if (reelsRight > reelsLeft) {
+                    // A Reels viewer stops above the bar, and Reels is black whatever the theme.
+                    fill.setColor(Color.BLACK);
+                    canvas.drawRect(reelsLeft, 0, reelsRight, bar.getHeight(), fill);
                 }
                 // Light glass has nothing under it to stand out against, so it gets a soft shadow.
                 if (!dark) {
