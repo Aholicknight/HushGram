@@ -97,6 +97,8 @@ public final class ReelOrigin {
      * or how often while the grid isn't in a window at all.
      */
     static final long WAIT_MS = 300;
+    /** How often the grid is looked at while Find the reel waits for its tap, for the tab being left or the reel scrolled to by hand. */
+    static final long TAP_WAIT_MS = 500;
     /** How many times the grid is dragged on at most, and how long the search runs at most once the grid shows. */
     static final int MAX_STEPS = 20;
     static final long GIVE_UP_MS = 15000;
@@ -308,9 +310,14 @@ public final class ReelOrigin {
                     return;
                 }
                 if (!going) {
-                    // Up while the tab shows; a screen with no place for it looks straight away.
-                    if (putButtonUp(list)) {
+                    // Up once the grid has tiles, while the tab shows; a screen with no place for it
+                    // looks straight away.
+                    if (list.getChildCount() == 0) {
                         handler.postDelayed(this, WAIT_MS);
+                        return;
+                    }
+                    if (putButtonUp(list)) {
+                        handler.postDelayed(this, TAP_WAIT_MS);
                         return;
                     }
                     going = true;
@@ -390,13 +397,18 @@ public final class ReelOrigin {
             String label = going ? L10n.t(context, "Stop looking") : L10n.t(context, "Find the reel");
             if (button == null) {
                 button = button(context, this::tapped);
-                FrameLayout.LayoutParams place = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-                place.bottomMargin = buttonMargin(content);
-                ((FrameLayout) content).addView(button, place);
+                ((FrameLayout) content).addView(button, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
                 if (!going) HookStatus.counted(FamilyNames.REEL_ORIGIN, OFFERED);
             }
             if (!label.contentEquals(button.getText())) button.setText(label);
+            // Again each pass, so a turned screen or a navigation bar that came or went moves it too.
+            int margin = buttonMargin(content);
+            ViewGroup.LayoutParams place = button.getLayoutParams();
+            if (place instanceof ViewGroup.MarginLayoutParams && ((ViewGroup.MarginLayoutParams) place).bottomMargin != margin) {
+                ((ViewGroup.MarginLayoutParams) place).bottomMargin = margin;
+                button.setLayoutParams(place);
+            }
             return true;
         }
 

@@ -422,6 +422,23 @@ public class ReelOriginTest {
         assertEquals("nothing but the grid on the screen", 1, content().getChildCount());
     }
 
+    /** Waiting for the tap, a grid with no tiles yet gets no button until its first page binds. */
+    @Test
+    public void theFindButtonWaitsForTheGridsFirstTiles() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(new ArrayList<>(), null);
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON, ON);
+        idleSeconds(2);
+        assertNull("no button over an empty grid", ReelOrigin.buttonForTests());
+        assertEquals(1, content().getChildCount());
+
+        grid.reels.addAll(reels(12, 9000));
+        grid.bind();
+        idleSeconds(1);
+        assertNotNull(ReelOrigin.buttonForTests());
+        assertTrue("still waiting for the tap", grid.drags.isEmpty());
+    }
+
     /** Waiting for the tap, a reel scrolled to by hand is outlined, and the button goes. */
     @Test
     public void whileWaitingAReelScrolledToByHandIsOutlined() {
