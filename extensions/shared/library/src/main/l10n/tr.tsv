@@ -391,7 +391,7 @@ HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to cle
 Remembered playback positions restored.	Kaydedilen oynatma konumları geri yüklendi.
 Undo has expired.	Geri yükleme süresi doldu.
 You cleared the remembered playback positions.	Kaydedilen oynatma konumlarını sildiniz.
-Could not update the remembered playback positions.	Kaydedilen oynatma konumları güncellenemedi.
+Couldn't update the remembered playback positions.	Kaydedilen oynatma konumları güncellenemedi.
 Settings backup	Ayar yedeği
 Export HushGram settings	HushGram ayarlarını dışa aktar
 Choose a file for your installed patches' settings. Accounts and history stay on this device.	Yüklü yamaların ayarları için bir dosya seçin. Hesaplar ve geçmiş bu cihazda kalır.
@@ -956,7 +956,7 @@ Confirm PIN	PIN'i onayla
 Set a PIN	PIN belirle
 Use 4 to 8 digits.	4 ile 8 rakam kullan.
 The PINs don't match.	PIN'ler eşleşmiyor.
-Could not save the PIN.	PIN kaydedilemedi.
+Couldn't save the PIN.	PIN kaydedilemedi.
 The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN geri alınamaz. Kaldırmak için Android uygulama ayarlarında Instagram'ın depolamasını temizle. Bu, oturumunu kapatır ve HushGram ayarlarını sıfırlar. Kayıtlı bir ayar yedeği geri kalanı getirir, ama PIN'i getirmez.
 Open app info	Uygulama bilgisini aç
 Hide 'Are you interested' questions	'Bu gönderiyle ilgileniyor musun?' sorularını gizle

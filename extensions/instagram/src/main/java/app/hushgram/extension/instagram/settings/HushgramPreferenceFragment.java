@@ -2608,7 +2608,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
             } catch (Exception failure) {
                 Logger.printException(() -> "Could not update resume history", failure);
-                Utils.showToastLong(L10n.t("Could not update the remembered playback positions."));
+                Utils.showToastLong(L10n.t("Couldn't update the remembered playback positions."));
             } finally {
                 Utils.runOnMainThread(() -> {
                     changingPositions = false;
@@ -2618,7 +2618,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         })) {
             changingPositions = false;
             showClearPositions();
-            Utils.showToastLong(L10n.t("Could not update the remembered playback positions."));
+            Utils.showToastLong(L10n.t("Couldn't update the remembered playback positions."));
         }
     }
 

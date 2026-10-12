@@ -391,7 +391,7 @@ HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to cle
 Remembered playback positions restored.	Se restauraron las posiciones de reproducción guardadas.
 Undo has expired.	El plazo para restaurar ha terminado.
 You cleared the remembered playback positions.	Borraste las posiciones de reproducción guardadas.
-Could not update the remembered playback positions.	No se pudieron actualizar las posiciones de reproducción guardadas.
+Couldn't update the remembered playback positions.	No se pudieron actualizar las posiciones de reproducción guardadas.
 Settings backup	Copia de ajustes
 Export HushGram settings	Exportar los ajustes de HushGram
 Choose a file for your installed patches' settings. Accounts and history stay on this device.	Elige un archivo para los ajustes de los parches instalados. Las cuentas y el historial se quedan en este dispositivo.
@@ -956,7 +956,7 @@ Confirm PIN	Confirma el PIN
 Set a PIN	Pon un PIN
 Use 4 to 8 digits.	Usa de 4 a 8 dígitos.
 The PINs don't match.	Los PIN no coinciden.
-Could not save the PIN.	No se pudo guardar el PIN.
+Couldn't save the PIN.	No se pudo guardar el PIN.
 The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	El PIN no se puede recuperar. Para quitarlo, borra el almacenamiento de Instagram en los ajustes de apps de Android. Eso cierra tu sesión y restablece los ajustes de HushGram. Una copia de seguridad de los ajustes recupera el resto, pero no el PIN.
 Open app info	Abrir info de la app
 Hide 'Are you interested' questions	Ocultar las preguntas «¿Te interesa esta publicación?»

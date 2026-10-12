@@ -391,7 +391,7 @@ HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to cle
 Remembered playback positions restored.	Posisi pemutaran tersimpan dipulihkan.
 Undo has expired.	Waktu untuk memulihkan telah habis.
 You cleared the remembered playback positions.	Kamu menghapus posisi pemutaran tersimpan.
-Could not update the remembered playback positions.	Tidak dapat memperbarui posisi pemutaran tersimpan.
+Couldn't update the remembered playback positions.	Tidak dapat memperbarui posisi pemutaran tersimpan.
 Settings backup	Cadangan pengaturan
 Export HushGram settings	Ekspor pengaturan HushGram
 Choose a file for your installed patches' settings. Accounts and history stay on this device.	Pilih file untuk pengaturan patch yang terpasang. Akun dan riwayat tetap di perangkat ini.
@@ -956,7 +956,7 @@ Confirm PIN	Konfirmasi PIN
 Set a PIN	Atur PIN
 Use 4 to 8 digits.	Pakai 4 sampai 8 angka.
 The PINs don't match.	PIN tidak sama.
-Could not save the PIN.	PIN tidak bisa disimpan.
+Couldn't save the PIN.	PIN tidak bisa disimpan.
 The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN tidak bisa dipulihkan. Untuk menghapusnya, hapus penyimpanan Instagram di pengaturan aplikasi Android. Kamu akan keluar dari akun dan pengaturan HushGram kembali ke awal. Cadangan pengaturan yang tersimpan mengembalikan sisanya, tapi tidak dengan PIN.
 Open app info	Buka info aplikasi
 Hide 'Are you interested' questions	Sembunyikan pertanyaan 'Apakah kamu tertarik'

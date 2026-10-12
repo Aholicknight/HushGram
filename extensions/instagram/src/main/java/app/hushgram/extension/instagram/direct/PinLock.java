@@ -361,7 +361,7 @@ public final class PinLock {
                     return;
                 }
                 if (!set(a)) {
-                    error(message, L10n.t("Could not save the PIN."));
+                    error(message, L10n.t("Couldn't save the PIN."));
                     return;
                 }
                 finished[0] = true;
