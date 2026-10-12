@@ -4334,6 +4334,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((TapToPlayScopeRow) preference).showSummary();
         } else if (preference instanceof ReelTapChoiceRow) {
             ((ReelTapChoiceRow) preference).showSummary();
+        } else if (preference instanceof BurnInGuardRow) {
+            ((BurnInGuardRow) preference).showSummary();
         } else if (preference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) preference).showSummary();
         } else if (preference instanceof StartTabRow) {
@@ -5214,19 +5216,22 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    /** The choice of what a tap on a reel does. Its summary follows its value, as Tap to play's choice does. */
+    /** The Burn-in guard choice (#162). Its summary says what the choice does, as the reel tap choice's does. */
     static final class BurnInGuardRow extends ListPreference {
         BurnInGuardRow(Context context) {
             super(context);
         }
 
-        /** The summary says what the choice does. */
         @Override
         public void setValue(String value) {
             super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
             BurnInMode mode = BurnInMode.OFF;
             for (BurnInMode candidate : BurnInMode.values()) {
-                if (candidate.name().equals(value)) mode = candidate;
+                if (candidate.name().equals(getValue())) mode = candidate;
             }
             setSummary(burnInSummary(mode));
         }
