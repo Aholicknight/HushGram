@@ -141,7 +141,7 @@ public class MessagesLockTest {
         });
 
         assertTrue(MessagesLock.holdBanner());
-        MessagesLock.confirmThen(Robolectric.buildActivity(Activity.class).setup().get(), () -> { });
+        MessagesLock.confirmThen(focused().get(), () -> { });
         asks.get(0)[0].run();
         assertSame(original, MessagesLock.notification(original));
         assertFalse(MessagesLock.holdBanner());
@@ -205,7 +205,9 @@ public class MessagesLockTest {
     public void thePhoneIsAskedOnlyWhileInstagramHasTheFocus() {
         ActivityController<Activity> controller = inbox();
         Activity activity = controller.get();
+        assertTrue("the inbox starts without the focus", activity.getWindow().getDecorView().hasWindowFocus());
         controller.windowFocusChanged(false);
+        assertFalse(activity.getWindow().getDecorView().hasWindowFocus());
         ShadowLooper.idleMainLooper();
 
         MessagesLock.follow(activity);
@@ -248,7 +250,7 @@ public class MessagesLockTest {
 
     @Test
     public void aChatIsCoveredTooAndNothingElseIs() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = focused().get();
         FrameLayout root = new FrameLayout(activity);
         View other = new View(activity);
         root.addView(other, new FrameLayout.LayoutParams(400, 400));
@@ -378,7 +380,7 @@ public class MessagesLockTest {
         MessagesLock.check(under);
         View inboxCover = cover(under);
         assertNotNull(inboxCover);
-        Activity above = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity above = focused().get();
         layout(above);
         MessagesLock.check(above);
         assertNull("a screen with no messages got a cover", cover(above));
@@ -460,7 +462,7 @@ public class MessagesLockTest {
     /** A hidden inbox list found first doesn't keep the one showing from being covered. */
     @Test
     public void theListShowingIsTheOneCovered() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = focused().get();
         FrameLayout root = new FrameLayout(activity);
         View first = new View(activity);
         first.setId(LIST);
@@ -582,7 +584,7 @@ public class MessagesLockTest {
 
     /** A chat screen: its root, as Instagram names it, with the name in the header. */
     private static Activity chat(String name) {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = focused().get();
         FrameLayout root = new FrameLayout(activity);
         FrameLayout screen = new FrameLayout(activity);
         screen.setId(CHAT);
@@ -699,7 +701,7 @@ public class MessagesLockTest {
         assertSame("a message no chat is known for", unknown, MessagesLock.notification(unknown));
         assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
 
-        MessagesLock.confirmChatsThen(Robolectric.buildActivity(Activity.class).setup().get(), () -> { });
+        MessagesLock.confirmChatsThen(focused().get(), () -> { });
         asks.get(0)[0].run();
         assertSame("opened by the phone's lock", alice, MessagesLock.notification(alice));
     }
@@ -936,7 +938,7 @@ public class MessagesLockTest {
         int headerTitle = 0x7f0b0004;
         MessagesLock.idsForTests.put(ChatLocks.TITLES[0], headerTitle);
         Settings.LOCK_MESSAGES.save(false);
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = focused().get();
         android.widget.LinearLayout fragment = new android.widget.LinearLayout(activity);
         fragment.setOrientation(android.widget.LinearLayout.VERTICAL);
         FrameLayout screen = new FrameLayout(activity);
@@ -1026,8 +1028,19 @@ public class MessagesLockTest {
         return found;
     }
 
-    private static ActivityController<Activity> inbox() {
+    /**
+     * An activity on screen with its window focused, as Instagram's is while someone uses it.
+     * Robolectric's setup() leaves the focus out, and the lock asks only while the window has it
+     * (#153).
+     */
+    static ActivityController<Activity> focused() {
         ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup();
+        controller.windowFocusChanged(true);
+        return controller;
+    }
+
+    private static ActivityController<Activity> inbox() {
+        ActivityController<Activity> controller = focused();
         Activity activity = controller.get();
         FrameLayout root = new FrameLayout(activity);
         FrameLayout frame = new FrameLayout(activity);

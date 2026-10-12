@@ -132,7 +132,7 @@ public class PinLockTest {
 
     @Test
     public void settingAPinAsksTwiceAndSavesOnlyWhenTheyMatch() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         List<Boolean> results = new ArrayList<>();
 
         PinLock.promptNew(activity, results::add);
@@ -163,7 +163,7 @@ public class PinLockTest {
 
     @Test
     public void cancellingTheNewPinChangesNothing() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         List<Boolean> results = new ArrayList<>();
         PinLock.promptNew(activity, results::add);
         AlertDialog dialog = latest();
@@ -177,7 +177,7 @@ public class PinLockTest {
 
     @Test
     public void theDialogIsMaskedNumericNoAutofillAndSecure() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         MessagesLock.confirmHiddenThen(activity, () -> { });
         AlertDialog dialog = latest();
         EditText field = field(dialog, PinLock.FIELD_TAG);
@@ -265,7 +265,7 @@ public class PinLockTest {
     public void aLockedChatOpensOnlyWithThePin() {
         Settings.LOCK_MESSAGES.resetToDefault();
         Settings.LOCKED_CHATS.save(ALICE + "\tAlice");
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         boolean[] opened = {false};
 
         MessagesLock.confirmChatsThen(activity, () -> opened[0] = true);
@@ -284,7 +284,7 @@ public class PinLockTest {
 
     @Test
     public void theHiddenChatsListOpensOnlyWithThePin() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         boolean[] opened = {false};
 
         MessagesLock.confirmHiddenThen(activity, () -> opened[0] = true);
@@ -304,7 +304,7 @@ public class PinLockTest {
     public void lockAllOfInstagramAndTheSwitchesAskThePinToo() {
         Settings.LOCK_MESSAGES.resetToDefault();
         Settings.LOCK_APP.save(true);
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         boolean[] done = {false};
 
         // Turning a lock off while locked goes through confirmThen, the same ask.
@@ -320,7 +320,7 @@ public class PinLockTest {
 
     @Test
     public void fiveMissesWaitThirtySecondsAndTheCountSurvivesARestart() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         boolean[] opened = {false};
         MessagesLock.confirmHiddenThen(activity, () -> opened[0] = true);
         AlertDialog dialog = latest();
@@ -386,7 +386,7 @@ public class PinLockTest {
 
     @Test
     public void forgotPinOnlyExplainsAndResetsNothing() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         boolean[] opened = {false};
         MessagesLock.confirmHiddenThen(activity, () -> opened[0] = true);
         AlertDialog pinDialog = latest();
@@ -419,7 +419,7 @@ public class PinLockTest {
 
     @Test
     public void forgotPinOffersAppInfoForInstagramAndNothingElse() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         MessagesLock.confirmHiddenThen(activity, () -> { });
         click(latest(), DialogInterface.BUTTON_NEUTRAL);
         AlertDialog info = latest();
@@ -441,7 +441,7 @@ public class PinLockTest {
         Settings.UNLOCK_WITH.save(UnlockWith.PHONE_LOCK);
         assertTrue(PinLock.isSet());
         assertFalse(PinLock.active());
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         boolean[] opened = {false};
 
         MessagesLock.confirmHiddenThen(activity, () -> opened[0] = true);
@@ -457,7 +457,7 @@ public class PinLockTest {
     public void pinChosenWithNoPinSetFallsBackToThePhoneLock() {
         PinLock.clear();
         assertFalse(PinLock.active());
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         boolean[] opened = {false};
         MessagesLock.confirmHiddenThen(activity, () -> opened[0] = true);
         assertNull(ShadowAlertDialog.getLatestAlertDialog());
@@ -467,7 +467,7 @@ public class PinLockTest {
     @Test
     public void offOpensAtOnceWithNoDialog() {
         Settings.LOCK_MESSAGES.resetToDefault();
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         boolean[] opened = {false};
         MessagesLock.confirmHiddenThen(activity, () -> opened[0] = true);
         assertTrue(opened[0]);
@@ -477,7 +477,7 @@ public class PinLockTest {
 
     @Test
     public void unreadySettingsLeaveInstagramAloneAndAskNothing() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         boolean[] opened = {false};
         SettingsContextRule.withoutContext(() -> {
             assertFalse(PinLock.active());
@@ -494,7 +494,7 @@ public class PinLockTest {
             PauseForTests.pause(reason);
             try {
                 assertTrue(PinLock.active());
-                Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+                Activity activity = MessagesLockTest.focused().get();
                 boolean[] opened = {false};
                 MessagesLock.confirmHiddenThen(activity, () -> opened[0] = true);
                 AlertDialog dialog = latest();
@@ -558,7 +558,7 @@ public class PinLockTest {
     }
 
     private static Activity inbox() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Activity activity = MessagesLockTest.focused().get();
         FrameLayout root = new FrameLayout(activity);
         FrameLayout frame = new FrameLayout(activity);
         frame.setId(FRAME);
