@@ -241,6 +241,9 @@ public class ConfigurationBackupTest {
         assertEquals("SEARCH,FEED", Settings.TAB_ORDER.savedValue());
         assertEquals("FIRE", Settings.LIKE_ANIMATION.savedValue());
         assertEquals("Clips", Settings.SAVE_FOLDER.savedValue());
+        // The Place row saves blank text as typed, so a file of one restores it.
+        assertEquals(1, ConfigurationBackup.restore(file(entry(Settings.SPOOF_LOCATION_PLACE.key, "string", "  "))).applied);
+        assertEquals("  ", Settings.SPOOF_LOCATION_PLACE.savedValue());
     }
 
     // A text choice added to the file without a check of its own would never restore; its default

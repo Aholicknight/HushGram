@@ -245,7 +245,8 @@ public final class ConfigurationBackup {
         if (setting == Settings.SAVE_FOLDER) return SaveFolder.isImportable(text);
         if (setting == Settings.FILENAME_TEMPLATE) return FileNameTemplate.isImportable(text);
         if (setting == Settings.SHARING_DOMAIN) return SharingDomain.normalize(text) != null;
-        if (setting == Settings.SPOOF_LOCATION_PLACE) return text.isEmpty() || SpoofLocation.parse(text) != null;
+        // The Place row keeps what was typed, spaces too, and takes blank as no place.
+        if (setting == Settings.SPOOF_LOCATION_PLACE) return text.trim().isEmpty() || SpoofLocation.parse(text) != null;
         if (setting == Settings.TAB_ORDER) return text.equals(TabOrder.join(TabOrder.parse(text)));
         // An enum constant name of Instagram's; a name this Instagram lacks keeps its heart.
         if (setting == Settings.LIKE_ANIMATION) return text.matches("[A-Za-z0-9_$]{0,64}");
