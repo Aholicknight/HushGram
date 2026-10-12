@@ -531,7 +531,7 @@ For a new Instagram version, update the fixture and the central compatibility de
 
 You need JDK 17 or newer and the Android SDK. The Morphe patcher comes from GitHub Packages, so you also need a GitHub token with `read:packages`.
 
-The source builds with Gradle 9.8.0, Android Gradle Plugin 9.1.0 and Kotlin 2.4.20 on patcher 1.15.1. It's verified with Desktop CLI 1.18.1, which carries that patcher, and Morphe Manager 1.34.0 is the first Manager that ships it. The v0.0.5 release was built on patcher 1.15.0 and loads in Manager 1.33.0 too.
+The source builds with Gradle 9.8.1, Android Gradle Plugin 9.1.0 and Kotlin 2.4.20 on patcher 1.15.1. It's verified with Desktop CLI 1.18.1, which carries that patcher, and Morphe Manager 1.34.0 is the first Manager that ships it. The v0.0.5 release was built on patcher 1.15.0 and loads in Manager 1.33.0 too.
 
 Local builds use two workers at low priority, with parallel project builds off. Gradle has a 2 GB heap limit, patch tests have 4 GB, and Android unit tests have 1 GB. Test JVMs use two processors for garbage collection and compilation. Build caching stays on. Your user-level Gradle properties and command-line options can override these defaults.
 

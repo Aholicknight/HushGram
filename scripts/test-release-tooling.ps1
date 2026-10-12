@@ -1267,6 +1267,9 @@ $osvRecorded = @{
     'pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1' = "{`"vulns`":[$log4jCritical,$log4jModerate]}"
     'pkg:maven/com.google.guava/guava@31.1-jre' = "{`"vulns`":[$guavaModerate,$guavaLow]}"
     $cleanPurl = '{}'
+    # OSV had none of Gradle's 2026-10-07 advisories on 2026-10-12; the publisher supplement does.
+    'pkg:maven/org.gradle/gradle-core@9.8.1' = '{}'
+    'pkg:maven/org.gradle/gradle-core@9.8.0' = '{}'
 }
 # What the stand-in serves, which a case replaces to try another shape, and what it was asked.
 $osvAnswers = $osvRecorded
@@ -1676,6 +1679,9 @@ try {
     $boundLicenseLedger = Join-Path $inputRoot 'sources/carried-library-licenses.json'
     New-Item -ItemType Directory -Path (Split-Path -Parent $boundLicenseLedger) -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'sources/carried-library-licenses.json') -Destination $boundLicenseLedger
+    New-Item -ItemType Directory -Path (Join-Path $inputRoot 'gradle/wrapper') -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'gradle/wrapper/gradle-wrapper.properties') `
+        -Destination (Join-Path $inputRoot 'gradle/wrapper/gradle-wrapper.properties')
     Invoke-FixtureGit -Root $inputRoot -Arguments @('init', '--quiet') | Out-Null
     Invoke-FixtureGit -Root $inputRoot -Arguments @('add', '-A') | Out-Null
     $boundBundle = Join-Path $inputRoot 'patches-9.9.9.mpp'
@@ -1804,7 +1810,7 @@ try {
     foreach ($field in 'version', 'sourceSha256', 'catalogSha256', 'toolchainSha256', 'inputSha256') {
         $reportMutants += @{ Name = "$field input substitution"; Field = $field; Part = 'inputs' }
     }
-    foreach ($scope in 'shipped', 'settings-plugin', 'project-plugin', 'build', 'test', 'host-contract') {
+    foreach ($scope in 'shipped', 'settings-plugin', 'project-plugin', 'build', 'test', 'host-contract', 'tooling-distribution') {
         $reportMutants += @{ Name = "a missing $scope verdict"; Scope = $scope }
         $reportMutants += @{ Name = "a refused $scope verdict"; Scope = $scope; Refused = $true }
     }
@@ -1869,6 +1875,51 @@ try {
     Assert-True ($merged.Count -eq 1 -and $merged[0].Severity.Level -ceq 'UNRATED' -and $merged[0].Sources.Count -eq 2) `
         'A publisher/OSV disagreement was certified as minor or lost its sources.'
 
+    # Gradle's three 2026-10-07 advisories cover gradle-core below 8.14.6 and 9.0.0 to 9.8.0.
+    $gradleIds = @('GHSA-j5m7-59rp-24f5', 'GHSA-mvvg-497x-hmj8', 'GHSA-xwqc-3h47-hg64')
+    foreach ($version in @('8.14.5', '9.0', '9.0.0', '9.8.0')) {
+        $library = (New-GateSbom @("pkg:maven/org.gradle/gradle-core@$version")).Libraries[0]
+        $vendor = @(Get-VendorAdvisories -Library $library)
+        Assert-True ((@($vendor.id | Sort-Object) -join ' ') -ceq ($gradleIds -join ' ')) `
+            "The publisher's Gradle findings disappeared for $version."
+    }
+    foreach ($version in @('8.14.6', '8.14.7', '9.8.1', '9.9.0', '10.0')) {
+        $library = (New-GateSbom @("pkg:maven/org.gradle/gradle-core@$version")).Libraries[0]
+        Assert-True (@(Get-VendorAdvisories -Library $library).Count -eq 0) `
+            "The publisher's Gradle range incorrectly includes $version."
+    }
+    Assert-Throws { Get-VendorAdvisories -Library (New-GateSbom @('pkg:maven/org.gradle/gradle-core@9.8.1-rc-1')).Libraries[0] } `
+        '*cannot classify Gradle*' 'An unclassifiable Gradle version passed without review.'
+    # The wrapper's distribution is its own graph: the repository's pin is outside the range, and
+    # the same wrapper pointing at 9.8.0 exposes all three in the tooling-distribution scope.
+    $ownDistribution = Get-GradleDistributionGraph -Root (Split-Path -Parent $PSScriptRoot)
+    Assert-True ($ownDistribution.scope -ceq 'tooling-distribution' -and
+        $ownDistribution.libraries[0].purl -ceq 'pkg:maven/org.gradle/gradle-core@9.8.1') `
+        "The wrapper's own distribution was not audited as gradle-core 9.8.1: $($ownDistribution | ConvertTo-Json -Depth 5 -Compress)"
+    $osvAnswers = $osvRecorded
+    $ownFindings = @(Get-SbomAdvisories -Sbom ([pscustomobject]@{ Libraries = $ownDistribution.libraries }))
+    Assert-True ($ownFindings.Count -eq 0 -and (Test-AdvisoryFindings -Findings $ownFindings -Scope 'tooling-distribution').Valid) `
+        'Gradle 9.8.1 was reported as affected.'
+    $oldWrapperRoot = Join-Path $advisoryRoot 'old-wrapper'
+    New-Item -ItemType Directory -Path (Join-Path $oldWrapperRoot 'gradle/wrapper') -Force | Out-Null
+    $wrapperProperties = Join-Path $oldWrapperRoot 'gradle/wrapper/gradle-wrapper.properties'
+    Set-Content -LiteralPath $wrapperProperties -Encoding ASCII -Value 'distributionUrl=https\://services.gradle.org/distributions/gradle-9.8.0-bin.zip'
+    $oldFindings = @(Get-SbomAdvisories -Sbom ([pscustomobject]@{ Libraries = (Get-GradleDistributionGraph -Root $oldWrapperRoot).libraries }))
+    Assert-True ((@($oldFindings.Advisory | Sort-Object) -join ' ') -ceq ($gradleIds -join ' ') -and
+        @($oldFindings | Where-Object { $_.Severity.Level -cne 'HIGH' -or $_.Sources -cne 'publisher' }).Count -eq 0) `
+        "A 9.8.0 wrapper did not expose all three HIGH publisher advisories: $($oldFindings | ConvertTo-Json -Depth 4 -Compress)"
+    $oldVerdict = Test-AdvisoryFindings -Findings $oldFindings -Scope 'tooling-distribution' -Subject 'the tooling-distribution scope' `
+        -ExceptionsLabel 'scripts/dependency-advisory-exceptions.txt'
+    Assert-True (-not $oldVerdict.Valid -and $oldVerdict.Refused.Count -eq 3) 'The affected Gradle distribution passed the audit.'
+    foreach ($url in @('https\://services.gradle.org/distributions/gradle-9.8.1-all.zip', 'https\://example.com/gradle-9.8.1-bin.zip')) {
+        Set-Content -LiteralPath $wrapperProperties -Encoding ASCII -Value "distributionUrl=$url"
+        Assert-Throws { Get-GradleDistributionGraph -Root $oldWrapperRoot } '*no reviewed distribution version*' `
+            "An unreviewed distribution URL was audited as Gradle: $url"
+    }
+    Remove-Item -LiteralPath $wrapperProperties
+    Assert-Throws { Get-GradleDistributionGraph -Root $oldWrapperRoot } '*wrapper properties are missing*' `
+        'A checkout without wrapper properties skipped the distribution audit.'
+
     # Actual OSV controls read on 2026-10-01, reduced to the fields this gate uses.
     $osvAnswers = @{
         'pkg:maven/org.jetbrains.kotlin/kotlin-gradle-plugin@2.4.10' = '{"vulns":[{"id":"GHSA-r937-wjx7-w2jp","aliases":["CVE-2026-53914"],"database_specific":{"severity":"MODERATE"}}]}'
@@ -1892,7 +1943,7 @@ try {
     $exceptions = @(Read-AdvisoryExceptions -Path $scopedList -Scoped -Today $today)
     Assert-True ((Test-AdvisoryFindings -Findings $controls -Exceptions $exceptions -Scope 'settings-plugin').Valid) `
         'The scope-specific exception did not cover its reviewed settings-plugin use.'
-    foreach ($scope in @('project-plugin', 'build', 'test', 'host-contract', 'shipped')) {
+    foreach ($scope in @('project-plugin', 'build', 'test', 'host-contract', 'tooling-distribution', 'shipped')) {
         Assert-True (-not (Test-AdvisoryFindings -Findings $controls -Exceptions $exceptions -Scope $scope).Valid) `
             "A settings-plugin exception leaked into $scope."
     }
@@ -2600,6 +2651,7 @@ try {
     # The source ledger and the two files its rules hold an adopted source to go in as well: a
     # release is held to the census, and .gitignore has to keep the receipt and the build out.
     $releaseFiles = @('patches-list.json', 'gradle.properties', 'README.md', 'CHANGELOG.md', 'gradle/libs.versions.toml',
+        'gradle/wrapper/gradle-wrapper.properties',
         $bugFormRelative, '.gitignore', 'sources/instagram-sources.json', 'NOTICE', 'provenance.json',
         'sources/carried-library-licenses.json', 'scripts/canonical-build-inputs.txt')
     foreach ($relative in $releaseFiles) { Copy-PreReleaseFile $relative $releaseRepo }
@@ -3042,12 +3094,12 @@ try {
     Assert-True ($built.sbom.file -eq "patches-$releaseVersionHere.cdx.json" -and
         $built.sbom.sha256 -ceq (Get-Sha256Hex -Path $releaseSbom) -and [int]$built.sbom.components -eq 3) `
         "The receipt does not record the SBOM beside the bundle: $($built.sbom | ConvertTo-Json -Compress)"
-    Assert-True ($cleanPurl -cin $osvAsked -and $builderSaid -like '*Checking 1 unique resolved packages against OSV*') `
+    Assert-True ($cleanPurl -cin $osvAsked -and 'pkg:maven/org.gradle/gradle-core@9.8.1' -cin $osvAsked -and $builderSaid -like '*Checking 2 unique resolved packages against OSV*') `
         "The receipt builder did not put the SBOM's libraries to OSV: $builderSaid"
     $builderReport = Read-CurrentDependencyAdvisoryReport -Path (Join-Path $releaseRepo 'build/reports/dependencies/advisories.json') `
         -Subject (Get-CurrentDependencyAuditSubject -Root $releaseRepo -Graphs (Read-DependencyGraphs -Path $releaseGraph) `
             -Sbom (Read-ReleaseSbom -Path $releaseSbom) -BundlePath $releaseBundle)
-    Assert-True ($builderReport.graphs.Count -eq 6 -and $builderReport.subject.sbom.sha256 -eq $built.sbom.sha256) `
+    Assert-True ($builderReport.graphs.Count -eq 7 -and $builderReport.subject.sbom.sha256 -eq $built.sbom.sha256) `
         'The receipt builder omitted a tooling scope or certified a different SBOM.'
     # SHA256SUMS.txt beside the bundle: the three files a release publishes with it, as sha256sum
     # writes them, and nothing else. The index push reads it back.

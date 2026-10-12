@@ -88,16 +88,20 @@ class WrapperMarker {
     [IO.File]::WriteAllBytes($jar, $originalJar)
     foreach ($launcher in $launchers) {
         $result = Invoke-Launcher $launcher[0] $launcher[1]
-        if ($result.Exit -ne 0 -or $result.Output -notlike '*Gradle 9.8.0*') { throw "The authentic wrapper failed: $($result.Output)" }
+        if ($result.Exit -ne 0 -or $result.Output -notlike '*Gradle 9.8.1*') { throw "The authentic wrapper failed: $($result.Output)" }
         $passed++
     }
     # The authentic JAR stays structurally executable when an extra byte is appended.
     [IO.File]::WriteAllBytes($jar, [byte[]]($originalJar + [byte]0))
     foreach ($launcher in $launchers) { Assert-Refused $launcher[0] $launcher[1] 'wrapper JAR SHA-256' }
     [IO.File]::WriteAllBytes($jar, $originalJar)
-    [IO.File]::WriteAllText($properties, $originalProperties.Replace('gradle-9.8.0-bin.zip', 'gradle-9.8.1-bin.zip'))
-    foreach ($launcher in $launchers) { Assert-Refused $launcher[0] $launcher[1] 'reviewed Gradle 9.8.0' }
-    [IO.File]::WriteAllText($properties, $originalProperties.Replace('bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e6c', ('0' * 64)))
+    [IO.File]::WriteAllText($properties, $originalProperties.Replace('gradle-9.8.1-bin.zip', 'gradle-9.8.0-bin.zip'))
+    foreach ($launcher in $launchers) { Assert-Refused $launcher[0] $launcher[1] 'reviewed Gradle 9.8.1' }
+    # 9.8.0 with its own authentic checksum is still the vulnerable release (GHSA-xwqc-3h47-hg64).
+    [IO.File]::WriteAllText($properties, $originalProperties.Replace('gradle-9.8.1-bin.zip', 'gradle-9.8.0-bin.zip').Replace(
+        'dce76f55f8e251a3a1f130eb120f30b3d271de2b76c9b0729d316b5a1b6dc01f', 'bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e6c'))
+    foreach ($launcher in $launchers) { Assert-Refused $launcher[0] $launcher[1] 'reviewed Gradle 9.8.1' }
+    [IO.File]::WriteAllText($properties, $originalProperties.Replace('dce76f55f8e251a3a1f130eb120f30b3d271de2b76c9b0729d316b5a1b6dc01f', ('0' * 64)))
     foreach ($launcher in $launchers) { Assert-Refused $launcher[0] $launcher[1] 'distribution ZIP SHA-256' }
     [IO.File]::WriteAllText($properties, $originalProperties)
     Remove-Item -LiteralPath $jar

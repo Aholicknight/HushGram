@@ -70,7 +70,7 @@ function Read-AdvisoryExceptions {
         if (-not $text -or $text.StartsWith('#')) { continue }
         $scope = 'shipped'
         if ($Scoped) {
-            $prefix = [regex]::Match($text, '^(?<scope>settings-plugin|project-plugin|build|test|host-contract)\s+(?<line>.+)$')
+            $prefix = [regex]::Match($text, '^(?<scope>settings-plugin|project-plugin|build|test|host-contract|tooling-distribution)\s+(?<line>.+)$')
             if (-not $prefix.Success) { throw "Line $number of $Path has no reviewed tooling scope: $text" }
             $scope = $prefix.Groups['scope'].Value
             $text = $prefix.Groups['line'].Value
@@ -343,6 +343,23 @@ function Get-VendorAdvisories {
     <# Publisher-reviewed supplements for advisories not yet returned by OSV. #>
     param([Parameter(Mandatory = $true)]$Library)
 
+    if ($Library.Group -ceq 'org.gradle' -and $Library.Name -ceq 'gradle-core') {
+        $gradle = [regex]::Match([string]$Library.Version, '^(\d+\.\d+(?:\.\d+)?)$')
+        if (-not $gradle.Success) { throw "The publisher dependency check cannot classify Gradle $($Library.Version)." }
+        $number = [version]$gradle.Groups[1].Value
+        if ($number -ge [version]'8.14.6' -and -not ($number -ge [version]'9.0' -and $number -le [version]'9.8.0')) { return }
+        # https://github.com/gradle/gradle/security/advisories, published 2026-10-07 and reviewed
+        # 2026-10-12: affected below 8.14.6 and 9.0.0 to 9.8.0, fixed in 8.14.6 and 9.8.1.
+        return @(
+            @('GHSA-xwqc-3h47-hg64', 'Deserialization of untrusted Java objects before authentication in the client - daemon communication'),
+            @('GHSA-mvvg-497x-hmj8', 'Unauthenticated worker-to-daemon channel deserializes untrusted Java objects'),
+            @('GHSA-j5m7-59rp-24f5', 'Failure to disable repositories failing to establish an SSL connection can expose builds to malicious artifacts')
+        ) | ForEach-Object {
+            [pscustomobject]@{ id = $_[0]; aliases = @(); summary = $_[1]
+                database_specific = [pscustomobject]@{ severity = 'HIGH' }; source = 'publisher'
+                sourceUrl = "https://github.com/gradle/gradle/security/advisories/$($_[0])" }
+        }
+    }
     if ($Library.Group -cne 'com.google.guava' -or $Library.Name -cne 'guava') { return }
     $version = [regex]::Match([string]$Library.Version, '^(\d+\.\d+(?:\.\d+)?)(?:-(?:jre|android))?$')
     if (-not $version.Success) { throw "The publisher dependency check cannot classify Guava $($Library.Version)." }
@@ -517,14 +534,37 @@ function Get-CurrentDependencyAuditSubject {
         bundle = [ordered]@{ name = $bundleName; version = $inputs.version; sha256 = Get-Sha256Hex -Path $BundlePath }
         sbom = [ordered]@{ name = $sbomName; sha256 = $Sbom.Sha256 }
         graphReport = [ordered]@{ name = Split-Path -Leaf $Graphs.Path; sha256 = $Graphs.Sha256
-            graphsSha256 = Get-DependencyGraphsDigest -Graphs (Get-DependencyAuditGraphs -Graphs $Graphs -Sbom $Sbom) } }
+            graphsSha256 = Get-DependencyGraphsDigest -Graphs (Get-DependencyAuditGraphs -Graphs $Graphs -Sbom $Sbom -Root $Root) } }
+}
+
+function Get-GradleDistributionGraph {
+    <#
+    .SYNOPSIS
+        The Gradle distribution the wrapper runs, as its own audit graph.
+    .DESCRIPTION
+        Resolved dependency graphs never list Gradle itself, so its advisories (published against
+        org.gradle:gradle-core) were invisible to the audit. The version comes from the wrapper's
+        distributionUrl, which VerifyGradleWrapper.java pins with its checksums.
+    #>
+    param([Parameter(Mandatory = $true)][string]$Root)
+    $path = Join-Path $Root 'gradle/wrapper/gradle-wrapper.properties'
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'The Gradle wrapper properties are missing, so the distribution cannot be audited.' }
+    $url = [regex]::Match((Get-Content -LiteralPath $path -Raw), '(?m)^distributionUrl\s*=\s*(\S+)\s*$').Groups[1].Value.Replace('\:', ':')
+    $version = [regex]::Match($url, '^https://services\.gradle\.org/distributions/gradle-(\d+\.\d+(?:\.\d+)?)-bin\.zip$')
+    if (-not $version.Success) { throw "The Gradle wrapper names no reviewed distribution version: $url" }
+    $purl = "pkg:maven/org.gradle/gradle-core@$($version.Groups[1].Value)"
+    return [pscustomobject]@{ scope = 'tooling-distribution'; owner = 'gradle-wrapper'
+        configuration = 'gradle/wrapper/gradle-wrapper.properties'; root = 'root'
+        libraries = @([pscustomobject]@{ group = 'org.gradle'; name = 'gradle-core'; version = $version.Groups[1].Value; purl = $purl })
+        dependencies = @([pscustomobject]@{ ref = 'root'; dependsOn = @($purl) }, [pscustomobject]@{ ref = $purl; dependsOn = @() }) }
 }
 
 function Get-DependencyAuditGraphs {
-    param($Graphs, $Sbom)
+    param($Graphs, $Sbom, [Parameter(Mandatory = $true)][string]$Root)
     return @($Graphs.Graphs) + @([pscustomobject]@{ scope = 'shipped'; owner = 'bundle'
         configuration = Split-Path -Leaf $Sbom.Path; libraries = @($Sbom.Libraries)
-        dependencies = (Get-Content -LiteralPath $Sbom.Path -Raw | ConvertFrom-Json).dependencies })
+        dependencies = (Get-Content -LiteralPath $Sbom.Path -Raw | ConvertFrom-Json).dependencies }) +
+        @(Get-GradleDistributionGraph -Root $Root)
 }
 
 function Get-DependencyGraphsDigest {
@@ -555,7 +595,7 @@ function Read-CurrentDependencyAdvisoryReport {
     try { $stamp = [DateTimeOffset]::Parse((ConvertTo-UtcStamp $report.checkedAt)).UtcDateTime }
     catch { throw 'The advisory report has no valid check date.' }
     if ($stamp -gt $Now.AddMinutes(5) -or $stamp -lt $Now.AddDays(-1)) { throw 'The advisory report is stale or dated in the future. Run the current audit again.' }
-    foreach ($scope in 'shipped', 'settings-plugin', 'project-plugin', 'build', 'test', 'host-contract') {
+    foreach ($scope in 'shipped', 'settings-plugin', 'project-plugin', 'build', 'test', 'host-contract', 'tooling-distribution') {
         if (-not $report.scopeVerdicts.PSObject.Properties[$scope] -or $report.scopeVerdicts.$scope.Valid -isnot [bool] -or
             -not $report.scopeVerdicts.$scope.Valid -or
             -not @($report.graphs | Where-Object scope -CEQ $scope).Count) { throw "The advisory report omits or refuses the $scope scope." }
@@ -638,7 +678,7 @@ function Test-AdvisoryFindings {
         [object[]]$Exceptions = @(),
         [string]$Subject = 'what the bundle carries',
         [string]$ExceptionsLabel = 'scripts/advisory-exceptions.txt',
-        [ValidateSet('shipped', 'settings-plugin', 'project-plugin', 'build', 'test', 'host-contract')]
+        [ValidateSet('shipped', 'settings-plugin', 'project-plugin', 'build', 'test', 'host-contract', 'tooling-distribution')]
         [string]$Scope = 'shipped'
     )
 

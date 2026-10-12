@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-    Resolve and audit settings, plugin, build, test, host-contract and shipped libraries separately.
+    Resolve and audit settings, plugin, build, test, host-contract and shipped libraries, and the
+    Gradle distribution the wrapper runs, separately.
 .NOTES
     Copyright 2026 HushGram contributors. https://github.com/SysAdminDoc/HushGram
 #>
@@ -30,7 +31,7 @@ $sbom = Read-ReleaseSbom -Path $SbomPath -RequireReviewedLicenses `
     -LicenseLedger (Join-Path $Root 'sources/carried-library-licenses.json')
 if (-not $BundlePath) { $BundlePath = Join-Path (Split-Path -Parent $SbomPath) $sbom.BundleName }
 $subject = Get-CurrentDependencyAuditSubject -Root $Root -Graphs $graphs -Sbom $sbom -BundlePath $BundlePath
-$allGraphs = @(Get-DependencyAuditGraphs -Graphs $graphs -Sbom $sbom)
+$allGraphs = @(Get-DependencyAuditGraphs -Graphs $graphs -Sbom $sbom -Root $Root)
 $libraries = @($allGraphs.libraries | Sort-Object purl -Unique)
 Write-Host "[dependencies] Checking $($libraries.Count) unique resolved packages against OSV and publisher supplements."
 $findings = @(Get-SbomAdvisories -Sbom ([pscustomobject]@{ Libraries = $libraries }))
@@ -45,7 +46,7 @@ $shippedFindings = @($findings | Where-Object { @($_.Graphs | Where-Object { $_.
 $shippedExceptions = @(Read-AdvisoryExceptions -Path (Join-Path $PSScriptRoot 'advisory-exceptions.txt'))
 $toolExceptions = @(Read-AdvisoryExceptions -Path (Join-Path $PSScriptRoot 'dependency-advisory-exceptions.txt') -Scoped)
 $verdicts = [ordered]@{ shipped = Test-AdvisoryFindings -Findings $shippedFindings -Exceptions $shippedExceptions }
-foreach ($scope in @('settings-plugin', 'project-plugin', 'build', 'test', 'host-contract')) {
+foreach ($scope in @('settings-plugin', 'project-plugin', 'build', 'test', 'host-contract', 'tooling-distribution')) {
     $scopeFindings = @($findings | Where-Object { $scope -cin $_.Scopes })
     $verdicts[$scope] = Test-AdvisoryFindings -Findings $scopeFindings -Exceptions $toolExceptions -Scope $scope `
         -Subject "the $scope scope" -ExceptionsLabel 'scripts/dependency-advisory-exceptions.txt'

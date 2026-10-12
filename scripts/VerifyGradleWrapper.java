@@ -11,10 +11,11 @@ import java.util.Properties;
 
 /** Runs from the JDK before either launcher loads any wrapper JAR code. */
 public final class VerifyGradleWrapper {
-    // Independently reviewed at https://gradle.org/release-checksums/ on 2026-10-03.
-    private static final String VERSION = "9.8.0";
-    private static final String JAR_SHA256 = "238e777fcddd7e34f9708186085def2abd6e08e658505b38718d79d74c21abd5";
-    private static final String ZIP_SHA256 = "bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e6c";
+    // Independently reviewed at https://gradle.org/release-checksums/ on 2026-10-12. 9.8.1 fixes
+    // GHSA-xwqc-3h47-hg64, GHSA-mvvg-497x-hmj8 and GHSA-j5m7-59rp-24f5 (all HIGH, 9.0.0 to 9.8.0).
+    private static final String VERSION = "9.8.1";
+    private static final String JAR_SHA256 = "3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98";
+    private static final String ZIP_SHA256 = "dce76f55f8e251a3a1f130eb120f30b3d271de2b76c9b0729d316b5a1b6dc01f";
 
     public static void main(String[] args) {
         try {
