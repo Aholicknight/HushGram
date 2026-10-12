@@ -37,6 +37,7 @@ public class LongPressZoomSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.LONG_PRESS_TO_ZOOM.resetToDefault();
+        Settings.LONG_PRESS_ZOOM_STAYS_OPEN.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -47,6 +48,7 @@ public class LongPressZoomSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.LONG_PRESS_TO_ZOOM.resetToDefault();
+        Settings.LONG_PRESS_ZOOM_STAYS_OPEN.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -73,6 +75,22 @@ public class LongPressZoomSettingsTest {
                 keys[Arrays.asList(keys).indexOf(Settings.LONG_PRESS_TO_ZOOM.key) - 1]);
         assertEquals("Long press to zoom", PatchFamily.LONG_PRESS_ZOOM.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.LONG_PRESS_TO_ZOOM.key));
+    }
+    @Test public void keepTheZoomOpenComesRightUnderTheSwitchAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_SOUND, PatchFamily.LONG_PRESS_ZOOM));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.LONG_PRESS_ZOOM_STAYS_OPEN.key);
+        assertNotNull(row);
+        assertEquals("Keep the zoom open", row.getTitle().toString());
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("tap or press Back to close it"));
+        PreferenceGroup feed = row.getParent();
+        String[] keys = new String[feed.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
+        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key,
+                keys[Arrays.asList(keys).indexOf(Settings.LONG_PRESS_ZOOM_STAYS_OPEN.key) - 1]);
+        assertFalse(Settings.LONG_PRESS_ZOOM_STAYS_OPEN.get());
+        assertEquals(Arrays.asList(Settings.LONG_PRESS_TO_ZOOM, Settings.LONG_PRESS_ZOOM_STAYS_OPEN),
+                PatchFamily.LONG_PRESS_ZOOM.switches);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.LONG_PRESS_ZOOM_STAYS_OPEN.key));
     }
     @Test public void theSwitchAloneStillMakesTheFeedSection() throws Exception {
         open(EnumSet.of(PatchFamily.LONG_PRESS_ZOOM));

@@ -6,6 +6,10 @@ Every HushGram release, newest first.
 
 ### HushGram v0.0.10
 
+#### Features
+
+* **Instagram - Long press to zoom:** New Keep the zoom open choice under it, off by default. The zoom stays up after you let go, so you can drag around and pinch from 1x to 4x. A tap or Back closes it. Asked for in #149.
+
 #### Improvements
 
 * **Instagram - HushGram settings:** Settings now use clearer category descriptions, a rounded search field and pink icon tiles. Dialogs share the same styling, and controls stay readable at larger text sizes.

@@ -14,15 +14,19 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Looper;
+import android.view.InputDevice;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
@@ -50,7 +54,8 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 /**
  * What the feed photo long press hooks do: off, paused, not ready, a video, a finger that moved and a
  * frame with nothing to show are Instagram's own long press; a held photo opens a zoom around the
- * finger that follows it and closes on a lift, a cancel or a second finger.
+ * finger that follows it and closes on a lift, a cancel or a second finger. With Keep the zoom open
+ * (#149) it stays up after the lift, to drag and pinch, until a tap, Back or Close.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -89,6 +94,7 @@ public class LongPressZoomTest {
     @Before
     public void clean() {
         Settings.LONG_PRESS_TO_ZOOM.resetToDefault();
+        Settings.LONG_PRESS_ZOOM_STAYS_OPEN.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -117,6 +123,7 @@ public class LongPressZoomTest {
         LongPressZoom.resetForTests();
         if (controller != null) controller.close();
         Settings.LONG_PRESS_TO_ZOOM.resetToDefault();
+        Settings.LONG_PRESS_ZOOM_STAYS_OPEN.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -367,6 +374,193 @@ public class LongPressZoomTest {
         View view = LongPressZoom.shownView();
         ((android.view.ViewGroup) view.getParent()).removeView(view);
         assertFalse(LongPressZoom.isShown());
+    }
+
+    /** #149: a held photo, then the finger lifts with Keep the zoom open on. */
+    private LongPressZoom.ZoomView keptOpen() {
+        Settings.LONG_PRESS_TO_ZOOM.save(true);
+        Settings.LONG_PRESS_ZOOM_STAYS_OPEN.save(true);
+        assertEquals(1, holdAt(50f, 60f, PHOTO));
+        touch(MotionEvent.ACTION_UP, 50f, 60f);
+        idle();
+        assertTrue("the lift left it up, and nothing posted closes it", LongPressZoom.isShown());
+        LongPressZoom.ZoomView view = (LongPressZoom.ZoomView) LongPressZoom.shownView();
+        assertTrue(view.kept);
+        return view;
+    }
+
+    /** A touch on the open zoom itself, at a point in it for each finger down. */
+    private static boolean onZoom(View view, int action, float... xy) {
+        int fingers = xy.length / 2;
+        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[fingers];
+        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[fingers];
+        for (int i = 0; i < fingers; i++) {
+            properties[i] = new MotionEvent.PointerProperties();
+            properties[i].id = i;
+            properties[i].toolType = MotionEvent.TOOL_TYPE_FINGER;
+            coords[i] = new MotionEvent.PointerCoords();
+            coords[i].x = xy[i * 2];
+            coords[i].y = xy[i * 2 + 1];
+        }
+        MotionEvent event = MotionEvent.obtain(0L, 0L, action, fingers, properties, coords, 0, 0, 1f, 1f, 0, 0,
+                InputDevice.SOURCE_TOUCHSCREEN, 0);
+        try {
+            return view.dispatchTouchEvent(event);
+        } finally {
+            event.recycle();
+        }
+    }
+
+    private static final int SECOND_DOWN = MotionEvent.ACTION_POINTER_DOWN | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
+    private static final int SECOND_UP = MotionEvent.ACTION_POINTER_UP | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
+
+    /** How wide the photo shows in the zoom. 200 in the feed. */
+    private static float shownWidth(LongPressZoom.ZoomView view) {
+        Rect picture = view.picture().getBounds();
+        return view.mapped(picture.right, 0f)[0] - view.mapped(0f, 0f)[0];
+    }
+
+    /**
+     * #149: with Keep the zoom open on, a lift and a cancel leave the zoom up. It takes the touches
+     * then: one finger drags the photo, two pinch it between 1x and 4x, and a tap closes it.
+     */
+    @Test
+    public void aKeptZoomDragsPinchesAndClosesOnATap() {
+        LongPressZoom.ZoomView view = keptOpen();
+        assertTrue(report(), report().contains(LongPressZoom.KEPT + " 1"));
+        assertEquals("twice as big as in the feed", 400f, shownWidth(view), 0.5f);
+
+        float far = ViewConfiguration.get(frame.getContext()).getScaledTouchSlop() * 3f;
+        float[] corner = view.mapped(0f, 0f);
+        assertTrue(onZoom(view, MotionEvent.ACTION_DOWN, 100f, 100f));
+        onZoom(view, MotionEvent.ACTION_MOVE, 100f + far, 100f + far / 2f);
+        onZoom(view, MotionEvent.ACTION_UP, 100f + far, 100f + far / 2f);
+        assertTrue("a drag isn't a tap", LongPressZoom.isShown());
+        assertPoint("the photo moved with the finger", corner[0] + far, corner[1] + far / 2f, view.mapped(0f, 0f));
+
+        onZoom(view, MotionEvent.ACTION_DOWN, 100f, 100f);
+        onZoom(view, SECOND_DOWN, 100f, 100f, 200f, 100f);
+        onZoom(view, MotionEvent.ACTION_MOVE, 75f, 100f, 225f, 100f);
+        assertEquals("half as far apart again", 3f, view.scale(), 0.01f);
+        assertEquals(600f, shownWidth(view), 0.5f);
+        onZoom(view, MotionEvent.ACTION_MOVE, 0f, 100f, 300f, 100f);
+        assertEquals("no bigger than 4x", LongPressZoom.MOST, view.scale(), 0.01f);
+        onZoom(view, MotionEvent.ACTION_MOVE, 145f, 100f, 155f, 100f);
+        assertEquals("no smaller than the feed", LongPressZoom.LEAST, view.scale(), 0.01f);
+        assertEquals(200f, shownWidth(view), 0.5f);
+        onZoom(view, SECOND_UP, 145f, 100f, 155f, 100f);
+        onZoom(view, MotionEvent.ACTION_UP, 145f, 100f);
+        assertTrue("a pinch isn't a tap", LongPressZoom.isShown());
+
+        onZoom(view, MotionEvent.ACTION_DOWN, 100f, 100f);
+        onZoom(view, MotionEvent.ACTION_UP, 100f, 100f);
+        assertFalse("a tap closes it", LongPressZoom.isShown());
+        assertNull(view.getParent());
+        assertFalse(view.kept);
+
+        assertEquals(1, holdAt(50f, 60f, PHOTO));
+        touch(MotionEvent.ACTION_CANCEL, 50f, 60f);
+        assertTrue("a cancel leaves it up too", LongPressZoom.isShown());
+    }
+
+    /** With the choice off, the default, a lift closes the zoom as it always did, and a new touch on it does too. */
+    @Test
+    public void withoutKeepALiftOrATouchOnTheZoomClosesIt() {
+        assertFalse(Settings.LONG_PRESS_ZOOM_STAYS_OPEN.get());
+        Settings.LONG_PRESS_TO_ZOOM.save(true);
+        assertEquals(1, holdAt(50f, 60f, PHOTO));
+        onZoom(LongPressZoom.shownView(), MotionEvent.ACTION_DOWN, 10f, 10f);
+        assertFalse(LongPressZoom.isShown());
+
+        Settings.LONG_PRESS_ZOOM_STAYS_OPEN.save(true);
+        assertEquals(1, holdAt(50f, 60f, PHOTO));
+        LongPressZoom.ZoomView view = (LongPressZoom.ZoomView) LongPressZoom.shownView();
+        onZoom(view, MotionEvent.ACTION_DOWN, 10f, 10f);
+        assertTrue("the control: a second finger while the first holds keeps it, to drag", view.kept);
+        touch(MotionEvent.ACTION_UP, 50f, 60f);
+        assertTrue(LongPressZoom.isShown());
+
+        Settings.LONG_PRESS_TO_ZOOM.save(false);
+        touch(MotionEvent.ACTION_DOWN, 50f, 60f);
+        assertEquals("with Long press to zoom off, Keep alone does nothing", 0, LongPressZoom.press(frame, media, PHOTO));
+        assertFalse(LongPressZoom.isShown());
+    }
+
+    /** Back closes a kept zoom, not Instagram's page, and the focus it took goes back where it was. */
+    @Test
+    public void backClosesAKeptZoomAndGivesTheFocusBack() {
+        View box = new View(controller.get());
+        box.setFocusable(true);
+        box.setFocusableInTouchMode(true);
+        feed.addView(box, new FrameLayout.LayoutParams(10, 10));
+        idle();
+        assertTrue(box.requestFocus());
+
+        LongPressZoom.ZoomView view = keptOpen();
+        assertTrue("the zoom has the focus, so Back reaches it", view.isFocused());
+        Activity activity = controller.get();
+        assertTrue(activity.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK)));
+        assertTrue(activity.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK)));
+        assertFalse(LongPressZoom.isShown());
+        assertFalse("Back went to the zoom, not the page", activity.isFinishing());
+        assertTrue("the focus went back", box.isFocused());
+    }
+
+    /** TalkBack gets a labeled Close action on a kept zoom, and it closes it. */
+    @Test
+    public void aKeptZoomHasACloseActionForTalkBack() {
+        LongPressZoom.ZoomView view = keptOpen();
+        assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_YES, view.getImportantForAccessibility());
+        assertEquals("Zoomed photo", String.valueOf(view.getContentDescription()));
+        AccessibilityNodeInfo info = view.createAccessibilityNodeInfo();
+        boolean close = false;
+        for (AccessibilityNodeInfo.AccessibilityAction action : info.getActionList()) {
+            close |= action.getId() == AccessibilityNodeInfo.ACTION_DISMISS && "Close".contentEquals(action.getLabel());
+        }
+        assertTrue("a Close action", close);
+        assertTrue(info.isDismissable());
+        assertTrue(view.performAccessibilityAction(AccessibilityNodeInfo.ACTION_DISMISS, null));
+        assertFalse(LongPressZoom.isShown());
+        assertNull(view.getParent());
+    }
+
+    /**
+     * A kept zoom closes when a switch goes off or HushGram pauses, when Instagram goes to the
+     * background, on a rotation and when the photo under it is let go of.
+     */
+    @Test
+    public void aKeptZoomClosesWhenItsPhotoOrItsSwitchesGoAway() {
+        LongPressZoom.ZoomView view = keptOpen();
+        Settings.LONG_PRESS_ZOOM_STAYS_OPEN.save(false);
+        assertTrue(onZoom(view, MotionEvent.ACTION_DOWN, 100f, 100f));
+        assertFalse("Keep turned off", LongPressZoom.isShown());
+
+        view = keptOpen();
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        view.dispatchWindowFocusChanged(true);
+        idle();
+        assertFalse("paused from the notification shade", LongPressZoom.isShown());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        view = keptOpen();
+        view.dispatchWindowVisibilityChanged(View.GONE);
+        idle();
+        assertFalse("Instagram went to the background", LongPressZoom.isShown());
+
+        view = keptOpen();
+        view.dispatchConfigurationChanged(new Configuration(view.getResources().getConfiguration()));
+        idle();
+        assertFalse("a rotation", LongPressZoom.isShown());
+
+        view = keptOpen();
+        image.setImageDrawable(null);
+        bitmap.recycle();
+        view.draw(new Canvas(Bitmap.createBitmap(10, 10, Bitmap.Config.ARGB_8888)));
+        idle();
+        assertFalse("the photo let go of", LongPressZoom.isShown());
+        assertNull(view.getParent());
     }
 
     private static void assertPoint(String what, float x, float y, float[] point) {

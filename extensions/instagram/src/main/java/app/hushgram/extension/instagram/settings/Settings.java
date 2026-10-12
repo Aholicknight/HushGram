@@ -248,6 +248,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_long_press_to_zoom", FALSE);
 
     /**
+     * Under {@link #LONG_PRESS_TO_ZOOM}: the zoom stays up after the finger lifts, to drag and pinch,
+     * until a tap or Back closes it (#149). Off to start, so a lift closes it.
+     */
+    public static final BooleanSetting LONG_PRESS_ZOOM_STAYS_OPEN =
+            new BooleanSetting("hushgram_long_press_zoom_stays_open", FALSE, parent(LONG_PRESS_TO_ZOOM));
+
+    /**
      * The picture, video and carousel pages of a post in Home and Following are cut at rounded corners
      * ({@link app.hushgram.extension.instagram.feed.RoundedCorners}). Stories, the profile grid, Explore
      * and the Reels tab stay as Instagram draws them. Off to start, so no frame is touched.

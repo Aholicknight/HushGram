@@ -572,6 +572,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Press and hold a photo in a feed to see it twice as big around your finger, and slide to "
                             + "look around. Let go to close it. While this is on, it takes the place of Instagram's own "
                             + "long press on a photo.")));
+            feed.addPreference(toggle(context, Settings.LONG_PRESS_ZOOM_STAYS_OPEN, L10n.t("Keep the zoom open"),
+                    L10n.t("The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x to 4x, "
+                            + "and tap or press Back to close it.")));
         }
         if (roundedCorners) {
             feed.addPreference(toggle(context, Settings.ROUNDED_POST_CORNERS, L10n.t("Rounded corners on posts"),

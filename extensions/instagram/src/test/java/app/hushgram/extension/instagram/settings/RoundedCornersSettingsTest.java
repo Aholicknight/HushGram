@@ -73,7 +73,9 @@ public class RoundedCornersSettingsTest {
         String[] keys = new String[feed.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.ROUNDED_POST_CORNERS.key);
-        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key, keys[at - 1]);
+        // The zoom's own rows, Long press a photo to zoom and then Keep the zoom open, come right before.
+        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key, keys[at - 2]);
+        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_ZOOM_STAYS_OPEN.key, keys[at - 1]);
         assertEquals(Arrays.toString(keys), Settings.ROUNDED_CORNER_SIZE.key, keys[at + 1]);
 
         HushgramPreferenceFragment.CornerSizeRow size = (HushgramPreferenceFragment.CornerSizeRow) feed.getPreference(at + 1);
