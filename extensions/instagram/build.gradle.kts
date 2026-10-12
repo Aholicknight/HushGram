@@ -617,6 +617,7 @@ tasks.register("verifyAndroidBoundaries") {
                 "lockedMessageNotificationsSayOnlyThatAMessageCame[28]", "lockedMessageNotificationsSayOnlyThatAMessageCame[37]",
                 "offUnreadyAndUnlockedLeaveEverythingToInstagram[28]", "offUnreadyAndUnlockedLeaveEverythingToInstagram[37]",
                 "theInboxIsCoveredAndThePhoneAskedOnce[28]", "theInboxIsCoveredAndThePhoneAskedOnce[37]",
+                "aRightToLeftLayoutKeepsTheCoverOverTheMessages[28]", "aRightToLeftLayoutKeepsTheCoverOverTheMessages[37]",
                 "thePhoneIsAskedOnlyWhileInstagramHasTheFocus[28]", "thePhoneIsAskedOnlyWhileInstagramHasTheFocus[37]",
                 "confirmedOpensUntilInstagramLeavesTheScreen[28]", "confirmedOpensUntilInstagramLeavesTheScreen[37]",
                 "aChatIsCoveredTooAndNothingElseIs[28]", "aChatIsCoveredTooAndNothingElseIs[37]",

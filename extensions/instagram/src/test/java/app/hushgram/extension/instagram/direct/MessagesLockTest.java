@@ -27,6 +27,7 @@ import android.service.notification.StatusBarNotification;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -168,6 +169,31 @@ public class MessagesLockTest {
         MessagesLock.check(activity);
         assertEquals(View.VISIBLE, cover.getVisibility());
         assertEquals(1, asks.size());
+    }
+
+    /**
+     * In a right-to-left layout the cover stays over the messages after the window lays itself out
+     * again, rather than moving to the right edge, here with the inbox 700 wide and 200 from the left.
+     */
+    @Test
+    public void aRightToLeftLayoutKeepsTheCoverOverTheMessages() {
+        ActivityController<Activity> controller = inbox();
+        Activity activity = controller.get();
+        View frame = activity.findViewById(FRAME);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(700, 800, Gravity.TOP | Gravity.LEFT);
+        params.leftMargin = 200;
+        frame.setLayoutParams(params);
+        activity.getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        layout(activity);
+
+        MessagesLock.check(activity);
+        layout(activity);
+
+        View cover = cover(activity);
+        assertNotNull("no cover over the inbox", cover);
+        assertEquals("the inbox", 200, visible(frame).left);
+        assertEquals("after the window's own layout", 200, cover.getLeft());
+        assertEquals(700, cover.getWidth());
     }
 
     /**

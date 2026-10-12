@@ -642,7 +642,9 @@ public final class MessagesLock {
         boolean moved = false;
         if (cover == null) {
             cover = buildCover(activity, name);
-            window.addView(cover, new FrameLayout.LayoutParams(area.width(), area.height(), Gravity.TOP | Gravity.START));
+            // LEFT, not START: the area is in screen coordinates, and in a right-to-left layout START
+            // would put the cover against the right edge, where the window's next layout leaves it.
+            window.addView(cover, new FrameLayout.LayoutParams(area.width(), area.height(), Gravity.TOP | Gravity.LEFT));
             moved = true;
         }
         if (cover.getVisibility() != View.VISIBLE) {
