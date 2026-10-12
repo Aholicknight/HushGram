@@ -38,7 +38,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * Helper for the "Full screen Reels and Home" patch: hides the status bar and the navigation bar
  * while Reels (or Home) is showing, and brings them back when it isn't.
  *
- * <p>It changes no Instagram code. Like the glass tab bar, it watches the activities once the
+ * <p>Instagram's code changes in one place: its window insets listener asks {@link #barHeight} about each
+ * bar height it keeps, since it keeps them while the bars are hidden and its screens would leave
+ * the space empty (#147). Like the glass tab bar, the rest watches the activities once the
  * application is up and looks views up by the names Instagram gives them, which are the same on all
  * seven 450 builds: {@code clips_viewer_container} (the reels viewer, in the Reels tab and in the
  * full screen viewer a reel opens from anywhere), and the {@code clips_tab} and {@code feed_tab}
@@ -71,6 +73,7 @@ public final class FullScreenBars {
     static final long CHECK_MS = 100;
     static final String COUNT_HID = "hid the bars";
     static final String COUNT_SHOWED = "showed the bars";
+    static final String COUNT_NO_BAR_SPACE = "kept no space for a hidden bar";
 
     @SuppressWarnings("deprecation")
     static final int IMMERSIVE_FLAGS = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -195,6 +198,32 @@ public final class FullScreenBars {
     @RequiresApi(Build.VERSION_CODES.R)
     static int barsToShow() {
         return WindowInsets.Type.systemBars();
+    }
+
+    /**
+     * Called by Instagram's window insets listener with each bar height it's about to keep for its
+     * screens, the status bar's and then the navigation bar's (#147). Instagram holds on to a bar's
+     * height while the bar is hidden, so Reels and Home kept an empty strip where each bar was, black
+     * in dark mode. While HushGram has the bars hidden the answer is 0 and the screen is Instagram's
+     * to the edges. Otherwise, or if anything throws, the height goes through as it came.
+     */
+    public static int barHeight(int height) {
+        try {
+            if (height <= 0 || !anyHidden()) return height;
+            HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_NO_BAR_SPACE);
+            return 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "bar height", failure);
+            return height;
+        }
+    }
+
+    /** Whether a watched activity has the bars hidden. Main thread, as Instagram's listener is. */
+    static boolean anyHidden() {
+        for (Session session : sessions.values()) {
+            if (session != null && session.isHidden()) return true;
+        }
+        return false;
     }
 
     @Nullable

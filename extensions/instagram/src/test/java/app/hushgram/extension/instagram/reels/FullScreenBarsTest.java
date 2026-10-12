@@ -146,6 +146,30 @@ public class FullScreenBarsTest {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) assertFalse(barsGone());
     }
 
+    /**
+     * #147: Instagram's insets listener keeps each bar's height while the bar is hidden, so the
+     * screen kept an empty strip for it. While HushGram has the bars hidden the heights come back 0,
+     * and once they show again, or with nothing hidden, they go through as they came.
+     */
+    @Test public void hiddenBarsLeaveNoSpaceBehind() {
+        assertEquals(128, FullScreenBars.barHeight(128));
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        assertEquals("the status bar's space stayed", 0, FullScreenBars.barHeight(128));
+        assertEquals("the navigation bar's space stayed", 0, FullScreenBars.barHeight(63));
+        assertEquals("an unset height changed", -1, FullScreenBars.barHeight(-1));
+
+        root.removeView(viewer);
+        viewer = null;
+        layout();
+        session.evaluate();
+        assertFalse(session.isHidden());
+        assertEquals("the bars came back without their space", 128, FullScreenBars.barHeight(128));
+        assertEquals(63, FullScreenBars.barHeight(63));
+    }
+
     @Test public void aViewerOnlyPartlyOnScreenIsNotReels() {
         Settings.FULL_SCREEN_REELS.save(true);
         showViewer(W, H / 3);

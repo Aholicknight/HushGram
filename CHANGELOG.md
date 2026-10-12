@@ -14,6 +14,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Keep a seek bar on Reels:** Bigger seek bar on reels really is bigger now, about twice Instagram's line, and it runs through the round handle. It's white only as far as the reel has played. Before, it came out as thin as Instagram's, and once a reel had loaded the whole line turned white. Reported in #10.
 
+* **Instagram - Full screen Reels and Home:** Reels and Home really go full screen now. Instagram kept room for the status bar and the navigation bar after they hid, so an empty strip stayed at the top and the bottom, black in dark mode, and it looked like the bars were still there. Reported in #147, and it's the black strips from #14 too.
+
 * **Instagram - HushGram settings:** Hide the HushGram row in Instagram's menu now also counts the long press on your profile's menu. With that long press on and no tab long press chosen, the HushGram row leaves Settings and activity like it should. Turn both long presses off, or pause HushGram, and the row comes back. Reported in #148.
 
 ## 0.0.9 (2026-10-11)

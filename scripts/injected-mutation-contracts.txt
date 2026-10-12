@@ -1592,3 +1592,10 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileNotes;->creationDisab
 # guard the patch wrote. UploadStoriesAtFullQualityHookTest finds the check in all seven 450 builds.
 start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQuality(Ljava/lang/Object;)Z in instance ()Z holding const:0x810bb400014136 LX/*;->*(LX/*;)Z
 once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQuality(Ljava/lang/Object;)Z in instance ()Z holding const:0x810bb400014136 LX/*;->*(LX/*;)Z
+
+# Full screen Reels and Home (#147) hands both bar heights Instagram's window insets listener keeps
+# (00oX.F1L on 450, the decor's insets listener of WindowInsetsManager) to FullScreenBars.barHeight
+# before storing them, so they come back 0 while HushGram has the bars hidden. Left out, Reels and Home
+# keep an empty strip where each hidden bar was; once or elsewhere, a height stays kept.
+# FullScreenBarsHookTest finds both stores in all seven 450 builds.
+once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->barHeight(I)I in instance (Landroid/view/View;L*;)L*; sites 2 holding Status\sbar\sheight:\sold=%d\snew=%d,\sActivity=%s\sRetryCount=%d\sisFullScreenFlagSet=%b\swindowFlags=0x%X Nab\sbar\sheight:\sold=%d\snew=%d,\sActivity=%s\sRetryCount=%d\sisFullScreenFlagSet=%b\swindowFlags=0x%X

@@ -551,7 +551,8 @@ tasks.register("verifyAndroidBoundaries") {
                 "turningTheSwitchOffBringsTheBarsBack[28]", "turningTheSwitchOffBringsTheBarsBack[37]",
                 "pausingTheActivityBringsTheBarsBackAndForgetsIt[28]", "pausingTheActivityBringsTheBarsBackAndForgetsIt[37]",
                 "theWindowsOwnFlagsAreKeptAndPutBack[28]", "theWindowsOwnFlagsAreKeptAndPutBack[37]",
-                "aScreenWithNoTabBarAndNoViewerIsLeftAlone[28]", "aScreenWithNoTabBarAndNoViewerIsLeftAlone[37]"),
+                "aScreenWithNoTabBarAndNoViewerIsLeftAlone[28]", "aScreenWithNoTabBarAndNoViewerIsLeftAlone[37]",
+                "hiddenBarsLeaveNoSpaceBehind[28]", "hiddenBarsLeaveNoSpaceBehind[37]"),
             "app.hushgram.extension.instagram.settings.FullScreenBarsSettingsTest" to listOf(
                 "reelsIsUnderReelsAndHomeIsUnderFeedAndBothStartOff[28]", "reelsIsUnderReelsAndHomeIsUnderFeedAndBothStartOff[37]",
                 "savedSwitchesAnswerOffWhilePaused[28]", "savedSwitchesAnswerOffWhilePaused[37]",
