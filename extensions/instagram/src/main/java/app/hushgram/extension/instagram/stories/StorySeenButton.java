@@ -246,7 +246,13 @@ public final class StorySeenButton {
             }
         }
         float density = row.getResources().getDisplayMetrics().density;
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(Math.round(40 * density), Math.round(40 * density));
+        // A 48dp touch target that takes only 40dp of the row's height: the 4dp above and below are
+        // negative margins, so the header doesn't grow (#151) and a row 48dp tall gets the whole box.
+        int target = Math.round(48 * density);
+        int overhang = -Math.round(4 * density);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(target, target);
+        params.topMargin = overhang;
+        params.bottomMargin = overhang;
         params.gravity = Gravity.CENTER;
         row.addView(button, at, params);
     }

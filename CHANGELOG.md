@@ -38,6 +38,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** With the phone in a right-to-left language like Arabic or Hebrew, the cover stays over the messages. It used to slide to the right edge when the screen laid itself out again, which could leave part of the inbox showing on a split or narrower screen.
 
+* **Instagram - Mark as seen button:** The eye button in a story's header is easier to hit. Its touch area is 48dp now, and the header is no taller for it.
+
 * **Instagram - Lock your messages:** If the HushGram PIN dialog gets closed by something other than its buttons, Unlock on the cover asks again right away. Before, it did nothing for about a minute.
 
 * **Instagram - Hide suggested stories and Hide Meta AI:** Their descriptions in Manager and the README said they start off, but their main switches start on. They now say which switches start on, and a test keeps every "Starts on" and "Starts off" in line with the switch it names.

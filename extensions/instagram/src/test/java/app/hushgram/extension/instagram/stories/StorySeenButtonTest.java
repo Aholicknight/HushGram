@@ -188,8 +188,12 @@ public class StorySeenButtonTest {
         assertTrue(button.isClickable());
         assertTrue(button.isEnabled());
         assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_YES, button.getImportantForAccessibility());
+        // A 48dp target that takes 40dp of the row's height, so the header is no taller for it.
         float density = context.getResources().getDisplayMetrics().density;
-        assertEquals(Math.round(40 * density), button.getLayoutParams().width);
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) button.getLayoutParams();
+        assertEquals(Math.round(48 * density), params.width);
+        assertEquals(Math.round(48 * density), params.height);
+        assertEquals(Math.round(40 * density), params.height + params.topMargin + params.bottomMargin);
 
         Header stubbed = new Header(true, "stub");
         bind(stubbed, STORY);
