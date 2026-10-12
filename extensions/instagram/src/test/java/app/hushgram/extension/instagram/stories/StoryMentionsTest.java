@@ -432,6 +432,9 @@ public class StoryMentionsTest {
     public void aTapJustAboveThePillTapsItButNotOnTheName() {
         bind(ANA);
         StoryMentions.Pill pill = pill();
+        // Robolectric's text measures the pill 47 px tall at any size, all but a whole target,
+        // so it gets the 22dp a phone draws it at.
+        pill.getLayoutParams().height = Dim.dp(22);
         float[] center = layOut(pill);
         int target = Dim.dp(StoryMentions.MIN_TARGET_DP);
         assertTrue("the pill is drawn smaller than a target", pill.getHeight() < target);
@@ -448,7 +451,8 @@ public class StoryMentionsTest {
         assertTrue("the name isn't above the pill", at[0] <= nameX && nameX < at[0] + name.getWidth());
         assertTrue("no room between the name and the pill", nameBottom < pillTop);
         float onName = nameBottom - 1;
-        assertTrue("the name is out of the pill's reach, so this proves nothing",
+        assertTrue("the name is out of the pill's reach, so this proves nothing: pill top " + pillTop + ", height "
+                        + pill.getHeight() + ", target " + target + ", name bottom " + nameBottom + ", x " + nameX + " of " + pillRight,
                 pillTop - onName < (target - pill.getHeight()) / 2f && nameX < pillRight);
 
         assertFalse("a tap on the name went to the pill",

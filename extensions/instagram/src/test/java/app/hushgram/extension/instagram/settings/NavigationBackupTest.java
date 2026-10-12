@@ -8,7 +8,6 @@ import static org.junit.Assert.*;
 import static app.hushgram.extension.instagram.settings.ConfigurationBackupTest.entry;
 import static app.hushgram.extension.instagram.settings.ConfigurationBackupTest.file;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import org.json.JSONObject;
@@ -88,10 +87,14 @@ public class NavigationBackupTest {
         assertEquals(NavigationTarget.FEED, Settings.NAVIGATION_SETTINGS_TARGET.savedValue());
     }
 
-    @Test public void unknownTabCannotApplyOrOfferUndo() throws Exception {
+    /** A tab a newer HushGram knows is skipped and counted, like any choice this version can't use, and changes nothing. */
+    @Test public void unknownTabIsSkippedAndCannotApplyOrOfferUndo() throws Exception {
         Settings.NAVIGATION_SETTINGS_TARGET.save(NavigationTarget.FEED);
-        assertThrows(IOException.class, () -> ConfigurationBackup.restore(
-                file(entry(Settings.NAVIGATION_SETTINGS_TARGET.key, "enum", "FUTURE_TAB"))));
+        ConfigurationBackup.Result result = ConfigurationBackup.restore(
+                file(entry(Settings.NAVIGATION_SETTINGS_TARGET.key, "enum", "FUTURE_TAB")));
+        assertEquals("nothing applied", 0, result.applied);
+        assertEquals("the tab counted as skipped", 1, result.skipped);
+        assertFalse(result.restart);
         assertEquals(NavigationTarget.FEED, Settings.NAVIGATION_SETTINGS_TARGET.savedValue());
         assertFalse(ConfigurationBackup.canUndo());
     }
