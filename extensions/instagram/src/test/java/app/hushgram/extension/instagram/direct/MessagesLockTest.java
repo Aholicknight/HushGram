@@ -67,6 +67,9 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class MessagesLockTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
+    /** The account every screen in these tests is signed in to, as Instagram's tag names it too. */
+    static final String ME = "1234";
+
     private static final int FRAME = 0x7f0b0001;
     private static final int LIST = 0x7f0b0002;
     private static final int CHAT = 0x7f0b0003;
@@ -77,6 +80,7 @@ public class MessagesLockTest {
     @Before
     public void enable() {
         MessagesLock.resetForTests();
+        ChatAccounts.signInForTests(ME);
         Map<String, Integer> ids = new HashMap<>();
         ids.put(MessagesLock.INBOX_FRAME, FRAME);
         ids.put(MessagesLock.INBOX_LIST, LIST);
@@ -692,7 +696,7 @@ public class MessagesLockTest {
         MessagesLock.check(activity);
         View cover = cover(activity);
         Notification message = message("ig_direct", Notification.CATEGORY_MESSAGE);
-        ChatLocks.track(message, null, null, "direct_v2?id=" + ALICE, null, null);
+        ChatLocks.track(message, null, null, "direct_v2?id=" + ALICE, null, null, ME);
         assertNotSame(message, MessagesLock.notification(message));
 
         ChatLocks.remove(ALICE);
@@ -709,9 +713,9 @@ public class MessagesLockTest {
         Settings.LOCK_MESSAGES.save(false);
         ChatLocks.add(ALICE, "Alice");
         Notification alice = message("ig_direct", Notification.CATEGORY_MESSAGE);
-        ChatLocks.track(alice, null, null, "instagram://direct_v2?id=" + ALICE + "&x=1", null, null);
+        ChatLocks.track(alice, null, null, "instagram://direct_v2?id=" + ALICE + "&x=1", null, null, ME);
         Notification bob = message("ig_direct", Notification.CATEGORY_MESSAGE);
-        ChatLocks.track(bob, null, null, "direct_v2?id=" + BOB, BOB, null);
+        ChatLocks.track(bob, null, null, "direct_v2?id=" + BOB, BOB, null, ME);
         Notification unknown = message("ig_direct", Notification.CATEGORY_MESSAGE);
 
         Notification hidden = MessagesLock.notification(alice);
@@ -738,15 +742,18 @@ public class MessagesLockTest {
         Map<String, Notification> others = new HashMap<>();
         others.put("one", other);
 
-        ChatLocks.track(main, summary, others, "direct_v2?id=" + ALICE + "&x=9", "111", "222,333");
+        ChatLocks.track(main, summary, others, "direct_v2?id=" + ALICE + "&x=9", "111", "222,333", ME);
 
         assertEquals(ALICE + ",111", ChatLocks.idsOf(main));
         assertEquals(ChatLocks.idsOf(main), ChatLocks.idsOf(summary));
         assertEquals(ChatLocks.idsOf(main), ChatLocks.idsOf(other));
+        assertEquals("each is marked with the account the push was sent to", ME, ChatLocks.accountOf(main));
+        assertEquals(ME, ChatLocks.accountOf(summary));
+        assertEquals(ME, ChatLocks.accountOf(other));
         Notification like = message("ig_other", Notification.CATEGORY_SOCIAL);
-        ChatLocks.track(like, null, null, "media?id=5", null, null);
+        ChatLocks.track(like, null, null, "media?id=5", null, null, ME);
         assertNull("a link that isn't a chat's", ChatLocks.idsOf(like));
-        ChatLocks.track(null, null, null, null, null, null);
+        ChatLocks.track(null, null, null, null, null, null, ME);
         assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
     }
 
@@ -760,7 +767,7 @@ public class MessagesLockTest {
             Map<String, Notification> others = new HashMap<>();
             others.put("one", other);
 
-            assertFalse(ChatLocks.track(main, summary, others, "direct_v2?id=" + ALICE, "111", ALICE));
+            assertFalse(ChatLocks.track(main, summary, others, "direct_v2?id=" + ALICE, "111", ALICE, ME));
 
             assertNull("lock messages " + lockMessages, ChatLocks.idsOf(main));
             assertNull(ChatLocks.idsOf(summary));
@@ -770,7 +777,7 @@ public class MessagesLockTest {
         HiddenChats.add(BOB, "Bob");
         Notification alice = message("ig_direct", Notification.CATEGORY_MESSAGE);
 
-        assertFalse("a hidden list alone doesn't mark other chats", ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null));
+        assertFalse("a hidden list alone doesn't mark other chats", ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null, ME));
         assertNull(ChatLocks.idsOf(alice));
         assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
     }
@@ -781,7 +788,7 @@ public class MessagesLockTest {
         ChatLocks.add(ALICE, "Alice");
         Notification message = message("ig_direct", Notification.CATEGORY_MESSAGE);
 
-        ChatLocks.track(message, null, null, "direct_v2", "999", ALICE);
+        ChatLocks.track(message, null, null, "direct_v2", "999", ALICE, ME);
 
         assertNotSame(message, MessagesLock.notification(message));
     }
@@ -820,9 +827,9 @@ public class MessagesLockTest {
         MessagesLock.check(activity);
         asks.get(0)[0].run();
         Notification alice = message("ig_direct", Notification.CATEGORY_MESSAGE);
-        ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null);
+        ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null, ME);
         Notification bob = message("ig_direct", Notification.CATEGORY_MESSAGE);
-        ChatLocks.track(bob, null, null, "direct_v2?id=" + BOB, null, null);
+        ChatLocks.track(bob, null, null, "direct_v2?id=" + BOB, null, null, ME);
         manager.notify("alice", 1, alice);
         manager.notify("bob", 2, bob);
 
@@ -839,7 +846,7 @@ public class MessagesLockTest {
         Context context = RuntimeEnvironment.getApplication();
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         Notification alice = message("ig_direct", Notification.CATEGORY_MESSAGE);
-        ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null);
+        ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null, ME);
         manager.notify("alice", 1, alice);
 
         MessagesLock.watch(RuntimeEnvironment.getApplication());
@@ -849,7 +856,7 @@ public class MessagesLockTest {
 
     /** Instagram's tag for a chat's message: its kind, a bar, the account and the chat's id. */
     private static String tag(String chat) {
-        return "direct|1234" + ChatLocks.TAG_THREAD + chat;
+        return "direct|" + ME + ChatLocks.TAG_THREAD + chat;
     }
 
     @Test
@@ -859,8 +866,8 @@ public class MessagesLockTest {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         Notification alice = message("ig_direct", Notification.CATEGORY_MESSAGE);
         Notification bob = message("ig_direct", Notification.CATEGORY_MESSAGE);
-        assertFalse(ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null));
-        assertFalse(ChatLocks.track(bob, null, null, "direct_v2?id=" + BOB, null, null));
+        assertFalse(ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null, ME));
+        assertFalse(ChatLocks.track(bob, null, null, "direct_v2?id=" + BOB, null, null, ME));
         assertNull("no chat was locked when it came", ChatLocks.idsOf(alice));
         manager.notify(tag(ALICE), 1, alice);
         manager.notify(tag(BOB) + ";type:rr", 2, bob);
@@ -885,7 +892,7 @@ public class MessagesLockTest {
         Context context = RuntimeEnvironment.getApplication();
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         Notification alice = message("ig_direct", Notification.CATEGORY_MESSAGE);
-        ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null);
+        ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null, ME);
         Notification bob = message("ig_direct", Notification.CATEGORY_MESSAGE);
         manager.notify(tag(ALICE) + ";type:rr", 1, alice);
         manager.notify(tag(BOB), 2, bob);
@@ -932,7 +939,7 @@ public class MessagesLockTest {
         assertTrue(ChatLocks.listedIn(unmarked, tag(ALICE)));
         assertFalse(ChatLocks.listedIn(unmarked, tag(BOB)));
         assertFalse("no tag and no mark", ChatLocks.listedIn(unmarked, null));
-        ChatLocks.track(unmarked, null, null, "direct_v2?id=" + ALICE, null, null);
+        ChatLocks.track(unmarked, null, null, "direct_v2?id=" + ALICE, null, null, ME);
         assertTrue("the mark still counts under any tag", ChatLocks.listedIn(unmarked, "other"));
     }
 
@@ -1001,22 +1008,25 @@ public class MessagesLockTest {
 
     @Test
     public void theListReadsWhatWasSavedAndNothingElse() {
-        Settings.LOCKED_CHATS.save("1\tAnn\n\n2\n 3 \t Cy \n\t\nbad,id\tX");
+        Settings.LOCKED_CHATS.save(ChatList.HEADER + "\n" + ME + "\t1\tAnn\n\n" + ME + "\t2\t\n " + ME + " \t 3 \t Cy \n\t\t\n"
+                + ME + "\t\tNo id\n5678\t4\tDee");
 
         List<ChatLocks.Chat> chats = ChatLocks.chats();
 
-        assertEquals(4, chats.size());
+        assertEquals(3, chats.size());
         assertEquals("Ann", chats.get(0).name);
         assertEquals("a chat saved with no name", "Chat 2", chats.get(1).name);
         assertEquals("3", chats.get(2).id);
         assertEquals("Cy", chats.get(2).name);
         assertTrue(ChatLocks.listed("1"));
-        assertFalse(ChatLocks.listed("4"));
-        ChatLocks.add("1", "Anna");
-        ChatLocks.add("5", "Eve");
-        ChatLocks.remove("2");
-        assertEquals(java.util.Arrays.asList("1", "3", "bad,id", "5"), ids());
+        assertFalse("another account's chat isn't this one's", ChatLocks.listed("4"));
+        assertTrue("with no account known, any account's chat counts", ChatLocks.listed(null, "4"));
+        assertTrue(ChatLocks.add("1", "Anna"));
+        assertTrue(ChatLocks.add("5", "Eve"));
+        assertTrue(ChatLocks.remove("2"));
+        assertEquals(java.util.Arrays.asList("1", "3", "5"), ids());
         assertEquals("Anna", ChatLocks.chats().get(0).name);
+        assertEquals("Dee", ChatLocks.chats("5678").get(0).name);
     }
 
     @Test
@@ -1077,7 +1087,7 @@ public class MessagesLockTest {
         return controller;
     }
 
-    private static void layout(Activity activity) {
+    static void layout(Activity activity) {
         ShadowLooper.idleMainLooper();
         View decor = activity.getWindow().getDecorView();
         decor.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
@@ -1121,7 +1131,7 @@ public class MessagesLockTest {
         return count;
     }
 
-    private static Notification message(String channel, String category) {
+    static Notification message(String channel, String category) {
         Context context = RuntimeEnvironment.getApplication();
         PendingIntent open = PendingIntent.getActivity(context, 0, new Intent("open"), PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder builder = new Notification.Builder(context, channel)

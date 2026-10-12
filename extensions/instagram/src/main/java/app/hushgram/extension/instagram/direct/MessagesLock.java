@@ -366,9 +366,11 @@ public final class MessagesLock {
         Notification.Builder builder = new Notification.Builder(context, original.getChannelId());
         Bundle marked = new Bundle();
         marked.putBoolean(HIDDEN_EXTRA, true);
-        // Its chat stays on the copy, so what is in the shade can still be matched to the chat.
+        // Its chat and account stay on the copy, so what is in the shade can still be matched to the chat.
         String chat = ChatLocks.idsOf(original);
         if (chat != null) marked.putString(ChatLocks.CHAT_EXTRA, chat);
+        String account = ChatLocks.accountOf(original);
+        if (account != null) marked.putString(ChatLocks.ACCOUNT_EXTRA, account);
         builder.setSmallIcon(original.getSmallIcon())
                 .setContentTitle(appName(context))
                 .setContentText(L10n.t("New message"))

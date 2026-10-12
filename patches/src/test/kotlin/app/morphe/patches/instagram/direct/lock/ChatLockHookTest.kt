@@ -23,6 +23,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import java.io.File
@@ -86,6 +87,27 @@ class ChatLockHookTest {
         classDef.methods.none { method -> method.visualCode().any { it.visualString() == PUSH_ACTION } }
     }
 
+    @Test
+    fun eachBuildsChatScreenIsOneOfInstagramsBaseScreens() {
+        fixtures { bundle -> chatScreenExtendsBase(bundle, bundle.name) }
+        for (bundle in Fixtures.otherBuilds()) chatScreenExtendsBase(bundle, bundle.parentFile.name)
+    }
+
+    /** The chat screen's account is the one ChatAccounts reads, since the chat screen is one of Instagram's base screens. */
+    private fun chatScreenExtendsBase(bundle: File, name: String) {
+        val screen = chatClasses(bundle).values.single { classDef ->
+            classDef.methods.any { method -> method.name == "onResume" && method.visualCode().any { it.visualString() == CHAT_RESUME } }
+        }
+        val base = FixtureDex.classesHolding(bundle, SCREEN_RESUME).single()
+        var at: String? = screen.superclass
+        val walked = mutableListOf<String>()
+        while (at != null && at != base.type && walked.size < 6) {
+            walked += at
+            at = FixtureDex.classes(bundle, setOf(at))[at]?.superclass
+        }
+        assertEquals("$name: ${screen.type} reads its account off the base screen's session, through $walked", base.type, at)
+    }
+
     /** The patch refuses for the reason given on the first declared build with these classes left out, before anything changes. */
     private fun refuses(reason: String, keep: (ClassDef) -> Boolean) = fixtures { bundle ->
         val classes = chatClasses(bundle).values.filter(keep)
@@ -114,8 +136,19 @@ class ChatLockHookTest {
         val display = found.display.visualCode()
         assertEquals("$name: the push display saves its result", Opcode.MOVE_OBJECT_FROM16, display[0].opcode)
         val track = display.indices.single { (display[it] as? ReferenceInstruction)?.reference?.toString() == CHAT_TRACK }
-        assertEquals("$name: the six reads are handed over in order", 0, (display[track] as RegisterRangeInstruction).startRegister)
-        assertEquals("$name: the six reads", 6, (display[track] as RegisterRangeInstruction).registerCount)
+        assertEquals("$name: the seven reads are handed over in order", 0, (display[track] as RegisterRangeInstruction).startRegister)
+        assertEquals("$name: the seven reads", 7, (display[track] as RegisterRangeInstruction).registerCount)
+        val recipient = display[track - 1]
+        val recipientField = recipient.visualReference() as FieldReference
+        assertEquals("$name: the last read is the account the push was sent to", Opcode.IGET_OBJECT, recipient.opcode)
+        assertEquals(6, (recipient as TwoRegisterInstruction).registerA)
+        assertEquals("Ljava/lang/String;", recipientField.type)
+        val payload = classes.getValue(recipientField.definingClass)
+        assertTrue("$name: it's the field the push's toString writes after $PUSH_RECIPIENT", payload.methods.single { it.name == "toString" && it.parameterTypes.isEmpty() }
+            .visualCode().let { code ->
+                val label = code.indexOfFirst { it.visualString() == PUSH_RECIPIENT }
+                label >= 0 && (label + 1..minOf(label + 4, code.lastIndex)).any { (code[it].visualReference() as? FieldReference)?.toString() == recipientField.toString() }
+            })
         val skip = found.display.implementation!!.instructions.toList().filterIsInstance<BuilderOffsetInstruction>()
             .first { it.opcode == Opcode.IF_EQZ }
         assertEquals("$name: a push with no payload goes on to the original code", track + 4, skip.target.location.index)

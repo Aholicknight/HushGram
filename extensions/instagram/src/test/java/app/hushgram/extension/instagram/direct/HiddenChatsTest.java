@@ -65,6 +65,7 @@ public class HiddenChatsTest {
     @Before
     public void enable() {
         MessagesLock.resetForTests();
+        ChatAccounts.signInForTests(MessagesLockTest.ME);
         HiddenChats.reader = summary -> ((Summary) summary).id;
         HiddenChats.redrawer = (holder, summaries) -> redrawn.add(new Object[]{holder, summaries});
         BaseSettings.PAUSED.save(false);
@@ -398,12 +399,12 @@ public class HiddenChatsTest {
     public void aHiddenChatsPushIsDroppedAndOthersAreNot() {
         HiddenChats.add(ALICE, "Alice");
 
-        assertTrue(ChatLocks.track(null, null, null, "instagram://direct_v2?id=" + ALICE + "&x=1", null, null));
-        assertTrue("by the push's thread id", ChatLocks.track(null, null, null, null, ALICE, null));
-        assertTrue("by the push's thread IG id", ChatLocks.track(null, null, null, "media?id=5", null, ALICE));
-        assertFalse(ChatLocks.track(null, null, null, "direct_v2?id=" + BOB, BOB, null));
-        assertFalse("a push with no chat in it", ChatLocks.track(null, null, null, null, null, null));
-        assertFalse("a link that isn't a chat's", ChatLocks.track(null, null, null, "media?id=" + ALICE, null, null));
+        assertTrue(ChatLocks.track(null, null, null, "instagram://direct_v2?id=" + ALICE + "&x=1", null, null, MessagesLockTest.ME));
+        assertTrue("by the push's thread id", ChatLocks.track(null, null, null, null, ALICE, null, MessagesLockTest.ME));
+        assertTrue("by the push's thread IG id", ChatLocks.track(null, null, null, "media?id=5", null, ALICE, MessagesLockTest.ME));
+        assertFalse(ChatLocks.track(null, null, null, "direct_v2?id=" + BOB, BOB, null, MessagesLockTest.ME));
+        assertFalse("a push with no chat in it", ChatLocks.track(null, null, null, null, null, null, MessagesLockTest.ME));
+        assertFalse("a link that isn't a chat's", ChatLocks.track(null, null, null, "media?id=" + ALICE, null, null, MessagesLockTest.ME));
         assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("hidden chat notifications dropped 3"));
         assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
     }
@@ -413,7 +414,7 @@ public class HiddenChatsTest {
         HiddenChats.add(ALICE, "Alice");
         android.app.Notification notification = new android.app.Notification();
 
-        assertTrue(ChatLocks.track(notification, null, null, null, ALICE, null));
+        assertTrue(ChatLocks.track(notification, null, null, null, ALICE, null, MessagesLockTest.ME));
 
         assertNull(ChatLocks.idsOf(notification));
     }
@@ -426,7 +427,7 @@ public class HiddenChatsTest {
             PauseForTests.pause(reason);
 
             assertSame(reason.name(), inbox, HiddenChats.filter(inbox));
-            assertFalse(reason.name(), ChatLocks.track(null, null, null, null, ALICE, null));
+            assertFalse(reason.name(), ChatLocks.track(null, null, null, null, ALICE, null, MessagesLockTest.ME));
             assertTrue("nothing hidden now", HiddenChats.chats().isEmpty());
             assertEquals("the list still shows the choice", 1, HiddenChats.saved().size());
 
@@ -441,7 +442,7 @@ public class HiddenChatsTest {
         SettingsContextRule.withoutContext(() -> {
             ArrayList<Object> inbox = list(ALICE);
             assertSame(inbox, HiddenChats.filter(inbox));
-            assertFalse(ChatLocks.track(null, null, null, null, ALICE, null));
+            assertFalse(ChatLocks.track(null, null, null, null, ALICE, null, MessagesLockTest.ME));
         });
         Settings.LOCK_MESSAGES.save(false);
         assertEquals("the list alone is the switch", Arrays.asList(BOB), ids(HiddenChats.filter(list(ALICE, BOB))));
@@ -449,7 +450,8 @@ public class HiddenChatsTest {
 
     @Test
     public void theListReadsAndWritesTheSameLinesAsLockedChats() {
-        Settings.HIDDEN_CHATS.save("1\tAnn\n\n2\n 3 \t Cy \n\t");
+        String me = MessagesLockTest.ME;
+        Settings.HIDDEN_CHATS.save(ChatList.HEADER + "\n" + me + "\t1\tAnn\n\n" + me + "\t2\n " + me + " \t 3 \t Cy \n\t");
 
         List<ChatLocks.Chat> chats = HiddenChats.chats();
 

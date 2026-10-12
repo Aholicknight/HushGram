@@ -345,9 +345,10 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_lock_again", app.hushgram.extension.instagram.direct.LockDelay.RIGHT_AWAY);
 
     /**
-     * The chats that stay locked one at a time, each as its thread id and the name it had when you
-     * locked it ({@link app.hushgram.extension.instagram.direct.ChatLocks}), a line for each. It
-     * isn't a switch, and a backup leaves it out, since the ids are only good on this phone's account.
+     * The chats that stay locked one at a time, each as the id of the account it was locked on, its
+     * thread id and the name it had there ({@link app.hushgram.extension.instagram.direct.ChatLocks},
+     * {@code ChatList}), a line for each. It isn't a switch, and a backup leaves it out, since the ids
+     * are only good on this phone's accounts.
      */
     public static final StringSetting LOCKED_CHATS =
             new StringSetting("hushgram_locked_chats", "", false, false);

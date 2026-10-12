@@ -73,6 +73,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import app.hushgram.extension.instagram.direct.ChatAccounts;
 import app.hushgram.extension.instagram.direct.ChatLocks;
 import app.hushgram.extension.instagram.direct.HiddenChats;
 import app.hushgram.extension.instagram.direct.LockDelay;
@@ -3212,15 +3213,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * The locked chats, each with a check, and the chat you opened last above them when it isn't on
-     * the list. Checking one locks it at once; unchecking one asks the phone's lock first while
-     * anything is locked, so the list can't be used to get around it.
+     * The locked chats of the account you're signed in to, each with a check, and the chat you
+     * opened last on it above them when it isn't on the list. Checking one locks it at once;
+     * unchecking one asks the phone's lock first while anything is locked, so the list can't be used
+     * to get around it. Every change is for the account the list was opened on, and none is offered
+     * while that account isn't known.
      */
     private void showLockedChats() {
         Context context = getActivity();
         if (context == null) return;
-        List<ChatLocks.Chat> chats = new ArrayList<>(ChatLocks.chats());
-        ChatLocks.Chat last = ChatLocks.lastOpened();
+        String account = ChatAccounts.active();
+        List<ChatLocks.Chat> chats = new ArrayList<>(ChatLocks.chats(account));
+        ChatLocks.Chat last = ChatLocks.lastOpened(account);
         int offered = last == null ? 0 : 1;
         if (last != null) chats.add(0, last);
         AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Locked chats"));
@@ -3235,20 +3239,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 locked[i] = !offer;
             }
             builder.setMultiChoiceItems(names, locked, (dialog, which, checked) ->
-                    lockChat((AlertDialog) dialog, chats.get(which), which, checked));
+                    lockChat((AlertDialog) dialog, account, chats.get(which), which, checked));
         }
         show(builder.setPositiveButton(L10n.t("OK"), null));
     }
 
-    private void lockChat(AlertDialog dialog, ChatLocks.Chat chat, int position, boolean lock) {
+    private void lockChat(AlertDialog dialog, String account, ChatLocks.Chat chat, int position, boolean lock) {
         if (lock) {
-            ChatLocks.add(chat.id, chat.name);
+            if (!ChatLocks.add(account, chat.id, chat.name)) {
+                notSaved(dialog, position, false);
+                return;
+            }
             MessagesLock.chatListed();
             Utils.showToastShort(L10n.f("%1$s is locked", chat.name));
             return;
         }
         Runnable unlock = () -> {
-            ChatLocks.remove(chat.id);
+            if (!ChatLocks.remove(account, chat.id)) {
+                notSaved(dialog, position, true);
+                return;
+            }
             Utils.showToastShort(L10n.f("%1$s is unlocked", chat.name));
             setChecked(dialog, position, false);
         };
@@ -3281,15 +3291,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * The hidden chats, each with a check, and the chat you opened last above them when it isn't
-     * hidden. Checking one hides it at once; unchecking one shows it again. Paused, the list still
-     * shows what you chose, though Instagram shows every chat until HushGram is back on.
+     * The hidden chats of the account you're signed in to, each with a check, and the chat you
+     * opened last on it above them when it isn't hidden. Checking one hides it at once; unchecking
+     * one shows it again, on that account only. Paused, the list still shows what you chose, though
+     * Instagram shows every chat until HushGram is back on. None is offered while the account isn't
+     * known.
      */
     private void showHiddenChats() {
         Context context = getActivity();
         if (context == null) return;
-        List<ChatLocks.Chat> chats = new ArrayList<>(HiddenChats.saved());
-        ChatLocks.Chat last = HiddenChats.lastOpened();
+        String account = ChatAccounts.active();
+        List<ChatLocks.Chat> chats = new ArrayList<>(HiddenChats.saved(account));
+        ChatLocks.Chat last = HiddenChats.lastOpened(account);
         int offered = last == null ? 0 : 1;
         if (last != null) chats.add(0, last);
         AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Hidden chats"));
@@ -3306,10 +3319,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             builder.setMultiChoiceItems(names, hidden, (dialog, which, checked) -> {
                 ChatLocks.Chat chat = chats.get(which);
                 if (checked) {
-                    HiddenChats.add(chat.id, chat.name);
+                    if (!HiddenChats.add(account, chat.id, chat.name)) {
+                        notSaved((AlertDialog) dialog, which, false);
+                        return;
+                    }
                     Utils.showToastShort(L10n.f("%1$s is hidden", chat.name));
                 } else {
-                    HiddenChats.remove(chat.id);
+                    if (!HiddenChats.remove(account, chat.id)) {
+                        notSaved((AlertDialog) dialog, which, true);
+                        return;
+                    }
                     Utils.showToastShort(L10n.f("%1$s is shown again", chat.name));
                 }
             });
@@ -3398,6 +3417,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 })
                 .setNegativeButton(L10n.t("Cancel"), (shown, which) -> showHiddenAccounts()));
         fitAboveKeyboard(dialog);
+    }
+
+    /** A chat's change couldn't be saved: its check goes back to [saved], what the list still holds, and a toast says so. */
+    private static void notSaved(AlertDialog dialog, int position, boolean saved) {
+        setChecked(dialog, position, saved);
+        Utils.showToastShort(L10n.t("The setting couldn't finish updating. Its saved value is shown."));
     }
 
     private static void setChecked(AlertDialog dialog, int position, boolean checked) {

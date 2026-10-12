@@ -4,14 +4,17 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import androidx.annotation.Nullable;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -26,9 +29,15 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * out of the chats each folder tab counts its unread ones from ({@link #folder}) and the ones the
  * unread badge reads ({@link #filter}), out of the inbox search's results and message matches ({@link #searchResults},
  * {@link #searchHits}), out of the recent searches it lists before you type ({@link #recents}), and a push for it isn't posted at all ({@link ChatLocks#track} asks {@link #hides}). The list is
- * {@link Settings#HIDDEN_CHATS}, kept in the same lines as the locked chats ({@link ChatList}): a
- * chat's thread id and the name it had when it was hidden. The ids never leave the phone. HushGram
- * settings add the chat you opened last and take a chat off the list.
+ * {@link Settings#HIDDEN_CHATS}, kept in the same lines as the locked chats ({@link ChatList}): the
+ * account a chat was hidden on, its thread id and the name it had there. The ids never leave the
+ * phone. HushGram settings add the chat you opened last and take a chat off the list, for the
+ * account in front ({@link ChatAccounts}) and no other.
+ *
+ * <p>Each account's inbox, search and badge leave out the chats hidden on that account. A push is
+ * dropped for a chat hidden on the account it was sent to. While no account is known (before the
+ * first screen, or on one whose session can't be read) every account's hidden chats are left out,
+ * and when another account comes to the front each inbox drawn is handed its list again for it.
  *
  * <p>A list with a chat on it is the switch. Paused, the setting answers an empty list, so every
  * hidden chat is back until HushGram is turned on again; the settings screen still shows what was
@@ -282,8 +291,11 @@ public final class HiddenChats {
         return true;
     }
 
-    /** Asks {@link #changed} on the main thread, where Instagram hands the inbox its lists. */
-    private static void changedSoon() {
+    /**
+     * Asks {@link #changed} on the main thread, where Instagram hands the inbox its lists: at once
+     * when it's asked there, as a screen coming to the front with another account is.
+     */
+    static void changedSoon() {
         Utils.runOnMainThreadNowOrLater(HiddenChats::changed);
     }
 
@@ -453,12 +465,13 @@ public final class HiddenChats {
     // ---------------------------------------------------------------- notifications
 
     /**
-     * Some id a push carries (its deep link's chat id, its thread id or its thread IG id) is a
-     * hidden chat's. Counted when it is, so the diagnostic report shows pushes that were dropped.
+     * Some id a push carries (its deep link's chat id, its thread id or its thread IG id) is a chat
+     * hidden on [account], the one the push was sent to, or on any account when that isn't known.
+     * Counted when it is, so the diagnostic report shows pushes that were dropped.
      */
-    static boolean hides(Collection<String> pushIds) {
+    static boolean hides(Collection<String> pushIds, @Nullable String account) {
         try {
-            Set<String> hidden = ids();
+            Set<String> hidden = idsFor(account);
             if (hidden.isEmpty()) return false;
             for (String id : pushIds) {
                 if (hidden.contains(id)) {
@@ -474,79 +487,173 @@ public final class HiddenChats {
 
     // ---------------------------------------------------------------- the list
 
-    /** The ids as last parsed, with the text they came from, so a list's worth of rows parse it once. */
+    /**
+     * The list as last parsed, with the text it came from, and the ids it hides for the account they
+     * were last asked for, so a list's worth of rows parse it once.
+     */
     private static final class Parsed {
         final String raw;
+        final List<ChatList.Row> rows;
+        @Nullable final String account;
         final Set<String> ids;
 
-        Parsed(String raw, Set<String> ids) {
+        Parsed(String raw, List<ChatList.Row> rows, @Nullable String account) {
             this.raw = raw;
-            this.ids = ids;
+            this.rows = rows;
+            this.account = account;
+            this.ids = Collections.unmodifiableSet(ChatList.ids(rows, account));
         }
     }
 
     private static volatile Parsed parsed;
 
-    /** The thread ids hidden now, none while HushGram is paused; parsed again only when the list changed. */
+    /** The thread ids hidden now for the account in front, or for every account while none is known. */
     private static Set<String> ids() {
+        return idsFor(ChatAccounts.active());
+    }
+
+    /**
+     * The thread ids hidden now for [account], or for every account when it's null, none while
+     * HushGram is paused; parsed again only when the list or the account changed.
+     */
+    private static Set<String> idsFor(@Nullable String account) {
         if (!Utils.settingsReady()) return Collections.emptySet();
         String text = Settings.HIDDEN_CHATS.get();
         if (text.isEmpty()) return Collections.emptySet();
         Parsed kept = parsed;
         if (kept == null || !kept.raw.equals(text)) {
-            Set<String> ids = new HashSet<>();
-            for (ChatLocks.Chat chat : ChatList.parse(text)) ids.add(chat.id);
-            kept = new Parsed(text, Collections.unmodifiableSet(ids));
+            kept = new Parsed(text, Collections.unmodifiableList(ChatList.parse(text)), account);
+            parsed = kept;
+        } else if (!Objects.equals(kept.account, account)) {
+            kept = new Parsed(text, kept.rows, account);
             parsed = kept;
         }
         return kept.ids;
     }
 
-    /** The hidden chats, oldest first, none while HushGram is paused. */
+    /** The chats hidden now on [account], oldest first: none while HushGram is paused or for an account that isn't known. */
+    public static List<ChatLocks.Chat> chats(@Nullable String account) {
+        return ChatList.shown(rows(false), account);
+    }
+
+    /** The same for the account in front. */
     public static List<ChatLocks.Chat> chats() {
-        try {
-            if (Utils.settingsReady()) return ChatList.parse(Settings.HIDDEN_CHATS.get());
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, LIST, t);
-        }
-        return new ArrayList<>();
+        return chats(ChatAccounts.active());
     }
 
-    /** The chats hidden as chosen, paused or not. The settings screen shows these. */
+    /** The chats hidden on [account] as chosen, paused or not: none for an account that isn't known. The settings screen shows these. */
+    public static List<ChatLocks.Chat> saved(@Nullable String account) {
+        return ChatList.shown(rows(true), account);
+    }
+
+    /** The same for the account in front. */
     public static List<ChatLocks.Chat> saved() {
+        return saved(ChatAccounts.active());
+    }
+
+    /** Every account's hidden chats, as they are now or, with [chosen], as chosen whether paused or not. */
+    private static List<ChatList.Row> rows(boolean chosen) {
         try {
-            if (Utils.settingsReady()) return ChatList.parse(Settings.HIDDEN_CHATS.savedValue());
+            if (Utils.settingsReady()) {
+                return ChatList.parse(chosen ? Settings.HIDDEN_CHATS.savedValue() : Settings.HIDDEN_CHATS.get());
+            }
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, LIST, t);
         }
         return new ArrayList<>();
     }
 
-    /** The chat with [id] is hidden now. */
+    /** The chat with [id] is hidden now on [account], or on any account when it's null. */
+    public static boolean listed(@Nullable String account, String id) {
+        return ChatList.protects(rows(false), account, id);
+    }
+
+    /** The same for the account in front, or any account while none is known. */
     public static boolean listed(String id) {
-        return ChatList.contains(chats(), id);
+        return listed(ChatAccounts.active(), id);
     }
 
-    /** The chat with [id] is on the chosen list, paused or not. */
-    public static boolean savedListed(String id) {
-        return ChatList.contains(saved(), id);
+    /** The chat with [id] is on [account]'s chosen list, or any account's when it's null, paused or not. */
+    public static boolean savedListed(@Nullable String account, String id) {
+        return ChatList.protects(rows(true), account, id);
     }
 
-    /** The last chat opened, if it isn't hidden. */
+    /** The last chat opened on [account], if it isn't hidden there. */
+    public static ChatLocks.Chat lastOpened(@Nullable String account) {
+        return ChatLocks.lastOpenedUnless(account, HiddenChats::savedListed);
+    }
+
+    /** The same for the account in front. */
     public static ChatLocks.Chat lastOpened() {
-        return ChatLocks.lastOpenedUnless(HiddenChats::savedListed);
+        return lastOpened(ChatAccounts.active());
     }
 
-    /** Hides a chat, or renames it on the list, and the inbox shows it. */
-    public static void add(String id, String name) {
-        Settings.HIDDEN_CHATS.save(ChatList.added(saved(), id, name));
-        changedSoon();
+    /**
+     * Hides a chat on [account], or renames it on that account's list, and the inbox leaves it out.
+     * False, with nothing changed, for an account that isn't known, before the settings are read, or
+     * when the list couldn't be saved.
+     */
+    public static boolean add(@Nullable String account, String id, String name) {
+        if (empty(account) || empty(id)) return false;
+        boolean saved = change(rows -> ChatList.added(rows, account, id, name));
+        if (saved) changedSoon();
+        return saved;
     }
 
-    /** Brings a chat back, in the inbox too. */
-    public static void remove(String id) {
-        Settings.HIDDEN_CHATS.save(ChatList.removed(saved(), id));
-        changedSoon();
+    /** The same for the account in front. */
+    public static boolean add(String id, String name) {
+        return add(ChatAccounts.active(), id, name);
+    }
+
+    /**
+     * Brings a chat back on [account], in the inbox too, and on no other account. False, with the
+     * chat still hidden, for an account that isn't known, before the settings are read, or when the
+     * list couldn't be saved.
+     */
+    public static boolean remove(@Nullable String account, String id) {
+        if (empty(account) || empty(id)) return false;
+        boolean saved = change(rows -> ChatList.removed(rows, account, id));
+        if (saved) changedSoon();
+        return saved;
+    }
+
+    /** The same for the account in front. */
+    public static boolean remove(String id) {
+        return remove(ChatAccounts.active(), id);
+    }
+
+    /**
+     * [account], signed in, found its chat [id] under [name]: a chat hidden on it takes the name, and
+     * one hidden from before accounts were gets a line of its own for it ({@link ChatList#named}).
+     */
+    static void named(String account, String id, String name) {
+        if (empty(account) || empty(id)) return;
+        change(rows -> ChatList.named(rows, account, id, name));
+    }
+
+    /**
+     * Saves the list [edit] makes of the one chosen, read fresh, paused or not. True when it's saved
+     * or there was nothing to change. A list that can't be read or saved is left as it was.
+     */
+    private static boolean change(UnaryOperator<List<ChatList.Row>> edit) {
+        try {
+            if (!Utils.settingsReady()) return false;
+            List<ChatList.Row> rows = ChatList.parse(Settings.HIDDEN_CHATS.savedValue());
+            List<ChatList.Row> changed = edit.apply(rows);
+            return changed == rows || Settings.HIDDEN_CHATS.save(ChatList.format(changed));
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, LIST, t);
+            return false;
+        }
+    }
+
+    /** Another account came to the front: the list is parsed again for it. */
+    static void accountChanged() {
+        parsed = null;
+    }
+
+    private static boolean empty(String text) {
+        return text == null || text.trim().isEmpty();
     }
 
     /** Back to how a fresh start finds it. */
@@ -554,6 +661,7 @@ public final class HiddenChats {
         reader = HiddenChats::threadId;
         searchReader = HiddenChats::targetThreadId;
         redrawer = HiddenChats::redraw;
+        parsed = null;
         synchronized (drawn) {
             drawn.clear();
         }

@@ -142,7 +142,15 @@ start-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->opened(Ljava/lan
 once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->opened(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onResume
 start-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause
 once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause
-once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->track(Landroid/app/Notification;Landroid/app/Notification;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z in instance (L*;L*;Ljava/lang/Runnable;Ljava/lang/String;I)V holding is_alert_only_once notification_displayed
+once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->track(Landroid/app/Notification;Landroid/app/Notification;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z in instance (L*;L*;Ljava/lang/Runnable;Ljava/lang/String;I)V holding is_alert_only_once notification_displayed
+# The locked and hidden chats are kept for each account apart, so every screen hands itself to
+# ChatAccounts.resumed first in Instagram's base screen's onResume (IgFragment, 0Dij on 450), the
+# one method logging IgFragment.onResume, which reads the account off the screen's own session.
+# Both rules pick one method on all seven 450 builds. Left out, no account is ever in front, so
+# every account's locked and hidden chats stay locked and hidden on all of them and none can be
+# changed; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/direct/ChatAccounts;->resumed(Ljava/lang/Object;)V in instance ()V holding IgFragment.onResume
+once-call Lapp/hushgram/extension/instagram/direct/ChatAccounts;->resumed(Ljava/lang/Object;)V in instance ()V holding IgFragment.onResume
 # Hidden chats (under Lock your messages) keep a hidden chat out of the inbox in three places: right
 # before the inbox's list of chats is written to the holder the row factory reads it from (a case
 # of the merged lambda 09kY.accept writing 07HZ.A03 on 450), in the unread badge snapshot after it

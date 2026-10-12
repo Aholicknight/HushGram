@@ -77,6 +77,7 @@ public class MessagesLockTimerTest {
     @Before
     public void enable() {
         MessagesLock.resetForTests();
+        ChatAccounts.signInForTests(MessagesLockTest.ME);
         Map<String, Integer> ids = new HashMap<String, Integer>() {
             @Override public Integer get(Object key) {
                 lookups++;

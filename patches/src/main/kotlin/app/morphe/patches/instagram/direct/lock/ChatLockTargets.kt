@@ -37,7 +37,7 @@ internal const val CHAT_LOCKS = "$EXTENSION_PACKAGE/direct/ChatLocks;"
 internal const val CHAT_OPENED = "$CHAT_LOCKS->opened(Ljava/lang/Object;)V"
 internal const val CHAT_CLOSED = "$CHAT_LOCKS->closed(Ljava/lang/Object;)V"
 internal const val CHAT_TRACK = "$CHAT_LOCKS->track(Landroid/app/Notification;Landroid/app/Notification;" +
-    "Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z"
+    "Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z"
 private const val CHAT_THREAD_ID = "threadId"
 
 /** What the chat screen logs first in onResume and onPause, as Instagram's thread controller. */
@@ -51,10 +51,14 @@ internal const val CONTROLLER_NAME = "threadController"
 internal const val PUSH_DISPLAYED = "notification_displayed"
 internal const val PUSH_ALERT_ONCE = "is_alert_only_once"
 
-/** The labels a push's toString writes before the fields the lock matches a chat with. */
+/**
+ * The labels a push's toString writes before the fields the lock matches a chat with, and before
+ * the id of the account the push was sent to, which says whose list the chat is matched against.
+ */
 internal const val PUSH_ACTION = "mIgAction"
 internal const val PUSH_THREAD = "mThreadId"
 internal const val PUSH_THREAD_IG = "mThreadIgId"
+internal const val PUSH_RECIPIENT = "mIntendedRecipientUserid"
 
 private const val NOTIFICATION = "Landroid/app/Notification;"
 private const val MAP = "Ljava/util/Map;"
@@ -156,7 +160,7 @@ internal fun BytecodePatchContext.findChatLockTargets(): ChatLockTargets {
 
     val display = uniqueMethod(LOCK_PATCH, "push notification display", PushDisplayFingerprint)
     if (0 in display.jumpTargets()) refuse("something jumps back to the push notification display's first instruction")
-    display.requireLocals(LOCK_PATCH, 6)
+    display.requireLocals(LOCK_PATCH, 7)
     val result = display.parameters().first()
     val resultClass = classDefByOrNull(result) ?: refuse("$result, the push display's result, isn't in this build")
     val toString = uniqueMethod(LOCK_PATCH, "push notification labels", PushLabelsFingerprint)
@@ -169,20 +173,22 @@ internal fun BytecodePatchContext.findChatLockTargets(): ChatLockTargets {
     val action = labelField(toString, PUSH_ACTION, payload)
     val thread = labelField(toString, PUSH_THREAD, payload)
     val threadIg = labelField(toString, PUSH_THREAD_IG, payload)
+    val recipient = labelField(toString, PUSH_RECIPIENT, payload)
     for (field in notifications + others + holder) requirePublic(result, field)
-    for (field in listOf(action, thread, threadIg)) requirePublic(payload, field)
+    for (field in listOf(action, thread, threadIg, recipient)) requirePublic(payload, field)
 
     val hook = """
         move-object/from16 v4, ${display.parameterRegister(0)}
         iget-object v0, v4, ${notifications[0].signature()}
         iget-object v1, v4, ${notifications[1].signature()}
         iget-object v2, v4, ${others.signature()}
-        iget-object v5, v4, ${holder.signature()}
-        if-eqz v5, :skip
-        iget-object v3, v5, ${action.signature()}
-        iget-object v4, v5, ${thread.signature()}
-        iget-object v5, v5, ${threadIg.signature()}
-        invoke-static/range { v0 .. v5 }, $CHAT_TRACK
+        iget-object v6, v4, ${holder.signature()}
+        if-eqz v6, :skip
+        iget-object v3, v6, ${action.signature()}
+        iget-object v4, v6, ${thread.signature()}
+        iget-object v5, v6, ${threadIg.signature()}
+        iget-object v6, v6, ${recipient.signature()}
+        invoke-static/range { v0 .. v6 }, $CHAT_TRACK
         move-result v0
         if-eqz v0, :skip
         return-void
