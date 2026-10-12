@@ -542,7 +542,7 @@ public final class LongPressZoom {
          * focus to the photo's frame.
          */
         void letGo() {
-            if (back != null) {
+            if (Build.VERSION.SDK_INT >= 33 && back != null) {
                 back.unregister();
                 back = null;
             }
@@ -735,7 +735,7 @@ public final class LongPressZoom {
         }
 
         @Override protected void onDetachedFromWindow() {
-            if (back != null) {
+            if (Build.VERSION.SDK_INT >= 33 && back != null) {
                 back.unregister();
                 back = null;
             }
