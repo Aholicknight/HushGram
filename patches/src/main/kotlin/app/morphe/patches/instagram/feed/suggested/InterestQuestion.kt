@@ -227,7 +227,8 @@ internal fun BytecodePatchContext.findGroupedInterestQuestion(home: InterestQues
 
     // The style check falls into the load and skips the add otherwise.
     val style = code.getOrNull(loadAt - 1)
-    if (style !is OffsetInstruction || !style.opcode.name.startsWith("IF_") || targetOf(loadAt - 1) != skipAt) {
+    // Opcode.name is dexlib2's smali spelling ("if-ne"), not the enum constant's.
+    if (style !is OffsetInstruction || !style.opcode.name.startsWith("if-") || targetOf(loadAt - 1) != skipAt) {
         refuse("$where doesn't check the question's style right before the add")
     }
     // The last Older Posts check before it: a feed that's neither Home's nor Older Posts' skips the add too.
