@@ -253,6 +253,9 @@ public class PinLockTest {
         AlertDialog dialog = latest();
 
         dialog.dismiss();
+        // Android hands a dialog's dismiss listener a message of its own, so it runs on the next
+        // turn of the main loop, well before anyone could tap Unlock.
+        ShadowLooper.idleMainLooper();
 
         assertTrue(MessagesLock.locked());
         assertEquals(View.VISIBLE, cover(activity).getVisibility());

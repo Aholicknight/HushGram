@@ -139,8 +139,9 @@ public class SearchHeaderButtonTest {
         SearchHeaderButton.Magnifier icon = (SearchHeaderButton.Magnifier) button.getDrawable();
         float density = activity.getResources().getDisplayMetrics().density;
         assertEquals("the ghost button's size", Math.round(24 * density), icon.getIntrinsicWidth());
+        // The header's own themed context, not the activity's: on SDK 36 the two themes differ.
         assertEquals("Instagram's icon color for the theme, as the ghost and download buttons use",
-                FeedDownloadButton.iconColor(activity), icon.color());
+                FeedDownloadButton.iconColor(header.getContext()), icon.color());
 
         SearchHeaderButton.place(header);
         assertSame(button, searchIn(end));

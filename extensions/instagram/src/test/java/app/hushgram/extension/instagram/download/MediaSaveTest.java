@@ -759,8 +759,9 @@ public class MediaSaveTest {
         assertFalse("the save never finished", worker.isAlive());
         Shadows.shadowOf(Looper.getMainLooper()).idle();
 
-        assertEquals("Download didn't finish. Check your connection and free storage, then try again.",
-                ShadowToast.getTextOfLatestToast());
+        // The ledger that refuses the row refuses the save's own job record first, so the save
+        // ends before any fetch, with the plain failure rather than a fetch or write status's hint.
+        assertEquals("Download failed", ShadowToast.getTextOfLatestToast());
         assertTrue("the unlisted row was left in the gallery", gallery.rows.isEmpty());
         assertEquals(0, published.size());
     }

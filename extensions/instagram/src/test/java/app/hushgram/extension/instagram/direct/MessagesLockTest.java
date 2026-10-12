@@ -173,14 +173,15 @@ public class MessagesLockTest {
 
     /**
      * In a right-to-left layout the cover stays over the messages after the window lays itself out
-     * again, rather than moving to the right edge, here with the inbox 700 wide and 200 from the left.
+     * again, rather than moving to the right edge, here with the inbox 70 wide and 200 from the left
+     * of the test's 320 pixel screen, so it ends short of either edge.
      */
     @Test
     public void aRightToLeftLayoutKeepsTheCoverOverTheMessages() {
         ActivityController<Activity> controller = inbox();
         Activity activity = controller.get();
         View frame = activity.findViewById(FRAME);
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(700, 800, Gravity.TOP | Gravity.LEFT);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(70, 300, Gravity.TOP | Gravity.LEFT);
         params.leftMargin = 200;
         frame.setLayoutParams(params);
         activity.getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
@@ -192,8 +193,11 @@ public class MessagesLockTest {
         View cover = cover(activity);
         assertNotNull("no cover over the inbox", cover);
         assertEquals("the inbox", 200, visible(frame).left);
+        assertEquals("the whole inbox is on screen", 70, visible(frame).width());
+        assertTrue("the inbox ends short of the right edge",
+                visible(frame).right < activity.getWindow().getDecorView().getWidth());
         assertEquals("after the window's own layout", 200, cover.getLeft());
-        assertEquals(700, cover.getWidth());
+        assertEquals(70, cover.getWidth());
     }
 
     /**

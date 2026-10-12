@@ -197,8 +197,11 @@ class InterestQuestionTest {
         assertEquals("$label: the builder's return", 65, found.endAt)
         assertEquals("$label: the row type's load", Opcode.SGET_OBJECT, before[found.rowAt].opcode)
         assertEquals("$label: the binder group", "A05", grouped.name)
-        assertEquals("$label: the binder group's load", 774, grouped.rowAt)
-        assertEquals("$label: after the binder group's add", 778, grouped.endAt)
+        // 385611395 compiles the binder group 11 instructions shorter before the load; the
+        // others match the declared build (DexProbe: its second feed_timeline_older at 748, not 759).
+        val load = if (label.endsWith("-385611395")) 763 else 774
+        assertEquals("$label: the binder group's load", load, grouped.rowAt)
+        assertEquals("$label: after the binder group's add", load + 4, grouped.endAt)
         found.write(context)
         grouped.write(context)
 

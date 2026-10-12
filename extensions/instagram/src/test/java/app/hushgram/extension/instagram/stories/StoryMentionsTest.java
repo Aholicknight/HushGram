@@ -442,7 +442,10 @@ public class StoryMentionsTest {
         View name = header.getChildAt(0);
         name.getLocationInWindow(at);
         int nameBottom = at[1] + name.getHeight();
-        float nameX = at[0] + name.getWidth() / 2f;
+        // Straight above the pill: the name runs the column's whole width, so its own middle is
+        // far to the side of a pill that starts at the left.
+        float nameX = center[0];
+        assertTrue("the name isn't above the pill", at[0] <= nameX && nameX < at[0] + name.getWidth());
         assertTrue("no room between the name and the pill", nameBottom < pillTop);
         float onName = nameBottom - 1;
         assertTrue("the name is out of the pill's reach, so this proves nothing",
