@@ -603,8 +603,16 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragment {
 
     private static volatile RestartFeedbackPresenter restartFeedbackPresenter;
 
-    public static void setRestartFeedbackPresenter(RestartFeedbackPresenter presenter) {
+    public static synchronized void setRestartFeedbackPresenter(RestartFeedbackPresenter presenter) {
         restartFeedbackPresenter = presenter;
+    }
+
+    /**
+     * Drops [presenter] if it's still the one set. A screen closing after a newer one opened
+     * leaves the newer one's presenter alone.
+     */
+    public static synchronized void clearRestartFeedbackPresenter(RestartFeedbackPresenter presenter) {
+        if (restartFeedbackPresenter == presenter) restartFeedbackPresenter = null;
     }
 
     protected CharSequence initializationErrorTitle(@Nullable Context context) {

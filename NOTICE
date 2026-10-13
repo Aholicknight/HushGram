@@ -13,13 +13,17 @@ Hushfacebook, which took them from Hushfeed, which is built on
 icysymmetra/tiktok-patches-for-morphe, which is built on Morphe, which hard
 forked ReVanced. Its fix for re-signed builds and its Open links in external
 browser patch are rewritten from Andrew Liang's patches, by way of
-Hushfacebook. The notices below are reproduced from those projects. Morphe
-requires its text to be carried in derivative works and shown to the person
-using the software, so it is also reachable in the app itself: long-press
-Instagram's launcher icon, open HushGram settings, then Licenses.
+Hushfacebook. A few settings screen helpers (the way back to the page Restart
+now was tapped on, Report a problem and Quick setups) come from HushPinterest,
+the Pinterest member of the family, which is built on Hushfeed as well. The
+notices below are reproduced from those projects. Morphe requires its text to
+be carried in derivative works and shown to the person using the software, so
+it is also reachable in the app itself: long-press Instagram's launcher icon,
+open HushGram settings, then Licenses.
 
   HushGram                    https://github.com/SysAdminDoc/HushGram
   Hushfacebook                https://github.com/SysAdminDoc/Hushfacebook
+  HushPinterest               https://github.com/SysAdminDoc/HushPinterest
   Hushfeed                    https://github.com/SysAdminDoc/hushfeed
   morphe-patches (Andrew's)   https://github.com/andrewliang25/morphe-patches
   tiktok-patches-for-morphe   https://github.com/icysymmetra/tiktok-patches-for-morphe

@@ -60,6 +60,9 @@ public final class SettingsContextRule extends ExternalResource {
         // restart-gated toggle in one class would pin the row on every page captured after it.
         app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment
                 .restartPending.clear();
+        // A page left open by an earlier test would otherwise keep its restart feedback here.
+        app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment
+                .setRestartFeedbackPresenter(null);
         // The debt is measured against the value each setting first ran with, which is just as
         // process-wide: a test that ran with safe mode on left the next test owing a restart for
         // a switch it never touched.
