@@ -272,9 +272,9 @@ public final class L10nTranslations {
         table.put("Allow screenshots",
                 "Screenshots erlauben");
         table.put("Already saved %1$d. Download again within 30 seconds for those.",
-                "Schon gespeichert: %1$d. Lade binnen 30 Sekunden erneut f\u00fcr diese.");
+                "Schon gespeichert: %1$d. F\u00fcr diese binnen 30 Sekunden erneut herunterladen.");
         table.put("Already saved. Download again within 30 seconds for a copy.",
-                "Schon gespeichert. Lade binnen 30 Sekunden erneut f\u00fcr eine Kopie.");
+                "Schon gespeichert. F\u00fcr eine Kopie binnen 30 Sekunden erneut herunterladen.");
         table.put("An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.",
                 "Ein fr\u00fcherer Import braucht noch \u201eVorherige \u00dcberschreibungen wiederherstellen\u201c oder \u201eGespeicherte \u00dcberschreibungen verwerfen\u201c, falls die Wiederherstellung nicht klappt. Es wurde nichts ge\u00e4ndert.");
         table.put("Applies a HushGram export, or Instagram's own overrides file. Your current overrides are saved first so Restore can bring them back.",
