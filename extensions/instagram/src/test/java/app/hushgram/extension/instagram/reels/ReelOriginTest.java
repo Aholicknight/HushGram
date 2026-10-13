@@ -13,6 +13,9 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.RippleDrawable;
 import android.os.Bundle;
@@ -33,6 +36,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
@@ -42,6 +46,8 @@ import org.robolectric.shadows.ShadowToast;
 import org.robolectric.util.ReflectionHelpers;
 
 import java.time.Duration;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -418,7 +424,7 @@ public class ReelOriginTest {
 
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    public void theReelActionHasNativeFocusTouchFeedbackAndRoomForWrappedText() {
+    public void theReelActionHasNativeFocusTouchFeedbackAndRoomForWrappedText() throws Exception {
         openProfile(List.of(REEL), null);
         int[] tapped = {0};
         TextView button = ReelOrigin.button(profile, () -> tapped[0]++);
@@ -439,6 +445,67 @@ public class ReelOriginTest {
         assertTrue(button.getHeight() >= Math.round(48 * profile.getResources().getDisplayMetrics().density));
         assertTrue(button.performClick());
         assertEquals(1, tapped[0]);
+        captureReelActions();
+    }
+
+    /** Export the production Find/Stop transition, without running a second screen implementation. */
+    private void captureReelActions() throws Exception {
+        String output = System.getenv("HUSHGRAM_UI_CAPTURES");
+        if (output == null || output.isEmpty()) output = System.getProperty("HUSHGRAM_UI_CAPTURES");
+        if (output == null || output.isEmpty()) return;
+        float fontScale = profile.getResources().getConfiguration().fontScale;
+        try {
+            for (boolean rtl : new boolean[]{false, true}) {
+                RuntimeEnvironment.setFontScale(rtl ? 2f : 1f);
+                for (boolean light : new boolean[]{true, false}) {
+                    ReelOrigin.opening(new Reel(REEL), ON);
+                    openProfile(reels(30, 9000), null);
+                    profile.setTheme(light ? android.R.style.Theme_Material_Light_NoActionBar
+                            : android.R.style.Theme_Material_NoActionBar);
+                    content().setLayoutDirection(rtl ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
+                    content().setBackgroundColor(light ? Color.WHITE : Color.BLACK);
+                    ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON, ON);
+                    layout();
+                    TextView action = ReelOrigin.buttonForTests();
+                    assertNotNull(action);
+                    assertEquals("Find the reel", action.getText().toString());
+                    assertEquals(rtl ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR, action.getLayoutDirection());
+                    String context = "runtime-reel-" + (light ? "light" : "dark")
+                            + (rtl ? "-rtl-200" : "-100") + "-api" + android.os.Build.VERSION.SDK_INT;
+                    captureReelAction(action, new File(output, context), "01-find", light);
+                    assertTrue(action.performClick());
+                    layout();
+                    assertSame(action, ReelOrigin.buttonForTests());
+                    assertEquals("Stop looking", action.getText().toString());
+                    captureReelAction(action, new File(output, context), "02-stop", light);
+                    assertTrue(action.performClick());
+                    assertNull("Capturing Stop must still cancel the real search", ReelOrigin.heldForTests());
+                    assertNull(action.getParent());
+                }
+            }
+        } finally {
+            ReelOrigin.forget();
+            RuntimeEnvironment.setFontScale(fontScale);
+        }
+    }
+
+    private static void captureReelAction(TextView action, File directory, String name, boolean light) throws Exception {
+        assertTrue(action.isShown());
+        assertTrue(action.getWidth() > 0 && action.getHeight() > 0);
+        assertTrue("The real label must fit at every captured text scale", action.getLayout().getEllipsisCount(0) == 0);
+        int padding = Math.round(16 * action.getResources().getDisplayMetrics().density);
+        Bitmap pixels = Bitmap.createBitmap(action.getWidth() + 2 * padding, action.getHeight() + 2 * padding,
+                Bitmap.Config.ARGB_8888);
+        try {
+            Canvas canvas = new Canvas(pixels);
+            canvas.drawColor(light ? Color.WHITE : Color.BLACK);
+            canvas.translate(padding, padding);
+            action.draw(canvas);
+            assertTrue(directory.mkdirs() || directory.isDirectory());
+            try (FileOutputStream stream = new FileOutputStream(new File(directory, name + ".png"))) {
+                assertTrue(pixels.compress(Bitmap.CompressFormat.PNG, 100, stream));
+            }
+        } finally { pixels.recycle(); }
     }
 
     /** With Wait for a tap on, a reel on the first screen is outlined straight away, with no button. */
