@@ -105,6 +105,7 @@ HushGram pauses when Instagram restarts.	Instagram을 다시 시작하면 HushGr
 HushGram saves	HushGram 저장
 HushGram settings	HushGram 설정
 HushGram settings couldn't open	HushGram 설정을 열 수 없습니다
+HushGram settings are locked	HushGram 설정이 잠겨 있습니다
 HushGram turns back on when Instagram restarts.	Instagram을 다시 시작하면 HushGram이 다시 실행됩니다
 Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	Instagram이 시작한 지 1분 이내에 연속으로 세 번 충돌하거나 멈춰서 HushGram이 일시적으로 작동을 정지하였습니다
 Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	Instagram에서 이 버전이 만료되었다라는 화면이 더 이상 표시되지 않습니다. 패치된 빌드는 자동으로 업데이트되지 않으므로, 이 설정을 통해 계속 사용할 수 있습니다

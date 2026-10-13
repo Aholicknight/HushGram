@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 
+import app.hushgram.extension.instagram.direct.MessagesLockForTests;
 import app.hushgram.extension.instagram.direct.PinLock;
 import app.hushgram.extension.instagram.direct.UnlockWith;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -32,6 +33,7 @@ public class PinBackupTest {
 
     @Before
     public void setup() {
+        MessagesLockForTests.reset();
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
         Settings.LOCK_MESSAGES.save(true);
         Settings.UNLOCK_WITH.save(UnlockWith.PIN);
@@ -46,6 +48,7 @@ public class PinBackupTest {
         Settings.LOCK_PIN_WAIT_UNTIL.resetToDefault();
         Settings.LOCK_PIN.resetToDefault();
         PatchFamily.inBuildForTests = null;
+        MessagesLockForTests.reset();
     }
 
     @Test
@@ -104,10 +107,12 @@ public class PinBackupTest {
         Settings.LOCK_APP.resetToDefault();
     }
 
+    /** Unlocked, as settings opened over a locked Instagram ask first; while locked, see SettingsRelockTest. */
     @Test
     public void anImportStillChangesTheLocksWithThePhoneLockChosen() throws Exception {
         Settings.UNLOCK_WITH.save(UnlockWith.PHONE_LOCK);
         Settings.LOCK_APP.save(true);
+        MessagesLockForTests.open();
 
         ConfigurationBackup.restore(locksOff());
 

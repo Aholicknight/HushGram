@@ -148,6 +148,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** Turning on Lock your messages or Lock all of Instagram no longer opens a chat you locked on its own. That chat stays covered until you unlock it, can't be taken off the list without the unlock, and its notifications stay hidden. The screen behind settings also stays out of recent apps from the moment a lock is turned on.
 
+* **Instagram - Lock your messages:** HushGram settings left open while you stepped away are covered once the lock comes back, and ask for your unlock before they can be used again. A settings file or an Undo that arrives while Instagram is locked waits for the unlock too, so a backup can't switch a lock off without it.
+
 ## 0.0.9 (2026-10-11)
 
 ### Features

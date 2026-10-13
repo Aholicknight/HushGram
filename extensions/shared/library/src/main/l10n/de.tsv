@@ -104,6 +104,7 @@ HushGram pauses when Instagram restarts.	HushGram pausiert, sobald Instagram neu
 HushGram saves	Speichern mit HushGram
 HushGram settings	HushGram-Einstellungen
 HushGram settings couldn't open	HushGram-Einstellungen ließen sich nicht öffnen
+HushGram settings are locked	HushGram-Einstellungen sind gesperrt
 HushGram turns back on when Instagram restarts.	HushGram ist wieder aktiv, sobald Instagram neu startet.
 Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	Instagram ist dreimal hintereinander innerhalb einer Minute nach dem Start abgestürzt oder hängen geblieben, deshalb hat sich HushGram selbst pausiert.
 Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	Instagram zeigt den Bildschirm nicht mehr an, der meldet, dass diese Version zu alt ist. Ein gepatchter Build aktualisiert sich nicht von selbst, so bleibt er nutzbar.

@@ -187,7 +187,7 @@ public final class ConfigurationBackup {
                 if (entry.length() != 2 || !(entry.get("type") instanceof String) || !entry.has("value")) throw invalid();
                 Setting<?> setting = allowed.get(key);
                 Object value = setting == null ? null : accepted(setting, entry.getString("type"), entry.get("value"));
-                if (value == null || !setting.includeWithImportExport || heldByPin(setting)) {
+                if (value == null || !setting.includeWithImportExport || heldByLock(setting)) {
                     skipped++;
                     continue;
                 }
@@ -259,11 +259,14 @@ public final class ConfigurationBackup {
 
     /**
      * With a HushGram PIN behind the locks, a file (or an Undo) can't switch Lock your messages or
-     * Lock all of Instagram, so a backup can't be a way round the PIN. Without one nothing changes.
+     * Lock all of Instagram, so a backup can't be a way round the PIN. With the phone's lock behind
+     * them, it can't while they're locked either: settings left open from before the lock came back
+     * ask for a new unlock first, and this holds at the write itself.
      */
-    private static boolean heldByPin(Setting<?> setting) {
+    private static boolean heldByLock(Setting<?> setting) {
         return (setting == Settings.LOCK_MESSAGES || setting == Settings.LOCK_APP)
-                && app.hushgram.extension.instagram.direct.PinLock.protects();
+                && (app.hushgram.extension.instagram.direct.PinLock.protects()
+                        || app.hushgram.extension.instagram.direct.MessagesLock.locked());
     }
 
     /** Expiry and process lifetime bound the snapshot; there is no disk copy of Undo. */
@@ -298,7 +301,7 @@ public final class ConfigurationBackup {
             for (var entries = values.entrySet().iterator(); entries.hasNext();) {
                 var entry = entries.next();
                 Setting<?> setting = entry.getKey();
-                if (heldByPin(setting) || revisions.get(setting) != setting.savedRevision()
+                if (heldByLock(setting) || revisions.get(setting) != setting.savedRevision()
                         || !expected.get(setting).equals(setting.savedValue())) {
                     entries.remove();
                     skipped++;

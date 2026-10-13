@@ -663,6 +663,11 @@ tasks.register("verifyAndroidBoundaries") {
                 "theChatsNameIsFoundForTheList[28]", "theChatsNameIsFoundForTheList[37]",
                 "theListReadsWhatWasSavedAndNothingElse[28]", "theListReadsWhatWasSavedAndNothingElse[37]",
                 "aListedChatStaysLockedWhilePausedAndWithoutContext[28]", "aListedChatStaysLockedWhilePausedAndWithoutContext[37]"),
+            "app.hushgram.extension.instagram.settings.SettingsRelockTest" to listOf(
+                "settingsLeftOpenAreCoveredWhenTheLockComesBack[28]", "settingsLeftOpenAreCoveredWhenTheLockComesBack[37]",
+                "aSettingsFileThatArrivesAfterTheLockCameBackWaitsForANewUnlock[28]", "aSettingsFileThatArrivesAfterTheLockCameBackWaitsForANewUnlock[37]",
+                "anUndoWhileLockedWaitsForANewUnlock[28]", "anUndoWhileLockedWaitsForANewUnlock[37]",
+                "aWriteWhileLockedNeverSwitchesALockOff[28]", "aWriteWhileLockedNeverSwitchesALockOff[37]"),
             "app.hushgram.extension.instagram.direct.HiddenChatsTest" to listOf(
                 "aHiddenChatLeavesTheInboxAndTheOthersStay[28]", "aHiddenChatLeavesTheInboxAndTheOthersStay[37]",
                 "anEmptyListChangesNothing[28]", "anEmptyListChangesNothing[37]",

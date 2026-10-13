@@ -6,6 +6,7 @@
  */
 package app.hushgram.extension.instagram.settings;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.app.Fragment;
@@ -19,6 +20,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -29,6 +31,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 
@@ -52,6 +55,10 @@ public final class SettingsDialog extends DialogFragment {
     private boolean closing;
     private Button retry;
     private TextView heading;
+    /** The lock's checks on this dialog's window while it's started. */
+    private Window lockWindow;
+    private ViewTreeObserver.OnPreDrawListener lockDraw;
+    private ViewTreeObserver.OnWindowFocusChangeListener lockFocus;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -215,6 +222,67 @@ public final class SettingsDialog extends DialogFragment {
         if (closing) {
             dismissAllowingStateLoss();
             SettingsEntry.reopenOnceThemed(getActivity());
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        watchLock();
+    }
+
+    @Override
+    public void onStop() {
+        unwatchLock();
+        super.onStop();
+    }
+
+    /**
+     * Kept open across a leave, or put back after a turn or a restart, these settings can outlast
+     * the unlock that let them open, and the lock's cover over Instagram is under this window. So
+     * this window is checked before each frame and when it gets the focus back, and covered while
+     * the lock is locked (Lock your messages and Lock all of Instagram).
+     */
+    private void watchLock() {
+        Dialog dialog = getDialog();
+        Activity activity = getActivity();
+        Window window = dialog == null ? null : dialog.getWindow();
+        if (window == null || activity == null || lockDraw != null) return;
+        try {
+            ViewTreeObserver.OnPreDrawListener draw = () -> {
+                MessagesLock.guardSettings(activity, window);
+                return true;
+            };
+            ViewTreeObserver.OnWindowFocusChangeListener focus = hasFocus -> {
+                if (hasFocus) MessagesLock.guardSettings(activity, window);
+            };
+            ViewTreeObserver observer = window.getDecorView().getViewTreeObserver();
+            observer.addOnPreDrawListener(draw);
+            observer.addOnWindowFocusChangeListener(focus);
+            lockDraw = draw;
+            lockFocus = focus;
+            lockWindow = window;
+            MessagesLock.guardSettings(activity, window);
+        } catch (Exception failure) {
+            Logger.printException(() -> "Settings: could not watch the lock", failure);
+        }
+    }
+
+    private void unwatchLock() {
+        Window window = lockWindow;
+        ViewTreeObserver.OnPreDrawListener draw = lockDraw;
+        ViewTreeObserver.OnWindowFocusChangeListener focus = lockFocus;
+        lockWindow = null;
+        lockDraw = null;
+        lockFocus = null;
+        if (window == null) return;
+        try {
+            ViewTreeObserver observer = window.getDecorView().getViewTreeObserver();
+            if (!observer.isAlive()) return;
+            if (draw != null) observer.removeOnPreDrawListener(draw);
+            if (focus != null) observer.removeOnWindowFocusChangeListener(focus);
+        } catch (Exception failure) {
+            Logger.printException(() -> "Settings: could not stop watching the lock", failure);
         }
     }
 

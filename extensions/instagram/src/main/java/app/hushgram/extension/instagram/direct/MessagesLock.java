@@ -93,6 +93,8 @@ public final class MessagesLock {
     static final String CHAT_ROOT = "thread_view_root";
     /** Every screen's content, for Lock all of Instagram. */
     static final String APP = "app";
+    /** The HushGram settings' content, in their own window over an activity. */
+    static final String SETTINGS = "settings";
     /** Marks the cover this class puts in a window. */
     static final String COVER_TAG = "hushgram_messages_lock";
 
@@ -146,6 +148,8 @@ public final class MessagesLock {
     /** The screen the open ask belongs to. Its dialog goes with it without a word when it's destroyed. */
     private static WeakReference<Activity> askedBy = new WeakReference<>(null);
     private static boolean askedThisTime;
+    /** The settings' own cover asked since the lock came back, so a cancel isn't asked again at once. */
+    private static boolean settingsAsked;
     /** What the activity in front was last told about the recent apps picture, and when. */
     private static Boolean keptOutOfRecents;
     private static long toldRecentsAt;
@@ -543,7 +547,10 @@ public final class MessagesLock {
     static void relock(boolean askAgain) {
         boolean wasOpen = open;
         open = false;
-        if (askAgain) askedThisTime = false;
+        if (askAgain) {
+            askedThisTime = false;
+            settingsAsked = false;
+        }
         if (wasOpen && (switchedOn() || ChatLocks.any())) hideShade();
     }
 
@@ -647,6 +654,33 @@ public final class MessagesLock {
             }
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, SCREEN, t);
+        }
+    }
+
+    /**
+     * The HushGram settings in [dialog], a window of their own over [activity], asked before each of
+     * its frames and when it gets the focus. Kept open across a leave, they'd still work after the
+     * lock came back, since the activity's covers are in the activity's window, under them. While a
+     * lock is on and locked, they get a cover of their own, the lock is asked once while their window
+     * has the focus, and the cover comes off once it says it's you. A cancel leaves the cover with its
+     * Unlock button. True while covered.
+     */
+    public static boolean guardSettings(Activity activity, Window dialog) {
+        try {
+            ViewGroup window = (ViewGroup) dialog.getDecorView();
+            boolean lock = locked();
+            if (!lock) settingsAsked = false;
+            if (!lock && cover(window, SETTINGS) == null) return false;
+            boolean covered = place(activity, window, SETTINGS, lock) && lock;
+            if (covered && !settingsAsked && window.hasWindowFocus()) {
+                settingsAsked = true;
+                HookStatus.counted(FamilyNames.MESSAGES_LOCK, COVERED);
+                ask(activity, null);
+            }
+            return covered;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, SCREEN, t);
+            return false;
         }
     }
 
@@ -794,7 +828,7 @@ public final class MessagesLock {
     private static final Map<String, Integer> IDS = new java.util.concurrent.ConcurrentHashMap<>();
 
     static int id(Context context, String name) {
-        if (APP.equals(name)) return android.R.id.content;
+        if (APP.equals(name) || SETTINGS.equals(name)) return android.R.id.content;
         Map<String, Integer> forTests = idsForTests;
         if (forTests != null) {
             Integer id = forTests.get(name);
@@ -827,7 +861,7 @@ public final class MessagesLock {
 
         /** The cover over a chat says so when that chat is locked on its own. */
         void titleFor(boolean single) {
-            if (title == null || this.single == single || APP.equals(screen)) return;
+            if (title == null || this.single == single || APP.equals(screen) || SETTINGS.equals(screen)) return;
             this.single = single;
             title.setText(single ? L10n.t("This chat is locked") : L10n.t("Your messages are locked"));
         }
@@ -881,7 +915,8 @@ public final class MessagesLock {
         column.addView(icon, new LinearLayout.LayoutParams(size, size));
 
         TextView title = new TextView(activity);
-        title.setText(wholeApp ? L10n.t("Instagram is locked") : L10n.t("Your messages are locked"));
+        title.setText(SETTINGS.equals(screen) ? L10n.t("HushGram settings are locked")
+                : wholeApp ? L10n.t("Instagram is locked") : L10n.t("Your messages are locked"));
         title.setTextColor(colors.title);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
@@ -1147,6 +1182,11 @@ public final class MessagesLock {
         return MessagesLock::askPhone;
     }
 
+    /** Opened, as a confirmed ask would leave it. */
+    static void openForTests() {
+        open = true;
+    }
+
     /** Back to how a fresh start finds it. */
     static void resetForTests() {
         open = false;
@@ -1156,6 +1196,7 @@ public final class MessagesLock {
         askedAt = 0;
         askedBy = new WeakReference<>(null);
         askedThisTime = false;
+        settingsAsked = false;
         keptOutOfRecents = null;
         toldRecentsAt = 0;
         unfollow();

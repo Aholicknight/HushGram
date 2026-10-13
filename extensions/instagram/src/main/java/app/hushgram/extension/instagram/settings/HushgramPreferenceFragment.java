@@ -2605,6 +2605,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** Undo always remains Undo, even if its expiration callback hasn't reached the screen yet. */
     private void changeConfiguration(@Nullable Uri uri, long token) {
         if (changingConfiguration || ExportStatus.CONFIGURATION.active()) return;
+        // These settings can outlast the unlock that opened them, and the file picker's own screen
+        // is a leave that can lock again. A file or an Undo arriving while locked waits for a new
+        // unlock; a cancel changes nothing.
+        if (MessagesLock.locked()) {
+            // The picker's request is spent, so the rows are offered again whatever the answer.
+            showConfiguration();
+            Activity activity = getActivity();
+            if (activity != null) MessagesLock.confirmThen(activity, () -> changeConfiguration(uri, token));
+            return;
+        }
         boolean undo = uri == null;
         Context context = getContext();
         if (context == null) return;
