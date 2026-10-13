@@ -385,6 +385,11 @@ public class DownloadHistoryTest {
         assertEquals("a cleared history still skipped", 2, server.hits("/clip.mp4"));
     }
 
+    @Test public void theListHoldsFifteenThousandSaves() {
+        // The README promises this many (#150 asked for room past 5,000).
+        assertEquals(15_000, DownloadHistory.MAX_ENTRIES);
+    }
+
     @Test public void theListKeepsTheNewestSavesAndReadsBackAfterARestart() throws Exception {
         // A file grown to twice the list, as appends and removals leave it.
         int written = 2 * DownloadHistory.MAX_ENTRIES;

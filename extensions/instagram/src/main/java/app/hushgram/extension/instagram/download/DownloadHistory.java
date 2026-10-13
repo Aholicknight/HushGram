@@ -70,8 +70,11 @@ public final class DownloadHistory {
     static final String DIRECTORY = "hushgram-downloads";
     static final String FILE = "history.tsv";
 
-    /** How many saves are remembered. The oldest goes first. */
-    static final int MAX_ENTRIES = 5000;
+    /**
+     * How many saves are remembered. The oldest goes first. The file is read on a save's own thread,
+     * once per process, so a full list (a few megabytes) never holds the screen up (#150).
+     */
+    static final int MAX_ENTRIES = 15_000;
 
     /** How long after a skip a second ask for the same thing saves it anyway. */
     static final long AGAIN_MS = 30_000L;
