@@ -639,8 +639,38 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragment {
         return L10n.t(context, "Settings couldn't refresh completely. Reopen settings and try again.");
     }
 
+    /** While several switches change in one go, a restart note is held here and given once at the end. */
+    private static boolean holdingRestartNote;
+    private static boolean restartNoteHeld;
+
+    /**
+     * Runs [changes], several switches set in one go such as a Quick setup, and gives the "restart
+     * to apply" note once at the end if any of them needed one, instead of once per switch.
+     */
+    public static void restartNoteOnce(Context context, Runnable changes) {
+        Utils.verifyOnMainThread();
+        if (holdingRestartNote) {
+            changes.run();
+            return;
+        }
+        holdingRestartNote = true;
+        restartNoteHeld = false;
+        try {
+            changes.run();
+        } finally {
+            holdingRestartNote = false;
+            boolean held = restartNoteHeld;
+            restartNoteHeld = false;
+            if (held) showRestartDialog(context);
+        }
+    }
+
     public static void showRestartDialog(Context context) {
         Utils.verifyOnMainThread();
+        if (holdingRestartNote) {
+            restartNoteHeld = true;
+            return;
+        }
         CharSequence message = savedMessage == null
                 ? L10n.t(context, "Saved. Restart Instagram to apply this change.")
                 : savedMessage;

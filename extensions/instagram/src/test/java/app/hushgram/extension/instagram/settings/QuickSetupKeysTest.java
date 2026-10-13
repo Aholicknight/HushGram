@@ -34,6 +34,7 @@ import org.robolectric.shadows.ShadowToast;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -47,6 +48,8 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.PauseForTests;
 import app.hushgram.extension.shared.settings.Setting;
+import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
+import app.hushgram.extension.shared.settings.preference.QuickSetups;
 
 /**
  * Quick setups' lists name real switches, none twice, and only switches a settings file carries;
@@ -136,6 +139,41 @@ public class QuickSetupKeysTest {
             // Again, nothing is left to change, and it says so.
             assertEquals(0, page.applyQuickSetup(QuickSetupKeys.quiet()));
             assertEquals("Changed 0 settings", ShadowToast.getTextOfLatestToast());
+        }
+    }
+
+    /** A choice that flips several switches needing a restart says so once, not once a switch. */
+    @Test
+    public void severalRestartsAreAnnouncedOnce() throws Exception {
+        // Quiet has one such switch on 450, so the choice here is three of them.
+        List<BooleanSetting> restarting = Arrays.asList(Settings.HIDE_INBOX_SUGGESTIONS,
+                Settings.HIDE_HOME_CREATE_BUTTON, Settings.HIDE_HOME_NOTIFICATIONS_BUTTON);
+        for (BooleanSetting setting : restarting) {
+            assertTrue(setting.key, setting.rebootApp);
+            setting.save(false);
+        }
+        List<CharSequence> notes = new ArrayList<>();
+        AbstractPreferenceFragment.RestartFeedbackPresenter counting = (context, message) -> notes.add(message);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            AbstractPreferenceFragment.setRestartFeedbackPresenter(counting);
+
+            assertEquals(restarting.size(), page.applyQuickSetup(QuickSetups.allOn(restarting)));
+            ShadowLooper.idleMainLooper();
+            for (BooleanSetting setting : restarting) {
+                assertTrue(setting.key, AbstractPreferenceFragment.restartPending.contains(setting.key));
+            }
+            assertEquals(notes.toString(), 1, notes.size());
+
+            // Held only for the choice: a switch changed on its own after it says so at once.
+            AbstractPreferenceFragment.showRestartDialog(controller.get());
+            assertEquals(notes.toString(), 2, notes.size());
+        } finally {
+            AbstractPreferenceFragment.clearRestartFeedbackPresenter(counting);
+            AbstractPreferenceFragment.restartPending.clear();
+            for (BooleanSetting setting : restarting) setting.resetToDefault();
         }
     }
 }

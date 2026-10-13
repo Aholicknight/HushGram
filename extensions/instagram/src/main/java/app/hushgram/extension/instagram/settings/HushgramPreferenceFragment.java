@@ -2097,7 +2097,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /**
      * Applies one Quick setups choice to every switch on this page, the ones a category page or a
      * search keeps off the screen too, and says how many changed. While Instagram is locked it
-     * waits for the phone's lock, as a settings file does.
+     * waits for the phone's lock, as a settings file does. Switches that need a restart say so
+     * once between them.
      */
     int applyQuickSetup(Map<BooleanSetting, Boolean> values) {
         if (MessagesLock.locked()) {
@@ -2105,8 +2106,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (activity != null) MessagesLock.confirmThen(activity, () -> applyQuickSetup(values));
             return 0;
         }
-        if (getPreferenceScreen() == null) return 0;
-        int changed = QuickSetups.apply(this::findPreference, values);
+        Context context = getContext();
+        if (getPreferenceScreen() == null || context == null) return 0;
+        int[] count = {0};
+        AbstractPreferenceFragment.restartNoteOnce(context,
+                () -> count[0] = QuickSetups.apply(this::findPreference, values));
+        int changed = count[0];
         Utils.showToastLong(L10n.quantity(changed, "Changed %1$d setting", "Changed %1$d settings", changed));
         return changed;
     }
