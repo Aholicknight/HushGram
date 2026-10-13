@@ -29,6 +29,8 @@ import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import app.hushgram.extension.instagram.download.DownloadQuality;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
+import app.hushgram.extension.instagram.stories.StoryRingColor;
+import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -284,9 +286,35 @@ public class ConfigurationBackupTest {
         assertFalse(ConfigurationBackup.canUndo());
     }
 
+    // The ring's color travels beside its size: a file carries it by name and gives it back, and a
+    // name this build has no color for is skipped while the size beside it applies.
+    @Test public void ringColorIsCarriedAndRestoredBesideTheSize() throws Exception {
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_RING_COLOR.key));
+        Settings.STORY_RING_COLOR.save(StoryRingColor.GOLD);
+        JSONObject values = new JSONObject(new String(ConfigurationBackup.export(), StandardCharsets.UTF_8)).getJSONObject("settings");
+        assertEquals("GOLD", values.getJSONObject(Settings.STORY_RING_COLOR.key).getString("value"));
+        assertEquals("INSTAGRAM", values.getJSONObject(Settings.STORY_RING_SCALE.key).getString("value"));
+        Settings.STORY_RING_COLOR.resetToDefault();
+
+        ConfigurationBackup.Result restored = ConfigurationBackup.restore(file(
+                entry(Settings.STORY_RING_COLOR.key, "enum", "BLUE") + "," + entry(Settings.STORY_RING_SCALE.key, "enum", "LARGER")));
+        assertEquals(2, restored.applied);
+        assertTrue("a new color shows after a restart", restored.restart);
+        assertEquals(StoryRingColor.BLUE, Settings.STORY_RING_COLOR.savedValue());
+        assertEquals(StoryRingSize.LARGER, Settings.STORY_RING_SCALE.savedValue());
+        ConfigurationBackup.forgetUndo();
+
+        ConfigurationBackup.Result unknown = ConfigurationBackup.restore(file(
+                entry(Settings.STORY_RING_COLOR.key, "enum", "GREEN") + "," + entry(Settings.STORY_RING_SCALE.key, "enum", "SMALLER")));
+        assertEquals(1, unknown.applied);
+        assertEquals(1, unknown.skipped);
+        assertEquals(StoryRingColor.BLUE, Settings.STORY_RING_COLOR.savedValue());
+        assertEquals(StoryRingSize.SMALLER, Settings.STORY_RING_SCALE.savedValue());
+    }
+
     @Test public void documentedRestartChoicesShareMetadataWithRowAndImportFeedback() throws Exception {
         Setting<?>[] choices = {Settings.START_ON_FOLLOWING, Settings.ONLY_FOLLOWING,
-                Settings.STORY_RING, Settings.STORY_RING_SCALE, Settings.HIDE_META_AI_SEARCH,
+                Settings.STORY_RING, Settings.STORY_RING_SCALE, Settings.STORY_RING_COLOR, Settings.HIDE_META_AI_SEARCH,
                 Settings.REMOVE_BOTTOM_SPACE};
         for (Setting<?> setting : choices) assertTrue(setting.key, setting.rebootApp);
         assertFalse(Settings.HIDE_ADS.rebootApp);

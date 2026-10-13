@@ -348,7 +348,7 @@ Sharing	Compartilhamento
 Hide group buttons	Ocultar botões de grupo
 Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	Tira Novo grupo do menu de compartilhamento e o botão que envia para as pessoas escolhidas como grupo. Enviar separadamente continua, e você ainda pode criar um grupo nas suas mensagens.
 Story ring size	Tamanho dos anéis dos stories
-Draws the rings in the stories row at the top of Home at the size below. Restart Instagram to see the change.	Desenha os anéis da fileira de stories no topo do Início no tamanho abaixo. Reinicie o Instagram para ver a mudança.
+Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Restart Instagram to see a change.	Desenha os anéis da fileira de stories no topo do Início no tamanho abaixo, e os anéis dos stories que você ainda não viu na cor abaixo. Reinicie o Instagram para ver uma mudança.
 Ring size	Tamanho dos anéis
 Much smaller	Bem menor
 Smaller	Menor
@@ -357,6 +357,12 @@ Larger	Maior
 Much larger	Bem maior
 The rings are the size Instagram picks for your screen.	Os anéis têm o tamanho que o Instagram escolhe para a sua tela.
 The rings are %1$s of the size Instagram picks for your screen.	Os anéis têm %1$s do tamanho que o Instagram escolhe para a sua tela.
+# context: Stories list under Story ring size; it picks the color of the ring around a story you haven't watched
+Ring color	Cor dos anéis
+Instagram's colors	Cores do Instagram
+# context: two more colors in the Ring color list, beside Purple, Red and Orange
+Blue	Azul
+Gold	Dourado
 Hide the Repost button	Ocultar o botão Repostar
 Takes Repost and its count off posts and reels, so nothing gets reposted to your followers by mistake. Share still sends a post or reel to someone.	Tira Repostar e a contagem dos posts e reels, para nada ser repostado para seus seguidores sem querer. Compartilhar continua enviando um post ou reel para alguém.
 Layout	Layout

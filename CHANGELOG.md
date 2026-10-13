@@ -28,6 +28,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide suggested stories:** A new switch under Stories, Hide Suggested for you between stories, leaves out the cards of accounts to follow that Instagram slips between the stories you tap through. Asked for in #154.
 
+* **Instagram - Story ring size:** New Ring color list under it. Pick Blue, Purple, Red, Orange or Gold for the rings of stories you haven't watched. Watched rings stay gray and Close Friends stays green. It starts on Instagram's own colors. Asked for in #176.
+
 * **Instagram - Hide the Explore grid:** A new switch under Explore, Hide suggested accounts in search, keeps Suggested for you accounts out of what shows when you tap the search bar. Your recent searches stay. Asked for in #143.
 
 * **Instagram - Find the reel you came from:** A Stop looking button shows while the grid scrolls, and tapping it leaves the grid where it is. A new switch, Wait for a tap to find it, holds the search until you tap Find the reel. Off by default. Asked for in #30.

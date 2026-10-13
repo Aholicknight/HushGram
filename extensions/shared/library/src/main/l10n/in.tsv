@@ -348,7 +348,7 @@ Sharing	Berbagi
 Hide group buttons	Sembunyikan tombol grup
 Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	Menghapus Grup baru dari lembar bagikan, juga tombol yang mengirim ke orang-orang yang kamu pilih sebagai grup. Kirim terpisah tetap ada, dan kamu tetap bisa membuat grup dari pesanmu.
 Story ring size	Ukuran lingkaran cerita
-Draws the rings in the stories row at the top of Home at the size below. Restart Instagram to see the change.	Menggambar lingkaran di baris cerita atas Beranda dengan ukuran di bawah. Mulai ulang Instagram untuk melihat perubahannya.
+Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Restart Instagram to see a change.	Menggambar lingkaran di baris cerita atas Beranda dengan ukuran di bawah, dan lingkaran cerita yang belum Anda tonton dengan warna di bawah. Mulai ulang Instagram untuk melihat perubahan.
 Ring size	Ukuran lingkaran
 Much smaller	Jauh lebih kecil
 Smaller	Lebih kecil
@@ -357,6 +357,12 @@ Larger	Lebih besar
 Much larger	Jauh lebih besar
 The rings are the size Instagram picks for your screen.	Lingkaran berukuran sesuai pilihan Instagram untuk layar Anda.
 The rings are %1$s of the size Instagram picks for your screen.	Lingkaran berukuran %1$s dari ukuran yang dipilih Instagram untuk layar Anda.
+# context: Stories list under Story ring size; it picks the color of the ring around a story you haven't watched
+Ring color	Warna lingkaran
+Instagram's colors	Warna Instagram
+# context: two more colors in the Ring color list, beside Purple, Red and Orange
+Blue	Biru
+Gold	Emas
 Hide the Repost button	Sembunyikan tombol Posting ulang
 Takes Repost and its count off posts and reels, so nothing gets reposted to your followers by mistake. Share still sends a post or reel to someone.	Menghapus Posting ulang dan jumlahnya dari postingan dan reel, agar tidak ada yang terposting ulang ke pengikut Anda secara tidak sengaja. Bagikan tetap mengirim postingan atau reel ke seseorang.
 Layout	Tata letak

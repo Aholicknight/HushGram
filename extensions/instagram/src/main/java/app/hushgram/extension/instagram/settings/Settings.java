@@ -18,6 +18,7 @@ import app.hushgram.extension.instagram.download.HoldTime;
 import app.hushgram.extension.instagram.download.SaveFolder;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
+import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -581,10 +582,11 @@ public class Settings extends BaseSettings {
 
     /**
      * The rings in the stories row at the top of Home are drawn at the size in
-     * {@link #STORY_RING_SCALE} ({@link app.hushgram.extension.instagram.stories.StoryRing}). The
-     * switch starts on, and the size starts as Instagram's own, so nothing changes until a size is
+     * {@link #STORY_RING_SCALE}, and the ring of a story that hasn't been watched in the color in
+     * {@link #STORY_RING_COLOR} ({@link app.hushgram.extension.instagram.stories.StoryRing}). The
+     * switch starts on, and both choices start as Instagram's own, so nothing changes until one is
      * picked. Nothing Instagram stores is written, so off or paused, the rings are Instagram's
-     * size again once Home is built anew.
+     * again once Home is built anew.
      */
     public static final BooleanSetting STORY_RING =
             new BooleanSetting("hushgram_story_ring", TRUE, true);
@@ -596,6 +598,14 @@ public class Settings extends BaseSettings {
      */
     public static final EnumSetting<StoryRingSize> STORY_RING_SCALE =
             new EnumSetting<>("hushgram_story_ring_size", StoryRingSize.INSTAGRAM, true, parent(STORY_RING));
+
+    /**
+     * The color the ring of a story that hasn't been watched is drawn in while {@link #STORY_RING}
+     * is on. It starts as Instagram's own gradient, and it is a choice of its own: the size above
+     * doesn't change it, and it doesn't change the size.
+     */
+    public static final EnumSetting<StoryRingColor> STORY_RING_COLOR =
+            new EnumSetting<>("hushgram_story_ring_color", StoryRingColor.INSTAGRAM, true, parent(STORY_RING));
 
     /**
      * Home opening on the Following feed, with Instagram's For you and Following picker at its top,

@@ -100,6 +100,7 @@ import app.hushgram.extension.instagram.misc.OverrideImport;
 import app.hushgram.extension.instagram.misc.RecommendedFlags;
 import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.SharingDomain;
+import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.misc.GlassHeight;
@@ -949,9 +950,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (build.contains(PatchFamily.STORY_RING)) {
             stories.add(toggle(context, Settings.STORY_RING, L10n.t("Story ring size"),
-                    L10n.t("Draws the rings in the stories row at the top of Home at the size below. Restart "
-                            + "Instagram to see the change.")));
+                    L10n.t("Draws the rings in the stories row at the top of Home at the size below, and the rings "
+                            + "of stories you haven't watched in the color below. Restart Instagram to see a "
+                            + "change.")));
             stories.add(storyRingRow(context));
+            stories.add(storyRingColorRow(context));
         }
         if (build.contains(PatchFamily.STORY_AUTO_ADVANCE)) {
             stories.add(toggle(context, Settings.BLOCK_STORY_AUTO_ADVANCE, L10n.t("Stop Story auto-advance"),
@@ -1683,7 +1686,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         : row.getTitle() == null ? "" : row.getTitle().toString());
                 for (PatchFamily family : build) {
                     boolean belongs = family.switches.stream().anyMatch(setting -> setting.key.equals(key));
-                    belongs |= family == PatchFamily.STORY_RING && Settings.STORY_RING_SCALE.key.equals(key);
+                    belongs |= family == PatchFamily.STORY_RING && (Settings.STORY_RING_SCALE.key.equals(key)
+                            || Settings.STORY_RING_COLOR.key.equals(key));
                     belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DECLUTTER && Settings.BURN_IN_GUARD.key.equals(key);
@@ -4627,6 +4631,47 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 L10n.isolate(NumberFormat.getPercentInstance().format(size.percent() / 100.0)));
     }
 
+    /**
+     * The color the rings of stories that haven't been watched are drawn in. Its values are the
+     * setting's own names, and its summary is the color chosen.
+     */
+    static StoryRingColorRow storyRingColorRow(Context context) {
+        StoryRingColorRow row = new StoryRingColorRow(context);
+        row.setKey(Settings.STORY_RING_COLOR.key);
+        row.setTitle(L10n.t("Ring color"));
+        row.setDialogTitle(L10n.t("Ring color"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        StoryRingColor[] colors = StoryRingColor.values();
+        CharSequence[] entries = new CharSequence[colors.length];
+        CharSequence[] values = new CharSequence[colors.length];
+        for (int i = 0; i < colors.length; i++) {
+            entries[i] = storyRingColorLabel(colors[i]);
+            values[i] = colors[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.STORY_RING_COLOR.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [color]. */
+    static String storyRingColorLabel(StoryRingColor color) {
+        switch (color) {
+            case BLUE:
+                return L10n.t("Blue");
+            case PURPLE:
+                return L10n.t("Purple");
+            case RED:
+                return L10n.t("Red");
+            case ORANGE:
+                return L10n.t("Orange");
+            case GOLD:
+                return L10n.t("Gold");
+            default:
+                return L10n.t("Instagram's colors");
+        }
+    }
+
     @Override
     protected void updatePreferenceAvailability(Preference preference, Setting<?> setting) {
         super.updatePreferenceAvailability(preference, setting);
@@ -4659,6 +4704,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((UnlockWithRow) preference).showSummary();
         } else if (preference instanceof StoryRingRow) {
             ((StoryRingRow) preference).showSummary();
+        } else if (preference instanceof StoryRingColorRow) {
+            ((StoryRingColorRow) preference).showSummary();
         } else if (preference instanceof LikeAnimationRow) {
             ((LikeAnimationRow) preference).showSummary();
         } else if (preference instanceof GlassReelsHideRow) {
@@ -4689,6 +4736,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((UnlockWithRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryRingRow) {
             ((StoryRingRow) listPreference).showSummary();
+        } else if (listPreference instanceof StoryRingColorRow) {
+            ((StoryRingColorRow) listPreference).showSummary();
         } else if (listPreference instanceof LikeAnimationRow) {
             ((LikeAnimationRow) listPreference).showSummary();
         } else if (listPreference instanceof GlassReelsHideRow) {
@@ -6197,6 +6246,56 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             summary = Settings.STORY_RING_SCALE.isAvailable()
                     ? storyRingSummary(size)
+                    : L10n.t("Turn on Story ring size to use this choice.");
+            setSummary(summary);
+        }
+
+        @Override
+        public CharSequence getSummary() {
+            return summary != null ? summary : super.getSummary();
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /**
+     * The story ring color's row. Its summary is the color chosen, or what to turn on while the
+     * switch above it is off, and it answers that summary itself as the ring size's row does.
+     */
+    static final class StoryRingColorRow extends ListPreference {
+        @Nullable
+        private String summary;
+
+        StoryRingColorRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            StoryRingColor color = StoryRingColor.INSTAGRAM;
+            for (StoryRingColor candidate : StoryRingColor.values()) {
+                if (candidate.name().equals(getValue())) color = candidate;
+            }
+            summary = Settings.STORY_RING_COLOR.isAvailable()
+                    ? storyRingColorLabel(color)
                     : L10n.t("Turn on Story ring size to use this choice.");
             setSummary(summary);
         }

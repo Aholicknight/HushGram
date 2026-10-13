@@ -208,7 +208,7 @@ public class SettingsRowAccessibilityTest {
         for (String key : new String[]{"hushgram_export_configuration", "action_export_diagnostic_report",
                 "action_clear_diagnostic_data", Settings.SAVE_FOLDER.key, Settings.FILENAME_TEMPLATE.key,
                 Settings.DOWNLOAD_QUALITY.key, Settings.PLAYBACK_QUALITY.key, Settings.STORY_RING_SCALE.key,
-                Settings.NAVIGATION_SETTINGS_TARGET.key}) {
+                Settings.STORY_RING_COLOR.key, Settings.NAVIGATION_SETTINGS_TARGET.key}) {
             Preference preference = page.findPreference(key);
             assertNotNull(key, preference);
             View view = row(preference);

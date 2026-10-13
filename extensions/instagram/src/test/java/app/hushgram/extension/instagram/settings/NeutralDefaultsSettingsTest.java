@@ -32,6 +32,7 @@ import app.hushgram.extension.instagram.feed.SwipeToCreate;
 import app.hushgram.extension.instagram.reels.ReelDeclutter;
 import app.hushgram.extension.instagram.reels.ReelScrolling;
 import app.hushgram.extension.instagram.stories.StoryRing;
+import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
@@ -148,6 +149,7 @@ public class NeutralDefaultsSettingsTest {
         for (BooleanSetting setting : initiallyOff) setting.resetToDefault();
         Settings.STORY_RING.resetToDefault();
         Settings.STORY_RING_SCALE.resetToDefault();
+        Settings.STORY_RING_COLOR.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
     }
@@ -159,6 +161,7 @@ public class NeutralDefaultsSettingsTest {
         }
         assertEquals(Boolean.TRUE, Settings.STORY_RING.defaultValue);
         assertEquals(StoryRingSize.INSTAGRAM, Settings.STORY_RING_SCALE.defaultValue);
+        assertEquals(StoryRingColor.INSTAGRAM, Settings.STORY_RING_COLOR.defaultValue);
         assertStockHooks();
     }
 
@@ -180,6 +183,7 @@ public class NeutralDefaultsSettingsTest {
                     Float.floatToRawIntBits(StoryRing.size(Float.intBitsToFloat(bits))));
         }
         Settings.STORY_RING_SCALE.save(StoryRingSize.LARGEST);
+        Settings.STORY_RING_COLOR.save(StoryRingColor.BLUE);
         assertEquals(351f, StoryRing.size(270f), 0.001f);
         Settings.STORY_RING.save(false);
         assertStockHooks();
@@ -187,6 +191,7 @@ public class NeutralDefaultsSettingsTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertStockHooks();
         assertEquals(StoryRingSize.LARGEST, Settings.STORY_RING_SCALE.savedValue());
+        assertEquals(StoryRingColor.BLUE, Settings.STORY_RING_COLOR.savedValue());
         PauseForTests.resume();
         SettingsContextRule.withoutContext(this::assertStockHooks);
         SettingsContextRule.beforeThePauseIsDecided(this::assertStockHooks);
@@ -197,6 +202,7 @@ public class NeutralDefaultsSettingsTest {
             for (BooleanSetting setting : initiallyOff) setting.save(chosen);
             Settings.STORY_RING.save(chosen);
             Settings.STORY_RING_SCALE.save(chosen ? StoryRingSize.SMALLER : StoryRingSize.LARGER);
+            Settings.STORY_RING_COLOR.save(chosen ? StoryRingColor.BLUE : StoryRingColor.GOLD);
             Map<String, Object> before = savedChoices();
             for (int opening = 0; opening < 2; opening++) {
                 try (var controller = Robolectric.buildActivity(Activity.class).setup()) {
@@ -228,6 +234,7 @@ public class NeutralDefaultsSettingsTest {
         for (BooleanSetting setting : initiallyOff) selected.put(setting.key, all.get(setting.key));
         selected.put(Settings.STORY_RING.key, all.get(Settings.STORY_RING.key));
         selected.put(Settings.STORY_RING_SCALE.key, all.get(Settings.STORY_RING_SCALE.key));
+        selected.put(Settings.STORY_RING_COLOR.key, all.get(Settings.STORY_RING_COLOR.key));
         return selected;
     }
 
@@ -288,6 +295,8 @@ public class NeutralDefaultsSettingsTest {
         assertSame(feedItem, HomeFeed.filter(feedItem));
         assertFalse(ReelDeclutter.hideCommentBar(StockSource.REPOSTS_GRID));
         assertEquals(270f, StoryRing.size(270f), 0f);
+        int[] storyRing = {0xFFFFD600, 0xFFFF7A00, 0xFFFF0069, 0xFFD300C5};
+        assertSame(storyRing, StoryRing.colors(storyRing, new float[]{0.1435f, 0.3779f, 0.6071f, 0.831f}));
         assertEquals(0, app.hushgram.extension.instagram.misc.EmojiStyle.replaceStrategy(0));
         assertEquals(0xff0095f6, app.hushgram.extension.instagram.misc.AccentColor.color(0xff0095f6));
         java.util.List<Object> profileButtons = java.util.Arrays.asList(new Object(), new Object());

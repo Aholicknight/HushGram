@@ -19,6 +19,7 @@ import android.preference.SwitchPreference;
 import java.util.EnumSet;
 
 import app.hushgram.extension.instagram.media.PlaybackQuality;
+import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.shared.L10n;
@@ -53,6 +54,7 @@ public class ChildControlAvailabilityTest {
         Settings.ONLY_FOLLOWING.resetToDefault();
         Settings.STORY_RING.resetToDefault();
         Settings.STORY_RING_SCALE.resetToDefault();
+        Settings.STORY_RING_COLOR.resetToDefault();
         Settings.DEFAULT_PLAYBACK_QUALITY.resetToDefault();
         Settings.PLAYBACK_QUALITY.resetToDefault();
         Settings.DOWNLOAD_REELS.resetToDefault();
@@ -70,6 +72,12 @@ public class ChildControlAvailabilityTest {
         Settings.STORY_RING_SCALE.save(StoryRingSize.LARGEST);
         checkParent(Settings.STORY_RING, Settings.STORY_RING_SCALE, PatchFamily.STORY_RING,
                 "Turn on Story ring size to use this choice.", "LARGEST");
+    }
+
+    @Test public void ringColorKeepsItsSavedChoiceAcrossParentChanges() {
+        Settings.STORY_RING_COLOR.save(StoryRingColor.GOLD);
+        checkParent(Settings.STORY_RING, Settings.STORY_RING_COLOR, PatchFamily.STORY_RING,
+                "Turn on Story ring size to use this choice.", "GOLD");
     }
 
     @Test public void storyTimeKeepsItsSavedChoiceAcrossParentChanges() {
@@ -107,6 +115,7 @@ public class ChildControlAvailabilityTest {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
             assertNull(page.findPreference(Settings.ONLY_FOLLOWING.key));
             assertNull(page.findPreference(Settings.STORY_RING_SCALE.key));
+            assertNull(page.findPreference(Settings.STORY_RING_COLOR.key));
             assertNull(page.findPreference(Settings.PLAYBACK_QUALITY.key));
             assertTrue(page.findPreference(BaseSettings.PAUSED.key).isEnabled());
             assertTrue(page.findPreference(Settings.DOWNLOAD_QUALITY.key).isEnabled());
