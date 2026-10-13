@@ -1522,8 +1522,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             if (build.contains(PatchFamily.PURE_BLACK)) {
                 patched.addPreference(mark(info(context, L10n.t("Pure black dark mode"),
-                        L10n.t("Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets "
-                                + "and buttons keep their own grays.")), SettingsIcons.MOON));
+                        L10n.t("Instagram's dark mode uses pure black instead of its near-black gray, and so do the "
+                                + "menus that slide up from the bottom. Buttons keep their own grays.")),
+                        SettingsIcons.MOON));
             }
             if (build.contains(PatchFamily.VERSION_CODE)) {
                 patched.addPreference(mark(info(context, L10n.t("No Play Store updates"),

@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.misc.theme
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.patch.ResourcePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.resourcePatch
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -29,7 +30,7 @@ private const val PATCH = "Pure black dark mode"
 
 /**
  * Instagram's black on its Prism redesign: the dark theme's background and status bar, and the light
- * theme's text. Menus, sheets and buttons in the dark theme use lighter grays of their own.
+ * theme's text. Sheets and buttons in the dark theme use lighter grays of their own ([DARK_SHEETS]).
  */
 internal const val PRISM_BLACK = 0xff0c1014L
 internal const val PURE_BLACK = 0xff000000L
@@ -66,6 +67,23 @@ internal val COMPOSE_PALETTES = listOf(
 )
 
 /**
+ * The theme attribute Instagram's bottom sheets take their surface from. The sheet's shapes
+ * (igds_bottom_sheet_background and its two Prism twins) fill with it, the sheet's host reads it
+ * again for the tint it lays over them, and the screens that paint themselves to match a sheet
+ * read it too. On 450 the dark theme sets it to #ff191c1f (#171).
+ */
+internal const val SHEET_BACKGROUND = "igds_color_elevated_background"
+
+/**
+ * The dark theme's styles that set [SHEET_BACKGROUND]: Prism's dark palette, and the two overlays
+ * Instagram lays over it when its gray overrides are on, the last of which wins. The light theme's
+ * sheets are white already and have no style here. The patch fails unless all three change.
+ */
+internal val DARK_SHEETS = listOf(
+    "IgdsPrismSemanticColorsExperimentDark", "IgdsPrismGrayOverridesDark", "IgdsElevatedBackgroundFixDark",
+)
+
+/**
  * Points each of [BLACK_BACKGROUNDS] that a style in one decoded styles.xml sets to
  * [PRISM_BLACK_COLOR] at [PURE_BLACK_COLOR] instead, and answers the styles it changed.
  */
@@ -79,6 +97,26 @@ internal fun blackenStyles(styles: Document): List<String> {
         }
         black.forEach { it.textContent = PURE_BLACK_COLOR }
         if (black.isNotEmpty()) changed += style.getAttribute("name")
+    }
+    return changed
+}
+
+/**
+ * Points [SHEET_BACKGROUND] at [PURE_BLACK_COLOR] in each of [DARK_SHEETS] that one decoded
+ * styles.xml holds, and answers the styles it changed. What sits on a sheet keeps its gray: the
+ * pressed row, the separators, the fields and the buttons are other attributes.
+ */
+internal fun blackenSheets(styles: Document): List<String> {
+    val list = styles.getElementsByTagName("style")
+    val changed = mutableListOf<String>()
+    for (style in (0 until list.length).map { list.item(it) as Element }) {
+        if (style.getAttribute("name") !in DARK_SHEETS) continue
+        val items = style.getElementsByTagName("item")
+        val gray = (0 until items.length).map { items.item(it) as Element }.filter { item ->
+            item.getAttribute("name").substringAfter(':') == SHEET_BACKGROUND && item.textContent.trim() != PURE_BLACK_COLOR
+        }
+        gray.forEach { it.textContent = PURE_BLACK_COLOR }
+        if (gray.isNotEmpty()) changed += style.getAttribute("name")
     }
     return changed
 }
@@ -129,40 +167,57 @@ internal fun BytecodePatchContext.blackenLiterals(): List<String> {
 }
 
 /**
- * A resource patch, for the themes the View screens and the status bar read. Manager decodes
- * Instagram's resources for Remove the advertising ID already, so this costs no second decode when
- * both are picked. Only the styles files that name [PRISM_BLACK_COLOR] are opened: document()
- * writes its file back, and the patcher re-encodes every file written.
+ * Writes pure black into the decoded styles: the backgrounds [blackenStyles] owns and the sheets
+ * [blackenSheets] owns. Only the styles files that name [PRISM_BLACK_COLOR] are opened: document()
+ * writes its file back, and the patcher re-encodes every file written. The sheets' styles sit in
+ * the file the palettes are in.
+ */
+internal fun ResourcePatchContext.blackenThemes() {
+    val values = get("res").listFiles { file -> file.isDirectory && file.name.startsWith("values") }.orEmpty()
+    val colors = File(get("res"), "values/colors.xml")
+    // 449 stores it as an RGB color, which decodes without the alpha.
+    if (!colors.isFile || !Regex("""<color name="bds_black">#(ff)?000000</color>""", RegexOption.IGNORE_CASE)
+            .containsMatchIn(colors.readText())
+    ) {
+        throw PatchException("$PATCH: $PURE_BLACK_COLOR is no longer #%08x".format(PURE_BLACK))
+    }
+    val backgrounds = mutableListOf<String>()
+    val sheets = mutableListOf<String>()
+    values.filter { File(it, "styles.xml").let { file -> file.isFile && PRISM_BLACK_COLOR in file.readText() } }.forEach { directory ->
+        document("res/${directory.name}/styles.xml").use { styles ->
+            backgrounds += blackenStyles(styles)
+            sheets += blackenSheets(styles)
+        }
+    }
+    val missing = DARK_PALETTES - backgrounds.toSet()
+    if (missing.isNotEmpty()) {
+        throw PatchException("$PATCH: ${missing.joinToString()} no longer set a background to $PRISM_BLACK_COLOR")
+    }
+    val gray = DARK_SHEETS - sheets.toSet()
+    if (gray.isNotEmpty()) throw PatchException("$PATCH: ${gray.joinToString()} no longer set $SHEET_BACKGROUND")
+}
+
+/**
+ * A resource patch, for the themes the View screens, the sheets and the status bar read. Manager
+ * decodes Instagram's resources for Remove the advertising ID already, so this costs no second
+ * decode when both are picked.
  */
 private val pureBlackStylesPatch = resourcePatch {
     execute {
-        val values = get("res").listFiles { file -> file.isDirectory && file.name.startsWith("values") }.orEmpty()
-        val colors = File(get("res"), "values/colors.xml")
-        // 449 stores it as an RGB color, which decodes without the alpha.
-        if (!colors.isFile || !Regex("""<color name="bds_black">#(ff)?000000</color>""", RegexOption.IGNORE_CASE)
-                .containsMatchIn(colors.readText())
-        ) {
-            throw PatchException("$PATCH: $PURE_BLACK_COLOR is no longer #%08x".format(PURE_BLACK))
-        }
-        val changed = values.filter { File(it, "styles.xml").let { file -> file.isFile && PRISM_BLACK_COLOR in file.readText() } }
-            .flatMap { directory -> document("res/${directory.name}/styles.xml").use(::blackenStyles) }
-        val missing = DARK_PALETTES - changed.toSet()
-        if (missing.isNotEmpty()) {
-            throw PatchException("$PATCH: ${missing.joinToString()} no longer set a background to $PRISM_BLACK_COLOR")
-        }
+        blackenThemes()
     }
 }
 
 /**
- * Gives Instagram's dark mode a pure black background. A patch-time choice with no switch: the
- * color table can't follow one, so it's listed under Set when you patched.
+ * Gives Instagram's dark mode a pure black background, its bottom sheets included. A patch-time
+ * choice with no switch: the color table can't follow one, so it's listed under Set when you patched.
  */
 @Suppress("unused")
 val pureBlackPatch = bytecodePatch(
     name = "Pure black dark mode",
-    description = "Makes Instagram's dark mode pure black instead of dark gray. It looks deeper and can save " +
-        "battery on an OLED screen. Menus and buttons keep their grays so they stay easy to see. Works as soon as " +
-        "you patch it in, with no switch.",
+    description = "Makes Instagram's dark mode pure black instead of dark gray, on the menus that slide up from " +
+        "the bottom too. It looks deeper and can save battery on an OLED screen. Buttons keep their grays so they " +
+        "stay easy to see. Works as soon as you patch it in, with no switch.",
     default = false,
 ) {
     category("Interface")

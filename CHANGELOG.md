@@ -182,6 +182,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** Closed screens are let go of again. Every restyled tab bar used to stay in memory with the screen it belonged to and its blurred backdrop, so memory crept up each time Instagram rebuilt a screen with the bar on it.
 
+* **Instagram - Pure black dark mode:** The menus that slide up from the bottom are black now, a reel's menu included. They kept Instagram's dark gray before. Buttons keep their grays. Reported in #171.
+
 ## 0.0.9 (2026-10-11)
 
 ### Features
