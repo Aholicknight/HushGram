@@ -196,6 +196,36 @@ public class CategoryPagesSettingsTest {
         assertFalse("Back from the list closes settings", page.closeCategory());
     }
 
+    /**
+     * Before you sign in is the home page's card, like the status card above it. On a category's
+     * page it stood a third of the screen tall above Search (S25, 2026-10-13).
+     */
+    @Test public void theSignInNoticeStaysOnTheHomePage() throws Exception {
+        Settings.SIGN_IN_NOTICE_HIDDEN.save(false);
+        Settings.CATEGORY_PAGES.save(true);
+        open();
+        PreferenceScreen screen = page.getPreferenceScreen();
+        Preference notice = screen.findPreference(HushgramPreferenceFragment.SIGN_IN_NOTICE_KEY);
+        assertNotNull(notice);
+        tap(categoryRow("Feed"));
+        assertNull("the notice is on a category's page",
+                screen.findPreference(HushgramPreferenceFragment.SIGN_IN_NOTICE_KEY));
+        assertTrue(page.closeCategory());
+        ShadowLooper.idleMainLooper();
+        assertSame("the home page has it back", notice,
+                screen.findPreference(HushgramPreferenceFragment.SIGN_IN_NOTICE_KEY));
+        assertEquals("right under the status card", HushgramPreferenceFragment.SIGN_IN_NOTICE_KEY,
+                screen.getPreference(1).getKey());
+
+        assertTrue(notice.getOnPreferenceClickListener().onPreferenceClick(notice));
+        assertTrue(Settings.SIGN_IN_NOTICE_HIDDEN.savedValue());
+        tap(categoryRow("Feed"));
+        assertTrue(page.closeCategory());
+        ShadowLooper.idleMainLooper();
+        assertNull("a notice hidden by a tap stays hidden",
+                screen.findPreference(HushgramPreferenceFragment.SIGN_IN_NOTICE_KEY));
+    }
+
     @Test public void searchLooksThroughEveryCategoryFromAPage() throws Exception {
         Settings.CATEGORY_PAGES.save(true);
         open();

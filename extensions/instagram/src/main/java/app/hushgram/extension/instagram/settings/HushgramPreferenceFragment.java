@@ -249,6 +249,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Nullable private Intro intro;
     /** The button at the top that switches between the list of categories and one long list. */
     @Nullable private Row viewToggle;
+    /** Before you sign in, while no tap has hidden it. The home page's, like the status card. */
+    @Nullable private Preference beforeSignIn;
     /** True while a category's page is open, with its search and any pending restart still reachable. */
     private boolean topHidden;
     /** Where the list of categories was scrolled to when a page opened, for Back. */
@@ -435,8 +437,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         status.setOrder(-40);
         screen.addPreference(status);
         // The sign-in notice stays right under the status card, so the view button goes after it.
+        beforeSignIn = null;
         if (!Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) {
-            Preference notice = signInNotice(context, screen);
+            Preference notice = beforeSignIn = signInNotice(context, screen);
             notice.setOrder(-30);
             screen.addPreference(notice);
         }
@@ -2057,8 +2060,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         boolean categoryContext = pages && openCategory != null;
         showTitle(terms.length > 0 ? L10n.t("Search settings")
                 : openCategory == null ? null : openCategory.getTitle());
-        for (Preference top : new Preference[]{statusCard, viewToggle, search}) {
+        // The status card, the sign-in notice and the list switch are the home page's. On a
+        // category's page the notice stood a third of the screen tall above Search, and a tap on
+        // Search put the field behind the keyboard (S25, 2026-10-13).
+        for (Preference top : new Preference[]{statusCard, beforeSignIn, viewToggle, search}) {
             if (top == null) continue;
+            // A tap hid the notice for good and took it off the screen. It stays off.
+            if (top == beforeSignIn && Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) continue;
             boolean hidden = categoryContext && top != search;
             if (hidden) {
                 if (top.getParent() == screen) screen.removePreference(top);

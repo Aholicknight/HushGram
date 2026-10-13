@@ -114,6 +114,7 @@ Every HushGram release, newest first.
 
 * **Tooling:** The README is much shorter now, a user guide with the install steps, the settings, every patch and the supported builds. The long version, with every caveat and the build internals, is in the repository history.
 * **Instagram - HushGram settings:** The Support HushGram row at the end of settings is just its name now. The line under it is gone, and a search for coffee or Ko-fi still finds it.
+* **Instagram - HushGram settings:** The Before you sign in card shows on the main settings page only. It used to sit at the top of every category page too, above the search field.
 
 #### Bug Fixes
 
