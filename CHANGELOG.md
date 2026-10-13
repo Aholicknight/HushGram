@@ -48,7 +48,9 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** PIN forms scroll and keep their labels visible. The keyboard can move to confirmation or submit, incomplete entries don't spend an attempt, and a retry countdown enables entry when the wait ends. Closing a form clears its digits.
 
-* **Instagram - View profile picture:** Close and Save have their own space below the preview, clear of system bars and edge gestures. Save stays unavailable while the picture loads, with a visible message and a spoken label. Reel search actions now share the same focus and press feedback.
+* **Instagram - Save profile picture:** Close and Save have their own space below the preview, clear of system bars and edge gestures. Save stays unavailable while the picture loads, with a visible message and a spoken label.
+
+* **Instagram - Find the reel you came from:** Reel search actions share the same focus and press feedback as other controls.
 
 * **Instagram - HushGram settings:** Settings now use clearer category descriptions, a rounded search field and pink icon tiles. Dialogs share the same styling, and controls stay readable at larger text sizes.
 
