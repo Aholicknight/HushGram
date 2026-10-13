@@ -40,6 +40,8 @@ Every HushGram release, newest first.
 
 #### Improvements
 
+* **Instagram - HushGram settings:** Focus, selection and pressed feedback now follow the same style across settings cards, dialogs and runtime actions. Input borders are easier to distinguish before typing, and recovery and save-cancellation actions keep visible interaction feedback.
+
 * **Instagram - HushGram settings:** Settings now use clearer category descriptions, a rounded search field and pink icon tiles. Dialogs share the same styling, and controls stay readable at larger text sizes.
 
 * **Instagram - HushGram settings:** When HushGram pauses itself because Instagram kept crashing at start, a message now says so on the first screen. Every switch is off until it's turned back on, so Ghost mode and the locks would otherwise stop without a word.

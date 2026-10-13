@@ -15,11 +15,16 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.preference.Preference;
 import android.preference.SwitchPreference;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -98,6 +103,7 @@ public class ScreenColorsAccessibilityTest {
             contrast("title", colors.title, surface, 4.5);
             contrast("summary", colors.summary, surface, 4.5);
             contrast("heading and secondary action", colors.heading, surface, 4.5);
+            contrast("validation error", colors.error, surface, 4.5);
             contrast("enabled on track", colors.accent, surface, 3.0);
             contrast("enabled off track", colors.switchOff, surface, 3.0);
         }
@@ -105,6 +111,86 @@ public class ScreenColorsAccessibilityTest {
         contrast("filled action text", colors.onAccent, colors.accent, 4.5);
         contrast("thumb on checked track", colors.onAccent, colors.accent, 3.0);
         contrast("thumb on unchecked track", colors.offThumb(), colors.switchOff, 3.0);
+    }
+
+    @Test public void nativeFieldsAndActionsDrawVisibleFocusWithoutChangingTheirRoles() {
+        ScreenColors colors = ScreenColors.DEFAULT;
+        Activity activity = controller.get();
+        EditText field = new EditText(activity);
+        ScreenColors.styleField(field);
+        Button primary = new Button(activity);
+        primary.setText("Save");
+        ScreenColors.styleAction(primary, true);
+        Button secondary = new Button(activity);
+        secondary.setText("Cancel");
+        ScreenColors.styleAction(secondary, false);
+        Button compact = new Button(activity);
+        compact.setContentDescription("Clear search");
+        ScreenColors.styleIconAction(compact);
+        for (View control : new View[]{field, primary, secondary, compact}) {
+            int ordinary = border(control, android.R.attr.state_enabled);
+            int focused = border(control, android.R.attr.state_enabled, android.R.attr.state_focused);
+            assertNotEquals("Focus must visibly outline " + control.getClass().getSimpleName(), ordinary, focused);
+            int surface = control == primary ? colors.accent : colors.dialog;
+            contrast("focused control boundary", focused, surface, 3.0);
+            GradientDrawable shape = control.getBackground() instanceof RippleDrawable
+                    ? (GradientDrawable) ((RippleDrawable) control.getBackground()).getDrawable(0)
+                    : (GradientDrawable) control.getBackground();
+            assertTrue("Shared controls use the compact radius scale", shape.getCornerRadius() <= dp(12));
+        }
+        contrast("unfocused input boundary", border(field, android.R.attr.state_enabled), colors.dialog, 3.0);
+        assertTrue(primary instanceof Button);
+        assertTrue(secondary.getBackground() instanceof RippleDrawable);
+        assertTrue(compact.getBackground() instanceof RippleDrawable);
+        assertNotNull("Fields keep native editing", field.getKeyListener());
+    }
+
+    @Test public void keyboardSelectedChoiceAndPreferenceRowsRetainFocusAndTouchFeedback() {
+        Activity activity = controller.get();
+        Preference preference = new Preference(activity);
+        preference.setTitle("Downloads");
+        View row = preference.getView(null, new FrameLayout(activity));
+        ScreenColors.row(row, preference);
+        assertTrue(row.getBackground() instanceof RippleDrawable);
+        Drawable inset = ((RippleDrawable) row.getBackground()).getDrawable(0);
+        assertTrue(inset instanceof InsetDrawable);
+        Drawable surface = ((InsetDrawable) inset).getDrawable();
+        int ordinary = border(surface, android.R.attr.state_enabled);
+        int selected = border(surface, android.R.attr.state_enabled, android.R.attr.state_selected);
+        assertNotEquals("Native list keyboard selection must stay visible", ordinary, selected);
+        contrast("selected row", selected, ScreenColors.DEFAULT.card, 3.0);
+
+        AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setSingleChoiceItems(new String[]{"Original", "Smaller file"}, 0, (d, index) -> { }).show();
+        opened.add(dialog);
+        ScreenColors.dialog(dialog);
+        View choice = dialog.getListView().getAdapter().getView(0, null, dialog.getListView());
+        assertTrue("Restyling a native choice must preserve pressed feedback",
+                choice.getBackground() instanceof RippleDrawable);
+        assertNotEquals(border(choice, android.R.attr.state_enabled),
+                border(choice, android.R.attr.state_enabled, android.R.attr.state_selected));
+    }
+
+    private int border(View view, int... state) {
+        return border(view.getBackground(), state);
+    }
+
+    private int border(Drawable drawable, int... state) {
+        int width = dp(160);
+        int height = dp(48);
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(ScreenColors.DEFAULT.dialog);
+        drawable.setState(state);
+        drawable.setBounds(0, 0, width, height);
+        drawable.draw(canvas);
+        int pixel = bitmap.getPixel(width / 2, dp(1) / 2);
+        bitmap.recycle();
+        return pixel;
+    }
+
+    private int dp(int value) {
+        return Math.round(value * controller.get().getResources().getDisplayMetrics().density);
     }
 
     @Test public void realDisabledRowsKeepTheirStateAndVisiblyDifferentControls() {

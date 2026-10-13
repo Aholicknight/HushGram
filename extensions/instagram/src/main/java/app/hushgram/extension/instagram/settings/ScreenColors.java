@@ -66,6 +66,8 @@ public final class ScreenColors {
     public final int iconSurface;
     /** Text on the filled primary dialog action. */
     public final int onAccent;
+    /** Calm validation feedback on the charcoal dialog surface. */
+    public final int error;
 
     /** The colours the screen on show was built with, or null for the black page. */
     @Nullable
@@ -86,6 +88,7 @@ public final class ScreenColors {
         outline = 0xFF2D2832;
         iconSurface = 0xFF211D27;
         onAccent = Color.WHITE;
+        error = 0xFFFFB4AB;
     }
 
     /** A switch's white thumb remains distinct from either track. */
@@ -101,6 +104,30 @@ public final class ScreenColors {
     static ColorStateList dimmedWhenDisabled(int color) {
         int dimmed = (color & 0x00FFFFFF) | 0x61000000;
         return new ColorStateList(new int[][]{{-android.R.attr.state_enabled}, {}}, new int[]{dimmed, color});
+    }
+
+    /** Native list navigation uses selected/activated as well as focused. Keep each visible. */
+    ColorStateList interactionOutline(int normal) {
+        return interactionOutline(normal, heading);
+    }
+
+    private ColorStateList interactionOutline(int normal, int focused) {
+        return new ColorStateList(new int[][]{
+                {-android.R.attr.state_enabled}, {android.R.attr.state_focused},
+                {android.R.attr.state_hovered}, {android.R.attr.state_selected},
+                {android.R.attr.state_activated}, {android.R.attr.state_checked}, {}},
+                new int[]{(normal & 0x00FFFFFF) | (Math.round(Color.alpha(normal) * 0.38f) << 24),
+                        focused, focused, focused, focused, focused, normal});
+    }
+
+    static ColorStateList interactionRipple(int color) {
+        return new ColorStateList(new int[][]{{-android.R.attr.state_enabled}, {}},
+                new int[]{Color.TRANSPARENT, (color & 0x00FFFFFF) | 0x33000000});
+    }
+
+    ColorStateList choiceFill(int normal) {
+        return new ColorStateList(new int[][]{{android.R.attr.state_checked}, {}},
+                new int[]{(accent & 0x00FFFFFF) | 0x22000000, normal});
     }
 
     /** The lighter pink passes text contrast on charcoal, unlike the filled action's accent. */
@@ -237,7 +264,8 @@ public final class ScreenColors {
         float radius = dp(row, 12);
         GradientDrawable surface = new GradientDrawable();
         surface.setColor(card);
-        surface.setStroke(dp(row, 1), outline);
+        surface.setStroke(dp(row, 1), preference.isSelectable() ? interactionOutline(outline)
+                : ColorStateList.valueOf(outline));
         surface.setCornerRadii(new float[]{
                 first ? radius : 0, first ? radius : 0,
                 first ? radius : 0, first ? radius : 0,
@@ -246,7 +274,7 @@ public final class ScreenColors {
         Drawable inset = new InsetDrawable(surface, dp(row, 18), first ? dp(row, 6) : -dp(row, 1),
                 dp(row, 18), last ? dp(row, 6) : 0);
         row.setBackground(preference.isSelectable()
-                ? new RippleDrawable(ColorStateList.valueOf(half(accent)), inset, null) : inset);
+                ? new RippleDrawable(interactionRipple(heading), inset, null) : inset);
         // Explicit padding after the inset background prevents its padding from moving the text.
         int vertical = preference.getIcon() == null ? 16 : 14;
         row.setPaddingRelative(dp(row, 30), dp(row, vertical + (first ? 6 : 0)),
@@ -449,8 +477,9 @@ public final class ScreenColors {
         GradientDrawable surface = new GradientDrawable();
         surface.setColor(primary ? dimmedWhenDisabled(accent) : ColorStateList.valueOf(Color.TRANSPARENT));
         surface.setCornerRadius(dp(row, 12));
-        if (primary) surface.setStroke(dp(row, 1), accent);
-        row.setBackground(new RippleDrawable(ColorStateList.valueOf(half(primary ? onAccent : accent)),
+        surface.setStroke(dp(row, 2), interactionOutline(primary ? accent : outline,
+                primary ? onAccent : heading));
+        row.setBackground(new RippleDrawable(interactionRipple(primary ? onAccent : heading),
                 new InsetDrawable(surface, dp(row, 18), dp(row, 4), dp(row, 18), dp(row, 4)), null));
         row.setMinimumHeight(dp(row, 56));
         row.setPadding(dp(row, 32), dp(row, 8), dp(row, 32), dp(row, 8));
@@ -554,7 +583,7 @@ public final class ScreenColors {
         GradientDrawable outline = new GradientDrawable();
         outline.setColor(dialog);
         outline.setCornerRadius(dp(field, 12));
-        outline.setStroke(dp(field, 2), dimmedWhenDisabled(accent));
+        outline.setStroke(dp(field, 2), interactionOutline(switchOff));
         field.setBackgroundTintList(null);
         field.setBackground(outline);
         field.setPaddingRelative(dp(field, 12), dp(field, 10), dp(field, 12), dp(field, 10));
@@ -649,9 +678,11 @@ public final class ScreenColors {
         GradientDrawable surface = new GradientDrawable();
         surface.setColor(dimmedWhenDisabled(primary ? accent : card));
         surface.setCornerRadius(dp(action, 12));
-        surface.setStroke(dp(action, 1), dimmedWhenDisabled(primary ? accent : outline));
+        surface.setStroke(dp(action, 2), interactionOutline(primary ? accent : outline,
+                primary ? onAccent : heading));
+        action.setBackgroundTintList(null);
         action.setBackground(new RippleDrawable(
-                ColorStateList.valueOf(half(primary ? onAccent : heading)), surface, null));
+                interactionRipple(primary ? onAccent : heading), surface, null));
         action.setTextColor(dimmedWhenDisabled(primary ? onAccent : secondaryActionText()));
         action.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         action.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
@@ -667,6 +698,17 @@ public final class ScreenColors {
         action.setMinWidth(dp(action, 64));
         action.setMinimumWidth(dp(action, 64));
         action.setPaddingRelative(dp(action, 16), dp(action, 12), dp(action, 16), dp(action, 12));
+    }
+
+    /** Compact actions retain the shared interaction states without becoming filled buttons. */
+    public static void styleIconAction(View action) {
+        ScreenColors colors = shown == null ? DEFAULT : shown;
+        GradientDrawable surface = new GradientDrawable();
+        surface.setColor(Color.TRANSPARENT);
+        surface.setCornerRadius(dp(action, 8));
+        surface.setStroke(dp(action, 2), colors.interactionOutline(Color.TRANSPARENT));
+        action.setBackgroundTintList(null);
+        action.setBackground(new RippleDrawable(interactionRipple(colors.heading), surface, null));
     }
 
     private static int dp(View view, int value) {
