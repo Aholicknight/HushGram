@@ -157,6 +157,7 @@ class ClearModeHookTest {
             Shape(enableActions = 2) to "runs 2 actions, expected one",
             Shape(enableHandsReason = false) to "doesn't hand its action what it was called with",
             Shape(enableEndsAtCall = true) to "ends at its action's call",
+            Shape(enableKeepsResult = true) to "keeps what its action answers",
             Shape(reasonOverwritten = true) to "writes over parameter 0",
             Shape(dismissElsewhere = true) to "$CLEAR_MODE_DISMISS isn't in $handler",
             Shape(dismissTakesReason = false) to "isn't an instance (reel, reason) method",
@@ -344,6 +345,7 @@ class ClearModeHookTest {
         val enableActions: Int = 1,
         val enableHandsReason: Boolean = true,
         val enableEndsAtCall: Boolean = false,
+        val enableKeepsResult: Boolean = false,
         val reasonOverwritten: Boolean = false,
         val dismissElsewhere: Boolean = false,
         val dismissTakesReason: Boolean = true,
@@ -391,6 +393,7 @@ class ClearModeHookTest {
                 if-eqz v0, :done
                 ${if (shape.reasonOverwritten) "const/4 p1, 0x0" else ""}
                 $enableCalls
+                ${if (shape.enableKeepsResult) "move-result-object v0" else ""}
                 :done
                 return-void
             """

@@ -228,6 +228,10 @@ private fun Method.afterAction(parameters: List<Int>): Int {
     }
     val after = action + 1
     if (after >= code.size) stop("${describe()} ends at its action's call")
+    // A hook between a call and the move that keeps its result leaves a class that won't verify.
+    if (code[after].opcode == Opcode.MOVE_RESULT_OBJECT) {
+        stop("${describe()} keeps what its action answers, so no hook can go right after the call")
+    }
     requireThisIntact(KEEP, listOf(after))
     parameters.forEach { requireParameterIntact(KEEP, it, listOf(after)) }
     return after
