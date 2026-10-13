@@ -30,6 +30,11 @@ public final class MessagesLockForTests {
         MessagesLock.relock(true);
     }
 
+    /** As Instagram leaving the screen leaves it, an ask that's up included. */
+    public static void leave() {
+        MessagesLock.left();
+    }
+
     /** Instagram signed in to [account], as the chat lists read it. */
     public static void signIn(String account) {
         ChatAccounts.signInForTests(account);

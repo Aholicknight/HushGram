@@ -4851,14 +4851,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * Closes every dialog this page has open over itself: its lists and notes, and a row's choices or
-     * text box. The lock's cover over the settings goes in the settings' own window, under these, so
-     * once the lock is back they'd still show what they show (the hidden chats, by name) and still
-     * take a tap. Closed like a tap outside them, nothing in them is saved.
+     * Closes every dialog this page has open over itself: its lists and notes, a row's choices or
+     * text box, and Set a PIN. The lock's cover over the settings goes in the settings' own window,
+     * under these, so once the lock is back they'd still show what they show (the hidden chats, by
+     * name) and still take a tap. Closed like a tap outside them, nothing in them is saved.
      */
     void closeDialogs() {
         for (Dialog dialog : new ArrayList<>(shownDialogs)) dialog.dismiss();
         shownDialogs.clear();
+        PinLock.closeNew();
         PreferenceScreen screen = getPreferenceScreen();
         if (screen != null) closeRowDialogs(screen);
     }

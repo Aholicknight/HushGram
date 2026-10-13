@@ -44,6 +44,7 @@ import java.util.List;
 import app.hushgram.extension.instagram.direct.HiddenChats;
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.direct.MessagesLockForTests;
+import app.hushgram.extension.instagram.direct.PinLock;
 import app.hushgram.extension.instagram.direct.UnlockWith;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
@@ -88,6 +89,7 @@ public class SettingsRelockTest {
         HushgramPreferenceFragment.importFeedback = null;
         Settings.HIDDEN_CHATS.resetToDefault();
         Settings.LOCK_AGAIN.resetToDefault();
+        Settings.LOCK_PIN.resetToDefault();
         Settings.LOCK_MESSAGES.resetToDefault();
         Settings.LOCK_APP.resetToDefault();
         Settings.UNLOCK_WITH.resetToDefault();
@@ -234,6 +236,69 @@ public class SettingsRelockTest {
 
             focus(dialog, true);
             assertEquals("the lock wasn't asked once they'd gone", 2, asks.size());
+        }
+    }
+
+    /**
+     * Set a PIN is a window of its own over the settings. Left open across a leave, whoever picked
+     * up the phone next could have chosen the PIN that unlocks the messages. It closes with the
+     * cover, as a cancel: no PIN, and Unlock with stays on the phone's lock.
+     */
+    @Test
+    public void setAPinLeftOpenClosesWhenTheSettingsAreCovered() throws Exception {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            MessagesLockForTests.open();
+            SettingsDialog dialog = show(controller);
+            HushgramPreferenceFragment page = page(dialog);
+            draw(dialog);
+
+            Preference unlockWith = page.findPreference(Settings.UNLOCK_WITH.key);
+            assertNotNull(unlockWith);
+            assertFalse(unlockWith.getOnPreferenceChangeListener().onPreferenceChange(unlockWith, UnlockWith.PIN.name()));
+            ShadowLooper.idleMainLooper();
+            AlertDialog setPin = (AlertDialog) ShadowAlertDialog.getLatestAlertDialog();
+            assertNotNull("Set a PIN didn't open", setPin);
+            assertTrue(setPin.isShowing());
+            draw(dialog);
+            assertTrue("closed while unlocked", setPin.isShowing());
+
+            leaveAndComeBack(controller, dialog);
+            assertNotNull(cover(dialog));
+            assertFalse("Set a PIN stayed over the cover", setPin.isShowing());
+            assertFalse(PinLock.isSet());
+            assertEquals(UnlockWith.PHONE_LOCK, Settings.UNLOCK_WITH.get());
+        }
+    }
+
+    /**
+     * On Android 9 and 10 the phone's own check is a screen of its own, so Instagram leaves while
+     * it's up and the lock comes back under it. Cancelled, that ask was the settings' one ask.
+     */
+    @Test
+    public void anAskUpAsTheLockComesBackIsTheSettingsOneAsk() throws Exception {
+        MessagesLockForTests.signIn(ACCOUNT);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            MessagesLockForTests.open();
+            SettingsDialog dialog = show(controller);
+            HushgramPreferenceFragment page = page(dialog);
+            draw(dialog);
+
+            Preference hiddenRow = page.findPreference(HushgramPreferenceFragment.HIDDEN_CHATS_ROW);
+            assertNotNull(hiddenRow);
+            hiddenRow.getOnPreferenceClickListener().onPreferenceClick(hiddenRow);
+            assertEquals(1, asks.size());
+            focus(dialog, false);
+            controller.pause().stop();
+            MessagesLockForTests.leave();
+            controller.start().resume();
+            assertTrue("the leave didn't lock", MessagesLock.locked());
+
+            asks.get(0)[1].run();
+            draw(dialog);
+            assertNotNull(cover(dialog));
+            focus(dialog, true);
+            assertEquals("the cancel was asked again as the settings got the focus", 1, asks.size());
+            assertEquals(View.VISIBLE, cover(dialog).getVisibility());
         }
     }
 

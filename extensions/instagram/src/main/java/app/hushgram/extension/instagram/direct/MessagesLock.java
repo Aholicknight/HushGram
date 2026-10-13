@@ -556,6 +556,10 @@ public final class MessagesLock {
         if (askAgain) {
             askedThisTime = false;
             settingsAsked = false;
+        } else {
+            // An ask is up as the lock comes back (on Android 9 and 10 the phone's own check is a
+            // leave). Answered or not, it's the settings' one ask too, so a cancel isn't asked again.
+            settingsAsked = true;
         }
         if (wasOpen && (switchedOn() || ChatLocks.any())) hideShade();
     }

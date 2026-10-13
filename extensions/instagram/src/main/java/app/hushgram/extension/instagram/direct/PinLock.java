@@ -24,6 +24,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import java.lang.ref.WeakReference;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -363,6 +364,20 @@ public final class PinLock {
         ScreenColors.dialog(dialog);
     }
 
+    /** Set a PIN while it's up, so settings the lock covers can close it. */
+    private static WeakReference<AlertDialog> newPin = new WeakReference<>(null);
+
+    /**
+     * Closes Set a PIN if it's up, as a cancel would: nothing is saved. Settings the lock has just
+     * covered call this, since the dialog is a window of its own above their cover, and whoever has
+     * the phone could otherwise choose the PIN that unlocks the messages.
+     */
+    public static void closeNew() {
+        AlertDialog dialog = newPin.get();
+        newPin = new WeakReference<>(null);
+        if (dialog != null && dialog.isShowing()) dialog.dismiss();
+    }
+
     /**
      * Asks twice for a new 4 to 8 digit PIN and stores it. [done] hears whether it was saved; a
      * cancel is a false. Nothing changes until both entries match.
@@ -399,6 +414,7 @@ public final class PinLock {
             }
         });
         dialog.setOnDismissListener(d -> {
+            if (newPin.get() == dialog) newPin = new WeakReference<>(null);
             first.setText("");
             again.setText("");
             if (!finished[0]) {
@@ -458,6 +474,7 @@ public final class PinLock {
             });
             first.requestFocus();
         });
+        newPin = new WeakReference<>(dialog);
         dialog.show();
         ScreenColors.dialog(dialog);
     }
@@ -564,5 +581,6 @@ public final class PinLock {
     /** Back to how a fresh start finds it. */
     static void resetForTests() {
         clock = System::currentTimeMillis;
+        newPin = new WeakReference<>(null);
     }
 }
