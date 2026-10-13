@@ -1605,7 +1605,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         donate.setTitle(L10n.t("Support HushGram"));
         donate.setSummary(L10n.t("Buy me a coffee on Ko-fi"));
         donate.setPersistent(false);
-        donate.setOrder(Integer.MAX_VALUE - 1);
+        // Native Preference.compareTo subtracts orders, so leave room for negative header orders.
+        donate.setOrder(Integer.MAX_VALUE / 2);
         donate.setOnPreferenceClickListener(p -> {
             openSupport(p.getContext());
             return true;

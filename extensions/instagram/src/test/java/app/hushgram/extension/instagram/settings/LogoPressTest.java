@@ -158,9 +158,14 @@ public class LogoPressTest {
     @Test public void aLogoNoLongerOnScreenLeavesThePressToInstagram() {
         AtomicInteger asked = new AtomicInteger();
         SettingsEntry.setLogoLongClickListener(title, instagrams(asked, false));
+        View.OnLongClickListener listener = shadowOf(title).getOnLongClickListener();
+        assertNotNull(listener);
         ((ViewGroup) title.getParent()).removeView(title);
+        assertNull("the real logo was removed from its header", title.getParent());
 
-        assertFalse(title.performLongClick());
+        // A callback already in flight can outlive removal. performLongClick also runs Android's
+        // unhandled context-menu fallback, which requires a parent that this view no longer has.
+        assertFalse(listener.onLongClick(title));
         assertEquals(1, asked.get());
         assertEquals(0, shown());
     }
