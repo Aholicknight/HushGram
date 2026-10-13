@@ -248,7 +248,6 @@ public class GlassTabBarTest {
         }
     }
 
-    /** A native host strip. The tab bar and its listeners remain the host's views. */
     /**
      * The registry held every restyled bar, its activity and its recorded backdrop for good, since
      * the bar's Glass held the bar (audit 2026-10-12). A destroyed activity's bar leaves it at once,
@@ -264,11 +263,16 @@ public class GlassTabBarTest {
                 assertTrue(registry().containsKey(host.bar));
                 pill = host.bar.getBackground();
                 arrangeCatchUp(pill);
+                // Robolectric draws on no hardware canvas, so no backdrop is ever recorded here. One
+                // is planted, so that letting go of it is what's checked.
+                ReflectionHelpers.setField(pill, "node", new android.graphics.RenderNode("planted"));
+                ReflectionHelpers.setField(pill, "recorded", true);
             } finally {
                 host.close();
             }
             assertFalse("a catch-up still waits for a destroyed bar", (boolean) ReflectionHelpers.getField(pill, "catchUpPending"));
             assertNull("the backdrop was kept", ReflectionHelpers.getField(pill, "node"));
+            assertFalse((boolean) ReflectionHelpers.getField(pill, "recorded"));
         }
     }
 
@@ -334,6 +338,7 @@ public class GlassTabBarTest {
         assertTrue("no catch-up arranged", (boolean) ReflectionHelpers.getField(pill, "catchUpPending"));
     }
 
+    /** A native host strip. The tab bar and its listeners remain the host's views. */
     private static final class GlassHost implements AutoCloseable {
         private static final int BAR_ID = 0x7f0b0120;
         final ActivityController<Activity> controller;
