@@ -20,6 +20,7 @@ import android.content.IntentFilter;
 import android.preference.Preference;
 import android.preference.PreferenceScreen;
 import android.preference.TwoStatePreference;
+import android.view.View;
 
 import java.util.EnumSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -95,7 +96,7 @@ public class RestartReopensSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         ShadowLooper.idleMainLooper();
         HushgramPreferenceFragment page = pageOf(first);
-        Preference card = page.getPreferenceScreen().getPreference(0);
+        View bar = first.getView().findViewById(SettingsDialog.RESTART_ID);
         Preference feed = categoryRow(page, "Feed");
         assertTrue(feed.getOnPreferenceClickListener().onPreferenceClick(feed));
         ShadowLooper.idleMainLooper();
@@ -104,10 +105,10 @@ public class RestartReopensSettingsTest {
         TwoStatePreference following = (TwoStatePreference) page.findPreference(Settings.START_ON_FOLLOWING.key);
         following.setChecked(!following.isChecked());
         ShadowLooper.idleMainLooper();
-        assertNotEquals("the card is the restart, so no toast says it", "Saved. Restart Instagram to apply this change.",
+        assertNotEquals("the bar is the restart, so no toast says it", "Saved. Restart Instagram to apply this change.",
                 ShadowToast.getTextOfLatestToast());
-        assertTrue(card.isSelectable());
-        assertTrue(card.getOnPreferenceClickListener().onPreferenceClick(card));
+        assertEquals(View.VISIBLE, bar.getVisibility());
+        assertTrue(bar.performClick());
         assertEquals("Instagram didn't restart", 1, ended.get());
         first.dismissAllowingStateLoss();
 

@@ -56,7 +56,9 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** Restart now reopens settings on the page you were on.
 
-* **Instagram - HushGram settings:** Hide inbox suggestions and Ask for larger photos now show the restart card when you change them.
+* **Instagram - HushGram settings:** Restart now sits in a bar at the bottom of settings while a change waits on a restart. It used to be the page's first row, out of sight once you'd scrolled down.
+
+* **Instagram - HushGram settings:** Hide inbox suggestions and Ask for larger photos now show Restart now when you change them.
 
 * **Instagram - Hide your active status:** Its description says the change applies the next time you come back to Instagram, instead of asking for a restart it doesn't need.
 

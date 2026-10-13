@@ -332,25 +332,38 @@ public class CategoryPagesSettingsTest {
         assertEquals(value, view.isInTouchMode());
     }
 
-    @Test public void aCategoryShowsItsPendingRestartAndHidesItWhenTheChangeIsUndone() throws Exception {
-        open();
+    /**
+     * As the page's first row, Restart now was two screens above a switch far down the Tab bar page,
+     * and putting it in moved the rows under the finger (S25, 2026-10-13). It's the screen's bar
+     * under the page now: in view wherever the page is scrolled, and no row goes in or out.
+     */
+    @Test public void aPendingRestartShowsItsBarUnderTheCategoryAndMovesNoRow() throws Exception {
+        openDialog();
         Preference status = page.getPreferenceScreen().getPreference(0);
+        View bar = dialog.getView().findViewById(SettingsDialog.RESTART_ID);
         tap(categoryRow("Feed"));
+        layoutPage();
         assertNull(status.getParent());
+        assertEquals("nothing waits on a restart yet", View.GONE, bar.getVisibility());
+        ListView list = page.getView().findViewById(android.R.id.list);
+        int rows = list.getAdapter().getCount();
         SwitchPreference following = (SwitchPreference) page.findPreference(Settings.START_ON_FOLLOWING.key);
         boolean before = following.isChecked();
         following.setChecked(!before);
-        ShadowLooper.idleMainLooper();
-        assertSame(page.getPreferenceScreen(), status.getParent());
-        assertSame(status, page.getPreferenceScreen().getPreference(0));
-        assertEquals("hushgram_settings_search", page.getPreferenceScreen().getPreference(1).getKey());
-        assertTrue(status.isSelectable());
-        assertNotNull(status.getOnPreferenceClickListener());
-        assertTrue(status.getSummary().toString().contains("Tap to restart it now."));
+        layoutPage();
+        assertEquals("the bar offers the restart", View.VISIBLE, bar.getVisibility());
+        assertTrue(bar.isClickable());
+        assertEquals("Some changes apply when Instagram restarts. Tap to restart it now.",
+                ((android.widget.TextView) bar).getText().toString());
+        assertTrue("under the page, not over its rows",
+                bar.getTop() >= dialog.getView().findViewById(SettingsDialog.CONTAINER_ID).getBottom());
+        assertNull("no row goes in above the one that was flipped", status.getParent());
+        assertEquals(rows, list.getAdapter().getCount());
+        assertEquals("hushgram_settings_search", page.getPreferenceScreen().getPreference(0).getKey());
         following.setChecked(before);
-        ShadowLooper.idleMainLooper();
-        assertFalse(status.isSelectable());
-        assertNull("a resolved restart no longer occupies the category", status.getParent());
+        layoutPage();
+        assertEquals("a resolved restart takes the bar off", View.GONE, bar.getVisibility());
+        assertEquals(rows, list.getAdapter().getCount());
     }
 
     @Test public void recreationKeepsTheCategoryTitleAndScrollWithoutSavingTheSearchText() throws Exception {

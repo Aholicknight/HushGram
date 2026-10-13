@@ -353,6 +353,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     public void onResume() {
         super.onResume();
         AbstractPreferenceFragment.setRestartFeedbackPresenter(restartFeedback);
+        showRestart();
         ExportStatus.CONFIGURATION.watch(exportChanges);
         ExportStatus.DIAGNOSTICS.watch(exportChanges);
         SaveControl.watch(saves);
@@ -1847,6 +1848,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (getParentFragment() instanceof SettingsDialog) ((SettingsDialog) getParentFragment()).showTitle(title);
     }
 
+    /** Keeps the screen's Restart now bar in step with what waits on a restart. */
+    private void showRestart() {
+        if (getParentFragment() instanceof SettingsDialog) {
+            ((SettingsDialog) getParentFragment()).showRestart(restartActionAvailable());
+        }
+    }
+
     /** Hidden rows still participate in the shared preference synchronization contract. */
     @Override public Preference findPreference(CharSequence key) {
         Preference visible = super.findPreference(key);
@@ -2011,14 +2019,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         // A search looks through every category, whichever page is open, and clearing it goes back.
         boolean listing = pages && terms.length == 0;
-        // Search stays within reach on every page. A pending restart keeps its action there too.
+        // Search stays within reach on every page. Restart now is the screen's bar, under the page.
         topHidden = listing && openCategory != null;
         boolean categoryContext = pages && openCategory != null;
         showTitle(terms.length > 0 ? L10n.t("Search settings")
                 : openCategory == null ? null : openCategory.getTitle());
         for (Preference top : new Preference[]{statusCard, viewToggle, search}) {
             if (top == null) continue;
-            boolean hidden = categoryContext && top != search && (top != statusCard || !restartActionAvailable());
+            boolean hidden = categoryContext && top != search;
             if (hidden) {
                 if (top.getParent() == screen) screen.removePreference(top);
             } else if (top.getParent() != screen) screen.addPreference(top);
@@ -3243,21 +3251,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (!HushgramPause.isPaused()) {
             String version = L10n.f("Version %1$s for Instagram %2$s",
                     L10n.isolate(Utils.getPatchesReleaseVersion()), L10n.isolate(Utils.getAppVersionName()));
-            // A change Instagram only reads as it starts makes the card a Restart now button (#146).
-            // Not while a pause is on its way: that restart would come up paused.
-            boolean restart = restartActionAvailable();
-            status = pausedNext ? version + " " + L10n.t("HushGram pauses when Instagram restarts.")
-                    : restart ? version + "\n\n" + L10n.t("Some changes apply when Instagram restarts. Tap to restart it now.")
-                    : version;
-            if (card instanceof Row) {
-                Row row = (Row) card;
-                row.setSelectable(restart);
-                row.actsAtOnce = restart;
-                row.setOnPreferenceClickListener(restart ? tapped -> {
-                    restartNow();
-                    return true;
-                } : null);
-            }
+            status = pausedNext ? version + " " + L10n.t("HushGram pauses when Instagram restarts.") : version;
         } else if (pausedNext) {
             status = pausedSummary(HushgramPause.reason(), context.getPackageName())
                     + " " + L10n.t("Tap to turn it back on.");
@@ -3268,8 +3262,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * The status card's Restart now. A save or an export still running keeps Instagram up and says
-     * so. Instagram comes back with the screen open on this page.
+     * The screen's Restart now. A save or an export still running keeps Instagram up and says so.
+     * Instagram comes back with the screen open on this page.
      */
     void restartNow() {
         Activity activity = getActivity();
@@ -3293,10 +3287,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * The shared fragment's "restart to apply" feedback while this page is up. When the status card
-     * has become Restart now, the card is what to tap, so a screen reader hears the message and no
-     * toast covers the page. Otherwise (HushGram paused, or pausing at the next start) the toast
-     * still says it, since nothing on the page does.
+     * The shared fragment's "restart to apply" feedback while this page is up. When the screen shows
+     * its Restart now bar (#146), the bar is what to tap, so a screen reader hears the message and
+     * no toast covers the page. Otherwise (HushGram paused, or pausing at the next start: that
+     * restart would come up paused) the toast still says it, since nothing on the screen does.
      */
     private final AbstractPreferenceFragment.RestartFeedbackPresenter restartFeedback = (shown, message) -> {
         ListView list = listView();
@@ -3312,10 +3306,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Preference card = statusCard;
         Context context = getContext();
         if (card != null && context != null) showStatus(card, context);
-        filterSettings();
+        showRestart();
     }
 
-    private boolean restartActionAvailable() {
+    /** Whether Restart now is offered: a change waits on a restart, and no pause is on or coming. */
+    boolean restartActionAvailable() {
         Context context = getContext();
         return context != null && !HushgramPause.isPaused()
                 && !HushgramPause.pausesNextStart(context) && RestartNow.owed();

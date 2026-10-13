@@ -16,6 +16,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.preference.Preference;
 import android.preference.TwoStatePreference;
+import android.view.View;
+import android.widget.TextView;
 
 import java.util.EnumSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,12 +38,13 @@ import org.robolectric.shadows.ShadowPackageManager;
 import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.preference.ExportStatus;
 
 /**
- * #146: a change Instagram only reads as it starts turns the status card into Restart now, which
- * opens Instagram again in a fresh task and ends the process. Only on a tap, and not while a save
- * or an export would be cut off.
+ * #146: a change Instagram only reads as it starts puts Restart now under the page, which opens
+ * Instagram again in a fresh task and ends the process. Only on a tap, and not while a save or an
+ * export would be cut off.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 36})
@@ -71,23 +74,42 @@ public class RestartNowTest {
         Settings.START_ON_FOLLOWING.resetToDefault();
     }
 
+    private static SettingsDialog open(ActivityController<Activity> controller) {
+        SettingsDialog dialog = new SettingsDialog();
+        dialog.show(controller.get().getFragmentManager(), "restart_now");
+        controller.get().getFragmentManager().executePendingTransactions();
+        Utils.awaitBackgroundTasksForTests();
+        ShadowLooper.idleMainLooper();
+        return dialog;
+    }
+
+    private static HushgramPreferenceFragment pageOf(SettingsDialog dialog) {
+        return (HushgramPreferenceFragment) dialog.getChildFragmentManager()
+                .findFragmentById(SettingsDialog.CONTAINER_ID);
+    }
+
     @Test
-    public void aChangeThatWaitsOnARestartMakesTheCardRestartInstagram() {
+    public void aChangeThatWaitsOnARestartShowsTheBarThatRestartsInstagram() {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
-            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
+            SettingsDialog dialog = open(controller);
+            HushgramPreferenceFragment page = pageOf(dialog);
             Preference card = page.getPreferenceScreen().getPreference(0);
+            View bar = dialog.getView().findViewById(SettingsDialog.RESTART_ID);
             assertEquals("HushGram is on", String.valueOf(card.getTitle()));
-            assertFalse("nothing owed, so the card only reports", card.isSelectable());
+            String reported = String.valueOf(card.getSummary());
+            assertEquals("nothing owed, so no bar", View.GONE, bar.getVisibility());
 
             TwoStatePreference following = (TwoStatePreference) page.findPreference(Settings.START_ON_FOLLOWING.key);
             following.setChecked(!following.isChecked());
             ShadowLooper.idleMainLooper();
-            String summary = String.valueOf(card.getSummary());
-            assertTrue(summary, summary.endsWith("\n\nSome changes apply when Instagram restarts. Tap to restart it now."));
-            assertTrue(card.isSelectable());
+            assertEquals(View.VISIBLE, bar.getVisibility());
+            assertEquals("Some changes apply when Instagram restarts. Tap to restart it now.",
+                    ((TextView) bar).getText().toString());
+            assertFalse("the card only reports", card.isSelectable());
+            assertEquals("the card keeps its size, so no row under it moves", reported, String.valueOf(card.getSummary()));
             assertEquals("nothing restarts without the tap", 0, ended.get());
 
-            assertTrue(card.getOnPreferenceClickListener().onPreferenceClick(card));
+            assertTrue(bar.performClick());
             Intent started = Shadows.shadowOf(controller.get()).getNextStartedActivity();
             assertNotNull("Instagram wasn't opened again", started);
             assertEquals(launcher, started.getComponent());
@@ -95,11 +117,10 @@ public class RestartNowTest {
             assertTrue("a fresh task", (started.getFlags() & Intent.FLAG_ACTIVITY_CLEAR_TASK) != 0);
             assertEquals(1, ended.get());
 
-            // Back where it started, nothing is owed and the card only reports again.
+            // Back where it started, nothing is owed and the bar goes.
             following.setChecked(!following.isChecked());
             ShadowLooper.idleMainLooper();
-            assertFalse(card.isSelectable());
-            assertFalse(String.valueOf(card.getSummary()).contains("restart it now"));
+            assertEquals(View.GONE, bar.getVisibility());
         }
     }
 
@@ -108,12 +129,12 @@ public class RestartNowTest {
         String token = ExportStatus.CONFIGURATION.begin("Exporting", false);
         assertNotNull(token);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
-            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
+            SettingsDialog dialog = open(controller);
+            HushgramPreferenceFragment page = pageOf(dialog);
             TwoStatePreference following = (TwoStatePreference) page.findPreference(Settings.START_ON_FOLLOWING.key);
             following.setChecked(!following.isChecked());
             ShadowLooper.idleMainLooper();
-            Preference card = page.getPreferenceScreen().getPreference(0);
-            assertTrue(card.getOnPreferenceClickListener().onPreferenceClick(card));
+            assertTrue(dialog.getView().findViewById(SettingsDialog.RESTART_ID).performClick());
 
             assertNull("Instagram was opened again mid-export", Shadows.shadowOf(controller.get()).getNextStartedActivity());
             assertEquals(0, ended.get());

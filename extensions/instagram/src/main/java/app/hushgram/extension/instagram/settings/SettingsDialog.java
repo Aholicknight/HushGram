@@ -44,10 +44,11 @@ public final class SettingsDialog extends DialogFragment {
     /**
      * The preference list's container. Fixed, because the child manager saves the page with this
      * id and puts it back into a view with the same id after rotation or process recreation.
-     * Outside both the generated-id range and aapt's 0x7f ids, and nothing else in this dialog
-     * carries an id.
+     * Outside both the generated-id range and aapt's 0x7f ids, as is the restart bar's below.
      */
     static final int CONTAINER_ID = 0x48474301;
+    /** The bar under the page that restarts Instagram while a change waits on it. */
+    static final int RESTART_ID = 0x48474302;
     private static final String PAGE_FAILED = "hushgram.page_failed";
     /** The argument naming the category page the screen opens on, after Restart now. */
     static final String START_PAGE = "hushgram_start_page";
@@ -57,6 +58,7 @@ public final class SettingsDialog extends DialogFragment {
     private boolean closing;
     private Button retry;
     private TextView heading;
+    private TextView restart;
     /** The lock's checks on this dialog's window while it's started. */
     private Window lockWindow;
     private ViewTreeObserver.OnPreDrawListener lockDraw;
@@ -196,6 +198,7 @@ public final class SettingsDialog extends DialogFragment {
         FrameLayout container = new FrameLayout(getContext());
         container.setId(CONTAINER_ID);
         root.addView(container, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        root.addView(restartBar(palette), restartBarSpace());
 
         // Instagram targets a recent API, so its windows are edge to edge: keep the bars off the
         // content.
@@ -214,6 +217,58 @@ public final class SettingsDialog extends DialogFragment {
         FocusRest.on(root);
         root.requestFocus();
         return root;
+    }
+
+    /**
+     * Restart now, under the page and off until a change waits on a restart. As the page's first
+     * row it was two screens above a switch far down a long page, and putting it in moved every
+     * row under the finger (S25, 2026-10-13). Down here it's in view on every page, and the page
+     * only gets shorter from the bottom.
+     */
+    private TextView restartBar(ScreenColors palette) {
+        TextView bar = new TextView(getContext());
+        restart = bar;
+        bar.setId(RESTART_ID);
+        bar.setText(L10n.t(getContext(), "Some changes apply when Instagram restarts. Tap to restart it now."));
+        bar.setTextColor(palette.title);
+        bar.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setMinHeight(dp(56));
+        bar.setPaddingRelative(dp(20), dp(12), dp(20), dp(12));
+        android.graphics.drawable.GradientDrawable surface = new android.graphics.drawable.GradientDrawable();
+        surface.setColor(palette.card);
+        surface.setCornerRadius(dp(16));
+        surface.setStroke(dp(1), palette.outline);
+        bar.setBackground(new android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(ScreenColors.half(palette.heading)), surface, surface));
+        bar.setFocusable(true);
+        bar.setClickable(true);
+        bar.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override
+            public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName(Button.class.getName());
+            }
+        });
+        bar.setOnClickListener(v -> {
+            Fragment page = getChildFragmentManager().findFragmentById(CONTAINER_ID);
+            if (page instanceof HushgramPreferenceFragment) ((HushgramPreferenceFragment) page).restartNow();
+        });
+        bar.setVisibility(View.GONE);
+        return bar;
+    }
+
+    private LinearLayout.LayoutParams restartBarSpace() {
+        LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        space.setMargins(dp(12), dp(8), dp(12), dp(8));
+        return space;
+    }
+
+    /** Shows the bar that restarts Instagram while [owed], and takes it off once nothing waits. */
+    void showRestart(boolean owed) {
+        TextView bar = restart;
+        if (bar != null) bar.setVisibility(owed ? View.VISIBLE : View.GONE);
     }
 
     /** Shows [title] in the bar while a category's page is open, and HushGram again for null. */
@@ -364,6 +419,7 @@ public final class SettingsDialog extends DialogFragment {
     public void onDestroyView() {
         retry = null;
         heading = null;
+        restart = null;
         super.onDestroyView();
     }
 

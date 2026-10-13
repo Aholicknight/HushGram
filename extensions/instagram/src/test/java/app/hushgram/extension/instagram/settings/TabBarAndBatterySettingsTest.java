@@ -289,7 +289,7 @@ public class TabBarAndBatterySettingsTest {
 
     /**
      * The pill's look, its height, the space under it and the wait on Reels are read as Instagram builds
-     * the bar, so a pick waits on a restart. The page says so and the card at the top offers it; without
+     * the bar, so a pick waits on a restart. The page says so and the screen offers the restart; without
      * that, a pick looked like it did nothing (#87, on the S22).
      */
     @Test public void theGlassChoicesAskForARestart() throws Exception {
@@ -298,23 +298,19 @@ public class TabBarAndBatterySettingsTest {
             assertTrue(setting.key, setting.rebootApp);
         }
         open(PatchFamily.GLASS_TAB_BAR);
-        Preference card = page.getPreferenceScreen().getPreference(0);
-        assertEquals("HushGram is on", String.valueOf(card.getTitle()));
-        assertFalse("nothing owed yet", card.isSelectable());
+        assertFalse("nothing owed yet", page.restartActionAvailable());
 
         HushgramPreferenceFragment.GlassLiftRow lift = (HushgramPreferenceFragment.GlassLiftRow) row(Settings.GLASS_TAB_BAR_LIFT.key);
         lift.setValue("MORE");
         ShadowLooper.idleMainLooper();
         assertTrue(AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_LIFT.key));
-        String summary = String.valueOf(card.getSummary());
-        assertTrue(summary, summary.endsWith("Some changes apply when Instagram restarts. Tap to restart it now."));
-        assertTrue(card.isSelectable());
+        assertTrue("the screen offers the restart", page.restartActionAvailable());
 
         lift.setValue("STANDARD");
         ShadowLooper.idleMainLooper();
         assertFalse("back where it started, nothing is owed",
                 AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_LIFT.key));
-        assertFalse(card.isSelectable());
+        assertFalse(page.restartActionAvailable());
     }
 
     @Test public void savedOnYourProfileStartsOffUnderProfiles() throws Exception {
