@@ -201,10 +201,12 @@ public final class SettingsDialog extends DialogFragment {
         root.addView(restartBar(palette), restartBarSpace());
 
         // Instagram targets a recent API, so its windows are edge to edge: keep the bars off the
-        // content.
+        // content. The keyboard too, since nothing resizes an edge-to-edge window for it: the
+        // search field, the matches under it and Restart now sat behind the keys (S25, 2026-10-13).
         root.setOnApplyWindowInsetsListener((view, insets) -> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
+                android.graphics.Insets bars = insets.getInsets(
+                        WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
                 view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
             } else {
                 // Android 9 and 10 report the bars through the calls Android 11 replaced.
