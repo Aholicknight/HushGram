@@ -454,6 +454,8 @@ public class ReelOriginTest {
         if (output == null || output.isEmpty()) output = System.getProperty("HUSHGRAM_UI_CAPTURES");
         if (output == null || output.isEmpty()) return;
         float fontScale = profile.getResources().getConfiguration().fontScale;
+        int applicationFlags = RuntimeEnvironment.getApplication().getApplicationInfo().flags;
+        RuntimeEnvironment.getApplication().getApplicationInfo().flags |= android.content.pm.ApplicationInfo.FLAG_SUPPORTS_RTL;
         try {
             for (boolean rtl : new boolean[]{false, true}) {
                 RuntimeEnvironment.setFontScale(rtl ? 2f : 1f);
@@ -486,6 +488,7 @@ public class ReelOriginTest {
         } finally {
             ReelOrigin.forget();
             RuntimeEnvironment.setFontScale(fontScale);
+            RuntimeEnvironment.getApplication().getApplicationInfo().flags = applicationFlags;
         }
     }
 
