@@ -27,9 +27,11 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.util.ReflectionHelpers;
 
 import app.hushgram.extension.instagram.reels.BurnInGuardForTests;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -361,6 +363,37 @@ public class GlassScrollHideTest {
         root.layout(0, 0, 1080, 1920);
         drag(-300);
         assertTrue(hide.isHidden());
+    }
+
+    /** #170: the bar hid on a reel whose video didn't fill the screen and stayed on the ones that did. */
+    @Test public void nothingInsideAReelsViewerHidesTheBarWhateverItsVideo() {
+        int reelsId = 0x7f0a0170;
+        Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+        Integer before;
+        synchronized (ids) { before = ids.put(GlassTabBar.REELS_ROOT, reelsId); }
+        try {
+            FrameLayout viewer = new FrameLayout(activity);
+            viewer.setId(reelsId);
+            FakeList pager = new FakeList(activity);
+            pager.awayFromTop = true;
+            viewer.addView(pager, new FrameLayout.LayoutParams(1080, 1770));
+            root.addView(viewer, 1, new FrameLayout.LayoutParams(1080, 1770));
+            root.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
+            root.layout(0, 0, 1080, 1920);
+            drag(-300);
+            assertFalse("a photo reel has no video view to go by", hide.isHidden());
+            touch(MotionEvent.ACTION_UP, 500, 600);
+            // The same pager anywhere else is a list like any other.
+            viewer.setId(View.NO_ID);
+            drag(-300);
+            assertTrue(hide.isHidden());
+        } finally {
+            synchronized (ids) {
+                if (before == null) ids.remove(GlassTabBar.REELS_ROOT);
+                else ids.put(GlassTabBar.REELS_ROOT, before);
+            }
+        }
     }
 
     @Test public void theWrappedWindowCallbackPassesEverythingOnAndShowsOnBack() {

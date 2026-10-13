@@ -40,7 +40,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * is moving comes from the view under the finger when it went down: the innermost view there that can
  * scroll vertically at all ({@link View#canScrollVertically}, which every scrolling view answers, whatever
  * its class). The bar only hides when that list is already away from its top, so a drag on a screen that
- * isn't a list, or a pull at the top of one, never hides it.
+ * isn't a list, or a pull at the top of one, never hides it. Nothing inside a Reels viewer hides it either.
  *
  * <p>The bar is only ever moved with a translation, never resized and never hidden, so nothing under it
  * shifts: with "Show content behind the tab bar" off, the strip it leaves is the window's own background.
@@ -56,7 +56,7 @@ final class GlassScrollHide {
     static final long SLIDE_MS = 220;
     /** How often the list that hid the bar is looked at while the bar is away. */
     static final long WATCH_MS = 120;
-    /** Past this share of the content's width and height, a video is a full-screen pager (Reels), which keeps its bar. */
+    /** Past this share of the content's width and height, a video is a full-screen pager, which keeps its bar. */
     static final float FULL_SCREEN_SHARE = 0.75f;
     /** Counted names in the glass family's Diagnostics line. */
     static final String COUNT_HID = "scroll hid the bar";
@@ -300,7 +300,7 @@ final class GlassScrollHide {
         View list = scroller == null ? null : scroller.get();
         // A list still at its top has not been scrolled down, however far a finger has gone.
         if (list == null || !list.isShown() || !list.canScrollVertically(-1)) return;
-        if (fullScreenVideo()) {
+        if (inReels(list) || fullScreenVideo()) {
             refused = true;
             return;
         }
@@ -357,9 +357,24 @@ final class GlassScrollHide {
     }
 
     /**
+     * Whether [list] is inside a Reels viewer ({@link GlassTabBar#REELS_ROOT}). Swiping to the next reel is
+     * not scrolling a list, and the viewer stops at the bar's top, so a bar slid away there leaves an empty
+     * strip. Going by the video's size alone missed a reel that doesn't fill the screen, a photo reel and one
+     * still loading, so the bar hid on some reels and stayed on others (#170).
+     */
+    private boolean inReels(View list) {
+        int reels = GlassTabBar.id(bar.getContext(), GlassTabBar.REELS_ROOT);
+        if (reels == 0) return false;
+        for (Object at = list; at instanceof View; at = ((View) at).getParent()) {
+            if (((View) at).getId() == reels) return true;
+        }
+        return false;
+    }
+
+    /**
      * Whether a video fills the screen under the bar: a SurfaceView or TextureView that is on screen and
-     * covers most of the content's width and height. That is Reels' pager (a feed video is about as wide but a
-     * lot shorter), where swiping to the next reel is not scrolling a list and the bar should stay.
+     * covers most of the content's width and height. That is a full-screen video pager outside the Reels
+     * viewer (a feed video is about as wide but a lot shorter), where the bar should stay too.
      */
     private boolean fullScreenVideo() {
         View root = bar.getParent() instanceof View ? (View) bar.getParent() : bar.getRootView();
