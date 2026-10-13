@@ -74,7 +74,7 @@ public class RestartNowTest {
         Settings.START_ON_FOLLOWING.resetToDefault();
     }
 
-    private static SettingsDialog open(ActivityController<Activity> controller) {
+    private static SettingsDialog open(ActivityController<Activity> controller) throws Exception {
         SettingsDialog dialog = new SettingsDialog();
         dialog.show(controller.get().getFragmentManager(), "restart_now");
         controller.get().getFragmentManager().executePendingTransactions();
@@ -89,7 +89,7 @@ public class RestartNowTest {
     }
 
     @Test
-    public void aChangeThatWaitsOnARestartShowsTheBarThatRestartsInstagram() {
+    public void aChangeThatWaitsOnARestartShowsTheBarThatRestartsInstagram() throws Exception {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             SettingsDialog dialog = open(controller);
             HushgramPreferenceFragment page = pageOf(dialog);
@@ -125,7 +125,7 @@ public class RestartNowTest {
     }
 
     @Test
-    public void aRunningExportKeepsInstagramUpAndSaysSo() {
+    public void aRunningExportKeepsInstagramUpAndSaysSo() throws Exception {
         String token = ExportStatus.CONFIGURATION.begin("Exporting", false);
         assertNotNull(token);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
