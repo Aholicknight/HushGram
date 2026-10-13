@@ -100,6 +100,9 @@ public final class GlassTabBar {
     static final String SWIPE_PAGER = "swipeable_tab_view_pager";
     /** The root of the Reels viewer, in the Reels tab and wherever a reel opens over another tab. */
     static final String REELS_ROOT = "root_clips_layout";
+    /** The strip Instagram lays over a reel's seek bar to widen it for touches, and the seek bar. */
+    static final String TOUCH_STRIP = "clips_expanded_touch_view";
+    static final String SCRUBBER = "scrubber";
 
     private static final java.util.HashMap<String, Integer> IDS = new java.util.HashMap<>();
 
@@ -172,6 +175,63 @@ public final class GlassTabBar {
         int changed = 0;
         for (int i = 0; i < group.getChildCount(); i++) changed += liftReels(group.getChildAt(i), bar, id, wanted, given, depth + 1);
         return changed;
+    }
+
+    /**
+     * Moves [strip], the strip Instagram lays over a reel's seek bar ({@link #TOUCH_STRIP}), so its bottom
+     * edge is the bottom edge of the seek bar ([scrubber]) showing in the one of [viewers] it lies across,
+     * or of that viewer when no seek bar shows. Returns whether it moved.
+     *
+     * <p>Instagram places the strip by how far the reel stops above the bottom of the screens, measured
+     * as it lays them out. Back from another screen (HushGram's settings, say) it measures while its own
+     * margin under the screens is back on for a frame, with the viewer's margin from a floating pill
+     * counted too: the strip sat a bar's height too high, over the reel's More button and name, and took
+     * their taps. Measured before a viewer was kept above the pill, it sits over the pill's top instead.
+     * A strip anchored from the top, or not laid out yet, is left alone.
+     */
+    static boolean stripOnTheReel(View strip, Iterable<View> viewers, int scrubber, Rect scratch) {
+        if (strip == null || !strip.isShown() || !strip.isLaidOut() || strip.isLayoutRequested()) return false;
+        if (!(strip.getLayoutParams() instanceof FrameLayout.LayoutParams)) return false;
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) strip.getLayoutParams();
+        if ((params.gravity & Gravity.VERTICAL_GRAVITY_MASK) != Gravity.BOTTOM) return false;
+        int[] at = new int[2];
+        strip.getLocationOnScreen(at);
+        int left = at[0], right = at[0] + strip.getWidth(), bottom = at[1] + strip.getHeight();
+        View viewer = null;
+        int widest = 0;
+        for (View candidate : viewers) {
+            if (candidate == null || !candidate.isShown() || candidate.isLayoutRequested()
+                    || !candidate.getGlobalVisibleRect(scratch)) continue;
+            int across = Math.min(right, scratch.right) - Math.max(left, scratch.left);
+            if (across > widest) {
+                widest = across;
+                viewer = candidate;
+            }
+        }
+        if (viewer == null) return false;
+        View seekBar = scrubber == 0 ? null : shownWithId(viewer, scrubber, scratch, 0);
+        View anchor = seekBar != null ? seekBar : viewer;
+        anchor.getLocationOnScreen(at);
+        int off = bottom - (at[1] + anchor.getHeight());
+        if (off == 0 || params.bottomMargin + off < 0) return false;
+        params.bottomMargin += off;
+        strip.setLayoutParams(params);
+        return true;
+    }
+
+    /** The view with [id] under [view] that shows on screen, or null. Pages scrolled off the screen are skipped. */
+    @Nullable
+    private static View shownWithId(View view, int id, Rect scratch, int depth) {
+        if (depth > 60 || view.getVisibility() != View.VISIBLE) return null;
+        boolean onScreen = view.getGlobalVisibleRect(scratch);
+        if (view.getId() == id) return onScreen ? view : null;
+        if (!onScreen || !(view instanceof ViewGroup)) return null;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View found = shownWithId(group.getChildAt(i), id, scratch, depth + 1);
+            if (found != null) return found;
+        }
+        return null;
     }
 
     /**
@@ -290,6 +350,8 @@ public final class GlassTabBar {
     static final String COUNT_VIDEO_LEFT_OUT = "Video kept out of the blur";
     /** Counted each time a tab's own background, Instagram's selected tab capsule, is taken off under the pill. */
     static final String COUNT_TAB_BACKGROUND = "Tab's own capsule taken off";
+    /** Counted each time Instagram's touch strip for a reel's seek bar is moved back onto the seek bar. */
+    static final String COUNT_STRIP_KEPT = "Seek bar's touch strip kept on the reel";
 
     static final String TAG = "HushGlass";
     private static final boolean DIAGNOSE = false;
@@ -521,6 +583,8 @@ public final class GlassTabBar {
         private final Misses misses = new Misses();
         /** The Reels viewers kept above a floating pill, with the margin each was given. */
         private final WeakHashMap<View, Integer> lifted = new WeakHashMap<>();
+        /** Instagram's touch strip for the seek bar, found once: Instagram keeps one and moves it between reels. */
+        @Nullable private WeakReference<View> stripRef;
         private long reelsLookedAt = Long.MIN_VALUE / 2;
         /** The stretch of the bar, in its own coordinates, under the Reels viewers kept above it, as of the last frame. */
         private int reelsLeft, reelsRight;
@@ -708,6 +772,25 @@ public final class GlassTabBar {
             int wanted = bar.getVisibility() == View.VISIBLE ? params.height : 0;
             if (reelsAboveTheBar(holder, bar, id(holder.getContext(), REELS_ROOT), wanted, lifted) > 0) {
                 HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_REELS_LIFTED);
+            }
+            keepTheStripOnTheReel(holder);
+        }
+
+        /** Keeps Instagram's touch strip on the seek bar of the reel above the pill ({@link #stripOnTheReel}). */
+        private void keepTheStripOnTheReel(View holder) {
+            if (lifted.isEmpty()) return;
+            if (holder.isLayoutRequested()) {
+                // A margin changed this frame, so the reel and the strip are where they were. Look again after the layout.
+                bar.postInvalidateDelayed(REELS_LOOK_MS);
+                return;
+            }
+            View strip = stripRef == null ? null : stripRef.get();
+            if (strip == null || !strip.isAttachedToWindow()) {
+                strip = find(holder, TOUCH_STRIP);
+                stripRef = strip == null ? null : new WeakReference<>(strip);
+            }
+            if (strip != null && stripOnTheReel(strip, lifted.keySet(), id(holder.getContext(), SCRUBBER), reelsRect)) {
+                HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_STRIP_KEPT);
             }
         }
 

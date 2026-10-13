@@ -751,6 +751,102 @@ public class GlassTabBarTest {
         assertEquals("no id, nothing found", 0, GlassTabBar.reelsAboveTheBar(holder, bar, 0, 126, given));
     }
 
+    /**
+     * Instagram's touch strip for a reel's seek bar is placed by how far the reel stops above the screens'
+     * bottom. Measured with its own margin back on for a frame and the pill's counted too (back from
+     * HushGram's settings on the S22), it sat a bar's height too high, over the reel's More button, and
+     * took its taps. It goes back so its bottom edge is the seek bar's, or the viewer's with no seek bar
+     * showing. A strip hung from the top, or a reel off the screen, is left alone.
+     */
+    @Test
+    @Config(qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void theSeekBarsTouchStripStaysOnTheReelAboveThePill() {
+        ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup();
+        try {
+            Activity activity = controller.get();
+            FrameLayout root = new FrameLayout(activity);
+            View strip = new View(activity);
+            FrameLayout.LayoutParams stripParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 112, Gravity.BOTTOM);
+            stripParams.bottomMargin = 287;
+            root.addView(strip, stripParams);
+            FrameLayout viewer = new FrameLayout(activity);
+            FrameLayout.LayoutParams viewerParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            viewerParams.bottomMargin = 180;
+            root.addView(viewer, viewerParams);
+            int scrubberId = 0x7f0b0011;
+            View seekBar = new View(activity);
+            seekBar.setId(scrubberId);
+            FrameLayout.LayoutParams seekParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 28, Gravity.BOTTOM);
+            viewer.addView(seekBar, seekParams);
+            FrameLayout nextTab = new FrameLayout(activity);
+            nextTab.setTranslationX(10000);
+            View nextSeekBar = new View(activity);
+            nextSeekBar.setId(scrubberId);
+            nextTab.addView(nextSeekBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 28, Gravity.TOP));
+            root.addView(nextTab, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            activity.setContentView(root);
+            java.util.List<View> viewers = java.util.Arrays.asList(nextTab, viewer);
+            Rect scratch = new Rect();
+            layOut(root);
+
+            assertTrue("a bar's height too high", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            layOut(root);
+            assertEquals("on the seek bar of the reel on screen", bottomOnScreen(seekBar), bottomOnScreen(strip));
+            assertEquals(180, stripParams.bottomMargin);
+            assertFalse("settled, nothing moves", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+
+            stripParams.bottomMargin = 107;
+            strip.setLayoutParams(stripParams);
+            assertFalse("not laid out again yet", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            layOut(root);
+            assertTrue("measured before the reel was kept above the pill", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            assertEquals(180, stripParams.bottomMargin);
+
+            seekParams.bottomMargin = 300;
+            seekBar.setLayoutParams(seekParams);
+            layOut(root);
+            assertTrue("a seek bar higher up", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            layOut(root);
+            assertEquals(bottomOnScreen(seekBar), bottomOnScreen(strip));
+
+            seekBar.setVisibility(View.GONE);
+            layOut(root);
+            assertTrue("no seek bar showing", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            layOut(root);
+            assertEquals("the viewer's bottom edge", bottomOnScreen(viewer), bottomOnScreen(strip));
+
+            stripParams.gravity = Gravity.TOP;
+            stripParams.topMargin = 40;
+            strip.setLayoutParams(stripParams);
+            layOut(root);
+            assertFalse("hung from the top", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            stripParams.gravity = Gravity.BOTTOM;
+            stripParams.bottomMargin = 287;
+            strip.setLayoutParams(stripParams);
+            viewer.setTranslationX(-10000);
+            layOut(root);
+            assertFalse("no reel on the screen", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            assertEquals(287, stripParams.bottomMargin);
+        } finally {
+            controller.pause().stop().destroy();
+        }
+    }
+
+    /** Lays [root] out at the size of the window's content, where the screen shows all of it. */
+    private static void layOut(View root) {
+        ShadowLooper.idleMainLooper();
+        View content = (View) root.getParent();
+        root.measure(View.MeasureSpec.makeMeasureSpec(content.getWidth(), View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(content.getHeight(), View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, content.getWidth(), content.getHeight());
+    }
+
+    private static int bottomOnScreen(View view) {
+        int[] at = new int[2];
+        view.getLocationOnScreen(at);
+        return at[1] + view.getHeight();
+    }
+
     private static View withMargin(View view, int bottom) {
         ViewGroup.MarginLayoutParams params = new ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         params.bottomMargin = bottom;

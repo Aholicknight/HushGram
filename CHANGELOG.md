@@ -116,6 +116,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** On accounts where Instagram puts a dark capsule behind the selected tab, that capsule no longer sits on top of the glass bar's own highlight.
 
+* **Instagram - Glass tab bar:** With Show content behind the tab bar on, a reel's More button and name keep working after a visit to HushGram's settings. The strip Instagram adds to make the seek bar easier to grab used to land on top of them, so taps there did nothing.
+
 * **Instagram - Search button on Home's header:** When Search is off a tab bar you swipe across, the note the button shows now fits on screen and says what to turn off. Android used to cut it off halfway.
 
 * **Instagram - Downloads:** Save all's result shows each of its lines in turn, so the lower quality and already saved notes aren't cut off on Android 12 and newer.
