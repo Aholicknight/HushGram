@@ -56,6 +56,8 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** Restart now reopens settings on the page you were on.
 
+* **Instagram - HushGram settings:** Search lists the settings named for what you typed first. The ones that only mention it in their description come after.
+
 * **Instagram - HushGram settings:** Restart now sits in a bar at the bottom of settings while a change waits on a restart. It used to be the page's first row, out of sight once you'd scrolled down.
 
 * **Instagram - HushGram settings:** Hide inbox suggestions and Ask for larger photos now show Restart now when you change them.

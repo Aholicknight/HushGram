@@ -14,6 +14,7 @@ import android.graphics.Canvas;
 import android.os.SystemClock;
 import android.preference.ListPreference;
 import android.preference.Preference;
+import android.preference.PreferenceCategory;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
 import android.view.View;
@@ -252,6 +253,59 @@ public class SettingsSearchTest {
         assertNotNull(visible(Settings.DISABLE_ANALYTICS.key));
         page.searchSettings("DISABLE ANALYTICS");
         assertNotNull(visible(Settings.DISABLE_ANALYTICS.key));
+    }
+
+    /**
+     * "Start tab" listed most of the Tab bar page before Start tab itself, because each summary
+     * there says "Restart Instagram" (S25, 2026-10-13). A row named for the search comes first in
+     * its section, a section with such a row comes before the others, and clearing puts it all back.
+     */
+    @Test public void rowsNamedForTheSearchComeBeforeTheRowsThatOnlyMentionIt() throws Exception {
+        open(PatchFamily.FOLLOWING_FEED, PatchFamily.HIDE_ADS, PatchFamily.GLASS_TAB_BAR, PatchFamily.REELS_TAB,
+                PatchFamily.REEL_DOWNLOAD);
+        ShadowLooper.idleMainLooper();
+        List<Preference> before = rows(page.getPreferenceScreen());
+        page.searchSettings("start tab");
+        ShadowLooper.idleMainLooper();
+        ListAdapter shown = page.getPreferenceScreen().getRootAdapter();
+        Preference startTab = visible(Settings.START_TAB.key);
+        assertNotNull(startTab);
+        int named = 0, mentioned = 0;
+        boolean sectionNamed = false, laterSection = false, laterRow = false;
+        for (int i = 0; i < shown.getCount(); i++) {
+            Preference item = (Preference) shown.getItem(i);
+            if (item instanceof PreferenceCategory) {
+                PreferenceCategory section = (PreferenceCategory) item;
+                sectionNamed = holds(section.getTitle());
+                for (Preference row : rows(section)) sectionNamed |= holds(row.getTitle());
+                assertFalse("the section " + section.getTitle() + " has a row named for the search and comes "
+                        + "after one that only mentions it", sectionNamed && laterSection);
+                laterSection |= !sectionNamed;
+                laterRow = false;
+            } else if (item.getParent() instanceof PreferenceCategory) {
+                boolean inTitle = holds(item.getTitle());
+                assertFalse(item.getTitle() + " is named for the search and comes after a row that only "
+                        + "mentions it", inTitle && laterRow);
+                laterRow |= !inTitle;
+                if (inTitle) named++;
+                else mentioned++;
+            }
+        }
+        assertTrue("no row is named for the search, so nothing was ranked", named > 0);
+        assertTrue("no row only mentions the search, so nothing was ranked", mentioned > 0);
+        PreferenceGroup home = startTab.getParent();
+        ShadowLooper.idleMainLooper();
+        assertSame("Start tab leads its section", startTab, home.getPreference(0));
+
+        page.searchSettings("");
+        ShadowLooper.idleMainLooper();
+        page.getPreferenceScreen().getRootAdapter().getCount();
+        assertEquals(before, rows(page.getPreferenceScreen()));
+    }
+
+    private static boolean holds(CharSequence title) {
+        String text = HushgramPreferenceFragment.searchText(title);
+        return text.contains("start") && text.contains("tab");
     }
 
     @Test public void clearingRestoresTheOriginalObjectsOrderAndChoices() throws Exception {

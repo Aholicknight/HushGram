@@ -237,6 +237,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** Keep the actual row objects, including their values and listeners, while filtering. */
     private final Map<PreferenceCategory, List<Preference>> searchableRows = new LinkedHashMap<>();
     private final Map<Preference, String> searchAliases = new HashMap<>();
+    /** The order each section and row was built with, kept while a search has it further down. */
+    private final Map<Preference, Integer> builtOrders = new HashMap<>();
+    /** Past every section's and row's own order, and far short of the rows that close the page. */
+    private static final int RANKED_LATER = 100_000;
     /** With Open categories as pages on: the row that opens each category, made with the snapshot. */
     private final Map<PreferenceCategory, Row> categoryRows = new LinkedHashMap<>();
     /** The category whose page is open, or null for the list of categories. */
@@ -383,6 +387,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         exportConfiguration = importConfiguration = undoConfiguration = null;
         recovery = null;
         interruptedSaves = null;
+        builtOrders.clear();
         super.onDestroyView();
     }
 
@@ -2017,6 +2022,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             openCategory = null;
             showTitle(null);
         }
+        // Before the intro below reads its section's order.
+        rankForSearch(terms);
         // A search looks through every category, whichever page is open, and clearing it goes back.
         boolean listing = pages && terms.length == 0;
         // Search stays within reach on every page. Restart now is the screen's bar, under the page.
@@ -2088,6 +2095,45 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (terms.length > 0 && matches == 0) {
             if (noSearchResults.getParent() != screen) screen.addPreference(noSearchResults);
         } else if (noSearchResults.getParent() == screen) screen.removePreference(noSearchResults);
+    }
+
+    /**
+     * Puts what a search is most likely after first: a row whose title holds every term comes
+     * before the rows that only mention it, and a section with such a row before the others.
+     * "Start tab" used to list most of the Tab bar page ahead of Start tab itself, since each
+     * summary there says "Restart Instagram" (S25, 2026-10-13). What matches stays as it was,
+     * anywhere in a word, because German and Korean write compounds as one word. Rows only ever
+     * move down, so Search stays first, and with no terms everything is back where it was built.
+     */
+    private void rankForSearch(String[] terms) {
+        boolean searching = terms.length > 0;
+        if (!searching && builtOrders.isEmpty()) return;
+        for (Map.Entry<PreferenceCategory, List<Preference>> section : searchableRows.entrySet()) {
+            boolean named = searching && holdsAll(searchText(section.getKey().getTitle()), terms);
+            for (Preference row : section.getValue()) {
+                boolean inTitle = searching && holdsAll(searchText(row.getTitle()), terms);
+                named |= inTitle;
+                rank(row, searching && !inTitle);
+            }
+            rank(section.getKey(), searching && !named);
+        }
+        if (!searching) builtOrders.clear();
+    }
+
+    private void rank(Preference item, boolean later) {
+        Integer built = builtOrders.get(item);
+        if (built == null) {
+            if (!later) return;
+            built = item.getOrder();
+            builtOrders.put(item, built);
+        }
+        int order = later ? built + RANKED_LATER : built;
+        if (item.getOrder() != order) item.setOrder(order);
+    }
+
+    private static boolean holdsAll(String text, String[] terms) {
+        for (String term : terms) if (!text.contains(term)) return false;
+        return true;
     }
 
     /**
