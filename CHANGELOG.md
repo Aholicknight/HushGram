@@ -8,7 +8,7 @@ Every HushGram release, newest first.
 
 #### Features
 
-* **Instagram - HushGram settings:** Long-press Instagram's feed logo to open HushGram settings, even while paused. Taps keep Instagram's behavior, and its own long press runs first. The icon shortcut and Settings and activity entry still work. On accounts with the newer Home header (the one with feed tabs), the logo it shows works the same way.
+* **Instagram - HushGram settings:** Long-press Instagram's feed logo to open HushGram settings, even while paused. Taps keep Instagram's behavior, and its own long press runs first. It works on the newer Home header with feed tabs too.
 
 * **Instagram - HushGram settings:** Quick setups, under Search, turns on a Quiet or Privacy set of switches in one tap, or puts every switch back the way it started. Your locks stay as they are.
 
@@ -172,15 +172,21 @@ Every HushGram release, newest first.
 
 * **Instagram - Download any video:** Save all's result shows each of its lines in turn, so the lower quality and already saved notes aren't cut off on Android 12 and newer.
 
-* **Instagram - Lock your messages:** Turning on Lock your messages or Lock all of Instagram no longer opens a chat you locked on its own. That chat stays covered until you unlock it, can't be taken off the list without the unlock, and its notifications stay hidden. The screen behind settings also stays out of recent apps from the moment a lock is turned on.
+* **Instagram - Lock your messages:** Turning on Lock your messages or Lock all of Instagram no longer opens a chat you locked on its own. That chat stays covered until you unlock it, can't leave the list without the unlock, and its notifications stay hidden.
 
-* **Instagram - Lock your messages:** HushGram settings left open while you stepped away are covered once the lock comes back, and ask for your unlock before they can be used again. A list, a set of choices or Set a PIN left open on top of them closes then too, without saving anything, so the hidden chats list no longer shows over the cover, and cancelling the unlock leaves the cover with its Unlock button instead of asking again straight away. A settings file or an Undo that arrives while Instagram is locked waits for the unlock too, so a backup can't switch a lock off without it.
+* **Instagram - Lock your messages:** The screen behind settings stays out of recent apps from the moment a lock is turned on.
 
-* **Instagram - Lock your messages:** With a HushGram PIN, making Lock again wait longer asks for the PIN every time, like switching a lock off does, even when Instagram is already unlocked. A wrong PIN or Cancel keeps the wait you had, and a shorter wait still applies right away.
+* **Instagram - Lock your messages:** HushGram settings left open while you stepped away are covered once the lock comes back, and ask for your unlock before they can be used again.
 
-* **Instagram - Lock your messages:** A diagnostics report saved with Debug logging on no longer names the chats you lock, unlock, hide or show again. The message on screen still names the chat. Names with a line break or unusual text-direction marks in them are left out too.
+* **Instagram - Lock your messages:** A list, a set of choices or Set a PIN left open over settings closes when the lock comes back, without saving anything. Cancelling the unlock leaves the cover with its Unlock button instead of asking again straight away.
 
-* **Instagram - Glass tab bar:** Closed screens are let go of again. Every restyled tab bar used to stay in memory with the screen it belonged to and its blurred backdrop, so memory crept up each time Instagram rebuilt a screen with the bar on it.
+* **Instagram - Lock your messages:** A settings file or an Undo that arrives while Instagram is locked waits for the unlock, so a backup can't switch a lock off without it.
+
+* **Instagram - Lock your messages:** With a HushGram PIN, making Lock again wait longer asks for the PIN every time, even when Instagram is already unlocked. A wrong PIN or Cancel keeps the wait you had, and a shorter wait still applies right away.
+
+* **Instagram - Lock your messages:** A diagnostics report saved with Debug logging on no longer names the chats you lock, unlock, hide or show again. Names with a line break or unusual text-direction marks in them are left out too.
+
+* **Instagram - Glass tab bar:** Closed screens are let go of again. Every restyled tab bar used to stay in memory with its screen and its blurred backdrop, so memory crept up each time Instagram rebuilt a screen with the bar on it.
 
 * **Instagram - Pure black dark mode:** The menus that slide up from the bottom are black now, a reel's menu included. They kept Instagram's dark gray before. Buttons keep their grays. Reported in #171.
 
