@@ -8,7 +8,7 @@ Every HushGram release, newest first.
 
 #### Features
 
-* **Instagram - HushGram settings:** Long-press the Instagram logo at the top of your feed to open HushGram settings. A tap on the logo still does what Instagram made it do, and the long press works while HushGram is paused. Where Instagram has a long press of its own on the logo, Instagram's comes first. The icon shortcut and the row in Settings and activity still open them too.
+* **Instagram - HushGram settings:** Long-press Instagram's feed logo to open HushGram settings, even while paused. Taps keep Instagram's behavior, and its own long press runs first. The icon shortcut and Settings and activity entry still work.
 
 * **Instagram - Install next to Instagram:** New Mark the icon option, off by default. It puts a small HushGram badge on the second Instagram's home screen icon, and on the other icons Instagram lets you pick. Asked for in #145.
 
@@ -88,11 +88,11 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** Invalid Place and Sharing domain entries stay open with an explanation so you can correct them. Save and the keyboard's Done button use the same validation. Coordinates keep their order in right-to-left layouts.
 
-* **Instagram - Hide Meta AI:** A reel opened from search results plays the one you tapped again. With Hide Meta AI in search and Home's bar on, results below Meta AI's summary opened an earlier reel. The summary card is still hidden, it's just folded away now instead of being taken out of the results. Reported in #152.
+* **Instagram - Hide Meta AI:** Search results open the reel you tapped again. Hiding Meta AI's summary had shifted later results onto earlier reels. The summary now folds away without changing their positions. Reported in #152.
 
 * **Instagram - Glass tab bar:** Feed videos started with a tap stay in place. On some phones they dropped behind the tab bar, leaving a black gap. Reported in #136.
 
-* **Instagram - Turn off HDR brightness boosts:** Instagram now hears that the screen has no extra brightness to spare. On phones that report spare HDR brightness, it drew some reels for that extra brightness and gave ordinary reels its own HDR look, so they still lit up with the switch on. Reported in #85.
+* **Instagram - Turn off HDR brightness boosts:** Instagram now receives no spare HDR brightness from the screen. On phones reporting extra brightness, some reels still lit up with this switch on, including ordinary reels given Instagram's HDR look. Reported in #85.
 
 * **Instagram - Glass tab bar:** The bar keeps its glass appearance over videos. Its opacity and edge no longer change as videos scroll past. Video directly beneath the bar may show through without blur on some phones. Reported in #144.
 
@@ -136,9 +136,9 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** On accounts where Instagram puts a dark capsule behind the selected tab, that capsule no longer sits on top of the glass bar's own highlight.
 
-* **Instagram - Glass tab bar:** With Show content behind the tab bar on, a reel's More button and name keep working after a visit to HushGram's settings. The strip Instagram adds to make the seek bar easier to grab used to land on top of them, so taps there did nothing.
+* **Instagram - Glass tab bar:** With Show content behind the tab bar on, a reel's More button and name keep working after visiting HushGram settings. Instagram's seek-bar touch strip had landed over them and intercepted taps.
 
-* **Instagram - Hide the Reels tab:** When Search is off a tab bar you swipe across, the note the button shows now fits on screen and says what to turn off, or that a restart brings Search back when you've just turned Hide the Search tab off. Android used to cut it off halfway.
+* **Instagram - Hide the Reels tab:** The Search button's note fits on screen when Search is hidden from a swipeable tab bar. It explains which setting restores Search, or when a restart is needed. Android previously cut the message short.
 
 * **Instagram - Download any video:** Save all's result shows each of its lines in turn, so the lower quality and already saved notes aren't cut off on Android 12 and newer.
 
