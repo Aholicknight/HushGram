@@ -1020,3 +1020,19 @@ Loading the picture...	Carregando a foto...
 # context: the settings row right above Support HushGram that opens a new bug report on GitHub
 Report a problem	Relatar um problema
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Abre um relatório no GitHub com suas versões e configurações já preenchidas. Conte o que aconteceu.
+# context: the settings row under Search, and the title of its dialog of one-tap choices
+Quick setups	Configurações rápidas
+Turn on a set of switches in one tap, or put every switch back the way it started.	Ative um conjunto de opções com um toque ou volte todas as opções ao estado inicial.
+# context: a Quick setups choice that hides ads, suggestions and promotions
+Quiet	Tranquilo
+# context: a Quick setups choice that turns on the privacy switches
+Privacy	Privacidade
+# context: a Quick setups choice that puts every switch back the way it started
+Back to defaults	Voltar ao padrão
+Hides ads, suggested accounts and posts, surveys and promotions.	Oculta anúncios, contas e publicações sugeridas, pesquisas e promoções.
+Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.	Oculta suas confirmações de visualização, quando você digita e seu status de atividade. Permite capturas de tela e interrompe o rastreamento de links e os relatórios de uso.
+Puts every switch back the way it started. Your locks stay as they are.	Volta todas as opções ao estado inicial. Seus bloqueios ficam como estão.
+# context: toast after a Quick setups choice changed exactly one switch
+Changed %1$d setting	%1$d configuração alterada
+# context: the same toast for any other count, zero included; %1$d is how many
+Changed %1$d settings	%1$d configurações alteradas

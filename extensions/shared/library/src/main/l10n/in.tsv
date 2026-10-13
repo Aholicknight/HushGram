@@ -1020,3 +1020,19 @@ Loading the picture...	Memuat gambar...
 # context: the settings row right above Support HushGram that opens a new bug report on GitHub
 Report a problem	Laporkan masalah
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Membuka laporan GitHub yang sudah berisi versi dan pengaturanmu. Tambahkan apa yang terjadi.
+# context: the settings row under Search, and the title of its dialog of one-tap choices
+Quick setups	Penyiapan cepat
+Turn on a set of switches in one tap, or put every switch back the way it started.	Nyalakan sekumpulan sakelar dengan sekali ketuk, atau kembalikan semua sakelar seperti semula.
+# context: a Quick setups choice that hides ads, suggestions and promotions
+Quiet	Tenang
+# context: a Quick setups choice that turns on the privacy switches
+Privacy	Privasi
+# context: a Quick setups choice that puts every switch back the way it started
+Back to defaults	Kembali ke bawaan
+Hides ads, suggested accounts and posts, surveys and promotions.	Menyembunyikan iklan, akun dan kiriman yang disarankan, survei, dan promosi.
+Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.	Menyembunyikan tanda dilihat, status mengetik, dan status aktifmu. Mengizinkan tangkapan layar serta menghentikan pelacakan tautan dan laporan penggunaan.
+Puts every switch back the way it started. Your locks stay as they are.	Mengembalikan semua sakelar seperti semula. Kuncimu tetap seperti apa adanya.
+# context: toast after a Quick setups choice changed exactly one switch
+Changed %1$d setting	%1$d pengaturan diubah
+# context: the same toast for any other count, zero included; %1$d is how many
+Changed %1$d settings	%1$d pengaturan diubah

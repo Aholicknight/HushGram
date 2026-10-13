@@ -1020,3 +1020,19 @@ Loading the picture...	Fotoğraf yükleniyor...
 # context: the settings row right above Support HushGram that opens a new bug report on GitHub
 Report a problem	Sorun bildir
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Sürümlerin ve ayarların önceden doldurulmuş bir GitHub raporu açar. Ne olduğunu ekle.
+# context: the settings row under Search, and the title of its dialog of one-tap choices
+Quick setups	Hızlı kurulumlar
+Turn on a set of switches in one tap, or put every switch back the way it started.	Bir grup anahtarı tek dokunuşla aç veya tüm anahtarları başlangıçtaki hâline döndür.
+# context: a Quick setups choice that hides ads, suggestions and promotions
+Quiet	Sessiz
+# context: a Quick setups choice that turns on the privacy switches
+Privacy	Gizlilik
+# context: a Quick setups choice that puts every switch back the way it started
+Back to defaults	Varsayılanlara dön
+Hides ads, suggested accounts and posts, surveys and promotions.	Reklamları, önerilen hesapları ve gönderileri, anketleri ve tanıtımları gizler.
+Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.	Görüldü bilgini, yazıyor göstergesini ve etkinlik durumunu gizler. Ekran görüntülerine izin verir, bağlantı takibini ve kullanım raporlarını durdurur.
+Puts every switch back the way it started. Your locks stay as they are.	Tüm anahtarları başlangıçtaki hâline döndürür. Kilitlerin olduğu gibi kalır.
+# context: toast after a Quick setups choice changed exactly one switch
+Changed %1$d setting	%1$d ayar değiştirildi
+# context: the same toast for any other count, zero included; %1$d is how many
+Changed %1$d settings	%1$d ayar değiştirildi

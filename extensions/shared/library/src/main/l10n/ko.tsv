@@ -1019,3 +1019,19 @@ Loading the picture...	사진을 불러오는 중...
 # context: the settings row right above Support HushGram that opens a new bug report on GitHub
 Report a problem	문제 신고하기
 Opens a GitHub report with your versions and settings filled in. Add what happened.	버전과 설정이 미리 채워진 GitHub 신고를 엽니다. 무슨 일이 있었는지 적어 주세요.
+# context: the settings row under Search, and the title of its dialog of one-tap choices
+Quick setups	빠른 설정
+Turn on a set of switches in one tap, or put every switch back the way it started.	한 번의 탭으로 여러 스위치를 켜거나 모든 스위치를 처음 상태로 되돌립니다.
+# context: a Quick setups choice that hides ads, suggestions and promotions
+Quiet	조용하게
+# context: a Quick setups choice that turns on the privacy switches
+Privacy	개인정보 보호
+# context: a Quick setups choice that puts every switch back the way it started
+Back to defaults	기본값으로 되돌리기
+Hides ads, suggested accounts and posts, surveys and promotions.	광고, 추천 계정과 게시물, 설문, 홍보를 숨깁니다.
+Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.	읽음 표시, 입력 중 표시, 활동 상태를 숨깁니다. 스크린샷을 허용하고 링크 추적과 사용 보고를 막습니다.
+Puts every switch back the way it started. Your locks stay as they are.	모든 스위치를 처음 상태로 되돌립니다. 잠금은 그대로 유지됩니다.
+# context: toast after a Quick setups choice changed exactly one switch
+Changed %1$d setting	설정 %1$d개를 바꿨습니다
+# context: the same toast for any other count, zero included; %1$d is how many
+Changed %1$d settings	설정 %1$d개를 바꿨습니다

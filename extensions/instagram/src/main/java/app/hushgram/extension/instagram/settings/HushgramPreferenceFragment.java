@@ -67,6 +67,7 @@ import java.text.NumberFormat;
 import java.text.Normalizer;
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -131,6 +132,7 @@ import app.hushgram.extension.shared.settings.preference.ExportDiagnosticReportP
 import app.hushgram.extension.shared.settings.preference.ExportStatus;
 import app.hushgram.extension.shared.settings.preference.ImmediateAction;
 import app.hushgram.extension.shared.settings.preference.LogBufferManager;
+import app.hushgram.extension.shared.settings.preference.QuickSetups;
 
 /**
  * The preference list, built in code rather than from an XML resource so the bundle adds no
@@ -152,6 +154,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String SUPPORT_ROW_KEY = "action_support_hushgram";
     /** The row right above Support HushGram that opens a filled-in bug report on GitHub. */
     static final String REPORT_ROW_KEY = "action_report_problem";
+    /** The row under Search that offers Quiet, Privacy and Back to defaults. */
+    static final String QUICK_SETUPS_ROW_KEY = "action_quick_setups";
     /** The English of the row listing what Pause can't reach, and its key in {@link L10n}. */
     static final String STAYS_WHILE_PAUSED = "Stays in while paused";
     /** The Before you sign in notice's key, which finds it on the screen. */
@@ -226,6 +230,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Nullable private Row support;
     /** Report a problem, right above Support HushGram. */
     @Nullable private Row report;
+    /** Quick setups, right under Search. */
+    @Nullable private Row quickSetups;
     /** Keep the actual row objects, including their values and listeners, while filtering. */
     private final Map<PreferenceCategory, List<Preference>> searchableRows = new LinkedHashMap<>();
     private final Map<Preference, String> searchAliases = new HashMap<>();
@@ -1610,6 +1616,20 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         });
         about.addPreference(mark(licenses, SettingsIcons.LICENSE));
 
+        // Outside every category, so no category page or count changes. Under Search (-10) and
+        // above the first category, whose line on its own page takes the order just before it.
+        Row quick = quickSetups = new Row(context);
+        quick.setKey(QUICK_SETUPS_ROW_KEY);
+        quick.setTitle(L10n.t("Quick setups"));
+        quick.setSummary(L10n.t("Turn on a set of switches in one tap, or put every switch back the way it started."));
+        quick.setPersistent(false);
+        quick.setOrder(-5);
+        quick.setOnPreferenceClickListener(p -> {
+            showQuickSetups();
+            return true;
+        });
+        mark(quick, SettingsIcons.TOOLS);
+
         // Outside every category, like Support HushGram below it. Every row counts toward the
         // switches it lists, the ones a category page or a search keeps off the screen too.
         Row bug = report = new Row(context);
@@ -2001,8 +2021,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         // The rows outside every category: the home page (and a search each matches) shows them,
         // a category's page doesn't.
-        Row[] loose = {report, support};
-        String[] looseAliases = {" github bug issue", " ko-fi kofi donate"};
+        Row[] loose = {quickSetups, report, support};
+        String[] looseAliases = {" preset quiet privacy defaults reset", " github bug issue", " ko-fi kofi donate"};
         for (int i = 0; i < loose.length; i++) {
             Row row = loose[i];
             if (row == null) continue;
@@ -2044,6 +2064,51 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             line.setTitle(text);
             screen.addPreference(line);
         }
+    }
+
+    /**
+     * Quick setups: Quiet, Privacy or Back to defaults, each changing its switches at once
+     * ({@link QuickSetupKeys}), then a toast saying how many changed. A switch that needs a restart
+     * turns the status card into Restart now the way a tap on it would.
+     */
+    void showQuickSetups() {
+        Context context = getContext();
+        if (context == null) return;
+        List<Map<BooleanSetting, Boolean>> choices = Arrays.asList(
+                QuickSetupKeys.quiet(), QuickSetupKeys.privacy(), QuickSetupKeys.defaults());
+        CharSequence[] names = {L10n.t("Quiet"), L10n.t("Privacy"), L10n.t("Back to defaults")};
+        CharSequence[] details = {
+                L10n.t("Hides ads, suggested accounts and posts, surveys and promotions."),
+                L10n.t("Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports."),
+                L10n.t("Puts every switch back the way it started. Your locks stay as they are.")};
+        AlertDialog dialog = show(new AlertDialog.Builder(themed(context))
+                .setTitle(L10n.t("Quick setups"))
+                .setAdapter(new ChoiceCards(ScreenColors.DEFAULT, names, details),
+                        (shown, which) -> applyQuickSetup(choices.get(which)))
+                .setNegativeButton(L10n.t("Cancel"), null));
+        ListView list = dialog == null ? null : dialog.getListView();
+        if (list != null) {
+            // The cards bring their own spacing and press ripple, as in the diagnostic report's choices.
+            list.setDivider(null);
+            list.setSelector(new ColorDrawable(Color.TRANSPARENT));
+        }
+    }
+
+    /**
+     * Applies one Quick setups choice to every switch on this page, the ones a category page or a
+     * search keeps off the screen too, and says how many changed. While Instagram is locked it
+     * waits for the phone's lock, as a settings file does.
+     */
+    int applyQuickSetup(Map<BooleanSetting, Boolean> values) {
+        if (MessagesLock.locked()) {
+            Activity activity = getActivity();
+            if (activity != null) MessagesLock.confirmThen(activity, () -> applyQuickSetup(values));
+            return 0;
+        }
+        if (getPreferenceScreen() == null) return 0;
+        int changed = QuickSetups.apply(this::findPreference, values);
+        Utils.showToastLong(L10n.quantity(changed, "Changed %1$d setting", "Changed %1$d settings", changed));
+        return changed;
     }
 
     /** Every row in the categories, on the screen or kept off it by a category page or a search. */
