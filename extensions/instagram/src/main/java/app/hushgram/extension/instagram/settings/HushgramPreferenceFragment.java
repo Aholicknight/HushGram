@@ -3391,7 +3391,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return;
             }
             MessagesLock.chatListed();
-            Utils.showToastShort(L10n.f("%1$s is locked", chat.name));
+            Utils.showToastShort(L10n.f("%1$s is locked", L10n.isolate(chat.name)));
             return;
         }
         Runnable unlock = () -> {
@@ -3399,7 +3399,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 notSaved(dialog, position, true);
                 return;
             }
-            Utils.showToastShort(L10n.f("%1$s is unlocked", chat.name));
+            Utils.showToastShort(L10n.f("%1$s is unlocked", L10n.isolate(chat.name)));
             setChecked(dialog, position, false);
         };
         Activity activity = getActivity();
@@ -3463,13 +3463,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         notSaved((AlertDialog) dialog, which, false);
                         return;
                     }
-                    Utils.showToastShort(L10n.f("%1$s is hidden", chat.name));
+                    Utils.showToastShort(L10n.f("%1$s is hidden", L10n.isolate(chat.name)));
                 } else {
                     if (!HiddenChats.remove(account, chat.id)) {
                         notSaved((AlertDialog) dialog, which, true);
                         return;
                     }
-                    Utils.showToastShort(L10n.f("%1$s is shown again", chat.name));
+                    Utils.showToastShort(L10n.f("%1$s is shown again", L10n.isolate(chat.name)));
                 }
             });
         }

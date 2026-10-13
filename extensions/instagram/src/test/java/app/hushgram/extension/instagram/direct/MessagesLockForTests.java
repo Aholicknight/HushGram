@@ -29,4 +29,14 @@ public final class MessagesLockForTests {
     public static void relock() {
         MessagesLock.relock(true);
     }
+
+    /** Instagram signed in to [account], as the chat lists read it. */
+    public static void signIn(String account) {
+        ChatAccounts.signInForTests(account);
+    }
+
+    /** No account known, as at a fresh start. */
+    public static void signOut() {
+        ChatAccounts.resetForTests();
+    }
 }

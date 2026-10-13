@@ -134,6 +134,21 @@ public class L10nTest {
         assertEquals("...", L10n.capitalize(in(Locale.US), "..."));
     }
 
+    /**
+     * What goes in an isolate stays in it: its own isolate marks come out and its line breaks
+     * become spaces, since either could end the isolate a report leaves out before the text does.
+     */
+    @Test
+    public void anIsolatedValueCannotEndItsIsolateEarly() {
+        String open = String.valueOf((char) 0x2068);
+        String close = String.valueOf((char) 0x2069);
+        assertEquals(open + "Movies/Clips" + close, L10n.isolate("Movies/Clips"));
+        assertEquals(open + "Ana and Bo" + close, L10n.isolate("Ana⁩ and⁦ Bo⁧"));
+        assertEquals(open + "a b c d e f" + close, L10n.isolate("a\nb\rc d e\u0085f"));
+        assertEquals(open + close, L10n.isolate("⁨⁩"));
+        assertEquals("", L10n.isolate(""));
+    }
+
     /** A format's numbers come out the phone's way even when its sentence is English. */
     @Test
     public void aFormatWritesItsNumbersThePhonesWay() {

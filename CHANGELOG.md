@@ -152,6 +152,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** With a HushGram PIN, making Lock again wait longer asks for the PIN every time, like switching a lock off does, even when Instagram is already unlocked. A wrong PIN or Cancel keeps the wait you had, and a shorter wait still applies right away.
 
+* **Instagram - Lock your messages:** A diagnostics report saved with Debug logging on no longer names the chats you lock, unlock, hide or show again. The message on screen still names the chat. Names with a line break or unusual text-direction marks in them are left out too.
+
 * **Instagram - Glass tab bar:** Closed screens are let go of again. Every restyled tab bar used to stay in memory with the screen it belonged to and its blurred backdrop, so memory crept up each time Instagram rebuilt a screen with the bar on it.
 
 ## 0.0.9 (2026-10-11)
