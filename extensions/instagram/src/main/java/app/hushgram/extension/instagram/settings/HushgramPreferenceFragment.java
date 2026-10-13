@@ -3239,7 +3239,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** How long after you leave Instagram the locks lock again; its summary says what the choice does. */
+    /**
+     * How long after you leave Instagram the locks lock again; its summary says what the choice does.
+     * With a PIN behind the locks, a longer wait weakens them, so it asks the PIN every time, as
+     * switching a lock off does, even in a session already unlocked (audit 2026-10-12). Nothing is
+     * saved until the PIN is right, and a shorter wait takes effect at once.
+     */
     static LockDelayRow lockDelayRow(Context context) {
         LockDelayRow row = new LockDelayRow(context);
         row.setKey(Settings.LOCK_AGAIN.key);
@@ -3256,6 +3261,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setEntries(entries);
         row.setEntryValues(values);
         row.setValue(Settings.LOCK_AGAIN.savedValue().name());
+        row.setOnPreferenceChangeListener((preference, value) -> {
+            LockDelay target = LockDelayRow.delayOf(value);
+            LockDelayRow delayRow = (LockDelayRow) preference;
+            if (target.millis <= LockDelayRow.delayOf(delayRow.getValue()).millis || !PinLock.protects()) return true;
+            Activity activity = activityOf(preference.getContext());
+            if (activity != null) MessagesLock.confirmPinThen(activity, () -> delayRow.setValue(target.name()));
+            return false;
+        });
         return row;
     }
 
@@ -5480,11 +5493,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             showSummary();
         }
 
-        void showSummary() {
-            LockDelay delay = LockDelay.RIGHT_AWAY;
+        /** The delay a value of the list names, Right away for one it doesn't. */
+        static LockDelay delayOf(@Nullable Object value) {
             for (LockDelay candidate : LockDelay.values()) {
-                if (candidate.name().equals(getValue())) delay = candidate;
+                if (candidate.name().equals(value)) return candidate;
             }
+            return LockDelay.RIGHT_AWAY;
+        }
+
+        void showSummary() {
+            LockDelay delay = delayOf(getValue());
             setSummary(delay == LockDelay.RIGHT_AWAY
                     ? L10n.t("Instagram locks as soon as you leave it or the screen turns off.")
                     : L10n.f("Instagram locks once you've been away from it for %1$s.", lockDelayAway(delay)));
