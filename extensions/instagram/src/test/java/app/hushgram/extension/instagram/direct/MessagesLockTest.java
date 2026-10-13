@@ -15,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.app.Application;
+import android.app.Fragment;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -403,6 +404,32 @@ public class MessagesLockTest {
         assertNotNull(ShadowToast.getTextOfLatestToast());
         MessagesLock.check(activity);
         assertEquals(View.GONE, cover(activity).getVisibility());
+    }
+
+    /**
+     * Turning the phone while its own lock screen check is up brings Instagram's activity back with
+     * the headless answer in it. The answer it brings back waits for that check rather than failing
+     * the ask, so unlocking in the phone's screen still opens the messages, with no second check.
+     */
+    @Test
+    public void thePhonesAnswerOutlastsTheActivityComingBack() {
+        ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup();
+        boolean[] answered = new boolean[2];
+        MessagesLock.Answer.start(controller.get(), new Intent("android.app.action.CONFIRM_DEVICE_CREDENTIAL"),
+                () -> answered[0] = true, () -> answered[1] = true);
+        assertNotNull("the check started", Shadows.shadowOf(controller.get()).getNextStartedActivityForResult());
+
+        controller.recreate();
+        Activity back = controller.get();
+        ShadowLooper.idleMainLooper();
+        Fragment answer = back.getFragmentManager().findFragmentByTag(MessagesLock.Answer.TAG);
+
+        assertNotNull("the answer went away with the old activity", answer);
+        assertFalse("the ask failed before the check answered", answered[1]);
+        assertNull("the check started again", Shadows.shadowOf(back).getNextStartedActivityForResult());
+        answer.onActivityResult(MessagesLock.Answer.REQUEST, Activity.RESULT_OK, null);
+        assertTrue(answered[0]);
+        assertFalse(answered[1]);
     }
 
     /**

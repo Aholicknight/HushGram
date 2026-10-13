@@ -1069,8 +1069,10 @@ public final class MessagesLock {
      * Instagram's included.
      */
     public static final class Answer extends Fragment {
-        private static final String TAG = "hushgram_messages_lock";
-        private static final int REQUEST = 0x4847;
+        static final String TAG = "hushgram_messages_lock";
+        static final int REQUEST = 0x4847;
+        /** Saved with the fragment: the phone's check was started and is still open. */
+        private static final String ASKED = "asked";
         private static Runnable pendingConfirmed;
         private static Runnable pendingNotConfirmed;
         private Intent intent;
@@ -1089,8 +1091,18 @@ public final class MessagesLock {
         @Override
         public void onCreate(Bundle state) {
             super.onCreate(state);
+            // Brought back with its activity (a rotation or a theme change while the phone's check
+            // was up): that check is still open and answers this fragment, so wait for it.
+            if (state != null && state.getBoolean(ASKED)) return;
             if (intent != null) startActivityForResult(intent, REQUEST);
             else finish(false);
+        }
+
+        @Override
+        public void onSaveInstanceState(Bundle state) {
+            super.onSaveInstanceState(state);
+            // A fragment that saves nothing comes back with no state at all, as if it were new.
+            state.putBoolean(ASKED, true);
         }
 
         @Override
