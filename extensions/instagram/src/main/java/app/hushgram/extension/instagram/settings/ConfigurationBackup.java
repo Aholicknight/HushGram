@@ -261,10 +261,11 @@ public final class ConfigurationBackup {
      * With a HushGram PIN behind the locks, a file (or an Undo) can't switch Lock your messages or
      * Lock all of Instagram, so a backup can't be a way round the PIN. With the phone's lock behind
      * them, it can't while they're locked either: settings left open from before the lock came back
-     * ask for a new unlock first, and this holds at the write itself.
+     * ask for a new unlock first, and this holds at the write itself. Lock again is held the same
+     * way, since a longer wait from a file would keep the messages open longer than the PIN allowed.
      */
     private static boolean heldByLock(Setting<?> setting) {
-        return (setting == Settings.LOCK_MESSAGES || setting == Settings.LOCK_APP)
+        return (setting == Settings.LOCK_MESSAGES || setting == Settings.LOCK_APP || setting == Settings.LOCK_AGAIN)
                 && (app.hushgram.extension.instagram.direct.PinLock.protects()
                         || app.hushgram.extension.instagram.direct.MessagesLock.locked());
     }

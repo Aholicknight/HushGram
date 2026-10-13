@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 
+import app.hushgram.extension.instagram.direct.LockDelay;
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.direct.MessagesLockForTests;
 import app.hushgram.extension.instagram.direct.PinLock;
@@ -44,6 +45,7 @@ public class PinBackupTest {
     @After
     public void restore() {
         Settings.LOCK_MESSAGES.resetToDefault();
+        Settings.LOCK_AGAIN.resetToDefault();
         Settings.UNLOCK_WITH.resetToDefault();
         Settings.LOCK_PIN_MISSES.resetToDefault();
         Settings.LOCK_PIN_WAIT_UNTIL.resetToDefault();
@@ -122,6 +124,25 @@ public class PinBackupTest {
 
         assertFalse(Settings.LOCK_MESSAGES.savedValue());
         assertFalse(Settings.LOCK_APP.savedValue());
+        ConfigurationBackup.forgetUndo();
+    }
+
+    /** A longer Lock again asks the PIN in settings, so a file can't set it round the PIN either. */
+    @Test
+    public void anImportCannotChangeLockAgainWhileAPinIsChosen() throws Exception {
+        MessagesLockForTests.open();
+        assertFalse(MessagesLock.locked());
+        byte[] anHour = ("{\"project\":\"HushGram\",\"schema\":1,\"settings\":{\"" + Settings.LOCK_AGAIN.key
+                + "\":{\"type\":\"enum\",\"value\":\"ONE_HOUR\"}}}").getBytes(StandardCharsets.UTF_8);
+
+        ConfigurationBackup.Result result = ConfigurationBackup.restore(anHour);
+        assertEquals(LockDelay.RIGHT_AWAY, Settings.LOCK_AGAIN.get());
+        assertEquals(1, result.skipped);
+
+        // With the phone's lock behind it and unlocked, the same file applies.
+        Settings.UNLOCK_WITH.save(UnlockWith.PHONE_LOCK);
+        ConfigurationBackup.restore(anHour);
+        assertEquals(LockDelay.ONE_HOUR, Settings.LOCK_AGAIN.get());
         ConfigurationBackup.forgetUndo();
     }
 
