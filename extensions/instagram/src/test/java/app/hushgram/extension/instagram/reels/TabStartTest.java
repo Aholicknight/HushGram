@@ -99,6 +99,58 @@ public class TabStartTest {
         assertSame(Tab.PROFILE, coldStart(launcher(), BAR, Tab.CLIPS));
     }
 
+    /** #55: Home leaves Instagram's reopen on Reels alone, Always Home sends that one start to Home. */
+    @Test
+    public void alwaysHomeSendsAReelsReopenToHomeWhereHomeKeepsIt() {
+        assertSame("Home is Instagram's own start", Tab.CLIPS, coldStart(launcher(), BAR, Tab.CLIPS));
+
+        TabStart.forgetForTests();
+        HookStatus.clear();
+        Settings.START_TAB.save(StartTab.ALWAYS_HOME);
+        assertSame(Tab.FEED, coldStart(launcher(), BAR, Tab.CLIPS));
+        assertSame("a tap on Reels after that is the person's", Tab.CLIPS, ReelsTab.tab(Tab.CLIPS));
+        String report = String.join(" | ", HookStatus.report());
+        assertTrue(report, report.contains("Start tab applied 1"));
+    }
+
+    @Test
+    public void alwaysHomeLeavesAHomeLandingAsItCame() {
+        Settings.START_TAB.save(StartTab.ALWAYS_HOME);
+        assertSame(Tab.FEED, coldStart(launcher(), BAR, Tab.FEED));
+        TabStart.forgetForTests();
+        assertSame("Home with the feed switcher is Home already",
+                Tab.FEED_SWITCHER, coldStart(launcher(), BAR, Tab.FEED_SWITCHER));
+        String report = String.join(" | ", HookStatus.report());
+        assertFalse(report, report.contains("Start tab applied"));
+    }
+
+    @Test
+    public void alwaysHomeLeavesAReelsStartThatIsNotFromTheIcon() {
+        Settings.START_TAB.save(StartTab.ALWAYS_HOME);
+        Intent link = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.instagram.com/reel/abc/"));
+        assertSame("a reel opened by a link", Tab.CLIPS, coldStart(link, BAR, Tab.CLIPS));
+
+        TabStart.forgetForTests();
+        TabStart.noteFirstStart(launcher(), new Bundle());
+        ReelsTab.tabs(BAR);
+        assertSame("a restored activity", Tab.CLIPS, ReelsTab.tab(Tab.CLIPS));
+
+        TabStart.forgetForTests();
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        try {
+            assertSame("paused", Tab.CLIPS, coldStart(launcher(), BAR, Tab.CLIPS));
+        } finally {
+            PauseForTests.resume();
+        }
+
+        TabStart.forgetForTests();
+        TabStart.noteFirstStart(launcher(), null);
+        ReelsTab.tabs(BAR);
+        TabStart.noteResumed();
+        ShadowSystemClock.advanceBy(Duration.ofMillis(TabStart.STARTUP_MS + 1));
+        assertSame("a tap on Reels once Instagram is up", Tab.CLIPS, ReelsTab.tab(Tab.CLIPS));
+    }
+
     @Test
     public void aNotificationLinkOrShortcutStartIsLeftAlone() {
         Settings.START_TAB.save(StartTab.SEARCH);

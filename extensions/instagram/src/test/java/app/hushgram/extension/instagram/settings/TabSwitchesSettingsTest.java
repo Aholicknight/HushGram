@@ -101,9 +101,10 @@ public class TabSwitchesSettingsTest {
         assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), choice).getTitle()));
         List<String> entries = new java.util.ArrayList<>();
         for (CharSequence entry : choice.getEntries()) entries.add(String.valueOf(entry));
-        assertEquals(Arrays.asList("Home", "Search", "Messages", "Reels", "Profile"), entries);
+        assertEquals(Arrays.asList("Home", "Always Home", "Search", "Messages", "Reels", "Profile"), entries);
         assertEquals("HOME", choice.getValue());
-        assertEquals("Instagram opens the way it always has.", String.valueOf(choice.getSummary()));
+        assertEquals("Instagram opens the way it always has, which can be Reels if you left it there.",
+                String.valueOf(choice.getSummary()));
         assertTrue(Settings.START_TAB.rebootApp);
         assertEquals(app.hushgram.extension.instagram.reels.StartTab.HOME, Settings.START_TAB.get());
 
@@ -112,6 +113,12 @@ public class TabSwitchesSettingsTest {
         assertEquals(app.hushgram.extension.instagram.reels.StartTab.SEARCH, Settings.START_TAB.savedValue());
         assertTrue(String.valueOf(choice.getSummary()).replaceAll("[\u2068\u2069]", "").startsWith("Instagram opens on Search when you start it from its icon."));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.START_TAB.key));
+
+        choice.setValue("ALWAYS_HOME");
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        assertEquals(app.hushgram.extension.instagram.reels.StartTab.ALWAYS_HOME, Settings.START_TAB.savedValue());
+        assertTrue(String.valueOf(choice.getSummary()),
+                String.valueOf(choice.getSummary()).startsWith("Instagram opens on Home when you start it from its icon, even if"));
         Settings.START_TAB.resetToDefault();
     }
 

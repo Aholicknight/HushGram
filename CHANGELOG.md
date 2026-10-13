@@ -36,6 +36,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide the Reels tab:** New switch under Tab bar, Show the Messages tab, off by default. If Instagram left Messages off your tab bar, it goes back on before Profile, and Tab order can move it. Asked for in #160.
 
+* **Instagram - Hide the Reels tab:** Start tab has a new Always Home choice. Instagram reopens on Reels when that's where you left it, and Always Home opens it on Home every time you start it from its icon. Asked for in #55.
+
 * **Instagram - Lock your messages:** Locked and hidden chats belong to the account you picked them on. A group two of your accounts share can be locked on one and left open on the other.
 
 * **Instagram - Lock your messages:** Each account's settings list shows only its own chats, and a message notification follows the account it was sent to, whichever account is open.

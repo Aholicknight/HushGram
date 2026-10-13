@@ -4343,6 +4343,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** What the list calls [tab]. */
     static String startTabLabel(StartTab tab) {
         switch (tab) {
+            case ALWAYS_HOME:
+                return L10n.t("Always Home");
             case SEARCH:
                 return L10n.t("Search");
             case MESSAGES:
@@ -4358,7 +4360,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /** What the choice of [tab] does, for the row's summary. */
     static String startTabSummary(StartTab tab) {
-        if (tab == StartTab.HOME) return L10n.t("Instagram opens the way it always has.");
+        if (tab == StartTab.HOME) {
+            return L10n.t("Instagram opens the way it always has, which can be Reels if you left it there.");
+        }
+        if (tab == StartTab.ALWAYS_HOME) {
+            return L10n.t("Instagram opens on Home when you start it from its icon, even if you left it on Reels. "
+                    + "A notification or a link still opens what it's for. Restart Instagram to see the change.");
+        }
         return L10n.f("Instagram opens on %1$s when you start it from its icon. A notification or a link still opens "
                 + "what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.",
                 L10n.isolate(startTabLabel(tab)));
