@@ -334,6 +334,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Show a reel's exact time patch. */
+    public static boolean reelPostTime() {
+        return false;
+    }
+
     /** Rewritten by the Blur the bars around Reels patch. */
     public static boolean reelBlurBars() {
         return false;

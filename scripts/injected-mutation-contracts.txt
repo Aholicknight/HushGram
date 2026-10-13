@@ -1361,6 +1361,20 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelsSuggestions;->netego(Ljav
 # one method hooked, and that the extension's names are the Reels tab lanes'.
 once-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
 
+# Show a reel's exact time hands the Reels title and the list of its column's parts to
+# ReelPostTime.line just before the title makes that column (the one method loading the title's
+# render marker below), once, so the line with the time goes in after the name row and Instagram's
+# own subtitle. Where a subtitle picks what to draw for its state (the one method loading the
+# pick's marker), ReelPostTime.lineText is asked first, and the branch that draws the line takes
+# its listener from ReelPostTime.noClick, once. Left out, the switch shows nothing, or a state
+# Instagram doesn't know reaches its own choice. Twice or elsewhere, it isn't the hook the patch
+# wrote. The subtitle maker the patch adds to the title holds no marker, so each marker still
+# names one method. NativeShowReelTimeTest checks on all seven 450 builds where each lands.
+once-call Lapp/hushgram/extension/instagram/reels/ReelPostTime;->line(Ljava/lang/Object;Ljava/lang/Object;)V in instance (L*;)L*; holding android_purge_26_q3_ClipsTitleAndSubtitleComponent_render
+start-call Lapp/hushgram/extension/instagram/reels/ReelPostTime;->lineText(Ljava/lang/Object;)Ljava/lang/CharSequence; in instance (L*;L*;L*;L*;L*;L*;L*;ZZ)L*; holding android_purge_26_q3_ClipsAuthorSubtitleComponent_getComponentFromClipsAuthorSubtitleType
+once-call Lapp/hushgram/extension/instagram/reels/ReelPostTime;->lineText(Ljava/lang/Object;)Ljava/lang/CharSequence; in instance (L*;L*;L*;L*;L*;L*;L*;ZZ)L*; holding android_purge_26_q3_ClipsAuthorSubtitleComponent_getComponentFromClipsAuthorSubtitleType
+once-call Lapp/hushgram/extension/instagram/reels/ReelPostTime;->noClick()Landroid/view/View$OnClickListener; in instance (L*;L*;L*;L*;L*;L*;L*;ZZ)L*; holding android_purge_26_q3_ClipsAuthorSubtitleComponent_getComponentFromClipsAuthorSubtitleType
+
 # Keep a seek bar on Reels answers the shortest ordinary reel that gets a seek bar through
 # ReelSeekBar.minSeconds, at each of the three reads of that server value, and the hidden kind of
 # bar through ReelSeekBar.lazy at its one read. The check of whether a reel gets the bar (03vg.A0M

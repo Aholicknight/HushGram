@@ -685,6 +685,10 @@ Save profile picture	Salvar foto do perfil
 Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.	Adiciona Salvar foto do perfil ao menu no perfil de alguém. Salva a foto no maior tamanho que o Instagram tiver.
 Show a post's exact time	Mostrar o horário exato de um post
 Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.	Mostra quando um post e os comentários dele foram publicados, como 2 de out., 15:45, em vez de há quanto tempo. Posts carregados depois de uma mudança mostram isso.
+Show a reel's exact time	Mostrar o horário exato de um reel
+Shows the date and time a reel was posted under the author's name, like Oct 2, 3:45 PM. A change shows from the next reel.	Mostra a data e a hora em que um reel foi publicado abaixo do nome do autor, como 2 de out., 15:45. A mudança aparece a partir do próximo reel.
+Show seconds in a reel's time	Mostrar os segundos no horário de um reel
+Adds the seconds to a reel's time, like Oct 2, 3:45:30 PM.	Adiciona os segundos ao horário de um reel, como 2 de out., 15:45:30.
 Show like counts the poster hid	Mostrar curtidas que o autor ocultou
 Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.	Mostra quantas curtidas um post ou reel tem quando o dono ocultou o número, mas só quando o Instagram ainda envia esse número. Se não enviar, nada muda. Posts carregados depois de uma mudança mostram isso.
 Back leaves Home as it is	Voltar sai do Início como está

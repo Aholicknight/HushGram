@@ -1342,6 +1342,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_big_reel_seek_bar", FALSE);
 
     /**
+     * A reel shows the date and time it was posted on a line under its author's name
+     * ({@link app.hushgram.extension.instagram.reels.ReelPostTime}), the way a post's exact time
+     * writes it (#172). Read as each reel's title is drawn, so a change shows from the next reel.
+     * Off to start.
+     */
+    public static final BooleanSetting SHOW_REEL_POST_TIME =
+            new BooleanSetting("hushgram_show_reel_post_time", FALSE);
+
+    /**
+     * {@link #SHOW_REEL_POST_TIME} writes the seconds too, like Oct 2, 3:45:30 PM. Off to start, so
+     * a reel's time has the precision a post's has until someone asks for more.
+     */
+    public static final BooleanSetting REEL_POST_TIME_SECONDS =
+            new BooleanSetting("hushgram_reel_post_time_seconds", FALSE, parent(SHOW_REEL_POST_TIME));
+
+    /**
      * A reel that doesn't fill the screen shows a blurred copy of itself in the bars above and below
      * it, or beside it, instead of black ({@link app.hushgram.extension.instagram.reels.ReelBlurBars}).
      * Looked at when the Reels viewer opens and then as pages settle, so a change shows the next time

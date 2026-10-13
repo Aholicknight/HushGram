@@ -46,6 +46,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Download any video:** New switch under Downloads, Skip what's already saved, off by default. Something you saved isn't saved twice unless you ask again within 30 seconds. It remembers your newest 15,000 saves, and Clear download history forgets the list. Asked for in #150.
 
+* **Instagram - Show a reel's exact time:** New patch. A reel says when it was posted on a line under the author's name, like Oct 2, 3:45 PM. The switch is under Reels and starts off. A second switch adds the seconds. Asked for in #172.
+
 #### Improvements
 
 * **Tooling:** Device builds support separate keystore and key passwords, including an empty store password. The installer also picks one ADB executable when the path lists more than one.

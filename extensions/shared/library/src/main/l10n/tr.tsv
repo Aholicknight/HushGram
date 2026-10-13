@@ -685,6 +685,10 @@ Save profile picture	Profil fotoğrafını kaydet
 Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.	Birinin profilindeki menüye Profil fotoğrafını kaydet seçeneğini ekler. Fotoğrafı Instagram'daki en büyük boyutta kaydeder.
 Show a post's exact time	Gönderinin tam zamanını göster
 Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.	Bir gönderinin ve yorumlarının ne zaman paylaşıldığını, ne kadar önce olduğu yerine 2 Eki, 15:45 gibi gösterir. Değişiklikten sonra yüklenen gönderilerde görünür.
+Show a reel's exact time	Reel'in tam zamanını göster
+Shows the date and time a reel was posted under the author's name, like Oct 2, 3:45 PM. A change shows from the next reel.	Bir reel'in paylaşıldığı tarihi ve saati, paylaşanın adının altında 2 Eki, 15:45 gibi gösterir. Değişiklik bir sonraki reel'den itibaren görünür.
+Show seconds in a reel's time	Reel zamanında saniyeleri göster
+Adds the seconds to a reel's time, like Oct 2, 3:45:30 PM.	Reel'in zamanına saniyeleri ekler, 2 Eki, 15:45:30 gibi.
 Show like counts the poster hid	Paylaşanın gizlediği beğeni sayılarını göster
 Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.	Sahibi beğeni sayısını gizlemiş bir gönderinin veya reels videosunun kaç beğenisi olduğunu gösterir, ama yalnızca Instagram bu sayıyı hâlâ gönderiyorsa. Göndermiyorsa hiçbir şey değişmez. Değişiklikten sonra yüklenen gönderilerde görünür.
 Back leaves Home as it is	Geri tuşu Ana Sayfa'dan olduğu gibi çıkar

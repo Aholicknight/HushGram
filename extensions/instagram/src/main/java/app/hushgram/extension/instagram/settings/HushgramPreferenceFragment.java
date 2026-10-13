@@ -874,6 +874,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. "
                             + "Slide the lock off, or hold the edge and let go, to go back to normal speed.")));
         }
+        if (build.contains(PatchFamily.REEL_POST_TIME)) {
+            reels.add(toggle(context, Settings.SHOW_REEL_POST_TIME, L10n.t("Show a reel's exact time"),
+                    L10n.t("Shows the date and time a reel was posted under the author's name, like Oct 2, 3:45 PM. "
+                            + "A change shows from the next reel.")));
+            reels.add(toggle(context, Settings.REEL_POST_TIME_SECONDS, L10n.t("Show seconds in a reel's time"),
+                    L10n.t("Adds the seconds to a reel's time, like Oct 2, 3:45:30 PM.")));
+        }
         if (build.contains(PatchFamily.REEL_SEEK_BAR)) {
             reels.add(toggle(context, Settings.REEL_SEEK_BAR, L10n.t("Keep a seek bar"),
                     L10n.t("Instagram's seek bar stays under every reel, short ones too, with the time played and "

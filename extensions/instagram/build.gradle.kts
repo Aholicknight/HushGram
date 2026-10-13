@@ -819,6 +819,21 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.reels.PaidPartnershipReelsTest" to listOf(
                 "offPausedAndUnreadyKeepEveryReel[28]", "offPausedAndUnreadyKeepEveryReel[37]",
                 "aThrowingReaderOrSwitchKeepsThePageAndIsReported[28]", "aThrowingReaderOrSwitchKeepsThePageAndIsReported[37]"),
+            "app.hushgram.extension.instagram.reels.ReelPostTimeTest" to listOf(
+                "aReelWithATimeGetsALineAfterInstagramsParts[28]", "aReelWithATimeGetsALineAfterInstagramsParts[37]",
+                "theSecondsShowOnlyWhenAskedFor[28]", "theSecondsShowOnlyWhenAskedFor[37]",
+                "a24HourPhoneGetsItsOwnClock[28]", "a24HourPhoneGetsItsOwnClock[37]",
+                "aTimeThatIsntOneGetsNoLine[28]", "aTimeThatIsntOneGetsNoLine[37]",
+                "aTimeInTheFutureGetsNoLine[28]", "aTimeInTheFutureGetsNoLine[37]",
+                "aTitleDrawnAgainForAReelWithoutATimeHasNoLine[28]", "aTitleDrawnAgainForAReelWithoutATimeHasNoLine[37]",
+                "offPausedAndUnreadyAddNoLine[28]", "offPausedAndUnreadyAddNoLine[37]",
+                "aThrowingReaderOrListAddsNoLineAndIsReported[28]", "aThrowingReaderOrListAddsNoLineAndIsReported[37]"),
+            "app.hushgram.extension.instagram.settings.ReelPostTimeSettingsTest" to listOf(
+                "missingPatchHasNoReelTimeSwitches[28]", "missingPatchHasNoReelTimeSwitches[37]",
+                "reelTimeAloneStillGetsReels[28]", "reelTimeAloneStillGetsReels[37]",
+                "reelTimeSwitchStartsOffUnderReelsAfterTheSpeedAndHonorsPause[28]",
+                "reelTimeSwitchStartsOffUnderReelsAfterTheSpeedAndHonorsPause[37]",
+                "theSecondsStartOffAndWaitForTheSwitch[28]", "theSecondsStartOffAndWaitForTheSwitch[37]"),
             "app.hushgram.extension.instagram.reels.ReelSeekBarTest" to listOf(
                 "offPausedAndUnreadyLeaveInstagramsAnswers[28]", "offPausedAndUnreadyLeaveInstagramsAnswers[37]",
                 "aThrowingSwitchLeavesInstagramsAnswersAndIsReported[28]", "aThrowingSwitchLeavesInstagramsAnswersAndIsReported[37]",
