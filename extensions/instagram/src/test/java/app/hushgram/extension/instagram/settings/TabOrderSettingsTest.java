@@ -18,6 +18,7 @@ import android.content.DialogInterface;
 import android.preference.Preference;
 import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -147,6 +148,23 @@ public class TabOrderSettingsTest {
         assertEquals("DIRECT,FEED,SEARCH,CLIPS,CREATION,PROFILE", Settings.TAB_ORDER.get());
         assertEquals("Tabs go in this order: Messages, Home, Search, Reels, Create, Profile. Restart Instagram to see the change.",
                 String.valueOf(row().getSummary()).replaceAll("[⁦-⁩]", ""));
+    }
+
+    /** A tab's name takes the page's title colour. Left in the framework's own it was dark on a dark list (#55). */
+    @Test public void aTabsNameReadsInThePagesTitleColour() throws Exception {
+        open(PatchFamily.REELS_TAB);
+        AlertDialog dialog = openList();
+        ListView list = dialog.getListView();
+        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        for (int at = 0; at < list.getAdapter().getCount(); at++) {
+            TextView name = (TextView) list.getAdapter().getView(at, null, list);
+            assertEquals(String.valueOf(name.getText()), colors.title, name.getCurrentTextColor());
+        }
+
+        tap(list, 3);
+        TextView moved = (TextView) list.getAdapter().getView(2, null, list);
+        assertEquals("Messages", String.valueOf(moved.getText()));
+        assertEquals(colors.title, moved.getCurrentTextColor());
     }
 
     @Test public void instagramsOrderClearsTheChoice() throws Exception {

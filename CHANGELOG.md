@@ -122,6 +122,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** Hide the tab bar as you scroll now keeps the bar in place on every reel. It used to slide away on reels that didn't fill the screen and stay put on the rest. Reported in #170.
 
+* **Instagram - Hide the Reels tab:** The tab names in Tab order's list are easy to read now. They were dark gray on a dark list. Reported in #55.
+
 * **Instagram - Keep a seek bar on Reels:** Bigger seek bar on reels now draws at about twice the standard thickness and runs through the handle. Only the played portion turns white. Reported in #10.
 
 * **Instagram - Full screen Reels and Home:** Reels and Home now use the space left by hidden system bars. The empty strips at the top and bottom are gone. Reported in #147 and #14.
