@@ -54,14 +54,17 @@ internal fun BytecodePatchContext.optionIcon(patch: String): String {
 /**
  * The body of a method answering a new option with Download's ordinal and icon, made by the
  * option's own constructor, named by what [loadName] puts in v1. [icon] is the getter
- * [optionIcon] proved. It uses v0 to v3.
+ * [optionIcon] proved. With [iconThrough], a static (I)I method, Download's icon goes through it
+ * and the option draws what it answers. It uses v0 to v3.
  */
-internal fun newOption(icon: String, loadName: String): String = listOf(
+internal fun newOption(icon: String, loadName: String, iconThrough: String? = null): String = listOfNotNull(
     "sget-object v0, $DOWNLOAD",
     "invoke-virtual { v0 }, Ljava/lang/Enum;->ordinal()I",
     "move-result v2",
     "invoke-virtual { v0 }, $OPTION->$icon()I",
     "move-result v3",
+    iconThrough?.let { "invoke-static { v3 }, $it" },
+    iconThrough?.let { "move-result v3" },
     loadName,
     "new-instance v0, $OPTION",
     "invoke-direct { v0, v1, v2, v3 }, $OPTION-><init>(Ljava/lang/String;II)V",

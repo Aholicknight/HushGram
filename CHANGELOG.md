@@ -96,6 +96,8 @@ Every HushGram release, newest first.
 
 #### Bug Fixes
 
+* **Instagram - Hide suggested posts:** Hide posts from this account in a post's menu shows a crossed-out eye now, not Download's arrow.
+
 * **Instagram - HushGram settings:** Recovery and sign-in notices stay above settings, and Support stays last, including after a search. Native row sorting no longer reverses those positions.
 
 * **Instagram - HushGram settings:** Enabled actions and choices keep their full color when first shown. Android's background tint pass no longer leaves them looking disabled until their state changes.
