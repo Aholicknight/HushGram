@@ -10,6 +10,10 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** Long-press Instagram's feed logo to open HushGram settings, even while paused. Taps keep Instagram's behavior, and its own long press runs first. The icon shortcut and Settings and activity entry still work. On accounts with the newer Home header (the one with feed tabs), the logo it shows works the same way.
 
+* **Instagram - HushGram settings:** Quick setups, under Search, turns on a Quiet or Privacy set of switches in one tap, or puts every switch back the way it started. Your locks stay as they are.
+
+* **Instagram - HushGram settings:** Report a problem opens a GitHub bug report with your versions, device and switched-on settings already filled in.
+
 * **Instagram - Install next to Instagram:** New Mark the icon option, off by default. It puts a small HushGram badge on the second Instagram's home screen icon, and on the other icons Instagram lets you pick. Asked for in #145.
 
 * **Instagram - Hide the Reels tab:** New Center the name on profiles switch under Tab bar, off by default. The username at the top of a profile sits in the middle, and the buttons stay put. Asked for in #140.
@@ -39,6 +43,10 @@ Every HushGram release, newest first.
 * **Instagram - Download any video:** New switch under Downloads, Skip what's already saved, off by default. Something you saved isn't saved twice unless you ask again within 30 seconds. It remembers your newest 15,000 saves, and Clear download history forgets the list. Asked for in #150.
 
 #### Improvements
+
+* **Instagram - HushGram settings:** Restart now reopens settings on the page you were on.
+
+* **Instagram - HushGram settings:** Hide inbox suggestions and Ask for larger photos now show the restart card when you change them.
 
 * **Instagram - HushGram settings:** Switches use the same compact corners as the rest of settings, with their native on, off and disabled behavior preserved.
 
