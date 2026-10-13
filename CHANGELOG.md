@@ -80,7 +80,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** The bar keeps its glass appearance over videos. Its opacity and edge no longer change as videos scroll past. Video directly beneath the bar may show through without blur on some phones. Reported in #144.
 
-* **Instagram - Glass tab bar:** With Show content behind the tab bar on, Reels stops above the bar again. Its seek bar, caption and buttons stay visible, and Home and Profile respond across the full pill. Refs #65.
+* **Instagram - Glass tab bar:** With Show content behind the tab bar on, Reels stops above the bar again. Its seek bar, caption and buttons stay visible and take taps, and Home and Profile respond across the full pill. Refs #65, reported in #163 and #136.
 
 * **Instagram - Keep a seek bar on Reels:** Bigger seek bar on reels now draws at about twice the standard thickness and runs through the handle. Only the played portion turns white. Reported in #10.
 
