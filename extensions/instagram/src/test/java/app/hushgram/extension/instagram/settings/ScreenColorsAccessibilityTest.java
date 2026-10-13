@@ -23,7 +23,10 @@ import android.preference.Preference;
 import android.preference.SwitchPreference;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ContextThemeWrapper;
+import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.CheckedTextView;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ListAdapter;
@@ -143,6 +146,81 @@ public class ScreenColorsAccessibilityTest {
         assertTrue(secondary.getBackground() instanceof RippleDrawable);
         assertTrue(compact.getBackground() instanceof RippleDrawable);
         assertNotNull("Fields keep native editing", field.getKeyListener());
+    }
+
+    @Test @Config(sdk = {28, 37})
+    public void freshActionsPaintEnabledFillAndOutlineBeforeAnyStateToggle() {
+        ScreenColors colors = ScreenColors.DEFAULT;
+        for (int theme : new int[]{android.R.style.Theme_Material_Light_NoActionBar,
+                android.R.style.Theme_Material_NoActionBar}) {
+            for (boolean primary : new boolean[]{true, false}) {
+                Button action = new Button(new ContextThemeWrapper(controller.get(), theme));
+                action.setText(primary ? "Save" : "Cancel");
+                ScreenColors.styleAction(action, primary);
+                assertTrue(action.isEnabled());
+                int fill = primary ? colors.accent : colors.card;
+                int edge = primary ? colors.accent : colors.outline;
+                assertEquals("A fresh enabled action must start opaque", fill, nativePixel(action, 6));
+                assertEquals("Its default outline must start opaque", edge, nativePixel(action, 1));
+                ScreenColors.styleAction(action, primary);
+                assertEquals("Restyling an enabled action preserves the current fill", fill, nativePixel(action, 6));
+                action.setEnabled(false);
+                assertEquals("Only a disabled action uses the dimmed fill", 0x61, Color.alpha(nativePixel(action, 6)));
+                action.setEnabled(true);
+                assertEquals("Re-enabling restores the opaque fill", fill, nativePixel(action, 6));
+                assertEquals(edge, nativePixel(action, 1));
+            }
+        }
+    }
+
+    @Test @Config(sdk = {28, 37})
+    public void freshChoicesKeepTheirNativeEnabledAndCheckedStateThroughTheTintPass() {
+        ScreenColors colors = ScreenColors.DEFAULT;
+        Activity activity = controller.get();
+        ChoiceCards.Card card = new ChoiceCards.Card(activity, colors);
+        card.name.setText("Original");
+        card.detail.setText("Keep the original file.");
+        card.setBackgroundTintList(null);
+        assertEquals(colors.card, nativePixel(card, 10));
+        assertEquals("A fresh card's enabled outline must not become translucent", colors.outline, nativePixel(card, 4));
+
+        TextView plain = new TextView(activity);
+        plain.setText("Original");
+        plain.setBackgroundTintList(null);
+        new DialogChoices(singleRow(plain), colors).getView(0, null, new FrameLayout(activity));
+        assertEquals(colors.card, nativePixel(plain, 10));
+        assertEquals(colors.outline, nativePixel(plain, 4));
+
+        CheckedTextView checked = new CheckedTextView(activity);
+        checked.setText("Original");
+        checked.setChecked(true);
+        checked.setBackgroundTintList(null);
+        new DialogChoices(singleRow(checked), colors).getView(0, null, new FrameLayout(activity));
+        assertTrue(checked.isChecked());
+        assertEquals("An already checked choice keeps its native selection fill", 0x22,
+                Color.alpha(nativePixel(checked, 6)));
+        assertEquals(colors.heading, nativePixel(checked, 0));
+    }
+
+    private static BaseAdapter singleRow(View row) {
+        return new BaseAdapter() {
+            @Override public int getCount() { return 1; }
+            @Override public Object getItem(int position) { return row; }
+            @Override public long getItemId(int position) { return position; }
+            @Override public View getView(int position, View recycled, ViewGroup parent) { return row; }
+        };
+    }
+
+    /** Render the actual view's state. Do not push a synthetic state into its background. */
+    private int nativePixel(View view, int yDp) {
+        view.measure(View.MeasureSpec.makeMeasureSpec(dp(160), View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        view.layout(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        try {
+            view.draw(new Canvas(bitmap));
+            return bitmap.getPixel(bitmap.getWidth() / 2, dp(yDp));
+        } finally { bitmap.recycle(); }
     }
 
     @Test public void keyboardSelectedChoiceAndPreferenceRowsRetainFocusAndTouchFeedback() {

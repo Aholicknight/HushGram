@@ -69,7 +69,7 @@ final class DialogChoices extends BaseAdapter {
                 background.setStroke(Math.round(density), colors.interactionOutline(android.graphics.Color.TRANSPARENT));
                 background.setCornerRadius(Math.round(8 * density));
                 choice.setBackground(new RippleDrawable(ScreenColors.interactionRipple(colors.heading),
-                        background, null));
+                        background, null).mutate());
                 // A native choice is a compact full-width row, with room to grow when text wraps.
                 int verticalPadding = (int) (8 * density);
                 choice.setPaddingRelative(Math.round(24 * density), verticalPadding,
@@ -84,7 +84,7 @@ final class DialogChoices extends BaseAdapter {
             surface.setStroke(Math.round(density), colors.interactionOutline(colors.outline));
             surface.setCornerRadius(Math.round(12 * density));
             choice.setBackground(new RippleDrawable(ScreenColors.interactionRipple(colors.heading),
-                    new InsetDrawable(surface, side, gap, side, gap), null));
+                    new InsetDrawable(surface, side, gap, side, gap), null).mutate());
             // Rounding both sides up at densities such as 450dpi exceeds the measured 48dp row.
             int verticalPadding = (int) (12 * density) + gap;
             choice.setPaddingRelative(side + Math.round(16 * density), verticalPadding,

@@ -275,7 +275,7 @@ public final class ScreenColors {
         Drawable inset = new InsetDrawable(surface, dp(row, 18), first ? dp(row, 6) : -dp(row, 1),
                 dp(row, 18), last ? dp(row, 6) : 0);
         row.setBackground(preference.isSelectable()
-                ? new RippleDrawable(interactionRipple(heading), inset, null) : inset);
+                ? new RippleDrawable(interactionRipple(heading), inset, null).mutate() : inset);
         // Explicit padding after the inset background prevents its padding from moving the text.
         int vertical = preference.getIcon() == null ? 16 : 14;
         row.setPaddingRelative(dp(row, 30), dp(row, vertical + (first ? 6 : 0)),
@@ -481,7 +481,7 @@ public final class ScreenColors {
         surface.setStroke(dp(row, 2), interactionOutline(primary ? accent : outline,
                 primary ? onAccent : heading));
         row.setBackground(new RippleDrawable(interactionRipple(primary ? onAccent : heading),
-                new InsetDrawable(surface, dp(row, 18), dp(row, 4), dp(row, 18), dp(row, 4)), null));
+                new InsetDrawable(surface, dp(row, 18), dp(row, 4), dp(row, 18), dp(row, 4)), null).mutate());
         row.setMinimumHeight(dp(row, 56));
         row.setPadding(dp(row, 32), dp(row, 8), dp(row, 32), dp(row, 8));
     }
@@ -682,8 +682,10 @@ public final class ScreenColors {
         surface.setStroke(dp(action, 2), interactionOutline(primary ? accent : outline,
                 primary ? onAccent : heading));
         action.setBackgroundTintList(null);
+        // View's tint pass mutates the background after setting its state. Mutate first so
+        // that pass cannot replace enabled children with fresh, empty-state copies.
         action.setBackground(new RippleDrawable(
-                interactionRipple(primary ? onAccent : heading), surface, null));
+                interactionRipple(primary ? onAccent : heading), surface, null).mutate());
         action.setTextColor(dimmedWhenDisabled(primary ? onAccent : secondaryActionText()));
         action.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         action.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
@@ -709,7 +711,7 @@ public final class ScreenColors {
         surface.setCornerRadius(dp(action, 8));
         surface.setStroke(dp(action, 2), colors.interactionOutline(Color.TRANSPARENT));
         action.setBackgroundTintList(null);
-        action.setBackground(new RippleDrawable(interactionRipple(colors.heading), surface, null));
+        action.setBackground(new RippleDrawable(interactionRipple(colors.heading), surface, null).mutate());
     }
 
     private static int dp(View view, int value) {

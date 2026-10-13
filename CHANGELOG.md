@@ -86,6 +86,8 @@ Every HushGram release, newest first.
 
 #### Bug Fixes
 
+* **Instagram - HushGram settings:** Enabled actions and choices keep their full color when first shown. Android's background tint pass no longer leaves them looking disabled until their state changes.
+
 * **Instagram - HushGram settings:** Invalid Place and Sharing domain entries stay open with an explanation so you can correct them. Save and the keyboard's Done button use the same validation. Coordinates keep their order in right-to-left layouts.
 
 * **Instagram - Hide Meta AI:** Search results open the reel you tapped again. Hiding Meta AI's summary had shifted later results onto earlier reels. The summary now folds away without changing their positions. Reported in #152.

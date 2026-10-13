@@ -92,7 +92,7 @@ final class ChoiceCards extends BaseAdapter {
             surface.setStroke(dp(context, 1), colors.interactionOutline(colors.outline));
             surface.setCornerRadius(dp(context, 12));
             setBackground(new RippleDrawable(ScreenColors.interactionRipple(colors.heading),
-                    new InsetDrawable(surface, side, gap, side, gap), null));
+                    new InsetDrawable(surface, side, gap, side, gap), null).mutate());
             // Set after the background, which puts its insets in as the padding.
             setPaddingRelative(side + dp(context, 16), gap + dp(context, 14),
                     side + dp(context, 16), gap + dp(context, 14));
