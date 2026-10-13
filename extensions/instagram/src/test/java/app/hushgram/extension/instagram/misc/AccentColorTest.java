@@ -124,7 +124,8 @@ public class AccentColorTest {
         assertEquals(0xff000000 | purple.pale, AccentColor.color(PALE_BLUE));
         assertEquals(0x80000000 | purple.pale, AccentColor.color(0x80e0f1ff));
         assertEquals("the fill most of the way to white", 0xeee7fe, purple.pale);
-        assertEquals("Instagram's own pale blue from its blue", 0xe0f2fe, AccentHue.towardWhite(0x0095f6, 0.878f));
+        assertEquals("the same step from Instagram's blue lands within a shade of its pale blue, #e0f1ff",
+                0xe0f2fe, AccentHue.towardWhite(0x0095f6, 0.878f));
         assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 3, 0 found, 0 missing. Counted: "
                 + AccentColor.COLOR + " 3"), HookStatus.report());
     }
