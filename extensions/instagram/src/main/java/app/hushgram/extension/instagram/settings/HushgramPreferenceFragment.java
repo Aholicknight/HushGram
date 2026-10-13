@@ -741,7 +741,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (build.contains(PatchFamily.ACTIVE_STATUS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_ACTIVE_STATUS, L10n.t("Hide your active status"),
                         L10n.t("People don't see Active now for you while you use Instagram, and you still see when "
-                                + "they're active. Restart Instagram to see the change.")));
+                                + "they're active. It takes effect the next time you come back to Instagram.")));
             }
             if (build.contains(PatchFamily.LAST_ACTIVE)) {
                 messages.addPreference(toggle(context, Settings.SHOW_LAST_ACTIVE,

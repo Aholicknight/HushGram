@@ -48,6 +48,8 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** Hide inbox suggestions and Ask for larger photos now show the restart card when you change them.
 
+* **Instagram - Hide your active status:** Its description says the change applies the next time you come back to Instagram, instead of asking for a restart it doesn't need.
+
 * **Instagram - Hide suggested accounts in Reels:** Diagnostics now names every other kind of unit Reels shows besides reels and ads. If a page of suggestions still gets through, a saved report says what it was.
 
 * **Instagram - HushGram settings:** Switches use the same compact corners as the rest of settings, with their native on, off and disabled behavior preserved.
