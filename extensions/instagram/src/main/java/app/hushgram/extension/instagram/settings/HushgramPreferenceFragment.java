@@ -1819,10 +1819,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         View view = getView();
         if (!(view instanceof android.view.ViewGroup)) return;
         android.view.ViewGroup body = (android.view.ViewGroup) view;
-        body.setFocusableInTouchMode(true);
+        FocusRest.on(body);
         body.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         // PreferenceFragment posts focusableViewAvailable(list) after binding. Keep initial
-        // focus here; explicit focus on Search and its controls still works normally.
+        // focus here; explicit focus on Search and its controls still works normally. Under a
+        // keyboard the rest steps aside and this lands on the rows.
         body.setDescendantFocusability(android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS);
         body.requestFocus();
     }

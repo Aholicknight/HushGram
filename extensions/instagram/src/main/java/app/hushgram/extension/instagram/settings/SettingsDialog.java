@@ -134,7 +134,18 @@ public final class SettingsDialog extends DialogFragment {
             return new FrameLayout(getContext());
         }
         ScreenColors palette = ScreenColors.DEFAULT;
-        LinearLayout root = new LinearLayout(getContext());
+        LinearLayout root = new LinearLayout(getContext()) {
+            /**
+             * Focus that arrives from nowhere (the first key press, a field giving its focus up) goes
+             * to the page's rows before the Back arrow above them.
+             */
+            @Override
+            protected boolean onRequestFocusInDescendants(int direction, android.graphics.Rect previous) {
+                View page = findViewById(CONTAINER_ID);
+                if (previous == null && page != null && page.requestFocus(direction)) return true;
+                return super.onRequestFocusInDescendants(direction, previous);
+            }
+        };
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(palette.background);
 
@@ -200,7 +211,7 @@ public final class SettingsDialog extends DialogFragment {
             return insets;
         });
         // A newly opened screen must not steal focus and raise the keyboard.
-        root.setFocusableInTouchMode(true);
+        FocusRest.on(root);
         root.requestFocus();
         return root;
     }

@@ -255,6 +255,45 @@ public class CategoryPagesSettingsTest {
         }
     }
 
+    /**
+     * The two views that hold the focus for touch aren't stops under a keyboard. Left focusable, the
+     * screen's root took the focus a field gave up, the arrows couldn't leave it, and its focus
+     * highlight grayed the whole screen (S25, 2026-10-13).
+     */
+    @Test public void aKeyboardNeverLandsOnTheViewsThatHoldFocusForTouch() throws Exception {
+        openDialog();
+        layoutPage();
+        View root = dialog.getView();
+        View body = page.getView();
+        ListView list = body.findViewById(android.R.id.list);
+        touchMode(body, true);
+        assertTrue(root.isFocusableInTouchMode());
+        assertTrue(body.isFocusableInTouchMode());
+        assertFalse(root.getDefaultFocusHighlightEnabled());
+        assertFalse(body.getDefaultFocusHighlightEnabled());
+        assertTrue("touch keeps the focus off the rows: " + root.findFocus(), body.requestFocus() && body.isFocused());
+
+        touchMode(body, false);
+        assertFalse(root.isFocusable());
+        assertFalse(body.isFocusable());
+        assertTrue("the focus a rest gives up goes to the rows: " + root.findFocus(), list.hasFocus());
+
+        EditText input = body.findViewWithTag("hushgram-settings-search");
+        assertNotNull(input);
+        assertTrue(input.requestFocus());
+        input.clearFocus();
+        assertTrue("a field giving its focus up lands in the rows: " + root.findFocus(), list.hasFocus());
+
+        tap(categoryRow("Feed"));
+        layoutPage();
+        assertFalse(body.isFocusable());
+        assertTrue("a page opened by keyboard starts in its rows: " + root.findFocus(), list.hasFocus());
+
+        touchMode(body, true);
+        assertTrue(root.isFocusableInTouchMode());
+        assertTrue(body.isFocusableInTouchMode());
+    }
+
     private static void touchMode(View view, boolean value) {
         Object root = org.robolectric.util.ReflectionHelpers.callInstanceMethod(view, "getViewRootImpl");
         assertNotNull("The test must change the attached window's touch mode", root);
