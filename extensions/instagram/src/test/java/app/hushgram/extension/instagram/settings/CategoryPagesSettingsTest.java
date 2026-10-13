@@ -294,6 +294,36 @@ public class CategoryPagesSettingsTest {
         assertTrue(body.isFocusableInTouchMode());
     }
 
+    /**
+     * A search that starts brings its field to the top of the list. Under the status card and the
+     * sign-in notice it sat two thirds down a phone's screen, so the matches came up behind the
+     * keyboard (S25, 2026-10-13).
+     */
+    @Test public void startingASearchBringsItsFieldToTheTopOfTheList() throws Exception {
+        PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
+        openDialog();
+        ListView list = page.getView().findViewById(android.R.id.list);
+        EditText input = page.getView().findViewWithTag("hushgram-settings-search");
+        assertNotNull(input);
+        touchMode(input, true);
+        assertTrue(input.requestFocus());
+        input.setText("hide");
+        layoutPage();
+        Preference field = page.getPreferenceScreen().findPreference("hushgram_settings_search");
+        int at = -1;
+        for (int i = 0; i < list.getAdapter().getCount(); i++) if (list.getAdapter().getItem(i) == field) at = i;
+        assertTrue("the field sits under other rows to begin with: " + at, at > 0);
+        assertEquals(at, list.getFirstVisiblePosition());
+        assertEquals(list.getPaddingTop(), list.getChildAt(0).getTop());
+        assertTrue("moving the list lost typing focus: " + page.getView().findFocus(), input.hasFocus());
+
+        list.setSelectionFromTop(0, 0);
+        layoutPage();
+        input.setText("hide s");
+        layoutPage();
+        assertEquals("typing on leaves the list where the reader put it", 0, list.getFirstVisiblePosition());
+    }
+
     private static void touchMode(View view, boolean value) {
         Object root = org.robolectric.util.ReflectionHelpers.callInstanceMethod(view, "getViewRootImpl");
         assertNotNull("The test must change the attached window's touch mode", root);

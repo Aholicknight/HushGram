@@ -126,6 +126,8 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** A keyboard or a D-pad reaches every row now. The arrow keys used to get stuck on the page itself after the search box, and the whole screen turned gray while they were.
 
+* **Instagram - HushGram settings:** Starting a search moves the search box to the top of the screen, so what it finds shows up right under it. The results used to come up behind the keyboard.
+
 * **Instagram - Keep a seek bar on Reels:** Bigger seek bar on reels now draws at about twice the standard thickness and runs through the handle. Only the played portion turns white. Reported in #10.
 
 * **Instagram - Full screen Reels and Home:** Reels and Home now use the space left by hidden system bars. The empty strips at the top and bottom are gone. Reported in #147 and #14.

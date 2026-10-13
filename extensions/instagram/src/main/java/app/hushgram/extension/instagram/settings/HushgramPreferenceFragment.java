@@ -1955,8 +1955,33 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     };
 
     void searchSettings(String query) {
+        boolean starting = searchText(searchQuery).trim().isEmpty();
         searchQuery = query == null ? "" : query;
         filterSettings();
+        if (starting && !searchText(searchQuery).trim().isEmpty()) searchToTop();
+    }
+
+    /**
+     * A search that starts puts its field at the top of the list, so what it finds comes up right
+     * under it. Below the status card and the sign-in notice the field sat two thirds of the way
+     * down the screen: the matches came up behind the keyboard, and with it closed one and a half
+     * of them showed (S25, 2026-10-13). Later keystrokes leave the list where the reader put it.
+     */
+    private void searchToTop() {
+        ListView list = listView();
+        Preference field = search;
+        if (list == null || field == null) return;
+        // After the adapter has caught up with the rows the search left on the screen.
+        list.post(() -> {
+            android.widget.ListAdapter rows = list.getAdapter();
+            if (rows == null) return;
+            for (int at = 0; at < rows.getCount(); at++) {
+                if (rows.getItem(at) == field) {
+                    list.setSelectionFromTop(at, 0);
+                    return;
+                }
+            }
+        });
     }
 
     private void filterSettings() {
