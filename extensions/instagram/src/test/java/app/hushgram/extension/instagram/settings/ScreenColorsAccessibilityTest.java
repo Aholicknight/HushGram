@@ -205,6 +205,18 @@ public class ScreenColorsAccessibilityTest {
         TextView enabledSummary = enabled.findViewById(android.R.id.summary);
         Switch enabledSwitch = enabled.findViewById(android.R.id.switch_widget);
         assertNotNull(enabledSwitch);
+        assertTrue(enabledSwitch.getThumbDrawable() instanceof GradientDrawable);
+        assertTrue(enabledSwitch.getTrackDrawable() instanceof GradientDrawable);
+        GradientDrawable thumb = (GradientDrawable) enabledSwitch.getThumbDrawable();
+        GradientDrawable track = (GradientDrawable) enabledSwitch.getTrackDrawable();
+        assertEquals("The native switch thumb stays rectangular", GradientDrawable.RECTANGLE, thumb.getShape());
+        assertEquals("The switch track must not become a capsule", GradientDrawable.RECTANGLE, track.getShape());
+        assertEquals(dp(4), thumb.getCornerRadius(), 0.01f);
+        assertEquals(dp(6), track.getCornerRadius(), 0.01f);
+        assertEquals(dp(20), thumb.getIntrinsicWidth());
+        assertEquals(dp(20), thumb.getIntrinsicHeight());
+        assertEquals(dp(40), track.getIntrinsicWidth());
+        assertEquals(dp(24), track.getIntrinsicHeight());
         contrast("actual enabled title", color(enabledTitle.getTextColors(), true, false), ScreenColors.DEFAULT.card, 4.5);
         contrast("actual enabled summary", color(enabledSummary.getTextColors(), true, false), ScreenColors.DEFAULT.card, 4.5);
         int activeTrack = color(enabledSwitch.getTrackTintList(), true, true);

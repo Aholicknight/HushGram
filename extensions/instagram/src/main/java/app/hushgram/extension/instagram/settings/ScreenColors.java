@@ -177,11 +177,12 @@ public final class ScreenColors {
                     {-android.R.attr.state_enabled}, {android.R.attr.state_checked}, {}};
             Switch toggle = (Switch) widget;
             GradientDrawable thumb = new GradientDrawable();
-            thumb.setShape(GradientDrawable.OVAL);
+            thumb.setShape(GradientDrawable.RECTANGLE);
+            thumb.setCornerRadius(dp(row, 4));
             thumb.setSize(dp(row, 20), dp(row, 20));
             thumb.setColor(Color.WHITE);
             GradientDrawable track = new GradientDrawable();
-            track.setCornerRadius(dp(row, 12));
+            track.setCornerRadius(dp(row, 6));
             track.setSize(dp(row, 40), dp(row, 24));
             track.setColor(Color.WHITE);
             toggle.setThumbDrawable(thumb);
