@@ -150,6 +150,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** HushGram settings left open while you stepped away are covered once the lock comes back, and ask for your unlock before they can be used again. A settings file or an Undo that arrives while Instagram is locked waits for the unlock too, so a backup can't switch a lock off without it.
 
+* **Instagram - Glass tab bar:** Closed screens are let go of again. Every restyled tab bar used to stay in memory with the screen it belonged to and its blurred backdrop, so memory crept up each time Instagram rebuilt a screen with the bar on it.
+
 ## 0.0.9 (2026-10-11)
 
 ### Features

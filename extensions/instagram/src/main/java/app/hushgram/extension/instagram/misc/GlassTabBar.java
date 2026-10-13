@@ -8,6 +8,7 @@ import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -47,6 +48,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.Map;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -368,7 +370,14 @@ public final class GlassTabBar {
     private static final boolean DIAGNOSE = false;
 
     private static volatile boolean registered;
-    private static final WeakHashMap<View, Glass> applied = new WeakHashMap<>();
+    /**
+     * Every restyled bar. The bar holds its Glass, as its background and its listeners, and the Glass
+     * holds the bar, so a strong value here kept the bar's key from ever clearing: every bar, its
+     * activity and its recorded backdrop stayed for good (audit 2026-10-12). Held weakly, a bar
+     * Instagram drops leaves at the next collection, and one whose activity is destroyed leaves at
+     * once ({@link #forget}). Main thread only.
+     */
+    private static final WeakHashMap<View, WeakReference<Glass>> applied = new WeakHashMap<>();
 
     private GlassTabBar() {
     }
@@ -394,7 +403,7 @@ public final class GlassTabBar {
             if (!(found instanceof ViewGroup) || !(found.getParent() instanceof FrameLayout)) return;
             if (applied.containsKey(found)) return;
             Glass glass = new Glass((ViewGroup) found);
-            applied.put(found, glass);
+            applied.put(found, new WeakReference<>(glass));
             glass.watchScrolling(activity.getWindow());
             HookStatus.invoked(FamilyNames.GLASS_TAB_BAR);
             Logger.printDebug(() -> "Glass tab bar: restyled the tab bar");
@@ -506,13 +515,51 @@ public final class GlassTabBar {
     /** Brings back every bar a scroll has hidden: the screen is going to the background. */
     static void restoreAll() {
         try {
-            for (Glass glass : new java.util.ArrayList<>(applied.values())) glass.restoreScrolling();
+            for (WeakReference<Glass> held : new java.util.ArrayList<>(applied.values())) {
+                Glass glass = held.get();
+                if (glass != null) glass.restoreScrolling();
+            }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "restore", failure);
         }
     }
 
-    private static final class Watcher implements Application.ActivityLifecycleCallbacks {
+    /**
+     * Lets go of every bar [activity] restyled, as it's destroyed: its listeners come off, a backdrop
+     * catch-up still waiting is dropped and the recorded backdrop is discarded. A bar that only came
+     * off its window for a while isn't touched here, so it keeps its glass when it comes back.
+     */
+    static void forget(Activity activity) {
+        try {
+            for (Map.Entry<View, WeakReference<Glass>> entry : new java.util.ArrayList<>(applied.entrySet())) {
+                View bar = entry.getKey();
+                WeakReference<Glass> held = entry.getValue();
+                if (bar == null || !ownedBy(bar, activity)) continue;
+                applied.remove(bar);
+                Glass glass = held == null ? null : held.get();
+                if (glass != null) glass.dispose();
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "forget", failure);
+        }
+    }
+
+    /** Whether [view] belongs to [activity]: made with its context, or in its window. */
+    static boolean ownedBy(View view, Activity activity) {
+        Context context = view.getContext();
+        while (context != null) {
+            if (context == activity) return true;
+            if (!(context instanceof ContextWrapper)) break;
+            Context base = ((ContextWrapper) context).getBaseContext();
+            if (base == context) break;
+            context = base;
+        }
+        Window window = activity.getWindow();
+        View decor = window == null ? null : window.peekDecorView();
+        return decor != null && view.getRootView() == decor;
+    }
+
+    static final class Watcher implements Application.ActivityLifecycleCallbacks {
         @Override public void onActivityResumed(@NonNull Activity activity) {
             apply(activity);
         }
@@ -524,7 +571,9 @@ public final class GlassTabBar {
         }
         @Override public void onActivityStopped(@NonNull Activity activity) { }
         @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle state) { }
-        @Override public void onActivityDestroyed(@NonNull Activity activity) { }
+        @Override public void onActivityDestroyed(@NonNull Activity activity) {
+            forget(activity);
+        }
     }
 
     /** One restyled bar. */
@@ -900,6 +949,16 @@ public final class GlassTabBar {
         @Override public void onViewDetachedFromWindow(@NonNull View view) {
             if (scrollHide != null) scrollHide.restoreNow();
             bar.getViewTreeObserver().removeOnPreDrawListener(this);
+            // A catch-up waiting in the queue would hold this bar after it's gone; the next frame
+            // after it comes back arranges another.
+            pill.cancelCatchUp();
+        }
+
+        /** For good: the bar's activity is destroyed. Its listeners come off and the backdrop is let go. */
+        void dispose() {
+            bar.removeOnAttachStateChangeListener(this);
+            bar.getViewTreeObserver().removeOnPreDrawListener(this);
+            pill.discard();
         }
 
         /** What shows behind the tabs. */
@@ -1074,6 +1133,23 @@ public final class GlassTabBar {
                 recordBackdrop();
                 bar.invalidate();
             };
+
+            /** Drops a catch-up still waiting, so the next frame can arrange a new one. */
+            void cancelCatchUp() {
+                bar.removeCallbacks(catchUp);
+                catchUpPending = false;
+            }
+
+            /** Drops a waiting catch-up and lets go of the recorded backdrop and the views it left out. */
+            void discard() {
+                cancelCatchUp();
+                RenderNode backdrop = node;
+                node = null;
+                recorded = false;
+                if (backdrop != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) backdrop.discardDisplayList();
+                leftOut.clear();
+                surfaces.clear();
+            }
 
             /** Records the backdrop if it's been long enough and this frame isn't late, or arranges to once it can. */
             void recordIfDue() {

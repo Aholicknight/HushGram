@@ -249,15 +249,102 @@ public class GlassTabBarTest {
     }
 
     /** A native host strip. The tab bar and its listeners remain the host's views. */
+    /**
+     * The registry held every restyled bar, its activity and its recorded backdrop for good, since
+     * the bar's Glass held the bar (audit 2026-10-12). A destroyed activity's bar leaves it at once,
+     * with no backdrop catch-up left waiting and no backdrop kept, round after round.
+     */
+    @Test
+    public void aDestroyedActivitysBarLeavesTheRegistry() {
+        for (int round = 0; round < 3; round++) {
+            GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false);
+            Object pill;
+            try {
+                GlassTabBar.apply(host.activity);
+                assertTrue(registry().containsKey(host.bar));
+                pill = host.bar.getBackground();
+                arrangeCatchUp(pill);
+            } finally {
+                host.close();
+            }
+            assertFalse("a catch-up still waits for a destroyed bar", (boolean) ReflectionHelpers.getField(pill, "catchUpPending"));
+            assertNull("the backdrop was kept", ReflectionHelpers.getField(pill, "node"));
+        }
+    }
+
+    /**
+     * Instagram rebuilding its tab bar in a living activity: the new bar is restyled, and the old one
+     * isn't held by the registry, so it goes once nothing else holds it.
+     */
+    @Test
+    public void aReplacedBarIsRestyledAndTheOldOneCanBeCollected() throws Exception {
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            GlassTabBar.apply(host.activity);
+            java.lang.ref.WeakReference<View> old = new java.lang.ref.WeakReference<>(host.bar);
+            Class<?> pillType = host.bar.getBackground().getClass();
+
+            host.replaceBar();
+            GlassTabBar.apply(host.activity);
+
+            assertTrue("the new bar wasn't restyled", registry().containsKey(host.bar));
+            assertSame(pillType, host.bar.getBackground().getClass());
+            for (int i = 0; i < 50 && old.get() != null; i++) {
+                ShadowLooper.idleMainLooper();
+                System.gc();
+                Thread.sleep(5);
+            }
+            assertNull("the registry kept the replaced bar", old.get());
+        }
+    }
+
+    /**
+     * A bar taken off its window for a while keeps its glass: the backdrop catch-up waiting on it is
+     * dropped, and back on the window it's restyled each frame again.
+     */
+    @Test
+    public void aBarOffItsWindowForAWhileKeepsItsGlass() {
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            GlassTabBar.apply(host.activity);
+            Object pill = host.bar.getBackground();
+            arrangeCatchUp(pill);
+
+            ViewGroup.LayoutParams params = host.bar.getLayoutParams();
+            host.root.removeView(host.bar);
+            assertFalse("a catch-up still waits on a bar off its window", (boolean) ReflectionHelpers.getField(pill, "catchUpPending"));
+            assertTrue("off its window for a while, the bar lost its glass", registry().containsKey(host.bar));
+
+            host.root.addView(host.bar, params);
+            host.layout();
+            host.bar.setBackground(new ColorDrawable(Color.RED));
+            host.bar.getViewTreeObserver().dispatchOnPreDraw();
+            assertSame("back on its window, the bar wasn't restyled", pill, host.bar.getBackground());
+            arrangeCatchUp(pill);
+        }
+    }
+
+    private static Map<View, ?> registry() {
+        return ReflectionHelpers.getStaticField(GlassTabBar.class, "applied");
+    }
+
+    /** Has the pill arrange a backdrop catch-up, as a frame drawn just after a recording does. */
+    private static void arrangeCatchUp(Object pill) {
+        ReflectionHelpers.setField(pill, "recorded", true);
+        ReflectionHelpers.setField(pill, "lastRecorded", android.os.SystemClock.uptimeMillis());
+        ReflectionHelpers.callInstanceMethod(pill, "recordIfDue");
+        assertTrue("no catch-up arranged", (boolean) ReflectionHelpers.getField(pill, "catchUpPending"));
+    }
+
     private static final class GlassHost implements AutoCloseable {
         private static final int BAR_ID = 0x7f0b0120;
         final ActivityController<Activity> controller;
         final Activity activity;
         final FrameLayout root;
-        final LinearLayout bar;
+        LinearLayout bar;
         final float density;
         final AtomicInteger clicks = new AtomicInteger();
         private final Integer previousId;
+        private final int base;
+        private final GlassTabBar.Watcher watcher = new GlassTabBar.Watcher();
 
         GlassHost(int base, boolean floating, GlassHeight height, boolean rtl, boolean blur) {
             BaseSettings.PAUSED.save(false);
@@ -276,10 +363,23 @@ public class GlassTabBarTest {
             root = new FrameLayout(activity);
             root.setLayoutDirection(rtl ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
             root.setBackgroundColor(base == Color.BLACK ? 0xff0c1014 : 0xffeff2f5);
-            bar = new LinearLayout(activity);
-            bar.setId(BAR_ID);
-            bar.setOrientation(LinearLayout.HORIZONTAL);
-            bar.setBackgroundColor(base);
+            this.base = base;
+            bar = newBar();
+            root.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52), Gravity.BOTTOM));
+            activity.setContentView(root);
+            Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+            synchronized (ids) { previousId = ids.put(GlassTabBar.TAB_BAR, BAR_ID); }
+            // Production's own lifecycle watcher, so a destroyed activity lets go of its bar the way it
+            // does in Instagram. Added after setup, so it doesn't restyle the bar before a test asks.
+            activity.getApplication().registerActivityLifecycleCallbacks(watcher);
+            layout();
+        }
+
+        private LinearLayout newBar() {
+            LinearLayout made = new LinearLayout(activity);
+            made.setId(BAR_ID);
+            made.setOrientation(LinearLayout.HORIZONTAL);
+            made.setBackgroundColor(base);
             int[] icons = {android.R.drawable.ic_menu_view, android.R.drawable.ic_menu_search,
                     android.R.drawable.ic_input_add, android.R.drawable.ic_media_play, android.R.drawable.ic_menu_myplaces};
             String[] labels = {"Home", "Search", "Create", "Reels", "Profile"};
@@ -294,12 +394,18 @@ public class GlassTabBarTest {
                     clicks.incrementAndGet();
                     for (int child = 0; child < bar.getChildCount(); child++) bar.getChildAt(child).setSelected(bar.getChildAt(child) == view);
                 });
-                bar.addView(tab, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+                made.addView(tab, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
             }
-            root.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52), Gravity.BOTTOM));
-            activity.setContentView(root);
-            Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
-            synchronized (ids) { previousId = ids.put(GlassTabBar.TAB_BAR, BAR_ID); }
+            return made;
+        }
+
+        /** Swaps a new bar in where the bar was, the way Instagram can rebuild its tab bar in a living activity. */
+        void replaceBar() {
+            ViewGroup.LayoutParams params = bar.getLayoutParams();
+            int at = root.indexOfChild(bar);
+            root.removeView(bar);
+            bar = newBar();
+            root.addView(bar, at, params);
             layout();
         }
 
@@ -334,15 +440,15 @@ public class GlassTabBarTest {
         }
 
         @Override public void close() {
-            root.removeView(bar);
-            Map<View, ?> applied = ReflectionHelpers.getStaticField(GlassTabBar.class, "applied");
-            applied.remove(bar);
             Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
             synchronized (ids) {
                 if (previousId == null) ids.remove(GlassTabBar.TAB_BAR);
                 else ids.put(GlassTabBar.TAB_BAR, previousId);
             }
             controller.close();
+            activity.getApplication().unregisterActivityLifecycleCallbacks(watcher);
+            // No cleanup here takes the bar out: the destroyed activity's watcher has to.
+            assertFalse("a destroyed activity's bar stayed in the registry", registry().containsKey(bar));
         }
     }
 
