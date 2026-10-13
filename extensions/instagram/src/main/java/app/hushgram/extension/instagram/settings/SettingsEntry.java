@@ -51,6 +51,7 @@ import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.preference.ReopenSettingsAfterRestart;
 
 /**
  * How the HushGram screen is reached.
@@ -101,6 +102,11 @@ public final class SettingsEntry {
     /** The activity the screen was last shown over, while the person hasn't closed it. */
     private static WeakReference<Activity> host;
     private static volatile boolean closedByUser;
+    /**
+     * The category page the pending request opens on, after Restart now. Kept while the screen
+     * moves to a screen in front, and dropped by the next request or the person closing it.
+     */
+    private static volatile String requestedPage;
     /** The long label last pushed, or found already on the shortcut, in this process. */
     private static volatile String publishedLabel;
     /** A check of the shortcut's place is waiting for the background thread. */
@@ -121,6 +127,8 @@ public final class SettingsEntry {
                 ((Application) context).registerActivityLifecycleCallbacks(new OpenWhenResumed());
                 callbacksRegistered = true;
             }
+            // Restart now was tapped a moment ago: the screen opens again on its page.
+            ReopenSettingsAfterRestart.reopenIfPending(SettingsEntry::reopenOn);
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not watch activities", ex);
         }
@@ -490,8 +498,13 @@ public final class SettingsEntry {
      *
      * @return whether the screen is showing (or already was) over this activity.
      */
-    @SuppressWarnings("deprecation") // Framework fragments are what the shared preference code builds on.
     public static boolean open(Activity activity) {
+        // Only a pending request carries a page; a tap on Instagram's own settings row doesn't.
+        return open(activity, openPending ? requestedPage : null);
+    }
+
+    @SuppressWarnings("deprecation") // Framework fragments are what the shared preference code builds on.
+    private static boolean open(Activity activity, String page) {
         final String name = activity.getClass().getSimpleName();
         try {
             if (activity.isFinishing() || activity.isDestroyed()) {
@@ -517,11 +530,11 @@ public final class SettingsEntry {
             }
             // While Instagram is locked, the screen that could turn the lock off waits for the phone's lock.
             if (MessagesLock.locked()) {
-                MessagesLock.confirmThen(activity, () -> open(activity));
+                MessagesLock.confirmThen(activity, () -> open(activity, page));
                 return true;
             }
             closedByUser = false;
-            new SettingsDialog().show(fragments, DIALOG_TAG);
+            SettingsDialog.onPage(page).show(fragments, DIALOG_TAG);
             host = new WeakReference<>(activity);
             Logger.printInfo(() -> "Settings opened over " + name);
             return true;
@@ -620,11 +633,25 @@ public final class SettingsEntry {
         }
     }
 
+    /**
+     * At start, after Restart now: asks for the screen on [page], the way the launcher shortcut
+     * does, so it opens over the first Instagram screen that can show it.
+     */
+    static void reopenOn(String page) {
+        requestedPage = page;
+        closedByUser = false;
+        requestedAt = SystemClock.elapsedRealtime();
+        openPending = true;
+        themeRetryPending = false;
+        Logger.printInfo(() -> "Settings requested again after Restart now");
+    }
+
     /** Queues a gesture through the shortcut's same resume/account handoff, without starting a tab. */
     static boolean requestOpen(Activity activity) {
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) return false;
         if (!closedByUser && ((host != null && host.get() == activity)
                 || (openPending && SystemClock.elapsedRealtime() - requestedAt <= REQUEST_LIFETIME_MS))) return true;
+        requestedPage = null;
         closedByUser = false;
         requestedAt = SystemClock.elapsedRealtime();
         openPending = true;
@@ -636,11 +663,13 @@ public final class SettingsEntry {
     static void onClosedByUser() {
         closedByUser = true;
         host = null;
+        requestedPage = null;
     }
 
     private static void noteIntent(Intent intent) {
         if (intent != null && intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false)) {
             intent.removeExtra(EXTRA_OPEN_SETTINGS);
+            requestedPage = null;
             requestedAt = SystemClock.elapsedRealtime();
             openPending = true;
             // A new request looks for itself; a look an old one left scheduled may never run.

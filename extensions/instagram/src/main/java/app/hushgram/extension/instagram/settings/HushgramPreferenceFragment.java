@@ -283,6 +283,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     documentCode = 0;
                 }
             }
+        } else if (getParentFragment() instanceof SettingsDialog) {
+            // Back after Restart now: the page it was tapped on, which initialize opens like a
+            // page put back after a turn. Only with Open categories as pages on, like that one.
+            restoredCategory = ((SettingsDialog) getParentFragment()).startPage();
         }
         super.onCreate(state);
     }
@@ -336,6 +340,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Override
     public void onResume() {
         super.onResume();
+        AbstractPreferenceFragment.setRestartFeedbackPresenter(restartFeedback);
         ExportStatus.CONFIGURATION.watch(exportChanges);
         ExportStatus.DIAGNOSTICS.watch(exportChanges);
         SaveControl.watch(saves);
@@ -356,6 +361,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     @Override
     public void onDestroyView() {
+        AbstractPreferenceFragment.clearRestartFeedbackPresenter(restartFeedback);
         undoRefresh.removeCallbacks(refreshUndo);
         for (Dialog dialog : new ArrayList<>(shownDialogs)) dialog.dismiss();
         shownDialogs.clear();
@@ -3121,11 +3127,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         card.setSummary(status);
     }
 
-    /** The status card's Restart now. A save or an export still running keeps Instagram up and says so. */
+    /**
+     * The status card's Restart now. A save or an export still running keeps Instagram up and says
+     * so. Instagram comes back with the screen open on this page.
+     */
     void restartNow() {
         Activity activity = getActivity();
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
-        switch (RestartNow.restart(activity)) {
+        switch (RestartNow.restart(activity, currentPage())) {
             case BUSY:
                 Utils.showToastLong(L10n.t(activity, "A save or an export is still running. Restart once it's done."));
                 break;
@@ -3136,6 +3145,27 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 break;
         }
     }
+
+    /** The key of the open category page's row, or "" for the first page. */
+    String currentPage() {
+        Row category = categoryRows.get(openCategory);
+        return category == null || category.getKey() == null ? "" : category.getKey();
+    }
+
+    /**
+     * The shared fragment's "restart to apply" feedback while this page is up. When the status card
+     * has become Restart now, the card is what to tap, so a screen reader hears the message and no
+     * toast covers the page. Otherwise (HushGram paused, or pausing at the next start) the toast
+     * still says it, since nothing on the page does.
+     */
+    private final AbstractPreferenceFragment.RestartFeedbackPresenter restartFeedback = (shown, message) -> {
+        ListView list = listView();
+        if (restartActionAvailable() && list != null) {
+            list.announceForAccessibility(message);
+        } else {
+            Utils.showToastLong(message.toString());
+        }
+    };
 
     @Override
     protected void onRestartPendingChanged() {

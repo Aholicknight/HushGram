@@ -49,6 +49,8 @@ public final class SettingsDialog extends DialogFragment {
      */
     static final int CONTAINER_ID = 0x48474301;
     private static final String PAGE_FAILED = "hushgram.page_failed";
+    /** The argument naming the category page the screen opens on, after Restart now. */
+    static final String START_PAGE = "hushgram_start_page";
     private boolean failed;
     private boolean loading;
     /** Put back over a screen that can't draw text yet, so closing without building anything. */
@@ -59,6 +61,27 @@ public final class SettingsDialog extends DialogFragment {
     private Window lockWindow;
     private ViewTreeObserver.OnPreDrawListener lockDraw;
     private ViewTreeObserver.OnWindowFocusChangeListener lockFocus;
+
+    /**
+     * The screen, opening on the category page whose row has the key [page]. Null or a key no row
+     * has opens the first page, as the screen always does.
+     */
+    static SettingsDialog onPage(@androidx.annotation.Nullable String page) {
+        SettingsDialog dialog = new SettingsDialog();
+        if (page != null && !page.isEmpty()) {
+            Bundle arguments = new Bundle();
+            arguments.putString(START_PAGE, page);
+            dialog.setArguments(arguments);
+        }
+        return dialog;
+    }
+
+    /** The page this screen was asked to open on, or null. Only a fresh page reads it, not one put back. */
+    @androidx.annotation.Nullable
+    String startPage() {
+        Bundle arguments = getArguments();
+        return arguments == null ? null : arguments.getString(START_PAGE);
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

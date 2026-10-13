@@ -702,10 +702,11 @@ public class Settings extends BaseSettings {
     /**
      * The Accounts to follow section under your chats
      * ({@link app.hushgram.extension.instagram.direct.InboxSuggestions}). Read each time your
-     * messages build that section. Off to start.
+     * messages build that section. Its row tells you to restart Instagram to see the change, so
+     * the restart card comes up too. Off to start.
      */
     public static final BooleanSetting HIDE_INBOX_SUGGESTIONS =
-            new BooleanSetting("hushgram_hide_inbox_suggestions", FALSE);
+            new BooleanSetting("hushgram_hide_inbox_suggestions", FALSE, true);
 
     /**
      * Instants, Instagram's no-edit camera for friends, everywhere Instagram offers it
@@ -1529,10 +1530,11 @@ public class Settings extends BaseSettings {
      * On a phone under 1440 pixels wide, Instagram reports a screen 1440 pixels on its shorter side
      * and asks for photos shown across the screen at that width
      * ({@link app.hushgram.extension.instagram.feed.LargerPhotos}). The reported screen changes
-     * after a restart, the asked width from the next photo. Off to start: it takes more data.
+     * after a restart, the asked width from the next photo, so the restart card comes up. Off to
+     * start: it takes more data.
      */
     public static final BooleanSetting ASK_FOR_LARGER_PHOTOS =
-            new BooleanSetting("hushgram_ask_for_larger_photos", FALSE);
+            new BooleanSetting("hushgram_ask_for_larger_photos", FALSE, true);
 
     /**
      * Photos shown across the screen are asked for at a smaller width, and videos start at the
