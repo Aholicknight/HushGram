@@ -401,7 +401,12 @@ public final class GlassTabBar {
             if (!Utils.settingsReady() || !Settings.GLASS_TAB_BAR.get()) return;
             View found = find(activity.getWindow().getDecorView(), TAB_BAR);
             if (!(found instanceof ViewGroup) || !(found.getParent() instanceof FrameLayout)) return;
-            if (applied.containsKey(found)) return;
+            if (applied.containsKey(found)) {
+                WeakReference<Glass> held = applied.get(found);
+                Glass known = held == null ? null : held.get();
+                if (known != null) known.cameToTheFront();
+                return;
+            }
             Glass glass = new Glass((ViewGroup) found);
             applied.put(found, new WeakReference<>(glass));
             glass.watchScrolling(activity.getWindow());
@@ -617,7 +622,10 @@ public final class GlassTabBar {
         private final GlassHeight height;
         /** How much higher the pill sits, in pixels: the room under a floating pill. */
         private final int lift;
-        /** Hides the bar while a list scrolls down, when that switch is on; otherwise null. */
+        /**
+         * Hides the bar while a list scrolls down, with that switch on, and on Reels after the wait picked
+         * for it (#170). Null with the switch off and the wait on Never.
+         */
         @Nullable private final GlassScrollHide scrollHide;
         /** Whether this slide has had its tick: one tick for a change of tab, however many tabs the capsule crosses. */
         private boolean tickedThisSlide;
@@ -661,8 +669,11 @@ public final class GlassTabBar {
             this.opacity = Settings.GLASS_TAB_BAR_OPACITY.get();
             this.height = Settings.GLASS_TAB_BAR_HEIGHT.get();
             this.lift = liftPx(Settings.GLASS_TAB_BAR_LIFT.get(), floating, density);
-            this.scrollHide = Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get()
-                    ? new GlassScrollHide(bar, () -> !HushgramPause.isPaused()) : null;
+            boolean hideOnScroll = Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get();
+            GlassReelsHide hideOnReels = Settings.GLASS_TAB_BAR_REELS_HIDE.get();
+            long reelsMillis = hideOnReels == null ? 0L : hideOnReels.millis;
+            this.scrollHide = hideOnScroll || reelsMillis > 0
+                    ? new GlassScrollHide(bar, () -> !HushgramPause.isPaused(), hideOnScroll, reelsMillis) : null;
             this.base = baseColor(bar.getBackground());
             this.originalLeft = bar.getPaddingLeft();
             this.originalRight = bar.getPaddingRight();
@@ -695,6 +706,14 @@ public final class GlassTabBar {
 
         void restoreScrolling() {
             if (scrollHide != null) scrollHide.restoreNow();
+        }
+
+        /**
+         * The bar's activity is in front again. Going to the background dropped the wait on Reels, and
+         * a reel that plays on untouched would never start another.
+         */
+        void cameToTheFront() {
+            if (scrollHide != null) scrollHide.arm();
         }
 
         /** The clear space above and under the pill. */

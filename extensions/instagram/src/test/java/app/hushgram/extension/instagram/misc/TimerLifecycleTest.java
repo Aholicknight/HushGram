@@ -6,6 +6,8 @@ package app.hushgram.extension.instagram.misc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
@@ -13,6 +15,7 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
@@ -42,7 +45,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 /**
  * The glass bar, its scroll hide and the Saved tab keep no timer or listener running once there's
  * nothing for it to do: with the switch off, while HushGram is paused, when the screen goes away and
- * once what it waited for has happened (#129).
+ * once what it waited for has happened (#129). The glass bar's wait on Reels (#170) is held to the same.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(qualifiers = "w1080dp-h1920dp")
@@ -50,6 +53,7 @@ public class TimerLifecycleTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     private static final int BAR_ID = 0x7f0b0101;
+    private static final int REELS_ID = 0x7f0b0170;
 
     /** A list whose position the test sets. */
     static final class FakeList extends View {
@@ -100,8 +104,10 @@ public class TimerLifecycleTest {
         Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
         synchronized (ids) {
             ids.remove(GlassTabBar.TAB_BAR);
+            ids.remove(GlassTabBar.REELS_ROOT);
         }
         Settings.GLASS_TAB_BAR.resetToDefault();
+        Settings.GLASS_TAB_BAR_REELS_HIDE.resetToDefault();
         Settings.SAVED_ON_PROFILE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -222,6 +228,82 @@ public class TimerLifecycleTest {
 
         root.removeView(tabs);
         assertEquals("and stops when the bar leaves the window", frames, windowListeners("mOnPreDrawListeners"));
+    }
+
+    /** Puts a tab bar Instagram's id names where the plain bar was, for the glass to restyle. */
+    private LinearLayout namedTabBar() {
+        Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+        synchronized (ids) {
+            ids.put(GlassTabBar.TAB_BAR, BAR_ID);
+        }
+        root.removeView(bar);
+        LinearLayout tabs = new LinearLayout(activity);
+        tabs.setId(BAR_ID);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(1080, 150);
+        params.topMargin = 1770;
+        root.addView(tabs, params);
+        layout();
+        return tabs;
+    }
+
+    /** Puts a Reels viewer over the list, down to the bar's top. */
+    private void showReels() {
+        Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+        synchronized (ids) {
+            ids.put(GlassTabBar.REELS_ROOT, REELS_ID);
+        }
+        FrameLayout viewer = new FrameLayout(activity);
+        viewer.setId(REELS_ID);
+        root.addView(viewer, 1, new FrameLayout.LayoutParams(1080, 1770));
+        layout();
+    }
+
+    /**
+     * With a time picked for Reels and the scroll switch off, the glass bar reads the window's touches
+     * and slides away once a reel has gone that long untouched. Its screen going to the background puts it
+     * back with nothing left waiting, and coming to the front starts the wait over, since a reel that plays
+     * on untouched would never start another.
+     */
+    @Test public void theGlassBarsWaitOnReelsEndsWithItsScreenAndStartsOverWhenItComesBack() {
+        LinearLayout tabs = namedTabBar();
+        showReels();
+        Window.Callback before = activity.getWindow().getCallback();
+        Settings.GLASS_TAB_BAR.save(true);
+        assertFalse(Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get());
+        Settings.GLASS_TAB_BAR_REELS_HIDE.save(GlassReelsHide.TWO_SECONDS);
+        GlassTabBar.apply(activity);
+        assertNotSame("the wait needs the window's touches", before, activity.getWindow().getCallback());
+        idle(1900);
+        assertEquals("not before the wait is up", 0f, tabs.getTranslationY(), 0f);
+        idle(600);
+        assertTrue("the bar slid away", tabs.getTranslationY() > 50f);
+
+        // What the glass bar does when its activity pauses.
+        GlassTabBar.restoreAll();
+        assertEquals(0f, tabs.getTranslationY(), 0f);
+        idle(10_000);
+        assertEquals("nothing waits in the background", 0f, tabs.getTranslationY(), 0f);
+
+        // And what it does when the activity resumes with the bar it already restyled.
+        GlassTabBar.apply(activity);
+        idle(2500);
+        assertTrue("the wait started over", tabs.getTranslationY() > 50f);
+        GlassTabBar.restoreAll();
+        assertEquals(0f, tabs.getTranslationY(), 0f);
+    }
+
+    /** With the scroll switch off and the wait on Never, the glass bar reads no touches and waits for nothing. */
+    @Test public void theGlassBarReadsNoTouchesWithNoHidePicked() {
+        LinearLayout tabs = namedTabBar();
+        showReels();
+        Window.Callback before = activity.getWindow().getCallback();
+        Settings.GLASS_TAB_BAR.save(true);
+        assertFalse(Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get());
+        assertEquals(GlassReelsHide.NEVER, Settings.GLASS_TAB_BAR_REELS_HIDE.get());
+        GlassTabBar.apply(activity);
+        assertSame("no watcher over the window's callback", before, activity.getWindow().getCallback());
+        idle(10_000);
+        assertEquals(0f, tabs.getTranslationY(), 0f);
     }
 
     /** The Saved tab puts no layout listener on a screen with the switch off or HushGram paused. */

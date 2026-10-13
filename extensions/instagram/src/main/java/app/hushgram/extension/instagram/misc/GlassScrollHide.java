@@ -49,6 +49,15 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * brings the bar back as soon as that list is at its top, no longer on screen, gone, or the feature has been
  * paused. A tab change, Back, the screen going to the background and the bar leaving the window do the same
  * at once. The touch wrapper does nothing while HushGram is paused.
+ *
+ * <p>"Hide the tab bar on Reels" (#170) is a second way out with a setting of its own, since no scroll hides
+ * the bar on a reel. There a wait does it: it starts over when a touch ends, on Back and when the screen
+ * comes to the front, and if it runs out with the Reels viewer on screen and no finger down, the bar slides
+ * away the same way. A swipe to another reel leaves it away, whichever way the finger goes. A finger put
+ * down where the bar sits brings it back, and the wait starts again when that finger lifts. While the bar
+ * is away for a reel the timer looks at the viewer in place of a list, and brings the bar back as soon as
+ * the viewer isn't the screen showing. The wait is one delayed call, dropped whenever the bar is put back
+ * at once, and never made with the choice on Never.
  */
 final class GlassScrollHide {
     /** How far a drag must go, and how far it must turn back to flip, in dp. */
@@ -58,10 +67,14 @@ final class GlassScrollHide {
     static final long WATCH_MS = 120;
     /** Past this share of the content's width and height, a video is a full-screen pager, which keeps its bar. */
     static final float FULL_SCREEN_SHARE = 0.75f;
+    /** A Reels viewer is the screen showing across {@link #FULL_SCREEN_SHARE} of the window's width and this share of its height. */
+    static final float REELS_HEIGHT_SHARE = 0.5f;
     /** Counted names in the glass family's Diagnostics line. */
     static final String COUNT_HID = "scroll hid the bar";
     static final String COUNT_SHOWED = "scroll showed the bar";
     static final String COUNT_RESTORED = "bar restored by the guard";
+    static final String COUNT_REELS_HID = "reels hid the bar";
+    static final String COUNT_TAPPED_BACK = "tap brought the bar back";
 
     /** What a drag says about the bar. */
     static final int KEEP = 0;
@@ -132,15 +145,22 @@ final class GlassScrollHide {
 
     private final View bar;
     private final BooleanSupplier running;
+    /** Whether a scroll hides the bar: "Hide the tab bar as you scroll". */
+    private final boolean onScroll;
+    /** How long the Reels screen goes untouched before the bar slides away, or 0 for never. */
+    private final long reelsMillis;
     private final float density;
     private final float slop;
     private final Drag drag = new Drag();
     private final Rect rect = new Rect();
     private final Rect other = new Rect();
+    private final int[] place = new int[2];
     @Nullable private WeakReference<View> scroller;
-    /** The list that hid the bar: the one the timer watches until the bar is back. */
+    /** What the bar is away for, a list or a Reels viewer: the one the timer watches until the bar is back. */
     @Nullable private WeakReference<View> guard;
     private boolean hidden;
+    /** Whether the wait on Reels hid the bar, not a scroll. A scroll back up doesn't show it then. */
+    private boolean byReels;
     /**
      * Whether this moved the bar and hasn't put it all the way back yet. Instagram may move its own
      * bar, so a restore only undoes what this did.
@@ -148,15 +168,33 @@ final class GlassScrollHide {
     private boolean moved;
     /** Whether this drag has been refused for a full-screen video, so the screen isn't walked again until the next one. */
     private boolean refused;
+    /** Whether a window's watcher hands this its touches. Without them nothing could bring the bar back, so no wait starts. */
+    private boolean installed;
+    private boolean fingerDown;
     private final Runnable watch = this::watchScroller;
+    private final Runnable reelsWait = this::waitedOnReels;
 
     /**
+     * Hides on a scroll only.
+     *
      * @param bar     the tab bar
      * @param running whether the feature is allowed right now: false while HushGram is paused
      */
     GlassScrollHide(View bar, BooleanSupplier running) {
+        this(bar, running, true, 0L);
+    }
+
+    /**
+     * @param bar         the tab bar
+     * @param running     whether the feature is allowed right now: false while HushGram is paused
+     * @param onScroll    whether scrolling a list down hides the bar
+     * @param reelsMillis how long the Reels screen goes untouched before the bar slides away, or 0 for never
+     */
+    GlassScrollHide(View bar, BooleanSupplier running, boolean onScroll, long reelsMillis) {
         this.bar = bar;
         this.running = running;
+        this.onScroll = onScroll;
+        this.reelsMillis = Math.max(0L, reelsMillis);
         this.density = bar.getResources().getDisplayMetrics().density;
         this.slop = Math.max(SLOP_DP * density, ViewConfiguration.get(bar.getContext()).getScaledTouchSlop());
     }
@@ -177,7 +215,7 @@ final class GlassScrollHide {
     /**
      * Wraps [window]'s callback so [hide] sees its touches and Back keys. Once per window: a window
      * already wrapped for an earlier bar (one Instagram rebuilt) hands its touches to [hide] instead,
-     * after putting the earlier bar back.
+     * after putting the earlier bar back. The wait on Reels starts here, and the earlier bar's is over.
      */
     static void install(Window window, GlassScrollHide hide) {
         Window.Callback inner = window.getCallback();
@@ -189,8 +227,11 @@ final class GlassScrollHide {
                 Watcher watcher = (Watcher) Proxy.getInvocationHandler(seen);
                 if (watcher.hide != hide) {
                     watcher.hide.restoreNow();
+                    watcher.hide.installed = false;
                     watcher.hide = hide;
                 }
+                hide.installed = true;
+                hide.arm();
                 return;
             }
             Window.Callback next = BurnInGuard.innerOf(HoldDownload.innerOf(seen));
@@ -199,6 +240,8 @@ final class GlassScrollHide {
         }
         window.setCallback((Window.Callback) Proxy.newProxyInstance(GlassScrollHide.class.getClassLoader(),
                 new Class<?>[] {Window.Callback.class}, new Watcher(inner, hide)));
+        hide.installed = true;
+        hide.arm();
     }
 
     /**
@@ -222,7 +265,7 @@ final class GlassScrollHide {
                         hide.onTouch((MotionEvent) args[0]);
                     } else if (args[0] instanceof KeyEvent && "dispatchKeyEvent".equals(method.getName())
                             && ((KeyEvent) args[0]).getKeyCode() == KeyEvent.KEYCODE_BACK) {
-                        hide.show();
+                        hide.onBack();
                     }
                 } catch (Throwable failure) {
                     HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "scroll hide", failure);
@@ -240,13 +283,23 @@ final class GlassScrollHide {
     void onTouch(MotionEvent event) {
         if (!running.getAsBoolean()) {
             if (hidden) restoreNow();
+            disarm();
+            fingerDown = false;
             drag.cancel();
             return;
         }
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
+                fingerDown = true;
+                disarm();
                 refused = false;
-                if (!bar.isAttachedToWindow() || onBar(event)) {
+                if (byReels && atHome(event)) {
+                    // Away for a reel, and a finger where the bar sits wants it back. That is all this touch does.
+                    drag.cancel();
+                    slideBack(COUNT_TAPPED_BACK);
+                    return;
+                }
+                if (!onScroll || !bar.isAttachedToWindow() || onBar(event)) {
                     drag.cancel();
                     return;
                 }
@@ -259,15 +312,20 @@ final class GlassScrollHide {
                 int direction = drag.move(event.getRawX(), event.getRawY(), slop);
                 if (direction == SHOW) {
                     refused = false;
-                    show();
+                    // A bar away for a reel stays away whichever way the reels are swiped.
+                    if (!byReels) show();
                 } else if (direction == HIDE) {
                     hideIfScrolled();
                 }
                 break;
             case MotionEvent.ACTION_POINTER_DOWN:
+                drag.cancel();
+                break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 drag.cancel();
+                fingerDown = false;
+                arm();
                 break;
             default:
                 break;
@@ -276,6 +334,86 @@ final class GlassScrollHide {
 
     private boolean onBar(MotionEvent event) {
         return bar.getGlobalVisibleRect(rect) && rect.contains(Math.round(event.getRawX()), Math.round(event.getRawY()));
+    }
+
+    /**
+     * Whether the touch is where the bar sits when nothing has moved it: its place in its parent, on screen,
+     * without its own translation. A bar slid away takes no touch there itself.
+     */
+    private boolean atHome(MotionEvent event) {
+        if (!bar.isAttachedToWindow() || !(bar.getParent() instanceof View)) return false;
+        View parent = (View) bar.getParent();
+        parent.getLocationOnScreen(place);
+        int left = place[0] + bar.getLeft() - parent.getScrollX();
+        int top = place[1] + bar.getTop() - parent.getScrollY();
+        rect.set(left, top, left + bar.getWidth(), top + bar.getHeight());
+        return rect.contains(Math.round(event.getRawX()), Math.round(event.getRawY()));
+    }
+
+    /** Back brings the bar back, and starts the wait on Reels over. */
+    void onBack() {
+        show();
+        arm();
+    }
+
+    /**
+     * Starts the wait on Reels over: after a touch, after Back, and as the bar's screen comes to the front.
+     * Nothing waits with the choice on Never, without a window's watcher, while HushGram is paused, or
+     * while the bar is already away for a reel.
+     */
+    void arm() {
+        if (reelsMillis <= 0 || !installed) return;
+        bar.removeCallbacks(reelsWait);
+        if (byReels || !running.getAsBoolean()) return;
+        bar.postDelayed(reelsWait, reelsMillis);
+    }
+
+    private void disarm() {
+        if (reelsMillis > 0) bar.removeCallbacks(reelsWait);
+    }
+
+    /** The wait ran out: the bar slides away if a reel is what's showing and nothing is touching the screen. */
+    private void waitedOnReels() {
+        try {
+            if (hidden || fingerDown || !running.getAsBoolean() || !bar.isAttachedToWindow() || !bar.isShown()) return;
+            View viewer = reelsOnScreen();
+            if (viewer == null) return;
+            slideAway(new WeakReference<>(viewer), true, COUNT_REELS_HID);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "reels hide", failure);
+            restoreNow();
+        }
+    }
+
+    /** The Reels viewer ({@link GlassTabBar#REELS_ROOT}) that is the screen showing, or null. */
+    @Nullable
+    private View reelsOnScreen() {
+        int reels = GlassTabBar.id(bar.getContext(), GlassTabBar.REELS_ROOT);
+        return reels == 0 ? null : findReels(bar.getRootView(), reels, 0);
+    }
+
+    @Nullable
+    private View findReels(View view, int reels, int depth) {
+        if (view == bar || view.getVisibility() != View.VISIBLE || depth > 60) return null;
+        if (view.getId() == reels) return reelsShowing(view) ? view : null;
+        if (!(view instanceof ViewGroup)) return null;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = group.getChildCount() - 1; i >= 0; i--) {
+            View inside = findReels(group.getChildAt(i), reels, depth + 1);
+            if (inside != null) return inside;
+        }
+        return null;
+    }
+
+    /**
+     * Whether [viewer] is the screen showing: in the window, shown, and across most of it. A viewer kept
+     * beside the screen in a pager says it's shown too, so where it is counts.
+     */
+    private boolean reelsShowing(View viewer) {
+        if (!viewer.isAttachedToWindow() || !viewer.isShown() || !viewer.getGlobalVisibleRect(other)) return false;
+        View root = bar.getRootView();
+        return other.width() >= root.getWidth() * FULL_SCREEN_SHARE
+                && other.height() >= root.getHeight() * REELS_HEIGHT_SHARE;
     }
 
     /**
@@ -304,34 +442,52 @@ final class GlassScrollHide {
             refused = true;
             return;
         }
-        guard = scroller;
+        slideAway(scroller, false, COUNT_HID);
+    }
+
+    /**
+     * Slides the bar off the bottom and starts the timer that watches [held], the list or the Reels viewer
+     * the bar is away for. Only its translation changes.
+     */
+    private void slideAway(@Nullable WeakReference<View> held, boolean reels, String counted) {
+        guard = held;
+        byReels = reels;
         hidden = true;
         moved = true;
         bar.animate().cancel();
         bar.animate().translationY(travel()).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator()).start();
         bar.removeCallbacks(watch);
         bar.postDelayed(watch, WATCH_MS);
-        HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_HID);
+        HookStatus.counted(FamilyNames.GLASS_TAB_BAR, counted);
     }
 
     /** Brings the bar back, sliding. Always allowed, and does nothing when it never left. */
     void show() {
+        slideBack(COUNT_SHOWED);
+    }
+
+    private void slideBack(String counted) {
         if (!hidden) return;
         hidden = false;
+        byReels = false;
         bar.removeCallbacks(watch);
         bar.animate().cancel();
         bar.animate().translationY(0f).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator())
                 .withEndAction(() -> moved = hidden).start();
-        HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_SHOWED);
+        HookStatus.counted(FamilyNames.GLASS_TAB_BAR, counted);
     }
 
     /**
      * Brings the bar back this instant: the screen is leaving, the bar is leaving, or something went
-     * wrong. Does nothing to a bar this never moved, which Instagram may have moved itself.
+     * wrong. Does nothing to a bar this never moved, which Instagram may have moved itself. The wait on
+     * Reels is dropped with it, until the next touch or the screen coming back starts one.
      */
     void restoreNow() {
         bar.removeCallbacks(watch);
+        disarm();
         hidden = false;
+        byReels = false;
+        fingerDown = false;
         if (!moved) return;
         moved = false;
         bar.animate().cancel();
@@ -343,7 +499,8 @@ final class GlassScrollHide {
             if (!hidden) return;
             View list = guard == null ? null : guard.get();
             boolean fine = running.getAsBoolean() && bar.isAttachedToWindow() && list != null
-                    && list.isAttachedToWindow() && list.isShown() && list.canScrollVertically(-1);
+                    && (byReels ? reelsShowing(list)
+                    : list.isAttachedToWindow() && list.isShown() && list.canScrollVertically(-1));
             if (fine) {
                 bar.postDelayed(watch, WATCH_MS);
                 return;

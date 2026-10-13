@@ -104,6 +104,7 @@ import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
+import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.misc.AccentHue;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
 import app.hushgram.extension.instagram.misc.HapticStyle;
@@ -1236,6 +1237,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, L10n.t("Hide the tab bar as you scroll"),
                         L10n.t("Scrolling a list down slides the pill out of the way. Scrolling up, reaching the top, "
                                 + "or changing tab brings it back. Restart Instagram after changing it.")));
+                glass.addPreference(glassReelsHideRow(context));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
                         L10n.t("Home and the other tabs run down behind the pill, so the glass has real content to blur. "
                                 + "Reels still stops above it.")));
@@ -1684,7 +1686,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)
-                            || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key));
+                            || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key)
+                            || Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key));
                     belongs |= family == PatchFamily.VIDEO_DOWNLOAD && (Settings.HOLD_TO_DOWNLOAD.key.equals(key)
                             || Settings.HOLD_FINGERS.key.equals(key) || Settings.HOLD_TIME.key.equals(key));
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
@@ -4204,6 +4207,42 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** How long a reel plays untouched before the glass tab bar slides away (#170). Its summary says what the choice does. */
+    static GlassReelsHideRow glassReelsHideRow(Context context) {
+        GlassReelsHideRow row = new GlassReelsHideRow(context);
+        row.setKey(Settings.GLASS_TAB_BAR_REELS_HIDE.key);
+        row.setTitle(L10n.t("Hide the tab bar on Reels"));
+        row.setDialogTitle(L10n.t("Hide the tab bar on Reels"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        GlassReelsHide[] delays = GlassReelsHide.values();
+        CharSequence[] entries = new CharSequence[delays.length];
+        CharSequence[] values = new CharSequence[delays.length];
+        for (int i = 0; i < delays.length; i++) {
+            entries[i] = glassReelsHideLabel(delays[i]);
+            values[i] = delays[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.GLASS_TAB_BAR_REELS_HIDE.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [delay]. */
+    static String glassReelsHideLabel(GlassReelsHide delay) {
+        return delay == GlassReelsHide.NEVER ? L10n.t("Never") : L10n.f("After %1$d seconds", delay.millis / 1000);
+    }
+
+    /** What [delay] does and how the bar comes back, for the row's summary. */
+    static String glassReelsHideSummary(GlassReelsHide delay) {
+        if (delay == GlassReelsHide.NEVER) {
+            return L10n.t("Never. Pick a time and the pill slides away once a reel has played that long without a "
+                    + "touch. Restart Instagram after changing it.");
+        }
+        return L10n.f("On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the "
+                + "screen, change tab or press Back to bring it back. Restart Instagram after changing it.",
+                delay.millis / 1000);
+    }
+
     /** How many fingers Hold to download waits for. Its summary is the count chosen. */
     static HoldFingersRow holdFingersRow(Context context) {
         HoldFingersRow row = new HoldFingersRow(context);
@@ -4615,6 +4654,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryRingRow) preference).showSummary();
         } else if (preference instanceof LikeAnimationRow) {
             ((LikeAnimationRow) preference).showSummary();
+        } else if (preference instanceof GlassReelsHideRow) {
+            ((GlassReelsHideRow) preference).showSummary();
         }
     }
 
@@ -4643,6 +4684,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryRingRow) listPreference).showSummary();
         } else if (listPreference instanceof LikeAnimationRow) {
             ((LikeAnimationRow) listPreference).showSummary();
+        } else if (listPreference instanceof GlassReelsHideRow) {
+            ((GlassReelsHideRow) listPreference).showSummary();
         } else {
             super.updateListPreferenceSummary(listPreference, setting);
         }
@@ -5834,6 +5877,42 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(value)) step = candidate;
             }
             setSummary(glassLiftLabel(step));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /** Hide the tab bar on Reels' choice of how long (#170). Its summary says what the choice does, as Burn-in guard's does. */
+    static final class GlassReelsHideRow extends ListPreference {
+        GlassReelsHideRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            GlassReelsHide delay = GlassReelsHide.NEVER;
+            for (GlassReelsHide candidate : GlassReelsHide.values()) {
+                if (candidate.name().equals(getValue())) delay = candidate;
+            }
+            setSummary(glassReelsHideSummary(delay));
         }
 
         @Override

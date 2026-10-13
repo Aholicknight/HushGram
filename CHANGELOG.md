@@ -34,6 +34,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** New Space under the tab bar choice after Show content behind the tab bar. A little more or More lifts the floating pill higher off the bottom of the screen, and it keeps its size. Starts on Standard. Asked for in #87.
 
+* **Instagram - Glass tab bar:** New Hide the tab bar on Reels choice, off by default. Pick 2, 3, 5 or 8 seconds and the pill slides away once a reel plays that long untouched. Tap the bottom edge or press Back and it's back. Asked for in #170.
+
 * **Instagram - Hide the Reels tab:** New switch under Tab bar, Show the Messages tab, off by default. If Instagram left Messages off your tab bar, it goes back on before Profile, and Tab order can move it. Asked for in #160.
 
 * **Instagram - Hide the Reels tab:** Start tab has a new Always Home choice. Instagram reopens on Reels when that's where you left it, and Always Home opens it on Home every time you start it from its icon. Asked for in #55.

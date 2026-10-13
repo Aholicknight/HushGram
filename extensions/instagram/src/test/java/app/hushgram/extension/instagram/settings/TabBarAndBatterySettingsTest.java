@@ -32,6 +32,7 @@ import org.robolectric.shadows.ShadowLooper;
 import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
+import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
@@ -75,6 +76,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
         Settings.GLASS_TAB_BAR_LIFT.resetToDefault();
+        Settings.GLASS_TAB_BAR_REELS_HIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
         Settings.SAVED_ON_PROFILE.resetToDefault();
         Settings.STOP_HEARTBEAT.resetToDefault();
@@ -98,7 +100,8 @@ public class TabBarAndBatterySettingsTest {
     @Test public void withoutThePatchesNoneOfTheirRowsShow() throws Exception {
         open();
         for (String key : List.of(Settings.GLASS_TAB_BAR.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_HEIGHT.key,
-                Settings.GLASS_TAB_BAR_LIFT.key, Settings.SAVED_ON_PROFILE.key, Settings.STOP_HEARTBEAT.key, Settings.STOP_UPLOAD_ALARM.key)) {
+                Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.SAVED_ON_PROFILE.key, Settings.STOP_HEARTBEAT.key,
+                Settings.STOP_UPLOAD_ALARM.key)) {
             assertNull(key, row(key));
         }
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key));
@@ -201,13 +204,97 @@ public class TabBarAndBatterySettingsTest {
     }
 
     /**
-     * The pill's look, its height and the space under it are read as Instagram builds the bar, so a
-     * pick waits on a restart. The page says so and the card at the top offers it; without that, a pick
-     * looked like it did nothing (#87, on the S22).
+     * Hide the tab bar on Reels (#170) is a list right after Hide the tab bar as you scroll, starting on
+     * Never. Its summary says what the pick does and how the bar comes back, it's backed up, and a pick
+     * waits on a restart.
+     */
+    @Test public void hideTheTabBarOnReelsStartsOnNeverSaysHowTheBarComesBackAndIsBackedUp() throws Exception {
+        assertEquals(GlassReelsHide.NEVER, Settings.GLASS_TAB_BAR_REELS_HIDE.defaultValue);
+        assertEquals(0L, GlassReelsHide.NEVER.millis);
+        open(PatchFamily.GLASS_TAB_BAR);
+        Preference found = row(Settings.GLASS_TAB_BAR_REELS_HIDE.key);
+        assertTrue(found instanceof HushgramPreferenceFragment.GlassReelsHideRow);
+        HushgramPreferenceFragment.GlassReelsHideRow reels = (HushgramPreferenceFragment.GlassReelsHideRow) found;
+        assertEquals("Hide the tab bar on Reels", String.valueOf(reels.getTitle()));
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), reels);
+        assertEquals("Tab bar", String.valueOf(section.getTitle()));
+        int scrollAt = -1;
+        int reelsAt = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            String key = section.getPreference(i).getKey();
+            if (Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.key.equals(key)) scrollAt = i;
+            if (Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key)) reelsAt = i;
+        }
+        assertTrue(scrollAt >= 0);
+        assertEquals("right after Hide the tab bar as you scroll", scrollAt + 1, reelsAt);
+        List<String> entries = new ArrayList<>();
+        for (CharSequence entry : reels.getEntries()) entries.add(String.valueOf(entry));
+        assertEquals(Arrays.asList("Never", "After 2 seconds", "After 3 seconds", "After 5 seconds", "After 8 seconds"), entries);
+        List<String> values = new ArrayList<>();
+        for (CharSequence value : reels.getEntryValues()) values.add(String.valueOf(value));
+        assertEquals(Arrays.asList("NEVER", "TWO_SECONDS", "THREE_SECONDS", "FIVE_SECONDS", "EIGHT_SECONDS"), values);
+        assertEquals("NEVER", reels.getValue());
+        assertEquals("Never. Pick a time and the pill slides away once a reel has played that long without a touch. "
+                + "Restart Instagram after changing it.", String.valueOf(reels.getSummary()));
+        assertFalse("nothing owed before a pick",
+                AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_REELS_HIDE.key));
+
+        reels.setValue("THREE_SECONDS");
+        ShadowLooper.idleMainLooper();
+        assertEquals(GlassReelsHide.THREE_SECONDS, Settings.GLASS_TAB_BAR_REELS_HIDE.savedValue());
+        assertEquals(3_000L, Settings.GLASS_TAB_BAR_REELS_HIDE.savedValue().millis);
+        assertEquals("On Reels, the pill slides away after 3 seconds without a touch. Tap the bottom edge of the screen, "
+                + "change tab or press Back to bring it back. Restart Instagram after changing it.",
+                String.valueOf(reels.getSummary()));
+        assertTrue(AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_REELS_HIDE.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_REELS_HIDE.key));
+
+        reels.setValue("NEVER");
+        ShadowLooper.idleMainLooper();
+        assertEquals(GlassReelsHide.NEVER, Settings.GLASS_TAB_BAR_REELS_HIDE.savedValue());
+        assertTrue(String.valueOf(reels.getSummary()), String.valueOf(reels.getSummary()).startsWith("Never. "));
+        assertFalse("back where it started, nothing is owed",
+                AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_REELS_HIDE.key));
+    }
+
+    /** It goes by Glass tab bar alone. The scroll switch above it has no say either way. */
+    @Test public void hideTheTabBarOnReelsGoesByTheGlassBarNotTheScrollSwitch() {
+        Settings.GLASS_TAB_BAR.save(true);
+        Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(false);
+        assertTrue("it needs the glass bar, not the scroll switch", Settings.GLASS_TAB_BAR_REELS_HIDE.isAvailable());
+        Settings.GLASS_TAB_BAR.save(false);
+        Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(true);
+        assertFalse("no glass bar, nothing to slide away", Settings.GLASS_TAB_BAR_REELS_HIDE.isAvailable());
+    }
+
+    /** Every wait on the list is a whole number of seconds, shortest first, so the label and the timer agree. */
+    @Test public void theReelsWaitsAreWholeSecondsInOrder() {
+        long last = -1;
+        for (GlassReelsHide delay : GlassReelsHide.values()) {
+            assertTrue(delay.name(), delay.millis > last);
+            assertEquals(delay.name(), 0L, delay.millis % 1000);
+            last = delay.millis;
+            String label = HushgramPreferenceFragment.glassReelsHideLabel(delay);
+            String summary = HushgramPreferenceFragment.glassReelsHideSummary(delay);
+            if (delay == GlassReelsHide.NEVER) {
+                assertEquals("Never", label);
+            } else {
+                assertEquals("After " + delay.millis / 1000 + " seconds", label);
+                assertTrue(summary, summary.contains("after " + delay.millis / 1000 + " seconds"));
+                assertTrue(summary, summary.contains("press Back"));
+            }
+            assertTrue(summary, summary.endsWith("Restart Instagram after changing it."));
+        }
+    }
+
+    /**
+     * The pill's look, its height, the space under it and the wait on Reels are read as Instagram builds
+     * the bar, so a pick waits on a restart. The page says so and the card at the top offers it; without
+     * that, a pick looked like it did nothing (#87, on the S22).
      */
     @Test public void theGlassChoicesAskForARestart() throws Exception {
         for (Setting<?> setting : List.<Setting<?>>of(Settings.GLASS_TAB_BAR_OPACITY, Settings.GLASS_TAB_BAR_HEIGHT,
-                Settings.GLASS_TAB_BAR_LIFT)) {
+                Settings.GLASS_TAB_BAR_LIFT, Settings.GLASS_TAB_BAR_REELS_HIDE)) {
             assertTrue(setting.key, setting.rebootApp);
         }
         open(PatchFamily.GLASS_TAB_BAR);

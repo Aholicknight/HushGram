@@ -30,12 +30,17 @@ import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.util.ReflectionHelpers;
 
 import app.hushgram.extension.instagram.reels.BurnInGuardForTests;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
-/** The drag reading, the hide and the ways back for Glass tab bar's "Hide the tab bar as you scroll". */
+/**
+ * The drag reading, the hide and the ways back for Glass tab bar's "Hide the tab bar as you scroll", and
+ * the wait, the hide and the ways back for its "Hide the tab bar on Reels" (#170).
+ */
 @RunWith(RobolectricTestRunner.class)
 @org.robolectric.annotation.Config(qualifiers = "w1080dp-h1920dp")
 public class GlassScrollHideTest {
@@ -77,6 +82,11 @@ public class GlassScrollHideTest {
     private final AtomicBoolean running = new AtomicBoolean(true);
     private GlassScrollHide hide;
     private long clock;
+    /** The id the Reels tests give the Reels viewer's name, the viewer they add, and what the name had before. */
+    private static final int REELS_ID = 0x7f0a0170;
+    private FrameLayout viewer;
+    private boolean reelsNamed;
+    private Integer reelsIdBefore;
 
     @Before public void setUp() {
         controller = Robolectric.buildActivity(Probe.class).setup();
@@ -97,6 +107,13 @@ public class GlassScrollHideTest {
     }
 
     @After public void tearDown() {
+        if (reelsNamed) {
+            Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+            synchronized (ids) {
+                if (reelsIdBefore == null) ids.remove(GlassTabBar.REELS_ROOT);
+                else ids.put(GlassTabBar.REELS_ROOT, reelsIdBefore);
+            }
+        }
         controller.close();
     }
 
@@ -444,5 +461,365 @@ public class GlassScrollHideTest {
         } catch (IllegalStateException failure) {
             assertSame(boom, failure);
         }
+    }
+
+    private void layout() {
+        root.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 1080, 1920);
+    }
+
+    private static void idle(long millis) {
+        ShadowLooper.idleMainLooper(millis, TimeUnit.MILLISECONDS);
+    }
+
+    /** A finger down and up again in one place. */
+    private void tap(float x, float y) {
+        touch(MotionEvent.ACTION_DOWN, x, y);
+        touch(MotionEvent.ACTION_UP, x, y);
+    }
+
+    /** Puts a Reels viewer over the list, down to the bar's top, with a pager of reels inside it. */
+    private void addReelsViewer() {
+        Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+        synchronized (ids) { reelsIdBefore = ids.put(GlassTabBar.REELS_ROOT, REELS_ID); }
+        reelsNamed = true;
+        viewer = new FrameLayout(activity);
+        viewer.setId(REELS_ID);
+        FakeList pager = new FakeList(activity);
+        pager.awayFromTop = true;
+        viewer.addView(pager, new FrameLayout.LayoutParams(1080, 1770));
+        root.addView(viewer, 1, new FrameLayout.LayoutParams(1080, 1770));
+        layout();
+    }
+
+    /**
+     * On the Reels screen, with a hider that waits [millis] there and has the window's touches, as the
+     * glass bar gives it. The wait starts as it's given them.
+     */
+    private void onReels(boolean onScroll, long millis) {
+        addReelsViewer();
+        hide = new GlassScrollHide(bar, running::get, onScroll, millis);
+        GlassScrollHide.install(activity.getWindow(), hide);
+    }
+
+    /** Moves the Reels viewer [left] pixels across, the way a pager keeps a tab beside the screen. */
+    private void slideViewerTo(int left) {
+        ((FrameLayout.LayoutParams) viewer.getLayoutParams()).leftMargin = left;
+        viewer.requestLayout();
+        layout();
+    }
+
+    @Test public void onReelsTheBarSlidesAwayOnceTheWaitIsUpAndNotBefore() {
+        onReels(false, 3000);
+        tap(500, 900);
+        idle(2900);
+        assertFalse(hide.isHidden());
+        idle(200);
+        assertTrue(hide.isHidden());
+        settle();
+        assertTrue(bar.getTranslationY() > 100f);
+        assertTrue(hide.isOffScreen());
+        // Only moved, as a scroll moves it: its size and place in the layout are untouched.
+        assertEquals(150, bar.getHeight());
+        assertEquals(1770, bar.getTop());
+        assertEquals(View.VISIBLE, bar.getVisibility());
+    }
+
+    @Test public void theWaitHidesNothingOffReels() {
+        onReels(false, 2000);
+        // A screen as big that isn't the Reels viewer.
+        viewer.setId(View.NO_ID);
+        tap(500, 900);
+        idle(5000);
+        assertFalse(hide.isHidden());
+        // The viewer left under another screen.
+        viewer.setId(REELS_ID);
+        viewer.setVisibility(View.INVISIBLE);
+        tap(500, 900);
+        idle(5000);
+        assertFalse(hide.isHidden());
+        // The Reels tab kept beside the screen in a pager: shown by its own account, but not on screen.
+        viewer.setVisibility(View.VISIBLE);
+        slideViewerTo(1080);
+        tap(500, 900);
+        idle(5000);
+        assertFalse(hide.isHidden());
+        // And half way in, mid swipe.
+        slideViewerTo(540);
+        tap(500, 900);
+        idle(5000);
+        assertFalse(hide.isHidden());
+        // Back on screen it's a reel again.
+        slideViewerTo(0);
+        tap(500, 900);
+        idle(2100);
+        assertTrue(hide.isHidden());
+    }
+
+    @Test public void aTouchStartsTheWaitOverAndAFingerHeldDownHoldsItOff() {
+        onReels(false, 3000);
+        tap(500, 900);
+        idle(2000);
+        tap(500, 900);
+        idle(2000);
+        assertFalse("the first wait would be up by now", hide.isHidden());
+        touch(MotionEvent.ACTION_DOWN, 500, 900);
+        idle(10_000);
+        assertFalse("nothing waits while a finger is down", hide.isHidden());
+        touch(MotionEvent.ACTION_UP, 500, 900);
+        idle(2900);
+        assertFalse(hide.isHidden());
+        idle(200);
+        assertTrue(hide.isHidden());
+    }
+
+    /** #170: once away on Reels it stays away whichever way the reels are swiped. */
+    @Test public void swipesBetweenReelsLeaveItAwayWhicheverWayTheyGo() {
+        onReels(true, 2000);
+        idle(2100);
+        assertTrue(hide.isHidden());
+        settle();
+        // A finger moving down, to the reel before: on a list this is what brings the bar back.
+        drag(300);
+        touch(MotionEvent.ACTION_UP, 500, 1200);
+        assertTrue(hide.isHidden());
+        drag(-300);
+        touch(MotionEvent.ACTION_UP, 500, 600);
+        assertTrue(hide.isHidden());
+        tap(500, 900);
+        idle(10_000);
+        assertTrue(hide.isHidden());
+        assertTrue(hide.isOffScreen());
+    }
+
+    @Test public void aTouchWhereTheBarSitsBringsItBackAndTheWaitTakesItAwayAgain() {
+        HookStatus.clear();
+        try {
+            onReels(true, 2000);
+            idle(2100);
+            settle();
+            assertTrue(hide.isOffScreen());
+            touch(MotionEvent.ACTION_DOWN, 500, 1850);
+            assertFalse(hide.isHidden());
+            settle();
+            assertEquals(0f, bar.getTranslationY(), 0.5f);
+            idle(10_000);
+            assertFalse("the wait starts when the finger lifts", hide.isHidden());
+            touch(MotionEvent.ACTION_UP, 500, 1850);
+            idle(1900);
+            assertFalse(hide.isHidden());
+            idle(200);
+            assertTrue(hide.isHidden());
+            String report = HookStatus.report().toString();
+            assertTrue(report, report.contains(GlassScrollHide.COUNT_REELS_HID + " 2"));
+            assertTrue(report, report.contains(GlassScrollHide.COUNT_TAPPED_BACK + " 1"));
+            assertFalse(report, report.contains(GlassScrollHide.COUNT_SHOWED));
+        } finally {
+            HookStatus.clear();
+        }
+    }
+
+    /** Where the bar sits is the way back from a reel only. A bar a scroll hid comes back the ways it always has. */
+    @Test public void aTouchWhereTheBarSitsLeavesABarAScrollHidAlone() {
+        onReels(true, 2000);
+        viewer.setVisibility(View.GONE);
+        layout();
+        list.awayFromTop = true;
+        drag(-300);
+        touch(MotionEvent.ACTION_UP, 500, 600);
+        settle();
+        assertTrue(hide.isOffScreen());
+        tap(500, 1850);
+        assertTrue(hide.isHidden());
+        // The wait leaves a list alone too, and scrolling back up still shows the bar.
+        idle(10_000);
+        assertTrue(hide.isHidden());
+        touch(MotionEvent.ACTION_DOWN, 500, 600);
+        for (int i = 1; i <= 10; i++) touch(MotionEvent.ACTION_MOVE, 500, 600 + 30 * i);
+        assertFalse(hide.isHidden());
+        touch(MotionEvent.ACTION_UP, 500, 900);
+        idle(10_000);
+        assertFalse("a list is not a reel", hide.isHidden());
+    }
+
+    @Test public void leavingReelsBringsTheBarBack() {
+        onReels(false, 2000);
+        idle(2100);
+        assertTrue(hide.isHidden());
+        // Another screen takes the viewer's place.
+        viewer.setVisibility(View.GONE);
+        idle(GlassScrollHide.WATCH_MS * 2);
+        assertFalse(hide.isHidden());
+        settle();
+        assertEquals(0f, bar.getTranslationY(), 0.5f);
+        // Swiped across to the tab beside it.
+        viewer.setVisibility(View.VISIBLE);
+        layout();
+        tap(500, 900);
+        idle(2100);
+        assertTrue(hide.isHidden());
+        slideViewerTo(1080);
+        idle(GlassScrollHide.WATCH_MS * 2);
+        assertFalse(hide.isHidden());
+        // Taken out of the window.
+        slideViewerTo(0);
+        tap(500, 900);
+        idle(2100);
+        assertTrue(hide.isHidden());
+        root.removeView(viewer);
+        idle(GlassScrollHide.WATCH_MS * 2);
+        assertFalse(hide.isHidden());
+        idle(10_000);
+        assertFalse(hide.isHidden());
+    }
+
+    @Test public void pausingBringsItBackAndNothingWaitsWhilePaused() {
+        onReels(false, 2000);
+        idle(2100);
+        assertTrue(hide.isHidden());
+        running.set(false);
+        idle(GlassScrollHide.WATCH_MS * 2);
+        assertFalse(hide.isHidden());
+        settle();
+        assertEquals(0f, bar.getTranslationY(), 0.5f);
+        tap(500, 900);
+        idle(10_000);
+        assertFalse(hide.isHidden());
+        // Paused part way through a wait: the wait runs out and moves nothing.
+        running.set(true);
+        tap(500, 900);
+        idle(1000);
+        running.set(false);
+        idle(5000);
+        assertFalse(hide.isHidden());
+        running.set(true);
+        idle(10_000);
+        assertFalse("nothing waits until the next touch", hide.isHidden());
+        tap(500, 900);
+        idle(2100);
+        assertTrue(hide.isHidden());
+    }
+
+    @Test public void backBringsItBackAndStartsTheWaitOver() {
+        onReels(false, 2000);
+        Window.Callback wrapped = activity.getWindow().getCallback();
+        idle(2100);
+        assertTrue(hide.isHidden());
+        wrapped.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK));
+        assertEquals(1, activity.keys);
+        assertFalse(hide.isHidden());
+        // Back closed something over the reel, which is still the screen showing.
+        idle(1900);
+        assertFalse(hide.isHidden());
+        idle(200);
+        assertTrue(hide.isHidden());
+        // Back left Reels.
+        wrapped.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK));
+        viewer.setVisibility(View.GONE);
+        idle(10_000);
+        assertFalse(hide.isHidden());
+    }
+
+    /** The glass bar puts the bar back as its activity pauses, and starts the wait as it comes to the front. */
+    @Test public void theScreenLeavingDropsTheWaitAndComingBackStartsOne() {
+        onReels(false, 2000);
+        tap(500, 900);
+        idle(1000);
+        hide.restoreNow();
+        idle(10_000);
+        assertFalse("the wait went with the screen", hide.isHidden());
+        hide.arm();
+        idle(1900);
+        assertFalse(hide.isHidden());
+        idle(200);
+        assertTrue(hide.isHidden());
+        settle();
+        hide.restoreNow();
+        assertFalse(hide.isHidden());
+        assertEquals(0f, bar.getTranslationY(), 0f);
+        idle(10_000);
+        assertFalse(hide.isHidden());
+    }
+
+    /** With the choice on Never nothing is ever left waiting, whatever asks for a wait. */
+    @Test public void neverLeavesNothingWaiting() {
+        addReelsViewer();
+        AtomicInteger asked = new AtomicInteger();
+        hide = new GlassScrollHide(bar, () -> {
+            asked.incrementAndGet();
+            return true;
+        }, true, 0L);
+        GlassScrollHide.install(activity.getWindow(), hide);
+        tap(500, 900);
+        hide.onBack();
+        hide.arm();
+        int before = asked.get();
+        idle(60_000);
+        assertFalse(hide.isHidden());
+        assertEquals("something looked after the touch was over", before, asked.get());
+    }
+
+    /** A wait is one delayed look. Off Reels it finds nothing and leaves nothing running behind it. */
+    @Test public void aWaitThatFindsNoReelLooksOnceAndStops() {
+        addReelsViewer();
+        viewer.setId(View.NO_ID);
+        AtomicInteger asked = new AtomicInteger();
+        hide = new GlassScrollHide(bar, () -> {
+            asked.incrementAndGet();
+            return true;
+        }, false, 2000);
+        GlassScrollHide.install(activity.getWindow(), hide);
+        tap(500, 900);
+        int before = asked.get();
+        idle(2100);
+        assertEquals("the wait looked once", before + 1, asked.get());
+        idle(60_000);
+        assertEquals("and nothing looked again", before + 1, asked.get());
+        assertFalse(hide.isHidden());
+    }
+
+    /** Without the window's touches nothing could bring the bar back, so nothing waits to hide it. */
+    @Test public void aHiderNoWindowHandsItsTouchesNeverWaits() {
+        addReelsViewer();
+        hide = new GlassScrollHide(bar, running::get, false, 2000);
+        tap(500, 900);
+        hide.arm();
+        idle(10_000);
+        assertFalse(hide.isHidden());
+    }
+
+    @Test public void aRebuiltBarTakesOverTheWaitAndTheOldBarsIsOver() {
+        onReels(false, 2000);
+        Window window = activity.getWindow();
+        idle(2100);
+        assertTrue(hide.isHidden());
+
+        View rebuilt = new View(activity);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(1080, 150);
+        params.topMargin = 1770;
+        root.addView(rebuilt, params);
+        layout();
+        GlassScrollHide next = new GlassScrollHide(rebuilt, running::get, false, 2000);
+        GlassScrollHide.install(window, next);
+        assertFalse(hide.isHidden());
+        assertEquals(0f, bar.getTranslationY(), 0f);
+        hide.arm();
+        idle(2100);
+        assertFalse("the old bar's hider gets no touches now, so it waits for nothing", hide.isHidden());
+        assertTrue("the rebuilt bar's wait started as it took over", next.isHidden());
+    }
+
+    /** The scroll switch off and a wait picked: a scroll on a list moves nothing, and only a reel is waited on. */
+    @Test public void withTheScrollSwitchOffAScrollHidesNothing() {
+        onReels(false, 2000);
+        viewer.setVisibility(View.GONE);
+        layout();
+        list.awayFromTop = true;
+        drag(-300);
+        assertFalse(hide.isHidden());
+        touch(MotionEvent.ACTION_UP, 500, 600);
+        idle(10_000);
+        assertFalse(hide.isHidden());
     }
 }
