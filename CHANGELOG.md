@@ -114,6 +114,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** Picking a new look, height or Space under the tab bar now says it needs a restart, and the card at the top of HushGram's settings offers one. Before, the pick seemed to do nothing until Instagram started again.
 
+* **Instagram - Glass tab bar:** On accounts where Instagram puts a dark capsule behind the selected tab, that capsule no longer sits on top of the glass bar's own highlight.
+
 ## 0.0.9 (2026-10-11)
 
 ### Features

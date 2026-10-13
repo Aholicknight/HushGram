@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.misc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -216,6 +217,29 @@ public class GlassTabBarTest {
         for (GlassLift lift : GlassLift.values()) assertEquals(lift.name(), 0, GlassTabBar.liftPx(lift, false, density));
         assertEquals(0, GlassTabBar.liftPx(null, true, density));
         assertEquals(GlassLift.STANDARD, Settings.GLASS_TAB_BAR_LIFT.defaultValue);
+    }
+
+    /**
+     * Instagram's newer bar marks the selected tab with a dark capsule, as that tab's background (seen on
+     * the S22's account). The pill draws its own capsule, so each tab's background comes off under the
+     * glass, and comes off again on the next frame when Instagram puts it back.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void theTabsOwnCapsulesComeOffUnderTheGlass() throws Exception {
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            for (int i = 0; i < host.bar.getChildCount(); i++) host.bar.getChildAt(i).setBackgroundColor(0xff25292e);
+            GlassTabBar.apply(host.activity);
+            host.layout();
+            for (int i = 0; i < host.bar.getChildCount(); i++) assertNull("tab " + i, host.bar.getChildAt(i).getBackground());
+
+            assertTrue(host.bar.getChildAt(2).performClick());
+            host.bar.getChildAt(2).setBackgroundColor(0xff25292e);
+            host.bar.getViewTreeObserver().dispatchOnPreDraw();
+            assertNull("put back by Instagram, it comes off again", host.bar.getChildAt(2).getBackground());
+            assertTrue("the click still reached Instagram", host.bar.getChildAt(2).isSelected());
+        }
     }
 
     /** A native host strip. The tab bar and its listeners remain the host's views. */

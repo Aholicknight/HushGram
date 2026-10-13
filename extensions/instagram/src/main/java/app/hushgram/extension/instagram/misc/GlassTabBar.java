@@ -288,6 +288,8 @@ public final class GlassTabBar {
     static final String COUNT_REELS_LIFTED = "Reels viewer kept above the pill";
     /** Counted each time a video in a SurfaceView shows up under the bar, with none there before, and is kept out of the blur. */
     static final String COUNT_VIDEO_LEFT_OUT = "Video kept out of the blur";
+    /** Counted each time a tab's own background, Instagram's selected tab capsule, is taken off under the pill. */
+    static final String COUNT_TAB_BACKGROUND = "Tab's own capsule taken off";
 
     static final String TAG = "HushGlass";
     private static final boolean DIAGNOSE = false;
@@ -594,6 +596,16 @@ public final class GlassTabBar {
             if (background != pill && background != null) {
                 base = baseColor(background);
                 bar.setBackground(pill);
+            }
+            // Instagram's newer bar marks the selected tab with a dark capsule, that tab's own
+            // background. The pill draws its own capsule, and theirs would sit on top of it.
+            for (int i = 0; i < bar.getChildCount(); i++) {
+                View tab = bar.getChildAt(i);
+                Drawable own = tab.getBackground();
+                if (own == null) continue;
+                tab.setBackground(null);
+                HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_TAB_BACKGROUND);
+                diagnose("tab background taken off: " + own.getClass().getName(), null);
             }
             View parent = bar.getParent() instanceof View ? (View) bar.getParent() : null;
             int width = parent != null && parent.getWidth() > 0 ? parent.getWidth()
