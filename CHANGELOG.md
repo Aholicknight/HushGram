@@ -146,6 +146,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Download any video:** Save all's result shows each of its lines in turn, so the lower quality and already saved notes aren't cut off on Android 12 and newer.
 
+* **Instagram - Lock your messages:** Turning on Lock your messages or Lock all of Instagram no longer opens a chat you locked on its own. That chat stays covered until you unlock it, can't be taken off the list without the unlock, and its notifications stay hidden. The screen behind settings also stays out of recent apps from the moment a lock is turned on.
+
 ## 0.0.9 (2026-10-11)
 
 ### Features

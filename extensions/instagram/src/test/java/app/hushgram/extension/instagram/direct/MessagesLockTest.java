@@ -59,6 +59,7 @@ import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
@@ -101,6 +102,8 @@ public class MessagesLockTest {
         Settings.LOCK_APP.resetToDefault();
         Settings.LOCK_AGAIN.resetToDefault();
         Settings.LOCKED_CHATS.resetToDefault();
+        Settings.UNLOCK_WITH.resetToDefault();
+        Settings.LOCK_PIN.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -390,6 +393,98 @@ public class MessagesLockTest {
         MessagesLock.relock(true);
         MessagesLock.openUntilLeft();
         assertTrue(MessagesLock.locked());
+    }
+
+    /**
+     * Turned on with an inbox behind settings and nothing locked, a lock keeps that screen out of
+     * the recent apps picture at once, so a leave straight from settings doesn't leave a picture of
+     * the inbox in recents until the next leave (S22, 2026-10-13).
+     */
+    @Test
+    public void turningALockOnKeepsTheScreenBehindSettingsOutOfRecentsAtOnce() {
+        Settings.LOCK_MESSAGES.save(false);
+        ActivityController<Activity> controller = inbox();
+        Activity activity = controller.get();
+        MessagesLock.follow(activity);
+        assertEquals(0, activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE);
+
+        MessagesLock.openUntilLeft();
+        Settings.LOCK_MESSAGES.save(true);
+        ShadowLooper.idleMainLooper();
+
+        assertFalse("turning it on covered the screen you're on", MessagesLock.locked());
+        assertNull(cover(activity));
+        assertTrue(asks.isEmpty());
+        if (Build.VERSION.SDK_INT < 33) {
+            assertTrue("the inbox behind settings could go into recents",
+                    (activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);
+        }
+    }
+
+    @Test
+    public void turningOnLockYourMessagesOpensNoChatLockedOnItsOwn() {
+        for (UnlockWith unlock : UnlockWith.values()) turnOnWithALockedChat(Settings.LOCK_MESSAGES, unlock);
+    }
+
+    @Test
+    public void turningOnLockAllOfInstagramOpensNoChatLockedOnItsOwn() {
+        for (UnlockWith unlock : UnlockWith.values()) turnOnWithALockedChat(Settings.LOCK_APP, unlock);
+    }
+
+    /**
+     * Both switches off and one chat locked on its own, still covered: turning [lock] on the way its
+     * row does (the listener runs before the switch is saved) never opens that chat, never takes it
+     * off the list without an unlock, and never lets its notifications or banners through. Nor does
+     * a leave and return, or HushGram paused (audit 2026-10-12).
+     */
+    private void turnOnWithALockedChat(BooleanSetting lock, UnlockWith unlock) {
+        MessagesLock.watch(RuntimeEnvironment.getApplication());
+        MessagesLock.relock(true);
+        Settings.LOCK_MESSAGES.save(false);
+        Settings.LOCK_APP.save(false);
+        Settings.UNLOCK_WITH.save(unlock);
+        if (unlock == UnlockWith.PIN) assertTrue(PinLock.set("4821"));
+        ChatLocks.add(ALICE, "Alice");
+        ActivityController<Activity> controller = focused();
+        Activity activity = chat(controller, "Alice");
+        open(ALICE);
+        MessagesLock.check(activity);
+        assertEquals(View.VISIBLE, cover(activity, MessagesLock.CHAT_ROOT).getVisibility());
+        Notification message = message("ig_direct", Notification.CATEGORY_MESSAGE);
+        ChatLocks.track(message, null, null, "direct_v2?id=" + ALICE, null, null, ME);
+        String where = lock.key + " with " + unlock;
+
+        MessagesLock.openUntilLeft();
+        lock.save(true);
+        ShadowLooper.idleMainLooper();
+
+        assertTrue(where + " opened the locked chat", MessagesLock.chatListLocked());
+        assertTrue(where + " opened the messages", MessagesLock.locked());
+        boolean[] removed = {false};
+        MessagesLock.confirmChatsThen(activity, () -> removed[0] = true);
+        assertFalse(where + " let the chat off the list without an unlock", removed[0]);
+        assertNotSame(where + " let the chat's notification through", message, MessagesLock.notification(message));
+        assertTrue(where + " let the banner show", MessagesLock.holdBanner());
+        MessagesLock.check(activity);
+        String screen = lock == Settings.LOCK_APP ? MessagesLock.APP : MessagesLock.CHAT_ROOT;
+        assertEquals(where + " took the cover down", View.VISIBLE, cover(activity, screen).getVisibility());
+
+        // Left and back, then turned on again while paused: still shut, and no answer was skipped.
+        controller.pause().stop();
+        controller.start().resume();
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        try {
+            MessagesLock.openUntilLeft();
+            assertTrue(where + " opened after a leave or while paused", MessagesLock.chatListLocked());
+            assertTrue(MessagesLock.locked());
+        } finally {
+            PauseForTests.resume();
+        }
+        controller.pause().stop().destroy();
+        ChatLocks.remove(ALICE);
+        lock.save(false);
+        PinLock.resetForTests();
+        Settings.LOCK_PIN.resetToDefault();
     }
 
     @Test
@@ -704,7 +799,11 @@ public class MessagesLockTest {
 
     /** A chat screen: its root, as Instagram names it, with the name in the header. */
     private static Activity chat(String name) {
-        Activity activity = focused().get();
+        return chat(focused(), name);
+    }
+
+    private static Activity chat(ActivityController<Activity> controller, String name) {
+        Activity activity = controller.get();
         FrameLayout root = new FrameLayout(activity);
         FrameLayout screen = new FrameLayout(activity);
         screen.setId(CHAT);

@@ -287,10 +287,20 @@ public final class MessagesLock {
 
     /**
      * A lock was just turned on while nothing was locked. It waits until you leave Instagram rather
-     * than covering the screen you're on, since you're the one who turned it on.
+     * than covering the screen you're on, since you're the one who turned it on. A chat locked on its
+     * own that hasn't been unlocked since Instagram came back keeps everything shut: the session this
+     * would open is the one that chat, its removal and its notifications share.
      */
     public static void openUntilLeft() {
-        if (!locked()) open = true;
+        if (locked() || chatListLocked()) return;
+        open = true;
+        // The switch is saved once its row's listener returns. The screen under settings is checked
+        // then, so an inbox behind them stays out of the recent apps picture from now on, not from
+        // the next frame it happens to draw, which a leave straight from settings never gets to.
+        Utils.runOnMainThread(() -> {
+            Activity activity = watched.get();
+            if (activity != null) check(activity);
+        });
     }
 
     /**
