@@ -32,10 +32,10 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class ReelsSuggestionsTest {
-    /** Named like Instagram 449's clips item kinds, which is all the hook goes by. */
+    /** Named like Instagram 450's clips item kinds, which is all the hook goes by. */
     enum Kind {
-        MEDIA, AD, NETEGO, TYA_IN_REELS, SUGGESTED_USERS, CREATORS_YOU_MAY_FOLLOW,
-        NETEGO_SUGGESTED_USERS, NETEGO_SUGGESTED_CREATORS
+        ORGANIC, AD, AD_PREVIEW, MULTI_ADS, NETEGO, TYA_IN_REELS, QPMIDCARD, SCROLL_PIVOT, SUGGESTED_USERS,
+        CREATORS_YOU_MAY_FOLLOW, NETEGO_SUGGESTED_USERS, NETEGO_SUGGESTED_CREATORS
     }
 
     /** A clips item: one enum field holding its kind. */
@@ -84,15 +84,46 @@ public class ReelsSuggestionsTest {
         assertTrue(report, report.contains("CREATORS_YOU_MAY_FOLLOW"));
     }
 
-    /** On, reels, ads, Your algorithm and other netego units come back as they came. */
+    /**
+     * On, reels, ads, Your algorithm and other netego units come back as they came. None counts as a
+     * suggestion; the units that aren't reels or ads are named on the kept line.
+     */
     @Test
     public void withTheSwitchOnEverythingElseStays() {
-        for (Kind kind : new Kind[]{Kind.MEDIA, Kind.AD, Kind.NETEGO, Kind.TYA_IN_REELS}) {
+        for (Kind kind : new Kind[]{Kind.ORGANIC, Kind.AD, Kind.NETEGO, Kind.TYA_IN_REELS}) {
             Item item = new Item(kind);
             assertSame(kind.name(), item, ReelsSuggestions.filter(item));
         }
         assertNull(ReelsSuggestions.filter(null));
-        assertTrue(FeedFilterCounters.report().toString(), FeedFilterCounters.report().isEmpty());
+        List<String> report = FeedFilterCounters.report();
+        assertEquals(report.toString(), 1, report.size());
+        assertEquals(ReelsSuggestions.KEPT_ROUTE + ": 0 lists, 0 items, 0 removed. Kinds: NETEGO 1, TYA_IN_REELS 1",
+                report.get(0));
+    }
+
+    /**
+     * A unit the switch keeps is named in Diagnostics, by its kind or its netego type, so a screen of
+     * suggestions that still shows (#167) says what it is. Reels and ads are left out of that line.
+     * Named whether the switch is on or off.
+     */
+    @Test
+    public void aKeptUnitIsNamedInTheReport() {
+        for (Kind kind : new Kind[]{Kind.QPMIDCARD, Kind.SCROLL_PIVOT, Kind.AD_PREVIEW, Kind.MULTI_ADS, Kind.ORGANIC}) {
+            Item item = new Item(kind);
+            assertSame(kind.name(), item, ReelsSuggestions.filter(item));
+        }
+        Item netego = new Item(Kind.NETEGO);
+        assertSame(netego, ReelsSuggestions.netego(netego, "suggested_users"));
+        assertSame(netego, ReelsSuggestions.netego(netego, null));
+        Settings.HIDE_REELS_SUGGESTIONS.save(false);
+        assertSame(netego, ReelsSuggestions.netego(netego, "suggested_users"));
+        Item scrollPivot = new Item(Kind.SCROLL_PIVOT);
+        assertSame(scrollPivot, ReelsSuggestions.filter(scrollPivot));
+
+        List<String> report = FeedFilterCounters.report();
+        assertEquals(report.toString(), 1, report.size());
+        assertEquals(ReelsSuggestions.KEPT_ROUTE + ": 0 lists, 0 items, 0 removed. Kinds: SCROLL_PIVOT 2, "
+                + "netego suggested_users 2, QPMIDCARD 1, netego untyped 1", report.get(0));
     }
 
     /** On, a netego unit of friends or creators to follow is answered null, and any other type stays. */
