@@ -1491,8 +1491,8 @@ public class Settings extends BaseSettings {
 
     /**
      * HDR photos and reels don't brighten the screen: every headroom Instagram asks Android for is
-     * none, and HDR color mode is the default one ({@link app.hushgram.extension.instagram.media.HdrBoost}).
-     * Read at each request. Off to start.
+     * none, HDR color mode is the default one, and the screen's HDR/SDR ratio reads as none
+     * ({@link app.hushgram.extension.instagram.media.HdrBoost}). Read at each request. Off to start.
      */
     public static final BooleanSetting TURN_OFF_HDR_BOOSTS =
             new BooleanSetting("hushgram_turn_off_hdr_boosts", FALSE);

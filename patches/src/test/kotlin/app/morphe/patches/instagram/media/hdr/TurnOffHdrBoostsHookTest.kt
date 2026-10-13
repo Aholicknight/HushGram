@@ -43,6 +43,7 @@ class TurnOffHdrBoostsHookTest {
     private val windowHeadroom = HDR_CALLS[2]
     private val colorMode = HDR_CALLS[3]
     private val extendedRange = HDR_CALLS[4]
+    private val screenRatio = HDR_CALLS[5]
 
     private fun ref(call: HdrCall, definingClass: String = call.definingClass) = ImmutableMethodReference(
         definingClass, call.name,
@@ -54,7 +55,8 @@ class TurnOffHdrBoostsHookTest {
      * A class of [type] whose one static method makes each HDR call the way Instagram's code does:
      * v0 a SurfaceView and v1 a headroom, v2 to v4 a transaction, its control and a headroom as a
      * range call whose answer it keeps, v5 a window and v6 a color mode, then the transaction's
-     * extended range brightness on v2 and v3 with v4 and v1 as its two ratios, its answer kept too.
+     * extended range brightness on v2 and v3 with v4 and v1 as its two ratios, its answer kept too,
+     * and last the HDR/SDR ratio of the display in v7, read into v1.
      * A window call of another name and a compat class's setColorMode sit between and stay.
      */
     private fun caller(type: String): ClassDef = ImmutableClassDef(
@@ -63,7 +65,7 @@ class TurnOffHdrBoostsHookTest {
             ImmutableMethod(
                 type, "show", emptyList(), "V", AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
                 ImmutableMethodImplementation(
-                    7,
+                    8,
                     listOf(
                         ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 0, 1, 0, 0, 0, ref(surface)),
                         ImmutableInstruction3rc(Opcode.INVOKE_VIRTUAL_RANGE, 2, 3, ref(transaction)),
@@ -76,6 +78,8 @@ class TurnOffHdrBoostsHookTest {
                         ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 5, 6, 0, 0, 0, ref(colorMode)),
                         ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 4, 2, 3, 4, 1, 0, ref(extendedRange)),
                         ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 2),
+                        ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 7, 0, 0, 0, 0, ref(screenRatio)),
+                        ImmutableInstruction11x(Opcode.MOVE_RESULT, 1),
                         ImmutableInstruction10x(Opcode.RETURN_VOID),
                     ),
                     null, null,
@@ -90,7 +94,7 @@ class TurnOffHdrBoostsHookTest {
         val context = PatchContexts.of(listOf(caller(instagram)))
 
         assertEquals(
-            mapOf(surface to 1, transaction to 1, windowHeadroom to 1, colorMode to 1, extendedRange to 1),
+            mapOf(surface to 1, transaction to 1, windowHeadroom to 1, colorMode to 1, extendedRange to 1, screenRatio to 1),
             context.holdBackHdrBoosts(),
         )
 
@@ -120,6 +124,10 @@ class TurnOffHdrBoostsHookTest {
         )
         assertEquals(listOf(2, 3, 4, 1), code[7].registers())
         assertEquals("the extended range answer is still kept", Opcode.MOVE_RESULT_OBJECT, code[8].opcode)
+        assertEquals(Opcode.INVOKE_STATIC, code[9].opcode)
+        assertEquals("$HDR_BOOST->hdrSdrRatio(Landroid/view/Display;)F", code[9].target())
+        assertEquals(listOf(7), code[9].registers())
+        assertEquals("the ratio is still read into v1", Opcode.MOVE_RESULT, code[10].opcode)
     }
 
     /** The extension's own calls are the real ones the stand-ins make. Sent, each would call itself. */
@@ -130,7 +138,7 @@ class TurnOffHdrBoostsHookTest {
         context.holdBackHdrBoosts()
 
         val kept = context.mutableClassDefBy(HDR_BOOST).methods.single().instructions()
-        assertEquals(listOf(surface, transaction, windowHeadroom, colorMode, extendedRange), kept.mapNotNull { it.hdrCall() })
+        assertEquals(listOf(surface, transaction, windowHeadroom, colorMode, extendedRange, screenRatio), kept.mapNotNull { it.hdrCall() })
     }
 
     /** A build that never asks for headroom fails the patch, even if it sets an HDR color mode. */
@@ -175,8 +183,10 @@ class TurnOffHdrBoostsHookTest {
     /**
      * The declared build asks for headroom from one SurfaceView method, one transaction method and
      * two window methods, sets a window's color mode from six and an extended range brightness from
-     * one, the layer it draws some videos on (#85). Every one of those calls goes to
-     * its stand-in on the same registers, with the instruction count unchanged, and none is left.
+     * one, the layer it draws some videos on (#85), and reads the screen's HDR/SDR ratio from six:
+     * that layer's setup and its ratio listener, the AV1 decoder's synthetic HDR back-off and three
+     * capability checks. Every one of those calls goes to its stand-in on the same registers, with
+     * the instruction count unchanged, and none is left.
      */
     @Test
     fun eachDeclaredBuildSendsEveryCall() {
@@ -213,7 +223,7 @@ class TurnOffHdrBoostsHookTest {
         val byCall = HDR_CALLS.associateWith { call -> making.count { method -> method.instructions().any { it.hdrCall() == call } } }
         assertEquals(
             "$label: methods making each call",
-            mapOf(surface to 1, transaction to 1, windowHeadroom to 2, colorMode to 6, extendedRange to 1), byCall,
+            mapOf(surface to 1, transaction to 1, windowHeadroom to 2, colorMode to 6, extendedRange to 1, screenRatio to 6), byCall,
         )
 
         val context = PatchContexts.of(callers)

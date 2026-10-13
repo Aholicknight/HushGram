@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.media;
 
 import android.os.Build;
+import android.view.Display;
 import android.view.SurfaceControl;
 import android.view.SurfaceView;
 import android.view.Window;
@@ -28,8 +29,15 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>On Android 14 and newer Instagram also draws some videos a frame at a time into an extended
  * range layer of its own (450 {@code LX/0201;->A02}), which shows them brighter than the rest of the
  * screen, and asks Android for three times the screen's white for it (#85). That request's desired
- * ratio is held the same way. The frame's own ratio stays Instagram's: it follows the ratio the
- * screen reports, which stays at 1.0 when no boost is granted.
+ * ratio is held the same way.
+ *
+ * <p>The frame itself is drawn for the HDR/SDR ratio the screen reports, the headroom it has to
+ * spare, which runs near five at low brightness, and that ratio goes to Android as the frame's own,
+ * so the frame came out bright even with the desired ratio held. The same reading decides whether
+ * Instagram's AV1 decoder keeps its synthetic HDR on ordinary reels: it backs off only when the
+ * screen has less headroom than it needs. With the switch on, every reading of the ratio Instagram
+ * makes answers 1.0, a screen with no headroom, so frames are drawn at the screen's white and the
+ * synthetic HDR backs off (#85).
  */
 public final class HdrBoost {
     private HdrBoost() {
@@ -77,6 +85,18 @@ public final class HdrBoost {
     /** Stands in for {@code window.setColorMode(mode)}. */
     public static void colorMode(Window window, int mode) {
         window.setColorMode(colorMode(mode));
+    }
+
+    /** Stands in for {@code display.getHdrSdrRatio()}. */
+    public static float hdrSdrRatio(Display display) {
+        return screenRatio(Build.VERSION.SDK_INT >= 34 ? display.getHdrSdrRatio() : NO_HEADROOM);
+    }
+
+    /** The HDR/SDR ratio to report in place of [reported], the screen's. */
+    static float screenRatio(float reported) {
+        if (!(reported > NO_HEADROOM) || !on()) return reported;
+        HookStatus.counted(FamilyNames.HDR_BOOST, HELD_BACK);
+        return NO_HEADROOM;
     }
 
     /** The headroom to ask for in place of [asked]. */

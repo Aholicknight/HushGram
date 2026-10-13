@@ -76,6 +76,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** Feed videos started with a tap stay in place. On some phones they dropped behind the tab bar, leaving a black gap. Reported in #136.
 
+* **Instagram - Turn off HDR brightness boosts:** Instagram now hears that the screen has no extra brightness to spare. On phones that report spare HDR brightness, it drew some reels for that extra brightness and gave ordinary reels its own HDR look, so they still lit up with the switch on. Reported in #85.
+
 * **Instagram - Glass tab bar:** The bar keeps its glass appearance over videos. Its opacity and edge no longer change as videos scroll past. Video directly beneath the bar may show through without blur on some phones. Reported in #144.
 
 * **Instagram - Glass tab bar:** With Show content behind the tab bar on, Reels stops above the bar again. Its seek bar, caption and buttons stay visible, and Home and Profile respond across the full pill. Refs #65.

@@ -64,6 +64,24 @@ public class HdrBoostTest {
         assertTrue(report, report.contains(HdrBoost.HELD_BACK + " 4"));
     }
 
+    /**
+     * The screen's HDR/SDR ratio, the headroom Instagram draws its HDR frames for and backs its
+     * synthetic HDR off by, reads as none (#85). A screen already at none, or one reporting no
+     * ratio (NaN), is left as it said, and only a ratio taken down is counted.
+     */
+    @Test
+    public void onTheScreensRatioReadsAsNoHeadroom() {
+        assertEquals(1.0f, HdrBoost.screenRatio(4.93f), 0);
+        assertEquals(1.0f, HdrBoost.screenRatio(1.2f), 0);
+        assertEquals(1.0f, HdrBoost.screenRatio(1.0f), 0);
+        assertTrue(Float.isNaN(HdrBoost.screenRatio(Float.NaN)));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(HdrBoost.HELD_BACK + " 2"));
+
+        Settings.TURN_OFF_HDR_BOOSTS.save(false);
+        assertEquals(4.93f, HdrBoost.screenRatio(4.93f), 0);
+    }
+
     /** HDR and HDR10 color modes become the default one. Wide color and the default stay. */
     @Test
     public void onHdrColorModesBecomeTheDefault() {
@@ -79,12 +97,14 @@ public class HdrBoostTest {
         Settings.TURN_OFF_HDR_BOOSTS.save(false);
         assertEquals(1.5f, HdrBoost.headroom(1.5f), 0);
         assertEquals(2, HdrBoost.colorMode(2));
+        assertEquals(3.0f, HdrBoost.screenRatio(3.0f), 0);
 
         Settings.TURN_OFF_HDR_BOOSTS.save(true);
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertEquals(1.7f, HdrBoost.headroom(1.7f), 0);
         assertEquals(3, HdrBoost.colorMode(3));
+        assertEquals(4.93f, HdrBoost.screenRatio(4.93f), 0);
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
 

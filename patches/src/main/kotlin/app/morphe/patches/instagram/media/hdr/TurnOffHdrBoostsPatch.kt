@@ -31,8 +31,10 @@ internal data class HdrCall(val definingClass: String, val name: String, val sha
 
 /**
  * The three ways Instagram asks Android for HDR headroom (Android 15's SurfaceView, SurfaceControl
- * transaction and Window calls), the call that puts a window in HDR color mode, and Android 14's
- * extended range brightness, which the layer Instagram draws some videos on asks with (#85).
+ * transaction and Window calls), the call that puts a window in HDR color mode, Android 14's
+ * extended range brightness, which the layer Instagram draws some videos on asks with, and the
+ * screen's HDR/SDR ratio, which that layer draws its frames for and the AV1 decoder's synthetic HDR
+ * backs off by (#85).
  */
 internal val HDR_CALLS = listOf(
     HdrCall("Landroid/view/SurfaceView;", "setDesiredHdrHeadroom", "(F)V", "surfaceViewHeadroom"),
@@ -46,6 +48,7 @@ internal val HDR_CALLS = listOf(
         "Landroid/view/SurfaceControl\$Transaction;", "setExtendedRangeBrightness",
         "(Landroid/view/SurfaceControl;FF)Landroid/view/SurfaceControl\$Transaction;", "extendedRangeBrightness",
     ),
+    HdrCall("Landroid/view/Display;", "getHdrSdrRatio", "()F", "hdrSdrRatio"),
 )
 
 @Suppress("unused")
