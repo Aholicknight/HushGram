@@ -9,13 +9,11 @@ import android.app.Application;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
-import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.InputDevice;
 import android.view.MotionEvent;
@@ -23,7 +21,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
-import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
@@ -34,6 +31,7 @@ import java.lang.reflect.Method;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
@@ -401,7 +399,10 @@ public final class ReelOrigin {
                         ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
                 if (!going) HookStatus.counted(FamilyNames.REEL_ORIGIN, OFFERED);
             }
-            if (!label.contentEquals(button.getText())) button.setText(label);
+            if (!label.contentEquals(button.getText())) {
+                button.setText(label);
+                ScreenColors.styleAction(button, !going);
+            }
             // Again each pass, so a turned screen or a navigation bar that came or went moves it too.
             int margin = buttonMargin(content);
             ViewGroup.LayoutParams place = button.getLayoutParams();
@@ -504,32 +505,15 @@ public final class ReelOrigin {
     }
 
     /**
-     * The button the search is started and stopped with: white on dark and rounded, a finger's height,
-     * and a button to a screen reader.
+     * The same 12 dp action used in HushGram's dialogs, with a spoken update when the search starts.
      */
     static TextView button(Context context, Runnable tapped) {
         float density = context.getResources().getDisplayMetrics().density;
-        TextView button = new TextView(context);
-        button.setTextColor(Color.WHITE);
-        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        button.setTypeface(Typeface.DEFAULT_BOLD);
-        button.setGravity(Gravity.CENTER);
-        button.setMinHeight(Math.round(48 * density));
-        int across = Math.round(20 * density);
-        int down = Math.round(10 * density);
-        button.setPadding(across, down, across, down);
-        GradientDrawable back = new GradientDrawable();
-        back.setColor(0xE6262626);
-        back.setCornerRadius(24 * density);
-        button.setBackground(back);
+        TextView button = new Button(context);
+        ScreenColors.styleAction(button, true);
         button.setElevation(6 * density);
         button.setFocusable(true);
-        button.setAccessibilityDelegate(new View.AccessibilityDelegate() {
-            @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
-                super.onInitializeAccessibilityNodeInfo(host, info);
-                info.setClassName(Button.class.getName());
-            }
-        });
+        button.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         button.setOnClickListener(view -> tapped.run());
         return button;
     }

@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Rect;
+import android.graphics.drawable.RippleDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -35,6 +36,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 import org.robolectric.util.ReflectionHelpers;
@@ -45,6 +47,7 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -354,6 +357,8 @@ public class ReelOriginTest {
         assertEquals("Stop looking", button.getText().toString());
         assertSame(content(), button.getParent());
         assertEquals("a button to a screen reader", Button.class.getName(), String.valueOf(role(button)));
+        assertEquals("Stop stays readable on the dark surface", ScreenColors.DEFAULT.heading, button.getCurrentTextColor());
+        assertEquals("the changed action is announced", View.ACCESSIBILITY_LIVE_REGION_POLITE, button.getAccessibilityLiveRegion());
         int row = grid.firstRow();
         assertTrue("it had moved on", row > 0);
         int moved = grid.drags.size();
@@ -389,6 +394,7 @@ public class ReelOriginTest {
         TextView button = ReelOrigin.buttonForTests();
         assertNotNull(button);
         assertEquals("Find the reel", button.getText().toString());
+        assertEquals("the waiting action uses the shared primary style", ScreenColors.DEFAULT.onAccent, button.getCurrentTextColor());
         assertSame(content(), button.getParent());
         assertTrue("nothing moved before the tap", grid.drags.isEmpty());
         assertTrue(shown.isEmpty());
@@ -398,6 +404,7 @@ public class ReelOriginTest {
         assertTrue(button.performClick());
         ShadowLooper.idleMainLooper();
         assertEquals("Stop looking", button.getText().toString());
+        assertEquals("the cancellable search uses the shared secondary style", ScreenColors.DEFAULT.heading, button.getCurrentTextColor());
         assertSame("the same button, relabeled", button, ReelOrigin.buttonForTests());
         idleSeconds(5);
         assertEquals(List.of(REEL), shown);
@@ -407,6 +414,31 @@ public class ReelOriginTest {
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(ReelOrigin.FOUND + " 1"));
         assertTrue(report, report.contains(ReelOrigin.OFFERED + " 1"));
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void theReelActionHasNativeFocusTouchFeedbackAndRoomForWrappedText() {
+        openProfile(List.of(REEL), null);
+        int[] tapped = {0};
+        TextView button = ReelOrigin.button(profile, () -> tapped[0]++);
+        content().addView(button);
+        layout();
+        button.setText("Find the reel you came from on this profile");
+        button.setTextSize(32);
+        int width = Math.round(220 * profile.getResources().getDisplayMetrics().density);
+        button.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        button.layout(0, 0, width, button.getMeasuredHeight());
+        assertEquals(Button.class.getName(), String.valueOf(role(button)));
+        assertTrue(button.isFocusable());
+        assertTrue(button.isClickable());
+        assertTrue("press and focus use the same feedback as settings actions", button.getBackground() instanceof RippleDrawable);
+        assertTrue("a long translation wraps without truncation", button.getLineCount() > 1);
+        assertNull(button.getEllipsize());
+        assertTrue(button.getHeight() >= Math.round(48 * profile.getResources().getDisplayMetrics().density));
+        assertTrue(button.performClick());
+        assertEquals(1, tapped[0]);
     }
 
     /** With Wait for a tap on, a reel on the first screen is outlined straight away, with no button. */
