@@ -1057,3 +1057,5 @@ Puts every switch back the way it started. Your locks stay as they are.	Mengemba
 Changed %1$d setting	%1$d pengaturan diubah
 # context: the same toast for any other count, zero included; %1$d is how many
 Changed %1$d settings	%1$d pengaturan diubah
+Hide the reply bar on reels from chats	Sembunyikan bilah balasan di reel dari chat
+The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Kotak balasan di bawah reel yang kamu buka dari chat, beserta reaksi dan tombol plusnya. Kotak pesan di chat itu sendiri tetap ada.

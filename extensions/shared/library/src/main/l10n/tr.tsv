@@ -1057,3 +1057,5 @@ Puts every switch back the way it started. Your locks stay as they are.	Tüm ana
 Changed %1$d setting	%1$d ayar değiştirildi
 # context: the same toast for any other count, zero included; %1$d is how many
 Changed %1$d settings	%1$d ayar değiştirildi
+Hide the reply bar on reels from chats	Sohbetlerden açılan reels'te yanıt çubuğunu gizle
+The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Bir sohbetten açtığın reels'in altındaki yanıt kutusu, tepkileri ve artı düğmesiyle birlikte. Sohbetin kendi mesaj kutusu kalır.

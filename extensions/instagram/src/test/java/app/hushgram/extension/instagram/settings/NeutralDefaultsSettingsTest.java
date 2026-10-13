@@ -57,7 +57,7 @@ public class NeutralDefaultsSettingsTest {
     enum StockSection { SEARCH_BAR, TRAY }
 
     /** Stands in for where the reel viewer was opened from. */
-    enum StockSource { REPOSTS_GRID }
+    enum StockSource { REPOSTS_GRID, DIRECT }
 
     /** Stands in for the presence status enum. */
     enum StockPresence { OFFLINE, ACTIVE, IDLE }
@@ -99,7 +99,7 @@ public class NeutralDefaultsSettingsTest {
 
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
-        initiallyOff = new BooleanSetting[]{Settings.ASK_BEFORE_CALL, Settings.HIDE_REEL_COMMENT_BAR, Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE, Settings.HIDE_REELS_TOP_BAR, Settings.HIDE_REEL_SAVE_BUTTON, Settings.HIDE_FEED_INTEREST, Settings.COPY_COMMENTS, Settings.COPY_COMMENT_AUTHORS, Settings.SAVE_COMMENT_PHOTOS, Settings.SAVE_PROFILE_PICTURES, Settings.VIEW_PROFILE_PICTURES, Settings.COPY_PROFILE_TEXT, Settings.HIDE_FEED_VIDEOS, Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS, Settings.HIDE_FEED_LIKED, Settings.DOWNLOAD_VOICE_MESSAGES, Settings.HIDE_COMMENTS, Settings.HIDE_SHARE_BUTTON, Settings.CHANGE_LIKE_ANIMATION,
+        initiallyOff = new BooleanSetting[]{Settings.ASK_BEFORE_CALL, Settings.HIDE_REEL_COMMENT_BAR, Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE, Settings.HIDE_REEL_REPLY_BAR, Settings.HIDE_REELS_TOP_BAR,Settings.HIDE_REEL_SAVE_BUTTON, Settings.HIDE_FEED_INTEREST, Settings.COPY_COMMENTS, Settings.COPY_COMMENT_AUTHORS, Settings.SAVE_COMMENT_PHOTOS, Settings.SAVE_PROFILE_PICTURES, Settings.VIEW_PROFILE_PICTURES, Settings.COPY_PROFILE_TEXT, Settings.HIDE_FEED_VIDEOS, Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS, Settings.HIDE_FEED_LIKED, Settings.DOWNLOAD_VOICE_MESSAGES, Settings.HIDE_COMMENTS, Settings.HIDE_SHARE_BUTTON, Settings.CHANGE_LIKE_ANIMATION,
                 Settings.ASK_BEFORE_LIKE, Settings.ASK_BEFORE_REFRESH,
                 Settings.HIDE_HIGHLIGHTS, Settings.HIDE_THREADS_BUTTON, Settings.HIDE_PROFILE_NOTES, Settings.PROFILE_POSTS_LIST, Settings.HIDE_NOTES_ROW, Settings.HIDE_INBOX_SUGGESTIONS, Settings.HIDE_INSTANTS,
                 Settings.STOP_SWIPE_TO_CREATE, Settings.STOP_REELS_SCROLLING, Settings.REEL_CAP, Settings.FIND_REEL_ORIGIN, Settings.FIND_REEL_ORIGIN_ON_TAP, Settings.FULL_RESOLUTION_PHOTOS, Settings.ASK_FOR_LARGER_PHOTOS,
@@ -294,6 +294,7 @@ public class NeutralDefaultsSettingsTest {
         Object feedItem = new Object();
         assertSame(feedItem, HomeFeed.filter(feedItem));
         assertFalse(ReelDeclutter.hideCommentBar(StockSource.REPOSTS_GRID));
+        assertFalse(ReelDeclutter.hideDirectReplyBar(StockSource.DIRECT));
         assertEquals(270f, StoryRing.size(270f), 0f);
         int[] storyRing = {0xFFFFD600, 0xFFFF7A00, 0xFFFF0069, 0xFFD300C5};
         assertSame(storyRing, StoryRing.colors(storyRing, new float[]{0.1435f, 0.3779f, 0.6071f, 0.831f}));

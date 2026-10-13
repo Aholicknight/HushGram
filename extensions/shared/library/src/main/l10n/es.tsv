@@ -1057,3 +1057,5 @@ Puts every switch back the way it started. Your locks stay as they are.	Devuelve
 Changed %1$d setting	Se cambió %1$d ajuste
 # context: the same toast for any other count, zero included; %1$d is how many
 Changed %1$d settings	Se cambiaron %1$d ajustes
+Hide the reply bar on reels from chats	Ocultar la barra de respuesta en los reels de los chats
+The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	El cuadro de respuesta bajo un reel que abres desde un chat, con sus reacciones y el botón más. El cuadro de mensajes del propio chat se queda.

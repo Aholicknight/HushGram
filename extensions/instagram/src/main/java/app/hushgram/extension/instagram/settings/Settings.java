@@ -1139,6 +1139,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_comment_bar_everywhere", FALSE);
 
     /**
+     * The reply bar under a reel opened from a chat (#177): the Reply to field, the quick reactions
+     * and the plus button. The chat's own message box is another view and stays. Off to start.
+     */
+    public static final BooleanSetting HIDE_REEL_REPLY_BAR =
+            new BooleanSetting("hushgram_hide_reel_reply_bar", FALSE);
+
+    /**
      * The top bar of the Reels tab, with the Reels title and the camera button (#14). A reel opened
      * from anywhere else keeps its bar
      * ({@link app.hushgram.extension.instagram.reels.ReelsTopBar}). Off to start.

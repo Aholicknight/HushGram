@@ -822,6 +822,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE, L10n.t("Hide the comment bar on all reels"),
                     L10n.t("The Add a comment bar under every reel, including the ones in the Reels tab. The comment "
                             + "button still opens the comments.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_REPLY_BAR, L10n.t("Hide the reply bar on reels from chats"),
+                    L10n.t("The Reply to box under a reel you open from a chat, with its reactions and plus button. "
+                            + "The chat's own message box stays.")));
             reels.add(toggle(context, Settings.HIDE_REELS_TOP_BAR, L10n.t("Hide the top bar on the Reels tab"),
                     L10n.t("Takes away the row at the top of the Reels tab, with the Reels title, the camera button and "
                             + "anything else Instagram puts there. Reels you open from a profile, a post or a chat keep "

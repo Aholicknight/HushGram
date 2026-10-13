@@ -1057,3 +1057,5 @@ Puts every switch back the way it started. Your locks stay as they are.	Setzt al
 Changed %1$d setting	%1$d Einstellung geändert
 # context: the same toast for any other count, zero included; %1$d is how many
 Changed %1$d settings	%1$d Einstellungen geändert
+Hide the reply bar on reels from chats	Antwortleiste bei Reels aus Chats ausblenden
+The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Das Antwortfeld unter einem Reel, das du aus einem Chat öffnest, mit seinen Reaktionen und dem Plus-Button. Das Nachrichtenfeld des Chats selbst bleibt.

@@ -1056,3 +1056,5 @@ Puts every switch back the way it started. Your locks stay as they are.	모든 �
 Changed %1$d setting	설정 %1$d개를 바꿨습니다
 # context: the same toast for any other count, zero included; %1$d is how many
 Changed %1$d settings	설정 %1$d개를 바꿨습니다
+Hide the reply bar on reels from chats	채팅에서 연 릴스의 답장 창 숨기기
+The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	채팅에서 연 릴스 아래의 답장 입력란과 반응, 더하기 버튼입니다. 채팅의 메시지 입력란은 그대로 남습니다.

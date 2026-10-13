@@ -603,6 +603,15 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.settings.ReelSaveButtonSettingsTest" to listOf(
                 "itIsUnderReelsWithTheOtherCleanUpSwitchesAndStartsOff[28]", "itIsUnderReelsWithTheOtherCleanUpSwitchesAndStartsOff[37]",
                 "withoutCleanUpReelsThereIsNoSwitch[28]", "withoutCleanUpReelsThereIsNoSwitch[37]"),
+            "app.hushgram.extension.instagram.reels.ReelReplyBarTest" to listOf(
+                "withTheSwitchOnOnlyAReelFromAChatLosesItsReplyBar[28]", "withTheSwitchOnOnlyAReelFromAChatLosesItsReplyBar[37]",
+                "aSourceItCantReadKeepsTheBar[28]", "aSourceItCantReadKeepsTheBar[37]",
+                "onlyTheReplyBarSwitchTurnsItOnAndItTurnsNothingElseOn[28]", "onlyTheReplyBarSwitchTurnsItOnAndItTurnsNothingElseOn[37]",
+                "offPausedAndUnreadyKeepTheBarAndCountNothing[28]", "offPausedAndUnreadyKeepTheBarAndCountNothing[37]"),
+            "app.hushgram.extension.instagram.settings.ReelReplyBarSettingsTest" to listOf(
+                "itIsUnderReelsAfterTheCommentBarSwitchesAndStartsOff[28]", "itIsUnderReelsAfterTheCommentBarSwitchesAndStartsOff[37]",
+                "theSavedSwitchAnswersOffWhilePaused[28]", "theSavedSwitchAnswersOffWhilePaused[37]",
+                "withoutCleanUpReelsThereIsNoSwitch[28]", "withoutCleanUpReelsThereIsNoSwitch[37]"),
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),
