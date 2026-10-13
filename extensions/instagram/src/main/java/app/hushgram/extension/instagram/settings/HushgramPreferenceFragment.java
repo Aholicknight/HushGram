@@ -21,10 +21,12 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.preference.DialogPreference;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
+import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
 import android.preference.TwoStatePreference;
@@ -4722,6 +4724,29 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             return true;
         });
         return preference;
+    }
+
+    /**
+     * Closes every dialog this page has open over itself: its lists and notes, and a row's choices or
+     * text box. The lock's cover over the settings goes in the settings' own window, under these, so
+     * once the lock is back they'd still show what they show (the hidden chats, by name) and still
+     * take a tap. Closed like a tap outside them, nothing in them is saved.
+     */
+    void closeDialogs() {
+        for (Dialog dialog : new ArrayList<>(shownDialogs)) dialog.dismiss();
+        shownDialogs.clear();
+        PreferenceScreen screen = getPreferenceScreen();
+        if (screen != null) closeRowDialogs(screen);
+    }
+
+    private static void closeRowDialogs(PreferenceGroup group) {
+        for (int i = 0; i < group.getPreferenceCount(); i++) {
+            Preference row = group.getPreference(i);
+            if (row instanceof PreferenceGroup) closeRowDialogs((PreferenceGroup) row);
+            if (!(row instanceof DialogPreference)) continue;
+            Dialog dialog = ((DialogPreference) row).getDialog();
+            if (dialog != null && dialog.isShowing()) dialog.dismiss();
+        }
     }
 
     /**

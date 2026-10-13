@@ -250,11 +250,11 @@ public final class SettingsDialog extends DialogFragment {
         if (window == null || activity == null || lockDraw != null) return;
         try {
             ViewTreeObserver.OnPreDrawListener draw = () -> {
-                MessagesLock.guardSettings(activity, window);
+                guard(activity, window);
                 return true;
             };
             ViewTreeObserver.OnWindowFocusChangeListener focus = hasFocus -> {
-                if (hasFocus) MessagesLock.guardSettings(activity, window);
+                if (hasFocus) guard(activity, window);
             };
             ViewTreeObserver observer = window.getDecorView().getViewTreeObserver();
             observer.addOnPreDrawListener(draw);
@@ -262,9 +262,25 @@ public final class SettingsDialog extends DialogFragment {
             lockDraw = draw;
             lockFocus = focus;
             lockWindow = window;
-            MessagesLock.guardSettings(activity, window);
+            guard(activity, window);
         } catch (Exception failure) {
             Logger.printException(() -> "Settings: could not watch the lock", failure);
+        }
+    }
+
+    /**
+     * The lock's check on this window. While covered, whatever the page had open over itself is
+     * closed: a list or a row's choices left up across a leave would sit over the cover, and the
+     * hidden chats list would still name them and still show one again. It also holds the focus, so
+     * the lock's ask waits for it to go.
+     */
+    private void guard(Activity activity, Window window) {
+        if (!MessagesLock.guardSettings(activity, window)) return;
+        try {
+            Fragment page = getChildFragmentManager().findFragmentById(CONTAINER_ID);
+            if (page instanceof HushgramPreferenceFragment) ((HushgramPreferenceFragment) page).closeDialogs();
+        } catch (Exception failure) {
+            Logger.printException(() -> "Settings: could not close what was open over them", failure);
         }
     }
 

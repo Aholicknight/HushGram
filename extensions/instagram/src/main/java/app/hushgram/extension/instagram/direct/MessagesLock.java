@@ -286,6 +286,7 @@ public final class MessagesLock {
             return;
         }
         if (activity == null) return;
+        if (locked()) settingsAsked = true;
         PinLock.ask(activity, then, () -> { });
     }
 
@@ -317,6 +318,11 @@ public final class MessagesLock {
             then.run();
             return;
         }
+        // Only the settings, and what opens them, ask through here and confirmPinThen. Answered or
+        // not, this is their one ask since the lock came back: a settings file arriving while locked
+        // asks before their window has the focus again, and a cancel leaves their cover with its
+        // Unlock button rather than asking a second time as the focus returns.
+        settingsAsked = true;
         ask(activity, then);
     }
 

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 
+import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.direct.MessagesLockForTests;
 import app.hushgram.extension.instagram.direct.PinLock;
 import app.hushgram.extension.instagram.direct.UnlockWith;
@@ -93,9 +94,12 @@ public class PinBackupTest {
                 .getBytes(StandardCharsets.UTF_8);
     }
 
+    /** Unlocked, so the PIN alone holds the switches; a locked Instagram holds them anyway. */
     @Test
     public void anImportCannotSwitchALockOffWhileAPinIsChosen() throws Exception {
         Settings.LOCK_APP.save(true);
+        MessagesLockForTests.open();
+        assertFalse(MessagesLock.locked());
 
         ConfigurationBackup.Result result = ConfigurationBackup.restore(locksOff());
 
@@ -130,8 +134,11 @@ public class PinBackupTest {
         ConfigurationBackup.restore(on.getBytes(StandardCharsets.UTF_8));
         long token = ConfigurationBackup.undoToken();
         assertTrue(token != 0);
-        // A PIN is chosen before the Undo is tapped: Undo would switch the lock off.
+        // A PIN is chosen before the Undo is tapped: Undo would switch the lock off. Unlocked, so
+        // only the PIN stands in its way.
         Settings.UNLOCK_WITH.save(UnlockWith.PIN);
+        MessagesLockForTests.open();
+        assertFalse(MessagesLock.locked());
 
         ConfigurationBackup.undo(token);
 

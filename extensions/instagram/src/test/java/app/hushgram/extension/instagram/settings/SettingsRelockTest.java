@@ -11,8 +11,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Intent;
 import android.net.Uri;
+import android.preference.DialogPreference;
 import android.preference.Preference;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,13 +32,16 @@ import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowActivity;
+import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.util.ReflectionHelpers;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
+import app.hushgram.extension.instagram.direct.HiddenChats;
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.direct.MessagesLockForTests;
 import app.hushgram.extension.instagram.direct.UnlockWith;
@@ -56,6 +62,7 @@ public class SettingsRelockTest {
     private static final Uri DOCUMENT = Uri.parse("content://test-documents/settings.json");
     /** MessagesLock's mark on its covers. */
     private static final String COVER_TAG = "hushgram_messages_lock";
+    private static final String ACCOUNT = "17841400000000002";
 
     private final List<Runnable[]> asks = new ArrayList<>();
 
@@ -76,8 +83,11 @@ public class SettingsRelockTest {
     public void restore() throws Exception {
         Utils.awaitBackgroundTasksForTests();
         MessagesLockForTests.reset();
+        MessagesLockForTests.signOut();
         ConfigurationBackup.forgetUndo();
         HushgramPreferenceFragment.importFeedback = null;
+        Settings.HIDDEN_CHATS.resetToDefault();
+        Settings.LOCK_AGAIN.resetToDefault();
         Settings.LOCK_MESSAGES.resetToDefault();
         Settings.LOCK_APP.resetToDefault();
         Settings.UNLOCK_WITH.resetToDefault();
@@ -122,6 +132,108 @@ public class SettingsRelockTest {
             draw(dialog);
             assertEquals("unlocked, the cover stayed", View.GONE, cover.getVisibility());
             assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_AUTO, content.getImportantForAccessibility());
+        }
+    }
+
+    /** Robolectric gives a dialog's window no focus of its own, so each test here hands it over. */
+    @Test
+    public void theLockIsAskedOnceAsTheSettingsGetTheFocus() {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            MessagesLockForTests.open();
+            SettingsDialog dialog = show(controller);
+            draw(dialog);
+            focus(dialog, true);
+            assertEquals("asked while unlocked", 0, asks.size());
+
+            leaveAndComeBack(controller, dialog);
+            assertNotNull(cover(dialog));
+            assertEquals("asked before the settings had the focus", 0, asks.size());
+            focus(dialog, true);
+            assertEquals("not asked once the settings had the focus", 1, asks.size());
+
+            // Cancelled: the cover stays, and the focus going and coming back doesn't ask again.
+            asks.get(0)[1].run();
+            focus(dialog, false);
+            focus(dialog, true);
+            draw(dialog);
+            assertEquals("a cancel was asked again at once", 1, asks.size());
+            assertEquals(View.VISIBLE, cover(dialog).getVisibility());
+
+            // The next time the lock comes back, it's asked again.
+            leaveAndComeBack(controller, dialog);
+            focus(dialog, true);
+            assertEquals(2, asks.size());
+        }
+    }
+
+    /** The file's ask comes up before the settings have the focus back, and is their one ask. */
+    @Test
+    public void aCancelledSettingsFileIsNotAskedAgainAsTheFocusComesBack() throws Exception {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            MessagesLockForTests.open();
+            SettingsDialog dialog = show(controller);
+            pickWhileTheLockComesBack(controller, page(dialog));
+            assertEquals(1, asks.size());
+
+            asks.get(0)[1].run();
+            finish();
+            draw(dialog);
+            focus(dialog, true);
+            assertEquals("the cancel was asked again as the settings got the focus", 1, asks.size());
+            assertNotNull(cover(dialog));
+            assertEquals(View.VISIBLE, cover(dialog).getVisibility());
+            assertTrue(Settings.LOCK_MESSAGES.savedValue());
+        }
+    }
+
+    /**
+     * A list or a row's choices left open across a leave sat over the settings' cover, the hidden
+     * chats naming them and a tap able to show one again. They close once the cover is up, and with
+     * them gone the settings have the focus for the lock's ask.
+     */
+    @Test
+    public void whatWasOpenOverTheSettingsClosesWhenTheyAreCovered() throws Exception {
+        MessagesLockForTests.signIn(ACCOUNT);
+        assertTrue(HiddenChats.add(ACCOUNT, "350000000000001", "Qorvath Brindle"));
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            MessagesLockForTests.open();
+            SettingsDialog dialog = show(controller);
+            HushgramPreferenceFragment page = page(dialog);
+            draw(dialog);
+
+            Preference hiddenRow = page.findPreference(HushgramPreferenceFragment.HIDDEN_CHATS_ROW);
+            assertNotNull(hiddenRow);
+            hiddenRow.getOnPreferenceClickListener().onPreferenceClick(hiddenRow);
+            assertEquals("the list didn't ask first", 1, asks.size());
+            asks.get(0)[0].run();
+            ShadowLooper.idleMainLooper();
+            AlertDialog list = (AlertDialog) ShadowAlertDialog.getLatestAlertDialog();
+            assertNotNull(list);
+            assertTrue(list.isShowing());
+
+            DialogPreference waitRow = (DialogPreference) page.findPreference(Settings.LOCK_AGAIN.key);
+            assertNotNull(waitRow);
+            ReflectionHelpers.callInstanceMethod(waitRow, "onClick");
+            ShadowLooper.idleMainLooper();
+            Dialog choices = waitRow.getDialog();
+            assertNotNull(choices);
+            assertTrue(choices.isShowing());
+
+            // Unlocked, the settings' own frames leave them be.
+            draw(dialog);
+            assertTrue("closed while unlocked", list.isShowing());
+            assertTrue("closed while unlocked", choices.isShowing());
+            String wait = Settings.LOCK_AGAIN.get().name();
+
+            leaveAndComeBack(controller, dialog);
+            assertNotNull(cover(dialog));
+            assertFalse("the hidden chats list stayed over the cover", list.isShowing());
+            assertFalse("Lock again's choices stayed over the cover", choices.isShowing());
+            assertEquals("a hidden chat was shown again", 1, HiddenChats.saved(ACCOUNT).size());
+            assertEquals("closing the choices picked one", wait, Settings.LOCK_AGAIN.get().name());
+
+            focus(dialog, true);
+            assertEquals("the lock wasn't asked once they'd gone", 2, asks.size());
         }
     }
 
@@ -208,6 +320,27 @@ public class SettingsRelockTest {
         assertNotNull(picked);
         MessagesLockForTests.relock();
         Shadows.shadowOf(controller.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
+    }
+
+    /** Left with the settings up, locked while away, and back with a frame drawn. */
+    private static void leaveAndComeBack(ActivityController<Activity> controller, SettingsDialog dialog) {
+        focus(dialog, false);
+        controller.pause().stop();
+        MessagesLockForTests.relock();
+        controller.start().resume();
+        draw(dialog);
+    }
+
+    /** What Android does as the settings' window gains or loses the focus. */
+    private static void focus(SettingsDialog dialog, boolean hasFocus) {
+        View decor = dialog.getDialog().getWindow().getDecorView();
+        Object attachInfo = ReflectionHelpers.getField(decor, "mAttachInfo");
+        assertNotNull("the settings' window isn't attached", attachInfo);
+        ReflectionHelpers.setField(attachInfo, "mHasWindowFocus", hasFocus);
+        assertEquals(hasFocus, decor.hasWindowFocus());
+        ReflectionHelpers.callInstanceMethod(decor.getViewTreeObserver(), "dispatchOnWindowFocusChange",
+                ReflectionHelpers.ClassParameter.from(boolean.class, hasFocus));
+        ShadowLooper.idleMainLooper();
     }
 
     private static SettingsDialog show(ActivityController<Activity> controller) {
