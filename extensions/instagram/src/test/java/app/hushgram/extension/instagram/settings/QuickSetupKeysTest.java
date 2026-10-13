@@ -17,6 +17,8 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.preference.Preference;
+import android.preference.SwitchPreference;
 import android.preference.TwoStatePreference;
 
 import org.junit.After;
@@ -37,6 +39,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -140,6 +143,28 @@ public class QuickSetupKeysTest {
             assertEquals(0, page.applyQuickSetup(QuickSetupKeys.quiet()));
             assertEquals("Changed 0 settings", ShadowToast.getTextOfLatestToast());
         }
+    }
+
+    /** A row whose change listener says no keeps what it shows, as a tap on it would, and isn't counted. */
+    @Test
+    public void aRowThatRefusesTheChangeIsLeftAsItIs() {
+        SwitchPreference refusing = new SwitchPreference(RuntimeEnvironment.getApplication());
+        refusing.setOnPreferenceChangeListener((row, value) -> false);
+        List<Object> heard = new ArrayList<>();
+        SwitchPreference asked = new SwitchPreference(RuntimeEnvironment.getApplication());
+        asked.setOnPreferenceChangeListener((row, value) -> heard.add(value));
+        SwitchPreference plain = new SwitchPreference(RuntimeEnvironment.getApplication());
+        Map<String, Preference> rows = new HashMap<>();
+        rows.put(Settings.HIDE_ADS.key, refusing);
+        rows.put(Settings.HIDE_INBOX_SUGGESTIONS.key, asked);
+        rows.put(Settings.HIDE_HOME_CREATE_BUTTON.key, plain);
+
+        assertEquals(2, QuickSetups.apply(rows::get, QuickSetups.allOn(Arrays.asList(
+                Settings.HIDE_ADS, Settings.HIDE_INBOX_SUGGESTIONS, Settings.HIDE_HOME_CREATE_BUTTON))));
+        assertFalse(refusing.isChecked());
+        assertTrue(asked.isChecked());
+        assertEquals(Arrays.asList((Object) Boolean.TRUE), heard);
+        assertTrue(plain.isChecked());
     }
 
     /** A choice that flips several switches needing a restart says so once, not once a switch. */

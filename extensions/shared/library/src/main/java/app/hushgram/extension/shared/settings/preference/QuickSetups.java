@@ -74,7 +74,9 @@ public final class QuickSetups {
             TwoStatePreference toggle = (TwoStatePreference) row;
             boolean wanted = value.getValue();
             if (toggle.isChecked() == wanted) continue;
-            if (!toggle.callChangeListener(wanted)) continue;
+            // What Preference.callChangeListener does; it's protected, so ask the listener here.
+            Preference.OnPreferenceChangeListener listener = toggle.getOnPreferenceChangeListener();
+            if (listener != null && !listener.onPreferenceChange(toggle, wanted)) continue;
             toggle.setChecked(wanted);
             changed++;
         }
