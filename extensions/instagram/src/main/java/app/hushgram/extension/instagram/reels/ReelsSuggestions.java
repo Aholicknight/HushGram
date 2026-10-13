@@ -114,9 +114,13 @@ public final class ReelsSuggestions {
         }
     }
 
-    /** A reel or an ad is what a Reels page is made of, and Hide ads counts ads; anything else is named. */
+    /**
+     * A reel or an ad is what a Reels page is made of, and Hide ads counts ads; anything else is named.
+     * A NETEGO item has already been through {@link #netego} at the same return, which names it by
+     * its type, so it isn't counted twice (or, switched off, as kept when it was a suggestion).
+     */
     private static void kept(String kind) {
-        if (kind.equals("ORGANIC") || kind.equals("MULTI_ADS") || kind.startsWith("AD")) return;
+        if (kind.equals("ORGANIC") || kind.equals("MULTI_ADS") || kind.equals("NETEGO") || kind.startsWith("AD")) return;
         FeedFilterCounters.sawKind(KEPT_ROUTE, kind);
     }
 

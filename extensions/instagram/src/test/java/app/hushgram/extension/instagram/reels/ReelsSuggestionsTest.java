@@ -86,7 +86,8 @@ public class ReelsSuggestionsTest {
 
     /**
      * On, reels, ads, Your algorithm and other netego units come back as they came. None counts as a
-     * suggestion; the units that aren't reels or ads are named on the kept line.
+     * suggestion; the units that aren't reels or ads are named on the kept line, except a netego
+     * item, which the netego hook names by its type at the same return.
      */
     @Test
     public void withTheSwitchOnEverythingElseStays() {
@@ -97,7 +98,7 @@ public class ReelsSuggestionsTest {
         assertNull(ReelsSuggestions.filter(null));
         List<String> report = FeedFilterCounters.report();
         assertEquals(report.toString(), 1, report.size());
-        assertEquals(ReelsSuggestions.KEPT_ROUTE + ": 0 lists, 0 items, 0 removed. Kinds: NETEGO 1, TYA_IN_REELS 1",
+        assertEquals(ReelsSuggestions.KEPT_ROUTE + ": 0 lists, 0 items, 0 removed. Kinds: TYA_IN_REELS 1",
                 report.get(0));
     }
 
@@ -117,6 +118,7 @@ public class ReelsSuggestionsTest {
         assertSame(netego, ReelsSuggestions.netego(netego, null));
         Settings.HIDE_REELS_SUGGESTIONS.save(false);
         assertSame(netego, ReelsSuggestions.netego(netego, "suggested_users"));
+        assertSame(netego, ReelsSuggestions.filter(netego));
         Item scrollPivot = new Item(Kind.SCROLL_PIVOT);
         assertSame(scrollPivot, ReelsSuggestions.filter(scrollPivot));
 
