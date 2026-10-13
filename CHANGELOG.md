@@ -124,9 +124,9 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** With Show content behind the tab bar on, a reel's More button and name keep working after a visit to HushGram's settings. The strip Instagram adds to make the seek bar easier to grab used to land on top of them, so taps there did nothing.
 
-* **Instagram - Search button on Home's header:** When Search is off a tab bar you swipe across, the note the button shows now fits on screen and says what to turn off, or that a restart brings Search back when you've just turned Hide the Search tab off. Android used to cut it off halfway.
+* **Instagram - Hide the Reels tab:** When Search is off a tab bar you swipe across, the note the button shows now fits on screen and says what to turn off, or that a restart brings Search back when you've just turned Hide the Search tab off. Android used to cut it off halfway.
 
-* **Instagram - Downloads:** Save all's result shows each of its lines in turn, so the lower quality and already saved notes aren't cut off on Android 12 and newer.
+* **Instagram - Download any video:** Save all's result shows each of its lines in turn, so the lower quality and already saved notes aren't cut off on Android 12 and newer.
 
 ## 0.0.9 (2026-10-11)
 
