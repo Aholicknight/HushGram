@@ -1161,6 +1161,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_save_button", FALSE);
 
     /**
+     * Instagram's clear mode, once you turn it on for a reel, stays on for the next reels you swipe
+     * to, until you leave it yourself (#138,
+     * {@link app.hushgram.extension.instagram.reels.ReelClearMode}). Read at each turn-on and each
+     * swipe, so a change needs no restart. Off to start.
+     */
+    public static final BooleanSetting KEEP_REEL_CLEAR_MODE =
+            new BooleanSetting("hushgram_keep_reel_clear_mode", FALSE);
+
+    /**
      * Burn-in guard on the Reels screen (#162): dims a reel's controls after a few seconds without a
      * touch, and can also move the screen a step every few minutes
      * ({@link app.hushgram.extension.instagram.reels.BurnInGuard}). Off to start.

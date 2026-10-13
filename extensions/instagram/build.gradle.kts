@@ -612,6 +612,20 @@ tasks.register("verifyAndroidBoundaries") {
                 "itIsUnderReelsAfterTheCommentBarSwitchesAndStartsOff[28]", "itIsUnderReelsAfterTheCommentBarSwitchesAndStartsOff[37]",
                 "theSavedSwitchAnswersOffWhilePaused[28]", "theSavedSwitchAnswersOffWhilePaused[37]",
                 "withoutCleanUpReelsThereIsNoSwitch[28]", "withoutCleanUpReelsThereIsNoSwitch[37]"),
+            "app.hushgram.extension.instagram.reels.ReelClearModeTest" to listOf(
+                "clearModeYouTurnOnCarriesToEveryNextReel[28]", "clearModeYouTurnOnCarriesToEveryNextReel[37]",
+                "leavingClearModeYourselfEndsItForTheNextReels[28]", "leavingClearModeYourselfEndsItForTheNextReels[37]",
+                "aSwipeThatHasntLandedWaitsForThePagersNextPageOnce[28]", "aSwipeThatHasntLandedWaitsForThePagersNextPageOnce[37]",
+                "aSecondTryOnTheSameReelEndsIt[28]", "aSecondTryOnTheSameReelEndsIt[37]",
+                "closingTheViewerCarriesNothingIntoTheNextOne[28]", "closingTheViewerCarriesNothingIntoTheNextOne[37]",
+                "aPageWithNoExitButtonEndsIt[28]", "aPageWithNoExitButtonEndsIt[37]",
+                "onlyTheReelYouPutInClearModeHandsItOn[28]", "onlyTheReelYouPutInClearModeHandsItOn[37]",
+                "withoutATurnOnOfYoursNothingIsAsked[28]", "withoutATurnOnOfYoursNothingIsAsked[37]",
+                "offPausedAndUnreadyLeaveEveryReelAsInstagramHasIt[28]", "offPausedAndUnreadyLeaveEveryReelAsInstagramHasIt[37]",
+                "aThrowingTurnOnOrReaderForgetsClearModeAndIsReported[28]", "aThrowingTurnOnOrReaderForgetsClearModeAndIsReported[37]"),
+            "app.hushgram.extension.instagram.settings.ReelClearModeSettingsTest" to listOf(
+                "itIsUnderReelsAfterBurnInGuardAndStartsOff[28]", "itIsUnderReelsAfterBurnInGuardAndStartsOff[37]",
+                "withoutCleanUpReelsThereIsNoSwitch[28]", "withoutCleanUpReelsThereIsNoSwitch[37]"),
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),

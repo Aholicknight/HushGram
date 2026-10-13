@@ -390,6 +390,26 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveButto
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveButton()Z in instance (L*;JJ)L*; holding android_purge_26_q2_ClipsUfiComponent_maybeCreateSaveButtonComponent
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveCount()Z in instance (L*;JJ)L*; holding android_purge_26_q2_ClipsUfiComponent_maybeCreateSaveCountComponent
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveCount()Z in instance (L*;JJ)L*; holding android_purge_26_q2_ClipsUfiComponent_maybeCreateSaveCountComponent
+# Keep clear mode on, the same patch's eighth switch, has Instagram's clear mode (its fullscreen view)
+# carry from reel to reel. The action handler's turn-on and turn-off each tell the extension once,
+# after the action they run, with what they were handed: entered(handler, reason) in the one instance
+# method holding the handler's enable marker, and left(handler, reel, reason) in the one holding its
+# dismiss marker. The viewer's turn-on, the one static (Object, Object) method holding its own enable
+# marker, passes the reel it read off the pager through current() before testing it. The pager
+# listener's page report asks paged() first thing, and the exit button's render hands built() its
+# reel first thing. Each hook is called from its one method and nowhere else. Left out, clear mode
+# ends with every swipe as Instagram has it; twice or elsewhere, it isn't the hook the patch wrote.
+# The two stubs, filled with the handler's turn-on and the reel's getId, each have to leave the
+# extension before they return. ClearModeHookTest checks on every 450 fixture where each one lands.
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->entered(Ljava/lang/Object;Ljava/lang/Object;)V in instance (L*;)V holding android_purge_26_q3_FullscreenViewActionHandler_handleFullscreenViewEnable
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->left(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (L*;L*;)V holding android_purge_26_q3_FullscreenViewActionHandler_handleFullscreenViewDismiss
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->current(Ljava/lang/Object;)Ljava/lang/Object; in static (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; holding android_purge_26_q3_ClipsViewerNavigatorProvider_handleFullscreenViewEnable
+start-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->paged()V in instance (II)V holding android_purge_26_q2_ClipsViewerViewPagerListener_onPageSelected
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->paged()V in instance (II)V holding android_purge_26_q2_ClipsViewerViewPagerListener_onPageSelected
+start-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/lang/Object;)V in instance (L*;)L*; holding android_purge_26_q3_ClipsFullscreenViewComponent_render
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/lang/Object;)V in instance (L*;)L*; holding android_purge_26_q3_ClipsFullscreenViewComponent_render
+first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->enter(Ljava/lang/Object;Ljava/lang/Object;)V outside Lapp/hushgram/extension/
+first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->reelId(Ljava/lang/Object;)Ljava/lang/String; outside Lapp/hushgram/extension/
 #
 # Sanitize sharing links passes the link each of Instagram's two share link parsers reads through
 # the extension, once, before the parser stores it: the permalink parser for a post or reel and the

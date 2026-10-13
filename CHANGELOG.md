@@ -52,6 +52,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Show a reel's exact time:** New patch. A reel says when it was posted on a line under the author's name, like Oct 2, 3:45 PM. The switch is under Reels and starts off. A second switch adds the seconds. Asked for in #172.
 
+* **Instagram - Clean up Reels:** New switch under Reels, Keep clear mode on, off by default. With it on, Instagram's clear mode carries from one reel to the next until you leave it yourself. Asked for in #138.
+
 #### Improvements
 
 * **Tooling:** Device builds support separate keystore and key passwords, including an empty store password. The installer also picks one ADB executable when the path lists more than one.

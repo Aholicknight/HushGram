@@ -21,6 +21,7 @@ import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
+import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -55,6 +56,10 @@ private const val PATCH = "Clean up Reels"
  * hook the settings patch writes once this patch switches its status method on, finds the bar by
  * the class and id names Instagram keeps and hides it at runtime when its viewer is the Reels tab's.
  *
+ * An eighth switch hides nothing: Keep clear mode on has Instagram's own clear mode carry from the
+ * reel you turned it on for to the next reels. See ClearMode.kt. Its places are found and checked
+ * before any part is hidden, so a build that lacks one changes nothing.
+ *
  * Every part is required: a build where one can't be found once, in the shape its kind has, stops
  * the patch with what's wrong, rather than shipping a switch that quietly does nothing.
  */
@@ -64,7 +69,8 @@ val cleanUpReelsPatch = bytecodePatch(
     description = "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban " +
         "Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Save button and the " +
         "Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons while you aren't " +
-        "touching the screen. Starts off. Turn it on in HushGram settings > Reels.",
+        "touching the screen. Keep clear mode on carries Instagram's clear mode to the next reels. " +
+        "Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")
     dependsOn(settingsPatch)
@@ -72,7 +78,12 @@ val cleanUpReelsPatch = bytecodePatch(
     dependsOn(instagramExtensionPatch)
 
     execute {
+        requireStatusMethod("reelDeclutter")
+        val clearMode = findClearMode()
+        val clearModeStubs = clearModeStubs()
         hideReelParts()
+        applyClearMode(clearMode)
+        clearModeStubs.fill(clearMode)
         enableStatus("reelDeclutter")
     }
 }
