@@ -418,6 +418,7 @@ no-call Landroid/content/pm/ShortcutManager;->pushDynamicShortcut(Landroid/conte
 no-call Landroid/content/pm/ShortcutManager;->addDynamicShortcuts(Ljava/util/List;)Z outside Lapp/hushgram/extension/
 no-call Landroid/content/pm/ShortcutManager;->setDynamicShortcuts(Ljava/util/List;)Z outside Lapp/hushgram/extension/
 no-call Landroid/content/pm/ShortcutManager;->updateShortcuts(Ljava/util/List;)Z outside Lapp/hushgram/extension/
+no-call Landroid/content/pm/ShortcutManager;->removeAllDynamicShortcuts()V outside Lapp/hushgram/extension/
 # The settings patch also sends the call that gives Home's title view, which holds the Instagram
 # logo, its long press to SettingsEntry.setLogoLongClickListener, in the method that draws Home's
 # header from a state (MainFeedActionBar.A08 on 450, the method the Ghost mode button's rules below
@@ -432,7 +433,6 @@ sole-call Lapp/hushgram/extension/instagram/settings/SettingsEntry;->setLogoLong
 # names the constructor alone. Left out, the newer header's logo opens nothing; LogoLongPressTest
 # checks the call follows the store on the stored register in all seven 450 builds.
 single-call Lapp/hushgram/extension/instagram/settings/SettingsEntry;->watchLogo(Landroid/view/View;)V in <init>
-no-call Landroid/content/pm/ShortcutManager;->removeAllDynamicShortcuts()V outside Lapp/hushgram/extension/
 # Spoof location sends every read of a Location's latitude, longitude and distance to SpoofLocation,
 # which answers the set place for a fix from the phone while the switch is on. One left in
 # Instagram's code is a read that tells Instagram where the phone really is.
