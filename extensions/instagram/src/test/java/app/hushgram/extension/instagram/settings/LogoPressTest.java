@@ -155,6 +155,28 @@ public class LogoPressTest {
         assertEquals(1, shown());
     }
 
+    /**
+     * Home's newer header keeps its logo in an image view with no listener of Instagram's; the
+     * patch hands that view over once, as the header finds it.
+     */
+    @Test public void theNewerHeadersLogoOpensHushGram() {
+        ImageView logo = new ImageView(activity);
+        ((ViewGroup) title.getParent()).addView(logo);
+        assertFalse(logo.isLongClickable());
+
+        SettingsEntry.watchLogo(logo);
+
+        assertTrue(logo.isLongClickable());
+        assertTrue(logo.performLongClick());
+        assertEquals(1, shown());
+        assertEquals("a tap on the older header's title came with it", 0, taps.get());
+    }
+
+    @Test public void noLogoViewIsLeftAlone() {
+        SettingsEntry.watchLogo(null);
+        assertEquals(0, shown());
+    }
+
     @Test public void aLogoNoLongerOnScreenLeavesThePressToInstagram() {
         AtomicInteger asked = new AtomicInteger();
         SettingsEntry.setLogoLongClickListener(title, instagrams(asked, false));

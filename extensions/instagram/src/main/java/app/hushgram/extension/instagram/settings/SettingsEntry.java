@@ -561,6 +561,23 @@ public final class SettingsEntry {
         title.setOnLongClickListener(listener);
     }
 
+    /**
+     * Home's newer header (the one with feed tabs) shows the Instagram logo as Home opens, and on
+     * some accounts keeps it there, but gives it no long press of its own. The patch hands its logo
+     * view here right after the header finds it in its layout, once per header, and the logo gets
+     * the same long press as the older header's: this screen over the logo's activity. Nothing
+     * listens for a tap there, so none is taken from Instagram. Never throws, since it runs inside
+     * the header's constructor; anything that goes wrong leaves the logo as Instagram made it.
+     */
+    public static void watchLogo(View logo) {
+        try {
+            if (logo == null) return;
+            setLogoLongClickListener(logo, null);
+        } catch (Throwable failure) {
+            Logger.printException(() -> "Settings entry: could not watch the Instagram logo in Home's newer header", failure);
+        }
+    }
+
     /** Whether the logo's long press has been logged this run, so a redraw doesn't log it again. */
     private static volatile boolean logoWatched;
 

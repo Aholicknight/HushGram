@@ -8,7 +8,7 @@ Every HushGram release, newest first.
 
 #### Features
 
-* **Instagram - HushGram settings:** Long-press Instagram's feed logo to open HushGram settings, even while paused. Taps keep Instagram's behavior, and its own long press runs first. The icon shortcut and Settings and activity entry still work.
+* **Instagram - HushGram settings:** Long-press Instagram's feed logo to open HushGram settings, even while paused. Taps keep Instagram's behavior, and its own long press runs first. The icon shortcut and Settings and activity entry still work. On accounts with the newer Home header (the one with feed tabs), the logo it shows works the same way.
 
 * **Instagram - Install next to Instagram:** New Mark the icon option, off by default. It puts a small HushGram badge on the second Instagram's home screen icon, and on the other icons Instagram lets you pick. Asked for in #145.
 

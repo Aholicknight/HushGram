@@ -426,6 +426,12 @@ no-call Landroid/content/pm/ShortcutManager;->updateShortcuts(Ljava/util/List;)Z
 # Instagram's alone; left beside the call, Instagram's listener goes back on over HushGram's; on
 # other registers, another view gets it. LogoLongPressTest checks all seven 450 builds.
 sole-call Lapp/hushgram/extension/instagram/settings/SettingsEntry;->setLogoLongClickListener(Landroid/view/View;Landroid/view/View$OnLongClickListener;)V replacing Landroid/view/View;->setOnLongClickListener(Landroid/view/View$OnLongClickListener;)V in instance (LX/*;Lcom/instagram/common/session/UserSession;LX/*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.notifications.badging.ui.component.ToastingBadge null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView
+# Home's newer header (MergedFeedsActionBar) gives its Instagram logo no long press, so the settings
+# patch hands the logo view to SettingsEntry.watchLogo right after the header's constructor keeps
+# it, once. The header loads no strings and Redex renames the field between builds, so the rule
+# names the constructor alone. Left out, the newer header's logo opens nothing; LogoLongPressTest
+# checks the call follows the store on the stored register in all seven 450 builds.
+single-call Lapp/hushgram/extension/instagram/settings/SettingsEntry;->watchLogo(Landroid/view/View;)V in <init>
 no-call Landroid/content/pm/ShortcutManager;->removeAllDynamicShortcuts()V outside Lapp/hushgram/extension/
 # Spoof location sends every read of a Location's latitude, longitude and distance to SpoofLocation,
 # which answers the set place for a fix from the phone while the switch is on. One left in
