@@ -46,7 +46,7 @@ Most features have their own switch. Pause restores their normal runtime behavio
 3. Get Instagram 450.0.0.50.77 from [APKMirror](https://www.apkmirror.com/apk/instagram/instagram-instagram/). Take [the bundle labelled (arm64-v8a) (480-640dpi) (Android 9.0+), build 385611438](https://www.apkmirror.com/apk/instagram/instagram-instagram/instagram-450-0-0-50-77-release/instagram-450-0-0-50-77-android-apk-download/). These patches are checked against it first. The same version's other arm64-v8a builds (385611395, 385611400, 385611404 and 385611431) and its x86 (385611439) and x86_64 (385611440) builds for Chromebooks and emulators work too. Manager calls them unsupported, because it can only be told one build number per kind of phone, so 385611438 is the easy pick.
 4. Uninstall the Instagram you got from the Play Store. The patched app is signed with your own key, so Android won't install it over Meta's. Uninstalling signs you out, so have your password (and your two-factor codes) ready.
 5. In Morphe Manager, pick the Instagram file, keep the default patch selection or change it, and patch.
-6. Open HushGram settings (long-press Instagram's icon) and turn on what you want. Most features start off, so the patched app looks like Instagram until you do.
+6. Open HushGram settings (long-press the Instagram logo at the top of your feed, or Instagram's icon) and turn on what you want. Most features start off, so the patched app looks like Instagram until you do.
 
 HushGram supports arm64-v8a phones on Android 9 and newer, which is what Instagram 450 itself asks for.
 
@@ -154,7 +154,7 @@ There are 101 patches for `com.instagram.android`, checked against Instagram 450
 | `Hide the Threads button` | Takes the Threads button off the top of profiles. The menu and the other buttons stay. Starts off. Turn it on in HushGram settings > Profiles. | Included |
 | `Hide your active status` | Stops people from seeing Active now for you while you use Instagram. You still see when they're active. Ghost mode, at the top of Ads and privacy, turns it on with the others. Starts off. Turn it on in HushGram settings > Messages. | Included |
 | `HushGram launch screen` | Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer. Starts off. Turn it on in HushGram settings > Layout. | Included |
-| `HushGram settings` | Adds a HushGram settings page to Instagram. Open it by pressing and holding Instagram's icon, or from the top of Settings and activity. Turn features on or off there, pause HushGram and save diagnostics. Works as soon as you patch it in, with no switch. | Included |
+| `HushGram settings` | Adds a HushGram settings page to Instagram. Open it by long-pressing the Instagram logo at the top of your feed or Instagram's icon, or from the top of Settings and activity. Turn features on or off there, pause HushGram and save diagnostics. Works as soon as you patch it in, with no switch. | Included |
 | `Install next to Instagram` | Installs this build as a second Instagram beside your normal one, with its own data and sign-in. Pick its package name and app name in the patch's options, and whether its icon gets a HushGram badge. Works as soon as you patch it in, with no switch. | Opt-in |
 | `Keep a seek bar on Reels` | Keeps a seek bar under every reel, short ones too, with the time played and the reel's length above it, like 0:10 / 0:55. Starts off. Turn it on in HushGram settings > Reels. | Included |
 | `Keep in chat` | Keeps view once and replayable photos and videos in your chats after you open them, so they don't disappear. A photo or video you send stays Instagram's own sent bubble. Starts off. Turn it on in HushGram settings > Messages. | Included |
@@ -211,7 +211,7 @@ In HushGram settings, Settings entry lets you choose one navigation tab to open 
 
 ## Settings
 
-Long press Instagram's icon on your home screen and tap **HushGram settings**. Or, inside Instagram, open **Settings and activity** from the menu on your profile and tap **HushGram settings** at the top. The screen opens over Instagram, and the shortcut works before you sign in too.
+Inside Instagram, long-press the Instagram logo at the top of your feed. A tap on it still does what Instagram made it do, and the long press works while HushGram is paused, since Pause is turned off in the same place. If Instagram has a long press of its own on the logo for your account, Instagram's comes first and the other ways in still work. From your home screen, long press Instagram's icon and tap **HushGram settings**. Or open **Settings and activity** from the menu on your profile and tap **HushGram settings** at the top. The screen opens over Instagram, and the shortcut works before you sign in too.
 
 If the settings page can't open, including after rotating your phone, tap **Retry** in the dialog or use **Back** to return to Instagram.
 

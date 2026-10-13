@@ -61,7 +61,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * screen as a full screen dialog. Nothing is added to Instagram's manifest, so no resource has to
  * be rebuilt to get here. The shortcut is kept first among Instagram's own, because a launcher
  * shows only the first few. A launcher that shows no shortcuts leaves the row at the top of
- * Instagram's own Settings and activity screen, which {@link SettingsScreenRow} draws.
+ * Instagram's own Settings and activity screen, which {@link SettingsScreenRow} draws. Inside
+ * Instagram, a long press on the Instagram logo at the top of Home opens it too (see
+ * {@link #setLogoLongClickListener}).
  *
  * <p>The shortcut names the main activity itself rather than a launcher alias: Instagram's icon is
  * one of several aliases it switches between at runtime (its alternate app icons), and whichever
@@ -525,6 +527,78 @@ public final class SettingsEntry {
             return true;
         } catch (Exception ex) {
             Logger.printException(() -> "Could not open the HushGram settings over " + name, ex);
+            return false;
+        }
+    }
+
+    /**
+     * Instagram's call that gives Home's title view its long press comes here instead. The title
+     * view is the middle of the bar at the top of your feed and holds the Instagram logo, so a
+     * press on the logo is a press on it. The patch sends the one call that does this, in the
+     * method that draws the bar, with the same registers, and Instagram makes it again each time
+     * the bar draws from a new state.
+     *
+     * <p>The title view gets a listener that asks Instagram's first. Instagram's long press there
+     * only does something on some accounts (it can open an app icon sheet), and when it takes the
+     * press, the press stays Instagram's. Otherwise the press opens this screen over the logo's
+     * activity. The logo's tap isn't touched, so it still does what Instagram made it do.
+     *
+     * <p>No switch reads this, so Pause leaves it working: it's a way back to the switch that
+     * resumes HushGram. Anything that goes wrong leaves the title view with Instagram's listener.
+     */
+    public static void setLogoLongClickListener(View title, View.OnLongClickListener instagrams) {
+        View.OnLongClickListener listener = instagrams;
+        try {
+            listener = new LogoPress(instagrams);
+            if (!logoWatched) {
+                logoWatched = true;
+                Logger.printInfo(() -> "Settings entry: a long press on the Instagram logo opens the settings");
+            }
+        } catch (Throwable failure) {
+            Logger.printException(() -> "Settings entry: could not watch the Instagram logo", failure);
+        }
+        // Instagram's own call, with the listener above or Instagram's.
+        title.setOnLongClickListener(listener);
+    }
+
+    /** Whether the logo's long press has been logged this run, so a redraw doesn't log it again. */
+    private static volatile boolean logoWatched;
+
+    /** The long press on Home's title view: Instagram's listener first, then this screen. */
+    static final class LogoPress implements View.OnLongClickListener {
+        /** Instagram's listener for the title view, or null when it passed none. */
+        final View.OnLongClickListener instagrams;
+
+        LogoPress(View.OnLongClickListener instagrams) {
+            // One of ours handed back in isn't Instagram's, so the one it wraps is asked instead.
+            this.instagrams = instagrams instanceof LogoPress ? ((LogoPress) instagrams).instagrams : instagrams;
+        }
+
+        @Override
+        public boolean onLongClick(View title) {
+            // Instagram's listener runs as it always did, and a press it takes is its own.
+            if (instagrams != null && instagrams.onLongClick(title)) return true;
+            return openFromLogo(title);
+        }
+    }
+
+    /**
+     * Asks for the screen over the logo's activity, the way the launcher shortcut does, so it waits
+     * for the activity to settle and follows it to the next screen if it goes away. False leaves
+     * the press as Instagram left it: Android then takes letting go as a tap, as it does without
+     * HushGram. Never throws.
+     */
+    static boolean openFromLogo(View title) {
+        try {
+            Activity activity = NavigationSettings.ownerOf(title);
+            if (activity == null) {
+                Logger.printInfo(() -> "Settings entry: the Instagram logo isn't on a screen in front, so its long press is Instagram's");
+                return false;
+            }
+            Logger.printInfo(() -> "Settings requested by a long press on the Instagram logo");
+            return requestOpen(activity);
+        } catch (Throwable failure) {
+            Logger.printException(() -> "Settings entry: the long press on the Instagram logo failed", failure);
             return false;
         }
     }

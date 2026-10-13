@@ -8,6 +8,8 @@ Every HushGram release, newest first.
 
 #### Features
 
+* **Instagram - HushGram settings:** Long-press the Instagram logo at the top of your feed to open HushGram settings. A tap on the logo still does what Instagram made it do, and the long press works while HushGram is paused. Where Instagram has a long press of its own on the logo, Instagram's comes first. The icon shortcut and the row in Settings and activity still open them too.
+
 * **Instagram - Install next to Instagram:** New Mark the icon option, off by default. It puts a small HushGram badge on the second Instagram's home screen icon, and on the other icons Instagram lets you pick. Asked for in #145.
 
 * **Instagram - Hide the Reels tab:** New Center the name on profiles switch under Tab bar, off by default. The username at the top of a profile sits in the middle, and the buttons stay put. Asked for in #140.

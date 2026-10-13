@@ -418,6 +418,14 @@ no-call Landroid/content/pm/ShortcutManager;->pushDynamicShortcut(Landroid/conte
 no-call Landroid/content/pm/ShortcutManager;->addDynamicShortcuts(Ljava/util/List;)Z outside Lapp/hushgram/extension/
 no-call Landroid/content/pm/ShortcutManager;->setDynamicShortcuts(Ljava/util/List;)Z outside Lapp/hushgram/extension/
 no-call Landroid/content/pm/ShortcutManager;->updateShortcuts(Ljava/util/List;)Z outside Lapp/hushgram/extension/
+# The settings patch also sends the call that gives Home's title view, which holds the Instagram
+# logo, its long press to SettingsEntry.setLogoLongClickListener, in the method that draws Home's
+# header from a state (MainFeedActionBar.A08 on 450, the method the Ghost mode button's rules below
+# pick, whose one setOnLongClickListener call that is). The stand-in makes the call with a listener
+# that asks Instagram's first and otherwise opens HushGram. Left out, the logo's long press stays
+# Instagram's alone; left beside the call, Instagram's listener goes back on over HushGram's; on
+# other registers, another view gets it. LogoLongPressTest checks all seven 450 builds.
+sole-call Lapp/hushgram/extension/instagram/settings/SettingsEntry;->setLogoLongClickListener(Landroid/view/View;Landroid/view/View$OnLongClickListener;)V replacing Landroid/view/View;->setOnLongClickListener(Landroid/view/View$OnLongClickListener;)V in instance (LX/*;Lcom/instagram/common/session/UserSession;LX/*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.notifications.badging.ui.component.ToastingBadge null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView
 no-call Landroid/content/pm/ShortcutManager;->removeAllDynamicShortcuts()V outside Lapp/hushgram/extension/
 # Spoof location sends every read of a Location's latitude, longitude and distance to SpoofLocation,
 # which answers the set place for a fix from the phone while the switch is on. One left in

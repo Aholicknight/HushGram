@@ -44,19 +44,21 @@ internal fun BytecodePatchContext.declaredInHierarchy(
     } ?: throw PatchException("No class of $type's hierarchy declares $name(${parameters.joinToString("")})V")
 
 /**
- * Makes the HushGram screen reachable from a long-press shortcut on Instagram's launcher icon and
- * from a row at the top of Instagram's Settings and activity screen. The shortcut opens Instagram's
- * main activity with an extra, and the screen opens over it once it resumes. A default-off choice
- * also gives one native navigation tab's long press to the same settings entry. The row is found by
- * the strings its screen's factory puts in the arguments. Every other name used here is a manifest
- * component or a framework or androidx override or call. Nothing is added to the manifest.
+ * Makes the HushGram screen reachable from a long press on the Instagram logo at the top of Home,
+ * from a long-press shortcut on Instagram's launcher icon and from a row at the top of Instagram's
+ * Settings and activity screen. The shortcut opens Instagram's main activity with an extra, and the
+ * screen opens over it once it resumes. A default-off choice also gives one native navigation tab's
+ * long press to the same settings entry. The row is found by the strings its screen's factory puts
+ * in the arguments, and the logo by the classes Home's header and its title view keep their names
+ * in. Every other name used here is a manifest component or a framework or androidx override or
+ * call. Nothing is added to the manifest.
  */
 @Suppress("unused")
 val settingsPatch = bytecodePatch(
     name = "HushGram settings",
-    description = "Adds a HushGram settings page to Instagram. Open it by pressing and holding Instagram's icon, " +
-        "or from the top of Settings and activity. Turn features on or off there, pause HushGram and save " +
-        "diagnostics. Works as soon as you patch it in, with no switch.",
+    description = "Adds a HushGram settings page to Instagram. Open it by long-pressing the Instagram logo at the top " +
+        "of your feed or Instagram's icon, or from the top of Settings and activity. Turn features on or off there, " +
+        "pause HushGram and save diagnostics. Works as soon as you patch it in, with no switch.",
     default = true,
 ) {
     category("Settings")
@@ -99,5 +101,10 @@ val settingsPatch = bytecodePatch(
         addSettingsRow()
         preserveSettingsState()
         addNavigationEntry(navigation)
+
+        // And from inside Instagram, a long press on the logo at the top of Home. A build where
+        // that isn't found in exactly one place keeps its logo as it was, with a warning, and the
+        // rest of this patch still goes in.
+        hookLogoLongPress()
     }
 }
