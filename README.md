@@ -1,7 +1,7 @@
 ![HushGram. Keep the moments. Cut the noise.](assets/readme-hero.png)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.0.10-E1306C" alt="Version 0.0.10">
+  <img src="https://img.shields.io/badge/version-0.0.11-E1306C" alt="Version 0.0.11">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License GPL-3.0"></a>
   <img src="https://img.shields.io/badge/platform-Android%209%2B-3DDC84" alt="Platform Android 9+">
   <img src="https://img.shields.io/badge/Instagram-450.0.0.50.77-E1306C" alt="Instagram 450.0.0.50.77">
@@ -26,7 +26,7 @@ Most switches start off, so a freshly patched Instagram looks like Instagram unt
 
 The latest release is [v0.0.9](https://github.com/SysAdminDoc/HushGram/releases/tag/v0.0.9), with 101 patches. Add it to Morphe Manager with [this link](https://morphe.software/add-source?github=SysAdminDoc%2FHushGram).
 
-Main is preparing v0.0.10, with a new settings design. It hasn't been released yet. What changed in each version is in the [changelog](CHANGELOG.md).
+Main is preparing v0.0.11, with clearer settings navigation and improved dialogs. It hasn't been released yet. What changed in each version is in the [changelog](CHANGELOG.md).
 
 This project has no connection to Meta or to the Morphe project. Neither endorses it, and neither wrote it.
 
@@ -190,7 +190,11 @@ Inside Instagram, long-press the Instagram logo at the top of your feed. A tap s
   <img src="assets/settings-about.png" alt="HushGram About page with version and licenses" width="270">
 </p>
 
-The settings open as a list of categories: Ads and privacy, Feed, Meta AI, Explore, Messages, Reels, Stories, Playback, Sharing, Comments, Profiles, Layout, Tab bar, Notifications, Storage, Downloads, Battery, Updates and Developer. **Search settings** finds a control by its label in your phone's language or by its English patch name. The rows you see depend on the patches you picked. The screenshots are from the v0.0.10 development build.
+The settings open as a list of categories: Ads and privacy, Feed, Meta AI, Explore, Messages, Reels, Stories, Playback, Sharing, Comments, Profiles, Layout, Tab bar, Notifications, Storage, Downloads, Battery, Updates and Developer. **Search settings** finds a control by its label in your phone's language or by its English patch name. The rows you see depend on the patches you picked. The screenshots are from the v0.0.11 development build.
+
+Search stays available inside each category. Rotation keeps your category and position, and a change that needs a restart shows the action on that page. Place and sharing-domain editors keep an invalid entry open so you can correct it.
+
+PIN forms keep their labels visible and scroll above the keyboard. Next moves to confirmation, and Done submits. Incomplete entries don't spend an attempt. The picture viewer keeps Close and Save below the preview, clear of system bars. Save becomes available after loading.
 
 A few rows to know about:
 

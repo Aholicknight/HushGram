@@ -4,7 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
-### HushGram v0.0.10
+### HushGram v0.0.11
 
 #### Features
 
@@ -40,15 +40,15 @@ Every HushGram release, newest first.
 
 #### Improvements
 
-* **Instagram - HushGram settings:** Search stays available inside categories, pending restart actions appear on the page you changed, and rotation preserves your category and position without retaining search text. Empty search results explain why an install may not include a control.
-
 * **Instagram - HushGram settings:** Switches use the same compact corners as the rest of settings, with their native on, off and disabled behavior preserved.
 
-* **Instagram - View profile picture:** Close and Save have their own space below the preview, clear of system bars and edge gestures. Save stays unavailable while the picture loads, with a visible message and a spoken label. Reel search actions now share the same focus and press feedback.
+* **Instagram - HushGram settings:** Focus, selection and pressed feedback now follow the same style across settings cards, dialogs and runtime actions. Input borders are easier to distinguish before typing, and recovery and save-cancellation actions keep visible interaction feedback.
+
+* **Instagram - HushGram settings:** Search stays available inside categories, pending restart actions appear on the page you changed, and rotation preserves your category and position without retaining search text. Empty search results explain why an install may not include a control.
 
 * **Instagram - Lock your messages:** PIN forms scroll and keep their labels visible. The keyboard can move to confirmation or submit, incomplete entries don't spend an attempt, and a retry countdown enables entry when the wait ends. Closing a form clears its digits.
 
-* **Instagram - HushGram settings:** Focus, selection and pressed feedback now follow the same style across settings cards, dialogs and runtime actions. Input borders are easier to distinguish before typing, and recovery and save-cancellation actions keep visible interaction feedback.
+* **Instagram - View profile picture:** Close and Save have their own space below the preview, clear of system bars and edge gestures. Save stays unavailable while the picture loads, with a visible message and a spoken label. Reel search actions now share the same focus and press feedback.
 
 * **Instagram - HushGram settings:** Settings now use clearer category descriptions, a rounded search field and pink icon tiles. Dialogs share the same styling, and controls stay readable at larger text sizes.
 
