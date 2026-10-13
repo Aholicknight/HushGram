@@ -1,3 +1,7 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
 package app.hushgram.extension.instagram.settings;
 
 import android.view.View;
