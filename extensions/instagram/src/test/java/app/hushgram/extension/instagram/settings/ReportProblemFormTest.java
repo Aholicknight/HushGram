@@ -1,6 +1,11 @@
 /*
- * Copyright 2026 HushGram contributors
- * https://github.com/SysAdminDoc/HushGram
+ * Copyright 2026 HushPinterest contributors
+ * Taken from HushPinterest's
+ * extensions/pinterest/src/test/java/app/hushpinterest/extension/pinterest/settings/ReportProblemFormTest.java
+ * (https://github.com/SysAdminDoc/HushPinterest, commit 44fb93384a319d8e5d324f51b416efdc3d3147e6).
+ * Modified for HushGram (Instagram), 2026.
+ *
+ * Built on SysAdminDoc/hushfeed (GPL-3.0).
  */
 package app.hushgram.extension.instagram.settings;
 
