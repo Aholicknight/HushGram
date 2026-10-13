@@ -37,6 +37,8 @@ import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
+import app.hushgram.extension.shared.settings.Setting;
+import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
 
 /**
  * Glass tab bar's section, Saved on your profile's switch and Stop background wake-ups' Battery section: each
@@ -196,6 +198,36 @@ public class TabBarAndBatterySettingsTest {
         assertTrue(Settings.GLASS_TAB_BAR_LIFT.isAvailable());
         Settings.GLASS_TAB_BAR_FLOAT.save(false);
         assertFalse("nothing floats, so there's no space to choose", Settings.GLASS_TAB_BAR_LIFT.isAvailable());
+    }
+
+    /**
+     * The pill's look, its height and the space under it are read as Instagram builds the bar, so a
+     * pick waits on a restart. The page says so and the card at the top offers it; without that, a pick
+     * looked like it did nothing (#87, on the S22).
+     */
+    @Test public void theGlassChoicesAskForARestart() throws Exception {
+        for (Setting<?> setting : List.<Setting<?>>of(Settings.GLASS_TAB_BAR_OPACITY, Settings.GLASS_TAB_BAR_HEIGHT,
+                Settings.GLASS_TAB_BAR_LIFT)) {
+            assertTrue(setting.key, setting.rebootApp);
+        }
+        open(PatchFamily.GLASS_TAB_BAR);
+        Preference card = page.getPreferenceScreen().getPreference(0);
+        assertEquals("HushGram is on", String.valueOf(card.getTitle()));
+        assertFalse("nothing owed yet", card.isSelectable());
+
+        HushgramPreferenceFragment.GlassLiftRow lift = (HushgramPreferenceFragment.GlassLiftRow) row(Settings.GLASS_TAB_BAR_LIFT.key);
+        lift.setValue("MORE");
+        ShadowLooper.idleMainLooper();
+        assertTrue(AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_LIFT.key));
+        String summary = String.valueOf(card.getSummary());
+        assertTrue(summary, summary.endsWith("Some changes apply when Instagram restarts. Tap to restart it now."));
+        assertTrue(card.isSelectable());
+
+        lift.setValue("STANDARD");
+        ShadowLooper.idleMainLooper();
+        assertFalse("back where it started, nothing is owed",
+                AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_LIFT.key));
+        assertFalse(card.isSelectable());
     }
 
     @Test public void savedOnYourProfileStartsOffUnderProfiles() throws Exception {

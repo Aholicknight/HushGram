@@ -810,28 +810,28 @@ public class Settings extends BaseSettings {
 
     /**
      * Under {@link #GLASS_TAB_BAR}: how see-through the pill is ({@link app.hushgram.extension.instagram.misc.GlassOpacity}).
-     * Starts on the look the bar has always had. A change shows after a restart.
+     * Starts on the look the bar has always had. A change shows after a restart, so it asks for one.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassOpacity> GLASS_TAB_BAR_OPACITY =
             new EnumSetting<>("hushgram_glass_tab_bar_opacity",
-                    app.hushgram.extension.instagram.misc.GlassOpacity.STANDARD, parent(GLASS_TAB_BAR));
+                    app.hushgram.extension.instagram.misc.GlassOpacity.STANDARD, true, parent(GLASS_TAB_BAR));
 
     /**
      * Under {@link #GLASS_TAB_BAR}: how tall the pill is ({@link app.hushgram.extension.instagram.misc.GlassHeight}).
-     * Starts on the height the bar has always had. A change shows after a restart.
+     * Starts on the height the bar has always had. A change shows after a restart, so it asks for one.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassHeight> GLASS_TAB_BAR_HEIGHT =
             new EnumSetting<>("hushgram_glass_tab_bar_height",
-                    app.hushgram.extension.instagram.misc.GlassHeight.STANDARD, parent(GLASS_TAB_BAR));
+                    app.hushgram.extension.instagram.misc.GlassHeight.STANDARD, true, parent(GLASS_TAB_BAR));
 
     /**
      * Under {@link #GLASS_TAB_BAR_FLOAT}: how much room a floating pill leaves under itself
      * ({@link app.hushgram.extension.instagram.misc.GlassLift}, #87). Starts where the pill has always sat.
-     * A change shows after a restart.
+     * A change shows after a restart, so it asks for one.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassLift> GLASS_TAB_BAR_LIFT =
             new EnumSetting<>("hushgram_glass_tab_bar_lift",
-                    app.hushgram.extension.instagram.misc.GlassLift.STANDARD, parent(GLASS_TAB_BAR_FLOAT));
+                    app.hushgram.extension.instagram.misc.GlassLift.STANDARD, true, parent(GLASS_TAB_BAR_FLOAT));
 
     /**
      * Your own profile's tabs get one more, a bookmark, that opens Saved
