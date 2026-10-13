@@ -113,14 +113,16 @@ public final class AccentColor {
 
     /** The part an accent blue plays, read from its red, green and blue alone. */
     enum Role {
-        NONE, FILL, PRESSED, DIM, LINK_ON_LIGHT, LINK_ON_DARK
+        NONE, FILL, PRESSED, DIM, LINK_ON_LIGHT, LINK_ON_DARK, PALE
     }
 
     /**
      * Instagram's accent blues on 450. Its older blue (blue_5, #0095f6, with its see-through steps)
      * and its Prism indigo (#4a5df9) fill buttons and highlights. Prism's indigo_06 is the pressed
      * shade, indigo_08 the dim one, and the bright text links take #3143e3 or #3849da on a light
-     * screen and #85a1ff or #8593ff on a dark one.
+     * screen and #85a1ff or #8593ff on a dark one. The older theme, which accounts outside Prism
+     * get, draws links (mentions, hashtags, bio links) in blue_8 (#00376b) on a light screen and in
+     * blue_1 (#e0f1ff) on a dark one, and fills a selected pill or comment with that same pale blue.
      */
     static Role role(int color) {
         switch (color & 0xffffff) {
@@ -133,10 +135,13 @@ public final class AccentColor {
                 return Role.DIM;
             case 0x3143e3:
             case 0x3849da:
+            case 0x00376b:
                 return Role.LINK_ON_LIGHT;
             case 0x85a1ff:
             case 0x8593ff:
                 return Role.LINK_ON_DARK;
+            case 0xe0f1ff:
+                return Role.PALE;
             default:
                 return Role.NONE;
         }
@@ -160,6 +165,9 @@ public final class AccentColor {
                 break;
             case LINK_ON_DARK:
                 rgb = hue.linkOnDark;
+                break;
+            case PALE:
+                rgb = hue.pale;
                 break;
             default:
                 return color;

@@ -66,6 +66,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Lock your messages:** Chats locked or hidden before this update stay that way on every account until you unlock them there. Their old names stay hidden until you open the chat again.
 
+* **Instagram - Accent color:** Links take the color you picked on accounts that still have Instagram's older look too, mentions, hashtags and bio links included, and so does the pale blue behind a selected pill. Asked for in #8.
+
 #### Bug Fixes
 
 * **Instagram - Hide Meta AI:** A reel opened from search results plays the one you tapped again. With Hide Meta AI in search and Home's bar on, results below Meta AI's summary opened an earlier reel. The summary card is still hidden, it's just folded away now instead of being taken out of the results. Reported in #152.

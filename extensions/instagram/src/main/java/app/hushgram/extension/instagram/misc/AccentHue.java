@@ -10,8 +10,8 @@ package app.hushgram.extension.instagram.misc;
  * <p>Each color has three shades, all without alpha: the fill a button or a highlight takes, a darker
  * one for links on a light screen and a lighter one for links on a dark screen. White text on every
  * fill reads at least as well as it does on Instagram's own blue (a contrast of 3.9 or more against
- * its 3.2), and each link shade reads at better than 5 to 1 on its screen. The pressed shade and the dim one
- * are worked out from the fill, as Instagram's are from its blue.
+ * its 3.2), and each link shade reads at better than 5 to 1 on its screen. The pressed shade, the dim one
+ * and the pale one are worked out from the fill, as Instagram's are from its blue.
  */
 public enum AccentHue {
     BLUE(0, 0, 0),
@@ -32,6 +32,11 @@ public enum AccentHue {
     public final int linkOnLight;
     /** A link on a dark screen. */
     public final int linkOnDark;
+    /**
+     * The fill most of the way to white, as Instagram's pale blue (#e0f1ff) is from its blue: a
+     * selected pill on a light screen, and a link on a dark one in Instagram's older theme.
+     */
+    public final int pale;
 
     AccentHue(int fill, int linkOnLight, int linkOnDark) {
         this.fill = fill;
@@ -39,6 +44,18 @@ public enum AccentHue {
         this.dim = scale(fill, 0.45f);
         this.linkOnLight = linkOnLight;
         this.linkOnDark = linkOnDark;
+        this.pale = towardWhite(fill, 0.878f);
+    }
+
+    /** [rgb] moved [share] of the way to white. */
+    static int towardWhite(int rgb, float share) {
+        int red = (rgb >> 16) & 0xff;
+        int green = (rgb >> 8) & 0xff;
+        int blue = rgb & 0xff;
+        red += Math.round((0xff - red) * share);
+        green += Math.round((0xff - green) * share);
+        blue += Math.round((0xff - blue) * share);
+        return (red << 16) | (green << 8) | blue;
     }
 
     /** [rgb] with each channel multiplied by [factor]. */

@@ -42,10 +42,12 @@ public class AccentColorTest {
     private static final int DIM = 0xff232e67;
     private static final int LINK_LIGHT = 0xff3849da;
     private static final int LINK_DARK = 0xff8593ff;
-    /** Prism's dark background, its pale blue and white: never touched. */
+    /** Prism's dark background and white: never touched. */
     private static final int PRISM_BLACK = 0xff0c1014;
-    private static final int PALE_BLUE = 0xffe0f1ff;
     private static final int WHITE = 0xffffffff;
+    /** The older theme's links: blue_8 on a light screen, and blue_1, its pale blue, on a dark one. */
+    private static final int CLASSIC_LINK = 0xff00376b;
+    private static final int PALE_BLUE = 0xffe0f1ff;
 
     private static final int[] ENABLED = {android.R.attr.state_enabled};
     private static final int[] PRESSED_STATE = {android.R.attr.state_enabled, android.R.attr.state_pressed};
@@ -99,14 +101,32 @@ public class AccentColorTest {
                 + AccentColor.COLOR + " 9"), HookStatus.report());
     }
 
-    /** No other color changes: text, backgrounds, grays and Instagram's pale blues stay as they are. */
+    /** No other color changes: text, backgrounds, grays and Instagram's other pale blues stay as they are. */
     @Test
     public void everyOtherColorGoesThrough() {
         Settings.ACCENT_COLOR.save(true);
-        for (int color : new int[] {WHITE, 0xff000000, PRISM_BLACK, PALE_BLUE, 0xffaddfff, 0xff0095f7, 0x00000000, 0xffed4956}) {
+        for (int color : new int[] {WHITE, 0xff000000, PRISM_BLACK, 0xffaddfff, 0xff0095f7, 0x00000000, 0xffed4956}) {
             assertEquals(Integer.toHexString(color), color, AccentColor.color(color));
         }
-        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 8, 0 found, 0 missing"), HookStatus.report());
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 7, 0 found, 0 missing"), HookStatus.report());
+    }
+
+    /**
+     * #8: the older theme's text links (mentions, hashtags, bio links) take the color too, blue_8 as
+     * the link on a light screen, and its pale blue, a link on a dark screen and a selected pill on
+     * a light one, as the color's pale shade. Each keeps its alpha.
+     */
+    @Test
+    public void theOlderThemesLinksAndPaleBlueTakeTheColor() {
+        Settings.ACCENT_COLOR.save(true);
+        AccentHue purple = AccentHue.PURPLE;
+        assertEquals(0xff000000 | purple.linkOnLight, AccentColor.color(CLASSIC_LINK));
+        assertEquals(0xff000000 | purple.pale, AccentColor.color(PALE_BLUE));
+        assertEquals(0x80000000 | purple.pale, AccentColor.color(0x80e0f1ff));
+        assertEquals("the fill most of the way to white", 0xeee7fe, purple.pale);
+        assertEquals("Instagram's own pale blue from its blue", 0xe0f2fe, AccentHue.towardWhite(0x0095f6, 0.878f));
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 3, 0 found, 0 missing. Counted: "
+                + AccentColor.COLOR + " 3"), HookStatus.report());
     }
 
     /** Every color picked swaps, and Instagram blue picked leaves the stock blue. */
@@ -140,6 +160,8 @@ public class AccentColorTest {
             assertTrue(hue + ": white on it held down", contrast(WHITE, 0xff000000 | hue.pressed) >= 3.9);
             assertTrue(hue + ": its link on white", contrast(WHITE, 0xff000000 | hue.linkOnLight) >= 5.0);
             assertTrue(hue + ": its link on black", contrast(PRISM_BLACK, 0xff000000 | hue.linkOnDark) >= 5.0);
+            assertTrue(hue + ": its pale link on black", contrast(0xff000000, 0xff000000 | hue.pale) >= 5.0);
+            assertTrue(hue + ": its link on its pale pill", contrast(0xff000000 | hue.pale, 0xff000000 | hue.linkOnLight) >= 4.5);
             assertNotEquals(hue + ": a color of its own", BLUE & 0xffffff, hue.fill);
         }
     }
