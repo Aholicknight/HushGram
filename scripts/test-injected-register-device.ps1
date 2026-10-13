@@ -623,6 +623,82 @@ class FakeAdb {
         [System.IO.File]::Delete($wiringCopy)
     }
 
+    # Exercise the real device builder up to a deliberately refused CLI run. These stand-ins
+    # capture its argument file without reading a signing key or contacting a device.
+    $signingRoot = Join-Path $leaseDirectory 'signing'
+    $release = Join-Path $signingRoot 'patches/build/release'
+    New-Item -ItemType Directory -Path $release -Force | Out-Null
+    [IO.File]::WriteAllText((Join-Path $signingRoot 'gradle.properties'), "version = 1.2.3`n")
+    [IO.File]::WriteAllText((Join-Path $signingRoot 'patches-list.json'), @'
+{"version":"1.2.3","patches":[{"name":"Fixture patch","compatiblePackages":{"com.instagram.android":["1.0"]},"dependencies":[]}]}
+'@)
+    $stock = Join-Path $signingRoot 'stock.apk'
+    $desktop = Join-Path $signingRoot 'desktop.jar'
+    [IO.File]::WriteAllText($stock, 'fixture')
+    [IO.File]::WriteAllText($desktop, 'fixture')
+    [IO.File]::WriteAllText((Join-Path $release 'patches-1.2.3.mpp'), 'fixture')
+    $java = Join-Path $signingRoot 'java.ps1'
+    $aapt = Join-Path $signingRoot 'aapt.ps1'
+    $captured = Join-Path $signingRoot 'captured.json'
+    [IO.File]::WriteAllText($java, @'
+if ($args[0] -eq '-version') { 'openjdk version "21.0.5"'; exit 0 }
+if ($args.Count -ne 3 -or $args[0] -ne '-jar' -or -not $args[2].StartsWith('@')) { exit 18 }
+$file = $args[2].Substring(1)
+$values = @([IO.File]::ReadAllLines($file) | ForEach-Object { ConvertFrom-Json -InputObject $_ })
+$capture = @{ invocation = @($args); arguments = $values }
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'captured.json'), ($capture | ConvertTo-Json -Depth 4))
+exit 17
+'@)
+    [IO.File]::WriteAllText($aapt, @'
+'E: manifest (line=1)'
+'  A: package="com.instagram.android"'
+'  A: versionName="1.0"'
+'  A: versionCode="1"'
+exit 0
+'@)
+    $storeVariable = 'HUSHGRAM_SIDELOAD_KEYSTORE_PASSWORD'
+    $entryVariable = 'HUSHGRAM_SIDELOAD_KEY_PASSWORD'
+    $oldStore = [Environment]::GetEnvironmentVariable($storeVariable, 'Process')
+    $oldEntry = [Environment]::GetEnvironmentVariable($entryVariable, 'Process')
+    $special = 'entry \' + [char]0x03bb + '" quoted'
+    $signingCases = @(
+        @{ Name='defaults'; Store=$null; Entry=$null; Parameters=@{}; WantStore='sideload'; WantEntry='sideload' },
+        @{ Name='shared-environment'; Store='store value'; Entry=$null; Parameters=@{}; WantStore='store value'; WantEntry='store value' },
+        @{ Name='separate-environment'; Store='store value'; Entry='entry value'; Parameters=@{}; WantStore='store value'; WantEntry='entry value' },
+        @{ Name='blank-store'; Store=$null; Entry=$null; Parameters=@{KeystorePassword=''; KeyPassword='entry value'}; WantStore=''; WantEntry='entry value' },
+        @{ Name='blank-entry'; Store=$null; Entry=$null; Parameters=@{KeystorePassword='store value'; KeyPassword=''}; WantStore='store value'; WantEntry='' },
+        @{ Name='quoted-entry'; Store=$null; Entry=$null; Parameters=@{KeystorePassword='store value'; KeyPassword=$special}; WantStore='store value'; WantEntry=$special },
+        @{ Name='blank-store-environment-entry'; Store='ignored store'; Entry='entry value'; Parameters=@{KeystorePassword=''}; WantStore=''; WantEntry='entry value' },
+        @{ Name='explicit-precedence'; Store='ignored store'; Entry='ignored entry'; Parameters=@{KeystorePassword='chosen store'; KeyPassword='chosen entry'}; WantStore='chosen store'; WantEntry='chosen entry' }
+    )
+    try {
+        foreach ($case in $signingCases) {
+            [Environment]::SetEnvironmentVariable($storeVariable, $case.Store, 'Process')
+            [Environment]::SetEnvironmentVariable($entryVariable, $case.Entry, 'Process')
+            [IO.File]::Delete($captured)
+            $out = Join-Path $signingRoot $case.Name
+            $parameters = $case.Parameters
+            $refusal = $null
+            try {
+                & (Join-Path $Root 'scripts/patch-for-device.ps1') -Root $signingRoot -Apk $stock `
+                    -DesktopJar $desktop -Java $java -Aapt2 $aapt -OutDir $out `
+                    -Keystore (Join-Path $signingRoot 'fixture.keystore') @parameters
+            } catch { $refusal = $_.Exception.Message }
+            Assert-True ($refusal -ceq 'The desktop CLI exited with 17') "$($case.Name): the fixture did not reach the CLI refusal."
+            $record = Get-Content -LiteralPath $captured -Raw | ConvertFrom-Json
+            $storeIndex = [Array]::IndexOf([object[]]$record.arguments, '--keystore-password')
+            $entryIndex = [Array]::IndexOf([object[]]$record.arguments, '--keystore-entry-password')
+            Assert-True ($storeIndex -ge 0 -and $record.arguments[$storeIndex + 1] -ceq $case.WantStore) "$($case.Name): store password changed."
+            Assert-True ($entryIndex -ge 0 -and $record.arguments[$entryIndex + 1] -ceq $case.WantEntry) "$($case.Name): entry password changed."
+            Assert-True ($record.invocation.Count -eq 3 -and $record.invocation[2].StartsWith('@')) "$($case.Name): credentials left the argument file."
+            Assert-True (-not (Test-Path -LiteralPath (Join-Path $out 'morphe-patch.args'))) "$($case.Name): the refused run left its credential file."
+        }
+    } finally {
+        [Environment]::SetEnvironmentVariable($storeVariable, $oldStore, 'Process')
+        [Environment]::SetEnvironmentVariable($entryVariable, $oldEntry, 'Process')
+    }
+    Write-Host "[scripts] device signing arguments: $($signingCases.Count) cases passed"
+
 } finally {
     if ($deviceLease -and $deviceLease.File.CanWrite) { Exit-HushgramDeviceLease $deviceLease }
     $resolvedLeaseDirectory = [IO.Path]::GetFullPath($leaseDirectory)

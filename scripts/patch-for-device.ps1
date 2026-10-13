@@ -8,10 +8,11 @@
     over adb when a serial and expected device identity are given. Installs preserve app data,
     permissions and signing keys. An incompatible existing signer is refused without uninstalling.
 
-    The signing password comes from HUSHGRAM_SIDELOAD_KEYSTORE_PASSWORD. When it is unset, the
-    local test keystore's documented password, sideload, is used. The Morphe arguments travel
-    through a temporary Java argument file so the password value is not in the child process
-    command line. The file is deleted when patching exits.
+    The store password comes from -KeystorePassword or HUSHGRAM_SIDELOAD_KEYSTORE_PASSWORD,
+    falling back to the local test password, sideload. The key password comes from -KeyPassword
+    or HUSHGRAM_SIDELOAD_KEY_PASSWORD, otherwise it uses the store password. Explicit parameters
+    accept empty passwords. The Morphe arguments travel through a temporary Java argument file
+    so passwords are not in the child process command line. The file is deleted when patching exits.
 
     The vendor APK defaults to the newest declared build in the folder HUSHGRAM_FIXTURE_DIR
     names. -Apk takes any build the catalog declares, and the result is held to that APK's own
@@ -52,6 +53,8 @@ param(
     [string]$Aapt2,
     [string]$Keystore = "$HOME\.android\sideload-release.jks",
     [string]$KeyAlias = 'sideload',
+    [AllowEmptyString()][string]$KeystorePassword,
+    [AllowEmptyString()][string]$KeyPassword,
     [string]$OutDir = (Join-Path $env:TEMP 'hushgram-device'),
     # The checkout whose catalog and release bundle are used, the one holding this script unless
     # given. The contract tests point it at a fixture.
@@ -110,12 +113,21 @@ if (-not (Test-DeclaredBuild -Target $target -VersionName ([string]$stock.versio
         "declare, at version code $($stock.versionCode). It declares $(Format-DeclaredBuilds -Target $target). " +
         'Build for a phone from a declared build; scripts/verify-all-patches.ps1 -Force shows what still applies on another one.')
 }
-$passwordVariable = 'HUSHGRAM_SIDELOAD_KEYSTORE_PASSWORD'
-$keystorePassword = [Environment]::GetEnvironmentVariable(
-    $passwordVariable, [EnvironmentVariableTarget]::Process)
-if ([string]::IsNullOrEmpty($keystorePassword)) {
-    $keystorePassword = 'sideload'
-    Write-Host "[device] $passwordVariable is unset; using the documented local test-key fallback"
+$storePassword = $KeystorePassword
+if (-not $PSBoundParameters.ContainsKey('KeystorePassword')) {
+    $passwordVariable = 'HUSHGRAM_SIDELOAD_KEYSTORE_PASSWORD'
+    $storePassword = [Environment]::GetEnvironmentVariable(
+        $passwordVariable, [EnvironmentVariableTarget]::Process)
+    if ([string]::IsNullOrEmpty($storePassword)) {
+        $storePassword = 'sideload'
+        Write-Host "[device] $passwordVariable is unset; using the documented local test-key fallback"
+    }
+}
+$entryPassword = $KeyPassword
+if (-not $PSBoundParameters.ContainsKey('KeyPassword')) {
+    $entryPassword = [Environment]::GetEnvironmentVariable(
+        'HUSHGRAM_SIDELOAD_KEY_PASSWORD', [EnvironmentVariableTarget]::Process)
+    if ([string]::IsNullOrEmpty($entryPassword)) { $entryPassword = $storePassword }
 }
 $version = Get-BundleVersion -Root $root
 $bundle = Get-ReleaseBundlePath -Root $root -Version $version
@@ -152,8 +164,8 @@ Write-Host "[device] $($names.Count) patches from $(Split-Path -Leaf $bundle) on
 $enable = @()
 foreach ($name in $names) { $enable += '-e'; $enable += $name }
 $arguments = @('patch', '--exclusive', '-p', $bundle, '-o', $out, '-t', $temp, '-r', $result,
-    '--keystore', $Keystore, '--keystore-password', $keystorePassword,
-    '--keystore-entry-alias', $KeyAlias, '--keystore-entry-password', $keystorePassword) + $enable + @($Apk)
+    '--keystore', $Keystore, '--keystore-password', $storePassword,
+    '--keystore-entry-alias', $KeyAlias, '--keystore-entry-password', $entryPassword) + $enable + @($Apk)
 $argumentFile = Join-Path $OutDir 'morphe-patch.args'
 $argumentFileLines = @($arguments | ForEach-Object {
     $value = [string]$_
@@ -206,7 +218,7 @@ Write-Host "[device] applied $(@($report.appliedPatches).Count), failed $(@($rep
 Write-Host "[device] $out"
 
 if (-not $Serial) { return }
-$adb = (Get-Command adb -ErrorAction SilentlyContinue).Source
+$adb = (Get-Command adb -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
 if (-not $adb) { $adb = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter adb.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName }
 if (-not $adb) { throw 'No adb found. Put it on the PATH or install the platform tools.' }
 . (Join-Path $PSScriptRoot 'injected-register-device.ps1')

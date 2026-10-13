@@ -44,6 +44,8 @@ Every HushGram release, newest first.
 
 #### Improvements
 
+* **Tooling:** Device builds support separate keystore and key passwords, including an empty store password. The installer also picks one ADB executable when the path lists more than one.
+
 * **Instagram - HushGram settings:** Restart now reopens settings on the page you were on.
 
 * **Instagram - HushGram settings:** Hide inbox suggestions and Ask for larger photos now show the restart card when you change them.

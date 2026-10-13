@@ -291,6 +291,8 @@ The bundle lands in `patches/build/release/patches-<version>.mpp`, beside its SH
 
 [CONTRIBUTING.md](CONTRIBUTING.md) covers the checks, the pre-push hook and the release steps.
 
+For local phone builds, `scripts/patch-for-device.ps1` accepts `-Keystore` and `-KeyAlias`. Use `-KeystorePassword ''` for an empty store password. A separate key password can come from `HUSHGRAM_SIDELOAD_KEY_PASSWORD` or `-KeyPassword`; otherwise it uses the store password. Passwords go through a temporary argument file that is removed when patching exits. Keep the installed app's signing key so updates preserve its data.
+
 ### Where things live
 
 - `patches/src/main/kotlin/app/morphe/patches/instagram/` holds the patches, grouped by feature area. `misc/extension/` has the target lookup and hook helpers they share, and `shared/compat/AppCompatibilities.kt` names the supported build and Meta's signing certificates.
