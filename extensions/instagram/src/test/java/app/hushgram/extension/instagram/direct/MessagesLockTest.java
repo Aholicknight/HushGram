@@ -433,6 +433,37 @@ public class MessagesLockTest {
     }
 
     /**
+     * A settings change that waits on the phone's check belongs to the screen that asked. Turned while
+     * the check was up, that screen is gone: unlocking still opens the messages, but its follow-up (a
+     * PIN dialog, a switch) doesn't run on the dead screen. The turn doesn't end the ask either, so the
+     * screen that comes back doesn't start a second check over the first.
+     */
+    @Test
+    public void aTurnWhileThePhoneChecksKeepsTheAskAndLeavesTheGoneScreenAlone() {
+        MessagesLock.watch(RuntimeEnvironment.getApplication());
+        MessagesLock.asker = (activity, confirmed, notConfirmed) -> {
+            asks.add(new Runnable[]{confirmed, notConfirmed});
+            MessagesLock.Answer.start(activity, new Intent("android.app.action.CONFIRM_DEVICE_CREDENTIAL"), confirmed, notConfirmed);
+        };
+        ActivityController<Activity> controller = inbox();
+        boolean[] followed = new boolean[1];
+        MessagesLock.confirmThen(controller.get(), () -> followed[0] = true);
+        assertEquals(1, asks.size());
+
+        controller.recreate();
+        Activity back = controller.get();
+        ShadowLooper.idleMainLooper();
+        MessagesLock.confirmChatsThen(back, () -> { });
+        assertEquals("a second check started over the first", 1, asks.size());
+
+        Fragment answer = back.getFragmentManager().findFragmentByTag(MessagesLock.Answer.TAG);
+        assertNotNull(answer);
+        answer.onActivityResult(MessagesLock.Answer.REQUEST, Activity.RESULT_OK, null);
+        assertFalse("the messages stayed locked", MessagesLock.locked());
+        assertFalse("the gone screen's follow-up ran", followed[0]);
+    }
+
+    /**
      * Neither Pause nor safe mode, the marker file's included, gets around a lock: it still locks,
      * and covers all of Instagram, which needs none of Instagram's view ids.
      */

@@ -110,7 +110,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Download any reel:** When Instagram gives no sizes for a cover, Download cover now goes by the size each address names, so a thumbnail listed first doesn't save in place of the full picture. From #155.
 
-* **Instagram - Lock your messages:** Turning the phone while its own screen lock check is up no longer loses your answer. Unlocking there opens your messages, where it used to ask again.
+* **Instagram - Lock your messages:** Turning the phone while its own screen lock check is up no longer loses your answer. Unlocking there opens your messages, where it used to ask again. A setting you were changing at the time takes one more tap.
 
 * **Instagram - Glass tab bar:** Picking a new look, height or Space under the tab bar now says it needs a restart, and the card at the top of HushGram's settings offers one. Before, the pick seemed to do nothing until Instagram started again.
 

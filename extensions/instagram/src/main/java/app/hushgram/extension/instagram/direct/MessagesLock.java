@@ -498,7 +498,10 @@ public final class MessagesLock {
         @Override public void onActivityDestroyed(Activity activity) {
             // Android drops a destroyed screen's dialog without dismissing it, so the PIN ask never
             // hears back. Over all the same, or the cover's Unlock would wait out ASK_TIMEOUT_MS.
-            if (askedAt != 0 && askedBy.get() == activity) {
+            // The phone's own check outlasts a turn of the screen and answers the screen that comes
+            // back, so that ask isn't over and a second one shouldn't start.
+            if (askedAt != 0 && askedBy.get() == activity
+                    && !(activity.isChangingConfigurations() && Answer.waiting())) {
                 askedAt = 0;
                 askedBy = new WeakReference<>(null);
             }
@@ -945,7 +948,9 @@ public final class MessagesLock {
             asker.ask(activity, () -> {
                 askedAt = 0;
                 open = true;
-                if (then != null) then.run();
+                // What follows (a settings change, a new PIN) belongs to the screen that asked. Turned
+                // while the phone's check was up, that screen is gone and its dialog can't show.
+                if (then != null && !activity.isDestroyed()) then.run();
             }, () -> askedAt = 0);
         } catch (Throwable t) {
             askedAt = 0;
@@ -1086,6 +1091,11 @@ public final class MessagesLock {
             pendingConfirmed = confirmed;
             pendingNotConfirmed = notConfirmed;
             manager.beginTransaction().add(answer, TAG).commitNowAllowingStateLoss();
+        }
+
+        /** Whether the phone's check was started from here and hasn't answered yet. */
+        static boolean waiting() {
+            return pendingConfirmed != null || pendingNotConfirmed != null;
         }
 
         @Override
