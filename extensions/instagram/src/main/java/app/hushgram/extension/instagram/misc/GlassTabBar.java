@@ -25,6 +25,7 @@ import android.graphics.RenderNode;
 import android.graphics.Shader;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.RippleDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -216,6 +217,16 @@ public final class GlassTabBar {
         if (off == 0 || params.bottomMargin + off < 0) return false;
         params.bottomMargin += off;
         strip.setLayoutParams(params);
+        return true;
+    }
+
+    /** Whether [drawable] is a ripple with nothing in it but its mask: a touch's feedback, which draws nothing at rest. */
+    static boolean touchFeedbackOnly(Drawable drawable) {
+        if (!(drawable instanceof RippleDrawable)) return false;
+        RippleDrawable ripple = (RippleDrawable) drawable;
+        for (int i = 0; i < ripple.getNumberOfLayers(); i++) {
+            if (ripple.getId(i) != android.R.id.mask) return false;
+        }
         return true;
     }
 
@@ -662,11 +673,12 @@ public final class GlassTabBar {
                 bar.setBackground(pill);
             }
             // Instagram's newer bar marks the selected tab with a dark capsule, that tab's own
-            // background. The pill draws its own capsule, and theirs would sit on top of it.
+            // background. The pill draws its own capsule, and theirs would sit on top of it. A bare
+            // ripple is the tab's touch feedback, not a capsule, and stays.
             for (int i = 0; i < bar.getChildCount(); i++) {
                 View tab = bar.getChildAt(i);
                 Drawable own = tab.getBackground();
-                if (own == null) continue;
+                if (own == null || touchFeedbackOnly(own)) continue;
                 tab.setBackground(null);
                 HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_TAB_BACKGROUND);
                 diagnose("tab background taken off: " + own.getClass().getName(), null);

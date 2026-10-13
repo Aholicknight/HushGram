@@ -19,6 +19,7 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.view.Gravity;
 import android.view.SurfaceView;
 import android.view.TextureView;
@@ -222,7 +223,8 @@ public class GlassTabBarTest {
     /**
      * Instagram's newer bar marks the selected tab with a dark capsule, as that tab's background (seen on
      * the S22's account). The pill draws its own capsule, so each tab's background comes off under the
-     * glass, and comes off again on the next frame when Instagram puts it back.
+     * glass, a ripple holding a capsule's included, and comes off again on the next frame when Instagram
+     * puts it back. A bare ripple, a tab's touch feedback, stays.
      */
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -230,9 +232,13 @@ public class GlassTabBarTest {
     public void theTabsOwnCapsulesComeOffUnderTheGlass() throws Exception {
         try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
             for (int i = 0; i < host.bar.getChildCount(); i++) host.bar.getChildAt(i).setBackgroundColor(0xff25292e);
+            host.bar.getChildAt(3).setBackground(new RippleDrawable(ColorStateList.valueOf(0x33ffffff), new ColorDrawable(0xff25292e), null));
+            RippleDrawable feedback = new RippleDrawable(ColorStateList.valueOf(0x33ffffff), null, new ColorDrawable(Color.WHITE));
+            host.bar.getChildAt(4).setBackground(feedback);
             GlassTabBar.apply(host.activity);
             host.layout();
-            for (int i = 0; i < host.bar.getChildCount(); i++) assertNull("tab " + i, host.bar.getChildAt(i).getBackground());
+            for (int i = 0; i < 4; i++) assertNull("tab " + i, host.bar.getChildAt(i).getBackground());
+            assertSame("a bare ripple is the tab's touch feedback", feedback, host.bar.getChildAt(4).getBackground());
 
             assertTrue(host.bar.getChildAt(2).performClick());
             host.bar.getChildAt(2).setBackgroundColor(0xff25292e);
