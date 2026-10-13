@@ -181,6 +181,8 @@ public class SettingsCardsTest {
                 if (shown.get(i) instanceof HushgramPreferenceFragment.Intro) at = i;
             }
             assertTrue(title + " opened without an intro: " + shown, at >= 0);
+            assertEquals(title + " keeps Search ahead of its intro", "hushgram_settings_search", shown.get(0).getKey());
+            assertEquals(title + " places its intro directly after Search", 1, at);
             Preference intro = shown.get(at);
             assertTrue(title + "'s section sits right under its intro",
                     at + 1 < shown.size() && shown.get(at + 1) instanceof HushgramPreferenceFragment.Heading

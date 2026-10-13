@@ -7,10 +7,16 @@ package app.hushgram.extension.instagram.settings;
 import static org.junit.Assert.*;
 import android.app.Activity;
 import android.app.Dialog;
+import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -32,7 +38,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /** Open categories as pages: a list of categories, one page each, Back to the list, and search across all of them. */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = {28, 37})
+@Config(sdk = {28, 37}, qualifiers = "w320dp-h480dp-mdpi")
 @SuppressWarnings("deprecation")
 public class CategoryPagesSettingsTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
@@ -43,6 +49,7 @@ public class CategoryPagesSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.CATEGORY_PAGES.resetToDefault();
+        Settings.START_ON_FOLLOWING.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -57,6 +64,7 @@ public class CategoryPagesSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.CATEGORY_PAGES.resetToDefault();
+        Settings.START_ON_FOLLOWING.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
         SettingsEntry.onClosedByUser();
     }
@@ -95,6 +103,32 @@ public class CategoryPagesSettingsTest {
 
     private void tap(Preference row) {
         assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
+        ShadowLooper.idleMainLooper();
+    }
+
+    private void openDialog() throws Exception {
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        dialog = new SettingsDialog();
+        dialog.show(controller.get().getFragmentManager(), "category_pages");
+        controller.get().getFragmentManager().executePendingTransactions();
+        Utils.awaitBackgroundTasksForTests();
+        ShadowLooper.idleMainLooper();
+        page = (HushgramPreferenceFragment) dialog.getChildFragmentManager()
+                .findFragmentById(SettingsDialog.CONTAINER_ID);
+        layoutPage();
+    }
+
+    private void layoutPage() {
+        // PreferenceGroupAdapter applies hierarchy changes on its next main-thread turn.
+        ShadowLooper.idleMainLooper();
+        // Lay out the actual dialog viewport. Measuring only its child page at a different
+        // height lets the attached window's next traversal undo the scroll under test.
+        View root = dialog.getView();
+        float density = root.getResources().getDisplayMetrics().density;
+        int width = Math.round(320 * density), height = Math.round(480 * density);
+        root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, width, height);
         ShadowLooper.idleMainLooper();
     }
 
@@ -173,6 +207,156 @@ public class CategoryPagesSettingsTest {
 
         page.searchSettings("");
         assertEquals(List.of("Feed"), shown(PreferenceCategory.class));
+    }
+
+    @Test public void theRealSearchInputStaysReachableInsideACategory() throws Exception {
+        openDialog();
+        tap(categoryRow("Feed"));
+        layoutPage();
+        assertNotNull(page.getPreferenceScreen().findPreference("hushgram_settings_search"));
+        EditText input = page.getView().findViewWithTag("hushgram-settings-search");
+        assertNotNull(input);
+        assertTrue(input.isShown());
+        assertEquals("Search settings", input.getContentDescription());
+        touchMode(input, true);
+        assertTrue(input.requestFocus());
+        layoutPage();
+        input.setText("Hide ads");
+        layoutPage();
+        assertSame("typing keeps the live input", input,
+                page.getView().findViewWithTag("hushgram-settings-search"));
+        assertTrue(input.hasFocus());
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key));
+        assertFalse(shown(PreferenceCategory.class).contains("Feed"));
+        input.setText("");
+        layoutPage();
+        assertEquals(List.of("Feed"), shown(PreferenceCategory.class));
+        assertSame(input, page.getView().findViewWithTag("hushgram-settings-search"));
+        assertTrue(input.hasFocus());
+    }
+
+    @Test public void everyCategoryStartsAtSearchOutsideTouchModeEvenFromALaterOverviewRow() throws Exception {
+        PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
+        openDialog();
+        touchMode(page.getView(), false);
+        List<String> categories = shown(Preference.class);
+        assertEquals(23, categories.size());
+        for (String title : categories) {
+            ListView list = page.getView().findViewById(android.R.id.list);
+            list.setSelectionFromTop(12, -8);
+            layoutPage();
+            tap(categoryRow(title));
+            layoutPage();
+            assertEquals(title + " must start at Search", 0, list.getFirstVisiblePosition());
+            assertNotNull(title + " must keep Search visible",
+                    page.getView().findViewWithTag("hushgram-settings-search"));
+            assertTrue(page.closeCategory());
+            layoutPage();
+        }
+    }
+
+    private static void touchMode(View view, boolean value) {
+        Object root = org.robolectric.util.ReflectionHelpers.callInstanceMethod(view, "getViewRootImpl");
+        assertNotNull("The test must change the attached window's touch mode", root);
+        org.robolectric.util.ReflectionHelpers.callInstanceMethod(root, "ensureTouchMode",
+                org.robolectric.util.ReflectionHelpers.ClassParameter.from(boolean.class, value));
+        assertEquals(value, view.isInTouchMode());
+    }
+
+    @Test public void aCategoryShowsItsPendingRestartAndHidesItWhenTheChangeIsUndone() throws Exception {
+        open();
+        Preference status = page.getPreferenceScreen().getPreference(0);
+        tap(categoryRow("Feed"));
+        assertNull(status.getParent());
+        SwitchPreference following = (SwitchPreference) page.findPreference(Settings.START_ON_FOLLOWING.key);
+        boolean before = following.isChecked();
+        following.setChecked(!before);
+        ShadowLooper.idleMainLooper();
+        assertSame(page.getPreferenceScreen(), status.getParent());
+        assertSame(status, page.getPreferenceScreen().getPreference(0));
+        assertEquals("hushgram_settings_search", page.getPreferenceScreen().getPreference(1).getKey());
+        assertTrue(status.isSelectable());
+        assertNotNull(status.getOnPreferenceClickListener());
+        assertTrue(status.getSummary().toString().contains("Tap to restart it now."));
+        following.setChecked(before);
+        ShadowLooper.idleMainLooper();
+        assertFalse(status.isSelectable());
+        assertNull("a resolved restart no longer occupies the category", status.getParent());
+    }
+
+    @Test public void recreationKeepsTheCategoryTitleAndScrollWithoutSavingTheSearchText() throws Exception {
+        PatchFamily.inBuildForTests.add(PatchFamily.REEL_DECLUTTER);
+        openDialog();
+        tap(categoryRow("Reels"));
+        layoutPage();
+        ListView list = page.getView().findViewById(android.R.id.list);
+        list.setSelectionFromTop(3, -8);
+        layoutPage();
+        int position = list.getFirstVisiblePosition();
+        int top = list.getChildAt(0).getTop() - list.getPaddingTop();
+        assertTrue("the test must leave the top of the page: first=" + position
+                + ", last=" + list.getLastVisiblePosition() + ", count=" + list.getCount()
+                + ", height=" + list.getHeight() + ", focus=" + page.getView().findFocus(), position > 0);
+        Bundle state = new Bundle();
+        page.onSaveInstanceState(state);
+        assertFalse(state.containsKey("hushgram_settings_query"));
+
+        controller.recreate();
+        ShadowLooper.idleMainLooper();
+        dialog = (SettingsDialog) controller.get().getFragmentManager().findFragmentByTag("category_pages");
+        assertNotNull(dialog);
+        page = (HushgramPreferenceFragment) dialog.getChildFragmentManager()
+                .findFragmentById(SettingsDialog.CONTAINER_ID);
+        layoutPage();
+        assertEquals(List.of("Reels"), shown(PreferenceCategory.class));
+        LinearLayout bar = (LinearLayout) ((LinearLayout) dialog.getView()).getChildAt(0);
+        assertEquals("Reels", ((TextView) bar.getChildAt(1)).getText());
+        list = page.getView().findViewById(android.R.id.list);
+        assertEquals(position, list.getFirstVisiblePosition());
+        assertEquals(top, list.getChildAt(0).getTop() - list.getPaddingTop());
+        page.searchSettings("location setup");
+        controller.recreate();
+        ShadowLooper.idleMainLooper();
+        dialog = (SettingsDialog) controller.get().getFragmentManager().findFragmentByTag("category_pages");
+        page = (HushgramPreferenceFragment) dialog.getChildFragmentManager()
+                .findFragmentById(SettingsDialog.CONTAINER_ID);
+        layoutPage();
+        assertEquals("the page returns without retaining what was searched", List.of("Reels"),
+                shown(PreferenceCategory.class));
+        EditText input = page.getView().findViewWithTag("hushgram-settings-search");
+        assertNotNull("the restored page starts at its search field", input);
+        assertEquals("", input.getText().toString());
+        assertFalse(input.isSaveEnabled());
+        assertTrue(page.closeCategory());
+        ShadowLooper.idleMainLooper();
+        assertTrue(shown(Preference.class).contains("Reels"));
+    }
+
+    @Test public void recreationAlsoKeepsOverviewAndFlatListScroll() throws Exception {
+        for (boolean pages : new boolean[]{true, false}) {
+            Settings.CATEGORY_PAGES.save(pages);
+            openDialog();
+            ListView list = page.getView().findViewById(android.R.id.list);
+            list.setSelectionFromTop(3, -8);
+            layoutPage();
+            int position = list.getFirstVisiblePosition();
+            int top = list.getChildAt(0).getTop() - list.getPaddingTop();
+            assertTrue("the test must scroll the " + (pages ? "overview" : "flat list"), position > 0);
+            controller.recreate();
+            ShadowLooper.idleMainLooper();
+            dialog = (SettingsDialog) controller.get().getFragmentManager().findFragmentByTag("category_pages");
+            page = (HushgramPreferenceFragment) dialog.getChildFragmentManager()
+                    .findFragmentById(SettingsDialog.CONTAINER_ID);
+            layoutPage();
+            list = page.getView().findViewById(android.R.id.list);
+            assertEquals(position, list.getFirstVisiblePosition());
+            assertEquals(top, list.getChildAt(0).getTop() - list.getPaddingTop());
+            assertFalse("restoration must not open a category", page.closeCategory());
+            dialog.dismissAllowingStateLoss();
+            controller.close();
+            dialog = null;
+            controller = null;
+        }
     }
 
     @Test public void theSwitchChangesTheOpenPage() throws Exception {

@@ -300,6 +300,10 @@ public class SettingsSearchTest {
         assertTrue(rows(page.getPreferenceScreen()).stream()
                 .anyMatch(row -> L10n.t("Export diagnostic report").equals(row.getTitle())));
         assertEquals(L10n.t("No matching settings"), visible("hushgram_settings_search_empty").getTitle());
+        Preference empty = visible("hushgram_settings_search_empty");
+        assertTrue(empty.getSummary().toString().contains("patches included in this install"));
+        assertEquals("a new empty result is announced without repeating every keystroke",
+                View.ACCESSIBILITY_LIVE_REGION_POLITE, render(empty).getAccessibilityLiveRegion());
         page.searchSettings("null");
         assertNotNull(visible("hushgram_settings_search_empty"));
         page.searchSettings(" \t ");

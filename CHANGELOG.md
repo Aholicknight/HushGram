@@ -40,6 +40,8 @@ Every HushGram release, newest first.
 
 #### Improvements
 
+* **Instagram - HushGram settings:** Search stays available inside categories, pending restart actions appear on the page you changed, and rotation preserves your category and position without retaining search text. Empty search results explain why an install may not include a control.
+
 * **Instagram - HushGram settings:** Switches use the same compact corners as the rest of settings, with their native on, off and disabled behavior preserved.
 
 * **Instagram - View profile picture:** Close and Save have their own space below the preview, clear of system bars and edge gestures. Save stays unavailable while the picture loads, with a visible message and a spoken label. Reel search actions now share the same focus and press feedback.
@@ -81,6 +83,8 @@ Every HushGram release, newest first.
 * **Tooling:** The README is much shorter now, a user guide with the install steps, the settings, every patch and the supported builds. The long version, with every caveat and the build internals, is in the repository history.
 
 #### Bug Fixes
+
+* **Instagram - HushGram settings:** Invalid Place and Sharing domain entries stay open with an explanation so you can correct them. Save and the keyboard's Done button use the same validation. Coordinates keep their order in right-to-left layouts.
 
 * **Instagram - Hide Meta AI:** A reel opened from search results plays the one you tapped again. With Hide Meta AI in search and Home's bar on, results below Meta AI's summary opened an earlier reel. The summary card is still hidden, it's just folded away now instead of being taken out of the results. Reported in #152.
 

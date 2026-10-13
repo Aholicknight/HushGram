@@ -37,9 +37,11 @@ import android.text.format.Formatter;
 import android.text.util.Linkify;
 import android.util.TypedValue;
 import android.view.ContextThemeWrapper;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.AbsListView;
@@ -160,7 +162,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String CHANGE_PIN_ROW = "hushgram_change_pin_row";
     static final String HIDDEN_ACCOUNTS_ROW = "hushgram_hidden_accounts_row";
     private static final String SCREEN_KEY = "hushgram_settings_root";
-    /** The keys of the rows that open each category's page, numbered in the page's order. */
+    /** The keys of category page rows, stable across translations and installed patch combinations. */
     static final String CATEGORY_ROW_KEY = "hushgram_category_page_";
     /** The key of the line an open category's page starts with. */
     static final String INTRO_KEY = "hushgram_category_intro";
@@ -229,10 +231,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Nullable private Intro intro;
     /** The button at the top that switches between the list of categories and one long list. */
     @Nullable private Row viewToggle;
-    /** True while a category's page is open and the status card, view button and search row are off the screen. */
+    /** True while a category's page is open, with its search and any pending restart still reachable. */
     private boolean topHidden;
     /** Where the list of categories was scrolled to when a page opened, for Back. */
     private int categoryListPosition, categoryListTop;
+    @Nullable private String restoredCategory;
+    private int restoredPosition = -1;
+    private int restoredTop;
 
     /** The page's dialogs that may still be on screen, which would outlive it. */
     private final List<Dialog> shownDialogs = new ArrayList<>();
@@ -253,6 +258,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Override
     public void onCreate(Bundle state) {
         if (state != null) {
+            restoredCategory = state.getString("hushgram_open_category");
+            restoredPosition = state.getInt("hushgram_category_position", -1);
+            restoredTop = state.getInt("hushgram_category_top", 0);
+            categoryListPosition = state.getInt("hushgram_category_list_position", 0);
+            categoryListTop = state.getInt("hushgram_category_list_top", 0);
             documentRequest = state.getInt("hushgram_document_request", 0);
             // Older saved pages used the operation itself as their Android request code.
             documentCode = state.getInt("hushgram_document_code", documentRequest);
@@ -282,6 +292,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         state.putInt("hushgram_document_code", documentCode);
         state.putInt("hushgram_document_sequence", documentSequence);
         state.putString("hushgram_configuration_export", configurationExportToken);
+        Row category = categoryRows.get(openCategory);
+        if (category != null) state.putString("hushgram_open_category", category.getKey());
+        ListView list = listView();
+        boolean searching = !searchQuery.trim().isEmpty();
+        View first = list == null ? null : list.getChildAt(0);
+        state.putInt("hushgram_category_position", searching || list == null ? 0 : list.getFirstVisiblePosition());
+        state.putInt("hushgram_category_top", searching || first == null ? 0 : first.getTop() - list.getPaddingTop());
+        state.putInt("hushgram_category_list_position", categoryListPosition);
+        state.putInt("hushgram_category_list_top", categoryListTop);
     }
 
     @Override
@@ -289,10 +308,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         super.onViewCreated(view, savedInstanceState);
         ListView list = view.findViewById(android.R.id.list);
         if (list != null) {
+            // Our saved position belongs to the restored page, not the previous search results.
+            list.setSaveEnabled(false);
             list.setItemsCanFocus(true);
             list.setDivider(null);
             list.setDividerHeight(0);
             list.setBackgroundColor(Color.BLACK);
+        }
+        showTitle(openCategory == null ? null : openCategory.getTitle());
+    }
+
+    @Override public void onViewStateRestored(Bundle state) {
+        super.onViewStateRestored(state);
+        focusPage();
+        ListView list = listView();
+        if (list != null && restoredPosition >= 0) {
+            int position = restoredPosition, top = restoredTop;
+            restoredPosition = -1;
+            list.post(() -> {
+                if (list == listView()) list.setSelectionFromTop(position, top);
+            });
         }
     }
 
@@ -320,11 +355,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Override
     public void onDestroyView() {
         undoRefresh.removeCallbacks(refreshUndo);
-        // A rebuilt view starts on the list of categories, under the dialog's own title.
-        if (openCategory != null) {
-            openCategory = null;
-            filterSettings();
-        }
         for (Dialog dialog : new ArrayList<>(shownDialogs)) dialog.dismiss();
         shownDialogs.clear();
         clearPositions = null;
@@ -375,15 +405,24 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             return true;
         });
-        screen.addPreference(statusCard(context));
+        Preference status = statusCard(context);
+        status.setOrder(-40);
+        screen.addPreference(status);
         // The sign-in notice stays right under the status card, so the view button goes after it.
-        if (!Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) screen.addPreference(signInNotice(context, screen));
+        if (!Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) {
+            Preference notice = signInNotice(context, screen);
+            notice.setOrder(-30);
+            screen.addPreference(notice);
+        }
+        viewToggle.setOrder(-20);
         screen.addPreference(viewToggle);
         search = new SearchRow(context);
+        search.setOrder(-10);
         search.setKey("hushgram_settings_search");
         search.setTitle(L10n.t("Search settings"));
         search.setPersistent(false);
-        search.setSelectable(false);
+        // ListView skips non-selectable rows when restoring or resetting its position outside
+        // touch mode. Search contains real controls, so it must remain a selectable row.
         screen.addPreference(search);
         noSearchResults = new Row(context);
         noSearchResults.setPersistent(false);
@@ -391,7 +430,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         noSearchResults.setKey("hushgram_settings_search_empty");
         noSearchResults.setOrder(search.getOrder() + 1);
         noSearchResults.setTitle(L10n.t("No matching settings"));
-        noSearchResults.setSummary(L10n.t("Try another word or clear the search."));
+        noSearchResults.setSummary(L10n.t("Try another word. Settings only appear for patches included in this install."));
         mark(noSearchResults, SettingsIcons.SEARCH);
         // The export row below reads this; registering twice keeps one.
         PatchFamily.registerDiagnostics();
@@ -1641,13 +1680,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             // Pause and diagnostics stays open in every mode, as it does while searching.
             if (group != recovery) categoryRows.put(group, categoryRow(context, group, rows));
         }
+        if (categoryPages() && restoredCategory != null) {
+            for (Map.Entry<PreferenceCategory, Row> category : categoryRows.entrySet()) {
+                if (restoredCategory.equals(category.getValue().getKey())) {
+                    openCategory = category.getKey();
+                    break;
+                }
+            }
+        }
+        if (restoredCategory != null && openCategory == null) restoredPosition = -1;
+        restoredCategory = null;
         filterSettings();
     }
 
     /** The row that opens [group]'s page: its name, its first few settings, and where it stood. */
     private Row categoryRow(Context context, PreferenceCategory group, List<Preference> rows) {
         Row row = new Row(context);
-        row.setKey(CATEGORY_ROW_KEY + categoryRows.size());
+        row.setKey(CATEGORY_ROW_KEY + iconOf(group));
         row.setPersistent(false);
         row.setTitle(group.getTitle());
         List<String> titles = new ArrayList<>();
@@ -1685,6 +1734,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             View first = list.getChildAt(0);
             categoryListTop = first == null ? 0 : first.getTop() - list.getPaddingTop();
         }
+        focusPage();
         openCategory = group;
         filterSettings();
         showTitle(group.getTitle());
@@ -1715,6 +1765,19 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Nullable private ListView listView() {
         View view = getView();
         return view == null ? null : view.findViewById(android.R.id.list);
+    }
+
+    /** Page entry shouldn't focus the search field or move a restored viewport to show it. */
+    private void focusPage() {
+        View view = getView();
+        if (!(view instanceof android.view.ViewGroup)) return;
+        android.view.ViewGroup body = (android.view.ViewGroup) view;
+        body.setFocusableInTouchMode(true);
+        body.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        // PreferenceFragment posts focusableViewAvailable(list) after binding. Keep initial
+        // focus here; explicit focus on Search and its controls still works normally.
+        body.setDescendantFocusability(android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS);
+        body.requestFocus();
     }
 
     private void showTitle(@Nullable CharSequence title) {
@@ -1860,11 +1923,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         // A search looks through every category, whichever page is open, and clearing it goes back.
         boolean listing = pages && terms.length == 0;
-        // A category's page shows only its own settings: no status card, view button or search.
+        // Search stays within reach on every page. A pending restart keeps its action there too.
         topHidden = listing && openCategory != null;
+        boolean categoryContext = pages && openCategory != null;
+        showTitle(terms.length > 0 ? L10n.t("Search settings")
+                : openCategory == null ? null : openCategory.getTitle());
         for (Preference top : new Preference[]{statusCard, viewToggle, search}) {
             if (top == null) continue;
-            if (topHidden) {
+            boolean hidden = categoryContext && top != search && (top != statusCard || !restartActionAvailable());
+            if (hidden) {
                 if (top.getParent() == screen) screen.removePreference(top);
             } else if (top.getParent() != screen) screen.addPreference(top);
         }
@@ -1925,8 +1992,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /**
      * Puts the open category's intro right above its section, or takes it off when no page is open
-     * or a search runs. A page shows the intro, its section and at most the sign-in notice, which
-     * sorts first, so the order just under the section's own can't tie with anything shown.
+     * or a search runs. Top-level actions have negative orders reserved ahead of every section,
+     * so even the first category's intro follows Search and directly precedes its section.
      */
     private void showIntro(PreferenceScreen screen) {
         Intro line = intro;
@@ -2761,6 +2828,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             row.setAddStatesFromChildren(true);
             row.setPaddingRelative(inset + Math.round(14 * density), gap, inset + Math.round(4 * density), gap);
             row.setMinimumHeight(touch + 2 * gap);
+            // Its children own the accessible actions; the row only anchors ListView selection.
+            row.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             // Legacy ListView refocuses a row during layout. Keep focus on its typing field.
             row.setDescendantFocusability(android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS);
             EditText field = new EditText(context);
@@ -2800,8 +2869,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             int crossSize = Math.round(20 * density);
             cross.setBounds(0, 0, crossSize, crossSize);
             clear.setCompoundDrawablesRelative(cross, null, null, null);
-            clear.setBackgroundColor(Color.TRANSPARENT);
+            ScreenColors.styleIconAction(clear);
             clear.setContentDescription(L10n.t("Clear search"));
+            clear.setTooltipText(L10n.t("Clear search"));
             int crossPadding = (touch - crossSize) / 2;
             clear.setPaddingRelative(crossPadding, 0, crossPadding, 0);
             clear.setMinimumWidth(touch);
@@ -3016,7 +3086,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.isolate(Utils.getPatchesReleaseVersion()), L10n.isolate(Utils.getAppVersionName()));
             // A change Instagram only reads as it starts makes the card a Restart now button (#146).
             // Not while a pause is on its way: that restart would come up paused.
-            boolean restart = !pausedNext && RestartNow.owed();
+            boolean restart = restartActionAvailable();
             status = pausedNext ? version + " " + L10n.t("HushGram pauses when Instagram restarts.")
                     : restart ? version + "\n\n" + L10n.t("Some changes apply when Instagram restarts. Tap to restart it now.")
                     : version;
@@ -3059,6 +3129,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Preference card = statusCard;
         Context context = getContext();
         if (card != null && context != null) showStatus(card, context);
+        filterSettings();
+    }
+
+    private boolean restartActionAvailable() {
+        Context context = getContext();
+        return context != null && !HushgramPause.isPaused()
+                && !HushgramPause.pausesNextStart(context) && RestartNow.owed();
     }
 
     /**
@@ -4434,6 +4511,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setNegativeButtonText(L10n.t("Cancel"));
         EditText field = row.getEditText();
         field.setSingleLine(true);
+        field.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        field.setTextDirection(View.TEXT_DIRECTION_LTR);
         field.setHint("40.758, -73.9855");
         row.setText(Settings.SPOOF_LOCATION_PLACE.savedValue());
         row.setOnPreferenceChangeListener((preference, typed) -> {
@@ -4719,7 +4798,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             showAllText(view);
             ScreenColors.row(view, this);
             view.setAccessibilityDelegate(isSelectable() ? new RowSemantics(this, Button.class) : null);
-            view.setAccessibilityLiveRegion("hushgram_export_configuration".equals(getKey())
+            view.setAccessibilityLiveRegion(("hushgram_export_configuration".equals(getKey())
+                    || "hushgram_settings_search_empty".equals(getKey()))
                     ? View.ACCESSIBILITY_LIVE_REGION_POLITE : View.ACCESSIBILITY_LIVE_REGION_NONE);
         }
     }
@@ -4795,8 +4875,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             cancel.setAllCaps(false);
             cancel.setTextSize(14);
             ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
-            cancel.setTextColor(colors.heading);
-            cancel.setBackgroundColor(Color.TRANSPARENT);
+            cancel.setTextColor(ScreenColors.dimmedWhenDisabled(colors.heading));
+            ScreenColors.styleIconAction(cancel);
             int touch = Math.round(48 * view.getResources().getDisplayMetrics().density);
             cancel.setMinWidth(touch);
             cancel.setMinimumWidth(touch);
@@ -4827,6 +4907,33 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
+    /** Compact edit forms keep the input first and let their help scroll above the actions. */
+    private static View editDialogBody(EditTextPreference preference) {
+        Context context = preference.getContext();
+        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        int pad = Math.round(20 * context.getResources().getDisplayMetrics().density);
+        LinearLayout content = new LinearLayout(context);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(pad, pad / 2, pad, pad);
+        EditText field = preference.getEditText();
+        if (field.getParent() instanceof android.view.ViewGroup) {
+            ((android.view.ViewGroup) field.getParent()).removeView(field);
+        }
+        content.addView(field, new LinearLayout.LayoutParams(-1, -2));
+        if (!TextUtils.isEmpty(preference.getDialogMessage())) {
+            TextView help = new TextView(context);
+            help.setId(android.R.id.message);
+            help.setText(preference.getDialogMessage());
+            help.setTextSize(14);
+            help.setTextColor(colors.summary);
+            help.setPadding(0, pad, 0, 0);
+            content.addView(help, new LinearLayout.LayoutParams(-1, -2));
+        }
+        ScrollView scroll = new ScrollView(context);
+        scroll.addView(content);
+        return scroll;
+    }
+
     /**
      * The save folder's row. Its summary follows its text, whoever sets it: the person, the shared
      * page syncing it from the setting, or an import.
@@ -4834,6 +4941,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final class FolderRow extends EditTextPreference {
         FolderRow(Context context) {
             super(context);
+        }
+
+        @Override protected View onCreateDialogView() { return editDialogBody(this); }
+
+        @Override protected void onBindDialogView(View view) {
+            // EditTextPreference's default binder would move the field out of our scroll body.
+            getEditText().setText(getText());
         }
 
         @Override
@@ -4864,7 +4978,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      * shared page syncing it from the setting, or an import. Its dialog shows what the typed
      * template names a video, as it's typed.
      */
-    static final class SharingDomainRow extends EditTextPreference {
+    static final class SharingDomainRow extends ValidatedEditRow {
         SharingDomainRow(Context context) {
             super(context);
         }
@@ -4883,12 +4997,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
         }
 
-        /** Its edit dialog takes the screen's colors, as the place's does. */
-        @Override
-        protected void showDialog(Bundle state) {
-            super.showDialog(state);
-            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
-            fitAboveKeyboard(getDialog());
+        @Override String validatedValue(String typed) {
+            return SharingDomain.normalize(typed);
+        }
+
+        @Override String validationError() {
+            return L10n.t("That isn't a domain. Type one like example.com, or leave it blank.");
         }
     }
 
@@ -4935,7 +5049,63 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    static final class PlaceRow extends EditTextPreference {
+    /** Save and the keyboard's Done share validation, leaving a rejected value ready to correct. */
+    static abstract class ValidatedEditRow extends EditTextPreference {
+        ValidatedEditRow(Context context) {
+            super(context);
+            getEditText().setImeOptions(EditorInfo.IME_ACTION_DONE);
+            getEditText().addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence text, int start, int before, int count) {
+                    getEditText().setError(null);
+                }
+                @Override public void afterTextChanged(Editable text) { }
+            });
+        }
+
+        @Nullable abstract String validatedValue(String typed);
+        abstract String validationError();
+
+        @Override protected View onCreateDialogView() { return editDialogBody(this); }
+
+        @Override protected void onBindDialogView(View view) {
+            getEditText().setText(getText());
+        }
+
+        @Override protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            Dialog shown = getDialog();
+            if (!(shown instanceof AlertDialog)) return;
+            AlertDialog dialog = (AlertDialog) shown;
+            ScreenColors.dialog(dialog);
+            fitAboveKeyboard(dialog);
+            getEditText().setError(null);
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> saveEditor(dialog));
+            getEditText().setOnEditorActionListener((view, action, key) -> {
+                boolean done = action == EditorInfo.IME_ACTION_DONE;
+                boolean enter = key != null && key.getKeyCode() == KeyEvent.KEYCODE_ENTER;
+                if (!done && !enter) return false;
+                if (done || key.getAction() == KeyEvent.ACTION_UP) saveEditor(dialog);
+                return true;
+            });
+        }
+
+        private void saveEditor(AlertDialog dialog) {
+            if (dialog != getDialog() || !dialog.isShowing() || !isEnabled()) return;
+            EditText field = getEditText();
+            String value = validatedValue(field.getText().toString());
+            if (value == null) {
+                field.setError(validationError());
+                field.requestFocus();
+                return;
+            }
+            if (!callChangeListener(value)) return;
+            setText(value);
+            dialog.dismiss();
+        }
+    }
+
+    static final class PlaceRow extends ValidatedEditRow {
         PlaceRow(Context context) {
             super(context);
         }
@@ -4954,12 +5124,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
         }
 
-        /** Its edit dialog takes the screen's colors, as the file name's does. */
-        @Override
-        protected void showDialog(Bundle state) {
-            super.showDialog(state);
-            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
-            fitAboveKeyboard(getDialog());
+        @Override String validatedValue(String typed) {
+            return typed.trim().isEmpty() || SpoofLocation.parse(typed) != null ? typed : null;
+        }
+
+        @Override String validationError() {
+            return L10n.t("That isn't a place. Type a latitude and a longitude with a comma between them.");
         }
     }
 

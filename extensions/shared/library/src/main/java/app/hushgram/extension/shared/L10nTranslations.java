@@ -1949,8 +1949,8 @@ public final class L10nTranslations {
                 "Zu viele Versuche. Warte %1$d Sekunden.");
         table.put("Try again, or go back to Instagram.",
                 "Versuche es noch einmal oder kehre zu Instagram zur\u00fcck.");
-        table.put("Try another word or clear the search.",
-                "Versuche einen anderen Begriff oder l\u00f6sche die Suche.");
+        table.put("Try another word. Settings only appear for patches included in this install.",
+                "Versuche einen anderen Begriff. Es werden nur Einstellungen f\u00fcr Patches angezeigt, die in dieser Installation enthalten sind.");
         table.put("Turn off HDR brightness boosts",
                 "HDR-Helligkeitsschub ausschalten");
         table.put("Turn off double tap to like",
@@ -4010,8 +4010,8 @@ public final class L10nTranslations {
                 "Demasiados intentos. Espera %1$d segundos.");
         table.put("Try again, or go back to Instagram.",
                 "Int\u00e9ntalo de nuevo o vuelve a Instagram.");
-        table.put("Try another word or clear the search.",
-                "Prueba otra palabra o borra la b\u00fasqueda.");
+        table.put("Try another word. Settings only appear for patches included in this install.",
+                "Prueba otra palabra. Solo aparecen los ajustes de los parches incluidos en esta instalaci\u00f3n.");
         table.put("Turn off HDR brightness boosts",
                 "Desactivar el brillo extra de HDR");
         table.put("Turn off double tap to like",
@@ -6071,8 +6071,8 @@ public final class L10nTranslations {
                 "Terlalu banyak percobaan. Tunggu %1$d detik.");
         table.put("Try again, or go back to Instagram.",
                 "Coba lagi, atau kembali ke Instagram.");
-        table.put("Try another word or clear the search.",
-                "Coba kata lain atau hapus pencarian.");
+        table.put("Try another word. Settings only appear for patches included in this install.",
+                "Coba kata lain. Pengaturan hanya muncul untuk patch yang disertakan dalam instalasi ini.");
         table.put("Turn off HDR brightness boosts",
                 "Matikan peningkatan kecerahan HDR");
         table.put("Turn off double tap to like",
@@ -8132,8 +8132,8 @@ public final class L10nTranslations {
                 "\uc2dc\ub3c4\uac00 \ub108\ubb34 \ub9ce\uc2b5\ub2c8\ub2e4. %1$d\ucd08 \ud6c4\uc5d0 \ub2e4\uc2dc \uc2dc\ub3c4\ud558\uc138\uc694.");
         table.put("Try again, or go back to Instagram.",
                 "\ub2e4\uc2dc \uc2dc\ub3c4\ud558\uac70\ub098 Instagram\uc73c\ub85c \ub3cc\uc544\uac00\uc138\uc694");
-        table.put("Try another word or clear the search.",
-                "\ub2e4\ub978 \ub2e8\uc5b4\ub97c \uc785\ub825\ud558\uac70\ub098 \uac80\uc0c9\uc5b4\ub97c \uc9c0\uc6cc\ubcf4\uc138\uc694");
+        table.put("Try another word. Settings only appear for patches included in this install.",
+                "\ub2e4\ub978 \ub2e8\uc5b4\ub97c \uc785\ub825\ud574 \ubcf4\uc138\uc694. \uc774 \uc124\uce58\uc5d0 \ud3ec\ud568\ub41c \ud328\uce58\uc758 \uc124\uc815\ub9cc \ud45c\uc2dc\ub429\ub2c8\ub2e4.");
         table.put("Turn off HDR brightness boosts",
                 "HDR \ubc1d\uae30 \uac15\uc870 \ub044\uae30");
         table.put("Turn off double tap to like",
@@ -10193,8 +10193,8 @@ public final class L10nTranslations {
                 "Tentativas demais. Espere %1$d segundos.");
         table.put("Try again, or go back to Instagram.",
                 "Tente novamente ou volte para o Instagram.");
-        table.put("Try another word or clear the search.",
-                "Tente outra palavra ou limpe a pesquisa.");
+        table.put("Try another word. Settings only appear for patches included in this install.",
+                "Tente outra palavra. S\u00f3 aparecem as configura\u00e7\u00f5es dos patches inclu\u00eddos nesta instala\u00e7\u00e3o.");
         table.put("Turn off HDR brightness boosts",
                 "Desativar o refor\u00e7o de brilho HDR");
         table.put("Turn off double tap to like",
@@ -12254,8 +12254,8 @@ public final class L10nTranslations {
                 "\u00c7ok fazla deneme. %1$d saniye bekle.");
         table.put("Try again, or go back to Instagram.",
                 "Tekrar dene veya Instagram'a geri d\u00f6n.");
-        table.put("Try another word or clear the search.",
-                "Ba\u015fka bir s\u00f6zc\u00fck deneyin veya aramay\u0131 temizleyin.");
+        table.put("Try another word. Settings only appear for patches included in this install.",
+                "Ba\u015fka bir s\u00f6zc\u00fck deneyin. Yaln\u0131zca bu kuruluma dahil edilen yamalar\u0131n ayarlar\u0131 g\u00f6r\u00fcn\u00fcr.");
         table.put("Turn off HDR brightness boosts",
                 "HDR parlakl\u0131k art\u0131\u015f\u0131n\u0131 kapat");
         table.put("Turn off double tap to like",
