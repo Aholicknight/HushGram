@@ -389,7 +389,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         exportConfiguration = importConfiguration = undoConfiguration = null;
         recovery = null;
         interruptedSaves = null;
-        builtOrders.clear();
+        // The rows outlive this view, and a search left on them would be read as how they were built.
+        restoreOrders();
         super.onDestroyView();
     }
 
@@ -2140,18 +2141,34 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      * move down, so Search stays first, and with no terms everything is back where it was built.
      */
     private void rankForSearch(String[] terms) {
-        boolean searching = terms.length > 0;
-        if (!searching && builtOrders.isEmpty()) return;
-        for (Map.Entry<PreferenceCategory, List<Preference>> section : searchableRows.entrySet()) {
-            boolean named = searching && holdsAll(searchText(section.getKey().getTitle()), terms);
-            for (Preference row : section.getValue()) {
-                boolean inTitle = searching && holdsAll(searchText(row.getTitle()), terms);
-                named |= inTitle;
-                rank(row, searching && !inTitle);
-            }
-            rank(section.getKey(), searching && !named);
+        if (terms.length == 0) {
+            restoreOrders();
+            return;
         }
-        if (!searching) builtOrders.clear();
+        for (Map.Entry<PreferenceCategory, List<Preference>> section : searchableRows.entrySet()) {
+            boolean named = holdsAll(searchText(section.getKey().getTitle()), terms);
+            for (Preference row : section.getValue()) {
+                boolean inTitle = holdsAll(searchText(row.getTitle()), terms);
+                named |= inTitle;
+                rank(row, !inTitle);
+            }
+            rank(section.getKey(), !named);
+        }
+        // Quick setups sits above every section, so a search that only matched its aliases listed
+        // it ahead of the rows named for the search.
+        if (quickSetups != null) rank(quickSetups, !holdsAll(searchText(quickSetups.getTitle()), terms));
+    }
+
+    /**
+     * Puts back every order a search moved. It goes by what was moved, not by what a search can
+     * still find: the override rows leave the search when Allow importing overrides goes off, and
+     * used to keep their place at the end until settings was opened again.
+     */
+    private void restoreOrders() {
+        for (Map.Entry<Preference, Integer> moved : builtOrders.entrySet()) {
+            if (moved.getKey().getOrder() != moved.getValue()) moved.getKey().setOrder(moved.getValue());
+        }
+        builtOrders.clear();
     }
 
     private void rank(Preference item, boolean later) {
