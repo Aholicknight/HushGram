@@ -39,6 +39,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
+import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
 import instagram.features.feed.mainfeed.actionbar.MainFeedActionBar;
 
 /** The Search button on Home's header: where it goes, what its tap opens, and when it stays out. */
@@ -243,6 +244,14 @@ public class SearchHeaderButtonTest {
         ShadowLooper.idleMainLooper();
         assertTrue("no switch was asked for", switched.isEmpty());
         assertEquals("Search isn't on your tab bar, so this button can't open it here.",
+                String.valueOf(ShadowToast.getTextOfLatestToast()));
+
+        // Turned off since Instagram started: Search is back after a restart, so that's what it says.
+        AbstractPreferenceFragment.restartPending.add(Settings.HIDE_SEARCH_TAB.key);
+        button.performClick();
+        ShadowLooper.idleMainLooper();
+        assertTrue("no switch was asked for", switched.isEmpty());
+        assertEquals("Restart Instagram to bring Search back to your tab bar.",
                 String.valueOf(ShadowToast.getTextOfLatestToast()));
     }
 

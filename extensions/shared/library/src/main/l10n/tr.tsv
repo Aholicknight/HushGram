@@ -876,6 +876,7 @@ Center the name on profiles	Profillerde adı ortala
 Puts the username in the middle of the bar at the top of a profile, yours and other people's. The buttons stay where they are.	Bir profilin üstündeki çubukta kullanıcı adını ortaya koyar, seninkinde ve başkalarınınkinde. Düğmeler yerinde kalır.
 Search isn't on your tab bar, so this button can't open it here.	Ara sekme çubuğunda değil, bu yüzden bu düğme onu burada açamaz.
 To open Search here, turn off Hide the Search tab and restart.	Ara'yı burada açmak için Ara sekmesini gizle'yi kapat ve yeniden başlat.
+Restart Instagram to bring Search back to your tab bar.	Ara'yı sekme çubuğuna geri getirmek için Instagram'ı yeniden başlat.
 Tab order	Sekme sırası
 The tab bar keeps Instagram's order.	Sekme çubuğu Instagram'ın sırasını korur.
 Tabs go in this order: %1$s. Restart Instagram to see the change.	Sekmeler bu sırada: %1$s. Değişikliği görmek için Instagram'ı yeniden başlat.

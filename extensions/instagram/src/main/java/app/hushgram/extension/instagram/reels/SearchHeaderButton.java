@@ -33,6 +33,7 @@ import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
 
 /**
  * A Search button on Home's header, for the Tab bar switch Search button on Home's header.
@@ -115,8 +116,11 @@ public final class SearchHeaderButton {
             if (!onTheBar && tabsSwipe(activity)) {
                 HookStatus.counted(ROUTE, SWIPING);
                 // A toast shows two lines at most on Android 12 and newer, so it says what to do and stops.
+                // Hide the Search tab turned off since Instagram started still has Search off the bar.
                 Utils.showToastLong(Settings.HIDE_SEARCH_TAB.get()
                         ? L10n.t("To open Search here, turn off Hide the Search tab and restart.")
+                        : AbstractPreferenceFragment.restartPending.contains(Settings.HIDE_SEARCH_TAB.key)
+                        ? L10n.t("Restart Instagram to bring Search back to your tab bar.")
                         : L10n.t("Search isn't on your tab bar, so this button can't open it here."));
                 return;
             }
