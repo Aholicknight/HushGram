@@ -116,6 +116,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** On accounts where Instagram puts a dark capsule behind the selected tab, that capsule no longer sits on top of the glass bar's own highlight.
 
+* **Instagram - Search button on Home's header:** When Search is off a tab bar you swipe across, the note the button shows now fits on screen and says what to turn off. Android used to cut it off halfway.
+
 ## 0.0.9 (2026-10-11)
 
 ### Features

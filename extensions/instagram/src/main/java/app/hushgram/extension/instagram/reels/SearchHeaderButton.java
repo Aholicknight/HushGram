@@ -114,8 +114,10 @@ public final class SearchHeaderButton {
             boolean onTheBar = TabStart.isOnTheBar(ReelsTab.SEARCH);
             if (!onTheBar && tabsSwipe(activity)) {
                 HookStatus.counted(ROUTE, SWIPING);
-                Utils.showToastLong(L10n.t("Search isn't on your tab bar, so this button can't open it here. "
-                        + "If Hide the Search tab is on, turn it off and restart Instagram."));
+                // A toast shows two lines at most on Android 12 and newer, so it says what to do and stops.
+                Utils.showToastLong(Settings.HIDE_SEARCH_TAB.get()
+                        ? L10n.t("To open Search here, turn off Hide the Search tab and restart.")
+                        : L10n.t("Search isn't on your tab bar, so this button can't open it here."));
                 return;
             }
             int opened;

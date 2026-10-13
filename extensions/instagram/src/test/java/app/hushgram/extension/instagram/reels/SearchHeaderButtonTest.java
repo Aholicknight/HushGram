@@ -226,14 +226,24 @@ public class SearchHeaderButtonTest {
         ReelsTab.tabs(BUILT);
         SearchHeaderButton.pagingForTests = on -> on == activity ? 1 : 0;
 
-        placed().performClick();
+        ImageView button = placed();
+        button.performClick();
         ShadowLooper.idleMainLooper();
 
         assertTrue("no switch was asked for", switched.isEmpty());
         assertTrue(report(), report().contains(SearchHeaderButton.SWIPING + " 1"));
-        assertEquals("Search isn't on your tab bar, so this button can't open it here. "
-                + "If Hide the Search tab is on, turn it off and restart Instagram.", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        // Android 12 and newer show two lines of a toast, so the toast is what to do and nothing else.
+        assertEquals("To open Search here, turn off Hide the Search tab and restart.",
+                String.valueOf(ShadowToast.getTextOfLatestToast()));
         assertSame(Tab.FEED, ReelsTab.tab(Tab.SEARCH));
+
+        // Search off this bar with the switch already off: there's nothing to turn off, so it only says why.
+        Settings.HIDE_SEARCH_TAB.save(false);
+        button.performClick();
+        ShadowLooper.idleMainLooper();
+        assertTrue("no switch was asked for", switched.isEmpty());
+        assertEquals("Search isn't on your tab bar, so this button can't open it here.",
+                String.valueOf(ShadowToast.getTextOfLatestToast()));
     }
 
     @Test public void swipingTabsWithSearchOnTheBarStillSelectIt() {

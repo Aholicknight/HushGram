@@ -48,7 +48,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildDe() {
-        Map<String, String> table = new HashMap<>(1982);
+        Map<String, String> table = new HashMap<>(1984);
         fillDe0(table);
         fillDe1(table);
         fillDe2(table);
@@ -1584,8 +1584,8 @@ public final class L10nTranslations {
                 "Suche");
         table.put("Search button on Home's header",
                 "Suche-Taste oben auf der Startseite");
-        table.put("Search isn't on your tab bar, so this button can't open it here. If Hide the Search tab is on, turn it off and restart Instagram.",
-                "Die Suche ist nicht in deiner Tab-Leiste, deshalb kann diese Taste sie hier nicht \u00f6ffnen. Wenn \u201eDen Suche-Tab ausblenden\u201c an ist, schalte es aus und starte Instagram neu.");
+        table.put("Search isn't on your tab bar, so this button can't open it here.",
+                "Die Suche ist nicht in deiner Tab-Leiste, deshalb kann diese Taste sie hier nicht \u00f6ffnen.");
         table.put("Search settings",
                 "Einstellungen durchsuchen");
         table.put("See who a story mentions",
@@ -1939,6 +1939,8 @@ public final class L10nTranslations {
                 "Verbleibende Zeit");
         table.put("Time posted",
                 "Uhrzeit des Postens");
+        table.put("To open Search here, turn off Hide the Search tab and restart.",
+                "Um die Suche hier zu \u00f6ffnen, schalte \u201eDen Suche-Tab ausblenden\u201c aus und starte neu.");
         table.put("Too many tries. Wait %1$d seconds.",
                 "Zu viele Versuche. Warte %1$d Sekunden.");
         table.put("Try again, or go back to Instagram.",
@@ -2033,11 +2035,11 @@ public final class L10nTranslations {
                 "Videos landen in %1$s und Fotos in %2$s.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "Videos laufen in der besten Qualit\u00e4t bis %1$s, die Instagram f\u00fcr sie anbietet, oder der n\u00e4chsth\u00f6heren.");
-        table.put("Videos play at the highest quality Instagram offers for each.",
-                "Videos laufen in der h\u00f6chsten Qualit\u00e4t, die Instagram f\u00fcr sie anbietet.");
     }
 
     private static void fillDe16(Map<String, String> table) {
+        table.put("Videos play at the highest quality Instagram offers for each.",
+                "Videos laufen in der h\u00f6chsten Qualit\u00e4t, die Instagram f\u00fcr sie anbietet.");
         table.put("Videos play at the lowest quality Instagram offers for each.",
                 "Videos laufen in der niedrigsten Qualit\u00e4t, die Instagram f\u00fcr sie anbietet.");
         table.put("Videos wait for your tap where the choice below says. Feed videos show a play button, as they do when you use less mobile data.",
@@ -2103,7 +2105,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildEs() {
-        Map<String, String> table = new HashMap<>(1982);
+        Map<String, String> table = new HashMap<>(1984);
         fillEs0(table);
         fillEs1(table);
         fillEs2(table);
@@ -3639,8 +3641,8 @@ public final class L10nTranslations {
                 "Buscar");
         table.put("Search button on Home's header",
                 "Bot\u00f3n de B\u00fasqueda en el encabezado de Inicio");
-        table.put("Search isn't on your tab bar, so this button can't open it here. If Hide the Search tab is on, turn it off and restart Instagram.",
-                "B\u00fasqueda no est\u00e1 en tu barra de pesta\u00f1as, as\u00ed que este bot\u00f3n no puede abrirla aqu\u00ed. Si Ocultar la pesta\u00f1a de B\u00fasqueda est\u00e1 activado, desact\u00edvalo y reinicia Instagram.");
+        table.put("Search isn't on your tab bar, so this button can't open it here.",
+                "B\u00fasqueda no est\u00e1 en tu barra de pesta\u00f1as, as\u00ed que este bot\u00f3n no puede abrirla aqu\u00ed.");
         table.put("Search settings",
                 "Buscar en ajustes");
         table.put("See who a story mentions",
@@ -3994,6 +3996,8 @@ public final class L10nTranslations {
                 "Tiempo restante");
         table.put("Time posted",
                 "Hora de publicaci\u00f3n");
+        table.put("To open Search here, turn off Hide the Search tab and restart.",
+                "Para abrir B\u00fasqueda aqu\u00ed, desactiva Ocultar la pesta\u00f1a de B\u00fasqueda y reinicia.");
         table.put("Too many tries. Wait %1$d seconds.",
                 "Demasiados intentos. Espera %1$d segundos.");
         table.put("Try again, or go back to Instagram.",
@@ -4088,11 +4092,11 @@ public final class L10nTranslations {
                 "Los videos van a %1$s y las fotos a %2$s.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "Los videos se reproducen en la mejor calidad hasta %1$s que Instagram ofrece para cada uno, o en la m\u00e1s cercana por encima.");
-        table.put("Videos play at the highest quality Instagram offers for each.",
-                "Los videos se reproducen en la calidad m\u00e1s alta que Instagram ofrece para cada uno.");
     }
 
     private static void fillEs16(Map<String, String> table) {
+        table.put("Videos play at the highest quality Instagram offers for each.",
+                "Los videos se reproducen en la calidad m\u00e1s alta que Instagram ofrece para cada uno.");
         table.put("Videos play at the lowest quality Instagram offers for each.",
                 "Los videos se reproducen en la calidad m\u00e1s baja que Instagram ofrece para cada uno.");
         table.put("Videos wait for your tap where the choice below says. Feed videos show a play button, as they do when you use less mobile data.",
@@ -4158,7 +4162,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildIn() {
-        Map<String, String> table = new HashMap<>(1982);
+        Map<String, String> table = new HashMap<>(1984);
         fillIn0(table);
         fillIn1(table);
         fillIn2(table);
@@ -5694,8 +5698,8 @@ public final class L10nTranslations {
                 "Cari");
         table.put("Search button on Home's header",
                 "Tombol Cari di header Beranda");
-        table.put("Search isn't on your tab bar, so this button can't open it here. If Hide the Search tab is on, turn it off and restart Instagram.",
-                "Cari tidak ada di bilah tab kamu, jadi tombol ini tidak bisa membukanya di sini. Jika Sembunyikan tab Cari aktif, nonaktifkan lalu mulai ulang Instagram.");
+        table.put("Search isn't on your tab bar, so this button can't open it here.",
+                "Cari tidak ada di bilah tab kamu, jadi tombol ini tidak bisa membukanya di sini.");
         table.put("Search settings",
                 "Cari pengaturan");
         table.put("See who a story mentions",
@@ -6049,6 +6053,8 @@ public final class L10nTranslations {
                 "Sisa waktu");
         table.put("Time posted",
                 "Jam diposting");
+        table.put("To open Search here, turn off Hide the Search tab and restart.",
+                "Untuk membuka Cari di sini, nonaktifkan Sembunyikan tab Cari lalu mulai ulang.");
         table.put("Too many tries. Wait %1$d seconds.",
                 "Terlalu banyak percobaan. Tunggu %1$d detik.");
         table.put("Try again, or go back to Instagram.",
@@ -6143,11 +6149,11 @@ public final class L10nTranslations {
                 "Video disimpan ke %1$s dan foto ke %2$s.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "Video diputar dengan kualitas terbaik hingga %1$s yang ditawarkan Instagram untuk masing-masing, atau yang terdekat di atasnya.");
-        table.put("Videos play at the highest quality Instagram offers for each.",
-                "Video diputar dengan kualitas tertinggi yang ditawarkan Instagram untuk masing-masing.");
     }
 
     private static void fillIn16(Map<String, String> table) {
+        table.put("Videos play at the highest quality Instagram offers for each.",
+                "Video diputar dengan kualitas tertinggi yang ditawarkan Instagram untuk masing-masing.");
         table.put("Videos play at the lowest quality Instagram offers for each.",
                 "Video diputar dengan kualitas terendah yang ditawarkan Instagram untuk masing-masing.");
         table.put("Videos wait for your tap where the choice below says. Feed videos show a play button, as they do when you use less mobile data.",
@@ -6213,7 +6219,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildKo() {
-        Map<String, String> table = new HashMap<>(1982);
+        Map<String, String> table = new HashMap<>(1984);
         fillKo0(table);
         fillKo1(table);
         fillKo2(table);
@@ -7749,8 +7755,8 @@ public final class L10nTranslations {
                 "\uac80\uc0c9");
         table.put("Search button on Home's header",
                 "\ud648 \uc0c1\ub2e8\uc758 \uac80\uc0c9 \ubc84\ud2bc");
-        table.put("Search isn't on your tab bar, so this button can't open it here. If Hide the Search tab is on, turn it off and restart Instagram.",
-                "\uac80\uc0c9\uc774 \ud558\ub2e8\ubc14\uc5d0 \uc5c6\uc5b4\uc11c \uc774 \ubc84\ud2bc\uc73c\ub85c \uc5ec\uae30\uc11c \uc5f4 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \uac80\uc0c9 \ud0ed \uc228\uae30\uae30\uac00 \ucf1c\uc838 \uc788\ub2e4\uba74 \ub044\uace0 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
+        table.put("Search isn't on your tab bar, so this button can't open it here.",
+                "\uac80\uc0c9\uc774 \ud558\ub2e8\ubc14\uc5d0 \uc5c6\uc5b4\uc11c \uc774 \ubc84\ud2bc\uc73c\ub85c \uc5ec\uae30\uc11c \uc5f4 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.");
         table.put("Search settings",
                 "\uc124\uc815 \uac80\uc0c9");
         table.put("See who a story mentions",
@@ -8104,6 +8110,8 @@ public final class L10nTranslations {
                 "\ub0a8\uc740 \uc2dc\uac04");
         table.put("Time posted",
                 "\uac8c\uc2dc \uc2dc\uac04");
+        table.put("To open Search here, turn off Hide the Search tab and restart.",
+                "\uc5ec\uae30\uc11c \uac80\uc0c9\uc744 \uc5f4\ub824\uba74 \uac80\uc0c9 \ud0ed \uc228\uae30\uae30\ub97c \ub044\uace0 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
         table.put("Too many tries. Wait %1$d seconds.",
                 "\uc2dc\ub3c4\uac00 \ub108\ubb34 \ub9ce\uc2b5\ub2c8\ub2e4. %1$d\ucd08 \ud6c4\uc5d0 \ub2e4\uc2dc \uc2dc\ub3c4\ud558\uc138\uc694.");
         table.put("Try again, or go back to Instagram.",
@@ -8198,11 +8206,11 @@ public final class L10nTranslations {
                 "\ub3d9\uc601\uc0c1\uc740 %1$s\uc5d0, \uc0ac\uc9c4\uc740 %2$s\uc5d0 \uc800\uc7a5\ub429\ub2c8\ub2e4");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "\uac01 \ub3d9\uc601\uc0c1\uc740 Instagram\uc774 \uc81c\uacf5\ud558\ub294 \ud654\uc9c8 \uc911 %1$s \uc774\ud558\uc5d0\uc11c \uac00\uc7a5 \ub192\uc740 \ud654\uc9c8\ub85c \uc7ac\uc0dd\ub418\uba70, \ud574\ub2f9 \ud654\uc9c8\uc774 \uc5c6\uc73c\uba74 \uadf8\ubcf4\ub2e4 \ub192\uc740 \ud654\uc9c8 \uc911 \uac00\uc7a5 \uac00\uae4c\uc6b4 \ud654\uc9c8\ub85c \uc7ac\uc0dd\ub429\ub2c8\ub2e4");
-        table.put("Videos play at the highest quality Instagram offers for each.",
-                "\uac01 \ub3d9\uc601\uc0c1\uc740 Instagram\uc774 \uc81c\uacf5\ud558\ub294 \uac00\uc7a5 \ub192\uc740 \ud654\uc9c8\ub85c \uc7ac\uc0dd\ub429\ub2c8\ub2e4");
     }
 
     private static void fillKo16(Map<String, String> table) {
+        table.put("Videos play at the highest quality Instagram offers for each.",
+                "\uac01 \ub3d9\uc601\uc0c1\uc740 Instagram\uc774 \uc81c\uacf5\ud558\ub294 \uac00\uc7a5 \ub192\uc740 \ud654\uc9c8\ub85c \uc7ac\uc0dd\ub429\ub2c8\ub2e4");
         table.put("Videos play at the lowest quality Instagram offers for each.",
                 "\uac01 \ub3d9\uc601\uc0c1\uc740 Instagram\uc774 \uc81c\uacf5\ud558\ub294 \uac00\uc7a5 \ub0ae\uc740 \ud654\uc9c8\ub85c \uc7ac\uc0dd\ub429\ub2c8\ub2e4");
         table.put("Videos wait for your tap where the choice below says. Feed videos show a play button, as they do when you use less mobile data.",
@@ -8268,7 +8276,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildPt_rBR() {
-        Map<String, String> table = new HashMap<>(1982);
+        Map<String, String> table = new HashMap<>(1984);
         fillPt_rBR0(table);
         fillPt_rBR1(table);
         fillPt_rBR2(table);
@@ -9804,8 +9812,8 @@ public final class L10nTranslations {
                 "Pesquisar");
         table.put("Search button on Home's header",
                 "Bot\u00e3o de Pesquisa no cabe\u00e7alho da P\u00e1gina inicial");
-        table.put("Search isn't on your tab bar, so this button can't open it here. If Hide the Search tab is on, turn it off and restart Instagram.",
-                "A Pesquisa n\u00e3o est\u00e1 na sua barra de abas, ent\u00e3o este bot\u00e3o n\u00e3o consegue abri-la aqui. Se Ocultar a aba Pesquisar estiver ativado, desative e reinicie o Instagram.");
+        table.put("Search isn't on your tab bar, so this button can't open it here.",
+                "A Pesquisa n\u00e3o est\u00e1 na sua barra de abas, ent\u00e3o este bot\u00e3o n\u00e3o consegue abri-la aqui.");
         table.put("Search settings",
                 "Pesquisar configura\u00e7\u00f5es");
         table.put("See who a story mentions",
@@ -10159,6 +10167,8 @@ public final class L10nTranslations {
                 "Tempo restante");
         table.put("Time posted",
                 "Hor\u00e1rio da postagem");
+        table.put("To open Search here, turn off Hide the Search tab and restart.",
+                "Para abrir a Pesquisa aqui, desative Ocultar a aba Pesquisar e reinicie.");
         table.put("Too many tries. Wait %1$d seconds.",
                 "Tentativas demais. Espere %1$d segundos.");
         table.put("Try again, or go back to Instagram.",
@@ -10253,11 +10263,11 @@ public final class L10nTranslations {
                 "Os v\u00eddeos v\u00e3o para %1$s e as fotos para %2$s.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "Os v\u00eddeos s\u00e3o reproduzidos na melhor qualidade at\u00e9 %1$s que o Instagram oferece para cada um, ou na mais pr\u00f3xima acima.");
-        table.put("Videos play at the highest quality Instagram offers for each.",
-                "Os v\u00eddeos s\u00e3o reproduzidos na maior qualidade que o Instagram oferece para cada um.");
     }
 
     private static void fillPt_rBR16(Map<String, String> table) {
+        table.put("Videos play at the highest quality Instagram offers for each.",
+                "Os v\u00eddeos s\u00e3o reproduzidos na maior qualidade que o Instagram oferece para cada um.");
         table.put("Videos play at the lowest quality Instagram offers for each.",
                 "Os v\u00eddeos s\u00e3o reproduzidos na menor qualidade que o Instagram oferece para cada um.");
         table.put("Videos wait for your tap where the choice below says. Feed videos show a play button, as they do when you use less mobile data.",
@@ -10323,7 +10333,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildTr() {
-        Map<String, String> table = new HashMap<>(1982);
+        Map<String, String> table = new HashMap<>(1984);
         fillTr0(table);
         fillTr1(table);
         fillTr2(table);
@@ -11859,8 +11869,8 @@ public final class L10nTranslations {
                 "Ara");
         table.put("Search button on Home's header",
                 "Ana sayfa \u00fcst\u00fcnde Ara d\u00fc\u011fmesi");
-        table.put("Search isn't on your tab bar, so this button can't open it here. If Hide the Search tab is on, turn it off and restart Instagram.",
-                "Ara sekme \u00e7ubu\u011funda de\u011fil, bu y\u00fczden bu d\u00fc\u011fme onu burada a\u00e7amaz. Ara sekmesini gizle a\u00e7\u0131ksa kapat ve Instagram'\u0131 yeniden ba\u015flat.");
+        table.put("Search isn't on your tab bar, so this button can't open it here.",
+                "Ara sekme \u00e7ubu\u011funda de\u011fil, bu y\u00fczden bu d\u00fc\u011fme onu burada a\u00e7amaz.");
         table.put("Search settings",
                 "Ayarlarda ara");
         table.put("See who a story mentions",
@@ -12214,6 +12224,8 @@ public final class L10nTranslations {
                 "Kalan s\u00fcre");
         table.put("Time posted",
                 "Payla\u015f\u0131lma saati");
+        table.put("To open Search here, turn off Hide the Search tab and restart.",
+                "Ara'y\u0131 burada a\u00e7mak i\u00e7in Ara sekmesini gizle'yi kapat ve yeniden ba\u015flat.");
         table.put("Too many tries. Wait %1$d seconds.",
                 "\u00c7ok fazla deneme. %1$d saniye bekle.");
         table.put("Try again, or go back to Instagram.",
@@ -12308,11 +12320,11 @@ public final class L10nTranslations {
                 "Videolar %1$s klas\u00f6r\u00fcne, foto\u011fraflar %2$s klas\u00f6r\u00fcne kaydedilir.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "Videolar, Instagram'\u0131n her biri i\u00e7in sundu\u011fu en fazla %1$s olan en iyi kalitede ya da hemen \u00fcst\u00fcndekinde oynat\u0131l\u0131r.");
-        table.put("Videos play at the highest quality Instagram offers for each.",
-                "Videolar, Instagram'\u0131n her biri i\u00e7in sundu\u011fu en y\u00fcksek kalitede oynat\u0131l\u0131r.");
     }
 
     private static void fillTr16(Map<String, String> table) {
+        table.put("Videos play at the highest quality Instagram offers for each.",
+                "Videolar, Instagram'\u0131n her biri i\u00e7in sundu\u011fu en y\u00fcksek kalitede oynat\u0131l\u0131r.");
         table.put("Videos play at the lowest quality Instagram offers for each.",
                 "Videolar, Instagram'\u0131n her biri i\u00e7in sundu\u011fu en d\u00fc\u015f\u00fck kalitede oynat\u0131l\u0131r.");
         table.put("Videos wait for your tap where the choice below says. Feed videos show a play button, as they do when you use less mobile data.",
