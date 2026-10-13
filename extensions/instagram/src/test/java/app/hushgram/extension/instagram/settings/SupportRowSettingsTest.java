@@ -114,6 +114,37 @@ public class SupportRowSettingsTest {
         assertTrue(tip, tip.contains("ko-fi.com/X8K126YVER"));
     }
 
+    /**
+     * Report a problem sits right above it and opens HushGram's bug form with the versions, the
+     * phone and the switches that are on filled in, the ones a category page keeps off the screen
+     * too.
+     */
+    @Test public void reportAProblemSitsAboveItAndFillsInTheBugForm() throws Exception {
+        Settings.CATEGORY_PAGES.save(true);
+        Settings.HIDE_ADS.save(true);
+        open();
+        PreferenceScreen screen = page.getPreferenceScreen();
+        Preference report = screen.getPreference(screen.getPreferenceCount() - 2);
+        assertEquals(HushgramPreferenceFragment.REPORT_ROW_KEY, report.getKey());
+        assertEquals("Report a problem", String.valueOf(report.getTitle()));
+        assertNull("Hide ads is on a category's page, not the home", screen.findPreference(Settings.HIDE_ADS.key));
+
+        assertTrue(report.getOnPreferenceClickListener().onPreferenceClick(report));
+        Intent started = shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity();
+        if (started == null) started = shadowOf(controller.get()).getNextStartedActivity();
+        assertNotNull(started);
+        assertEquals(Intent.ACTION_VIEW, started.getAction());
+        assertTrue((started.getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) != 0);
+        Uri link = started.getData();
+        assertEquals("/SysAdminDoc/HushGram/issues/new", link.getPath());
+        assertEquals("bug_report.yml", link.getQueryParameter("template"));
+        assertTrue(link.getQueryParameter("versions"), link.getQueryParameter("versions").startsWith("HushGram "));
+        assertTrue(link.getQueryParameter("bug_description").startsWith("What happened:"));
+        String switches = link.getQueryParameter("additional_context");
+        assertTrue(switches, switches.startsWith("Switches on: ") && switches.contains("Hide ads"));
+        Settings.HIDE_ADS.resetToDefault();
+    }
+
     @Test public void aCategoryPageAndAMissSearchLeaveItOff() throws Exception {
         Settings.CATEGORY_PAGES.save(true);
         open();

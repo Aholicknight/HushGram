@@ -1214,6 +1214,11 @@ android {
             it.inputs.file(rootProject.layout.projectDirectory.file("NOTICE"))
                 .withPropertyName("licenseNotice")
                 .withPathSensitivity(PathSensitivity.RELATIVE)
+            // ReportProblemFormTest holds Report a problem's field ids to the bug form, which is
+            // outside this module too, so a renamed field there has to rerun it.
+            it.inputs.file(rootProject.layout.projectDirectory.file(".github/ISSUE_TEMPLATE/bug_report.yml"))
+                .withPropertyName("bugReportForm")
+                .withPathSensitivity(PathSensitivity.RELATIVE)
             // PatchStatusWiringTest reads each patch's enableStatus call from the patch sources, so
             // a patch-only change (a misspelled status name) has to rerun these tests too.
             it.inputs.dir(rootProject.layout.projectDirectory.dir("patches/src/main/kotlin"))

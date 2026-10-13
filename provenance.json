@@ -397,7 +397,8 @@
         "patches/src/test/kotlin/app/morphe/patches/instagram/misc/settings/LogoLongPressTest.kt",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/LogoPressTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/SettingsVisualCaptureTest.java",
-        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/ScreenColorsAccessibilityTest.java"
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/ScreenColorsAccessibilityTest.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/ReportProblemForm.java"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/HushGram",
@@ -416,7 +417,9 @@
     {
       "paths": [
         "extensions/shared/library/src/main/java/app/hushgram/extension/shared/settings/preference/ReopenSettingsAfterRestart.java",
-        "extensions/instagram/src/test/java/app/hushgram/extension/shared/settings/preference/ReopenSettingsAfterRestartTest.java"
+        "extensions/instagram/src/test/java/app/hushgram/extension/shared/settings/preference/ReopenSettingsAfterRestartTest.java",
+        "extensions/shared/library/src/main/java/app/hushgram/extension/shared/settings/preference/ReportProblem.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/shared/settings/preference/ReportProblemTest.java"
       ],
       "origin": "ported",
       "upstream": "https://github.com/SysAdminDoc/HushPinterest",
@@ -429,7 +432,7 @@
         "https://gitlab.com/ReVanced/revanced-patches"
       ],
       "license": "GPL-3.0-only with the Morphe section 7 notices",
-      "changes": "HushPinterest's settings-screen helpers, packages moved from app.hushpinterest.extension to app.hushgram.extension. ReopenSettingsAfterRestart keeps the one-shot marker and its 90 second limit, but not the restart: HushGram's status card restarts Instagram through RestartNow, which writes the marker with remember(page) and drops it with forget() when the restart fails. The changes-waiting count went with it, since the card doesn't count. Changed files carry a 'Modified for HushGram' line."
+      "changes": "HushPinterest's settings-screen helpers, packages moved from app.hushpinterest.extension to app.hushgram.extension. ReopenSettingsAfterRestart keeps the one-shot marker and its 90 second limit, but not the restart: HushGram's status card restarts Instagram through RestartNow, which writes the marker with remember(page) and drops it with forget() when the restart fails. The changes-waiting count went with it, since the card doesn't count. ReportProblem is as it was apart from the package and Instagram in its comments. Changed files carry a 'Modified for HushGram' line."
     }
   ]
 }

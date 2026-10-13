@@ -1017,3 +1017,6 @@ Forgets everything Skip what's already saved remembers, for all your accounts. Y
 Download history cleared.	Historial de descargas borrado.
 Couldn't clear the download history. Try again.	No se pudo borrar el historial de descargas. Inténtalo de nuevo.
 Loading the picture...	Cargando la imagen...
+# context: the settings row right above Support HushGram that opens a new bug report on GitHub
+Report a problem	Informar de un problema
+Opens a GitHub report with your versions and settings filled in. Add what happened.	Abre un informe en GitHub con tus versiones y ajustes ya rellenados. Añade lo que pasó.

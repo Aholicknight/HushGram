@@ -1017,3 +1017,6 @@ Forgets everything Skip what's already saved remembers, for all your accounts. Y
 Download history cleared.	Riwayat unduhan dihapus.
 Couldn't clear the download history. Try again.	Tidak bisa menghapus riwayat unduhan. Coba lagi.
 Loading the picture...	Memuat gambar...
+# context: the settings row right above Support HushGram that opens a new bug report on GitHub
+Report a problem	Laporkan masalah
+Opens a GitHub report with your versions and settings filled in. Add what happened.	Membuka laporan GitHub yang sudah berisi versi dan pengaturanmu. Tambahkan apa yang terjadi.

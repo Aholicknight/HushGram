@@ -252,7 +252,10 @@ public class SettingsCardsTest {
         }
         assertTrue("Pause and diagnostics, a section of its own, comes next", ScreenColors.closesCard(backup));
         assertTrue(ScreenColors.opensCard(about));
-        assertFalse("Support HushGram shares About's card", ScreenColors.closesCard(about));
+        assertFalse("Report a problem and Support HushGram share About's card", ScreenColors.closesCard(about));
+        Preference report = page.findPreference(HushgramPreferenceFragment.REPORT_ROW_KEY);
+        assertFalse(ScreenColors.opensCard(report));
+        assertFalse(ScreenColors.closesCard(report));
         Preference support = page.findPreference(HushgramPreferenceFragment.SUPPORT_ROW_KEY);
         assertFalse(ScreenColors.opensCard(support));
         assertTrue(ScreenColors.closesCard(support));

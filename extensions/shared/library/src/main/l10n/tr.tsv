@@ -1017,3 +1017,6 @@ Forgets everything Skip what's already saved remembers, for all your accounts. Y
 Download history cleared.	İndirme geçmişi silindi.
 Couldn't clear the download history. Try again.	İndirme geçmişi silinemedi. Tekrar dene.
 Loading the picture...	Fotoğraf yükleniyor...
+# context: the settings row right above Support HushGram that opens a new bug report on GitHub
+Report a problem	Sorun bildir
+Opens a GitHub report with your versions and settings filled in. Add what happened.	Sürümlerin ve ayarların önceden doldurulmuş bir GitHub raporu açar. Ne olduğunu ekle.

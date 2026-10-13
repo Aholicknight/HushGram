@@ -1016,3 +1016,6 @@ Forgets everything Skip what's already saved remembers, for all your accounts. Y
 Download history cleared.	다운로드 기록을 지웠습니다.
 Couldn't clear the download history. Try again.	다운로드 기록을 지우지 못했습니다. 다시 시도하세요.
 Loading the picture...	사진을 불러오는 중...
+# context: the settings row right above Support HushGram that opens a new bug report on GitHub
+Report a problem	문제 신고하기
+Opens a GitHub report with your versions and settings filled in. Add what happened.	버전과 설정이 미리 채워진 GitHub 신고를 엽니다. 무슨 일이 있었는지 적어 주세요.

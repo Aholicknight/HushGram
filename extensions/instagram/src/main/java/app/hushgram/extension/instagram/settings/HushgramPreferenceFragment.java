@@ -150,6 +150,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String SUPPORT_ADDRESS = SUPPORT_URL.substring(SUPPORT_URL.indexOf("://") + 3);
     /** The key of Support HushGram, the settings home's last row. */
     static final String SUPPORT_ROW_KEY = "action_support_hushgram";
+    /** The row right above Support HushGram that opens a filled-in bug report on GitHub. */
+    static final String REPORT_ROW_KEY = "action_report_problem";
     /** The English of the row listing what Pause can't reach, and its key in {@link L10n}. */
     static final String STAYS_WHILE_PAUSED = "Stays in while paused";
     /** The Before you sign in notice's key, which finds it on the screen. */
@@ -222,6 +224,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Nullable private Row noSearchResults;
     /** The home page's last row, which opens the Ko-fi page in a browser. */
     @Nullable private Row support;
+    /** Report a problem, right above Support HushGram. */
+    @Nullable private Row report;
     /** Keep the actual row objects, including their values and listeners, while filtering. */
     private final Map<PreferenceCategory, List<Preference>> searchableRows = new LinkedHashMap<>();
     private final Map<Preference, String> searchAliases = new HashMap<>();
@@ -1606,6 +1610,20 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         });
         about.addPreference(mark(licenses, SettingsIcons.LICENSE));
 
+        // Outside every category, like Support HushGram below it. Every row counts toward the
+        // switches it lists, the ones a category page or a search keeps off the screen too.
+        Row bug = report = new Row(context);
+        bug.setKey(REPORT_ROW_KEY);
+        bug.setTitle(L10n.t("Report a problem"));
+        bug.setSummary(L10n.t("Opens a GitHub report with your versions and settings filled in. Add what happened."));
+        bug.setPersistent(false);
+        bug.setOrder(Integer.MAX_VALUE / 2 - 1);
+        bug.setOnPreferenceClickListener(p -> {
+            ReportProblemForm.open(p.getContext(), everyRow());
+            return true;
+        });
+        mark(bug, SettingsIcons.BUG);
+
         // Outside every category, so no category page, count or saved setting changes. filterSettings
         // puts it last on the home page and in a search it matches.
         Row donate = support = new Row(context);
@@ -1981,17 +1999,21 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 } else if (row.getParent() == screen) screen.removePreference(row);
             }
         }
-        Row donate = support;
-        if (donate != null) {
-            String text = searchText(donate.getTitle()) + " " + searchText(donate.getSummary()) + " ko-fi kofi donate";
+        // The rows outside every category: the home page (and a search each matches) shows them,
+        // a category's page doesn't.
+        Row[] loose = {report, support};
+        String[] looseAliases = {" github bug issue", " ko-fi kofi donate"};
+        for (int i = 0; i < loose.length; i++) {
+            Row row = loose[i];
+            if (row == null) continue;
+            String text = searchText(row.getTitle()) + " " + searchText(row.getSummary()) + looseAliases[i];
             boolean match = true;
             for (String term : terms) if (!text.contains(term)) { match = false; break; }
-            // The home page (and a search it matches) shows it, a category's page doesn't.
             boolean shown = match && (terms.length > 0 || !pages || openCategory == null);
             if (terms.length > 0 && match) matches++;
             if (shown) {
-                if (donate.getParent() != screen) screen.addPreference(donate);
-            } else if (donate.getParent() == screen) screen.removePreference(donate);
+                if (row.getParent() != screen) screen.addPreference(row);
+            } else if (row.getParent() == screen) screen.removePreference(row);
         }
         // removePreference notifies even when absent. No-op changes mustn't rebind live Cancel.
         if (terms.length > 0 && matches == 0) {
@@ -2022,6 +2044,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             line.setTitle(text);
             screen.addPreference(line);
         }
+    }
+
+    /** Every row in the categories, on the screen or kept off it by a category page or a search. */
+    private List<Preference> everyRow() {
+        List<Preference> rows = new ArrayList<>();
+        for (List<Preference> section : searchableRows.values()) rows.addAll(section);
+        return rows;
     }
 
     /** The Ko-fi page, for a browser, in a task of its own so it never opens inside Instagram's. */

@@ -221,8 +221,9 @@ public final class ScreenColors {
 
     /**
      * Whether [preference] is the top row of the card it sits in. A section's rows share one card.
-     * On the page itself, the rows that open each category's page share one too, and Support
-     * HushGram joins the About row it follows; every other row there is a card of its own.
+     * On the page itself, the rows that open each category's page share one too, and Report a
+     * problem and Support HushGram join the About row they follow; every other row there is a card
+     * of its own.
      */
     static boolean opensCard(Preference preference) {
         PreferenceGroup parent = preference.getParent();
@@ -241,9 +242,18 @@ public final class ScreenColors {
         return !(parent instanceof PreferenceCategory) && !sharesCard(preference, parent.getPreference(at + 1));
     }
 
-    /** Two neighbours on the page itself that draw as one card: both open a page, or Support follows one. */
+    /**
+     * Two neighbours on the page itself that draw as one card: both open a page, or one of the two
+     * last rows (Report a problem, Support HushGram) follows a page's row or the other one.
+     */
     private static boolean sharesCard(Preference above, Preference below) {
-        return opensPage(above) && (opensPage(below) || HushgramPreferenceFragment.SUPPORT_ROW_KEY.equals(below.getKey()));
+        return (opensPage(above) && (opensPage(below) || closesPage(below))) || (closesPage(above) && closesPage(below));
+    }
+
+    /** Report a problem and Support HushGram, which end the page. */
+    private static boolean closesPage(Preference preference) {
+        String key = preference.getKey();
+        return HushgramPreferenceFragment.REPORT_ROW_KEY.equals(key) || HushgramPreferenceFragment.SUPPORT_ROW_KEY.equals(key);
     }
 
     private static boolean opensPage(Preference preference) {
