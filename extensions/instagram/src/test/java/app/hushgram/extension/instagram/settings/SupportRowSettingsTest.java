@@ -76,7 +76,7 @@ public class SupportRowSettingsTest {
         Preference row = last();
         assertEquals("action_support_hushgram", row.getKey());
         assertEquals("Support HushGram", String.valueOf(row.getTitle()));
-        assertEquals("Buy me a coffee on Ko-fi", String.valueOf(row.getSummary()));
+        assertNull("the row is its name alone", row.getSummary());
     }
 
     @Test public void itEndsTheHomeAsOneList() throws Exception {

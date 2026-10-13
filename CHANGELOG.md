@@ -113,6 +113,7 @@ Every HushGram release, newest first.
 * **Instagram - Accent color:** Links take the color you picked on accounts that still have Instagram's older look too, mentions, hashtags and bio links included, and so does the pale blue behind a selected pill. Asked for in #8.
 
 * **Tooling:** The README is much shorter now, a user guide with the install steps, the settings, every patch and the supported builds. The long version, with every caveat and the build internals, is in the repository history.
+* **Instagram - HushGram settings:** The Support HushGram row at the end of settings is just its name now. The line under it is gone, and a search for coffee or Ko-fi still finds it.
 
 #### Bug Fixes
 

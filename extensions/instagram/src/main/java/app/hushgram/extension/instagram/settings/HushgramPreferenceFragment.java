@@ -1673,8 +1673,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         // puts it last on the home page and in a search it matches.
         Row donate = support = new Row(context);
         donate.setKey(SUPPORT_ROW_KEY);
+        // Its name alone, with no line under it.
         donate.setTitle(L10n.t("Support HushGram"));
-        donate.setSummary(L10n.t("Buy me a coffee on Ko-fi"));
         donate.setPersistent(false);
         // Native Preference.compareTo subtracts orders, so leave room for negative header orders.
         donate.setOrder(Integer.MAX_VALUE / 2);
@@ -2084,7 +2084,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         // The rows outside every category: the home page (and a search each matches) shows them,
         // a category's page doesn't.
         Row[] loose = {quickSetups, report, support};
-        String[] looseAliases = {" preset quiet privacy defaults reset", " github bug issue", " ko-fi kofi donate"};
+        String[] looseAliases = {" preset quiet privacy defaults reset", " github bug issue", " ko-fi kofi donate coffee"};
         for (int i = 0; i < loose.length; i++) {
             Row row = loose[i];
             if (row == null) continue;
