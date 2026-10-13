@@ -40,6 +40,8 @@ Every HushGram release, newest first.
 
 #### Improvements
 
+* **Instagram - Lock your messages:** PIN forms scroll and keep their labels visible. The keyboard can move to confirmation or submit, incomplete entries don't spend an attempt, and a retry countdown enables entry when the wait ends. Closing a form clears its digits.
+
 * **Instagram - HushGram settings:** Focus, selection and pressed feedback now follow the same style across settings cards, dialogs and runtime actions. Input borders are easier to distinguish before typing, and recovery and save-cancellation actions keep visible interaction feedback.
 
 * **Instagram - HushGram settings:** Settings now use clearer category descriptions, a rounded search field and pink icon tiles. Dialogs share the same styling, and controls stay readable at larger text sizes.

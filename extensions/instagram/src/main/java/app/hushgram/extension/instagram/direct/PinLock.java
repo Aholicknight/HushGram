@@ -10,15 +10,18 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
-import android.view.Gravity;
+import android.text.TextWatcher;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.security.MessageDigest;
@@ -59,6 +62,8 @@ public final class PinLock {
     static final String FIELD_TAG = "hushgram_pin_field";
     static final String CONFIRM_TAG = "hushgram_pin_confirm";
     static final String MESSAGE_TAG = "hushgram_pin_message";
+    static final String SCROLL_TAG = "hushgram_pin_scroll";
+    private static final int ERROR_COLOR = ScreenColors.DEFAULT.error;
 
     static final String PIN_STEP = "pin";
 
@@ -217,23 +222,44 @@ public final class PinLock {
 
     /** Asks for the PIN in a HushGram dialog; the same shape as the phone's ask. */
     static void ask(Activity activity, Runnable confirmed, Runnable notConfirmed) {
-        if (activity == null || activity.isFinishing()) {
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) {
             notConfirmed.run();
             return;
         }
-        EditText field = digitsField(activity, L10n.t("PIN"), FIELD_TAG);
+        EditText field = digitsField(activity, FIELD_TAG, EditorInfo.IME_ACTION_DONE);
         TextView message = message(activity);
-        LinearLayout body = body(activity, message, field);
+        LinearLayout body = body(activity);
+        addField(body, field, L10n.t("PIN"));
+        body.addView(message);
+        clearErrorOnEdit(field, message, "");
         boolean[] done = {false};
         AlertDialog dialog = builder(activity)
                 .setTitle(L10n.t("Enter your PIN"))
-                .setView(body)
+                .setView(scroll(body))
                 .setPositiveButton(L10n.t("Unlock"), null)
                 .setNeutralButton(L10n.t("Forgot PIN?"), null)
                 .setNegativeButton(L10n.t("Cancel"), null)
                 .create();
-        secure(dialog);
+        secure(dialog, true);
         dialog.setCanceledOnTouchOutside(false);
+        // Only this dialog owns the countdown. Dismissal, including a turn or activity teardown,
+        // drops its callback and clears the digits before reporting a cancelled ask.
+        Runnable retry = new Runnable() {
+            @Override
+            public void run() {
+                message.removeCallbacks(this);
+                if (!dialog.isShowing()) return;
+                boolean waiting = waitLeftMs() > 0;
+                // Announce the wait once, rather than reading a fresh number every second.
+                message.setAccessibilityLiveRegion(waiting && !field.isEnabled()
+                        ? View.ACCESSIBILITY_LIVE_REGION_NONE : View.ACCESSIBILITY_LIVE_REGION_POLITE);
+                showWait(message);
+                field.setEnabled(!waiting);
+                dialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(!waiting);
+                if (waiting) message.postDelayed(this, 1000);
+                else field.requestFocus();
+            }
+        };
         dialog.setOnCancelListener(d -> {
             if (!done[0]) {
                 done[0] = true;
@@ -243,14 +269,21 @@ public final class PinLock {
         // Closed some other way, by Instagram or Android rather than a button: the ask is over all
         // the same, or the cover's Unlock would do nothing until the ask timed out.
         dialog.setOnDismissListener(d -> {
+            message.removeCallbacks(retry);
+            field.setText("");
             if (!done[0]) {
                 done[0] = true;
                 notConfirmed.run();
             }
         });
         dialog.setOnShowListener(d -> {
-            showWait(message);
-            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> {
+            Runnable unlock = () -> {
+                // An unfinished entry isn't a guess. Keep it for correction without spending a try.
+                if (!validFormat(field.getText())) {
+                    error(message, L10n.t("Use 4 to 8 digits."));
+                    field.requestFocus();
+                    return;
+                }
                 Result result = attempt(field.getText());
                 if (result == Result.RIGHT) {
                     done[0] = true;
@@ -260,8 +293,17 @@ public final class PinLock {
                     return;
                 }
                 field.setText("");
-                if (result == Result.WAIT || waitLeftMs() > 0) showWait(message);
-                else error(message, L10n.t("Wrong PIN. Try again."));
+                if (result == Result.WAIT || waitLeftMs() > 0) retry.run();
+                else {
+                    error(message, L10n.t("Wrong PIN. Try again."));
+                    field.requestFocus();
+                }
+            };
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> unlock.run());
+            field.setOnEditorActionListener((v, action, event) -> {
+                if (action != EditorInfo.IME_ACTION_DONE) return false;
+                if (dialog.getButton(DialogInterface.BUTTON_POSITIVE).isEnabled()) unlock.run();
+                return true;
             });
             // Forgot PIN only explains; the PIN dialog stays under it and nothing is reset.
             dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener(v -> forgot(activity));
@@ -271,16 +313,14 @@ public final class PinLock {
                 dialog.dismiss();
                 notConfirmed.run();
             });
+            retry.run();
         });
         dialog.show();
         ScreenColors.dialog(dialog);
         // Keep recovery beside the field, with the answer buttons left together below it.
         Button forgot = dialog.getButton(DialogInterface.BUTTON_NEUTRAL);
         ((ViewGroup) forgot.getParent()).removeView(forgot);
-        forgot.setBackground(null);
-        forgot.setTextColor(ScreenColors.DEFAULT.heading);
-        forgot.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-        forgot.setPaddingRelative(0, 0, 0, 0);
+        ScreenColors.styleAction(forgot, false);
         LinearLayout.LayoutParams recovery = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         recovery.topMargin = dp(activity, 8);
@@ -289,7 +329,8 @@ public final class PinLock {
 
     private static void showWait(TextView message) {
         long left = waitLeftMs();
-        message.setTextColor(left > 0 ? 0xFFFFB4AB : ScreenColors.DEFAULT.summary);
+        message.setTextColor(left > 0 ? ERROR_COLOR : ScreenColors.DEFAULT.summary);
+        message.setVisibility(left > 0 ? View.VISIBLE : View.GONE);
         message.setText(left > 0
                 ? L10n.f("Too many tries. Wait %1$d seconds.", (left + 999) / 1000)
                 : "");
@@ -308,7 +349,7 @@ public final class PinLock {
                 .setPositiveButton(L10n.t("Open app info"), null)
                 .setNegativeButton(L10n.t("Cancel"), null)
                 .create();
-        secure(dialog);
+        secure(dialog, false);
         dialog.setOnShowListener(d -> dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> {
             try {
                 activity.startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -327,27 +368,29 @@ public final class PinLock {
      * cancel is a false. Nothing changes until both entries match.
      */
     public static void promptNew(Activity activity, Consumer<Boolean> done) {
-        if (activity == null || activity.isFinishing()) {
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) {
             done.accept(false);
             return;
         }
-        EditText first = digitsField(activity, L10n.t("New PIN"), FIELD_TAG);
-        EditText again = digitsField(activity, L10n.t("Confirm PIN"), CONFIRM_TAG);
+        EditText first = digitsField(activity, FIELD_TAG, EditorInfo.IME_ACTION_NEXT);
+        EditText again = digitsField(activity, CONFIRM_TAG, EditorInfo.IME_ACTION_DONE);
+        first.setNextFocusForwardId(again.getId());
         TextView message = message(activity);
         message.setText(L10n.t("Use 4 to 8 digits."));
-        LinearLayout body = body(activity, message, first);
-        LinearLayout.LayoutParams confirmation = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        confirmation.topMargin = dp(activity, 12);
-        body.addView(again, confirmation);
+        LinearLayout body = body(activity);
+        addField(body, first, L10n.t("New PIN"));
+        addField(body, again, L10n.t("Confirm PIN"));
+        body.addView(message);
+        clearErrorOnEdit(first, message, L10n.t("Use 4 to 8 digits."));
+        clearErrorOnEdit(again, message, L10n.t("Use 4 to 8 digits."));
         boolean[] finished = {false};
         AlertDialog dialog = builder(activity)
                 .setTitle(L10n.t("Set a PIN"))
-                .setView(body)
+                .setView(scroll(body))
                 .setPositiveButton(L10n.t("Save"), null)
                 .setNegativeButton(L10n.t("Cancel"), null)
                 .create();
-        secure(dialog);
+        secure(dialog, true);
         dialog.setCanceledOnTouchOutside(false);
         dialog.setOnCancelListener(d -> {
             if (!finished[0]) {
@@ -355,17 +398,32 @@ public final class PinLock {
                 done.accept(false);
             }
         });
+        dialog.setOnDismissListener(d -> {
+            first.setText("");
+            again.setText("");
+            if (!finished[0]) {
+                finished[0] = true;
+                done.accept(false);
+            }
+        });
         dialog.setOnShowListener(d -> {
-            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> {
+            Runnable save = () -> {
                 String a = first.getText().toString();
                 String b = again.getText().toString();
                 if (!validFormat(a)) {
                     error(message, L10n.t("Use 4 to 8 digits."));
+                    first.requestFocus();
+                    return;
+                }
+                if (!validFormat(b)) {
+                    error(message, L10n.t("Use 4 to 8 digits."));
+                    again.requestFocus();
                     return;
                 }
                 if (!a.equals(b)) {
-                    error(message, L10n.t("The PINs don't match."));
                     again.setText("");
+                    error(message, L10n.t("The PINs don't match."));
+                    again.requestFocus();
                     return;
                 }
                 if (!set(a)) {
@@ -377,12 +435,28 @@ public final class PinLock {
                 again.setText("");
                 dialog.dismiss();
                 done.accept(true);
+            };
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> save.run());
+            first.setOnEditorActionListener((v, action, event) -> {
+                if (action != EditorInfo.IME_ACTION_NEXT) return false;
+                if (validFormat(first.getText())) again.requestFocus();
+                else {
+                    error(message, L10n.t("Use 4 to 8 digits."));
+                    first.requestFocus();
+                }
+                return true;
+            });
+            again.setOnEditorActionListener((v, action, event) -> {
+                if (action != EditorInfo.IME_ACTION_DONE) return false;
+                save.run();
+                return true;
             });
             dialog.getButton(DialogInterface.BUTTON_NEGATIVE).setOnClickListener(v -> {
                 finished[0] = true;
                 dialog.dismiss();
                 done.accept(false);
             });
+            first.requestFocus();
         });
         dialog.show();
         ScreenColors.dialog(dialog);
@@ -395,20 +469,25 @@ public final class PinLock {
     }
 
     /** The window can't be captured or shown in the recent apps picture while the digits are typed. */
-    private static void secure(AlertDialog dialog) {
+    private static void secure(AlertDialog dialog, boolean input) {
         dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                | (input ? WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+                : WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN));
     }
 
     /** A masked number field: no autofill, at most 8 digits. */
-    private static EditText digitsField(Context context, String hint, String tag) {
+    private static EditText digitsField(Context context, String tag, int action) {
         EditText field = new EditText(context);
+        field.setId(View.generateViewId());
         field.setTag(tag);
-        field.setHint(hint);
         field.setSingleLine(true);
         field.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
         field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(MAX_DIGITS)});
         field.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
-        field.setContentDescription(hint);
+        field.setSaveEnabled(false);
+        field.setImeOptions(action | EditorInfo.IME_FLAG_NO_EXTRACT_UI
+                | EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);
         ScreenColors.styleField(field);
         return field;
     }
@@ -419,29 +498,67 @@ public final class PinLock {
         message.setTextSize(14);
         message.setTextColor(ScreenColors.DEFAULT.summary);
         message.setMinHeight(dp(context, 24));
-        message.setPadding(0, 0, 0, dp(context, 8));
+        message.setPadding(0, dp(context, 12), 0, 0);
+        message.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         return message;
     }
 
     private static void error(TextView message, String text) {
-        message.setTextColor(0xFFFFB4AB);
+        message.setVisibility(View.VISIBLE);
+        message.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+        message.setTextColor(ERROR_COLOR);
         message.setText(text);
+    }
+
+    /** A correction removes the old error, while a lockout keeps its own countdown message. */
+    private static void clearErrorOnEdit(EditText field, TextView message, String help) {
+        field.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { }
+            @Override public void afterTextChanged(Editable value) {
+                if (!field.isEnabled() || value.length() == 0 || message.getCurrentTextColor() != ERROR_COLOR) return;
+                message.setTextColor(ScreenColors.DEFAULT.summary);
+                message.setText(help);
+                message.setVisibility(help.isEmpty() ? View.GONE : View.VISIBLE);
+            }
+        });
     }
 
     private static int dp(Context context, int value) {
         return Math.round(value * context.getResources().getDisplayMetrics().density);
     }
 
-    private static LinearLayout body(Context context, TextView message, EditText field) {
+    private static LinearLayout body(Context context) {
         int pad = dp(context, 20);
         LinearLayout body = new LinearLayout(context);
         body.setOrientation(LinearLayout.VERTICAL);
-        body.setPadding(pad, pad / 2, pad, 0);
-        body.addView(message, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+        body.setPaddingRelative(pad, pad / 2, pad, dp(context, 12));
+        return body;
+    }
+
+    /** Labels stay readable after typing, and identify each masked field to a screen reader. */
+    private static void addField(LinearLayout body, EditText field, String name) {
+        TextView label = new TextView(body.getContext());
+        label.setText(name);
+        label.setTextSize(14);
+        label.setTextColor(ScreenColors.DEFAULT.summary);
+        label.setLabelFor(field.getId());
+        LinearLayout.LayoutParams labelSize = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        if (body.getChildCount() > 0) labelSize.topMargin = dp(body.getContext(), 12);
+        body.addView(label, labelSize);
         body.addView(field, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-        return body;
+    }
+
+    /** The framework keeps the answer buttons in view while the form scrolls above the keyboard. */
+    private static ScrollView scroll(LinearLayout body) {
+        ScrollView scroll = new ScrollView(body.getContext());
+        scroll.setTag(SCROLL_TAG);
+        scroll.setClipToPadding(false);
+        scroll.addView(body, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        return scroll;
     }
 
     /** Back to how a fresh start finds it. */
