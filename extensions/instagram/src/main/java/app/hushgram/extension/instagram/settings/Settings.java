@@ -241,6 +241,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_feed_videos_with_sound", FALSE);
 
     /**
+     * A tap on the video playing in a feed pauses it and the next tap plays it again, in place of
+     * Instagram's own tap there, which opens some videos in Reels
+     * ({@link app.hushgram.extension.instagram.feed.FeedTapPause}). Off to start.
+     */
+    public static final BooleanSetting TAP_FEED_VIDEO_TO_PAUSE =
+            new BooleanSetting("hushgram_tap_feed_video_to_pause", FALSE);
+
+    /**
      * A long press on a feed photo shows it zoomed in around the finger until the finger lifts, in
      * place of Instagram's own long press there ({@link app.hushgram.extension.instagram.feed.LongPressZoom}).
      * Off to start.

@@ -1,0 +1,225 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.morphe.patches.instagram.feed.tap
+
+import app.morphe.ExtensionDex
+import app.morphe.Fixtures
+import app.morphe.PatchContexts
+import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.NeutralNativePath
+import app.morphe.patches.instagram.feed.sound.FEED_CONTROLLER_STRING
+import app.morphe.patches.instagram.media.taptoplay.PLAY_INTERNAL
+import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
+import java.io.File
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class TapFeedVideoToPauseHookTest {
+    private val media = "Lcom/instagram/feed/media/Media;"
+    private val objectType = "Ljava/lang/Object;"
+    private val marker = "$FEED_TAP_PAUSE->NOT_PATCHED:$objectType"
+
+    /** The instructions the hook adds: three moves, the call, its answer, the test and the return. */
+    private val hookLength = 7
+
+    /**
+     * The hook the patch writes is in the FeedTapPause the bundle ships, public and static, and takes the handler, the post
+     * and the post's state as Objects. Every stub the patch fills is in the reader, static, answering an Object for its
+     * Objects, still answering the marker, with no more registers than an invoke can name.
+     */
+    @Test
+    fun theHookAndItsStubsAreInTheExtension() {
+        val declared = ExtensionDex.classDef(FEED_TAP_PAUSE).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$FEED_TAPPED is not in the extension: $declared", FEED_TAPPED.substringAfter("->") in declared)
+        val reader = ExtensionDex.classDef(FEED_PLAYER_READER)
+        for ((name, count) in FEED_PLAYER_STUBS) {
+            val stub = reader.methods.singleOrNull { it.name == name }
+            assertNotNull("$FEED_PLAYER_READER has no $name", stub)
+            assertTrue("$name is static", AccessFlags.STATIC.isSet(stub!!.accessFlags))
+            assertEquals("$name answers an Object", objectType, stub.returnType)
+            assertEquals("$name takes Objects", List(count) { objectType }, stub.parameterTypes.map(Any::toString))
+            assertTrue("$name has a register an invoke can't name", stub.implementation!!.registerCount <= 16)
+            assertEquals("$name answers the marker until it's filled", marker, stub.code().first().referenceText())
+        }
+        assertEquals("every stub of the reader is one the patch fills", FEED_PLAYER_STUBS.map { it.first }.sorted(),
+            reader.methods.filter { AccessFlags.STATIC.isSet(it.accessFlags) && it.name != "<clinit>" }.map { it.name }.sorted())
+    }
+
+    /**
+     * In each of the version's seven builds the tap handler, the controller and the player are found by their strings, the
+     * hook goes in once, first thing in the handler, reading the handler, the post and the state from their own registers,
+     * and every stub is filled. Every other instruction of the handler's class and of the controller stays in place. Read
+     * as the patcher reads an APK, and copied.
+     */
+    @Test
+    fun eachDeclaredBuildHoldsItsFeedTap() {
+        val bundles = bundles()
+        assertEquals("seven builds of the version", 7, bundles.size)
+        for (apk in bundles) {
+            val name = name(apk)
+            val parts = parts(apk)
+            for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
+                val what = "$name ($read)"
+                val classes = classesOf(apk, parts.wanted).values + ExtensionDex.classDef(FEED_PLAYER_READER)
+                val context = PatchContexts.of(classes)
+                val originals = listOf(parts.handler, parts.controller).flatMap { context.mutableClassDefBy(it).methods }
+                    .filter { it.implementation != null }.associateWith(::NeutralNativePath)
+
+                val found = context.findFeedTap()
+                assertEquals("$what: the handler's class", parts.handler, found.handler.definingClass)
+                assertEquals("$what: the controller", parts.controller, found.controller)
+                assertEquals("$what: the player", parts.player, found.isPlaying.definingClass)
+                assertEquals("$what: the player's field", parts.player, found.playerField.type)
+                assertEquals("$what: the playing item shows a post", media, found.shown.returnType)
+                assertEquals("$what: the page lookup", listOf(objectType, "I"), found.pager.parameterTypes.map(Any::toString))
+                assertEquals("$what: the state's note", listOf("Z"), found.mark.parameterTypes.map(Any::toString))
+                assertEquals("$what: the state", found.handler.parameterTypes[4].toString(), found.mark.definingClass)
+                if (apk.extension == "apks") {
+                    // The declared build's own names, 385611438.
+                    assertEquals(
+                        "$what: the names",
+                        listOf("A05", "A0B", "A0F", "A00", "A0q", "A01", "A00", "A0B", "A03", "A0F", "A0S", "A0s", "A3C"),
+                        listOf(
+                            found.handler.name, found.moduleSupplier.name, found.controllerField.name, found.playerField.name,
+                            found.isPlaying.name, found.itemField.name, found.shown.name, found.pageField.name, found.play.name,
+                            found.pause.name, found.reasonKey.name, found.mark.name, found.adDetails.name,
+                        ),
+                    )
+                }
+
+                context.apply { applyFeedTapPause(found) }
+
+                // The handler's class, the controller and the reader are the classes the patch reads or writes.
+                val asking = listOf(parts.handler, parts.controller, FEED_PLAYER_READER).flatMap { type ->
+                    context.mutableClassDefBy(type).methods.filter { m -> m.code().any { it.referenceText() == FEED_TAPPED } }
+                }
+                assertEquals("$what: methods asking", listOf(parts.handler to found.handler.name), asking.map { it.definingClass to it.name })
+                val handler = asking.single()
+                val code = handler.code()
+                assertEquals("$what: asks once", 1, code.count { it.referenceText() == FEED_TAPPED })
+                assertEquals(
+                    "$what: the hook comes first",
+                    listOf(
+                        Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC,
+                        Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID,
+                    ),
+                    code.take(hookLength).map { it.opcode },
+                )
+                val p0 = handler.implementation!!.registerCount - 9
+                assertEquals("$what: the handler, the post and the state are read from their own registers",
+                    listOf(p0, p0 + 2, p0 + 5), code.take(3).map { (it as TwoRegisterInstruction).registerB })
+                assertEquals("$what: into the first three locals", listOf(0, 1, 2), code.take(3).map { (it as OneRegisterInstruction).registerA })
+                assertEquals("$what: which the call hands over", listOf(0, 1, 2), code[3].arguments())
+                assertEquals("$what: the answer is tested where it lands",
+                    (code[4] as OneRegisterInstruction).registerA, (code[5] as OneRegisterInstruction).registerA)
+                assertEquals("$what: and lands in the first local", 0, (code[4] as OneRegisterInstruction).registerA)
+                assertEquals("$what: a no goes on to the handler's first instruction", hookLength,
+                    (code[5] as BuilderOffsetInstruction).target.location.index)
+                val added = (0 until hookLength).toSet()
+                for ((method, original) in originals) {
+                    val mine = if (method.definingClass == handler.definingClass && method.name == handler.name &&
+                        method.parameterTypes.map(Any::toString) == handler.parameterTypes.map(Any::toString)
+                    ) added else emptySet()
+                    original.assertPreserved("$what ${method.definingClass}->${method.name}", method, mine)
+                }
+
+                val reader = context.mutableClassDefBy(FEED_PLAYER_READER)
+                for ((stubName, _) in FEED_PLAYER_STUBS) {
+                    val filled = reader.methods.single { it.name == stubName }.code()
+                    val body = filled.take(filled.indexOfFirst { it.opcode == Opcode.RETURN_OBJECT } + 1)
+                    assertEquals("$what: $stubName starts by casting what it's handed", Opcode.CHECK_CAST, body.first().opcode)
+                    assertFalse("$what: $stubName still answers the marker", body.any { it.referenceText() == marker })
+                    assertTrue("$what: $stubName reaches nothing outside the extension",
+                        body.any { it.referenceText()?.startsWith("Lapp/hushgram/") == false })
+                }
+            }
+        }
+    }
+
+    /** A build without the controller, the player or the reader stops the patch under its own name, before anything is written. */
+    @Test
+    fun aBuildMissingAPartStopsThePatch() {
+        val apk = bundles().first()
+        val parts = parts(apk)
+        val classes = FixtureDex.classes(apk, parts.wanted).values + ExtensionDex.classDef(FEED_PLAYER_READER)
+        val refusals = listOf(
+            parts.controller to "expected one class loading \"$FEED_CONTROLLER_STRING\", found 0",
+            parts.player to "expected one method holding \"$PLAY_INTERNAL\", found 0",
+            FEED_PLAYER_READER to "the extension has no $FEED_PLAYER_READER",
+        )
+        for ((missing, said) in refusals) {
+            val context = PatchContexts.of(classes.filter { it.type != missing })
+            val failure = assertThrows(missing, PatchException::class.java) { context.findFeedTap() }
+            val message = failure.message!!
+            assertTrue(message, message.startsWith("Tap a feed video to pause it: ") && said in message)
+            val handler = context.mutableClassDefBy(parts.handler)
+            assertTrue("$missing: something was written", handler.methods.none { m -> m.code().any { it.referenceText() == FEED_TAPPED } })
+        }
+    }
+
+    private class Parts(val handler: String, val controller: String, val player: String, val wanted: Set<String>)
+
+    private fun bundles(): List<File> {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        return versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+    }
+
+    private fun name(apk: File): String = if (apk.extension == "apk") apk.parentFile.name else apk.name
+
+    /**
+     * The classes a build is read from: the handler's, the controller and the player, each the one class holding its string,
+     * Media, and every class the handler's and the controller's code names, which takes in the module, its lazy holder,
+     * the playing item, the post's state, the pause reason's two classes and the page lookup.
+     */
+    private fun parts(apk: File): Parts {
+        val name = name(apk)
+        val handlers = FixtureDex.classesHolding(apk, FEED_TAP_HANDLER_STRING)
+        assertEquals("$name: classes loading the tap handler's string", 1, handlers.size)
+        val controllers = FixtureDex.classesHolding(apk, FEED_CONTROLLER_STRING)
+        assertEquals("$name: classes loading the controller's string", 1, controllers.size)
+        val players = FixtureDex.classesHolding(apk, PLAY_INTERNAL)
+        assertEquals("$name: classes loading the player's string", 1, players.size)
+        val named = (handlers + controllers).flatMap { it.methods }.flatMap { m -> m.code().flatMap { it.typesNamed() } }
+            .filter { it.startsWith("L") }.toSet()
+        return Parts(handlers.single().type, controllers.single().type, players.single().type,
+            named + handlers.single().type + controllers.single().type + players.single().type + media)
+    }
+
+    private fun Instruction.typesNamed(): List<String> = when (val reference = (this as? ReferenceInstruction)?.reference) {
+        is MethodReference -> listOf(reference.definingClass)
+        is FieldReference -> listOf(reference.definingClass, reference.type)
+        is TypeReference -> listOf(reference.type)
+        else -> emptyList()
+    }
+
+    private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+
+    private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
+
+    private fun Instruction.arguments(): List<Int> = when (this) {
+        is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+        else -> emptyList()
+    }
+}

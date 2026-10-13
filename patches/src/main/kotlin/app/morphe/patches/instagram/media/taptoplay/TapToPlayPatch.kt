@@ -212,22 +212,14 @@ internal fun BytecodePatchContext.holdStartsWithoutATap() {
  * prepare must be IgGrootPlayer's, the class holding [GROOT_PREPARE].
  */
 internal fun BytecodePatchContext.findPlayerHooks(): PlayerHooks {
-    val internals = mutableListOf<Method>()
     val preparers = mutableListOf<Method>()
     val checkers = mutableListOf<Method>()
-    classesHolding(PLAY_INTERNAL).forEach { classDef -> classDef.methods.filterTo(internals) { PLAY_INTERNAL in it.strings() } }
     classesHolding(GROOT_PREPARE).forEach { classDef -> classDef.methods.filterTo(preparers) { GROOT_PREPARE in it.strings() } }
     classesHolding(*AUTOPLAY_CHECKER.toTypedArray()).forEach { classDef ->
         classDef.methods.filterTo(checkers) { it.strings().containsAll(AUTOPLAY_CHECKER) }
     }
-    val playInternal = internals.singleOrNull()
-        ?: throw PatchException("$PATCH: expected one method holding \"$PLAY_INTERNAL\", found ${internals.size}")
+    val playInternal = findPlayInternal()
     val owner = playInternal.definingClass
-    if (!AccessFlags.STATIC.isSet(playInternal.accessFlags) || playInternal.returnType != "V" ||
-        playInternal.parameterTypes.map(Any::toString) != listOf(owner, STRING, "Z", "Z")
-    ) {
-        throw PatchException("$PATCH: $owner->${playInternal.name}, playInternal, isn't static void ($owner, String, boolean, boolean)")
-    }
     if (playInternal.parameterRegisterNumber(1) > 15) {
         throw PatchException("$PATCH: $owner->${playInternal.name} keeps its start reason past v15")
     }
@@ -275,6 +267,26 @@ internal fun BytecodePatchContext.findPlayerHooks(): PlayerHooks {
     } ?: throw PatchException("$PATCH: $FRAGMENT_ACTIVITY has no dispatchTouchEvent of its own")
 
     return PlayerHooks(playInternal, grootField, findReelsLogger(owner), play, pause, prepare, checker, touch, findPlayButtonClick())
+}
+
+/**
+ * IgVideoPlayerImpl's playInternal, the one method holding [PLAY_INTERNAL], which has to be static
+ * void (its player, String, boolean, boolean). Its class is the player every feed, reel and story
+ * video plays through, so a patch that needs that class asks here and fails under its own name,
+ * [patch], when the build differs.
+ */
+internal fun BytecodePatchContext.findPlayInternal(patch: String = PATCH): Method {
+    val internals = mutableListOf<Method>()
+    classesHolding(PLAY_INTERNAL).forEach { classDef -> classDef.methods.filterTo(internals) { PLAY_INTERNAL in it.strings() } }
+    val playInternal = internals.singleOrNull()
+        ?: throw PatchException("$patch: expected one method holding \"$PLAY_INTERNAL\", found ${internals.size}")
+    val owner = playInternal.definingClass
+    if (!AccessFlags.STATIC.isSet(playInternal.accessFlags) || playInternal.returnType != "V" ||
+        playInternal.parameterTypes.map(Any::toString) != listOf(owner, STRING, "Z", "Z")
+    ) {
+        throw PatchException("$patch: $owner->${playInternal.name}, playInternal, isn't static void ($owner, String, boolean, boolean)")
+    }
+    return playInternal
 }
 
 /** [player]'s field holding the video logger it was made with, and the class of the Reels viewer's logger. */

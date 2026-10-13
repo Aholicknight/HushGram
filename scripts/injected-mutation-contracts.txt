@@ -1715,3 +1715,17 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQua
 # keep an empty strip where each hidden bar was; once or elsewhere, a height stays kept.
 # FullScreenBarsHookTest finds both stores in all seven 450 builds.
 once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->barHeight(I)I in instance (Landroid/view/View;L*;)L*; sites 2 holding Status\sbar\sheight:\sold=%d\snew=%d,\sActivity=%s\sRetryCount=%d\sisFullScreenFlagSet=%b\swindowFlags=0x%X Nab\sbar\sheight:\sold=%d\snew=%d,\sActivity=%s\sRetryCount=%d\sisFullScreenFlagSet=%b\swindowFlags=0x%X
+
+# Tap a feed video to pause it (#137) asks FeedTapPause.tapped first thing in the feed's tap handler,
+# the one instance (View, Media, four objects, int, boolean) void method that loads the handler's
+# soft error name (06FA.A05 on 450), and returns on a yes before Instagram picks what the tap does.
+# Left out, a tap on a feed video still opens Reels with the switch on; later in the method,
+# Instagram has already acted on the tap; twice or elsewhere, it isn't the guard the patch wrote.
+# The reader's pause and play, which the patch fills with the feed video controller's own (01wy.A0F
+# and 01wy.A03 on 450), have to leave the extension before they return. Left unfilled, the tap stays
+# Instagram's with the switch on. TapFeedVideoToPauseHookTest finds the handler and fills every stub
+# on all seven 450 builds.
+start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;L*;IZ)V holding FeedMediaTapHandlerV2-softError
+once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;L*;IZ)V holding FeedMediaTapHandlerV2-softError
+first-call Lapp/hushgram/extension/instagram/feed/FeedPlayerReader;->pause(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; outside Lapp/hushgram/extension/
+first-call Lapp/hushgram/extension/instagram/feed/FeedPlayerReader;->start(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; outside Lapp/hushgram/extension/

@@ -459,6 +459,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Tap a feed video to pause it patch. */
+    public static boolean feedTapPause() {
+        return false;
+    }
+
     /** Rewritten by the Long press to zoom patch. */
     public static boolean longPressZoom() {
         return false;

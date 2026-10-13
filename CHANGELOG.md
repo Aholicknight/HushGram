@@ -54,6 +54,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Clean up Reels:** New switch under Reels, Keep clear mode on, off by default. With it on, Instagram's clear mode carries from one reel to the next until you leave it yourself. Asked for in #138.
 
+* **Instagram - Tap a feed video to pause it:** New patch. A tap on the video playing in a feed pauses it, and the next tap plays it again, so it doesn't open in Reels. The switch is under Feed and starts off. Asked for in #137.
+
 #### Improvements
 
 * **Tooling:** Device builds support separate keystore and key passwords, including an empty store password. The installer also picks one ADB executable when the path lists more than one.
