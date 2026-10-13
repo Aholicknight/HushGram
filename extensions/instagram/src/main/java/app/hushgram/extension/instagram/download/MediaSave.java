@@ -168,7 +168,7 @@ public final class MediaSave {
             if (lower > 0) text += "\n" + L10n.f(application, "%1$d saved in lower quality than on Instagram.", lower);
             if (already > 0) {
                 text += "\n" + L10n.f(application,
-                        "Already saved %1$d. Download again within 30 seconds to save those too.", already);
+                        "Already saved %1$d. Download again within 30 seconds for those.", already);
             }
             return text;
         }
@@ -1214,7 +1214,7 @@ public final class MediaSave {
                 info(() -> "save skipped: already saved");
                 DownloadHistory.offerAgain(Collections.singletonList(key));
                 Feedback.show(application, L10n.t(application,
-                        "Already saved. Download it again within 30 seconds to save another copy."), true);
+                        "Already saved. Download again within 30 seconds for a copy."), true);
                 return;
             }
             try {

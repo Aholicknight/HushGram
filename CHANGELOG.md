@@ -118,6 +118,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Search button on Home's header:** When Search is off a tab bar you swipe across, the note the button shows now fits on screen and says what to turn off. Android used to cut it off halfway.
 
+* **Instagram - Downloads:** Save all's result shows each of its lines in turn, so the lower quality and already saved notes aren't cut off on Android 12 and newer.
+
 ## 0.0.9 (2026-10-11)
 
 ### Features

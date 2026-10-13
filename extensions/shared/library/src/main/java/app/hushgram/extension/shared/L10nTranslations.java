@@ -271,10 +271,10 @@ public final class L10nTranslations {
                 "\u201eImport von \u00dcberschreibungen erlauben\u201c ist aus oder HushGram ist pausiert. Es wurde nichts ge\u00e4ndert.");
         table.put("Allow screenshots",
                 "Screenshots erlauben");
-        table.put("Already saved %1$d. Download again within 30 seconds to save those too.",
-                "Schon gespeichert %1$d. Lade innerhalb von 30 Sekunden noch einmal herunter, um auch diese zu speichern.");
-        table.put("Already saved. Download it again within 30 seconds to save another copy.",
-                "Schon gespeichert. Lade es innerhalb von 30 Sekunden noch einmal herunter, um eine weitere Kopie zu speichern.");
+        table.put("Already saved %1$d. Download again within 30 seconds for those.",
+                "Schon gespeichert: %1$d. Lade binnen 30 Sekunden erneut f\u00fcr diese.");
+        table.put("Already saved. Download again within 30 seconds for a copy.",
+                "Schon gespeichert. Lade binnen 30 Sekunden erneut f\u00fcr eine Kopie.");
         table.put("An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.",
                 "Ein fr\u00fcherer Import braucht noch \u201eVorherige \u00dcberschreibungen wiederherstellen\u201c oder \u201eGespeicherte \u00dcberschreibungen verwerfen\u201c, falls die Wiederherstellung nicht klappt. Es wurde nichts ge\u00e4ndert.");
         table.put("Applies a HushGram export, or Instagram's own overrides file. Your current overrides are saved first so Restore can bring them back.",
@@ -2328,10 +2328,10 @@ public final class L10nTranslations {
                 "Permitir importar valores personalizados est\u00e1 desactivado o HushGram est\u00e1 en pausa. Nada ha cambiado.");
         table.put("Allow screenshots",
                 "Permitir capturas de pantalla");
-        table.put("Already saved %1$d. Download again within 30 seconds to save those too.",
-                "Ya guardados %1$d. Descarga de nuevo en los pr\u00f3ximos 30 segundos para guardarlos tambi\u00e9n.");
-        table.put("Already saved. Download it again within 30 seconds to save another copy.",
-                "Ya est\u00e1 guardado. Desc\u00e1rgalo de nuevo en los pr\u00f3ximos 30 segundos para guardar otra copia.");
+        table.put("Already saved %1$d. Download again within 30 seconds for those.",
+                "Ya guardados %1$d. Descarga de nuevo en 30 segundos para esos.");
+        table.put("Already saved. Download again within 30 seconds for a copy.",
+                "Ya est\u00e1 guardado. Desc\u00e1rgalo de nuevo en 30 segundos para una copia.");
         table.put("An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.",
                 "Una importaci\u00f3n anterior todav\u00eda necesita Restaurar valores anteriores, o Descartar valores guardados si Restaurar no puede hacerse. Nada ha cambiado.");
         table.put("Applies a HushGram export, or Instagram's own overrides file. Your current overrides are saved first so Restore can bring them back.",
@@ -4385,10 +4385,10 @@ public final class L10nTranslations {
                 "Izinkan impor nilai pengganti nonaktif atau HushGram sedang dijeda. Tidak ada yang berubah.");
         table.put("Allow screenshots",
                 "Izinkan tangkapan layar");
-        table.put("Already saved %1$d. Download again within 30 seconds to save those too.",
-                "Sudah disimpan %1$d. Unduh lagi dalam 30 detik untuk menyimpannya juga.");
-        table.put("Already saved. Download it again within 30 seconds to save another copy.",
-                "Sudah disimpan. Unduh lagi dalam 30 detik untuk menyimpan salinan lain.");
+        table.put("Already saved %1$d. Download again within 30 seconds for those.",
+                "Sudah disimpan %1$d. Unduh lagi dalam 30 detik untuk yang itu.");
+        table.put("Already saved. Download again within 30 seconds for a copy.",
+                "Sudah disimpan. Unduh lagi dalam 30 detik untuk salinan.");
         table.put("An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.",
                 "Impor sebelumnya masih perlu Pulihkan nilai pengganti sebelumnya, atau Buang nilai pengganti tersimpan jika Pulihkan tidak bisa dijalankan. Tidak ada yang berubah.");
         table.put("Applies a HushGram export, or Instagram's own overrides file. Your current overrides are saved first so Restore can bring them back.",
@@ -6442,10 +6442,10 @@ public final class L10nTranslations {
                 "\u2018\uc7ac\uc815\uc758 \uac00\uc838\uc624\uae30 \ud5c8\uc6a9\u2019\uc774 \uaebc\uc838 \uc788\uac70\ub098 HushGram\uc774 \uc77c\uc2dc \uc815\uc9c0\ub418\uc5c8\uc2b5\ub2c8\ub2e4. \ubcc0\uacbd\ub41c \uc0ac\ud56d\uc740 \uc5c6\uc2b5\ub2c8\ub2e4");
         table.put("Allow screenshots",
                 "\uc2a4\ud06c\ub9b0\uc0f7 \ud5c8\uc6a9");
-        table.put("Already saved %1$d. Download again within 30 seconds to save those too.",
-                "%1$d\uac1c\ub294 \uc774\ubbf8 \uc800\uc7a5\ub418\uc5b4 \uc788\uc2b5\ub2c8\ub2e4. \uc774\uac83\ub3c4 \uc800\uc7a5\ud558\ub824\uba74 30\ucd08 \uc548\uc5d0 \ub2e4\uc2dc \ub2e4\uc6b4\ub85c\ub4dc\ud558\uc138\uc694.");
-        table.put("Already saved. Download it again within 30 seconds to save another copy.",
-                "\uc774\ubbf8 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4. \uc0ac\ubcf8\uc744 \ud558\ub098 \ub354 \uc800\uc7a5\ud558\ub824\uba74 30\ucd08 \uc548\uc5d0 \ub2e4\uc2dc \ub2e4\uc6b4\ub85c\ub4dc\ud558\uc138\uc694.");
+        table.put("Already saved %1$d. Download again within 30 seconds for those.",
+                "%1$d\uac1c\ub294 \uc774\ubbf8 \uc800\uc7a5\ub418\uc5b4 \uc788\uc2b5\ub2c8\ub2e4. 30\ucd08 \uc548\uc5d0 \ub2e4\uc2dc \ub2e4\uc6b4\ub85c\ub4dc\ud558\uba74 \uc800\uc7a5\ub429\ub2c8\ub2e4.");
+        table.put("Already saved. Download again within 30 seconds for a copy.",
+                "\uc774\ubbf8 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4. \uc0ac\ubcf8\uc740 30\ucd08 \uc548\uc5d0 \ub2e4\uc2dc \ub2e4\uc6b4\ub85c\ub4dc\ud558\uc138\uc694.");
         table.put("An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.",
                 "\uc774\uc804\uc5d0 \uac00\uc838\uc628 \uc124\uc815\uc774 \uc544\uc9c1 \uc801\uc6a9\ub41c \uc0c1\ud0dc\uc785\ub2c8\ub2e4. '\uc774\uc804 \uc7ac\uc815\uc758 \ubcf5\uc6d0\u2019\uc744 \uc2e4\ud589\ud558\uac70\ub098, \ubcf5\uc6d0\uc774 \ubd88\uac00\ub2a5\ud55c \uacbd\uc6b0 '\uc800\uc7a5\ub41c \uc7ac\uc815\uc758 \uc0ad\uc81c'\ub97c \uc2e4\ud589\ud574\uc57c \ud569\ub2c8\ub2e4. \ubcc0\uacbd\ub41c \uc0ac\ud56d\uc740 \uc5c6\uc2b5\ub2c8\ub2e4");
         table.put("Applies a HushGram export, or Instagram's own overrides file. Your current overrides are saved first so Restore can bring them back.",
@@ -8499,10 +8499,10 @@ public final class L10nTranslations {
                 "Permitir importar valores personalizados est\u00e1 desativado ou o HushGram est\u00e1 pausado. Nada mudou.");
         table.put("Allow screenshots",
                 "Permitir capturas de tela");
-        table.put("Already saved %1$d. Download again within 30 seconds to save those too.",
-                "J\u00e1 salvos %1$d. Baixe de novo em at\u00e9 30 segundos para salvar esses tamb\u00e9m.");
-        table.put("Already saved. Download it again within 30 seconds to save another copy.",
-                "J\u00e1 foi salvo. Baixe de novo em at\u00e9 30 segundos para salvar outra c\u00f3pia.");
+        table.put("Already saved %1$d. Download again within 30 seconds for those.",
+                "J\u00e1 salvos %1$d. Baixe de novo em at\u00e9 30 segundos para esses.");
+        table.put("Already saved. Download again within 30 seconds for a copy.",
+                "J\u00e1 foi salvo. Baixe de novo em at\u00e9 30 segundos para uma c\u00f3pia.");
         table.put("An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.",
                 "Uma importa\u00e7\u00e3o anterior ainda precisa de Restaurar valores anteriores, ou de Descartar valores salvos se Restaurar n\u00e3o puder rodar. Nada mudou.");
         table.put("Applies a HushGram export, or Instagram's own overrides file. Your current overrides are saved first so Restore can bring them back.",
@@ -10556,10 +10556,10 @@ public final class L10nTranslations {
                 "Ge\u00e7ersiz k\u0131lmalar\u0131 i\u00e7e aktarmaya izin ver kapal\u0131 ya da HushGram duraklat\u0131ld\u0131. Hi\u00e7bir \u015fey de\u011fi\u015fmedi.");
         table.put("Allow screenshots",
                 "Ekran g\u00f6r\u00fcnt\u00fclerine izin ver");
-        table.put("Already saved %1$d. Download again within 30 seconds to save those too.",
-                "Zaten kaydedilen %1$d. Bunlar\u0131 da kaydetmek i\u00e7in 30 saniye i\u00e7inde yeniden indir.");
-        table.put("Already saved. Download it again within 30 seconds to save another copy.",
-                "Zaten kaydedildi. Bir kopya daha kaydetmek i\u00e7in 30 saniye i\u00e7inde yeniden indir.");
+        table.put("Already saved %1$d. Download again within 30 seconds for those.",
+                "Zaten kaydedilen %1$d. Bunlar i\u00e7in 30 saniye i\u00e7inde yeniden indir.");
+        table.put("Already saved. Download again within 30 seconds for a copy.",
+                "Zaten kaydedildi. Kopya i\u00e7in 30 saniye i\u00e7inde yeniden indir.");
         table.put("An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.",
                 "\u00d6nceki bir i\u00e7e aktarma i\u00e7in h\u00e2l\u00e2 \u00d6nceki ge\u00e7ersiz k\u0131lmalar\u0131 geri y\u00fckle gerekiyor. Geri y\u00fckleme \u00e7al\u0131\u015fam\u0131yorsa Kay\u0131tl\u0131 ge\u00e7ersiz k\u0131lmalar\u0131 at se\u00e7ene\u011fini kullan\u0131n. Hi\u00e7bir \u015fey de\u011fi\u015fmedi.");
         table.put("Applies a HushGram export, or Instagram's own overrides file. Your current overrides are saved first so Restore can bring them back.",

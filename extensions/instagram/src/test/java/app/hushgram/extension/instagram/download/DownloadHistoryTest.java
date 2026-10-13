@@ -71,7 +71,7 @@ import app.hushgram.extension.shared.settings.preference.LogBufferManager;
 public class DownloadHistoryTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
-    private static final String ALREADY = "Already saved. Download it again within 30 seconds to save another copy.";
+    private static final String ALREADY = "Already saved. Download again within 30 seconds for a copy.";
     private static final String MEDIA = "3100000000000000001";
     private static final String ACCOUNT_A = "17841400000000001";
     private static final String ACCOUNT_B = "17841400000000002";
@@ -333,8 +333,9 @@ public class DownloadHistoryTest {
         assertEquals(1, first.already);
         assertFalse(first.cancelled);
         assertEquals(1, server.hits("/p2.jpg"));
-        assertEquals("Saved 2. Failed 0. Skipped 1.\nAlready saved 1. Download again within 30 seconds to save those too.",
-                ShadowToast.getTextOfLatestToast());
+        // One toast a line: Android 12 and newer cut a toast at two lines, which lost the second one.
+        assertTrue(ShadowToast.showedToast("Saved 2. Failed 0. Skipped 1."));
+        assertEquals("Already saved 1. Download again within 30 seconds for those.", ShadowToast.getTextOfLatestToast());
         assertEquals(3, DownloadHistory.count(context));
 
         // Asked again right away: the page passed over is saved, and the two just saved are passed over.
