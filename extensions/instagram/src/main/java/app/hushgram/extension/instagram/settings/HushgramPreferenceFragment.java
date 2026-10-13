@@ -1820,10 +1820,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * Back on a category's page: the list of categories again, scrolled where it was. Answers
-     * whether a page was open, so Back closes settings only from the list.
+     * Back on a category's page: the list of categories again, scrolled where it was. A search
+     * ends first. Answers whether there was either, so Back closes settings only from the list
+     * with nothing searched.
      */
     boolean closeCategory() {
+        if (endSearch()) return true;
         if (openCategory == null) return false;
         openCategory = null;
         filterSettings();
@@ -1833,6 +1835,24 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             int position = categoryListPosition, top = categoryListTop;
             list.post(() -> list.setSelectionFromTop(position, top));
         }
+        return true;
+    }
+
+    /**
+     * Back during a search ends it on the page it started from, as the field's own clear does.
+     * From a category's page Back used to drop the category under the search instead: the matches
+     * stayed, and the status card and the list switch came in above the field (S25, 2026-10-13).
+     */
+    private boolean endSearch() {
+        if (searchText(searchQuery).trim().isEmpty()) return false;
+        View view = getView();
+        EditText field = view == null ? null : view.findViewWithTag("hushgram-settings-search");
+        // On the screen the field's watcher filters and puts its clear button away. Scrolled off
+        // it there is no field, and the next one is built from the query.
+        if (field != null) field.setText("");
+        if (!searchQuery.isEmpty()) searchSettings("");
+        ListView list = listView();
+        if (list != null) list.post(() -> list.setSelection(0));
         return true;
     }
 

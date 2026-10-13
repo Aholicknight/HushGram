@@ -235,6 +235,46 @@ public class CategoryPagesSettingsTest {
         assertTrue(input.hasFocus());
     }
 
+    /**
+     * Back during a search ends the search on the page it started from. From a category's page it
+     * used to drop the category under the search: the matches stayed, and the status card and the
+     * list switch came in above the field (S25, 2026-10-13).
+     */
+    @Test public void backDuringASearchEndsItOnThePageItStartedFrom() throws Exception {
+        openDialog();
+        tap(categoryRow("Feed"));
+        layoutPage();
+        EditText input = page.getView().findViewWithTag("hushgram-settings-search");
+        assertNotNull(input);
+        touchMode(input, true);
+        assertTrue(input.requestFocus());
+        layoutPage();
+        input.setText("Hide ads");
+        layoutPage();
+        assertTrue(shown(PreferenceCategory.class).contains("Ads and privacy"));
+
+        assertTrue("Back ends the search", page.closeCategory());
+        layoutPage();
+        assertEquals("the page the search started from is back", List.of("Feed"), shown(PreferenceCategory.class));
+        input = page.getView().findViewWithTag("hushgram-settings-search");
+        assertNotNull(input);
+        assertEquals("", input.getText().toString());
+        LinearLayout bar = (LinearLayout) ((LinearLayout) dialog.getView()).getChildAt(0);
+        assertEquals("Feed", ((TextView) bar.getChildAt(1)).getText().toString());
+
+        assertTrue("the next Back leaves the category", page.closeCategory());
+        layoutPage();
+        assertTrue(shown(Preference.class).contains("Feed"));
+
+        page.searchSettings("Hide ads");
+        layoutPage();
+        assertFalse("the search took the category rows off", shown(Preference.class).contains("Feed"));
+        assertTrue("Back ends a search started from the list too", page.closeCategory());
+        layoutPage();
+        assertTrue(shown(Preference.class).contains("Feed"));
+        assertFalse("and the Back after it closes settings", page.closeCategory());
+    }
+
     @Test public void everyCategoryStartsAtSearchOutsideTouchModeEvenFromALaterOverviewRow() throws Exception {
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
         openDialog();
