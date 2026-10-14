@@ -17,6 +17,7 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 
+import app.hushgram.extension.instagram.reels.FeedReels;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -110,6 +111,17 @@ public final class FeedSuggestions {
 
     /** The report's count of Suggested for you titles {@link #sectionTitle} left off a header with nothing under it. */
     static final String SECTION_TITLE_DROPPED = "suggested section titles left off with nothing under them";
+
+    /** The diagnostic counter route of the kinds {@link #sectionTitle} found in the Suggested for you section. */
+    static final String SECTION_ROUTE = "Suggested section";
+
+    /** The report's counts of how each {@link #sectionTitle} call went. */
+    static final String SECTION_CHECKED = "suggested section titles checked";
+    static final String SECTION_KEPT_SHOWS = "suggested section titles kept, something shows";
+    static final String SECTION_KEPT_NOTHING_TAKEN = "suggested section titles kept, empty with nothing taken out";
+    static final String SECTION_KEPT_UNREAD = "suggested section titles kept, section unreadable";
+
+    private static final String END_CARD_KIND = "END_OF_FEED_DEMARCATOR";
 
     /** The end of feed card's kind. Instagram moves one that opens a section above that section's header. */
     static final Set<String> END_CARD = Collections.singleton("END_OF_FEED_DEMARCATOR");
@@ -668,10 +680,13 @@ public final class FeedSuggestions {
     /**
      * Injected in the binder of the header Instagram draws after Home's end of feed card, right before
      * it sets the header's title to its section's name ("Suggested for you"), with that name and the
-     * section. Answers "" while Hide suggested posts is on, has taken something out of Home in this
-     * run, and the section holds nothing that shows, and [title] otherwise, or when anything goes
-     * wrong. A section that's empty for another reason, one still loading or one Instagram fills
-     * after the bind, keeps its title while the switch has taken nothing out.
+     * section. Answers "" while Hide suggested posts is on and the section shows nothing, and
+     * [title] otherwise, or when anything goes wrong. It shows nothing when it holds only end of feed
+     * cards and units a switch hides (suggestions, Threads, Hide Reels in the feed), or when it's
+     * empty after a switch took something out of Home in this run. A section that's empty for
+     * another reason, one still loading or one Instagram fills after the bind, keeps its title.
+     * Every call is counted with why the title stayed or went, and the kinds the section held go to
+     * the {@link #SECTION_ROUTE} route.
      *
      * <p>Instagram reads the header and its section's items out of the end of feed card's own data, and
      * the feed item helper {@link #filter} sits on reads those items too, so with every suggestion
@@ -682,11 +697,27 @@ public final class FeedSuggestions {
     public static String sectionTitle(String title, Object section) {
         if (title == null || section == null) return title;
         try {
-            if (!Utils.settingsReady() || !Settings.HIDE_SUGGESTED_POSTS.get() || !tookOut) return title;
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, SECTION_CHECKED);
+            if (!Utils.settingsReady() || !Settings.HIDE_SUGGESTED_POSTS.get()) return title;
             List<?> items = sections.apply(section);
-            if (items == null || showsAny(items)) return title;
+            if (items == null) {
+                HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, SECTION_KEPT_UNREAD);
+                return title;
+            }
+            String kinds = kindsIn(items);
+            if (items.isEmpty()) {
+                if (!tookOut && !FeedReels.tookOut) {
+                    HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, SECTION_KEPT_NOTHING_TAKEN);
+                    Logger.printDebug(() -> "Feed suggestions: the suggested section is empty but nothing was taken out of Home, so it keeps its title");
+                    return title;
+                }
+            } else if (showsAny(items)) {
+                HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, SECTION_KEPT_SHOWS);
+                Logger.printDebug(() -> "Feed suggestions: the suggested section keeps its title, it holds " + kinds);
+                return title;
+            }
             HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, SECTION_TITLE_DROPPED);
-            Logger.printDebug(() -> "Feed suggestions: the suggested section is empty, so its header keeps only its link");
+            Logger.printDebug(() -> "Feed suggestions: the suggested section shows nothing (" + kinds + "), so its header keeps only its link");
             return "";
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "suggested section title", failure);
@@ -694,12 +725,38 @@ public final class FeedSuggestions {
         }
     }
 
-    /** Whether any of [items] shows under the header: anything but an end of feed card. */
+    /** Whether any of [items] shows under the header: anything but an end of feed card or a unit a switch hides. */
     private static boolean showsAny(List<?> items) throws IllegalAccessException {
         for (Object item : items) {
-            if (item != null && FeedItemKinds.kindIn(item, END_CARD, FamilyNames.FEED_SUGGESTIONS) == null) return true;
+            if (item == null) continue;
+            String kind = FeedItemKinds.kindOf(item, END_CARD_KIND, FamilyNames.FEED_SUGGESTIONS);
+            if (kind == null || !hiddenInSection(kind)) return true;
         }
         return false;
+    }
+
+    private static boolean hiddenInSection(String kind) {
+        if (END_CARD.contains(kind) || FeedReels.hides(kind)) return true;
+        return KINDS.contains(kind) && switchFor(kind).get();
+    }
+
+    /** The kinds [items] hold, counted on the Suggested section route and listed for the debug log. */
+    private static String kindsIn(List<?> items) {
+        if (items.isEmpty()) return "no items";
+        StringBuilder out = new StringBuilder();
+        for (Object item : items) {
+            String kind = null;
+            try {
+                kind = item == null ? null : FeedItemKinds.kindOf(item, END_CARD_KIND, FamilyNames.FEED_SUGGESTIONS);
+            } catch (IllegalAccessException ignored) {
+                // The kind stays unknown, which counts as showing.
+            }
+            String seen = kind == null ? "unknown" : kind;
+            FeedFilterCounters.sawKind(SECTION_ROUTE, seen);
+            if (out.length() > 0) out.append(", ");
+            out.append(seen);
+        }
+        return out.toString();
     }
 
     /**

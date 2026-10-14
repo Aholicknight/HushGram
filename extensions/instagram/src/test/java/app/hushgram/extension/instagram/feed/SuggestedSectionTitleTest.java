@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import app.hushgram.extension.instagram.reels.FeedReels;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -40,7 +41,7 @@ public class SuggestedSectionTitleTest {
     private static final String TITLE = "Suggested for you";
 
     /** A few of Instagram 450's feed item kinds. */
-    enum Kind { MEDIA, CLIPS_NETEGO, SUGGESTED_USERS, END_OF_FEED_DEMARCATOR }
+    enum Kind { MEDIA, CLIPS_NETEGO, SUGGESTED_USERS, EXPLORE_STORY, END_OF_FEED_DEMARCATOR }
 
     /** A feed item with its kind as an enum field, as the section's list holds them. */
     static final class Item {
@@ -75,6 +76,8 @@ public class SuggestedSectionTitleTest {
         FeedSuggestions.sections = FeedSuggestions::sectionItems;
         FeedSuggestions.tookOut = false;
         Settings.HIDE_SUGGESTED_POSTS.resetToDefault();
+        Settings.HIDE_FEED_REELS.resetToDefault();
+        FeedReels.tookOut = false;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -161,5 +164,63 @@ public class SuggestedSectionTitleTest {
         String missing = HookStatus.missing(FamilyNames.FEED_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("suggested section title"));
         assertTrue(missing, missing.contains(ClassCastException.class.getName()));
+    }
+
+    /** Hide Reels in the feed emptied the section: the strip is still in its list, or gone, and either way the title goes. */
+    @Test
+    public void aSectionOnlyHideReelsEmptiedLosesItsTitle() {
+        FeedSuggestions.tookOut = false;
+        Settings.HIDE_FEED_REELS.save(true);
+        assertEquals("", title(Arrays.asList(new Item(Kind.CLIPS_NETEGO), new Item(Kind.END_OF_FEED_DEMARCATOR))));
+
+        FeedReels.tookOut = true;
+        assertEquals("", title(Collections.emptyList()));
+    }
+
+    /** Both switches on, a suggestion and a strip left in the list, nothing shows. */
+    @Test
+    public void unitsTheSwitchesHideDontKeepTheTitle() {
+        Settings.HIDE_FEED_REELS.save(true);
+        assertEquals("", title(Arrays.asList(new Item(Kind.EXPLORE_STORY), new Item(Kind.SUGGESTED_USERS),
+                new Item(Kind.CLIPS_NETEGO))));
+    }
+
+    /** A post among the hidden units still shows, so the title stays. */
+    @Test
+    public void aPostAmongHiddenUnitsKeepsTheTitle() {
+        Settings.HIDE_FEED_REELS.save(true);
+        assertEquals(TITLE, title(Arrays.asList(new Item(Kind.CLIPS_NETEGO), new Item(Kind.MEDIA))));
+    }
+
+    /** The strip with Hide Reels off shows, even though Hide suggested posts is on. */
+    @Test
+    public void aStripNoSwitchHidesKeepsTheTitle() {
+        Settings.HIDE_FEED_REELS.save(false);
+        assertEquals(TITLE, title(Collections.singletonList(new Item(Kind.CLIPS_NETEGO))));
+    }
+
+    /** Hide suggested posts off: nothing of ours is hidden, so a suggestion in the list shows and Instagram's title stays. */
+    @Test
+    public void withTheSwitchOffNothingIsDecided() {
+        Settings.HIDE_SUGGESTED_POSTS.save(false);
+        Settings.HIDE_FEED_REELS.save(true);
+        assertEquals(TITLE, title(Collections.singletonList(new Item(Kind.CLIPS_NETEGO))));
+        assertEquals(TITLE, title(Collections.emptyList()));
+    }
+
+    /** Every call says how it went, and the kinds the section held are counted, so a report tells which case a phone hit. */
+    @Test
+    public void everyCallIsCountedWithWhyAndTheKindsAreListed() {
+        title(Collections.singletonList(new Item(Kind.MEDIA)));
+        FeedSuggestions.tookOut = false;
+        title(Collections.emptyList());
+        title(Collections.singletonList(new Item(Kind.END_OF_FEED_DEMARCATOR)));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(FeedSuggestions.SECTION_CHECKED));
+        assertTrue(report, report.contains(FeedSuggestions.SECTION_KEPT_SHOWS));
+        assertTrue(report, report.contains(FeedSuggestions.SECTION_KEPT_NOTHING_TAKEN));
+        assertTrue(report, report.contains(FeedSuggestions.SECTION_TITLE_DROPPED));
+        String kinds = String.join("\n", app.hushgram.extension.shared.diagnostics.FeedFilterCounters.report());
+        assertTrue(kinds, kinds.contains(FeedSuggestions.SECTION_ROUTE) && kinds.contains("MEDIA"));
     }
 }
