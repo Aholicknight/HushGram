@@ -258,7 +258,7 @@ Every HushGram release, newest first.
 * **Instagram - HushGram settings:** Back during a search now ends the search and shows the page you started from. From a category page it used to leave the results up with the status card pushed in above the search field.
 * **Instagram - Hide suggested posts:** Once you've seen the latest posts on Home and every suggestion after them is hidden, the empty Suggested for you title goes away. The Older posts link stays. Reported in #104.
 
-* **Instagram - Find the reel you came from:** The search no longer gives up after four seconds when a profile opens straight on its Reels tab. It waits for the first reels to load instead of taking the gray placeholder tiles for the end of the grid, then scrolls to the reel. Diagnostics says why a search ended without finding it. Reported in #30.
+* **Instagram - Find the reel you came from:** The search no longer gives up after four seconds when a profile opens straight on its Reels tab. It waits for the first reels to load instead of taking the gray placeholder tiles for the end of the grid, then scrolls to the reel. It also waits at the end of the loaded reels for Instagram's next page, where it used to give up after about three seconds of drags that went nowhere. Diagnostics says why a search ended without finding it. Reported in #30.
 
 ## 0.0.9 (2026-10-11)
 
