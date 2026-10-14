@@ -103,6 +103,27 @@ public class AccentColorTest {
     }
 
     /**
+     * #8 on 451: a Compose palette's color holds its ARGB in the high 32 bits. Each accent blue
+     * becomes its shade there, keeping its alpha. Grays, colors in other color spaces (something in
+     * the low bits) and everything with the switch off go through.
+     */
+    @Test
+    public void aComposePalettesBlueBecomesItsShade() {
+        long link = 0xff85a1ffL << 32;
+        assertEquals(link, AccentColor.composeColor(link));
+        Settings.ACCENT_COLOR.save(true);
+        HookStatus.clear();
+        assertEquals(0xffa07cfdL << 32, AccentColor.composeColor(link));
+        assertEquals(0xff7638faL << 32, AccentColor.composeColor(0xff4a5df9L << 32));
+        assertEquals("a see-through step keeps its alpha", 0x4d7638faL << 32, AccentColor.composeColor(0x4d4a5df9L << 32));
+        assertEquals(0xff737373L << 32, AccentColor.composeColor(0xff737373L << 32));
+        long otherSpace = (0xff85a1ffL << 32) | 0x3f;
+        assertEquals(otherSpace, AccentColor.composeColor(otherSpace));
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 5, 0 found, 0 missing. Counted: "
+                + AccentColor.COMPOSE + " 3"), HookStatus.report());
+    }
+
+    /**
      * A read through the theme and then Instagram's own Resources passes two hooks, so a color
      * already swapped comes back as it is, every shade of every color picked.
      */

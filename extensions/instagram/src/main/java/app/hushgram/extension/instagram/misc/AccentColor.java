@@ -25,7 +25,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * button's colors for each of its states as a color state list through AndroidX's loader. Its text
  * spans (mentions, hashtags, links) take the value the attribute resolves to straight from one more
  * read. The patch hands every color those reads answer to {@link #color}, the value read's answer to
- * {@link #value}, and every list the loader answers to {@link #list}.
+ * {@link #value}, and every list the loader answers to {@link #list}. Its Compose screens, such as
+ * the Activity tab and a profile's bio, take theirs from palettes of colors written into the code,
+ * and each accent blue those store goes through {@link #composeColor}.
  *
  * <p>Only Instagram's exact accent blues change, each into the shade of the picked color that plays
  * the same part (see {@link #swap}), and each keeps its alpha. So a list keeps its states: a disabled
@@ -42,6 +44,9 @@ public final class AccentColor {
 
     /** What's counted when a color state list from AndroidX's loader is swapped. */
     static final String LIST = "accent color lists swapped";
+
+    /** What's counted when a color one of Instagram's Compose palettes holds is swapped. */
+    static final String COMPOSE = "Compose palette colors swapped";
 
     /** What's counted when a list didn't read back as states and colors, so it was left alone. */
     static final String UNREAD = "color lists it couldn't read";
@@ -74,6 +79,28 @@ public final class AccentColor {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "theme color", failure);
             return color;
+        }
+    }
+
+    /**
+     * Injected where one of Instagram's Compose palettes stores an accent blue, as the palette is set
+     * up. A Compose color in the sRGB space holds its ARGB in the high 32 bits and nothing in the low
+     * ones; answers [value] as the picked color's shade then, keeping the alpha, and [value] itself
+     * for any other color. Never throws.
+     */
+    public static long composeColor(long value) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if ((value & 0xffffffffL) != 0) return value;
+            int argb = (int) (value >>> 32);
+            if (role(argb) == Role.NONE) return value;
+            AccentHue hue = picked();
+            if (hue == null) return value;
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, COMPOSE);
+            return (long) swap(argb, hue) << 32;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "Compose color", failure);
+            return value;
         }
     }
 

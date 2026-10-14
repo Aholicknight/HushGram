@@ -72,7 +72,10 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
  * through TypedArray), which left 451's bio links and the Activity tab's Follow buttons blue (#8). So
  * the patch also adds theme styles for each color ([accentThemePatch]), and once Instagram has laid
  * its Prism overrides over an activity's theme, the extension lays on the picked color's (see
- * [applyAccentTheme]). Instagram's own resources and color table stay as they are.
+ * [applyAccentTheme]). Instagram's own resources and color table stay as they are. Its Compose
+ * screens, the bio and the Activity tab among them, read neither: their colors come from palettes
+ * written into the code, and each accent blue a palette stores goes through the extension as the
+ * palette is set up ([swapComposePalettes]).
  */
 @Suppress("unused")
 val accentColorPatch = bytecodePatch(
@@ -89,8 +92,10 @@ val accentColorPatch = bytecodePatch(
         requireStatusMethod("accentColor")
         val attributes = requireAccentAttributes()
         findThemeOverrides()
+        val palettes = findPaletteStores()
         swapAccentColors()
         applyAccentTheme(attributes)
+        swapComposePalettes(palettes)
         enableStatus("accentColor")
     }
 }
