@@ -41,9 +41,9 @@ internal const val MUSIC_CARD = "$EXTENSION_PACKAGE/stories/StoriesTray;->musicC
 
 /**
  * The server flag that lets Instagram's Music for you card into the stories viewer: the
- * `is_enabled` parameter of the `ig_stories_music_midcard` config. On 450 it's read once, by a
- * static check of the session, and the check is asked by the code that adds the card to the
- * viewer's list, which casts to the music midcard repository first.
+ * `is_enabled` parameter of the `ig_stories_music_midcard` config. On 451's 385713073 it's read
+ * once, by a static check of the session, and the check is asked by the code that adds the card to
+ * the viewer's list, which casts to the music midcard repository first.
  */
 internal const val MUSIC_CARD_FLAG = 0x810cc0000146f1L
 
@@ -115,13 +115,14 @@ internal fun BytecodePatchContext.hideMusicCard() {
 
 /**
  * Finds the one read of [MUSIC_CARD_FLAG]. It has to be the flag's own read, in a check taking the
- * session and answering a boolean, and something calling that check has to cast to a class
- * holding [MUSIC_CARD_REPOSITORY], since that's the card's own data. Fails before anything changes
- * when any of it isn't so, since that's an update this patch hasn't seen.
+ * session and answering a boolean, and something calling that check has to cast to the class
+ * built with the name [MUSIC_CARD_REPOSITORY] ([musicCardRepositories]), since that's the card's
+ * own data. Fails before anything changes when any of it isn't so, since that's an update this
+ * patch hasn't seen.
  */
 internal fun BytecodePatchContext.findMusicCard(): FlagLoad {
     val flag = MUSIC_CARD_FLAG.toString(16)
-    val repositories = classesHolding(MUSIC_CARD_REPOSITORY).filterNot { it.type.startsWith(EXTENSION_ROOT) }.mapTo(HashSet()) { it.type }
+    val repositories = musicCardRepositories()
     if (repositories.isEmpty()) refuse("no class holds $MUSIC_CARD_REPOSITORY, so $flag isn't the Music for you card's flag")
     val reads = findFlagLoads(PATCH, MUSIC_CARD_FLAG, "Z")
     val read = reads.singleOrNull() ?: refuse("expected one read of the Music for you card flag $flag, found ${reads.size}")
@@ -140,6 +141,25 @@ internal fun BytecodePatchContext.findMusicCard(): FlagLoad {
     if (!casts) refuse("nothing that asks $where casts to the class holding $MUSIC_CARD_REPOSITORY")
     return read
 }
+
+/**
+ * The classes built with the name [MUSIC_CARD_REPOSITORY], which the repository hands its base
+ * class: the class whose constructor holds it, as on 450, or the one class a static factory
+ * holding it makes and answers, as 451's 385713073 builds `08KQ` in `0QbN.A00`.
+ */
+private fun BytecodePatchContext.musicCardRepositories(): Set<String> =
+    classesHolding(MUSIC_CARD_REPOSITORY).filterNot { it.type.startsWith(EXTENSION_ROOT) }.flatMapTo(HashSet()) { holder ->
+        holder.methods.filter { MUSIC_CARD_REPOSITORY in it.strings() }.mapNotNull { method ->
+            val made = method.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
+                ((instruction as? ReferenceInstruction)?.reference as? TypeReference)?.type?.takeIf { instruction.opcode == Opcode.NEW_INSTANCE }
+            }.toSet()
+            when {
+                method.name == "<init>" -> holder.type
+                AccessFlags.STATIC.isSet(method.accessFlags) && made == setOf(method.returnType) -> method.returnType
+                else -> null
+            }
+        }
+    }
 
 /** A method by its class, name and parameter types. */
 internal class MethodSite(val type: String, val name: String, val parameters: List<String>)
