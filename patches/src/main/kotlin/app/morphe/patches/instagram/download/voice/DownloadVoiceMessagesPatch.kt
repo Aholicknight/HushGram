@@ -13,9 +13,11 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.misc.analytics.loadsString
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCreating
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -172,10 +174,11 @@ internal fun BytecodePatchContext.findSaveFlag(): Pair<String, FieldReference> {
         message == null || !message.startsWith("L") || code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT
     ) refuse("\"$MESSAGE_MENU\" isn't handed to the call that looks the message up")
 
-    // Other menus have a Save action of their own; this menu reads one of them.
-    val named = classesHolding(SAVE_ACTION).filter { action ->
+    // Other menus have a Save action of their own; this menu reads one of them. Its toString may
+    // ask a string pool for the name: 451's 385713073 menu reads the one Save action that does.
+    val named = classesLoadingString(SAVE_ACTION).filter { action ->
         action.fields.any { AccessFlags.STATIC.isSet(it.accessFlags) && it.type == action.type } &&
-            action.methods.any { it.name == "toString" && it.returnType == STRING && SAVE_ACTION in it.strings() }
+            action.methods.any { it.name == "toString" && it.returnType == STRING && loadsString(it, SAVE_ACTION) }
     }.mapTo(HashSet()) { it.type }
     val singletons = code.indices.filter { at ->
         code[at].opcode == Opcode.SGET_OBJECT && code[at].field()?.let { it.definingClass == it.type && it.type in named } == true
