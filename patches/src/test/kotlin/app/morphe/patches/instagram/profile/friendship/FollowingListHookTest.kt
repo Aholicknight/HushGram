@@ -325,11 +325,13 @@ class FollowingListHookTest {
      */
     private fun fixtureClasses(bundle: java.io.File): List<ClassDef> {
         val anchors = listOf(FOLLOW_ROW_STATE, NON_RECIP_FOLLOWERS, FRIENDSHIP_STATUSES, FOLLOW_LIST_ADDED)
-        val binders = anchors.flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
+        val binders = anchors.flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
         val wanted = mutableSetOf(USER, USER_SESSION, FOLLOW_LIST_DATA, RELATIONSHIP)
         for (classDef in binders) {
             classDef.fields.forEach { wanted += it.type }
-            classDef.methods.filter { method -> anchors.any { method.loads(it) } }.forEach { wanted += it.referencedTypes() }
+            // A class asking a string pool for its anchor holds none, so each of its methods counts.
+            val anchored = classDef.methods.filter { method -> anchors.any { method.loads(it) } }
+            anchored.ifEmpty { classDef.methods.toList() }.forEach { wanted += it.referencedTypes() }
         }
         val first = FixtureDex.classes(bundle, wanted)
         // The list's data holds the list kind, and the config's methods call Instagram's check of whose list it is.
