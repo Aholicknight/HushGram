@@ -87,11 +87,14 @@ val hideSuggestedPostsPatch = bytecodePatch(
         // Asking for For you's next page after a page the switches left short (#52), found before the
         // show check changes. A build without it waits for the scroll as Instagram has it.
         val nextPage = homeNextPageOrWarn()
+        // The Suggested for you header after Home's end of feed card (#104). A build without it keeps the title.
+        val sectionHeader = suggestedSectionHeaderOrWarn()
         filterSuggestedFeedItems()
         endFollowingAtItsCard()
         // The Older Posts page's loading row, a separate builder; a build without it keeps Instagram's row.
         endOlderPostsSpinnerOrWarn()
         nextPage?.write(this)
+        sectionHeader?.write(this)
         exploreShops.write(this)
         productTags.write(this)
         interest.write(this)

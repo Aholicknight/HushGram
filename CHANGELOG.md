@@ -215,6 +215,7 @@ Every HushGram release, newest first.
 * **Instagram - Pure black dark mode:** The menus that slide up from the bottom are black now, a reel's menu included. They kept Instagram's dark gray before. Buttons keep their grays. Reported in #171.
 * **Instagram - HushGram settings:** The keyboard no longer covers the search field, the results under it or Restart now. The settings screen makes room for it.
 * **Instagram - HushGram settings:** Back during a search now ends the search and shows the page you started from. From a category page it used to leave the results up with the status card pushed in above the search field.
+* **Instagram - Hide suggested posts:** Once you've seen the latest posts on Home and every suggestion after them is hidden, the empty Suggested for you title goes away. The Older posts link stays. Reported in #104.
 
 ## 0.0.9 (2026-10-11)
 
