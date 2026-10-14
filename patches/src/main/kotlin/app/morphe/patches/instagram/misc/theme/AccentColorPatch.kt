@@ -66,7 +66,13 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
  * that says whether it's a color, and each list the loader answers, to the extension. With the
  * switch on it swaps only Instagram's exact accent blues for the matching shade of the color picked,
  * keeping each one's alpha, so a list's pressed, disabled and selected states keep their own look.
- * Every other color goes through untouched, and no resource or color table changes.
+ * Every other color goes through untouched.
+ *
+ * Colors an XML style takes from a theme attribute never pass those reads (the framework reads them
+ * through TypedArray), which left 451's bio links and the Activity tab's Follow buttons blue (#8). So
+ * the patch also adds theme styles for each color ([accentThemePatch]), and once Instagram has laid
+ * its Prism overrides over an activity's theme, the extension lays on the picked color's (see
+ * [applyAccentTheme]). Instagram's own resources and color table stay as they are.
  */
 @Suppress("unused")
 val accentColorPatch = bytecodePatch(
@@ -76,12 +82,14 @@ val accentColorPatch = bytecodePatch(
     default = true,
 ) {
     category("Interface")
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, accentThemePatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {
         requireStatusMethod("accentColor")
+        findThemeOverrides()
         swapAccentColors()
+        applyAccentTheme()
         enableStatus("accentColor")
     }
 }
