@@ -61,7 +61,7 @@ public class GlassScrollHideTest {
     }
 
     /** A list whose position the test sets. */
-    static final class FakeList extends View {
+    static final class FakeList extends FrameLayout {
         boolean awayFromTop;
         boolean canGoOn = true;
 
@@ -71,6 +71,17 @@ public class GlassScrollHideTest {
 
         @Override public boolean canScrollVertically(int direction) {
             return direction < 0 ? awayFromTop : canGoOn;
+        }
+    }
+
+    /** A row's text cut short: it says it can scroll down, and never moves. */
+    static final class CutText extends View {
+        CutText(Context context) {
+            super(context);
+        }
+
+        @Override public boolean canScrollVertically(int direction) {
+            return direction > 0;
         }
     }
 
@@ -173,6 +184,19 @@ public class GlassScrollHideTest {
         // The bar is only moved: its size and place in the layout are untouched.
         assertEquals(150, bar.getHeight());
         assertEquals(1770, bar.getTop());
+    }
+
+    /** #65 on 451: a drag starting on a row's cut-short text still scrolls the list it sits in. */
+    @Test public void aTextCutShortUnderTheFingerIsNotTheList() {
+        FrameLayout.LayoutParams rowParams = new FrameLayout.LayoutParams(1080, 300);
+        rowParams.topMargin = 750;
+        list.addView(new CutText(activity), rowParams);
+        root.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 1080, 1920);
+        list.awayFromTop = true;
+        drag(-300);
+        assertTrue(hide.isHidden());
     }
 
     @Test public void scrollingBackUpBringsItBack() {

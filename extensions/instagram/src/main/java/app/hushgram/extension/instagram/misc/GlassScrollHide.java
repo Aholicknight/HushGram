@@ -451,7 +451,9 @@ final class GlassScrollHide {
     }
 
     /**
-     * The innermost view under the point that can scroll up or down, or null. The bar's own branch is skipped.
+     * The innermost view under the point that holds others and can scroll up or down, or null. The bar's own
+     * branch is skipped. A text cut short says it can scroll down too, though no finger scrolls it, and as the
+     * innermost it would stand in for the list (#65: Activity's rows on 451 never shrank the bar).
      */
     @Nullable
     private View findScroller(View view, int x, int y, int depth) {
@@ -464,7 +466,7 @@ final class GlassScrollHide {
                 if (inside != null) return inside;
             }
         }
-        return view.canScrollVertically(-1) || view.canScrollVertically(1) ? view : null;
+        return view instanceof ViewGroup && (view.canScrollVertically(-1) || view.canScrollVertically(1)) ? view : null;
     }
 
     private void hideIfScrolled() {
