@@ -8,7 +8,10 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.misc.analytics.loadsString
+import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegister
@@ -94,7 +97,7 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * batch, [send] the one method doing it, [retry] its rebuild of a batch it retries if it has one,
  * [getter] the store's static getter for an account and [sessionGetter] the instance method
  * answering the account a store sends for, on [sessionOwner]. [reels] is the batch's map of the
- * stories it holds, the one the request writes under "reels". The header binder hands the hook its
+ * stories it holds, the one the request writes under "reels". The story binder hands the hook its
  * account, story and view holder, parameters [session], [item] and [holder], and [itemView] is the
  * view holder's root view.
  */
@@ -157,16 +160,17 @@ private class Stories(val field: FieldReference, val add: Int)
  *   there with only constants in it ([requireEveryRouteToTheRequest]);
  * - the store's one public static getter taking a [USER_SESSION], so a tap can send through it, and
  *   the public getter of the account a store sends for, with the account's [USER_ID];
- * - the story header binder, static, taking one [USER_SESSION], one [REEL_ITEM] and one view
- *   holder, whose first instruction no branch lands on, with three locals the hook can borrow;
+ * - the story item binder's toolbar bind ([STORY_BINDER_TRACE]), static, taking one
+ *   [USER_SESSION], one [REEL_ITEM] and one view holder, whose first instruction no branch lands on,
+ *   with three locals the hook can borrow;
  * - the view holder base's item view, the public View field its constructor keeps its parameter in,
  *   and [REEL_ITEM]'s public getId(), on a class rather than an interface;
  * - the extension's hooks and stubs.
  */
 internal fun BytecodePatchContext.findStorySeen(): StorySeenTargets {
-    val request = uniqueMethod(PATCH, "story seen request", StorySeenRequestFingerprint)
+    val request = methodLoading("story seen request", SEEN_PATH, FORCE_SEEN_KEY)
     val batch = request.definingClass
-    val storeReader = uniqueMethod(PATCH, "pending story seen store", PendingStorySeenStoreFingerprint)
+    val storeReader = methodLoading("pending story seen store", PENDING_PREFIX, PENDING_READ)
     val store = storeReader.definingClass
     val storeClass = classDefByOrNull(store) ?: refuse("$store isn't in this build")
     val batchClass = classDefByOrNull(batch) ?: refuse("$batch isn't in this build")
@@ -209,9 +213,9 @@ internal fun BytecodePatchContext.findStorySeen(): StorySeenTargets {
     val sessionGetter = sessionGetter(storeClass)
     requireUserId()
 
-    val binder = uniqueMethod(PATCH, "story header binder", StoryHeaderBinderFingerprint)
+    val binder = uniqueMethod(PATCH, "story item binder's toolbar bind", StoryHeaderBinderFingerprint)
     val where = "${binder.definingClass}->${binder.name}"
-    if (!AccessFlags.STATIC.isSet(binder.accessFlags)) refuse("$where isn't static, as the story header binder is")
+    if (!AccessFlags.STATIC.isSet(binder.accessFlags)) refuse("$where isn't static, as the story item binder's toolbar bind is")
     val parameters = binder.parameterTypes.map(Any::toString)
     val holderInit = uniqueMethod(PATCH, "view holder constructor", ViewHolderFingerprint)
     val base = holderInit.definingClass
@@ -244,6 +248,26 @@ internal fun BytecodePatchContext.findStorySeen(): StorySeenTargets {
         binder.name, parameters, session, item, holder, itemView, queue, stubs,
     )
 }
+
+/**
+ * The one method loading every one of [strings], each either held or asked from a static pool of
+ * shared strings, which Redex picks differently per build (451's 385713073 asks a pool for
+ * [FORCE_SEEN_KEY]). The pools themselves aren't taken, though they hold the strings.
+ */
+private fun BytecodePatchContext.methodLoading(what: String, vararg strings: String): MutableMethod {
+    val found = classesLoadingString(strings.first()).flatMap { owner ->
+        owner.methods.filter { method -> !method.isStringPool() && strings.all { loadsString(method, it) } }
+    }
+    val method = found.singleOrNull() ?: refuse(
+        "expected exactly one $what in this Instagram build, found " +
+            if (found.isEmpty()) "none" else found.joinToString { "${it.definingClass}->${it.name}" },
+    )
+    return mutableClassDefBy(method.definingClass).methods.single { it.sameAs(method) }
+}
+
+/** A static `(I)String` method: the shape of Redex's pools of shared strings. */
+private fun Method.isStringPool() = AccessFlags.STATIC.isSet(accessFlags) && returnType == STRING &&
+    parameterTypes.map(Any::toString) == listOf("I")
 
 /**
  * Refuses unless the batch can't be reached under another name: final, so no class extends it and
@@ -482,10 +506,11 @@ private fun freshValue(code: List<Instruction>, at: Int, register: Int, jumps: S
  * request starts its builder with one call, the one whose result the stories are added to. A static
  * field it reads goes only into that call, or into a setting of the builder taking a number or a
  * flag; a parameter of the request (the account, on Instagram 449) goes only into that call. The
- * static methods it calls are the batch's own `(Map)String` serializers and String.valueOf, and any
- * other call is that start, a call on the builder, or isEmpty() or size() of a collection.
+ * static methods it calls are the batch's own `(Map)String` serializers, String.valueOf and string
+ * pools asked for a constant (451's 385713073 asks two for key names), and any other call is that
+ * start, a call on the builder, or isEmpty() or size() of a collection.
  */
-private fun requireRequestSendsOnlyItsBatch(request: Method, batch: String, add: Int) {
+private fun BytecodePatchContext.requireRequestSendsOnlyItsBatch(request: Method, batch: String, add: Int) {
     val where = "$batch->${request.name}"
     val code = request.code()
     val builder = code[add].namedRegisters().first()
@@ -519,7 +544,8 @@ private fun requireRequestSendsOnlyItsBatch(request: Method, batch: String, add:
             called != null && opcode in STATIC_INVOKES -> {
                 val serializer = called.definingClass == batch && called.parameterTypes.map(Any::toString) == listOf(MAP) &&
                     called.returnType == STRING
-                if (!serializer && called.toString() != VALUE_OF) refuse("$where calls $called, which may send what its batch doesn't hold")
+                val pooled = stringLoadedAt(code, index) != null
+                if (!serializer && !pooled && called.toString() != VALUE_OF) refuse("$where calls $called, which may send what its batch doesn't hold")
             }
             called != null -> {
                 if (index != start && index !in onBuilder && !(opcode in VIRTUAL_INVOKES && called.query())) {
@@ -790,7 +816,7 @@ internal fun BytecodePatchContext.hookStorySend(found: StorySeenTargets) {
 }
 
 /**
- * Puts the button's hook first in the story header binder, handing it the account signed in, the
+ * Puts the button's hook first in the story binder ([STORY_BINDER_TRACE]), handing it the account signed in, the
  * story and its view holder in three borrowed locals: nothing is in them before the binder's own
  * first instruction, and the parameters may sit past v15.
  */

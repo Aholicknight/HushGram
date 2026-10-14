@@ -1086,12 +1086,13 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySeen;->toRetry(Ljava/la
 # and the selected local reaches that builder. Source proofs on original449 also require the
 # owned maps, every builder caller, claim literals, monitor and disk cleanup key dataflow.
 retry-call Lapp/hushgram/extension/instagram/stories/StorySeen;->toRetry(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance ()V calling instance Ljava/util/Iterator;->hasNext()Z class-holding null\scannot\sbe\scast\sto\snon-null\stype\sT\sof\scom.instagram.store.PendingActionStore
-# Its second switch hands each story on screen to StorySeenButton first thing in the story header
-# binder (05UI.A06 on 449), the one static method holding the trace section Instagram names after
-# it, behind three moves of its account, story and view holder into borrowed locals. Left out, no
+# Its second switch hands each story on screen to StorySeenButton first thing in the story item
+# binder's toolbar bind (014T.A03 on 451's 385713073; 451 has no header binder, and the media bind
+# and item bind that called it call only this one), the one static method holding its trace section,
+# behind three moves of its account, story and view holder into borrowed locals. Left out, no
 # story gets a Mark as seen button; twice or elsewhere, it isn't the hook the patch wrote.
-start-call Lapp/hushgram/extension/instagram/stories/StorySeenButton;->bind(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindHeaderViews
-once-call Lapp/hushgram/extension/instagram/stories/StorySeenButton;->bind(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindHeaderViews
+start-call Lapp/hushgram/extension/instagram/stories/StorySeenButton;->bind(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindToolbarViews
+once-call Lapp/hushgram/extension/instagram/stories/StorySeenButton;->bind(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindToolbarViews
 # It also hands StorySeenRings the story viewer's write of a reel's seen time into the store that greys
 # its ring (0202.A0A on 450, the viewer logger's per-story method, which takes the story and holds
 # nux_story), in the write's own place, with the story whose time it is. The extension skips it while

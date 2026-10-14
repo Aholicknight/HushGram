@@ -239,7 +239,7 @@ class StorySeenHookTest {
     }
 
     @Test
-    fun aBuildWithoutTheHeaderBinderFails() = assertRefused(standIns(binder = false), "story header binder")
+    fun aBuildWithoutTheHeaderBinderFails() = assertRefused(standIns(binder = false), "story item binder's toolbar bind")
 
     @Test
     fun aBinderOfAnotherShapeFails() {
@@ -328,7 +328,7 @@ class StorySeenHookTest {
         assertEquals("${label}: one call of each hook", 3, hooked.size)
 
         val binderClass = classes.single { it.type == found.binder }
-        assertRefused(classes + copyOf(binderClass, "Lfixture/SecondBinder;"), "story header binder")
+        assertRefused(classes + copyOf(binderClass, "Lfixture/SecondBinder;"), "story item binder's toolbar bind")
         assertRefused(classes.filter { it.type != REEL_ITEM }, "$REEL_ITEM isn't in this build")
     }
 
@@ -339,7 +339,7 @@ class StorySeenHookTest {
      * extension's two classes.
      */
     internal fun fixtureClasses(bundle: java.io.File): List<ClassDef> {
-        val strings = setOf("media/seen/?reel=%s&live_vod=0", "pending_reel_seen_states_", "ReelViewerItemBinder.bindHeaderViews", "itemView may not be null")
+        val strings = setOf("media/seen/?reel=%s&live_vod=0", "pending_reel_seen_states_", STORY_BINDER_TRACE, "itemView may not be null")
         val found = mutableMapOf<String, ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             if (dex.stringSection.none { it in strings }) return@forEach
@@ -348,7 +348,7 @@ class StorySeenHookTest {
             }
         }
         val methods = found.values.flatMap { it.methods }
-        val binder = methods.single { method -> method.code().any { it.string() == "ReelViewerItemBinder.bindHeaderViews" } }
+        val binder = methods.single { method -> method.code().any { it.string() == STORY_BINDER_TRACE } }
         val request = methods.single { method -> method.code().any { it.string() == "media/seen/?reel=%s&live_vod=0" } }
         val requestKey = "${request.definingClass}->${request.name}(${request.parameterTypes.joinToString("")})${request.returnType}"
         val callers = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.toString() == requestKey } }) { method ->
@@ -790,7 +790,7 @@ class StorySeenHookTest {
                 listOf(
                     method(BINDER, "A06", binderParameters, "V", binderLocals + binderParameters.size, """
                         :start
-                        const-string v0, "ReelViewerItemBinder.bindHeaderViews"
+                        const-string v0, "$STORY_BINDER_TRACE"
                         move-object/from16 v1, p$holderAt
                         if-eqz v1, ${if (binderLoops) ":start" else ":done"}
                         invoke-virtual { v1 }, Ljava/lang/Object;->hashCode()I

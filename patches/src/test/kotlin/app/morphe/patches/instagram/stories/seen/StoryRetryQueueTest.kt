@@ -347,7 +347,7 @@ class StoryRetryQueueTest {
         val mutable = MutableMethod(ImmutableMethod.of(method))
         mutable.addInstructionsWithLabels(at, body)
         // Mutate an executed path. Native labels otherwise stay on the old instruction and skip
-        // an inserted overwrite, which would be an inert counterexample on native450.
+        // an inserted overwrite, which would be an inert counterexample on the declared 451 build.
         val code = mutable.code().toMutableList()
         val added = code.size - method.code().size
         val addresses = addresses(code)
@@ -566,7 +566,7 @@ class StoryRetryQueueTest {
     }
 
     private fun proofInputs(): List<List<ClassDef>> {
-        assertTrue("the authoritative declared 450 build (385611438) is required", nativeProofInputs.isNotEmpty())
+        assertTrue("the authoritative declared 451 build (385713073) is required", nativeProofInputs.isNotEmpty())
         return nativeProofInputs + listOf(fixtures.standIns())
     }
     private fun replace(classes: List<ClassDef>, owner: ClassDef, fields: Iterable<com.android.tools.smali.dexlib2.iface.Field> = owner.fields,
@@ -584,7 +584,7 @@ class StoryRetryQueueTest {
 
     companion object {
         private val nativeProofInputs by lazy {
-            Fixtures.files { it.name == "instagram-450.0.0.50.77-385611438.apks" }
+            Fixtures.files { it.name == "instagram-451.0.0.53.80-385713073.apks" }
                 .map { StorySeenHookTest().fixtureClasses(it) }
         }
         private val otherNativeProofInputs by lazy {

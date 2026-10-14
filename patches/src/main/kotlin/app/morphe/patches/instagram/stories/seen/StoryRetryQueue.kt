@@ -528,12 +528,16 @@ private fun BytecodePatchContext.requireDiskCleanup(reader: Method, run: Method,
     reader.requireThisIntact(PATCH, listOf(at, receiverAt, sessionAt - 1))
 }
 
-/** Resolve the assertion helpers by the declared native bodies, never an obfuscated name. */
+/**
+ * Resolve the assertion helpers by the declared native bodies, never an obfuscated name. 451's
+ * 385713109 loads the parameter message with const-string/jumbo where 385713073 has const-string,
+ * so the bodies compare with a jumbo load read as a plain one, as [Shape] does.
+ */
 private fun BytecodePatchContext.requireClaimAssertions(parameter: MethodReference, present: MethodReference) {
     val owner = classDefByOrNull(parameter.definingClass) ?: refuseQueue("claim has no native assertions")
     val checkParameter = owner.methods.singleOrNull { AccessFlags.STATIC.isSet(it.accessFlags) &&
         it.parameterTypes.map(Any::toString) == listOf(OBJECT, "I") && it.returnType == "V" &&
-        it.code().map { instruction -> instruction.opcode } == listOf(Opcode.IF_NEZ, Opcode.INVOKE_STATIC,
+        it.code().map { instruction -> instruction.opcode.unjumbo() } == listOf(Opcode.IF_NEZ, Opcode.INVOKE_STATIC,
             Opcode.MOVE_RESULT_OBJECT, Opcode.CONST_STRING, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT,
             Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT,
             Opcode.INVOKE_STATIC, Opcode.THROW, Opcode.RETURN_VOID) &&
@@ -690,11 +694,13 @@ private fun Method.requireOrigin(register: Int, read: Int, definition: Int) {
     if (seen[read] != setOf(definition)) refuseQueue("disk cleanup has changed receiver, prefix or account dataflow")
 }
 
+/** A string's load turns jumbo once the dex holds more strings than a short index reaches, as in 450. */
+private fun Opcode.unjumbo(): Opcode = if (this == Opcode.CONST_STRING_JUMBO) Opcode.CONST_STRING else this
+
 private class Shape(val method: Method, vararg expected: Opcode) {
     private val code = method.code()
-    // A string's load turns jumbo once the dex holds more strings than a short index reaches, as in 450.
     init {
-        if (code.map { if (it.opcode == Opcode.CONST_STRING_JUMBO) Opcode.CONST_STRING else it.opcode } != expected.toList()) {
+        if (code.map { it.opcode.unjumbo() } != expected.toList()) {
             refuseQueue("${method.name} changed its native shape")
         }
     }
