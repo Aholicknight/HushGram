@@ -37,8 +37,16 @@ public final class FeedTapPause {
     static final String PAUSED = "feed videos paused by a tap";
     static final String PLAYED = "feed videos played by a tap";
 
-    /** What {@link HookStatus} counts: taps with the switch on that weren't on the playing video, or were on an ad. */
-    static final String LEFT = "taps left to Instagram";
+    /**
+     * What {@link HookStatus} counts: taps with the switch on that went to Instagram, split by the check that sent them
+     * there, so one report from a phone names which check a tap failed on.
+     */
+    static final String LEFT_NO_CONTROLLER = "taps left, no controller";
+    static final String LEFT_NOTHING_PLAYING = "taps left, nothing playing";
+    static final String LEFT_ANOTHER_POST = "taps left, another post";
+    static final String LEFT_AN_AD = "taps left, an ad";
+    static final String LEFT_NO_PLAYER = "taps left, no player";
+    static final String LEFT_NOT_A_BOOLEAN = "taps left, not a Boolean";
 
     /** The hook's name in a failure report. */
     static final String TAP = "feed tap";
@@ -151,22 +159,22 @@ public final class FeedTapPause {
 
             Object controller = feed.controllerOf(handler);
             if (unfilled(controller, "the feed video controller")) return false;
-            if (controller == null) return left();
+            if (controller == null) return left(LEFT_NO_CONTROLLER);
             Object shown = feed.shownOf(controller);
             if (unfilled(shown, "the playing post")) return false;
-            if (shown == null) return left();
+            if (shown == null) return left(LEFT_NOTHING_PLAYING);
             Object page = feed.pageOf(media, state);
             if (unfilled(page, "the tapped post's page")) return false;
-            if (page == null || !page.equals(shown)) return left();
+            if (page == null || !page.equals(shown)) return left(LEFT_ANOTHER_POST);
             Object ad = feed.adDetailsOf(media);
             if (unfilled(ad, "the post's ad details")) return false;
-            if (ad != null) return left();
+            if (ad != null) return left(LEFT_AN_AD);
             Object player = feed.playerOf(controller);
             if (unfilled(player, "the player")) return false;
-            if (player == null) return left();
+            if (player == null) return left(LEFT_NO_PLAYER);
             Object playing = feed.playing(player);
             if (unfilled(playing, "the player's state")) return false;
-            if (!(playing instanceof Boolean)) return left();
+            if (!(playing instanceof Boolean)) return left(LEFT_NOT_A_BOOLEAN);
 
             boolean wasPlaying = (Boolean) playing;
             Object done = wasPlaying ? feed.pause(controller) : feed.start(controller);
@@ -182,9 +190,9 @@ public final class FeedTapPause {
         }
     }
 
-    /** Counts a tap that goes to Instagram with the switch on, and answers no. */
-    private static boolean left() {
-        HookStatus.counted(FamilyNames.FEED_TAP_PAUSE, LEFT);
+    /** Counts a tap that goes to Instagram with the switch on, under the check [reason] it failed, and answers no. */
+    private static boolean left(String reason) {
+        HookStatus.counted(FamilyNames.FEED_TAP_PAUSE, reason);
         return false;
     }
 

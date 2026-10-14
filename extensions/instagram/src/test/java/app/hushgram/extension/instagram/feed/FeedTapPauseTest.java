@@ -139,7 +139,7 @@ public class FeedTapPauseTest {
         String report = report();
         assertTrue(report, report.contains(FamilyNames.FEED_TAP_PAUSE + ": invoked 1"));
         assertFalse(report, report.contains(FeedTapPause.PAUSED));
-        assertFalse(report, report.contains(FeedTapPause.LEFT));
+        assertFalse(report, report.contains("taps left"));
     }
 
     /** On, a tap on the playing video pauses it through the controller, tells the post's state and ends the tap. */
@@ -170,7 +170,7 @@ public class FeedTapPauseTest {
         assertTrue(report, report.contains(FeedTapPause.PLAYED + " 1"));
     }
 
-    /** A post that isn't the one playing, a photo say, keeps Instagram's tap and is counted. */
+    /** A post that isn't the one playing, a photo say, keeps Instagram's tap and is counted under "another post". */
     @Test
     public void aPostThatIsNotPlayingIsInstagrams() {
         Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
@@ -180,10 +180,10 @@ public class FeedTapPauseTest {
         assertFalse("a post with no page", tap());
         assertEquals(0, feed.pauses + feed.starts);
         assertNull(feed.marked);
-        assertTrue(report(), report().contains(FeedTapPause.LEFT + " 2"));
+        assertTrue(report(), report().contains(FeedTapPause.LEFT_ANOTHER_POST + " 2"));
     }
 
-    /** With nothing playing, no controller or no player, there's nothing to pause. */
+    /** With nothing playing, no controller, no player or a player that doesn't say, each check counts on its own. */
     @Test
     public void withNothingToPauseItIsInstagrams() {
         Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
@@ -199,17 +199,21 @@ public class FeedTapPauseTest {
         feed.playing = null;
         assertFalse("a player that doesn't say", tap());
         assertEquals(0, feed.pauses + feed.starts);
-        assertTrue(report(), report().contains(FeedTapPause.LEFT + " 4"));
+        String report = report();
+        assertTrue(report, report.contains(FeedTapPause.LEFT_NOTHING_PLAYING + " 1"));
+        assertTrue(report, report.contains(FeedTapPause.LEFT_NO_CONTROLLER + " 1"));
+        assertTrue(report, report.contains(FeedTapPause.LEFT_NO_PLAYER + " 1"));
+        assertTrue(report, report.contains(FeedTapPause.LEFT_NOT_A_BOOLEAN + " 1"));
     }
 
-    /** A sponsored post keeps Instagram's tap even while its video plays. */
+    /** A sponsored post keeps Instagram's tap even while its video plays, counted under "an ad". */
     @Test
     public void anAdIsInstagrams() {
         Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
         feed.ad = new Object();
         assertFalse(tap());
         assertEquals(0, feed.pauses + feed.starts);
-        assertTrue(report(), report().contains(FeedTapPause.LEFT + " 1"));
+        assertTrue(report(), report().contains(FeedTapPause.LEFT_AN_AD + " 1"));
     }
 
     /** Paused, a saved switch leaves the tap alone and reads nothing. */
