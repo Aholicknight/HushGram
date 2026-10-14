@@ -79,6 +79,11 @@ public class ReelOriginTest {
     /** The reel's author, and the reel as Instagram names it: its own id, then its author's. */
     private static final String AUTHOR = "7";
     private static final String REEL = "3100_" + AUTHOR;
+    /**
+     * Every tab made in a test, until it ends. The search holds its tab only weakly, while Instagram's
+     * fragment manager holds a real one, so a tab a test made and dropped could be collected mid-search.
+     */
+    private static final List<Object> TABS = new ArrayList<>();
 
     /** A reel as the extension sees 450's Media. */
     public static final class Reel {
@@ -107,6 +112,7 @@ public class ReelOriginTest {
             this.activity = activity;
             this.grid = grid;
             arguments.putString(ReelOrigin.USER_KEY, user);
+            TABS.add(this);
         }
 
         public Activity getActivity() {
@@ -132,6 +138,7 @@ public class ReelOriginTest {
         TwoGrids(Activity activity) {
             this.activity = activity;
             arguments.putString(ReelOrigin.USER_KEY, AUTHOR);
+            TABS.add(this);
         }
 
         public Activity getActivity() {
@@ -180,6 +187,7 @@ public class ReelOriginTest {
     @After
     public void restore() {
         ReelOrigin.forget();
+        TABS.clear();
         for (ActivityController<Activity> controller : controllers) controller.pause().stop().destroy();
         Settings.FIND_REEL_ORIGIN.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -245,7 +253,7 @@ public class ReelOriginTest {
 
         ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
         idleSeconds(10);
-        assertEquals(List.of(REEL), shown);
+        assertEquals(HookStatus.report() + " drags " + grid.drags + " pages " + loaded[0], List.of(REEL), shown);
         assertFalse("the grid was dragged on", grid.drags.isEmpty());
         assertTrue("every drag went down the grid", grid.drags.stream().allMatch(by -> by > 0));
         assertTrue("and it was never scrolled", grid.scrolls.isEmpty());
@@ -276,6 +284,8 @@ public class ReelOriginTest {
         assertEquals("Stop looking went with the search", 1, content().getChildCount());
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(ReelOrigin.NOT_FOUND + " 1"));
+        assertTrue("and why", report.contains(ReelOrigin.RAN_OUT + " 1"));
+        assertFalse(report, report.contains(ReelOrigin.ENDED));
     }
 
     /**
@@ -294,6 +304,123 @@ public class ReelOriginTest {
         assertFalse("dragged at the end in case more was coming", grid.drags.isEmpty());
         assertTrue("never scrolled", grid.scrolls.isEmpty());
         assertEquals("never moved", 0, grid.firstRow());
+        assertNull(ReelOrigin.heldForTests());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.NOT_FOUND + " 1"));
+        assertTrue("and why", report.contains(ReelOrigin.ENDED + " 1"));
+        assertFalse("its tiles were there from the start", report.contains(ReelOrigin.WAITED));
+    }
+
+    /**
+     * A profile opened straight on its Reels tab, as 451 does for some reels (#30): the tab resumes
+     * before its first page, over the grey placeholders Instagram puts up, which fill the screen and
+     * carry no name. They aren't taken for the grid's end: nothing is dragged and no button goes up
+     * until the page comes, however long it takes, and then the reel is found.
+     */
+    @Test
+    public void aTabOpenedBeforeItsFirstPageWaitsPastThePlaceholders() {
+        List<String> first = reels(12, 9000);
+        first.set(10, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(new ArrayList<>(), null);
+        grid.placeholders = RecyclerView.PER_ROW * RecyclerView.SHOWN_ROWS;
+        grid.bind();
+        assertFalse("the placeholders fill the screen", grid.canScrollVertically(1));
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            grid.reels.addAll(first);
+            grid.bind();
+        }, 6000);
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(5);
+        assertNull("no giving up over the placeholders", ShadowToast.getTextOfLatestToast());
+        assertTrue("nothing dragged over them", grid.drags.isEmpty());
+        assertNull("no button over them", ReelOrigin.buttonForTests());
+        assertEquals(REEL, ReelOrigin.heldForTests());
+
+        idleSeconds(5);
+        assertEquals(List.of(REEL), shown);
+        assertFalse("dragged once the page came", grid.drags.isEmpty());
+        assertNull(ShadowToast.getTextOfLatestToast());
+        assertNull(ReelOrigin.heldForTests());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.WAITED + " 1"));
+        assertTrue(report, report.contains(ReelOrigin.FOUND + " 1"));
+        assertFalse(report, report.contains(ReelOrigin.NOT_FOUND));
+    }
+
+    /** Placeholders that no page ever replaces give up after the search's time, with the grid unmoved. */
+    @Test
+    public void placeholdersThatNeverGiveWayGiveUpWithoutMoving() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(new ArrayList<>(), null);
+        grid.placeholders = RecyclerView.PER_ROW * RecyclerView.SHOWN_ROWS;
+        grid.bind();
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(10);
+        assertNull("still waiting for the first page", ShadowToast.getTextOfLatestToast());
+        idleSeconds(7);
+        assertEquals("Couldn't find the reel you came from", ShadowToast.getTextOfLatestToast());
+        assertTrue(grid.drags.isEmpty());
+        assertTrue(grid.scrolls.isEmpty());
+        assertNull(ReelOrigin.heldForTests());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.WAITED + " 1"));
+        assertTrue(report, report.contains(ReelOrigin.NOT_FOUND + " 1"));
+        assertTrue("and why", report.contains(ReelOrigin.NO_TILES + " 1"));
+    }
+
+    /**
+     * A first page too short to fill the screen, which Instagram tops up a page at a time: each page
+     * coming in at the end starts the wait for more again, so a reel a few pages on is still found.
+     */
+    @Test
+    public void tilesComingInAtTheEndStartTheWaitAgain() {
+        List<String> third = reels(12, 8000);
+        third.set(10, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(reels(3, 9000), null);
+        Handler main = new Handler(Looper.getMainLooper());
+        main.postDelayed(() -> {
+            grid.reels.addAll(reels(3, 8500));
+            grid.bind();
+        }, 3000);
+        main.postDelayed(() -> {
+            grid.reels.addAll(third);
+            grid.bind();
+        }, 6000);
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(12);
+        assertEquals(List.of(REEL), shown);
+        assertNull(ShadowToast.getTextOfLatestToast());
+        assertNull(ReelOrigin.heldForTests());
+    }
+
+    /**
+     * A tile is the reel when Instagram named it by the reel's id, the reel's own number then its
+     * author's, or by the reel's own number alone, either way round.
+     */
+    @Test
+    public void aTileIsTheReelByItsIdOrItsOwnNumber() {
+        assertTrue(ReelOrigin.matches(REEL, REEL));
+        assertTrue("a tile named by the reel's own number", ReelOrigin.matches("3100", REEL));
+        assertTrue("an id without its author", ReelOrigin.matches(REEL, "3100"));
+        assertFalse("another reel by the same author", ReelOrigin.matches("3101_" + AUTHOR, REEL));
+        assertFalse("a number that only starts the same", ReelOrigin.matches("31_" + AUTHOR, REEL));
+        assertFalse("a name that's no reel's", ReelOrigin.matches("row_header", REEL));
+        assertFalse(ReelOrigin.matches("_" + AUTHOR, REEL));
+        assertFalse(ReelOrigin.matches(null, REEL));
+        assertFalse(ReelOrigin.matches("", REEL));
+        assertFalse(ReelOrigin.matches(REEL, null));
+        assertFalse(ReelOrigin.matches(REEL, ""));
+
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(List.of("3000_7", "3100", "2900_7"), null);
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        ShadowLooper.idleMainLooper();
+        assertEquals("found by its own number", List.of("3100"), shown);
         assertNull(ReelOrigin.heldForTests());
     }
 
@@ -610,6 +737,8 @@ public class ReelOriginTest {
         idleSeconds(6);
         assertTrue(shown.isEmpty());
         assertEquals("still held for the author's own tab", REEL, ReelOrigin.heldForTests());
+        String report = HookStatus.report().toString();
+        assertTrue("another profile's tab is counted", report.contains(ReelOrigin.OTHER_PROFILE + " 1"));
 
         ReelOrigin.forget();
         ReelOrigin.opening(new Reel(REEL), ON);

@@ -58,6 +58,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * was, a toast says so, and the id is dropped. Leaving the tab first stops the search and keeps the
  * id for the next time the tab opens.
  *
+ * <p>Nothing is dragged and no end is waited for until the grid holds a tile Instagram named. A
+ * profile can open straight on its Reels tab (451 does for some reels), and then the tab resumes
+ * before its first page: the grid shows nine grey placeholder tiles with no names, as many as fill
+ * the screen, so it can't scroll. Taken for the loaded end, they made the search give up four
+ * seconds in with the grid unmoved (#30). Each time more named tiles come in at the end, as when
+ * Instagram fills a screen its first page left short, the wait for the end starts again.
+ *
  * <p>While the grid is dragged, a Stop looking button sits near the bottom of the profile's screen,
  * and a tap on it ends the search where the grid is and drops the id. With Wait for a tap on, a
  * reel that isn't on the first screen isn't looked for until the button, reading Find the reel
@@ -85,6 +92,17 @@ public final class ReelOrigin {
     /** Counted when the Find the reel button is put up for a tap, and when Stop looking ends a search. */
     static final String OFFERED = "find button shown";
     static final String STOPPED = "search stopped";
+    /** Counted once a search when it waits for the grid's first named tiles, as behind the placeholders. */
+    static final String WAITED = "waited for the first page";
+    /**
+     * Why a search gave up, counted beside reel not found: the grid ended with nothing more coming,
+     * the screens or the time ran out while it still went on, or no tile was ever named.
+     */
+    static final String ENDED = "grid ended";
+    static final String RAN_OUT = "screens ran out";
+    static final String NO_TILES = "no named tiles";
+    /** Counted when the Reels tab in the profile's screen is another profile's than the reel's author. */
+    static final String OTHER_PROFILE = "other profile's tab";
 
     /** How long after the tap the profile's activity may take to be created. */
     static final long HOST_WINDOW_MS = 5000;
@@ -190,7 +208,11 @@ public final class ReelOrigin {
             if (arguments == null) return;
             Object found = arguments.invoke(tab);
             String user = found instanceof Bundle ? ((Bundle) found).getString(USER_KEY) : null;
-            if (user == null || user.isEmpty() || !id.endsWith("_" + user)) return;
+            if (user == null || user.isEmpty()) return;
+            if (!id.endsWith("_" + user)) {
+                HookStatus.counted(FamilyNames.REEL_ORIGIN, OTHER_PROFILE);
+                return;
+            }
             Method resumed = method(tab, "isResumed");
             Field grid = gridField(tab);
             if (resumed == null || grid == null) return;
@@ -269,6 +291,9 @@ public final class ReelOrigin {
         private int steps;
         /** Where the grid was when the search started. */
         private int start;
+        /** Since when the search has waited for the grid's first named tiles, and how many were bound at the end last time. */
+        private long unnamedSince;
+        private int endNamed;
 
         Look(Object tab, Method resumed, Field grid, String id, BooleanSupplier on, Activity screen, boolean going) {
             this.tab = new WeakReference<>(tab);
@@ -307,27 +332,39 @@ public final class ReelOrigin {
                     forget();
                     return;
                 }
-                if (!going) {
-                    // Up once the grid has tiles, while the tab shows; a screen with no place for it
-                    // looks straight away.
-                    if (list.getChildCount() == 0) {
-                        handler.postDelayed(this, WAIT_MS);
-                        return;
+                int named = named(list);
+                long now = SystemClock.uptimeMillis();
+                if (named == 0) {
+                    // No reel bound yet, only the placeholders Instagram shows while the first page
+                    // loads, or nothing: no button, no drag and no end until named tiles come.
+                    if (going) {
+                        if (unnamedSince == 0) {
+                            unnamedSince = now;
+                            HookStatus.counted(FamilyNames.REEL_ORIGIN, WAITED);
+                        } else if (now - unnamedSince >= GIVE_UP_MS) {
+                            giveUp(list, NO_TILES);
+                            return;
+                        }
                     }
+                    handler.postDelayed(this, WAIT_MS);
+                    return;
+                }
+                if (!going) {
+                    // Up once the grid has named tiles, while the tab shows; a screen with no place
+                    // for it looks straight away.
                     if (putButtonUp(list)) {
                         handler.postDelayed(this, TAP_WAIT_MS);
                         return;
                     }
                     going = true;
                 }
-                long now = SystemClock.uptimeMillis();
                 if (started == 0) {
                     started = now;
                     start = offset(list);
                 }
                 putButtonUp(list);
                 if (steps >= MAX_STEPS || now - started >= GIVE_UP_MS) {
-                    giveUp(list);
+                    giveUp(list, RAN_OUT);
                     return;
                 }
                 if (list.canScrollVertically(1)) {
@@ -335,11 +372,14 @@ public final class ReelOrigin {
                     dragged = now;
                     steps++;
                     endSince = 0;
-                } else if (list.getChildCount() > 0) {
-                    if (endSince == 0) {
+                } else {
+                    // At the end: more named tiles coming in, as Instagram fills a screen its page
+                    // left short, start the wait again.
+                    if (endSince == 0 || named != endNamed) {
                         endSince = now;
+                        endNamed = named;
                     } else if (now - endSince >= END_WAIT_MS) {
-                        giveUp(list);
+                        giveUp(list, ENDED);
                         return;
                     }
                     if (now - dragged >= NUDGE_MS) {
@@ -420,11 +460,15 @@ public final class ReelOrigin {
             if (up != null && up.getParent() instanceof ViewGroup) ((ViewGroup) up.getParent()).removeView(up);
         }
 
-        /** Not found: the grid goes back to where it was, a toast says so, and the id is dropped. */
-        private void giveUp(ViewGroup list) throws ReflectiveOperationException {
-            int back = start - offset(list);
+        /**
+         * Not found, for [why]: the grid goes back to where it was, a toast says so, and the id is
+         * dropped.
+         */
+        private void giveUp(ViewGroup list, String why) throws ReflectiveOperationException {
+            int back = started == 0 ? 0 : start - offset(list);
             if (back != 0) list.scrollBy(0, back);
             HookStatus.counted(FamilyNames.REEL_ORIGIN, NOT_FOUND);
+            HookStatus.counted(FamilyNames.REEL_ORIGIN, why);
             forget();
             Utils.showToastShort(L10n.t(list.getContext(), "Couldn't find the reel you came from"));
         }
@@ -454,7 +498,7 @@ public final class ReelOrigin {
 
     /** The first view under [view] Instagram named for the reel, or null while none is bound. */
     static View tile(View view, String id) {
-        if (id.equals(view.getTransitionName())) return view;
+        if (matches(view.getTransitionName(), id)) return view;
         if (!(view instanceof ViewGroup)) return null;
         ViewGroup group = (ViewGroup) view;
         for (int i = 0; i < group.getChildCount(); i++) {
@@ -462,6 +506,39 @@ public final class ReelOrigin {
             if (found != null) return found;
         }
         return null;
+    }
+
+    /**
+     * Whether a tile Instagram named [name] is the reel [id]. Instagram names a tile by its reel's
+     * id, the reel's own number then its author's ({@code 3100_7}), so the two are equal. The reel's
+     * own number alone is enough either way, for a tile or an id that drops the author.
+     */
+    static boolean matches(String name, String id) {
+        if (name == null || id == null || name.isEmpty() || id.isEmpty()) return false;
+        if (name.equals(id)) return true;
+        String reel = reelNumber(id);
+        return reel != null && reel.equals(reelNumber(name));
+    }
+
+    /** The reel's own number at the start of [id], up to the author's, or null when it doesn't start with one. */
+    private static String reelNumber(String id) {
+        int end = id.indexOf('_');
+        if (end < 0) end = id.length();
+        if (end == 0) return null;
+        for (int i = 0; i < end; i++) {
+            if (id.charAt(i) < '0' || id.charAt(i) > '9') return null;
+        }
+        return id.substring(0, end);
+    }
+
+    /** How many views under [view] Instagram named, its reels' tiles: none while only placeholders show. */
+    static int named(View view) {
+        String name = view.getTransitionName();
+        int found = name == null || name.isEmpty() ? 0 : 1;
+        if (!(view instanceof ViewGroup)) return found;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) found += named(group.getChildAt(i));
+        return found;
     }
 
     /**
