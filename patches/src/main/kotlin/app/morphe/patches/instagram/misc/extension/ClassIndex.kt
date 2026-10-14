@@ -57,9 +57,23 @@ internal fun BytecodePatchContext.classesLoadingString(value: String): List<Clas
     val askers = holders.flatMap { holder ->
         holder.methods.mapNotNull { pool -> pool.numbersFor(value).takeIf { it.isNotEmpty() }?.let { pool to it } }
     }.flatMap { (pool, numbers) ->
-        classesCalling(pool.definingClass, pool.name).filter { caller -> caller.methods.any { it.asksPool(pool, numbers) } }
+        classesMightAsk(pool, numbers).filter { caller -> caller.methods.any { it.asksPool(pool, numbers) } }
     }
     return (holders + askers).distinctBy { it.type }
+}
+
+/**
+ * The classes [asksPool] reads for [pool] and [numbers], in the app's order: every class calling
+ * the pool, narrowed by the patcher's literal index to the ones that also load the number when
+ * there's only one. A pool is called from thousands of classes, and reading each of them for every
+ * pooled string was a measured share of patching (#173). A class asking for the number loads it
+ * right before the call, so it always passes both filters, and [asksPool] still decides.
+ */
+private fun BytecodePatchContext.classesMightAsk(pool: Method, numbers: Set<Int>): List<ClassDef> {
+    val number = numbers.singleOrNull() ?: return classesCalling(pool.definingClass, pool.name)
+    return classesMatching(
+        Fingerprint(filters = listOf(literal(number.toLong()), methodCall(definingClass = pool.definingClass, name = pool.name))),
+    )
 }
 
 /**

@@ -92,6 +92,8 @@ Every HushGram release, newest first.
 
 * **Tooling:** The fixture tests run against Instagram 451's eight builds. Facts that differ from build to build, like which builds look a string up in a shared pool instead of loading it, were measured again on 451.
 
+* **Instagram:** Patching takes a little less time. Finding the code that asks one of Instagram's shared string pools for a string now starts from the patcher's index of numbers instead of reading every class that uses the pool. With every patch on build 385713073, a desktop spent about 4% less time and CPU, and the patched app came out the same. Refs #173.
+
 * **Tooling:** Device builds support separate keystore and key passwords, including an empty store password. The installer also picks one ADB executable when the path lists more than one.
 
 * **Instagram - HushGram settings:** Restart now reopens settings on the page you were on.
