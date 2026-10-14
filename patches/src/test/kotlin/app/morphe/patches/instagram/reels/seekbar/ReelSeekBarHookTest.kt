@@ -101,8 +101,8 @@ class ReelSeekBarHookTest {
         fun rowWith(row: ClassDef) = standIns().map { if (it.type == ROW) row else it }
         val onlyWhenFalse = "doesn't read its ordinary reel's hidden kind only when $AD_FIELD is false"
         val cases = listOf(
-            Triple("no binder", standIns().filter { it.type != BINDER }, "tagging a view $SCRUBBER_TAG, found 0"),
-            Triple("two binders", standIns() + binder(type = "Lfixture/OtherBinder;"), "tagging a view $SCRUBBER_TAG, found 2"),
+            Triple("no binder", standIns().filter { it.type != BINDER }, "no method tags a view $SCRUBBER_TAG"),
+            Triple("two binders", standIns() + binder(type = "Lfixture/OtherBinder;"), "makes $SEEK_BAR, found 2 of 2 tagging"),
             Triple(
                 "the binder reads another boolean of the item",
                 binderWith(binder(adRead = "iget-boolean v0, v0, $ITEM_TYPE->A18:Z")), "to read $AD_FIELD once, found 0",
@@ -120,7 +120,7 @@ class ReelSeekBarHookTest {
             Triple(
                 "the binder isn't the seek bar primitive's",
                 standIns().map { if (it.type == PRIMITIVE) primitive(returns = "Landroid/view/View;") else it },
-                "reads no field of the primitive that makes $SEEK_BAR",
+                "makes $SEEK_BAR, found 0 of 1 tagging",
             ),
             Triple("the row reads no boolean of its item", rowWith(row(adRead = "const/4 v5, 0x0")), "to read one boolean of $ITEM_TYPE, found 0"),
             Triple(
@@ -141,6 +141,58 @@ class ReelSeekBarHookTest {
             assertTrue("$what: ${refusal.message}", refusal.message!!.contains(reason))
             assertNothingWritten(what, context)
         }
+    }
+
+    /**
+     * 451 also tags its legacy attached scrubber's container clips_scrubber_, in a lambda reading
+     * that component, which makes no bar. The binder is the one reading the primitive that makes the
+     * bar, and the legacy one is left as it was.
+     */
+    @Test
+    fun aTaggerReadingAComponentThatMakesNoBarIsntTheBinder() {
+        val legacy = binder(type = LEGACY_BINDER, primitive = LEGACY)
+        val context = PatchContexts.of(standIns() + legacy + classOf(LEGACY))
+        val sites = context.findReelSeekBarSites()
+        assertEquals(BINDER, sites.bind.method.definingClass)
+        context.applyReelSeekBar(sites)
+        assertBindHookedAfterTheAdRead("stand-in", context.method(BINDER, "invoke"), context.method(ROW, "A00"))
+        assertEquals(
+            "the legacy tagger is left as it was",
+            legacy.methods.single().implementation!!.instructions.map { it.opcode },
+            context.method(LEGACY_BINDER, "invoke").implementation!!.instructions.map { it.opcode },
+        )
+    }
+
+    /**
+     * 451's 385713109 and 385713111 ask a static string pool for the tag instead of loading it, so
+     * the binder holds no tag of its own. It's found all the same and hooked where it would be.
+     */
+    @Test
+    fun aTagAskedOfAStringPoolIsFound() {
+        val pooled = binder(tag = "const/16 v0, 0x2a\ninvoke-static {v0}, $POOL->A00(I)Ljava/lang/String;\nmove-result-object v0")
+        val pool = classOf(
+            POOL,
+            method(
+                POOL, "A00", listOf("I"), "Ljava/lang/String;", 2,
+                """
+                    packed-switch p0, :keys
+                    const/4 v0, 0x0
+                    return-object v0
+                    :tag
+                    const-string v0, "$SCRUBBER_TAG"
+                    return-object v0
+                    :keys
+                    .packed-switch 0x2a
+                        :tag
+                    .end packed-switch
+                """,
+            ),
+        )
+        val context = PatchContexts.of(standIns().filter { it.type != BINDER } + pooled + pool)
+        val sites = context.findReelSeekBarSites()
+        assertEquals(BINDER, sites.bind.method.definingClass)
+        context.applyReelSeekBar(sites)
+        assertBindHookedAfterTheAdRead("pooled tag", context.method(BINDER, "invoke"), context.method(ROW, "A00"))
     }
 
     /**
@@ -335,7 +387,7 @@ class ReelSeekBarHookTest {
                 if (classDef.type == SEEK_BAR || classDef.type == APPCOMPAT_SEEK_BAR ||
                     classDef.methods.any {
                         it.loadsAny(ORGANIC_MIN_SECONDS, ORGANIC_LAZY) || it.holdsMarker() ||
-                            it.holdsString(SCRUBBER_TAG) || it.returnType == SEEK_BAR
+                            it.holdsString(SCRUBBER_TAG) || it.returnType == SEEK_BAR || it.tagsFromAPool()
                     }
                 ) {
                     holders += ImmutableClassDef.of(classDef)
@@ -377,6 +429,16 @@ class ReelSeekBarHookTest {
     private fun Method.holdsString(text: String): Boolean = implementation?.instructions?.any {
         ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == text
     } == true
+
+    /**
+     * Whether this method tags a view and asks a static `(I)String` pool for a string, the way 451's
+     * 385713109 and 385713111 get the binder's tag. The pool itself holds the tag, so it comes along.
+     */
+    private fun Method.tagsFromAPool(): Boolean {
+        val calls = implementation?.instructions?.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }.orEmpty()
+        return calls.any { "$it" == "Landroid/view/View;->setTag(Ljava/lang/Object;)V" } &&
+            calls.any { it.returnType == "Ljava/lang/String;" && it.parameterTypes.map(Any::toString) == listOf("I") }
+    }
 
     private fun BytecodePatchContext.method(type: String, name: String): Method = mutableClassDefBy(type).methods.single { it.name == name }
 
@@ -505,13 +567,16 @@ class ReelSeekBarHookTest {
         const val ITEM_TYPE = "Lfixture/ClipsItem;"
         const val BINDER = "Lfixture/ScrubberBinder;"
         const val PRIMITIVE = "Lfixture/ScrubberPrimitive;"
+        const val LEGACY_BINDER = "Lfixture/LegacyScrubberBinder;"
+        const val LEGACY = "Lfixture/LegacyScrubberComponent;"
+        const val POOL = "Lfixture/StringPool;"
 
         /** The reel item's field saying it's an ad, which the row and the binder read. */
         const val AD_FIELD = "$ITEM_TYPE->A17:Z"
 
-        /** The ads' minimum and hidden kind, read in the same places as the ordinary reels'. */
-        const val AD_MIN_SECONDS = 0x82092100001495L
-        const val AD_LAZY = 0x8109210015339dL
+        /** The ads' minimum and hidden kind on 451, read in the same places as the ordinary reels'. */
+        const val AD_MIN_SECONDS = 0x82091900001472L
+        const val AD_LAZY = 0x81091900153310L
 
         val ORGANIC_MIN_SECONDS_HEX = "0x${ORGANIC_MIN_SECONDS.toString(16)}L"
         val AD_MIN_SECONDS_HEX = "0x${AD_MIN_SECONDS.toString(16)}L"
@@ -683,6 +748,8 @@ class ReelSeekBarHookTest {
             adRead: String = "iget-boolean v0, v0, $AD_FIELD",
             between: String = "",
             tagged: String = "p2",
+            primitive: String = PRIMITIVE,
+            tag: String = "const-string v0, \"$SCRUBBER_TAG\"",
         ): ClassDef = classOf(
             type,
             method(
@@ -693,26 +760,26 @@ class ReelSeekBarHookTest {
                     $head
                     iget-boolean v0, p0, $type->A01:Z
                     if-eqz v0, :untagged
-                    iget-object v1, p0, $type->A00:$PRIMITIVE
-                    iget-object v0, v1, $PRIMITIVE->A04:$ITEM_TYPE
+                    iget-object v1, p0, $type->A00:$primitive
+                    iget-object v0, v1, $primitive->A04:$ITEM_TYPE
                     invoke-virtual {v0}, $ITEM_TYPE->getId()Ljava/lang/String;
                     move-result-object v1
-                    const-string v0, "$SCRUBBER_TAG"
+                    $tag
                     invoke-static {v0, v1}, $CONFIGS->concat(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
                     move-result-object v0
                     invoke-virtual {$tagged, v0}, Landroid/view/View;->setTag(Ljava/lang/Object;)V
                     :untagged
-                    iget-object v1, p0, $type->A00:$PRIMITIVE
-                    iget-object v0, v1, $PRIMITIVE->A04:$ITEM_TYPE
+                    iget-object v1, p0, $type->A00:$primitive
+                    iget-object v0, v1, $primitive->A04:$ITEM_TYPE
                     $adRead
                     $between
                     if-eqz v0, :organic
-                    const v0, 0x7f0b2ea1
+                    const v0, 0x7f0b2f0d
                     invoke-virtual {p2, v0, p1}, Landroid/view/View;->setTag(ILjava/lang/Object;)V
                     :done
                     return-object v2
                     :organic
-                    const v0, 0x7f0b2ea1
+                    const v0, 0x7f0b2f0d
                     invoke-virtual {p2, v0, v2}, Landroid/view/View;->setTag(ILjava/lang/Object;)V
                     goto :done
                 """,

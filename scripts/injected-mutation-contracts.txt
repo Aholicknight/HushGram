@@ -1463,16 +1463,20 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelPostTime;->noClick()Landro
 # ad branch still reads Instagram's own value. The seek bar's onProgressChanged, the one method of
 # its shape reading the bar's listener field, hands the bar and its position to ReelSeekBar.progress
 # first thing, once. Left out, short reels go back to Instagram's rules or the time label never
-# shows; twice or elsewhere, it isn't the hook the patch wrote. The binder that tags a seek bar
-# container clips_scrubber_ and the reel's id (063c.invoke on 449, the one instance method of its
-# shape holding that string) hands the container and Instagram's answer for whether the reel is an
-# ad to ReelSeekBar.bind once, right after reading it. Left out, no bar gets the label; twice or
-# elsewhere, it isn't the hook the patch wrote.
+# shows; twice or elsewhere, it isn't the hook the patch wrote. 451 keeps the bar's listener in
+# A01, beside a new boolean in A00, on all eight builds. The binder that tags a seek bar container
+# clips_scrubber_ and the reel's id hands the container and Instagram's answer for whether the reel
+# is an ad to ReelSeekBar.bind once, right after reading it. Left out, no bar gets the label; twice
+# or elsewhere, it isn't the hook the patch wrote. 451 tags its legacy attached scrubber's container
+# the same way, in a merged lambda of the same shape (on 451's 385713073 that's 0ea6.invoke beside
+# the binder 0BXG.invoke), so the rule also asks for the seek bar primitive's static drawable, A0G,
+# which only the binder reads (the legacy component's is its A0F). 451's 385713109 and 385713111
+# ask a string pool for clips_scrubber_, so the rule takes pooled strings.
 shared-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->minSeconds(J)J in static (Lcom/instagram/common/session/UserSession;JZZ)Z holding android_purge_26_q2_ClipsExperimentUtil_shouldShowAttachedScrubber
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->lazy(I)Z in static (Lcom/instagram/clips/intf/ClipsViewerConfig;L*;L*;Lcom/instagram/common/session/UserSession;Z)L*; holding android_purge_26_q3_ClipsScrubberRowUseCase_getUiState
-start-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A00:Landroid/widget/SeekBar$OnSeekBarChangeListener;
-once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A00:Landroid/widget/SeekBar$OnSeekBarChangeListener;
-once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bind(Ljava/lang/Object;I)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; holding clips_scrubber_
+start-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A01:Landroid/widget/SeekBar$OnSeekBarChangeListener;
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A01:Landroid/widget/SeekBar$OnSeekBarChangeListener;
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bind(Ljava/lang/Object;I)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_scrubber_ LX/*;->A0G:Landroid/graphics/drawable/Drawable;
 
 # Keep Reels auto scroll on hands the choice made with one of Instagram's auto scroll switches to
 # ReelAutoScroll.chosen first thing in the Reels auto scroll plugin's handler for them (0CrH.A00 on
