@@ -235,14 +235,17 @@ internal fun BytecodePatchContext.findPlayerHooks(): PlayerHooks {
     val play = plays.singleOrNull()
         ?: throw PatchException("$PATCH: expected one play (String, boolean) in ${groot.type} holding $GROOT_PLAY, found ${plays.size}")
 
-    // IgGrootPlayer's pause takes the reason and hands it on to the player underneath, and holds
-    // no string of its own. Its other (String) method holds log lines.
+    // IgGrootPlayer's pause takes the reason and hands that same parameter on to the player
+    // underneath, a (String) method of another class. Its other (String) method holds log lines and
+    // hands its parameter to a (String, String) one. On 451's 385713073 the pause also notes first
+    // whether the reason is a tap's ("tapped", "single_tap_paused"), so it holds strings of its own.
     val pauses = groot.instanceMethods { method ->
-        method.parameterTypes.map(Any::toString) == listOf(STRING) && method.strings().isEmpty() &&
+        method.parameterTypes.map(Any::toString) == listOf(STRING) &&
             method.code().any { instruction ->
                 val call = instruction.methodReference()
                 instruction.opcode == Opcode.INVOKE_VIRTUAL && call != null && call.definingClass != groot.type &&
-                    call.returnType == "V" && call.parameterTypes.map(Any::toString) == listOf(STRING)
+                    call.returnType == "V" && call.parameterTypes.map(Any::toString) == listOf(STRING) &&
+                    (instruction as FiveRegisterInstruction).registerD == method.parameterRegisterNumber(0)
             }
     }
     val pause = pauses.singleOrNull()

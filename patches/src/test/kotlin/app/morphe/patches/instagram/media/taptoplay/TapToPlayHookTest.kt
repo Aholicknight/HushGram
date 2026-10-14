@@ -723,8 +723,11 @@ class TapToPlayHookTest {
             ),
             madeWithConfig(clipsHelper, objectType),
         ) + (0 until reelsLoggers).map { madeWithConfig(if (it == 0) reelsLogger else "Lfixture/ClipsVideoLogger$it;", logger) }
+        // Shaped like 451's: the pause notes whether the reason is a tap's, then hands the reason on.
         val pause = { name: String ->
             method(groot, name, listOf(string), "V", 3, static = false, body = """
+                const-string v0, "tapped"
+                invoke-virtual { p1, v0 }, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
                 iget-object v0, p0, $groot->core:$core
                 invoke-virtual { v0, p1 }, $core->A0b(Ljava/lang/String;)V
                 return-void
@@ -744,8 +747,13 @@ class TapToPlayHookTest {
                 """),
                 pause("A0V"),
                 if (secondPause) pause("A0U") else null,
-                method(groot, "A0W", listOf(string), "V", 3, static = false, body = """
+                // The other String method hands its parameter on beside a name of its own, and hands
+                // the player underneath a String it loads, not its parameter: it isn't the pause.
+                method(groot, "A0W", listOf(string), "V", 4, static = false, body = """
+                    iget-object v1, p0, $groot->core:$core
                     const-string v0, "current_watching_module"
+                    invoke-virtual { v1, v0, p1 }, $core->A07(Ljava/lang/String;Ljava/lang/String;)V
+                    invoke-virtual { v1, v0 }, $core->A0b(Ljava/lang/String;)V
                     return-void
                 """),
             ),
