@@ -103,6 +103,23 @@ public class AccentColorTest {
     }
 
     /**
+     * A read through the theme and then Instagram's own Resources passes two hooks, so a color
+     * already swapped comes back as it is, every shade of every color picked.
+     */
+    @Test
+    public void aSwappedColorComesBackAsItIs() {
+        Settings.ACCENT_COLOR.save(true);
+        for (AccentHue hue : AccentHue.values()) {
+            if (hue == AccentHue.BLUE) continue;
+            Settings.ACCENT_HUE.save(hue);
+            for (int shade : new int[] {hue.fill, hue.pressed, hue.dim, hue.linkOnLight, hue.linkOnDark, hue.pale}) {
+                int color = 0xff000000 | shade;
+                assertEquals(hue + " " + Integer.toHexString(color), color, AccentColor.color(color));
+            }
+        }
+    }
+
+    /**
      * #8 on 451: the dark screen's link (#708dff, seen on the S22's captions and mentions), the
      * indigo fills of badges, dots and strong buttons, and a selected pill's pale backgrounds.
      */

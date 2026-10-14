@@ -17,11 +17,13 @@ import app.morphe.patches.instagram.misc.extension.filterEveryReturn
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -45,6 +47,10 @@ private const val CONTEXT = "Landroid/content/Context;"
 private const val COLOR_STATE_LIST = "Landroid/content/res/ColorStateList;"
 private const val THEME = "Landroid/content/res/Resources\$Theme;"
 private const val TYPED_VALUE = "Landroid/util/TypedValue;"
+private const val RESOURCES = "Landroid/content/res/Resources;"
+
+/** The parameters of Resources' two getColor forms, which getColorStateList shares. */
+private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
 
 /**
  * Instagram's blue turns into a color picked in HushGram settings, after a restart. Included in
@@ -194,6 +200,58 @@ internal fun BytecodePatchContext.swapAccentColors() {
             move-result v$data
         """,
     )
+    for (method in findResourcesColorReads()) {
+        if (method.returnType == "I") method.filterEveryColorReturn() else method.filterEveryReturn(PATCH, SWAP_LIST)
+    }
+}
+
+/**
+ * Instagram's own Resources classes override getColor and getColorStateList (the one its Contexts
+ * hand out is a subclass of one, holding Meta's string overrides). A color taken straight from a
+ * resource comes back through them and never meets the theme reads, the way 451's bio links take
+ * the dark theme's link blue by its resource id. Each class directly extending Resources that
+ * overrides both getColor forms has them and its getColorStateList forms passed through the
+ * extension too. A color AccentColor already swapped comes back as it is, so a read that passes
+ * a theme read and one of these ends up the same.
+ */
+internal fun BytecodePatchContext.findResourcesColorReads(): List<MutableMethod> {
+    val owners = mutableListOf<ClassDef>()
+    classDefForEach { classDef ->
+        if (classDef.superclass == RESOURCES && !classDef.type.startsWith(EXTENSION_ROOT) &&
+            GET_COLOR.all { parameters -> classDef.overrides("getColor", parameters, "I") }
+        ) {
+            owners += classDef
+        }
+    }
+    if (owners.isEmpty()) refuse("found no class extending Resources that overrides both getColor forms")
+    return owners.flatMap { owner ->
+        owner.methods.filter { method ->
+            GET_COLOR.any { method.isRead("getColor", it, "I") || method.isRead("getColorStateList", it, COLOR_STATE_LIST) }
+        }.map { mutable(it) }
+    }
+}
+
+private fun ClassDef.overrides(name: String, parameters: List<String>, returns: String): Boolean =
+    methods.any { it.isRead(name, parameters, returns) }
+
+private fun Method.isRead(name: String, parameters: List<String>, returns: String): Boolean =
+    this.name == name && returnType == returns && parameterTypes.map(Any::toString) == parameters &&
+        !AccessFlags.STATIC.isSet(accessFlags) && implementation != null
+
+/** Passes every int this method returns through AccentColor.color, at the return's own label. */
+private fun MutableMethod.filterEveryColorReturn() {
+    val returns = code().withIndex().filter { it.value.opcode == Opcode.RETURN }
+        .map { it.index to (it.value as OneRegisterInstruction).registerA }
+    if (returns.isEmpty()) refuse("${where()} returns no color")
+    returns.asReversed().forEach { (index, register) ->
+        addInstructionsAtControlFlowLabel(
+            index,
+            """
+                invoke-static/range { v$register .. v$register }, $SWAP_COLOR
+                move-result v$register
+            """,
+        )
+    }
 }
 
 private fun BytecodePatchContext.mutable(method: Method): MutableMethod =

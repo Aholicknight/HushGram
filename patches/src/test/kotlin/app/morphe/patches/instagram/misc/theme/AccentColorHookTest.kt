@@ -54,7 +54,7 @@ class AccentColorHookTest {
 
     @Test
     fun everyReturnGoesThroughTheExtension() {
-        val context = PatchContexts.of(listOf(loader(), themes(), colors(), fallback(), extension()))
+        val context = PatchContexts.of(listOf(loader(), themes(), colors(), fallback(), resources(), resources(OTHER_RESOURCES, lists = false), extension()))
 
         val found = context.findAccentReads()
         assertEquals("$LOADER->A01", "${found.loader.definingClass}->${found.loader.name}")
@@ -71,6 +71,16 @@ class AccentColorHookTest {
         assertValueSwapped("stand-in", context.method(THEMES, "A0Z"))
         assertEquals("the resolver itself is left alone", 0, context.method(THEMES, "A0b").hooks(SWAP_COLOR).size)
         assertEquals("the fallback resolver itself is left alone", 0, context.method(THEMES, "A0d", FALLBACK_SHAPE).hooks(SWAP_COLOR).size)
+        assertResourcesSwapped("stand-in", context, RESOURCES_STAND_IN, lists = true)
+        assertResourcesSwapped("stand-in without lists", context, OTHER_RESOURCES, lists = false)
+    }
+
+    /** A color read straight from a resource can't be reached without Instagram's own Resources, so it refuses. */
+    @Test
+    fun noResourcesOfItsOwnFailsThePatch() {
+        val context = PatchContexts.of(listOf(loader(), themes(), colors(), fallback(), resources(getColorWithTheme = false), extension()))
+        val failure = assertThrows(PatchException::class.java) { context.swapAccentColors() }
+        assertTrue(failure.message!!, failure.message!!.startsWith("Accent color: found no class extending Resources"))
     }
 
     @Test
@@ -146,7 +156,9 @@ class AccentColorHookTest {
                 it.code().any { instruction -> instruction.calls(CONTEXT, "getColor") }
         }
         val types = (resolvers + reads).mapTo(HashSet()) { it.definingClass }
-        val context = PatchContexts.of((holders + FixtureDex.classes(bundle, types).values).distinctBy { it.type } + extension())
+        val ownResources = ArrayList<ClassDef>()
+        FixtureDex.forEach(bundle) { dex -> dex.classes.filterTo(ownResources) { it.superclass == RESOURCES } }
+        val context = PatchContexts.of((holders + FixtureDex.classes(bundle, types).values + ownResources).distinctBy { it.type } + extension())
 
         val found = context.findAccentReads()
         val loader = found.loader.definingClass to found.loader.name
@@ -167,6 +179,27 @@ class AccentColorHookTest {
         val resolver = (context.method(colorReads[0].first, colorReads[0].second).code()
             .let { code -> code[code.indexOfFirst { it.calls(CONTEXT, "getColor") } - 2] } as ReferenceInstruction).reference as MethodReference
         assertEquals("$label: the value read sits beside the resolver", resolver.definingClass, valueRead.first)
+        val wrapping = ownResources.filter { owner -> owner.methods.count { it.name == "getColor" && it.implementation != null } == 2 }
+        assertTrue("$label: no Resources of Instagram's own overrides getColor", wrapping.isNotEmpty())
+        for (owner in wrapping) assertResourcesSwapped("$label ${owner.type}", context, owner.type, lists = true)
+    }
+
+    /** Each getColor form, and each getColorStateList form when [lists], passes everything it returns through the extension. */
+    private fun assertResourcesSwapped(what: String, context: BytecodePatchContext, type: String, lists: Boolean) {
+        val methods = context.mutableClassDefBy(type).methods
+        for (parameters in listOf(listOf("I"), listOf("I", THEME))) {
+            val color = methods.single { it.name == "getColor" && it.parameterTypes.map(Any::toString) == parameters }
+            val returns = color.code().indices.filter { color.code()[it].opcode == Opcode.RETURN }
+            assertTrue("$what getColor$parameters: no return", returns.isNotEmpty())
+            assertEquals("$what getColor$parameters: hooks", returns.size, color.hooks(SWAP_COLOR).size)
+            for (at in returns) {
+                assertHook("$what getColor$parameters at $at", color.code(), at, (color.code()[at] as OneRegisterInstruction).registerA, SWAP_COLOR, Opcode.MOVE_RESULT)
+            }
+            val list = methods.singleOrNull { it.name == "getColorStateList" && it.parameterTypes.map(Any::toString) == parameters }
+            if (lists) {
+                assertListsSwapped("$what getColorStateList$parameters", list!!, list.code().count { it.opcode == Opcode.RETURN_OBJECT })
+            }
+        }
     }
 
     /**
@@ -293,8 +326,74 @@ class AccentColorHookTest {
         val FALLBACK_SHAPE = listOf(CONTEXT, "I", "I")
         const val THEME = "Landroid/content/res/Resources\$Theme;"
         const val LIST = "Landroid/content/res/ColorStateList;"
+        const val RESOURCES = "Landroid/content/res/Resources;"
+        const val RESOURCES_STAND_IN = "Lfixture/IgResources;"
+        const val OTHER_RESOURCES = "Lfixture/OtherResources;"
 
         fun extension(): ClassDef = ExtensionDex.classDef(ACCENT_COLOR)
+
+        /**
+         * A class extending Resources the way Instagram's own do, overriding both getColor forms
+         * and, when [lists], both getColorStateList forms. The two-argument getColor answers from
+         * either of two returns, as a cached color does.
+         */
+        fun resources(type: String = RESOURCES_STAND_IN, lists: Boolean = true, getColorWithTheme: Boolean = true): ClassDef {
+            val methods = mutableListOf(
+                virtual(
+                    type, "getColor", "I", 3, listOf("I"),
+                    """
+                        invoke-super { p0, p1 }, $RESOURCES->getColor(I)I
+                        move-result v0
+                        return v0
+                    """,
+                ),
+            )
+            if (getColorWithTheme) {
+                methods += virtual(
+                    type, "getColor", "I", 4, listOf("I", THEME),
+                    """
+                        if-nez p2, :themed
+                        invoke-super { p0, p1 }, $RESOURCES->getColor(I)I
+                        move-result v0
+                        return v0
+                        :themed
+                        invoke-super { p0, p1, p2 }, $RESOURCES->getColor(I$THEME)I
+                        move-result v0
+                        return v0
+                    """,
+                )
+            }
+            if (lists) {
+                methods += virtual(
+                    type, "getColorStateList", LIST, 3, listOf("I"),
+                    """
+                        invoke-super { p0, p1 }, $RESOURCES->getColorStateList(I)$LIST
+                        move-result-object v0
+                        return-object v0
+                    """,
+                )
+                methods += virtual(
+                    type, "getColorStateList", LIST, 4, listOf("I", THEME),
+                    """
+                        invoke-super { p0, p1, p2 }, $RESOURCES->getColorStateList(I$THEME)$LIST
+                        move-result-object v0
+                        return-object v0
+                    """,
+                )
+            }
+            return ImmutableClassDef(type, AccessFlags.PUBLIC.value, RESOURCES, null, null, null, null, methods)
+        }
+
+        fun virtual(type: String, name: String, returns: String, registers: Int, parameters: List<String>, body: String): Method =
+            ImmutableMethod.of(
+                MutableMethod(
+                    ImmutableMethod(
+                        type, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns,
+                        AccessFlags.PUBLIC.value, null, null,
+                        ImmutableMethodImplementation(registers, emptyList(), null, null),
+                    ),
+                ).apply { addInstructionsWithLabels(0, body.trimIndent().lines().filter { it.isNotBlank() }.joinToString("\n")) },
+            )
 
         /**
          * A static (Context, int)ColorStateList shaped like ResourcesCompat's loader: it holds the
