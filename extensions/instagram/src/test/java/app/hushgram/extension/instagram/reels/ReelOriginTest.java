@@ -312,6 +312,40 @@ public class ReelOriginTest {
     }
 
     /**
+     * 451's grid can say more lies below at its loaded end while the next page loads, and a drag
+     * there moves nothing (#30, S22 2026-10-14). Those drags aren't steps: the search waits at the
+     * end for each page as at a real end, then goes on and finds the reel four pages down.
+     */
+    @Test
+    public void dragsThatMoveNothingAtTheLoadedEndAreNotSteps() {
+        List<List<String>> pages = new ArrayList<>();
+        for (int page = 0; page < 4; page++) pages.add(reels(12, 5000 - page * 100));
+        pages.get(3).set(4, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(new ArrayList<>(pages.get(0)), null);
+        grid.slack = RecyclerView.ROW;
+        Handler main = new Handler(Looper.getMainLooper());
+        int[] loaded = {1};
+        boolean[] loading = {false};
+        // Instagram loads the next page a second and a half after a drag ends at the loaded end, one at a time.
+        grid.atEnd = () -> {
+            if (loading[0] || loaded[0] >= pages.size()) return;
+            loading[0] = true;
+            main.postDelayed(() -> {
+                grid.reels.addAll(pages.get(loaded[0]++));
+                loading[0] = false;
+            }, 1500);
+        };
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(14);
+        assertEquals(HookStatus.report() + " drags " + grid.drags + " pages " + loaded[0], List.of(REEL), shown);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.FOUND + " 1"));
+        assertFalse(report, report.contains(ReelOrigin.RAN_OUT));
+    }
+
+    /**
      * A profile opened straight on its Reels tab, as 451 does for some reels (#30): the tab resumes
      * before its first page, over the grey placeholders Instagram puts up, which fill the screen and
      * carry no name. They aren't taken for the grid's end: nothing is dragged and no button goes up

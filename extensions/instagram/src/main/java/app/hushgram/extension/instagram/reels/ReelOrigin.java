@@ -294,6 +294,8 @@ public final class ReelOrigin {
         /** Since when the search has waited for the grid's first named tiles, and how many were bound at the end last time. */
         private long unnamedSince;
         private int endNamed;
+        /** Whether the last drag left the grid where it was, though the grid said more lay below. */
+        private boolean stuck;
 
         Look(Object tab, Method resumed, Field grid, String id, BooleanSupplier on, Activity screen, boolean going) {
             this.tab = new WeakReference<>(tab);
@@ -367,24 +369,41 @@ public final class ReelOrigin {
                     giveUp(list, RAN_OUT);
                     return;
                 }
-                if (list.canScrollVertically(1)) {
+                if (list.canScrollVertically(1) && !stuck) {
+                    // On 451 the grid can say more lies below at its loaded end while the next page
+                    // loads (its range is an estimate), and a drag there moves nothing. Such a drag is
+                    // the end, not a step: counted, the steps ran out in three seconds (#30).
+                    int before = offset(list);
                     drag(list);
                     dragged = now;
-                    steps++;
-                    endSince = 0;
+                    if (offset(list) != before) {
+                        steps++;
+                        endSince = 0;
+                    } else {
+                        stuck = true;
+                    }
                 } else {
                     // At the end: more named tiles coming in, as Instagram fills a screen its page
                     // left short, start the wait again.
-                    if (endSince == 0 || named != endNamed) {
+                    if (endSince == 0) {
                         endSince = now;
                         endNamed = named;
+                    } else if (named != endNamed) {
+                        endSince = now;
+                        endNamed = named;
+                        stuck = false;
                     } else if (now - endSince >= END_WAIT_MS) {
                         giveUp(list, ENDED);
                         return;
                     }
                     if (now - dragged >= NUDGE_MS) {
+                        int before = offset(list);
                         drag(list);
                         dragged = now;
+                        if (offset(list) != before) {
+                            stuck = false;
+                            endSince = 0;
+                        }
                     }
                 }
                 handler.postDelayed(this, STEP_MS);

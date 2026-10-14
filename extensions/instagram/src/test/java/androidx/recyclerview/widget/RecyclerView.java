@@ -38,6 +38,11 @@ public class RecyclerView extends LinearLayout {
      * a Reels tab's first page, as many as fill its screen.
      */
     public int placeholders;
+    /**
+     * How far past its loaded end the grid still says more lies below, as a phone's grid does when
+     * its scroll range is an estimate (451, #30): a drag there moves nothing.
+     */
+    public int slack;
     /** Makes the view of a tile for a reel. */
     public Function<String, View> tiles;
     private int offset;
@@ -85,7 +90,7 @@ public class RecyclerView extends LinearLayout {
     }
 
     @Override public boolean canScrollVertically(int direction) {
-        return direction > 0 ? offset < end() : offset > 0;
+        return direction > 0 ? offset < end() + slack : offset > 0;
     }
 
     @Override public int computeVerticalScrollOffset() {
@@ -112,7 +117,7 @@ public class RecyclerView extends LinearLayout {
                 break;
             case MotionEvent.ACTION_UP:
                 drags.add(pulled);
-                if (!canScrollVertically(1) && atEnd != null) atEnd.run();
+                if (offset >= end() && atEnd != null) atEnd.run();
                 break;
             default:
                 break;
