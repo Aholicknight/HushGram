@@ -365,6 +365,22 @@ public final class GlassTabBar {
     static final String COUNT_TAB_BACKGROUND = "Tab's own capsule taken off";
     /** Counted each time Instagram's touch strip for a reel's seek bar is moved back onto the seek bar. */
     static final String COUNT_STRIP_KEPT = "Seek bar's touch strip kept on the reel";
+    /** Counted each time the navigation bar's height is answered 0 so the screens run behind the gesture handle (#144). */
+    static final String COUNT_NAV_BEHIND = "Screens run behind the gesture handle";
+    /** Counted each time the pill shows or hides and the window's insets are asked for again. */
+    static final String COUNT_INSETS_AGAIN = "Insets asked again for the pill";
+
+    /**
+     * The activity in front, from its resume to its pause: the window whose screens Instagram pads by
+     * the navigation bar's height when its insets listener runs. Main thread.
+     */
+    private static WeakReference<Activity> front = new WeakReference<>(null);
+    /**
+     * The navigation bar's height Instagram would have padded its screens by when it was last answered
+     * 0 for a floating pill, or 0 when it was given through. The pill makes this much room of its own
+     * under itself. Main thread, as Instagram's insets listener is.
+     */
+    private static int navTaken;
 
     static final String TAG = "HushGlass";
     private static final boolean DIAGNOSE = false;
@@ -416,6 +432,57 @@ public final class GlassTabBar {
             HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "tab bar", failure);
             diagnose("apply failed", failure);
         }
+    }
+
+    /**
+     * Called through FullScreenBars with the navigation bar's height Instagram's insets listener is
+     * about to keep for its screens (#144). Instagram pads its screens by it, which left a strip of its
+     * own color under a floating pill around the gesture handle. While a floating glass bar shows in
+     * the front window the answer is 0, so the screens run to the bottom edge, and the pill keeps itself
+     * above the handle by [height] ({@link #navRoom}). Screens without the bar showing (a chat's
+     * composer, settings, the camera), another activity in front, the float switch off, Pause or
+     * settings not ready all get [height] as it came.
+     */
+    public static int navBarHeight(int height) {
+        if (height <= 0 || !floatingBarInFront()) {
+            navTaken = 0;
+            return height;
+        }
+        navTaken = height;
+        HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_NAV_BEHIND);
+        return 0;
+    }
+
+    /** Whether the front activity shows a floating glass bar: restyled, floating, and shown. */
+    static boolean floatingBarInFront() {
+        if (!Utils.settingsReady() || HushgramPause.isPaused()) return false;
+        Activity activity = front.get();
+        if (activity == null) return false;
+        for (Map.Entry<View, WeakReference<Glass>> entry : applied.entrySet()) {
+            WeakReference<Glass> held = entry.getValue();
+            Glass glass = held == null ? null : held.get();
+            if (glass != null && glass.floatsShownIn(activity)) return true;
+        }
+        return false;
+    }
+
+    /** The room a floating pill makes under itself for the navigation bar: the height Instagram was answered 0 for. */
+    static int navRoom(boolean floating) {
+        return floating ? navTaken : 0;
+    }
+
+    static void nowInFront(Activity activity) {
+        front = new WeakReference<>(activity);
+    }
+
+    static void nowBehind(Activity activity) {
+        if (front.get() == activity) front = new WeakReference<>(null);
+    }
+
+    /** Tests start with no activity in front and nothing taken from the navigation bar. */
+    static void resetForTests() {
+        front = new WeakReference<>(null);
+        navTaken = 0;
     }
 
     static void diagnose(String what, @Nullable Throwable failure) {
@@ -566,12 +633,14 @@ public final class GlassTabBar {
 
     static final class Watcher implements Application.ActivityLifecycleCallbacks {
         @Override public void onActivityResumed(@NonNull Activity activity) {
+            nowInFront(activity);
             apply(activity);
         }
 
         @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) { }
         @Override public void onActivityStarted(@NonNull Activity activity) { }
         @Override public void onActivityPaused(@NonNull Activity activity) {
+            nowBehind(activity);
             restoreAll();
         }
         @Override public void onActivityStopped(@NonNull Activity activity) { }
@@ -620,8 +689,19 @@ public final class GlassTabBar {
         private final HapticStyle hapticStyle;
         private final GlassOpacity opacity;
         private final GlassHeight height;
-        /** How much higher the pill sits, in pixels: the room under a floating pill. */
+        /** How much higher the pill sits, in pixels, by the lift chosen. */
         private final int lift;
+        /**
+         * The room under the pill, as of the last frame: the lift, plus the navigation bar's height while
+         * Instagram is answered 0 for it, so the pill stays above the gesture handle (#144).
+         */
+        private int room;
+        /**
+         * Whether Instagram was last asked for its insets with this pill floating and shown in front, or
+         * null when it's to be asked again. Instagram only reads the navigation bar's height when the
+         * window's insets go round, so a pill that shows or hides has them sent round again.
+         */
+        @Nullable private Boolean insetsShown;
         /**
          * Hides the bar while a list scrolls down, with that switch on, and on Reels after the wait picked
          * for it (#170). Null with the switch off and the wait on Never.
@@ -669,6 +749,7 @@ public final class GlassTabBar {
             this.opacity = Settings.GLASS_TAB_BAR_OPACITY.get();
             this.height = Settings.GLASS_TAB_BAR_HEIGHT.get();
             this.lift = liftPx(Settings.GLASS_TAB_BAR_LIFT.get(), floating, density);
+            this.room = lift;
             boolean hideOnScroll = Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get();
             GlassReelsHide hideOnReels = Settings.GLASS_TAB_BAR_REELS_HIDE.get();
             long reelsMillis = hideOnReels == null ? 0L : hideOnReels.millis;
@@ -714,6 +795,28 @@ public final class GlassTabBar {
          */
         void cameToTheFront() {
             if (scrollHide != null) scrollHide.arm();
+            // Another window may have had the navigation bar's real height since, so Instagram is asked again.
+            insetsShown = null;
+        }
+
+        /** Whether this is a floating pill that shows in [activity]'s window. */
+        boolean floatsShownIn(Activity activity) {
+            return floating && bar.isShown() && ownedBy(bar, activity);
+        }
+
+        /**
+         * Sends the window's insets round again when this floating pill shows or hides in front, or its
+         * activity came back, so Instagram reads the navigation bar's height again ({@link #navBarHeight}).
+         */
+        private void askForInsetsWhenShownChanges() {
+            if (!floating) return;
+            Activity now = front.get();
+            boolean shown = now != null && !HushgramPause.isPaused() && floatsShownIn(now);
+            if (insetsShown != null && insetsShown == shown) return;
+            insetsShown = shown;
+            View root = bar.getRootView();
+            root.post(root::requestApplyInsets);
+            HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_INSETS_AGAIN);
         }
 
         /** The clear space above and under the pill. */
@@ -723,7 +826,7 @@ public final class GlassTabBar {
 
         /** How far a compact pill is drawn in from the top and bottom, beyond the gap. */
         private int pillInset() {
-            return pillInsetPx(height, bar.getHeight() - lift, gap(), density);
+            return pillInsetPx(height, bar.getHeight() - room, gap(), density);
         }
 
         /** The colour Instagram gave the bar, or white or black by the theme when it wasn't a plain one. */
@@ -755,13 +858,14 @@ public final class GlassTabBar {
             int width = parent != null && parent.getWidth() > 0 ? parent.getWidth()
                     : bar.getResources().getDisplayMetrics().widthPixels;
             outer = outerPx(width, density);
+            room = lift + navRoom(floating);
 
             // Height: the bar's own, which is what Instagram keeps every screen's own controls above, and
             // the room asked for under a floating pill.
             ViewGroup.LayoutParams params = bar.getLayoutParams();
             if (params != null && params.height > 0) {
                 if (originalBarHeight < 0) originalBarHeight = params.height;
-                int wanted = barHeightPx(height, originalBarHeight, density) + lift;
+                int wanted = barHeightPx(height, originalBarHeight, density) + room;
                 if (params.height != wanted) {
                     params.height = wanted;
                     bar.setLayoutParams(params);
@@ -779,7 +883,7 @@ public final class GlassTabBar {
             int left = originalLeft + outer + dp(INNER_DP);
             int right = originalRight + outer + dp(INNER_DP);
             int above = originalTop + gap();
-            int under = originalBottom + gap() + lift;
+            int under = originalBottom + gap() + room;
             if (left != bar.getPaddingLeft() || right != bar.getPaddingRight()
                     || above != bar.getPaddingTop() || under != bar.getPaddingBottom()) {
                 bar.setPadding(left, above, right, under);
@@ -922,6 +1026,7 @@ public final class GlassTabBar {
             Trace.beginSection("hushgram:preDraw");
             try {
                 keep();
+                askForInsetsWhenShownChanges();
                 followReels();
                 // A tab's own selected state redraws that tab, not the bar behind it, so the capsule would
                 // wait for something else to redraw the bar. Look at it every frame instead.
@@ -1023,7 +1128,7 @@ public final class GlassTabBar {
                 float left = outer;
                 float top = gap() + pillInset();
                 float right = bar.getWidth() - outer;
-                float bottomEdge = bar.getHeight() - lift - gap() - pillInset();
+                float bottomEdge = bar.getHeight() - room - gap() - pillInset();
                 if (right - left <= 0 || bottomEdge - top <= 0) return false;
                 into.set(left, top, right, bottomEdge);
                 return true;

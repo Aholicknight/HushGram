@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
+import app.morphe.patches.instagram.misc.glass.glassTabBarPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -23,14 +24,26 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-/** #147: Instagram's window insets listener asks the extension about each bar height it keeps. */
+/**
+ * #147: Instagram's window insets listener asks the extension about each bar height it keeps, the
+ * status bar's through barHeight and the navigation bar's through navBarHeight (#144).
+ */
 class FullScreenBarsHookTest {
     @Test
     fun theHookIsInTheExtension() {
         val declared = ExtensionDex.classDef(FULL_SCREEN_BARS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$BAR_HEIGHT_HOOK is not in the extension: $declared", BAR_HEIGHT_HOOK.substringAfter("->") in declared)
+        for (hook in listOf(BAR_HEIGHT_HOOK, NAV_BAR_HEIGHT_HOOK)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
+    }
+
+    /** Full screen and Glass tab bar share the one routing, so the listener asks once per height whichever is in (#144). */
+    @Test
+    fun bothPatchesShareTheRouting() {
+        assertTrue(barHeightsPatch in fullScreenBarsPatch.dependencies)
+        assertTrue(barHeightsPatch in glassTabBarPatch.dependencies)
     }
 
     /** In each declared build both stores ask first, whether the classes are copied or read as the patcher reads an APK. */
@@ -68,9 +81,12 @@ class FullScreenBarsHookTest {
 
             val code = listener.code()
             assertEquals("$what: two instructions added per store", before.size + 4, code.size)
-            val asks = code.indices.filter { code[it].referenceText() == BAR_HEIGHT_HOOK }
+            val hooks = setOf(BAR_HEIGHT_HOOK, NAV_BAR_HEIGHT_HOOK)
+            val asks = code.indices.filter { code[it].referenceText() in hooks }
             assertEquals("$what: asks once per height", 2, asks.size)
             for ((ask, store) in asks.zip(stores.sortedBy { it.index })) {
+                val hook = if (store == stores[0]) BAR_HEIGHT_HOOK else NAV_BAR_HEIGHT_HOOK
+                assertEquals("$what: the status bar asks barHeight, the navigation bar navBarHeight", hook, code[ask].referenceText())
                 assertEquals("$what: the ask is an invoke-static", Opcode.INVOKE_STATIC, code[ask].opcode)
                 assertEquals("$what: on the height", listOf(store.register), code[ask].arguments())
                 assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[ask + 1].opcode)
@@ -83,7 +99,7 @@ class FullScreenBarsHookTest {
             assertEquals("$what: the status bar's and the navigation bar's fields", 2, heights.size)
             val unasked = code.indices.filter { at ->
                 code[at].opcode == Opcode.SPUT && (code[at].reference() as FieldReference).toString() in heights &&
-                    code.getOrNull(at - 2)?.referenceText() != BAR_HEIGHT_HOOK
+                    code.getOrNull(at - 2)?.referenceText() !in hooks
             }
             assertEquals("$what: a height stored without asking", emptyList<Int>(), unasked)
             val added = asks.flatMap { listOf(it + 1, it + 2) }.toSet()

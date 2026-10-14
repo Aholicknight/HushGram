@@ -162,6 +162,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** The bar keeps its glass appearance over videos. Its opacity and edge no longer change as videos scroll past. Video directly beneath the bar may show through without blur on some phones. Reported in #144.
 
+* **Instagram - Glass tab bar:** With Show content behind the tab bar on, the plain strip under the floating pill is gone. Screens now run to the bottom edge behind the gesture handle, and the pill sits above the handle so it never covers it. Screens without the tab bar, like a chat or the camera, keep their usual space. Reported in #144.
+
 * **Instagram - Glass tab bar:** With Show content behind the tab bar on, Reels stops above the bar again. Its seek bar, caption and buttons stay visible and take taps, and Home and Profile respond across the full pill. Refs #65, reported in #163 and #136.
 
 * **Instagram - Glass tab bar:** Hide the tab bar as you scroll now keeps the bar in place on every reel. It used to slide away on reels that didn't fill the screen and stay put on the rest. Reported in #170.

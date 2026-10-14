@@ -27,6 +27,7 @@ import androidx.annotation.RequiresApi;
 import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -215,6 +216,24 @@ public final class FullScreenBars {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "bar height", failure);
             return height;
+        }
+    }
+
+    /**
+     * Called by Instagram's window insets listener with the navigation bar's height it's about to
+     * keep for its screens. First as {@link #barHeight}, then, while a floating glass tab bar shows in
+     * the front window, 0 as well: Instagram pads its screens by this height, which left a strip of its
+     * own color under the pill around the gesture handle (#144), so the screens run to the bottom edge
+     * and the pill keeps itself above the handle by the height it was given
+     * ({@link GlassTabBar#navBarHeight}). If anything throws, the height goes through as it came.
+     */
+    public static int navBarHeight(int height) {
+        int kept = barHeight(height);
+        try {
+            return GlassTabBar.navBarHeight(kept);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height", failure);
+            return kept;
         }
     }
 

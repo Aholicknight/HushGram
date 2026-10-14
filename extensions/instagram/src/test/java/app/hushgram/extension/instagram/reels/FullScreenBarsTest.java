@@ -27,6 +27,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
+import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 
@@ -158,8 +159,9 @@ public class FullScreenBarsTest {
         FullScreenBars.Session session = watch();
         assertTrue(session.isHidden());
         assertEquals("the status bar's space stayed", 0, FullScreenBars.barHeight(128));
-        assertEquals("the navigation bar's space stayed", 0, FullScreenBars.barHeight(63));
+        assertEquals("the navigation bar's space stayed", 0, FullScreenBars.navBarHeight(63));
         assertEquals("an unset height changed", -1, FullScreenBars.barHeight(-1));
+        assertEquals("an unset navigation bar height changed", -1, FullScreenBars.navBarHeight(-1));
 
         root.removeView(viewer);
         viewer = null;
@@ -168,6 +170,8 @@ public class FullScreenBarsTest {
         assertFalse(session.isHidden());
         assertEquals("the bars came back without their space", 128, FullScreenBars.barHeight(128));
         assertEquals(63, FullScreenBars.barHeight(63));
+        assertEquals("without a glass pill the navigation bar's height goes through", 63, FullScreenBars.navBarHeight(63));
+        assertEquals(63, GlassTabBar.navBarHeight(63));
     }
 
     @Test public void aViewerOnlyPartlyOnScreenIsNotReels() {

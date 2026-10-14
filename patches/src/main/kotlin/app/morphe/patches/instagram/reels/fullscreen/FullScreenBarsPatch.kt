@@ -29,6 +29,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 internal const val FULL_SCREEN_BARS_PATCH = "Full screen Reels and Home"
 internal const val FULL_SCREEN_BARS = "$EXTENSION_PACKAGE/reels/FullScreenBars;"
 internal const val BAR_HEIGHT_HOOK = "$FULL_SCREEN_BARS->barHeight(I)I"
+internal const val NAV_BAR_HEIGHT_HOOK = "$FULL_SCREEN_BARS->navBarHeight(I)I"
 
 /** What Instagram's window insets listener logs when it keeps a new status bar height. */
 internal const val STATUS_BAR_CHANGED =
@@ -45,6 +46,22 @@ internal object BarHeightsFingerprint : Fingerprint(
 )
 
 /**
+ * Has both bar heights Instagram's window insets listener keeps ask FullScreenBars first, once for
+ * every patch that changes them: Full screen Reels and Home (#147) and Glass tab bar, whose floating
+ * pill lets the screens run down behind the gesture handle (#144). Written twice, the listener would
+ * ask twice for each height. The status bar's height asks [BAR_HEIGHT_HOOK], the navigation bar's
+ * [NAV_BAR_HEIGHT_HOOK]. Declared above [fullScreenBarsPatch]: a file's properties start in order, and
+ * a patch that names this one before it exists would name nothing.
+ */
+internal val barHeightsPatch = bytecodePatch {
+    dependsOn(instagramExtensionPatch)
+
+    execute {
+        routeBarHeights(findBarHeights())
+    }
+}
+
+/**
  * Hides the status bar and the navigation bar while Reels or Home shows. See FullScreenBars in the
  * extension.
  *
@@ -54,7 +71,8 @@ internal object BarHeightsFingerprint : Fingerprint(
  * watching. Instagram's code changes in one place (#147): its window insets listener keeps each bar's
  * height in a static field its screens pad by, and keeps the old height while the bar is hidden, so
  * the screens left an empty strip where each bar was. Both stores of those heights ask the extension
- * first, which answers 0 while it has the bars hidden. In the default selection with both switches off.
+ * first ([barHeightsPatch]), which answers 0 while it has the bars hidden. In the default selection with
+ * both switches off.
  */
 @Suppress("unused")
 val fullScreenBarsPatch = bytecodePatch(
@@ -64,12 +82,11 @@ val fullScreenBarsPatch = bytecodePatch(
         "Starts off. Turn it on in HushGram settings > Reels (Full screen Reels) and Feed (Full screen Home).",
 ) {
     category("Reels")
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, barHeightsPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {
         requireStatusMethod("fullScreenBars")
-        routeBarHeights(findBarHeights())
         enableStatus("fullScreenBars")
     }
 }
@@ -122,13 +139,15 @@ private fun FieldReference.sameAs(other: FieldReference) =
 
 /**
  * Each store asks the extension first: the store becomes the call, and the answer is stored in its
- * place. A jump to the store lands on the call, and one to what followed it still skips the store,
- * as before. Later stores go first, so the earlier indexes still hold.
+ * place. The status bar's store asks [BAR_HEIGHT_HOOK] and the navigation bar's [NAV_BAR_HEIGHT_HOOK].
+ * A jump to the store lands on the call, and one to what followed it still skips the store, as
+ * before. Later stores go first, so the earlier indexes still hold.
  */
 internal fun routeBarHeights(listener: MutableMethod) {
-    for (store in listener.barHeightStores().sortedByDescending { it.index }) {
+    val (status, nav) = listener.barHeightStores()
+    for ((store, hook) in listOf(status to BAR_HEIGHT_HOOK, nav to NAV_BAR_HEIGHT_HOOK).sortedByDescending { it.first.index }) {
         val field = "${store.field.definingClass}->${store.field.name}:${store.field.type}"
-        listener.replaceInstruction(store.index, "invoke-static { v${store.register} }, $BAR_HEIGHT_HOOK")
+        listener.replaceInstruction(store.index, "invoke-static { v${store.register} }, $hook")
         listener.addInstructions(
             store.index + 1,
             """

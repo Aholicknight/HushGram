@@ -52,6 +52,7 @@ import org.robolectric.util.ReflectionHelpers;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
@@ -73,6 +74,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
+        GlassTabBar.resetForTests();
     }
 
     @Test
@@ -205,6 +207,98 @@ public class GlassTabBarTest {
                     host.capture("lift-" + lift.name().toLowerCase(java.util.Locale.ROOT) + (floating ? "-floating" : "-inset"));
                 }
             }
+        }
+    }
+
+    /**
+     * #144: while a floating pill shows in the front window, the navigation bar's height Instagram pads
+     * its screens by is answered 0, so no strip of Instagram's color is left under the pill, and the
+     * pill makes that much more room under itself to stay above the gesture handle. When the pill shows
+     * or hides, or its activity comes back, the window's insets go round again so Instagram reads the
+     * height anew. Hidden, with another activity in front, or paused, the real height goes through.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aFloatingPillShownInFrontTakesTheNavigationBarsHeight() {
+        GlassTabBar.resetForTests();
+        HookStatus.clear();
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            int nav = host.dp(24);
+            assertEquals("not restyled yet", nav, GlassTabBar.navBarHeight(nav));
+            AtomicInteger insets = new AtomicInteger();
+            host.activity.getWindow().getDecorView().setOnApplyWindowInsetsListener((view, given) -> {
+                insets.incrementAndGet();
+                return view.onApplyWindowInsets(given);
+            });
+            host.controller.pause().resume();
+            host.frame();
+            int height = host.bar.getLayoutParams().height;
+            int under = host.bar.getPaddingBottom();
+
+            assertEquals("shown in front", 0, GlassTabBar.navBarHeight(nav));
+            host.frame();
+            assertEquals("the pill makes room for the handle", height + nav, host.bar.getLayoutParams().height);
+            assertEquals("and sits above it", under + nav, host.bar.getPaddingBottom());
+
+            int asked = insets.get();
+            host.bar.setVisibility(View.GONE);
+            host.frame();
+            assertTrue("hidden, the insets went round again", insets.get() > asked);
+            assertEquals("hidden", nav, GlassTabBar.navBarHeight(nav));
+            host.frame();
+            assertEquals("hidden, no room for the handle", height, host.bar.getLayoutParams().height);
+
+            asked = insets.get();
+            host.bar.setVisibility(View.VISIBLE);
+            host.frame();
+            assertTrue("shown again, the insets went round again", insets.get() > asked);
+            assertEquals("shown again", 0, GlassTabBar.navBarHeight(nav));
+
+            // A screen without the bar, in an activity of its own, comes to the front.
+            host.controller.pause();
+            ActivityController<Activity> other = Robolectric.buildActivity(Activity.class).setup();
+            try {
+                assertEquals("another activity in front", nav, GlassTabBar.navBarHeight(nav));
+            } finally {
+                other.pause().stop().destroy();
+            }
+            asked = insets.get();
+            host.controller.resume();
+            host.frame();
+            assertTrue("back in front, the insets went round again", insets.get() > asked);
+            assertEquals("back in front", 0, GlassTabBar.navBarHeight(nav));
+
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            asked = insets.get();
+            assertEquals("paused", nav, GlassTabBar.navBarHeight(nav));
+            host.frame();
+            assertTrue("paused, the insets went round again", insets.get() > asked);
+            assertEquals("paused, no room for the handle", height, host.bar.getLayoutParams().height);
+
+            String report = String.join("\n", HookStatus.report());
+            assertTrue(report, report.contains(GlassTabBar.COUNT_NAV_BEHIND));
+            assertTrue(report, report.contains(GlassTabBar.COUNT_INSETS_AGAIN));
+        }
+    }
+
+    /** A pill over Instagram's own place, not floating, leaves the navigation bar's height alone and never asks for insets. */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aPillThatDoesNotFloatLeavesTheNavigationBarsHeight() {
+        GlassTabBar.resetForTests();
+        HookStatus.clear();
+        try (GlassHost host = new GlassHost(Color.BLACK, false, GlassHeight.STANDARD, false, false)) {
+            int nav = host.dp(24);
+            host.controller.pause().resume();
+            host.frame();
+            int height = host.bar.getLayoutParams().height;
+            assertEquals(nav, GlassTabBar.navBarHeight(nav));
+            host.frame();
+            assertEquals(height, host.bar.getLayoutParams().height);
+            String report = String.join("\n", HookStatus.report());
+            assertFalse(report, report.contains(GlassTabBar.COUNT_NAV_BEHIND));
+            assertFalse(report, report.contains(GlassTabBar.COUNT_INSETS_AGAIN));
         }
     }
 
@@ -415,6 +509,13 @@ public class GlassTabBarTest {
         }
 
         int dp(int value) { return Math.round(value * density); }
+
+        /** One frame: the bar's pre-draw, what it posted and the window's own pass, then the test's layout. */
+        void frame() {
+            bar.getViewTreeObserver().dispatchOnPreDraw();
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(100));
+            layout();
+        }
 
         void layout() {
             ShadowLooper.idleMainLooper();
