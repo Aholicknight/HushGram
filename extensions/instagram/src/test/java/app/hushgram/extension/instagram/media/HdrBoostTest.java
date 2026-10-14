@@ -115,6 +115,75 @@ public class HdrBoostTest {
         assertTrue(String.join("\n", HookStatus.report()), !String.join("\n", HookStatus.report()).contains(HdrBoost.HELD_BACK));
     }
 
+    /**
+     * Instagram's checks of the screen's HDR support answer none, so it picks SDR streams and keeps
+     * synthetic HDR off (#85): an HDR screen reads as not HDR and its HDR types (HDR10, HLG, Dolby
+     * Vision) as none. A screen already without HDR stays as it said, and only a changed answer counts.
+     */
+    @Test
+    public void onTheScreenReadsAsWithoutHdr() {
+        assertEquals(false, HdrBoost.screenIsHdr(true));
+        assertEquals(false, HdrBoost.screenIsHdr(false));
+        assertEquals(0, HdrBoost.screenHdrTypes(new int[] {1, 2, 3}).length);
+        int[] none = new int[0];
+        assertTrue("an empty answer goes back as it came", HdrBoost.screenHdrTypes(none) == none);
+        assertEquals(null, HdrBoost.screenHdrTypes(null));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(HdrBoost.SCREEN_CHECKS + " 2"));
+    }
+
+    /**
+     * The extended range layer's extended sRGB (Android's SCRGB, 0x18810000) goes to Android as
+     * plain sRGB (0x08810000), so the layer isn't an HDR one. Other dataspaces keep theirs: plain
+     * sRGB, BT.2020 with PQ (HDR10) and the unknown one.
+     */
+    @Test
+    public void onAnExtendedRangeLayerIsSentAsSrgb() {
+        assertEquals(0x08810000, HdrBoost.layerDataSpace(0x18810000));
+        assertEquals(0x08810000, HdrBoost.layerDataSpace(0x08810000));
+        assertEquals(0x09C60000, HdrBoost.layerDataSpace(0x09C60000));
+        assertEquals(0, HdrBoost.layerDataSpace(0));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(HdrBoost.SRGB_LAYERS + " 1"));
+    }
+
+    /** Off, paused or before the settings are ready, the screen's own answers and the layer's dataspace go through. */
+    @Test
+    public void offPausedOrUnreadyKeepTheScreensAnswers() {
+        int[] types = {2, 3};
+        Settings.TURN_OFF_HDR_BOOSTS.save(false);
+        assertEquals(true, HdrBoost.screenIsHdr(true));
+        assertTrue(HdrBoost.screenHdrTypes(types) == types);
+        assertEquals(0x18810000, HdrBoost.layerDataSpace(0x18810000));
+
+        Settings.TURN_OFF_HDR_BOOSTS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(true, HdrBoost.screenIsHdr(true));
+        assertTrue(HdrBoost.screenHdrTypes(types) == types);
+        assertEquals(0x18810000, HdrBoost.layerDataSpace(0x18810000));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> {
+            assertEquals(true, HdrBoost.screenIsHdr(true));
+            assertTrue(HdrBoost.screenHdrTypes(types) == types);
+            assertEquals(0x18810000, HdrBoost.layerDataSpace(0x18810000));
+        });
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, !report.contains(HdrBoost.SCREEN_CHECKS) && !report.contains(HdrBoost.SRGB_LAYERS));
+    }
+
+    /** The screen stand-ins read the display Instagram asked about and answer for it. */
+    @Test
+    public void theDisplayStandInsAnswerForTheDisplay() {
+        android.view.Display display = Robolectric.buildActivity(Activity.class).setup().get().getWindowManager().getDefaultDisplay();
+        assertEquals(false, HdrBoost.isHdr(display));
+        android.view.Display.HdrCapabilities capabilities = display.getHdrCapabilities();
+        if (capabilities != null) assertEquals(0, HdrBoost.hdrTypes(capabilities).length);
+        if (Build.VERSION.SDK_INT >= 34) assertEquals(0, HdrBoost.modeHdrTypes(display.getMode()).length);
+    }
+
     /** The window's stand-ins set what they answer on the window itself. */
     @Test
     public void theWindowGetsTheAnswer() {

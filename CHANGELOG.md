@@ -158,6 +158,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Turn off HDR brightness boosts:** Instagram now receives no spare HDR brightness from the screen. On phones reporting extra brightness, some reels still lit up with this switch on, including ordinary reels given Instagram's HDR look. Reported in #85.
 
+* **Instagram - Turn off HDR brightness boosts:** Instagram now treats the screen as one without HDR when it picks what to play, so it chooses SDR video and leaves its HDR look off. The layer some videos are drawn on is no longer an HDR one either. The camera still offers HDR recording where the phone has it. Reported in #85.
+
 * **Instagram - Glass tab bar:** The bar keeps its glass appearance over videos. Its opacity and edge no longer change as videos scroll past. Video directly beneath the bar may show through without blur on some phones. Reported in #144.
 
 * **Instagram - Glass tab bar:** With Show content behind the tab bar on, Reels stops above the bar again. Its seek bar, caption and buttons stay visible and take taps, and Home and Profile respond across the full pill. Refs #65, reported in #163 and #136.
