@@ -3555,7 +3555,7 @@
     },
     {
       "name": "Tap a feed video to pause it",
-      "description": "A tap on the video playing in a feed pauses it, and the next tap plays it again. That tap doesn't open the video in Reels. Ads keep Instagram's own tap. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "A tap on the video playing in a feed pauses it in place instead of opening it in Reels. Ads keep Instagram's own tap. Starts off. Turn it on in HushGram settings > Feed.",
       "category": "Playback",
       "use": true,
       "dependencies": [

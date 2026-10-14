@@ -645,8 +645,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (feedTapPause) {
             feed.addPreference(toggle(context, Settings.TAP_FEED_VIDEO_TO_PAUSE, L10n.t("Tap a feed video to pause it"),
-                    L10n.t("Tap the video playing in a feed to pause it, and tap again to play it. That tap doesn't "
-                            + "open the video in Reels. Ads keep Instagram's own tap.")));
+                    L10n.t("Tap the video playing in a feed to pause it in place instead of opening it in Reels. "
+                            + "Ads keep Instagram's own tap.")));
         }
         if (longPressZoom) {
             feed.addPreference(toggle(context, Settings.LONG_PRESS_TO_ZOOM, L10n.t("Long press a photo to zoom"),

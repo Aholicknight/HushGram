@@ -58,7 +58,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Clean up Reels:** New switch under Reels, Keep clear mode on, off by default. With it on, Instagram's clear mode carries from one reel to the next until you leave it yourself. Asked for in #138.
 
-* **Instagram - Tap a feed video to pause it:** New patch. A tap on the video playing in a feed pauses it, and the next tap plays it again, so it doesn't open in Reels. The switch is under Feed and starts off. Asked for in #137.
+* **Instagram - Tap a feed video to pause it:** New patch. A tap on the video playing in a feed pauses it in place instead of opening it in Reels. The switch is under Feed and starts off. Asked for in #137.
+
 * **Instagram - Keep Reels auto scroll on:** New switch, Move on when a reel ends. Reels plays the next reel instead of looping, even if your account has no Auto scroll option. It starts off and needs a restart. Asked for in #175.
 
 #### Improvements

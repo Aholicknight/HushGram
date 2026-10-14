@@ -76,7 +76,14 @@ private const val ITEM_READ_REACH = 8
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
 /**
- * A tap on the video playing in a feed pauses it, and the next tap plays it again.
+ * A tap on the video playing in a feed pauses it in place instead of opening it in Reels.
+ *
+ * The hook still runs the controller's own play on a tap of a paused video, so it often plays again
+ * too, but that isn't guaranteed: after a pause Instagram's feed lifecycle can release the
+ * controller's player or rebind its item before the next tap, and a tap that then finds no player
+ * falls through to Instagram, which opens Reels. So the text promises only the pause. The split
+ * HookStatus counts (FeedTapPause's "taps left" reasons) name which check a tap fell through on, for
+ * the next device run.
  *
  * Instagram 450 sends every tap on a feed post through one handler, which decides between opening
  * the post in the Reels viewer, showing its tags, turning its sound on and a few more. Only with
@@ -99,8 +106,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 @Suppress("unused")
 val tapFeedVideoToPausePatch = bytecodePatch(
     name = "Tap a feed video to pause it",
-    description = "A tap on the video playing in a feed pauses it, and the next tap plays it again. That tap doesn't " +
-        "open the video in Reels. Ads keep Instagram's own tap. Starts off. Turn it on in HushGram settings > Feed.",
+    description = "A tap on the video playing in a feed pauses it in place instead of opening it in Reels. Ads keep " +
+        "Instagram's own tap. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     // Manager's Feed group is full at the fifteen PatchCategoriesTest allows. The switch is still under Feed in settings.
     category("Playback")

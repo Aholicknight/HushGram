@@ -241,8 +241,9 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_feed_videos_with_sound", FALSE);
 
     /**
-     * A tap on the video playing in a feed pauses it and the next tap plays it again, in place of
-     * Instagram's own tap there, which opens some videos in Reels
+     * A tap on the video playing in a feed pauses it in place of Instagram's own tap there, which
+     * opens some videos in Reels. It also plays a paused video again when it still can, though the
+     * feed can reclaim a paused video's player first
      * ({@link app.hushgram.extension.instagram.feed.FeedTapPause}). Off to start.
      */
     public static final BooleanSetting TAP_FEED_VIDEO_TO_PAUSE =
