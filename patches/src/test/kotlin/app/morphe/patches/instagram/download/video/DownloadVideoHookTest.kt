@@ -67,6 +67,8 @@ class DownloadVideoHookTest {
     private val session = "Lcom/instagram/common/session/UserSession;"
     private val activity = "Landroidx/fragment/app/FragmentActivity;"
     private val check = "$util->A08($session$MEDIA)Z"
+    private val tree = "Lfixture/MediaTree;"
+    private val treeCheck = "$util->A08($session$tree)Z"
     private val flag = "Lfixture/MobileConfig;->A1A(Ljava/lang/Object;J)Z"
     private val state = "Lfixture/State;"
     private val kind = "Lfixture/Kind;"
@@ -132,6 +134,37 @@ class DownloadVideoHookTest {
         assertEquals("the answer goes back where the branch reads it", 1, (code[checked + 3] as OneRegisterInstruction).registerA)
         assertEquals("the branch to the Download row", Opcode.IF_EQZ, code[checked + 4].opcode)
         assertEquals("one ownPost() call", 1, code.count { it.referenceText() == OWN_POST })
+    }
+
+    /**
+     * 451's check takes Instagram's tree of the post, which the builder makes out of the state's
+     * Media with one static call just before, from a copy of the read in another register. ownPost()
+     * still goes right after the check's answer.
+     */
+    @Test
+    fun aCheckOfThePostsTreeStillAsksOwnPost() {
+        val context = PatchContexts.of(classes(wrapped = "Lfixture/Trees;->of($MEDIA)$tree"))
+
+        context.offerDownloadOnEveryVideo()
+
+        val code = context.method(lambda, "invoke").code()
+        val checked = code.indexOfFirst { it.referenceText() == treeCheck }
+        assertEquals("the check's answer", Opcode.MOVE_RESULT, code[checked + 1].opcode)
+        val own = code[checked + 2] as Instruction35c
+        assertEquals(OWN_POST, own.referenceText())
+        assertEquals("ownPost()'s arguments: the answer, then the state", listOf(1, 0), listOf(own.registerC, own.registerD))
+        assertEquals("one ownPost() call", 1, code.count { it.referenceText() == OWN_POST })
+    }
+
+    /** A check handed something not made out of a Media, or made out of something else, fails before anything changes. */
+    @Test
+    fun aCheckOfSomethingNotMadeFromThePostFailsBeforeAnythingChanges() {
+        for (wrapped in listOf("Lfixture/Trees;->of(Ljava/lang/Object;)$tree", "Lfixture/Trees;->of($MEDIA)Ljava/lang/Object;")) {
+            val context = PatchContexts.of(classes(wrapped = wrapped))
+            val failure = assertThrows(wrapped, PatchException::class.java) { context.offerDownloadOnEveryVideo() }
+            assertTrue(failure.message!!, failure.message!!.contains("isn't handed a Media or one made out of one"))
+            assertUntouched(context)
+        }
     }
 
     /**
@@ -937,6 +970,7 @@ class DownloadVideoHookTest {
         outlinedList: Boolean = false,
         outlinedLabel: Boolean = false,
         outlinesOnlyDoThat: Boolean = true,
+        wrapped: String? = null,
     ): List<ClassDef> {
         val menu = ImmutableClassDef(
             helper, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null,
@@ -981,8 +1015,9 @@ class DownloadVideoHookTest {
             move-result v1
             if-eqz v1, :others
             ${if (ownPostFromState) "iget-object v12, v0, $state->media:$MEDIA" else "const/4 v12, 0x0"}
+            ${if (wrapped != null) "move-object v4, v12\ninvoke-static { v4 }, $wrapped\nmove-result-object v12" else ""}
             const/4 v2, 0x0
-            invoke-virtual { v2, v2, v12 }, $check
+            invoke-virtual { v2, v2, v12 }, ${if (wrapped != null) treeCheck else check}
             move-result v1
             if-eqz v1, ${if (lateJump) ":others" else ":mine"}
             iget-boolean v1, v0, $state->flagged:Z
@@ -1019,7 +1054,7 @@ class DownloadVideoHookTest {
             invoke-static { v6, v0, v3, v5 }, $state->A01($OPTION${state}Ljava/util/ArrayList;I)V
             return-object v3
         """)))
-        val eligible = classDef(util, listOf(method(util, "A08", listOf(session, MEDIA), "Z", 4, static = false, body = """
+        val eligible = classDef(util, listOf(method(util, "A08", listOf(session, if (wrapped != null) tree else MEDIA), "Z", 4, static = false, body = """
             const-string v0, "android_purge_26_q3_$ELIGIBLE_MARKER"
             const/4 v0, 0x0
             return v0
