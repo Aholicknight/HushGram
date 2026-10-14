@@ -41,8 +41,16 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * lets them go, so the name never runs under a button. The buttons don't move. A translation
  * changes no layout, and a tap on the name lands where it's drawn.
  *
- * <p>No layout listener runs for nothing: with the switch off, HushGram paused or the settings not
- * read, an activity gets only a window focus listener, which hears the switch turned on once the
+ * <p>Center titles on other screens (#161), a switch of its own, does the same for the bar most other
+ * screens share, like notifications ({@link #SHARED_BAR_ID}), which Instagram's one action bar class
+ * builds: a title area ({@link #TITLE_AREA_ID}) holding the back button and the title's group, with
+ * the bar's other buttons after it. The group holding the title ({@link #TITLE_ID}) is moved toward
+ * the bar's middle, only as far as the room between the back button and the area's end, so a long
+ * title stays where Instagram put it and shortened. Profile bars and Home's header are left to their
+ * own switches. Either switch's moves are put back on their own when it goes off.
+ *
+ * <p>No layout listener runs for nothing: with both switches off, HushGram paused or the settings not
+ * read, an activity gets only a window focus listener, which hears a switch turned on once the
  * settings close. Off, a name is put back where Instagram had it, if nothing else moved it since.
  * Anything thrown leaves the bar as it is.
  */
@@ -51,16 +59,27 @@ public final class ProfileTitle {
     static final String BAR_ID = "profile_action_bar";
     /** The username's container inside it. */
     static final String CONTAINER_ID = "action_bar_username_container";
+    /** The top bar other screens share, the same on all seven 450 builds. */
+    static final String SHARED_BAR_ID = "action_bar";
+    /** Its title area: the back button, the title's group and anything else before the bar's buttons. */
+    static final String TITLE_AREA_ID = "action_bar_new_title_container";
+    /** The title inside the area. */
+    static final String TITLE_ID = "action_bar_title";
+    /** Home's header, which has Center the logo on Home's header. */
+    static final String HOME_BAR_ID = "main_feed_action_bar";
 
     /** The most views looked at for bars in one layout. */
     static final int MAX_VIEWS = 3000;
 
     static final String COUNT_CENTERED = "Profile name centered";
+    static final String COUNT_TITLE_CENTERED = "Screen title centered";
 
     private static final HashMap<String, Integer> IDS = new HashMap<>();
     private static volatile boolean registered;
-    /** Views this class moved: the translation they had, then the one written here. */
+    /** Names this class moved: the translation they had, then the one written here. */
     private static final Map<View, float[]> MOVED = new WeakHashMap<>();
+    /** Title groups on shared bars moved here, the same way. */
+    private static final Map<View, float[]> MOVED_TITLES = new WeakHashMap<>();
     private static final Focus FOCUS = new Focus();
     private static final Layout LAYOUT = new Layout();
 
@@ -85,6 +104,11 @@ public final class ProfileTitle {
     /** Whether names are centered now: the switch on, HushGram not paused, the settings read. */
     static boolean wanted() {
         return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.CENTER_PROFILE_NAME.get();
+    }
+
+    /** Whether other screens' titles are centered now, the same way under their own switch. */
+    static boolean titlesWanted() {
+        return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.CENTER_SCREEN_TITLES.get();
     }
 
     static int id(Context context, String name) {
@@ -143,38 +167,64 @@ public final class ProfileTitle {
         observed = new WeakReference<>(null);
     }
 
-    /** Centers the names in the window in front while wanted, else puts them back and stops listening to layouts. */
+    /**
+     * Centers the names and titles in the window in front for each switch that's wanted, puts back
+     * what the others moved, and listens to layouts only while one of them is wanted.
+     */
     static void refresh() {
         View decor = observed.get();
         if (decor == null) return;
         try {
-            if (!wanted()) {
+            boolean names = wanted();
+            boolean titles = titlesWanted();
+            if (!names) putBack(MOVED);
+            if (!titles) putBack(MOVED_TITLES);
+            if (!names && !titles) {
                 watchLayouts(false);
-                putBack();
                 return;
             }
             watchLayouts(true);
-            centerAll(decor);
+            centerAll(decor, names, titles);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REELS_TAB, "profile name", failure);
         }
     }
 
-    /** Centers the name in each profile bar shown in [root]. */
-    static void centerAll(View root) {
+    /**
+     * Centers the name in each profile bar shown in [root] when [names], and the title on each shared
+     * bar when [titles]. Never looks inside a profile bar or Home's header for a shared bar.
+     */
+    static void centerAll(View root, boolean names, boolean titles) {
         int barId = id(root.getContext(), BAR_ID);
         int containerId = id(root.getContext(), CONTAINER_ID);
-        // Most layouts are in windows with no profile bar at all, which this answers quickly.
-        if (barId == 0 || containerId == 0 || root.findViewById(barId) == null) return;
+        int sharedId = id(root.getContext(), SHARED_BAR_ID);
+        int areaId = id(root.getContext(), TITLE_AREA_ID);
+        int titleId = id(root.getContext(), TITLE_ID);
+        int homeId = id(root.getContext(), HOME_BAR_ID);
+        // Most layouts are in windows with neither bar, which this answers quickly.
+        boolean profiles = names && barId != 0 && containerId != 0 && root.findViewById(barId) != null;
+        boolean screens = titles && sharedId != 0 && areaId != 0 && titleId != 0 && root.findViewById(areaId) != null;
+        if (!profiles && !screens) return;
         ArrayDeque<View> pending = new ArrayDeque<>();
         pending.add(root);
         int seen = 0;
         while (!pending.isEmpty() && seen++ < MAX_VIEWS) {
             View view = pending.poll();
             if (view.getVisibility() != View.VISIBLE) continue;
-            if (view.getId() == barId) {
-                View container = view.findViewById(containerId);
-                if (container instanceof ViewGroup) center(view, (ViewGroup) container);
+            int id = view.getId();
+            if (id != View.NO_ID && id == barId) {
+                if (profiles) {
+                    View container = view.findViewById(containerId);
+                    if (container instanceof ViewGroup) center(view, (ViewGroup) container);
+                }
+                continue;
+            }
+            if (id != View.NO_ID && id == homeId) continue;
+            if (screens && id != View.NO_ID && id == sharedId && view instanceof ViewGroup) {
+                centerTitle((ViewGroup) view, areaId, titleId);
+                // The shared bar sits near the top of the window: with no profile bar to look for,
+                // the rest of the window has nothing more to do.
+                if (!profiles) return;
                 continue;
             }
             if (view instanceof ViewGroup) {
@@ -182,6 +232,90 @@ public final class ProfileTitle {
                 for (int i = 0; i < group.getChildCount(); i++) pending.add(group.getChildAt(i));
             }
         }
+    }
+
+    /**
+     * Moves the group holding [bar]'s title toward the bar's middle. A bar showing no title, a custom
+     * view in its place for one, gets back any group moved here earlier.
+     */
+    private static void centerTitle(ViewGroup bar, int areaId, int titleId) {
+        View found = bar.findViewById(areaId);
+        if (!(found instanceof ViewGroup)) return;
+        ViewGroup area = (ViewGroup) found;
+        View title = area.getVisibility() == View.VISIBLE ? area.findViewById(titleId) : null;
+        View group = title != null && title.getWidth() > 0 && shownWithin(title, area) ? childHolding(area, title) : null;
+        for (int i = 0; i < area.getChildCount(); i++) {
+            View child = area.getChildAt(i);
+            if (child != group) restore(child, MOVED_TITLES);
+        }
+        if (group == null) return;
+        if (shift(group, titleOffset(bar, area, group), MOVED_TITLES)) {
+            HookStatus.counted(FamilyNames.REELS_TAB, COUNT_TITLE_CENTERED);
+        }
+    }
+
+    /**
+     * How far [group], the title's group in [area], moves so what it shows has its middle at [bar]'s
+     * middle, kept between the shown views beside it in the area (the back button) and the area's
+     * edges, which end where the bar's buttons start. Zero when the title already fills that room or
+     * something in the area overlaps it. From layout positions, so it's the same however often asked.
+     */
+    static int titleOffset(View bar, ViewGroup area, View group) {
+        int first = Integer.MAX_VALUE;
+        int last = Integer.MIN_VALUE;
+        if (group instanceof ViewGroup) {
+            ViewGroup inside = (ViewGroup) group;
+            for (int i = 0; i < inside.getChildCount(); i++) {
+                View child = inside.getChildAt(i);
+                if (child.getVisibility() == View.GONE || child.getWidth() <= 0) continue;
+                first = Math.min(first, child.getLeft());
+                last = Math.max(last, child.getRight());
+            }
+        }
+        if (first > last) {
+            first = 0;
+            last = group.getWidth();
+        }
+        first += group.getLeft();
+        last += group.getLeft();
+        int low = 0;
+        int high = area.getWidth();
+        for (int i = 0; i < area.getChildCount(); i++) {
+            View beside = area.getChildAt(i);
+            if (beside == group || beside.getVisibility() == View.GONE || beside.getWidth() <= 0) continue;
+            if (beside.getRight() <= group.getLeft()) low = Math.max(low, beside.getRight());
+            else if (beside.getLeft() >= group.getRight()) high = Math.min(high, beside.getLeft());
+            else return 0;
+        }
+        if (bar.getWidth() <= 0 || first < low || last > high) return 0;
+        int at = leftIn(area, bar);
+        if (at == Integer.MIN_VALUE) return 0;
+        int wanted = bar.getWidth() / 2 - (at + (first + last) / 2);
+        return Math.max(low - first, Math.min(high - last, wanted));
+    }
+
+    /** Whether [view] and everything above it up to [top] are shown. */
+    private static boolean shownWithin(View view, View top) {
+        View at = view;
+        while (at != top) {
+            if (at.getVisibility() != View.VISIBLE) return false;
+            ViewParent parent = at.getParent();
+            if (!(parent instanceof View)) return false;
+            at = (View) parent;
+        }
+        return true;
+    }
+
+    /** The child of [group] that is [view] or holds it, or null. */
+    @Nullable
+    private static View childHolding(ViewGroup group, View view) {
+        View at = view;
+        while (at.getParent() != group) {
+            ViewParent parent = at.getParent();
+            if (!(parent instanceof View)) return null;
+            at = (View) parent;
+        }
+        return at;
     }
 
     /**
@@ -211,33 +345,43 @@ public final class ProfileTitle {
         for (int i = 0; i < container.getChildCount(); i++) {
             View child = container.getChildAt(i);
             if (child.getVisibility() == View.GONE) continue;
-            float x = child.getTranslationX();
-            float[] held = MOVED.get(child);
-            if (held == null) {
-                held = new float[]{x, x};
-                MOVED.put(child, held);
-            } else if (x != held[1]) {
-                // Something else moved it since; that's where it is now.
-                held[0] = x;
-            }
-            held[1] = held[0] + offset;
-            if (x != held[1]) {
-                child.setTranslationX(held[1]);
-                moved = true;
-            }
+            moved |= shift(child, offset, MOVED);
         }
         if (moved) HookStatus.counted(FamilyNames.REELS_TAB, COUNT_CENTERED);
     }
 
-    /** Puts back each name moved here, if it's still where it was put. */
-    private static void putBack() {
-        if (MOVED.isEmpty()) return;
-        for (Map.Entry<View, float[]> entry : MOVED.entrySet()) {
+    /** Moves [view] [offset] from where it was before this class moved it, noting it in [moved]. Whether it moved now. */
+    private static boolean shift(View view, int offset, Map<View, float[]> moved) {
+        float x = view.getTranslationX();
+        float[] held = moved.get(view);
+        if (held == null) {
+            held = new float[]{x, x};
+            moved.put(view, held);
+        } else if (x != held[1]) {
+            // Something else moved it since; that's where it is now.
+            held[0] = x;
+        }
+        held[1] = held[0] + offset;
+        if (x == held[1]) return false;
+        view.setTranslationX(held[1]);
+        return true;
+    }
+
+    /** Puts [view] back if this class moved it and it's still where it was put. */
+    private static void restore(View view, Map<View, float[]> moved) {
+        float[] held = moved.remove(view);
+        if (held != null && view.getTranslationX() == held[1]) view.setTranslationX(held[0]);
+    }
+
+    /** Puts back each view in [moved], if it's still where it was put. */
+    private static void putBack(Map<View, float[]> moved) {
+        if (moved.isEmpty()) return;
+        for (Map.Entry<View, float[]> entry : moved.entrySet()) {
             View view = entry.getKey();
             float[] held = entry.getValue();
             if (view != null && view.getTranslationX() == held[1]) view.setTranslationX(held[0]);
         }
-        MOVED.clear();
+        moved.clear();
     }
 
     /** [view]'s left edge in [bar]'s coordinates, or MIN_VALUE when it isn't inside [bar]. */
@@ -300,5 +444,6 @@ public final class ProfileTitle {
     static void resetForTests() {
         leave();
         MOVED.clear();
+        MOVED_TITLES.clear();
     }
 }

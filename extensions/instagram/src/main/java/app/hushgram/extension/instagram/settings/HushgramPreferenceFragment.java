@@ -1260,6 +1260,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 glass.addPreference(toggle(context, Settings.CENTER_PROFILE_NAME, L10n.t("Center the name on profiles"),
                         L10n.t("Puts the username in the middle of the bar at the top of a profile, yours and other "
                                 + "people's. The buttons stay where they are.")));
+                glass.addPreference(toggle(context, Settings.CENTER_SCREEN_TITLES, L10n.t("Center titles on other screens"),
+                        L10n.t("Puts the title in the middle of the bar at the top of other screens, like notifications, "
+                                + "as far as the buttons beside it allow. The buttons stay where they are.")));
                 glass.addPreference(tabOrderRow(context));
                 glass.addPreference(startTabRow(context));
             }

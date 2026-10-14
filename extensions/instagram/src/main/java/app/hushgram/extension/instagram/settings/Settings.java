@@ -1341,6 +1341,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_center_profile_name", FALSE);
 
     /**
+     * The title of every other screen with Instagram's shared top bar, like notifications, sits in the
+     * middle of the bar as far as the buttons beside it allow
+     * ({@link app.hushgram.extension.instagram.profile.ProfileTitle}, #161). Home and profiles keep
+     * their own switches. It's moved after each layout, so a change shows without a restart. Off to
+     * start.
+     */
+    public static final BooleanSetting CENTER_SCREEN_TITLES =
+            new BooleanSetting("hushgram_center_screen_titles", FALSE);
+
+    /**
      * The order the tab bar shows its tabs in, as the tab enum's names, comma separated, first tab
      * first ({@link app.hushgram.extension.instagram.reels.TabOrder}). Empty keeps Instagram's order.
      * The bar is built as Instagram starts, so a change takes a restart.
