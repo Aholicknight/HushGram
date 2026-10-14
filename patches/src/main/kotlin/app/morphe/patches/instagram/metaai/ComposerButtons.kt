@@ -28,8 +28,11 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 internal const val COMPOSER_BUTTON = "$EXTENSION_PACKAGE/metaai/MetaAi;->composerButton(Ljava/lang/Object;I)Z"
 internal val COMPOSER_BUTTON_NAMES = listOf("META_AI_DISCOVERY", "META_AI_INVOCATION", "META_AI_VOICE")
 
-/** Instagram 450's row_thread_composer_meta_ai_discover, invocation and voice ids. */
-internal val COMPOSER_BUTTON_IDS = listOf(0x7f0b386b, 0x7f0b386c, 0x7f0b386d)
+/**
+ * Instagram 451's row_thread_composer_meta_ai_discover, invocation and voice ids, the same in all
+ * eight 451 builds (aapt2). 450 had them at 0x7f0b386b to 0x7f0b386d.
+ */
+internal val COMPOSER_BUTTON_IDS = listOf(0x7f0b3885, 0x7f0b3886, 0x7f0b3887)
 private const val VIEW = "Landroid/view/View;"
 private const val FIND_VIEW = "$VIEW->findViewById(I)$VIEW"
 
