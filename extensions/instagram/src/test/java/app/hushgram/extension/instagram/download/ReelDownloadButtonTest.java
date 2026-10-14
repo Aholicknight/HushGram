@@ -84,8 +84,8 @@ public class ReelDownloadButtonTest {
         }
     }
 
-    /** Reads the fake column and item, and keeps what the icon was made with. */
-    private static final class FakeBridge implements ReelDownloadButton.Bridge {
+    /** Reads the fake column and item, answers More's top margin, and keeps what the icon was made with. */
+    private static class FakeBridge implements ReelDownloadButton.Bridge {
         final Object made = new Object();
         int items;
         int icons;
@@ -94,7 +94,9 @@ public class ReelDownloadButtonTest {
         CharSequence description;
         Function1<Object, Object> click;
         long size;
-        long padding;
+        long margin;
+        int moreTop;
+        int moreTops;
 
         @Override public Object item(Object column) {
             items++;
@@ -110,14 +112,19 @@ public class ReelDownloadButtonTest {
             return FeedItemKinds.kindOf(item, ReelDownloadButton.ORGANIC, FamilyNames.REEL_DOWNLOAD);
         }
 
+        @Override public int moreTop(Object column, Context context) {
+            moreTops++;
+            return moreTop;
+        }
+
         @Override public Object icon(Drawable drawable, CharSequence description, Function1<Object, Object> click, long size,
-                                     long padding) {
+                                     long margin) {
             icons++;
             this.drawable = drawable;
             this.description = description;
             this.click = click;
             this.size = size;
-            this.padding = padding;
+            this.margin = margin;
             return made;
         }
     }
@@ -209,12 +216,13 @@ public class ReelDownloadButtonTest {
     }
 
     @Test
-    public void aReelGetsTheIconWithSavesSizeAndPaddingInWhite() {
+    public void aReelGetsTheIconWithSavesSizeAndMarginInWhite() {
         Column column = new Column(new Item(Kind.ORGANIC, "reel"));
         assertTrue(ReelDownloadButton.on());
         assertSame(bridge.made, ReelDownloadButton.litho(column, null, 120, 30));
         assertEquals(120, bridge.size);
-        assertEquals(30, bridge.padding);
+        assertEquals(30, bridge.margin);
+        assertEquals("over Share, More's margin isn't asked", 0, bridge.moreTops);
         assertEquals("Download", String.valueOf(bridge.description));
         assertNotNull(bridge.click);
         assertTrue("this build has no glyph of Instagram's, so HushGram's own", bridge.drawable instanceof FeedDownloadButton.Glyph);
@@ -224,6 +232,54 @@ public class ReelDownloadButtonTest {
         ColorFilter instagrams = new PorterDuffColorFilter(0xFF262626, PorterDuff.Mode.SRC_IN);
         assertSame(bridge.made, ReelDownloadButton.litho(column, instagrams, 120, 30));
         assertSame("Instagram's own tint where it has one", instagrams, bridge.drawable.getColorFilter());
+    }
+
+    @Test
+    public void overMoreTheIconMakesUpTheMarginMoreTakesBack() {
+        Column column = new Column(new Item(Kind.ORGANIC, "reel"));
+        long eightDp = ReelDownloadButton.PX_BITS | 23;
+        // More's top margin is minus 8dp, 23 pixels on the S25, while the share count is hidden.
+        bridge.moreTop = -23;
+        assertSame(bridge.made, ReelDownloadButton.lithoAboveMore(column, null, 124, eightDp));
+        assertEquals("Save's 23 pixels and the 23 More pulls up", ReelDownloadButton.PX_BITS | 46, bridge.margin);
+        assertEquals(124, bridge.size);
+
+        bridge.moreTop = 0;
+        ReelDownloadButton.lithoAboveMore(column, null, 124, eightDp);
+        assertEquals("with the share count showing More takes no margin, so Save's stays", eightDp, bridge.margin);
+
+        bridge.moreTop = -23;
+        ReelDownloadButton.litho(column, null, 124, eightDp);
+        assertEquals("over Share the icon keeps Save's margin", eightDp, bridge.margin);
+        assertEquals("only the place over More asks for More's margin", 2, bridge.moreTops);
+    }
+
+    @Test
+    public void theMarginOverMoreIsWorkedOutInPixelsOnly() {
+        long px = ReelDownloadButton.PX_BITS;
+        assertEquals(px | 46, ReelDownloadButton.marginAboveMore(px | 23, -23));
+        assertEquals(px | 23, ReelDownloadButton.marginAboveMore(px | 23, 0));
+        assertEquals("More pushed down takes from the margin", px | 3, ReelDownloadButton.marginAboveMore(px | 23, 20));
+        assertEquals("never below none", px, ReelDownloadButton.marginAboveMore(px | 23, 40));
+        assertEquals("no margin at all is none in pixels", px | 23, ReelDownloadButton.marginAboveMore(0, -23));
+        long dp = Double.doubleToRawLongBits(8.0);
+        assertEquals("a margin in dp is left alone", dp, ReelDownloadButton.marginAboveMore(dp, -23));
+        long sp = 0x7ffa000000000000L | Float.floatToRawIntBits(8f);
+        assertEquals("and one in sp", sp, ReelDownloadButton.marginAboveMore(sp, -23));
+    }
+
+    @Test
+    public void anUnreadableMoreLeavesSavesMargin() {
+        ReelDownloadButton.bridge = new FakeBridge() {
+            @Override public int moreTop(Object column, Context context) {
+                throw new IllegalStateException("unreadable");
+            }
+        };
+        long eightDp = ReelDownloadButton.PX_BITS | 23;
+        FakeBridge failing = (FakeBridge) ReelDownloadButton.bridge;
+        assertSame(failing.made, ReelDownloadButton.lithoAboveMore(new Column(new Item(Kind.ORGANIC, "reel")), null, 124, eightDp));
+        assertEquals(eightDp, failing.margin);
+        assertTrue(String.join("\n", HookStatus.report()).contains("reel download button spacing"));
     }
 
     @Test

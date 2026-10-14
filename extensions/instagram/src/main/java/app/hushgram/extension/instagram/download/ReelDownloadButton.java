@@ -33,9 +33,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The column is a component that collects its buttons in a list each time it's composed. Right
  * after Save and its count join that list, the patch asks {@link #on}, and with the switch on hands
  * {@link #litho} the column, the color filter Instagram puts on the column's icons when it skips
- * dark mode, and the size and padding Save was given. What it answers joins the list, so Instagram
- * lays the icon out, mounts it and recycles it like its own buttons. Hide the Save button empties
- * Save's place without moving that call, so the icon then sits where Save would.
+ * dark mode, and the size and bottom margin Save was given. What it answers joins the list, so
+ * Instagram lays the icon out, mounts it and recycles it like its own buttons. Hide the Save button
+ * empties Save's place without moving that call, so the icon then sits where Save would.
+ *
+ * <p>Save goes over Share or, past the share count, over More. More sets its own top margin to minus
+ * 8dp unless the share count shows, which pulls it up into the margin of the button over it, so in
+ * that place the patch asks {@link #lithoAboveMore}, which gives the icon that much more margin and
+ * keeps the gap under it the column's usual one.
  *
  * <p>The icon goes only on a reel, never on an ad or a card, and only when a tap would find
  * something to save. A tap reads the reel from the column at that moment and starts the save
@@ -56,6 +61,12 @@ public final class ReelDownloadButton {
     /** The column's icons are white over the video unless Instagram skips dark mode there. */
     private static final int ON_MEDIA = 0xFFFFFFFF;
     private static final int ICON_DP = 24;
+    /**
+     * How Litho packs a dimension in a long: a plain double is in dp, and a NaN carrying these bits
+     * holds pixels in its low 32 bits. Instagram hands the column's margins over in pixels.
+     */
+    private static final long NAN_BITS = 0x7ff8000000000000L;
+    static final long PX_BITS = 0x7ff9000000000000L;
 
     /** Instagram's download glyph, looked up once: 0 until then, -1 when this build has none. */
     static volatile int glyph;
@@ -76,8 +87,11 @@ public final class ReelDownloadButton {
         @Nullable
         String kind(Object item) throws ReflectiveOperationException;
 
+        /** More's top margin in pixels as its builder works it out for this column, 0 when it takes none. */
+        int moreTop(Object column, Context context);
+
         @Nullable
-        Object icon(Drawable drawable, CharSequence description, Function1<Object, Object> click, long size, long padding);
+        Object icon(Drawable drawable, CharSequence description, Function1<Object, Object> click, long size, long margin);
     }
 
     static Bridge bridge = new Bridge() {
@@ -93,9 +107,15 @@ public final class ReelDownloadButton {
             return FeedItemKinds.kindOf(item, ORGANIC, FamilyNames.REEL_DOWNLOAD);
         }
 
+        @Override public int moreTop(Object column, Context context) {
+            int dimension = ReelDownloadButton.moreTop(column);
+            // Litho reads a dimension resource the same way.
+            return dimension == 0 ? 0 : context.getResources().getDimensionPixelSize(dimension);
+        }
+
         @Override public Object icon(Drawable drawable, CharSequence description, Function1<Object, Object> click, long size,
-                                     long padding) {
-            return lithoIcon(drawable, description, click, size, padding);
+                                     long margin) {
+            return lithoIcon(drawable, description, click, size, margin);
         }
     };
 
@@ -152,11 +172,19 @@ public final class ReelDownloadButton {
     }
 
     /**
-     * An icon component showing [drawable], [size] wide and tall with [padding] under it as Save has,
+     * The dimension resource More's builder gives More as its top margin for [column], or 0 while
+     * the share count shows and More takes none. The patch replaces this body.
+     */
+    public static int moreTop(Object column) {
+        return 0;
+    }
+
+    /**
+     * An icon component showing [drawable], [size] wide and tall with [margin] under it as Save has,
      * centered in the column, described as [description], and running [click] on a tap. The patch
      * replaces this body.
      */
-    public static Object lithoIcon(Object drawable, CharSequence description, Object click, long size, long padding) {
+    public static Object lithoIcon(Object drawable, CharSequence description, Object click, long size, long margin) {
         return null;
     }
 
@@ -171,13 +199,24 @@ public final class ReelDownloadButton {
     }
 
     /**
-     * Called as the column beside a reel is composed, right after Save and its count join it:
-     * [column] is the column, [filter] the color filter Instagram gives its icons there or null, and
-     * [size] and [padding] what Save was given. Answers the icon to add after them, or null to leave
-     * the column as it is. Never throws.
+     * Called as the column beside a reel is composed, right after Save and its count join it, where
+     * Share comes next: [column] is the column, [filter] the color filter Instagram gives its icons
+     * there or null, and [size] and [margin] what Save was given. Answers the icon to add after them,
+     * or null to leave the column as it is. Never throws.
      */
     @Nullable
-    public static Object litho(@Nullable Object column, @Nullable Object filter, long size, long padding) {
+    public static Object litho(@Nullable Object column, @Nullable Object filter, long size, long margin) {
+        return make(column, filter, size, margin, false);
+    }
+
+    /** {@link #litho} where More comes next, making up the margin More takes back. Never throws. */
+    @Nullable
+    public static Object lithoAboveMore(@Nullable Object column, @Nullable Object filter, long size, long margin) {
+        return make(column, filter, size, margin, true);
+    }
+
+    @Nullable
+    private static Object make(@Nullable Object column, @Nullable Object filter, long size, long margin, boolean aboveMore) {
         try {
             if (column == null || !enabled()) return null;
             HookStatus.invoked(FamilyNames.REEL_DOWNLOAD);
@@ -187,8 +226,9 @@ public final class ReelDownloadButton {
             if (media == null || !actions.savable(media)) return null;
             Context context = Utils.getContext();
             Drawable drawable = context == null ? null : drawable(context, filter instanceof ColorFilter ? (ColorFilter) filter : null);
+            long under = aboveMore && drawable != null ? underAboveMore(column, context, margin) : margin;
             Object icon = drawable == null ? null
-                    : bridge.icon(drawable, FeedDownloadButton.description(context), new Click(column), size, padding);
+                    : bridge.icon(drawable, FeedDownloadButton.description(context), new Click(column), size, under);
             if (icon == null) {
                 HookStatus.counted(FamilyNames.REEL_DOWNLOAD, COUNT_REFUSED);
                 return null;
@@ -202,6 +242,34 @@ public final class ReelDownloadButton {
             HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel download button", failure);
             return null;
         }
+    }
+
+    /** The icon's bottom margin over More, or Save's own [margin] when More's top can't be read. */
+    private static long underAboveMore(Object column, Context context, long margin) {
+        try {
+            return marginAboveMore(margin, bridge.moreTop(column, context));
+        } catch (RuntimeException unreadable) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel download button spacing", unreadable);
+            return margin;
+        }
+    }
+
+    /**
+     * The bottom margin that keeps the column's gap between the icon and More under it, when More's
+     * top margin is [moreTop] pixels: Save's [margin] less More's top, never below none. A margin
+     * that isn't in pixels is left as it is.
+     */
+    static long marginAboveMore(long margin, int moreTop) {
+        if (moreTop == 0) return margin;
+        int pixels;
+        if (margin == 0) {
+            pixels = 0;
+        } else if ((margin & NAN_BITS) == NAN_BITS && (margin & PX_BITS) == PX_BITS) {
+            pixels = (int) margin;
+        } else {
+            return margin;
+        }
+        return PX_BITS | (Math.max(0, pixels - moreTop) & 0xFFFFFFFFL);
     }
 
     /** Whether the icon shows: its switch and Download on reels. Paused answers no. */

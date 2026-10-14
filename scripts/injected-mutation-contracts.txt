@@ -888,12 +888,15 @@ once-call Lapp/hushgram/extension/instagram/download/ReelDownload;->rows(Ljava/l
 # where it returns. It returns once on 449, so one call, and addTo() is called nowhere else.
 once-call Lapp/hushgram/extension/instagram/download/ReelDownload;->addTo(Ljava/util/List;Ljava/lang/Object;)V holding android_purge_26_q3_ClipsOrganicMediaItemViewMoreOptionsController_getReducedMenuOptions
 # The Download button beside a reel (#178) asks ReelDownloadButton.on() right after Save's count
-# joins the column, in the column's render, and with it on hands litho() the column, its color
-# filter and Save's size and padding, then adds what litho() answers. The render puts Save in one of
-# two places, so each call is there twice, and in no other method. ReelDownloadButtonHookTest checks
-# on every 450 build that both land right after the count's add.
+# joins the column, in the column's render, and with it on hands the column, its color filter and
+# Save's size and margin to litho(), then adds what it answers. The render puts Save in one of two
+# places, so on() is there twice and in no other method. The place over Share asks litho() and the
+# one over More asks lithoAboveMore(), which makes up the margin More's minus 8dp top takes back, so
+# each of those is there once. ReelDownloadButtonHookTest checks on every 450 build that both land
+# right after the count's add, each in its place.
 once-call Lapp/hushgram/extension/instagram/download/ReelDownloadButton;->on()Z in instance (L*;)L*; sites 2 holding android_purge_26_q2_ClipsUfiComponent_render
-once-call Lapp/hushgram/extension/instagram/download/ReelDownloadButton;->litho(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object; in instance (L*;)L*; sites 2 holding android_purge_26_q2_ClipsUfiComponent_render
+once-call Lapp/hushgram/extension/instagram/download/ReelDownloadButton;->litho(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object; in instance (L*;)L*; holding android_purge_26_q2_ClipsUfiComponent_render
+once-call Lapp/hushgram/extension/instagram/download/ReelDownloadButton;->lithoAboveMore(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object; in instance (L*;)L*; holding android_purge_26_q2_ClipsUfiComponent_render
 #
 # Download any story: the story menu's builders hand their labels to labels() where they return,
 # and its handlers of a tapped label ask save() first. Several builders and handlers call each, so
