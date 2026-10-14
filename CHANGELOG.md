@@ -191,6 +191,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** Hide the tab bar as you scroll now keeps the bar in place on every reel. It used to slide away on reels that didn't fill the screen and stay put on the rest. Reported in #170.
 
+* **Instagram - Glass tab bar:** Hide the tab bar as you scroll works on the Activity tab now. Instagram builds that list differently from the feed, and the bar never noticed it scrolling. Refs #65.
+
 * **Instagram - Hide the Reels tab:** The tab names in Tab order's list are easy to read now. They were dark gray on a dark list. Reported in #55.
 
 * **Instagram - HushGram settings:** A keyboard or a D-pad reaches every row now. The arrow keys used to get stuck on the page itself after the search box, and the whole screen turned gray while they were.
