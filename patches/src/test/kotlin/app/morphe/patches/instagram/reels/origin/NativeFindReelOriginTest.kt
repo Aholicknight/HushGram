@@ -56,7 +56,7 @@ class NativeFindReelOriginTest {
             assertTrue("$name: the grid's binder sets each tile's transition name", bind.code().any { it.reference() == SET_TRANSITION_NAME })
             checked += name
         }
-        for (code in BUILDS) assertTrue("no fixture of 450 build $code among $checked", checked.any { it.contains("-$code") })
+        for (code in BUILDS) assertTrue("no fixture of 451 build $code among $checked", checked.any { it.contains("-$code") })
     }
 
     @Test fun dexBackedInstructionReReadsResolveTheSameMethods() {
@@ -78,7 +78,7 @@ class NativeFindReelOriginTest {
     }
 
     private companion object {
-        val BUILDS = listOf(385611395, 385611400, 385611404, 385611431, 385611438, 385611439, 385611440)
+        val BUILDS = listOf(385713073, 385713078, 385713082, 385713109, 385713111, 385713116, 385713117, 385713118)
         /** The binder of a tile in a profile's Reels grid. */
         const val GRID_BIND = "ClipsGridItemDefinition_bind"
         const val SET_TRANSITION_NAME = "Landroid/view/View;->setTransitionName(Ljava/lang/String;)V"

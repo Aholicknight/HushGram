@@ -321,7 +321,7 @@ class StoryMentionsHookTest {
         var checked = 0
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("the declared build and the six others", 7, bundles.size)
+        assertEquals("the declared build and the seven others", 8, bundles.size)
         run {
             for (bundle in bundles) {
                 val binders = FixtureDex.classesHolding(bundle, BIND_MEDIA)

@@ -191,11 +191,11 @@ class ChangeVersionCodeTest {
     }
 
     /**
-     * 385611439 (x86) is the one 450 build with minSdk 26, where every other has 28, so its crash
+     * 385713117 (x86) is the one 451 build with minSdk 26, where every other has 28, so its crash
      * reporter keeps getLongVersionCode's fallback for Android 8: below API 28 it reads versionCode
      * from the same PackageInfo instead. That's Instagram's own code too, one more own read.
      */
-    private val PRE_28_FALLBACK_BUILD = "instagram-450.0.0.50.77-385611439"
+    private val PRE_28_FALLBACK_BUILD = "instagram-451.0.0.53.80-385713117"
 
     private fun builds(bundle: File, label: String) {
         val code = realVersionCode(label.removeSuffix(".apks").substringAfterLast('-'))

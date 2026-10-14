@@ -188,8 +188,8 @@ class OpenDeveloperOptionsTest {
     }
 
     /**
-     * The same in the other builds of each declared version (#77, #95). 385611395 and 385611400 ask
-     * a string pool for the error key instead of holding it, and the opener is found through it.
+     * The same in the other builds of each declared version (#77, #95). 451's x86 build 385713117
+     * asks a string pool for the error key instead of holding it, and the opener is found through it.
      */
     @Test
     fun everyOtherBuildOpensTheOptionsOnALongPress() {
@@ -213,7 +213,7 @@ class OpenDeveloperOptionsTest {
             val type = opener.open.substringBefore("->")
             if (classes.single { it.type == type }.methods.none { OPTIONS_ERROR in it.strings() }) pooled += label.substringAfterLast('-')
         }
-        assertTrue("the builds asking a pool for $OPTIONS_ERROR: $pooled", pooled.containsAll(listOf("385611395", "385611400")))
+        assertTrue("the builds asking a pool for $OPTIONS_ERROR: $pooled", pooled.containsAll(listOf("385713117")))
     }
 
     /**

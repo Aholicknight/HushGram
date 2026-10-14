@@ -113,10 +113,10 @@ class BrowserMenuLinkTest {
     /**
      * The builds whose clipboard helper answers nothing. It's the same ClipboardUtil copy(Context,
      * String) everywhere, handing the text to the (Context, String, String)Z that calls
-     * setPrimaryClip, but 385611439 and 385611440 (x86, x86_64) are compiled with it void since no
-     * caller reads its answer, where every arm64 build keeps its Z. The handler drops it either way.
+     * setPrimaryClip. 450's x86 and x86_64 builds were compiled with it void since no caller reads
+     * its answer; every 451 build keeps its Z. The handler drops it either way.
      */
-    private val VOID_COPY_HELPER_BUILDS = setOf("instagram-450.0.0.50.77-385611439", "instagram-450.0.0.50.77-385611440")
+    private val VOID_COPY_HELPER_BUILDS = emptySet<String>()
 
     private fun builds(bundle: File, label: String) {
         val handlers = FixtureDex.classesHolding(bundle, BROWSER_SHARE_FAILURE)

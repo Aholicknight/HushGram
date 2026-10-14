@@ -139,10 +139,10 @@ class EventStreamingTest {
     }
 
     /**
-     * The same in the other builds of each declared version (#77, #95). 385611400 splits the step,
-     * and the switch read goes through streamEvents() in the one method calling the part holding the
-     * strings, whose branch on the answer decides that call: the part is called past its fall
-     * through and never past where it jumps.
+     * The same in the other builds of each declared version (#77, #95). A build that splits the
+     * step (450's 385611400 did; no 451 build does) has the switch read go through streamEvents() in
+     * the one method calling the part holding the strings, whose branch on the answer decides that
+     * call: the part is called past its fall through and never past where it jumps.
      */
     @Test
     fun everyOtherBuildKeepsEventsOffTheStream() {
@@ -185,7 +185,7 @@ class EventStreamingTest {
                 assertTrue("$label: the part is called only with the switch on", calls.all { it in on && it !in off })
             }
         }
-        assertEquals("the builds that split the step", setOf("385611400"), split)
+        assertEquals("the builds that split the step", emptySet<String>(), split)
     }
 
     /** The instructions reached from [from], following every edge but stopping at [stop]. */

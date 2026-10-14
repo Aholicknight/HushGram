@@ -83,7 +83,7 @@ class NativeShowReelTimeTest {
             )
             checked += name
         }
-        for (code in BUILDS) assertTrue("no fixture of 450 build $code among $checked", checked.any { it.contains("-$code") })
+        for (code in BUILDS) assertTrue("no fixture of 451 build $code among $checked", checked.any { it.contains("-$code") })
     }
 
     @Test fun dexBackedInstructionReReadsResolveTheSameMethods() {
@@ -107,7 +107,7 @@ class NativeShowReelTimeTest {
     }
 
     private companion object {
-        val BUILDS = listOf(385611395, 385611400, 385611404, 385611431, 385611438, 385611439, 385611440)
+        val BUILDS = listOf(385713073, 385713078, 385713082, 385713109, 385713111, 385713116, 385713117, 385713118)
 
         /** The Reels item converter's marker, by the name the others are found by. */
         val CONVERTER = PURGE_MARKER.find(TO_CLIPS_ITEM)!!.groupValues[1]

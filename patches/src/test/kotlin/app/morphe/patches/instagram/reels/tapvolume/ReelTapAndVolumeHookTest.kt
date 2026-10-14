@@ -130,7 +130,7 @@ class ReelTapAndVolumeHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("seven builds of the version", 7, bundles.size)
+        assertEquals("eight builds of the version", 8, bundles.size)
         for (bundle in bundles) {
             val name = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
             val holders = (FixtureDex.classesHolding(bundle, tapMarker) + FixtureDex.classesHolding(bundle, toggleMarker)).map { it.type }.toSet()
@@ -254,7 +254,7 @@ class ReelTapAndVolumeHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("seven builds of the version", 7, bundles.size)
+        assertEquals("eight builds of the version", 8, bundles.size)
         for (bundle in bundles) {
             val name = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
             val holders = FixtureDex.classesHolding(bundle, volumeMarker).map { it.type }.toSet()

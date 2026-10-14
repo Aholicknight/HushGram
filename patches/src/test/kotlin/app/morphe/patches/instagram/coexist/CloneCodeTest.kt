@@ -16,7 +16,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The code half on every build of Instagram 450. Each build names its own package by the same
+ * The code half on every build of Instagram 451. Each build names its own package by the same
  * uses, Redex's names aside, and every use that means the running app moves while the rest stay.
  */
 class CloneCodeTest {
@@ -24,16 +24,22 @@ class CloneCodeTest {
 
     /** The const-string loads of an authority each build has, and the loads of Instagram's package that stay. */
     private val authorityLoads = mapOf(
-        "385611395" to 31, "385611400" to 37, "385611404" to 37, "385611431" to 37,
-        "385611438" to 37, "385611439" to 34, "385611440" to 38,
+        "385713073" to 32, "385713078" to 32, "385713082" to 32, "385713109" to 32,
+        "385713111" to 32, "385713116" to 32, "385713117" to 31, "385713118" to 32,
     )
     private val keptLoads = mapOf(
-        "385611395" to 88, "385611400" to 89, "385611404" to 87, "385611431" to 87,
-        "385611438" to 87, "385611439" to 88, "385611440" to 87,
+        "385713073" to 91, "385713078" to 91, "385713082" to 91, "385713109" to 92,
+        "385713111" to 92, "385713116" to 91, "385713117" to 91, "385713118" to 91,
     )
     private val uses = mapOf(
-        SelfUse.INLINED to 4, SelfUse.PACKAGE_MANAGER to 6, SelfUse.OWN_INTENT to 8, SelfUse.GOOGLE_PLAY to 10,
+        SelfUse.INLINED to 4, SelfUse.PACKAGE_MANAGER to 6, SelfUse.OWN_INTENT to 9,
         SelfUse.NAME_CHECK to 6, SelfUse.CALLER_CHECK to 3, SelfUse.PROVIDER_OWNER to 4, SelfUse.RELEASE_AND_DEBUG to 4,
+    )
+
+    /** Google Play's uses, the one count that differs by build: R8 keeps more or fewer of its helpers in each. */
+    private val googlePlayUses = mapOf(
+        "385713073" to 8, "385713078" to 8, "385713082" to 8, "385713109" to 7,
+        "385713111" to 7, "385713116" to 8, "385713117" to 10, "385713118" to 8,
     )
 
     /** The uses in classes Redex leaves named, the same in every build. */
@@ -58,7 +64,7 @@ class CloneCodeTest {
         for ((build, file) in builds) {
             val authorities = readCloneManifest(CloneFixtures.manifest(file)).authorities
             val classes = CloneFixtures.classes(file, authorities)
-            if (build == "385611438") {
+            if (build == "385713073") {
                 val withoutAnswer = PatchContexts.of(classes).planClone(clone, authorities)
                 val refusal = assertThrows(PatchException::class.java) { withoutAnswer.requireComplete() }
                 assertTrue(refusal.message, refusal.message!!.contains("OwnPackage.name()"))
@@ -69,7 +75,7 @@ class CloneCodeTest {
             println("[$build] ${plan.summary()}")
             plan.sites.forEach { println("[$build]   $it") }
 
-            assertEquals("[$build] uses", uses, SelfUse.entries.associateWith(plan::count))
+            assertEquals("[$build] uses", uses + (SelfUse.GOOGLE_PLAY to googlePlayUses[build]), SelfUse.entries.associateWith(plan::count))
             assertEquals("[$build] uses in named classes", namedUses, plan.sites.filter { it.use != null && !it.type.startsWith("LX/") }
                 .map { "${it.type} ${it.use!!.name}" }.sorted())
             assertTrue("[$build] each use moves to the copy", plan.sites.filter { it.use != null }.all { it.to == clone })
