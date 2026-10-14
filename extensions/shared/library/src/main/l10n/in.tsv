@@ -342,6 +342,9 @@ the start-up fix for x86 devices	perbaikan saat mulai untuk perangkat x86
 Developer	Pengembang
 Developer options on a long press of Home	Opsi pengembang saat Beranda ditekan lama
 Opens Instagram's own developer options, where you can look at and change its hidden settings. A wrong change can break parts of Instagram until you reset it.	Membuka opsi pengembang milik Instagram, tempat kamu bisa melihat dan mengubah pengaturan tersembunyinya. Perubahan yang salah bisa merusak sebagian Instagram sampai kamu meresetnya.
+# context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
+Instagram's developer options didn't load, so MetaConfig opened instead.	Opsi pengembang Instagram tidak termuat, jadi MetaConfig dibuka sebagai gantinya.
+Instagram's developer options didn't load. Try the long press again later.	Opsi pengembang Instagram tidak termuat. Coba tekan lama lagi nanti.
 Pure black dark mode	Mode gelap hitam pekat
 Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.	Mode gelap Instagram memakai hitam pekat, bukan abu-abu yang hampir hitam, termasuk di menu yang muncul dari bawah. Tombol tetap memakai abu-abunya sendiri.
 the pure black dark mode	mode gelap hitam pekat

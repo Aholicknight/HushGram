@@ -285,6 +285,17 @@ shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava
 # two values the server can set the press to. Nothing else calls open().
 start-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->open()I in instance (Landroid/view/View;)Z holding click activity
 once-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->open()I in instance (Landroid/view/View;)Z holding click activity
+# On a yes the same long press tells opening() the activity, once, right before the opener call, and
+# both answers of the callback the opener hands the module load ask loaded() first, so a load that
+# never answers loses its loading dialog after a while and a late answer is dropped (#158). The
+# success is the answer calling the Callable that makes the options screen, in the class whose
+# methods load the error key between them, and the failure the answer toasting the key without the
+# other callback's Function0. 385713117 asks a string pool for the key (pooled).
+once-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->opening(Ljava/lang/Object;)V in instance (Landroid/view/View;)Z holding click activity
+start-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->loaded()I in instance ()V calling instance Ljava/util/concurrent/Callable;->call()Ljava/lang/Object; pooled class-holding debug_options_error
+once-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->loaded()I in instance ()V calling instance Ljava/util/concurrent/Callable;->call()Ljava/lang/Object; pooled class-holding debug_options_error
+start-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->loaded()I in instance ()V calling static LX/*;->*(Landroid/content/Context;Ljava/lang/String;II)Landroid/widget/Toast; lacking instance Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; pooled holding debug_options_error
+once-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->loaded()I in instance ()V calling static LX/*;->*(Landroid/content/Context;Ljava/lang/String;II)Landroid/widget/Toast; lacking instance Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; pooled holding debug_options_error
 # Import flag names hands both labels of every row MetaConfig's list builder makes to FlagNames, in
 # both of its kinds of row. The builder is the one static ()List making rows of the (J, String,
 # String) constructor, whichever way its build makes the labels (inline, through getters on the

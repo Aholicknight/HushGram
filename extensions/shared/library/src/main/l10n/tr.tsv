@@ -342,6 +342,9 @@ the start-up fix for x86 devices	x86 cihazlar için açılış düzeltmesi
 Developer	Geliştirici
 Developer options on a long press of Home	Ana Sayfa'ya uzun basınca geliştirici seçenekleri
 Opens Instagram's own developer options, where you can look at and change its hidden settings. A wrong change can break parts of Instagram until you reset it.	Instagram'ın kendi geliştirici seçeneklerini açar. Burada gizli ayarlarına bakabilir ve onları değiştirebilirsin. Yanlış bir değişiklik, sıfırlayana kadar Instagram'ın bazı bölümlerini bozabilir.
+# context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
+Instagram's developer options didn't load, so MetaConfig opened instead.	Instagram'ın geliştirici seçenekleri yüklenmedi, bu yüzden onun yerine MetaConfig açıldı.
+Instagram's developer options didn't load. Try the long press again later.	Instagram'ın geliştirici seçenekleri yüklenmedi. Daha sonra Ana Sayfa'ya yeniden uzun bas.
 Pure black dark mode	Saf siyah karanlık mod
 Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.	Instagram'ın karanlık modu, siyaha yakın grisi yerine saf siyah kullanır. Alttan açılan menüler de siyah olur. Düğmeler kendi gri tonlarını korur.
 the pure black dark mode	saf siyah karanlık mod

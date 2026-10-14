@@ -74,17 +74,20 @@ val openDeveloperOptionsPatch = bytecodePatch(
 
 /**
  * Puts in developer options for the [editor] and the Whitehat [screen] already found: the long
- * press, the MetaConfig and Whitehat entries, Export, Validate and Import as far as their reader
- * and writer are found, and Import flag names when MetaConfig's list is found. Every stub body is
- * assembled, every MetaConfig row traced and the opener found before anything changes, so nothing
- * after the long press hook can refuse.
+ * press with its time limit on the loading dialog when that's found, the MetaConfig and Whitehat
+ * entries, Export, Validate and Import as far as their reader and writer are found, and Import flag
+ * names when MetaConfig's list is found. Every stub body is assembled, every MetaConfig row traced
+ * and the opener found before anything changes, so nothing after the long press hook can refuse.
  */
 internal fun BytecodePatchContext.openDeveloperOptions(editor: OverrideEditor, screen: String) {
     val exchange = overrideExchangeOrWarn(editor)
     val names = flagNamesOrWarn()
+    val opener = findOptionsOpener()
+    val timeout = loadingTimeoutOrWarn(opener)
     val stubs = listOfNotNull(prepareOverrideEditor(editor), prepareWhitehatScreen(editor, screen), exchange?.reader, exchange?.writer)
-    openOnLongPress(findOptionsOpener())
+    openOnLongPress(opener)
     stubs.forEach { putStubs(it) }
+    if (timeout != null) answerLoads(timeout)
     if (names != null) applyFlagNameList(names)
     enableStatus("developerOptions")
     if (exchange != null) enableStatus(OVERRIDE_EXCHANGE_STATUS)
@@ -151,8 +154,10 @@ internal fun BytecodePatchContext.findOptionsOpener(): OptionsOpener {
 
 /**
  * Asks [OPEN_DEVELOPER_OPTIONS] first thing in the Home tab's long press, the one onLongClick
- * holding [LONG_PRESS_STRINGS], and on a yes hands the handler's main activity and session to
- * [opener] and ends the press as handled. Otherwise the press does what it did.
+ * holding [LONG_PRESS_STRINGS], and on a yes tells [OPENING] the handler's main activity, hands it
+ * and the session to [opener] and ends the press as handled. Otherwise the press does what it did.
+ * [OPENING] starts the press's time limit on the loading dialog, and does nothing more where the
+ * patch left the limit out.
  */
 internal fun BytecodePatchContext.openOnLongPress(opener: OptionsOpener) {
     val found = mutableListOf<String>()
@@ -179,6 +184,7 @@ internal fun BytecodePatchContext.openOnLongPress(opener: OptionsOpener) {
             move-object/from16 v3, v$self
             iget-object v1, v3, $activity
             iget-object v2, v3, $session
+            invoke-static { v1 }, $OPENING
             sget-object v3, ${opener.instance}
             invoke-virtual { v3, v1, v1, v2 }, ${opener.open}
             const/4 v0, 0x1

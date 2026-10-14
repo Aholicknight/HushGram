@@ -342,6 +342,9 @@ the start-up fix for x86 devices	a correção de inicialização para dispositiv
 Developer	Desenvolvedor
 Developer options on a long press of Home	Opções do desenvolvedor ao tocar e segurar o Início
 Opens Instagram's own developer options, where you can look at and change its hidden settings. A wrong change can break parts of Instagram until you reset it.	Abre as opções de desenvolvedor do próprio Instagram, onde você pode ver e mudar as configurações ocultas dele. Uma mudança errada pode quebrar partes do Instagram até você redefinir.
+# context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
+Instagram's developer options didn't load, so MetaConfig opened instead.	As opções de desenvolvedor do Instagram não carregaram, então o MetaConfig foi aberto no lugar.
+Instagram's developer options didn't load. Try the long press again later.	As opções de desenvolvedor do Instagram não carregaram. Tente tocar e segurar o Início de novo mais tarde.
 Pure black dark mode	Modo escuro preto puro
 Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.	O modo escuro do Instagram usa preto puro em vez do cinza quase preto, também nos menus que sobem da parte de baixo. Os botões mantêm os próprios tons de cinza.
 the pure black dark mode	o modo escuro preto puro

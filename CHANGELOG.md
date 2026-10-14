@@ -138,6 +138,8 @@ Every HushGram release, newest first.
 
 #### Bug Fixes
 
+* **Instagram - Open developer options:** A long press of Home no longer leaves Instagram's loading spinner up for good. When its developer options haven't loaded after 12 seconds, the spinner closes and the MetaConfig editor opens in their place, with a toast saying why. If the editor can't open there, the toast says so instead. Diagnostics counts each time it happens. Reported in #158.
+
 * **Instagram - Hide suggested posts:** Hide posts from this account in a post's menu shows a crossed-out eye now, not Download's arrow.
 
 * **Instagram - HushGram settings:** Recovery and sign-in notices stay above settings, and Support stays last, including after a search. Native row sorting no longer reverses those positions.
