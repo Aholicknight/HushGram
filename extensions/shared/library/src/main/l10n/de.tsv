@@ -1083,3 +1083,18 @@ Changed %1$d setting	%1$d Einstellung geändert
 Changed %1$d settings	%1$d Einstellungen geändert
 Hide the reply bar on reels from chats	Antwortleiste bei Reels aus Chats ausblenden
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Das Antwortfeld unter einem Reel, das du aus einem Chat öffnest, mit seinen Reaktionen und dem Plus-Button. Das Nachrichtenfeld des Chats selbst bleibt.
+# context: Layout list title; it picks the font Instagram's text draws in
+Font	Schriftart
+# context: the three choices in the Font list
+Instagram's font	Schriftart von Instagram
+Your phone's font	Schriftart deines Handys
+A font file	Eine Schriftdatei
+# context: the line under the Font list for each choice
+Instagram's own font. You can also pick your phone's font or a .ttf or .otf file. Restart Instagram to see a change.	Die Schriftart von Instagram. Du kannst auch die Schriftart deines Handys oder eine .ttf- oder .otf-Datei wählen. Starte Instagram neu, um eine Änderung zu sehen.
+Instagram's text uses your phone's font. Restart Instagram to see a change.	Die Texte von Instagram nutzen die Schriftart deines Handys. Starte Instagram neu, um eine Änderung zu sehen.
+Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Die Texte von Instagram nutzen die Schriftdatei, die du gewählt hast. Wähle die Option erneut, um die Datei zu wechseln. Starte Instagram neu, um eine Änderung zu sehen.
+# context: toasts after a font file is picked in the Font list
+That file isn't a font HushGram can use. Your font hasn't changed.	Diese Datei ist keine Schriftart, die HushGram nutzen kann. Deine Schriftart wurde nicht geändert.
+Font saved. Restart Instagram to see it.	Schriftart gespeichert. Starte Instagram neu, um sie zu sehen.
+# context: toast when Instagram starts and the picked font file won't load
+Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	Deine Schriftdatei ließ sich nicht laden, darum siehst du die Schriftart von Instagram. Wähle sie erneut unter HushGram-Einstellungen > Layout.

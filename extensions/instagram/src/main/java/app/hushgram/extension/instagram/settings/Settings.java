@@ -931,6 +931,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_launch_screen", FALSE, true);
 
     /**
+     * The font Instagram's text draws in: Instagram's own, the phone's, or a font file picked in
+     * settings ({@link app.hushgram.extension.instagram.misc.Fonts}). Instagram keeps its fonts once
+     * loaded, so a change shows after a restart. Starts on Instagram's own.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.FontChoice> FONT =
+            new EnumSetting<>("hushgram_font", app.hushgram.extension.instagram.misc.FontChoice.INSTAGRAM, true);
+
+    /**
      * Every notification Instagram posts joins one group with a count
      * ({@link app.hushgram.extension.instagram.misc.NotificationGroups}). Read at each post. Off to
      * start.

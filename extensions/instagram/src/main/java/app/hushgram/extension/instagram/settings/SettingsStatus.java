@@ -190,6 +190,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean font() {
+        return false;
+    }
+
     public static boolean notificationGroups() {
         return false;
     }

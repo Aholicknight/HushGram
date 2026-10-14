@@ -70,6 +70,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Keep Reels auto scroll on:** New switch, Move on when a reel ends. The next reel plays instead of a loop, whether or not Instagram offers Auto scroll, and its switch can't stop it. Starts off, needs a restart. Asked for in #175.
 
+* **Instagram - Font:** New patch. A Font list under Layout picks Instagram's font, your phone's font, or a .ttf or .otf file from your phone. Bold and italic text stay bold and italic. A file that isn't a font changes nothing and says so. It starts on Instagram's font and needs a restart. Emoji keep their own style. Asked for in #166 and #5.
+
 #### Improvements
 
 * **Instagram:** HushGram now patches Instagram 451.0.0.53.80 instead of 450.0.0.50.77. Before patching, get the APKMirror variant labelled (arm64-v8a) (480-640dpi) (Android 9.0+) with build number 385713073. All eight builds of 451 patch: the arm64 ones (385713073, 385713078, 385713082, 385713109 and 385713116), the x86 one (385713117) and the x86_64 ones (385713111 and 385713118). Instagram 451 renumbered many of the server switches and resource ids the patches read and moved some of the code they hook, so each patch was pointed at its new spot.

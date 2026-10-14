@@ -1310,6 +1310,19 @@ once-call Lapp/hushgram/extension/instagram/misc/EmojiStyle;->replaceStrategy(I)
 once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->list(Landroid/content/res/ColorStateList;)Landroid/content/res/ColorStateList; in static (Landroid/content/Context;I)Landroid/content/res/ColorStateList; sites 3 holding Failed\sto\sinflate\sColorStateList,\sleaving\sit\sto\sthe\sframework
 shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I holding LX/*;->*(Ljava/lang/Object;I)V LX/*;->*(Landroid/content/Context;I)I
 shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I lacking static LX/*;->*(Ljava/lang/Object;*)V holding Landroid/content/Context;->getColor(I)I LX/*;->*(Landroid/content/Context;I)I
+# Font hands each Prism Sans Typeface Instagram's font helper keeps to Fonts.prismTypeface right
+# before it's kept: three times in the helper's static initializer (00QW.<clinit> on 451, 00QV on
+# 385713109 and 385713111, the static ()V of the one class holding the string below) and once in
+# each weight's getter (A05, A06 and A07, the instance (Context) Typeface that reads its own field,
+# A00, A01 or A02 on all eight 451 builds, and calls Instagram's font loader). Then it hands each
+# IgTextView to Fonts.textView right after IgTextViewUtils.initialize sets it up, in IgTextView.init,
+# the one method calling it. Left out, that weight or that view keeps Instagram's font; twice or
+# elsewhere, it isn't the hook the patch wrote. FontHookTest checks all eight 451 builds.
+once-call Lapp/hushgram/extension/instagram/misc/Fonts;->prismTypeface(Landroid/graphics/Typeface;)Landroid/graphics/Typeface; in static ()V sites 3 class-holding IgdsPrismFontHelper_setTextAppearance_UnsupportedOperationException
+once-call Lapp/hushgram/extension/instagram/misc/Fonts;->prismTypeface(Landroid/graphics/Typeface;)Landroid/graphics/Typeface; in instance (Landroid/content/Context;)Landroid/graphics/Typeface; holding LX/*;->A00:Landroid/graphics/Typeface; LX/*;->*(LX/*;)Landroid/graphics/Typeface;
+once-call Lapp/hushgram/extension/instagram/misc/Fonts;->prismTypeface(Landroid/graphics/Typeface;)Landroid/graphics/Typeface; in instance (Landroid/content/Context;)Landroid/graphics/Typeface; holding LX/*;->A01:Landroid/graphics/Typeface; LX/*;->*(LX/*;)Landroid/graphics/Typeface;
+once-call Lapp/hushgram/extension/instagram/misc/Fonts;->prismTypeface(Landroid/graphics/Typeface;)Landroid/graphics/Typeface; in instance (Landroid/content/Context;)Landroid/graphics/Typeface; holding LX/*;->A02:Landroid/graphics/Typeface; LX/*;->*(LX/*;)Landroid/graphics/Typeface;
+next-call Lapp/hushgram/extension/instagram/misc/Fonts;->textView(Landroid/widget/TextView;)V after Lcom/instagram/common/ui/base/IgTextViewUtils;->initialize(Landroid/widget/TextView;Landroid/content/Context;Landroid/util/AttributeSet;)V in instance (Landroid/content/Context;Landroid/util/AttributeSet;II)V holding Lcom/instagram/common/ui/base/IgTextViewUtils;->initialize(Landroid/widget/TextView;Landroid/content/Context;Landroid/util/AttributeSet;)V
 # Show if a profile follows you hands the pronouns slot beside a profile's name and the header to
 # FriendshipStatus right after the name's binder shows the slot with the pronouns in it, and right
 # after it hides the slot for an account with none (0BNk.A04 on 449, the one method loading the

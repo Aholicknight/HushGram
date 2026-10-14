@@ -1083,3 +1083,18 @@ Changed %1$d setting	Se cambió %1$d ajuste
 Changed %1$d settings	Se cambiaron %1$d ajustes
 Hide the reply bar on reels from chats	Ocultar la barra de respuesta en los reels de los chats
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	El cuadro de respuesta bajo un reel que abres desde un chat, con sus reacciones y el botón más. El cuadro de mensajes del propio chat se queda.
+# context: Layout list title; it picks the font Instagram's text draws in
+Font	Fuente
+# context: the three choices in the Font list
+Instagram's font	Fuente de Instagram
+Your phone's font	Fuente de tu teléfono
+A font file	Un archivo de fuente
+# context: the line under the Font list for each choice
+Instagram's own font. You can also pick your phone's font or a .ttf or .otf file. Restart Instagram to see a change.	La fuente propia de Instagram. También puedes elegir la fuente de tu teléfono o un archivo .ttf u .otf. Reinicia Instagram para ver un cambio.
+Instagram's text uses your phone's font. Restart Instagram to see a change.	El texto de Instagram usa la fuente de tu teléfono. Reinicia Instagram para ver un cambio.
+Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	El texto de Instagram usa el archivo de fuente que elegiste. Elígelo de nuevo para cambiar el archivo. Reinicia Instagram para ver un cambio.
+# context: toasts after a font file is picked in the Font list
+That file isn't a font HushGram can use. Your font hasn't changed.	Ese archivo no es una fuente que HushGram pueda usar. Tu fuente no ha cambiado.
+Font saved. Restart Instagram to see it.	Fuente guardada. Reinicia Instagram para verla.
+# context: toast when Instagram starts and the picked font file won't load
+Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	No se pudo cargar tu archivo de fuente, así que se muestra la fuente de Instagram. Elígelo de nuevo en Configuración de HushGram > Diseño.

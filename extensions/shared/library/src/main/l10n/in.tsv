@@ -1083,3 +1083,18 @@ Changed %1$d setting	%1$d pengaturan diubah
 Changed %1$d settings	%1$d pengaturan diubah
 Hide the reply bar on reels from chats	Sembunyikan bilah balasan di reel dari chat
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Kotak balasan di bawah reel yang kamu buka dari chat, beserta reaksi dan tombol plusnya. Kotak pesan di chat itu sendiri tetap ada.
+# context: Layout list title; it picks the font Instagram's text draws in
+Font	Font
+# context: the three choices in the Font list
+Instagram's font	Font Instagram
+Your phone's font	Font ponselmu
+A font file	File font
+# context: the line under the Font list for each choice
+Instagram's own font. You can also pick your phone's font or a .ttf or .otf file. Restart Instagram to see a change.	Font bawaan Instagram. Kamu juga bisa memilih font ponselmu atau file .ttf atau .otf. Mulai ulang Instagram untuk melihat perubahan.
+Instagram's text uses your phone's font. Restart Instagram to see a change.	Teks Instagram memakai font ponselmu. Mulai ulang Instagram untuk melihat perubahan.
+Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Teks Instagram memakai file font yang kamu pilih. Pilih lagi untuk mengganti file. Mulai ulang Instagram untuk melihat perubahan.
+# context: toasts after a font file is picked in the Font list
+That file isn't a font HushGram can use. Your font hasn't changed.	File itu bukan font yang bisa dipakai HushGram. Fontmu tidak berubah.
+Font saved. Restart Instagram to see it.	Font disimpan. Mulai ulang Instagram untuk melihatnya.
+# context: toast when Instagram starts and the picked font file won't load
+Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	File fontmu tidak bisa dimuat, jadi font Instagram yang ditampilkan. Pilih lagi di Pengaturan HushGram > Tata letak.

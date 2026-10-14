@@ -107,6 +107,8 @@ import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.misc.AccentHue;
+import app.hushgram.extension.instagram.misc.FontChoice;
+import app.hushgram.extension.instagram.misc.Fonts;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.reels.BurnInMode;
@@ -197,10 +199,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private static final int VALIDATE_OVERRIDES = 0x484a;
     private static final int IMPORT_OVERRIDES = 0x484b;
     private static final int IMPORT_FLAG_NAMES = 0x484c;
+    private static final int PICK_FONT = 0x484d;
     /** Restore, Discard, Reset and Remove flag names need no document, so they never become a document request. */
     private static final int RESTORE_OVERRIDES = 0, DISCARD_OVERRIDES = -1, RESET_OVERRIDES = -2, REMOVE_FLAG_NAMES = -3;
     /** Framework fragment callbacks run on the main thread. Never reuse a code across pages. */
-    private static int documentSequence = IMPORT_FLAG_NAMES;
+    private static int documentSequence = PICK_FONT;
     private int documentRequest;
     private int documentCode;
     @Nullable private String configurationExportToken;
@@ -1213,7 +1216,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         if (build.contains(PatchFamily.BOTTOM_SPACE) || build.contains(PatchFamily.EMOJI_STYLE)
-                || build.contains(PatchFamily.ACCENT_COLOR) || build.contains(PatchFamily.LAUNCH_SCREEN)) {
+                || build.contains(PatchFamily.ACCENT_COLOR) || build.contains(PatchFamily.LAUNCH_SCREEN)
+                || build.contains(PatchFamily.FONT)) {
             PreferenceCategory layout = category(screen, L10n.t("Layout"), SettingsIcons.LAYOUT,
                     L10n.t("Change how Instagram looks, from its colors to its emoji."));
             if (build.contains(PatchFamily.BOTTOM_SPACE)) {
@@ -1222,6 +1226,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                                 + "its navigation bar or Instagram is in a pop-up window. Restart Instagram to see "
                                 + "the change.")));
             }
+            if (build.contains(PatchFamily.FONT)) layout.addPreference(fontRow(context));
             if (build.contains(PatchFamily.EMOJI_STYLE)) {
                 layout.addPreference(toggle(context, Settings.NOTO_EMOJI, L10n.t("Google's emoji everywhere"),
                         L10n.t("Shows every emoji in Google's style instead of your phone's own. Restart Instagram "
@@ -1771,6 +1776,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.HOLD_FINGERS.key.equals(key) || Settings.HOLD_TIME.key.equals(key));
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_DOWNLOAD_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
+                    belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
@@ -2482,6 +2488,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         super.onActivityResult(code, result, data);
         if (code != documentCode) return;
         int request = documentRequest;
+        if (request == PICK_FONT) {
+            documentRequest = 0;
+            documentCode = 0;
+            showConfiguration();
+            if (result == Activity.RESULT_OK) keepFont(data == null ? null : data.getData());
+            return;
+        }
         boolean overrides = request == EXPORT_OVERRIDES || request == VALIDATE_OVERRIDES || request == IMPORT_OVERRIDES;
         boolean names = request == IMPORT_FLAG_NAMES;
         if (request != EXPORT_CONFIGURATION && request != IMPORT_CONFIGURATION && !overrides && !names) return;
@@ -2668,6 +2681,77 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             overrideFeedback(request, L10n.t("Couldn't start that. Try again."));
             showConfiguration();
         }
+    }
+
+    /**
+     * Opens Android's file picker for a font file. Nothing changes until a file is picked and loads
+     * as a font.
+     */
+    private void pickFont() {
+        if (documentRequest != 0 || changingConfiguration || changingOverrides || ExportStatus.CONFIGURATION.active()) return;
+        if (documentSequence == Integer.MAX_VALUE) {
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+            return;
+        }
+        documentRequest = PICK_FONT;
+        documentCode = ++documentSequence;
+        showConfiguration();
+        // Few file providers give .ttf and .otf a type, so the file itself is checked instead.
+        Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+        try {
+            startActivityForResult(picker, documentCode);
+        } catch (ActivityNotFoundException | SecurityException failure) {
+            documentRequest = 0;
+            documentCode = 0;
+            showConfiguration();
+            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+        }
+    }
+
+    /**
+     * Copies the picked file into Instagram's storage off the main thread if it loads as a font,
+     * then chooses it. A file that isn't a font changes nothing and says so in one toast.
+     */
+    private void keepFont(@Nullable Uri uri) {
+        Context context = getContext();
+        if (context == null) return;
+        if (uri == null || !"content".equals(uri.getScheme())) {
+            Utils.showToastLong(L10n.t("That file isn't a font HushGram can use. Your font hasn't changed."));
+            return;
+        }
+        Context application = context.getApplicationContext();
+        if (!Utils.runOnBackgroundThread(() -> {
+            boolean kept;
+            try (java.io.InputStream input = application.getContentResolver().openInputStream(uri)) {
+                kept = input != null && Fonts.store(application, input);
+            } catch (Exception failure) {
+                Logger.printInfo(() -> "Font: couldn't read the picked file", failure);
+                kept = false;
+            }
+            boolean usable = kept;
+            Utils.runOnMainThread(() -> fontKept(usable));
+        })) {
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+        }
+    }
+
+    /**
+     * Chooses the kept file. Through the row when it's on screen, so the restart prompt shows as it
+     * does for any choice. A new file for a file already chosen only needs the restart.
+     */
+    private void fontKept(boolean kept) {
+        if (!kept) {
+            Utils.showToastLong(L10n.t("That file isn't a font HushGram can use. Your font hasn't changed."));
+            return;
+        }
+        boolean chosen = Settings.FONT.savedValue() == FontChoice.FILE;
+        Preference row = isAdded() ? findPreference(Settings.FONT.key) : null;
+        if (!chosen && row instanceof FontRow) {
+            ((FontRow) row).setValue(FontChoice.FILE.name());
+            return;
+        }
+        if (!chosen) Settings.FONT.save(FontChoice.FILE);
+        Utils.showToastLong(L10n.t("Font saved. Restart Instagram to see it."));
     }
 
     /** The row that opens the page of named switches for Instagram's hidden settings. */
@@ -4321,6 +4405,60 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /**
+     * Instagram's font, the phone's or a font file (#166, #5). Choosing A font file opens the file
+     * picker, and the choice is kept only once a picked file loads as a font.
+     */
+    private FontRow fontRow(Context context) {
+        FontRow row = new FontRow(context);
+        row.setKey(Settings.FONT.key);
+        row.setTitle(L10n.t("Font"));
+        row.setDialogTitle(L10n.t("Font"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        FontChoice[] choices = FontChoice.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = fontLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.FONT.savedValue().name());
+        row.setOnPreferenceChangeListener((preference, value) -> {
+            if (!FontChoice.FILE.name().equals(value)) return true;
+            pickFont();
+            return false;
+        });
+        return row;
+    }
+
+    /** What the list calls [choice]. */
+    static String fontLabel(FontChoice choice) {
+        switch (choice) {
+            case SYSTEM:
+                return L10n.t("Your phone's font");
+            case FILE:
+                return L10n.t("A font file");
+            default:
+                return L10n.t("Instagram's font");
+        }
+    }
+
+    /** The sentence under the row for [choice]. */
+    static String fontSummary(FontChoice choice) {
+        switch (choice) {
+            case SYSTEM:
+                return L10n.t("Instagram's text uses your phone's font. Restart Instagram to see a change.");
+            case FILE:
+                return L10n.t("Instagram's text uses the font file you picked. Pick it again to change the file. "
+                        + "Restart Instagram to see a change.");
+            default:
+                return L10n.t("Instagram's own font. You can also pick your phone's font or a .ttf or .otf file. "
+                        + "Restart Instagram to see a change.");
+        }
+    }
+
     /** The color Instagram's blue turns into. Its summary is the color chosen. */
     static AccentHueRow accentHueRow(Context context) {
         AccentHueRow row = new AccentHueRow(context);
@@ -4868,6 +5006,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryTimeModeRow) preference).showSummary();
         } else if (preference instanceof StartTabRow) {
             ((StartTabRow) preference).showSummary();
+        } else if (preference instanceof FontRow) {
+            ((FontRow) preference).showSummary();
         } else if (preference instanceof LockDelayRow) {
             ((LockDelayRow) preference).showSummary();
         } else if (preference instanceof UnlockWithRow) {
@@ -4900,6 +5040,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryTimeModeRow) listPreference).showSummary();
         } else if (listPreference instanceof StartTabRow) {
             ((StartTabRow) listPreference).showSummary();
+        } else if (listPreference instanceof FontRow) {
+            ((FontRow) listPreference).showSummary();
         } else if (listPreference instanceof LockDelayRow) {
             ((LockDelayRow) listPreference).showSummary();
         } else if (listPreference instanceof UnlockWithRow) {
@@ -6299,6 +6441,42 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(value)) style = candidate;
             }
             setSummary(hapticStyleLabel(style));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class FontRow extends ListPreference {
+        FontRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        /** The summary is the sentence for the font chosen, not the entry. */
+        void showSummary() {
+            FontChoice choice = FontChoice.INSTAGRAM;
+            for (FontChoice candidate : FontChoice.values()) {
+                if (candidate.name().equals(getValue())) choice = candidate;
+            }
+            setSummary(fontSummary(choice));
         }
 
         @Override

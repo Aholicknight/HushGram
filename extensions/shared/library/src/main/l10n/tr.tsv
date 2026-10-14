@@ -1083,3 +1083,18 @@ Changed %1$d setting	%1$d ayar değiştirildi
 Changed %1$d settings	%1$d ayar değiştirildi
 Hide the reply bar on reels from chats	Sohbetlerden açılan reels'te yanıt çubuğunu gizle
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Bir sohbetten açtığın reels'in altındaki yanıt kutusu, tepkileri ve artı düğmesiyle birlikte. Sohbetin kendi mesaj kutusu kalır.
+# context: Layout list title; it picks the font Instagram's text draws in
+Font	Yazı tipi
+# context: the three choices in the Font list
+Instagram's font	Instagram'ın yazı tipi
+Your phone's font	Telefonunun yazı tipi
+A font file	Bir yazı tipi dosyası
+# context: the line under the Font list for each choice
+Instagram's own font. You can also pick your phone's font or a .ttf or .otf file. Restart Instagram to see a change.	Instagram'ın kendi yazı tipi. Telefonunun yazı tipini ya da bir .ttf veya .otf dosyasını da seçebilirsin. Bir değişikliği görmek için Instagram'ı yeniden başlat.
+Instagram's text uses your phone's font. Restart Instagram to see a change.	Instagram'daki yazılar telefonunun yazı tipini kullanır. Bir değişikliği görmek için Instagram'ı yeniden başlat.
+Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Instagram'daki yazılar seçtiğin yazı tipi dosyasını kullanır. Dosyayı değiştirmek için yeniden seç. Bir değişikliği görmek için Instagram'ı yeniden başlat.
+# context: toasts after a font file is picked in the Font list
+That file isn't a font HushGram can use. Your font hasn't changed.	Bu dosya HushGram'ın kullanabileceği bir yazı tipi değil. Yazı tipin değişmedi.
+Font saved. Restart Instagram to see it.	Yazı tipi kaydedildi. Görmek için Instagram'ı yeniden başlat.
+# context: toast when Instagram starts and the picked font file won't load
+Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	Yazı tipi dosyan yüklenemedi, bu yüzden Instagram'ın yazı tipi gösteriliyor. HushGram ayarları > Düzen bölümünden yeniden seç.

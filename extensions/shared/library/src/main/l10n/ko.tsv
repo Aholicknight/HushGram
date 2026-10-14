@@ -1082,3 +1082,18 @@ Changed %1$d setting	설정 %1$d개를 바꿨습니다
 Changed %1$d settings	설정 %1$d개를 바꿨습니다
 Hide the reply bar on reels from chats	채팅에서 연 릴스의 답장 창 숨기기
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	채팅에서 연 릴스 아래의 답장 입력란과 반응, 더하기 버튼입니다. 채팅의 메시지 입력란은 그대로 남습니다.
+# context: Layout list title; it picks the font Instagram's text draws in
+Font	글꼴
+# context: the three choices in the Font list
+Instagram's font	Instagram 글꼴
+Your phone's font	휴대전화 글꼴
+A font file	글꼴 파일
+# context: the line under the Font list for each choice
+Instagram's own font. You can also pick your phone's font or a .ttf or .otf file. Restart Instagram to see a change.	Instagram 자체 글꼴입니다. 휴대전화 글꼴이나 .ttf 또는 .otf 파일을 고를 수도 있습니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Instagram's text uses your phone's font. Restart Instagram to see a change.	Instagram의 텍스트에 휴대전화 글꼴을 사용합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Instagram의 텍스트에 선택한 글꼴 파일을 사용합니다. 파일을 바꾸려면 다시 선택하세요. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+# context: toasts after a font file is picked in the Font list
+That file isn't a font HushGram can use. Your font hasn't changed.	이 파일은 HushGram이 사용할 수 있는 글꼴이 아닙니다. 글꼴은 바뀌지 않았습니다.
+Font saved. Restart Instagram to see it.	글꼴을 저장했습니다. 보려면 Instagram을 다시 시작하세요.
+# context: toast when Instagram starts and the picked font file won't load
+Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	글꼴 파일을 불러오지 못해 Instagram 글꼴이 표시됩니다. HushGram 설정 > 레이아웃에서 다시 선택하세요.
