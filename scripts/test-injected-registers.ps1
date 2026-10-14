@@ -886,7 +886,7 @@ try {
     # The token host's three, each picking its method by one thing Redex leaves alone. Their bad
     # builds are with the home tab's below.
     $tokenHookRoot = 'Lapp/hushgram/extension/fixture/misc/TokenHook;'
-    $tokenLiteralRule = "once-call $tokenHookRoot->literal(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Integer;)V holding const:0x1ce57a65 const:0x811116000d5cda"
+    $tokenLiteralRule = "once-call $tokenHookRoot->literal(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Integer;)V holding const:0x1ce57a65 const:0x811116000d5cda const:0x8263c5ae"
     $tokenCallRule = "once-call $tokenHookRoot->call(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Long;)V holding LX/*;->*(LX/*;)V"
     $tokenFieldRule = "once-call $tokenHookRoot->field(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Short;)V holding LX/*;->A07:Ljava/util/List; LX/*;->*:Ljava/lang/String;"
     $tokenLackRule = "once-call $tokenHookRoot->lack(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Byte;)V lacking static LX/*;->*(LX/*;)V holding fixture_token"

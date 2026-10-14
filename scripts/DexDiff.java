@@ -1790,13 +1790,11 @@ public class DexDiff {
      * for an instruction that is no literal.
      */
     static String literalToken(Instruction i) {
-        if (i instanceof WideLiteralInstruction) {
-            return LITERAL_PREFIX + Long.toHexString(((WideLiteralInstruction) i).getWideLiteral());
-        }
-        if (i instanceof NarrowLiteralInstruction) {
-            return LITERAL_PREFIX + Long.toHexString(((NarrowLiteralInstruction) i).getNarrowLiteral() & 0xffffffffL);
-        }
-        return null;
+        if (!(i instanceof WideLiteralInstruction)) return null;
+        // dexlib2's narrow literals are wide ones too (const/16 and const-wide/16 even share a format),
+        // so the opcode says which this is. Read as wide, a negative narrow one came out sign-extended.
+        long value = ((WideLiteralInstruction) i).getWideLiteral();
+        return LITERAL_PREFIX + Long.toHexString(i.getOpcode().setsWideRegister() ? value : value & 0xffffffffL);
     }
 
     /**
