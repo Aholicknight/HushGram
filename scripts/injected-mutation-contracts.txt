@@ -743,9 +743,10 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in sta
 # so no rule can pick it. MuseButtonHookTest proves the hook on every Instagram 450 fixture.
 #
 # Hide the Explore grid asks the extension once, at the return of the topical Explore page's JSON
-# parser, the one method holding "sectional_items" and "session_paging_token". Search results come
-# through other requests and never pass it.
-once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->hide(Ljava/util/List;)Z in instance (*)Ljava/lang/Object; holding sectional_items session_paging_token
+# parser, the one method loading "sectional_items" and "session_paging_token" (451's 385713109 and
+# 385713111 ask a string pool for sectional_items, so the rule takes pooled strings). Search
+# results come through other requests and never pass it.
+once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->hide(Ljava/util/List;)Z in instance (*)Ljava/lang/Object; pooled holding sectional_items session_paging_token
 #
 # It also hides the load more row on the emptied grid. The Explore fragment's onCreate notes the
 # row state it hands its grid adapter, once, and LoadMoreButton's bind (the instance method taking
