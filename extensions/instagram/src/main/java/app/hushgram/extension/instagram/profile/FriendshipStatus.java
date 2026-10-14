@@ -33,8 +33,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>With Show it as a chip on, the answer goes in a chip under the profile's counts instead
  * ({@link FriendshipChip}), which also says Following each other when you follow the account too.
- * The pronouns slot is then left as Instagram set it. A header whose counts can't be found keeps
- * the text label.
+ * Follow label can make it small and put it under the profile picture (#157). The pronouns slot is
+ * then left as Instagram set it. A header whose counts can't be found keeps the text label.
  */
 public final class FriendshipStatus {
     static final String SEPARATOR = " · ";
@@ -177,7 +177,9 @@ public final class FriendshipStatus {
             FriendshipChip.clear(inside);
             return false;
         }
-        boolean shown = FriendshipChip.show(inside, relation, inside instanceof TextView ? (TextView) inside : null);
+        FollowLabelPlace place = Settings.FOLLOW_LABEL_PLACE.get();
+        boolean shown = FriendshipChip.show(inside, relation, inside instanceof TextView ? (TextView) inside : null,
+                place == null ? FollowLabelPlace.UNDER_COUNTS : place);
         if (!shown) Logger.printDebug(() -> "Friendship status: no counts to put the chip under, so the label goes by the name");
         return shown;
     }

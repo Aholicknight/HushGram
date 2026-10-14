@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -15,8 +16,10 @@ import static org.junit.Assert.assertTrue;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.view.View;
 import android.view.ViewParent;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -33,6 +36,7 @@ import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
+import org.robolectric.shadows.ShadowLooper;
 
 import java.lang.ref.Reference;
 import java.lang.reflect.Field;
@@ -41,6 +45,7 @@ import java.lang.reflect.Modifier;
 import app.hushgram.extension.instagram.profile.FriendshipStatus.Relation;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
@@ -96,7 +101,225 @@ public class FriendshipChipTest {
         FriendshipStatus.besidePronouns(pronouns, new Profile(null, null));
         assertFalse(FriendshipChip.anyShown());
         FriendshipChip.followersCountIdForTests = 0;
+        FriendshipChip.pictureFrameIdForTests = 0;
+        Settings.FOLLOW_LABEL_PLACE.resetToDefault();
+        HookStatus.clear();
         controller.close();
+    }
+
+    private LinearLayout row;
+    private FrameLayout column;
+    private View frame;
+    private LinearLayout right;
+
+    /**
+     * Builds a header the way Instagram's new profile lays it out, and shows it in place of the
+     * plain one: the picture's column at the start of a row, the name and the counts beside it,
+     * and the bio under the row. [rightLines] more lines make the column beside the picture taller.
+     */
+    private void pictured(int frameWidth, int frameHeight, int rightLines) {
+        Activity activity = controller.get();
+        header = new LinearLayout(activity);
+        header.setOrientation(LinearLayout.VERTICAL);
+        row = new LinearLayout(activity);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(30, 0, 30, 0);
+        column = new FrameLayout(activity);
+        column.setPadding(0, 0, 0, 5);
+        frame = new View(activity);
+        frame.setId(View.generateViewId());
+        column.addView(frame, new FrameLayout.LayoutParams(frameWidth, frameHeight));
+        row.addView(column, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        right = new LinearLayout(activity);
+        right.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout name = new LinearLayout(activity);
+        name.addView(new TextView(activity));
+        pronouns = new TextView(activity);
+        pronouns.setTextColor(Color.rgb(0xA8, 0xA8, 0xA8));
+        name.addView(pronouns);
+        right.addView(name);
+        counts = new LinearLayout(activity);
+        counts.setPadding(0, 4, 0, 6);
+        TextView followers = new TextView(activity);
+        followersId = View.generateViewId();
+        followers.setId(followersId);
+        followers.setText("120");
+        counts.addView(followers);
+        right.addView(counts);
+        for (int i = 0; i < rightLines; i++) {
+            TextView line = new TextView(activity);
+            line.setText("Line " + i);
+            right.addView(line);
+        }
+        row.addView(right, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        header.addView(row);
+        bio = new TextView(activity);
+        bio.setText("A bio");
+        header.addView(bio);
+        activity.setContentView(header);
+        FriendshipChip.followersCountIdForTests = followersId;
+        FriendshipChip.pictureFrameIdForTests = frame.getId();
+        Settings.FOLLOW_LABEL_PLACE.save(FollowLabelPlace.UNDER_PICTURE);
+        HookStatus.clear();
+    }
+
+    /** [view]'s bounds in [row]. */
+    private Rect inRow(View view) {
+        int left = 0;
+        int top = 0;
+        for (View at = view; at != row; at = (View) at.getParent()) {
+            left += at.getLeft();
+            top += at.getTop();
+        }
+        return new Rect(left, top, left + view.getWidth(), top + view.getHeight());
+    }
+
+    /**
+     * Small, under the picture (#157): a smaller pill, centered under the picture in room made at
+     * the bottom of the picture's column, so the bio moves down and nothing beside it is touched.
+     */
+    @Test
+    public void theSmallChipGoesCenteredUnderThePicture() {
+        pictured(260, 260, 0);
+        int bioTop = layOut();
+        int ownBottom = column.getPaddingBottom();
+        int countsBottom = counts.getPaddingBottom();
+
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        int movedBioTop = layOut();
+
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        assertNotNull(chip);
+        assertTrue(chip.small);
+        assertTrue(chip.underPicture);
+        assertEquals("Following each other", chip.pill.text);
+        assertEquals(ownBottom + chip.room, column.getPaddingBottom());
+        assertEquals("the counts keep their padding", countsBottom, counts.getPaddingBottom());
+        assertEquals("the bio moves down by the chip's room", bioTop + chip.room, movedBioTop);
+        Rect pill = chip.pill.getBounds();
+        Rect picture = inRow(frame);
+        assertFalse(pill.isEmpty());
+        assertEquals("centered under the picture", picture.centerX(), pill.centerX(), 1);
+        assertTrue("under the picture", pill.top >= picture.bottom);
+        assertEquals(column.getBottom() - ownBottom, pill.bottom);
+        assertFalse("never on the name or the counts", Rect.intersects(pill, inRow(right)));
+        assertTrue(String.join("\n", HookStatus.report()),
+                String.join("\n", HookStatus.report()).contains(FriendshipChip.UNDER_PICTURE + " 1"));
+
+        // Smaller than the usual chip: smaller words, icon and padding.
+        FriendshipChip.Pill usual = new FriendshipChip.Pill(RuntimeEnvironment.getApplication());
+        usual.set(chip.pill.text, null, Color.WHITE, null);
+        FriendshipChip.Pill small = new FriendshipChip.Pill(RuntimeEnvironment.getApplication(), true);
+        small.set(chip.pill.text, null, Color.WHITE, null);
+        assertTrue(small.getIntrinsicHeight() < usual.getIntrinsicHeight());
+        assertTrue(small.getIntrinsicWidth() < usual.getIntrinsicWidth());
+
+        // Binding again changes the words, not the room.
+        FriendshipStatus.besidePronouns(pronouns, new Profile(false, null));
+        assertSame(chip, FriendshipChip.shownUnder(counts));
+        assertEquals("Doesn't follow you", chip.pill.text);
+        assertEquals(ownBottom + chip.room, column.getPaddingBottom());
+    }
+
+    /** Right to left, the picture is at the other end of the row and the pill is still centered under it. */
+    @Test
+    public void rightToLeftThePillFollowsThePicture() {
+        pictured(260, 260, 0);
+        header.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, false));
+        layOut();
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        Rect picture = inRow(frame);
+        assertTrue("the picture is at the right", picture.left > inRow(right).left);
+        assertEquals(picture.centerX(), chip.pill.getBounds().centerX(), 1);
+        assertEquals(View.LAYOUT_DIRECTION_RTL, chip.pill.getLayoutDirection());
+    }
+
+    /**
+     * A pill wider than a small picture, beside a column taller than the picture, would sit on the
+     * counts, so it moves under the counts once the layout is done, small, and stays there.
+     */
+    @Test
+    public void withNoRoomUnderThePictureTheSmallChipGoesUnderTheCounts() {
+        pictured(20, 60, 6);
+        int ownBottom = column.getPaddingBottom();
+        int countsBottom = counts.getPaddingBottom();
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        layOut();
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        assertTrue("nothing drawn over the counts while it moves", chip.pill.getBounds().isEmpty());
+
+        ShadowLooper.idleMainLooper();
+        layOut();
+        assertSame(chip, FriendshipChip.shownUnder(counts));
+        assertFalse(chip.underPicture);
+        assertTrue(chip.pictureBlocked);
+        assertTrue(chip.small);
+        assertEquals("the column gets its room back", ownBottom, column.getPaddingBottom());
+        assertEquals(countsBottom + chip.roomNow(), counts.getPaddingBottom());
+        assertEquals(counts.getHeight() - countsBottom, chip.pill.getBounds().bottom);
+        assertTrue(String.join("\n", HookStatus.report()).contains(FriendshipChip.NO_PICTURE_ROOM + " 1"));
+
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        assertSame("the next bind keeps it under the counts", chip, FriendshipChip.shownUnder(counts));
+        assertFalse(chip.underPicture);
+    }
+
+    /** A picture column with a height of its own would squeeze the picture, so the small chip goes under the counts. */
+    @Test
+    public void aColumnNotSizedToItsPictureGetsNoRoom() {
+        pictured(260, 260, 0);
+        column.getLayoutParams().height = 300;
+        int ownBottom = column.getPaddingBottom();
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        assertFalse(chip.underPicture);
+        assertTrue(chip.small);
+        assertEquals(ownBottom, column.getPaddingBottom());
+        assertNull(FriendshipChip.pictureColumn(counts));
+    }
+
+    /** Changing the choice moves the chip at the next bind and gives the old place its room back. */
+    @Test
+    public void changingTheChoiceMovesTheChip() {
+        pictured(260, 260, 0);
+        int columnBottom = column.getPaddingBottom();
+        int countsBottom = counts.getPaddingBottom();
+        Settings.FOLLOW_LABEL_PLACE.save(FollowLabelPlace.UNDER_COUNTS);
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        FriendshipChip.Chip usual = FriendshipChip.shownUnder(counts);
+        assertFalse(usual.small);
+        assertFalse(usual.underPicture);
+        assertEquals(countsBottom + usual.room, counts.getPaddingBottom());
+
+        Settings.FOLLOW_LABEL_PLACE.save(FollowLabelPlace.UNDER_PICTURE);
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        FriendshipChip.Chip small = FriendshipChip.shownUnder(counts);
+        assertNotSame(usual, small);
+        assertTrue(small.underPicture);
+        assertEquals(countsBottom, counts.getPaddingBottom());
+        assertEquals(columnBottom + small.room, column.getPaddingBottom());
+
+        Settings.FRIENDSHIP_STATUS_CHIP.save(false);
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        assertNull(FriendshipChip.shownUnder(counts));
+        assertEquals(columnBottom, column.getPaddingBottom());
+    }
+
+    /** At twice the usual font size the small pill grows with its words, so the outline never cuts them. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void theSmallPillGrowsWithTheFontSize() {
+        FriendshipChip.Pill usual = new FriendshipChip.Pill(RuntimeEnvironment.getApplication(), true);
+        assertEquals("the small pill is 24dp", usual.dp(24), usual.getIntrinsicHeight());
+        try {
+            RuntimeEnvironment.setFontScale(2f);
+            FriendshipChip.Pill large = new FriendshipChip.Pill(RuntimeEnvironment.getApplication(), true);
+            assertTrue(large.getIntrinsicHeight() >= large.textHeight() + large.dp(6));
+            assertTrue(large.getIntrinsicHeight() > usual.getIntrinsicHeight());
+        } finally {
+            RuntimeEnvironment.setFontScale(1f);
+        }
     }
 
     @Test

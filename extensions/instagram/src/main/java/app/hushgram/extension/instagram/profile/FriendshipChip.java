@@ -30,7 +30,9 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.profile.FriendshipStatus.Relation;
+import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.L10n;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
  * The chip Show it as a chip puts under the posts, followers and following counts on someone's
@@ -43,11 +45,26 @@ import app.hushgram.extension.shared.L10n;
  * whichever layout holds the block. The block is the one holding the followers count, under the
  * nearest view that holds both it and the pronouns slot the hooks are handed.
  *
+ * <p>Small, under the picture (#157) draws a smaller pill centered under the profile picture. The
+ * picture's column, the child holding Instagram's fixed-size picture frame of the nearest view that
+ * holds the counts too, gets the room as padding at its bottom, which it can only take when it's as
+ * tall as what it holds. The pill is drawn in that shared view's overlay, since it's wider than the
+ * picture. Instagram's layouts can't be read offline, so each layout is checked: a column that
+ * isn't sized to its content, or a pill that would touch any of the shared view's other children,
+ * puts the small pill under the counts instead.
+ *
  * <p>Runs on the main thread, where Instagram binds the header.
  */
 final class FriendshipChip {
     /** The number of followers, inside the counts block. */
     static final String FOLLOWERS_COUNT = "profile_header_familiar_followers_value";
+
+    /** The fixed-size frame Instagram puts the profile picture in, by name. */
+    static final String PICTURE_FRAME = "row_profile_header_imageview_frame_layout";
+
+    /** What a chip put under the picture, or moved under the counts for want of room there, is counted under. */
+    static final String UNDER_PICTURE = "Follow chip under the picture";
+    static final String NO_PICTURE_ROOM = "Follow chip under the counts, no room under the picture";
 
     /** The icons, Instagram's own, by name. A build without them gets a chip without an icon. */
     static final String FOLLOWING_ICON = "instagram_user_following_outline_24";
@@ -60,6 +77,11 @@ final class FriendshipChip {
     static int followersCountIdForTests;
     /** The followers count's id in this app, or -1 before the first lookup. */
     private static volatile int followersCountId = -1;
+
+    /** Set by tests that have no Instagram resources: the picture frame's id. */
+    static int pictureFrameIdForTests;
+    /** The picture frame's id in this app, or -1 before the first lookup. */
+    private static volatile int pictureFrameId = -1;
 
     /**
      * The chips showing, by the counts block they're under. Blocks go when their screen does: a
@@ -77,15 +99,26 @@ final class FriendshipChip {
     }
 
     /**
-     * Shows [relation]'s chip under the counts of the profile header [inside] is part of, in its
-     * own color and the typeface of [style] when there is one. False when the counts can't be found.
+     * Shows [relation]'s chip on the profile header [inside] is part of, in its own color and the
+     * typeface of [style] when there is one: under the counts, or small under the picture as
+     * [place] says. False when the counts can't be found.
      */
-    static boolean show(View inside, Relation relation, @Nullable TextView style) {
+    static boolean show(View inside, Relation relation, @Nullable TextView style, FollowLabelPlace place) {
         View block = counts(inside);
         if (block == null) return false;
+        boolean small = place == FollowLabelPlace.UNDER_PICTURE;
         Chip chip = SHOWN.get(block);
+        boolean blocked = small && chip != null && chip.pictureBlocked;
+        View column = small && !blocked ? pictureColumn(block) : null;
+        if (chip != null && !chip.fits(small, column)) {
+            SHOWN.remove(block);
+            chip.remove();
+            chip = null;
+        }
         if (chip == null) {
-            chip = new Chip(block);
+            chip = new Chip(block, small, column);
+            chip.pictureBlocked = blocked;
+            if (small && !chip.underPicture) HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, NO_PICTURE_ROOM);
             SHOWN.put(block, chip);
         }
         chip.show(relation, style);
@@ -152,6 +185,41 @@ final class FriendshipChip {
     }
 
     /**
+     * The picture's column of the header the counts [block] is in: going up from [block], the first
+     * view holding the picture frame, and in it the child the frame is in. Null when there's none,
+     * the counts are in that child too, or it isn't on screen or isn't sized to its content, so
+     * room at its bottom would squeeze the picture rather than grow the column.
+     */
+    @Nullable
+    static View pictureColumn(View block) {
+        int id = pictureFrameId(block.getContext());
+        if (id == 0) return null;
+        View at = block;
+        for (int depth = 0; depth < MAX_DEPTH; depth++) {
+            ViewParent parent = at.getParent();
+            if (!(parent instanceof ViewGroup)) return null;
+            ViewGroup group = (ViewGroup) parent;
+            View frame = group.findViewById(id);
+            if (frame != null && frame != group) {
+                View column = childHolding(group, frame);
+                if (column == null || column == at || column.getVisibility() != View.VISIBLE) return null;
+                ViewGroup.LayoutParams params = column.getLayoutParams();
+                return params != null && params.height == ViewGroup.LayoutParams.WRAP_CONTENT ? column : null;
+            }
+            at = group;
+        }
+        return null;
+    }
+
+    private static int pictureFrameId(Context context) {
+        if (pictureFrameIdForTests != 0) return pictureFrameIdForTests;
+        if (pictureFrameId == -1) {
+            pictureFrameId = context.getResources().getIdentifier(PICTURE_FRAME, "id", context.getPackageName());
+        }
+        return pictureFrameId;
+    }
+
+    /**
      * Blue for Follows you, green for Following each other and red for Doesn't follow you. A light
      * profile gets darker shades, since the bright ones are hard to read on white.
      */
@@ -190,68 +258,195 @@ final class FriendshipChip {
     }
 
     /**
-     * One counts block's chip: the room it took and the drawing in the block's overlay. It's the
-     * value [SHOWN] keeps for the block, so it holds the block weakly: a strong hold would keep the
-     * key alive and the entry forever.
+     * One counts block's chip: the room it took, under the counts or the picture, and the drawing in
+     * an overlay. It's the value [SHOWN] keeps for the block, so it holds every view weakly: a
+     * strong hold would keep the key alive and the entry forever.
      */
     static final class Chip implements View.OnLayoutChangeListener {
+        /** The counts block, which the chip is kept by. */
         final WeakReference<View> block;
+        /** The view the room is made in: the counts block, or the picture's column. */
+        WeakReference<View> host;
+        /** The view whose overlay the pill is drawn in: the counts block, or the one holding the column and the counts. */
+        WeakReference<View> canvas;
+        /** Whether the pill is small, as Small, under the picture draws it, wherever it went. */
+        final boolean small;
+        /** Whether the pill went under the picture (or is waiting for a layout to say if it fits there). */
+        boolean underPicture;
+        /** Whether this header had no room under the picture, so a small pill went under the counts. */
+        boolean pictureBlocked;
+        /** Whether the pill under the picture has been counted in the diagnostics, which it is once. */
+        private boolean counted;
         final Pill pill;
-        /** The block's own bottom padding, which the chip's room goes on top of. */
+        /** The host's own bottom padding, which the chip's room goes on top of. */
         int ownBottom;
         final int room;
+        private final int countsRoom;
 
-        Chip(View block) {
+        Chip(View block, boolean small, @Nullable View column) {
             this.block = new WeakReference<>(block);
-            pill = new Pill(block.getContext());
-            room = pill.getIntrinsicHeight() + pill.dp(8);
-            ownBottom = block.getPaddingBottom();
-            block.getOverlay().add(pill);
-            block.addOnLayoutChangeListener(this);
+            this.small = small;
+            pill = new Pill(block.getContext(), small);
+            countsRoom = pill.getIntrinsicHeight() + pill.dp(small ? 6 : 8);
+            if (column != null && column.getParent() instanceof View) {
+                underPicture = true;
+                room = pill.getIntrinsicHeight() + pill.dp(6);
+                attach(column, (View) column.getParent());
+            } else {
+                room = countsRoom;
+                attach(block, block);
+            }
+        }
+
+        private void attach(View host, View canvas) {
+            this.host = new WeakReference<>(host);
+            this.canvas = new WeakReference<>(canvas);
+            ownBottom = host.getPaddingBottom();
+            canvas.getOverlay().add(pill);
+            canvas.addOnLayoutChangeListener(this);
+        }
+
+        /** Whether this chip is the size [small] asks for, under the picture's [column] or under the counts with none. */
+        boolean fits(boolean small, @Nullable View column) {
+            if (this.small != small) return false;
+            if (column == null) return !underPicture;
+            return underPicture && host.get() == column;
         }
 
         void show(Relation relation, @Nullable TextView style) {
-            View block = this.block.get();
-            if (block == null) return;
-            Context context = block.getContext();
+            View host = this.host.get();
+            if (host == null) return;
+            Context context = host.getContext();
             boolean follows = relation != Relation.DOESNT_FOLLOW_YOU;
             Drawable icon = icon(context, follows ? FOLLOWING_ICON : NOT_FOLLOWING_ICON);
             int color = color(relation, light(context, style));
             pill.set(text(relation), icon, color, style != null ? style.getTypeface() : null);
-            // Instagram may have set the block's padding again since; that becomes its own.
-            int bottom = block.getPaddingBottom();
-            if (bottom != ownBottom + room) {
+            makeRoom(host);
+            place();
+        }
+
+        /** Puts the chip's room on top of [host]'s own bottom padding, or Instagram's newer padding, which becomes its own. */
+        private void makeRoom(View host) {
+            int bottom = host.getPaddingBottom();
+            if (bottom != ownBottom + roomNow()) {
                 ownBottom = bottom;
-                block.setPaddingRelative(block.getPaddingStart(), block.getPaddingTop(), block.getPaddingEnd(), ownBottom + room);
+                host.setPaddingRelative(host.getPaddingStart(), host.getPaddingTop(), host.getPaddingEnd(), ownBottom + roomNow());
             }
-            place(block);
+        }
+
+        /** The room the chip takes where it is now: a pill moved under the counts takes the counts' room. */
+        int roomNow() {
+            return underPicture ? room : countsRoom;
         }
 
         void remove() {
-            View block = this.block.get();
-            if (block == null) return;
-            block.getOverlay().remove(pill);
-            block.removeOnLayoutChangeListener(this);
-            if (block.getPaddingBottom() == ownBottom + room) {
-                block.setPaddingRelative(block.getPaddingStart(), block.getPaddingTop(), block.getPaddingEnd(), ownBottom);
+            View canvas = this.canvas.get();
+            if (canvas != null) {
+                canvas.getOverlay().remove(pill);
+                canvas.removeOnLayoutChangeListener(this);
+            }
+            View host = this.host.get();
+            if (host != null && host.getPaddingBottom() == ownBottom + roomNow()) {
+                host.setPaddingRelative(host.getPaddingStart(), host.getPaddingTop(), host.getPaddingEnd(), ownBottom);
             }
         }
 
         @Override
         public void onLayoutChange(View view, int left, int top, int right, int bottom,
                                    int oldLeft, int oldTop, int oldRight, int oldBottom) {
-            place(view);
+            place();
+        }
+
+        void place() {
+            View host = this.host.get();
+            View canvas = this.canvas.get();
+            if (host == null || canvas == null) return;
+            pill.setLayoutDirection(canvas.getLayoutDirection());
+            if (underPicture) placeUnderPicture(host, (ViewGroup) canvas);
+            else placeUnderCounts(host);
         }
 
         /** Puts the pill at the start of the room under the counts of [block], lined up with them. */
-        void place(View block) {
+        private void placeUnderCounts(View block) {
             int width = pill.getIntrinsicWidth();
             int height = pill.getIntrinsicHeight();
             boolean rtl = block.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
-            pill.setLayoutDirection(block.getLayoutDirection());
             int left = rtl ? block.getWidth() - block.getPaddingEnd() - width : block.getPaddingStart();
             int bottom = block.getHeight() - ownBottom;
             pill.setBounds(left, bottom - height, left + width, bottom);
+        }
+
+        /**
+         * Centers the pill under the picture in [column]'s room, within [row], the view holding the
+         * column and the counts. Until [column] is laid out with its room nothing shows. A pill that won't fit in
+         * [row] or would touch another of its children shows nothing, and the chip moves under the
+         * counts once the layout pass is over.
+         */
+        private void placeUnderPicture(View column, ViewGroup row) {
+            int width = pill.getIntrinsicWidth();
+            int height = pill.getIntrinsicHeight();
+            if (row.getWidth() == 0 || column.getHeight() == 0 || column.isLayoutRequested()) {
+                pill.setBounds(0, 0, 0, 0);
+                return;
+            }
+            View frame = column.findViewById(pictureFrameId(column.getContext()));
+            View centered = frame != null ? frame : column;
+            int middle = leftIn(centered, row) + centered.getWidth() / 2;
+            int start = row.getPaddingLeft();
+            int end = row.getWidth() - row.getPaddingRight();
+            int left = Math.max(start, Math.min(middle - width / 2, end - width));
+            int bottom = column.getTop() + column.getHeight() - ownBottom;
+            Rect bounds = new Rect(left, bottom - height, left + width, bottom);
+            if (width > end - start || touchesAnother(row, column, bounds)) {
+                pill.setBounds(0, 0, 0, 0);
+                row.post(this::moveUnderCounts);
+                return;
+            }
+            pill.setBounds(bounds);
+            if (!counted) {
+                counted = true;
+                HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, UNDER_PICTURE);
+            }
+        }
+
+        /** Whether [bounds] in [row] touch any of its children but [column] that's on screen. */
+        private static boolean touchesAnother(ViewGroup row, View column, Rect bounds) {
+            for (int i = 0; i < row.getChildCount(); i++) {
+                View child = row.getChildAt(i);
+                if (child == column || child.getVisibility() != View.VISIBLE) continue;
+                if (child.getWidth() == 0 || child.getHeight() == 0) continue;
+                if (Rect.intersects(bounds, new Rect(child.getLeft(), child.getTop(), child.getRight(), child.getBottom()))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /** [view]'s left edge in [ancestor]'s coordinates. */
+        private static int leftIn(View view, View ancestor) {
+            int left = 0;
+            View at = view;
+            while (at != ancestor) {
+                left += at.getLeft() - at.getScrollX();
+                ViewParent parent = at.getParent();
+                if (!(parent instanceof View)) return left;
+                at = (View) parent;
+            }
+            return left;
+        }
+
+        /** Gives the picture's column its room back and puts the small pill under the counts, for good on this header. */
+        void moveUnderCounts() {
+            if (!underPicture) return;
+            View block = this.block.get();
+            if (block == null || SHOWN.get(block) != this) return;
+            remove();
+            underPicture = false;
+            pictureBlocked = true;
+            HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, NO_PICTURE_ROOM);
+            attach(block, block);
+            makeRoom(block);
+            place();
         }
 
         @Nullable
@@ -281,16 +476,21 @@ final class FriendshipChip {
         @Nullable Drawable icon;
 
         Pill(Context context) {
+            this(context, false);
+        }
+
+        /** The usual pill, or with [small] the one Small, under the picture draws: smaller words, icon and padding. */
+        Pill(Context context, boolean small) {
             metrics = context.getResources().getDisplayMetrics();
-            words.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 13, metrics));
+            words.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, small ? 12 : 13, metrics));
             outline.setStyle(Paint.Style.STROKE);
             outline.setStrokeWidth(Math.max(1, dp(1)));
-            // 28dp at the usual text size, and taller when the phone's font scale makes the words
-            // taller than that, so the outline never clips them.
-            height = Math.max(dp(28), textHeight() + dp(8));
-            padding = dp(12);
-            iconSize = dp(16);
-            iconGap = dp(6);
+            // 28dp (24dp small) at the usual text size, and taller when the phone's font scale makes
+            // the words taller than that, so the outline never clips them.
+            height = small ? Math.max(dp(24), textHeight() + dp(6)) : Math.max(dp(28), textHeight() + dp(8));
+            padding = dp(small ? 8 : 12);
+            iconSize = dp(small ? 14 : 16);
+            iconGap = dp(small ? 4 : 6);
         }
 
         int dp(float value) {

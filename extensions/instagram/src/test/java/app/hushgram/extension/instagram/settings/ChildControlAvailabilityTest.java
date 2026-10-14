@@ -80,6 +80,17 @@ public class ChildControlAvailabilityTest {
                 "Turn on Story ring size to use this choice.", "GOLD");
     }
 
+    @Test public void followLabelKeepsItsSavedChoiceAcrossChipChanges() {
+        Settings.FOLLOW_LABEL_PLACE.save(app.hushgram.extension.instagram.profile.FollowLabelPlace.UNDER_PICTURE);
+        try {
+            checkParent(Settings.FRIENDSHIP_STATUS_CHIP, Settings.FOLLOW_LABEL_PLACE, PatchFamily.FRIENDSHIP_STATUS,
+                    "Turn on Show it as a chip to use this choice.", "UNDER_PICTURE");
+        } finally {
+            Settings.FRIENDSHIP_STATUS_CHIP.resetToDefault();
+            Settings.FOLLOW_LABEL_PLACE.resetToDefault();
+        }
+    }
+
     @Test public void storyTimeKeepsItsSavedChoiceAcrossParentChanges() {
         Settings.STORY_TIME_MODE.save(StoryTimeMode.TIME_LEFT);
         checkParent(Settings.SHOW_STORY_TIME, Settings.STORY_TIME_MODE, PatchFamily.STORY_TIME,

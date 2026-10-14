@@ -91,7 +91,8 @@ val friendshipStatusPatch = bytecodePatch(
     name = "Show if a profile follows you",
     description = "Adds Follows you or Doesn't follow you beside the name on someone's profile. Other switches " +
         "add a chip and mark accounts on your Following list that don't follow you back. The chip is blue for " +
-        "Follows you, green for Following each other and red for Doesn't follow you. On by default. Turn it " +
+        "Follows you, green for Following each other and red for Doesn't follow you, and it can go small under " +
+        "the profile picture. On by default. Turn it " +
         "off in HushGram settings > Profiles.",
 ) {
     category("Profiles")

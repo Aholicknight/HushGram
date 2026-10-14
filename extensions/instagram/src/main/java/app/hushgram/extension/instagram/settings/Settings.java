@@ -974,6 +974,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_friendship_status_chip", FALSE);
 
     /**
+     * Where the chip goes and how big it is (#157): under the counts at its usual size, or small and
+     * centered under the profile picture. Needs {@link #FRIENDSHIP_STATUS_CHIP}. Read each time
+     * Instagram binds a profile's name. Under the counts to start.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.profile.FollowLabelPlace> FOLLOW_LABEL_PLACE =
+            new EnumSetting<>("hushgram_follow_label_place",
+                    app.hushgram.extension.instagram.profile.FollowLabelPlace.UNDER_COUNTS, parent(FRIENDSHIP_STATUS_CHIP));
+
+    /**
      * Doesn't follow you on the rows of your own Following list
      * ({@link app.hushgram.extension.instagram.profile.FollowingList}). Off to start. Read each time
      * Instagram binds a row of a follow list.

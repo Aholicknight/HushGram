@@ -103,6 +103,7 @@ import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
+import app.hushgram.extension.instagram.profile.FollowLabelPlace;
 import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.GlassReelsHide;
@@ -1162,6 +1163,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 profiles.addPreference(toggle(context, Settings.FRIENDSHIP_STATUS_CHIP, L10n.t("Show it as a chip"),
                         L10n.t("Puts the answer in a chip under the profile's posts, followers and following counts "
                                 + "instead, and says Following each other when you follow them too.")));
+                profiles.addPreference(followLabelPlaceRow(context));
                 if (PatchFamily.followingListMarkInBuild()) {
                     profiles.addPreference(toggle(context, Settings.MARK_FOLLOWING_LIST, L10n.t("Mark who doesn't follow you back"),
                             L10n.t("On your own Following list, adds Doesn't follow you after the name of each account that "
@@ -1780,6 +1782,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
+                    belongs |= family == PatchFamily.FRIENDSHIP_STATUS && Settings.FOLLOW_LABEL_PLACE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key)
@@ -4907,6 +4910,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    /** Where the follow chip goes and how big it is (#157). Its values are the setting's own names. */
+    static FollowLabelPlaceRow followLabelPlaceRow(Context context) {
+        FollowLabelPlaceRow row = new FollowLabelPlaceRow(context);
+        row.setKey(Settings.FOLLOW_LABEL_PLACE.key);
+        row.setTitle(L10n.t("Follow label"));
+        row.setDialogTitle(L10n.t("Follow label"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        FollowLabelPlace[] places = FollowLabelPlace.values();
+        CharSequence[] entries = new CharSequence[places.length];
+        CharSequence[] values = new CharSequence[places.length];
+        for (int i = 0; i < places.length; i++) {
+            entries[i] = followLabelPlaceLabel(places[i]);
+            values[i] = places[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.FOLLOW_LABEL_PLACE.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [place]. */
+    static String followLabelPlaceLabel(FollowLabelPlace place) {
+        return place == FollowLabelPlace.UNDER_PICTURE ? L10n.t("Small, under the picture") : L10n.t("Under the counts");
+    }
+
+    /** Where the chip goes with [place], for the row's summary. */
+    static String followLabelPlaceSummary(FollowLabelPlace place) {
+        return place == FollowLabelPlace.UNDER_PICTURE
+                ? L10n.t("A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.")
+                : L10n.t("The chip sits under the posts, followers and following counts.");
+    }
+
     /**
      * The size the story rings are drawn at. Like the playback quality's row, its values are the
      * setting's own names and its summary says what the choice does.
@@ -5018,6 +5053,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((BurnInGuardRow) preference).showSummary();
         } else if (preference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) preference).showSummary();
+        } else if (preference instanceof FollowLabelPlaceRow) {
+            ((FollowLabelPlaceRow) preference).showSummary();
         } else if (preference instanceof StartTabRow) {
             ((StartTabRow) preference).showSummary();
         } else if (preference instanceof FontRow) {
@@ -5052,6 +5089,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((ReelTapChoiceRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) listPreference).showSummary();
+        } else if (listPreference instanceof FollowLabelPlaceRow) {
+            ((FollowLabelPlaceRow) listPreference).showSummary();
         } else if (listPreference instanceof StartTabRow) {
             ((StartTabRow) listPreference).showSummary();
         } else if (listPreference instanceof FontRow) {
@@ -6527,6 +6566,43 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(getValue())) tab = candidate;
             }
             setSummary(startTabSummary(tab));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class FollowLabelPlaceRow extends ListPreference {
+        FollowLabelPlaceRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            FollowLabelPlace place = FollowLabelPlace.UNDER_COUNTS;
+            for (FollowLabelPlace candidate : FollowLabelPlace.values()) {
+                if (candidate.name().equals(getValue())) place = candidate;
+            }
+            setSummary(Settings.FOLLOW_LABEL_PLACE.isAvailable()
+                    ? followLabelPlaceSummary(place)
+                    : L10n.t("Turn on Show it as a chip to use this choice."));
         }
 
         @Override
