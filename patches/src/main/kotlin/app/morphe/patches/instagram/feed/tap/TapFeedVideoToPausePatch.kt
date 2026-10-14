@@ -501,6 +501,7 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
 
     // The stubs first: the handler calls into the extension only once everything it asks is in place.
     val ask = if (found.supplierIsInterface) "invoke-interface" else "invoke-virtual"
+    // Answers an Object: a handler whose module isn't made yet answers null.
     stub("controllerOf").addInstructionsWithLabels(
         0,
         """
@@ -515,6 +516,7 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
             return-object p0
         """,
     )
+    // Answers an Object: a controller with no item bound answers null.
     stub("shownOf").addInstructionsWithLabels(
         0,
         """
