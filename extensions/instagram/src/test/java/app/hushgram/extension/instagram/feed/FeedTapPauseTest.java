@@ -28,8 +28,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
- * What the feed tap hook answers: a tap on the playing video pauses it and the next one plays it, and off, paused, not
- * ready, an ad, any other post and a failure are all Instagram's own tap.
+ * What the feed tap hooks answer: a tap on the playing video pauses it and the next one plays it, a press held past
+ * Instagram's hold delay does the same on its lift, and off, paused, not ready, an ad, any other post and a failure are
+ * all Instagram's own tap or press.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -127,6 +128,14 @@ public class FeedTapPauseTest {
 
     private boolean tap() {
         return FeedTapPause.tapped(handler, media, state);
+    }
+
+    private boolean press() {
+        return FeedTapPause.pressed(handler, media, state);
+    }
+
+    private void lift() {
+        FeedTapPause.released(handler, media, state, true);
     }
 
     /** Off to start: the tap is Instagram's, and only the call itself is counted. */
@@ -280,5 +289,129 @@ public class FeedTapPauseTest {
         assertTrue(tap());
         assertEquals(1, feed.pauses);
         assertFalse(HookStatus.missing(FamilyNames.FEED_TAP_PAUSE).isEmpty());
+    }
+
+    /**
+     * A press held on the playing video is taken without pausing anything, so Reels doesn't open, and its lift pauses the
+     * video the way a tap does. Neither counts as invoked, which stays the taps that reached the tap handler.
+     */
+    @Test
+    public void aHeldPressIsTakenAndItsLiftPausesTheVideo() {
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        assertTrue("the press entry returns", press());
+        assertEquals("nothing paused while it's held", 0, feed.pauses + feed.starts);
+        lift();
+        assertEquals("pauses", 1, feed.pauses);
+        assertEquals("plays", 0, feed.starts);
+        assertEquals("the state hears it was playing", Boolean.TRUE, feed.marked);
+        String report = report();
+        assertTrue(report, report.contains(FamilyNames.FEED_TAP_PAUSE + ": invoked 0"));
+        assertTrue(report, report.contains(FeedTapPause.PRESS_TAKEN + " 1"));
+        assertTrue(report, report.contains(FeedTapPause.PAUSED + " 1"));
+        assertTrue(HookStatus.missing(FamilyNames.FEED_TAP_PAUSE).toString(), HookStatus.missing(FamilyNames.FEED_TAP_PAUSE).isEmpty());
+    }
+
+    /** Taps and held presses keep alternating pause and play, however they come. */
+    @Test
+    public void tapsAndHeldPressesKeepAlternating() {
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        assertTrue("tap 1", tap());
+        assertTrue("tap 2", tap());
+        assertTrue("tap 3", tap());
+        assertEquals("three taps: pause, play, pause", 2, feed.pauses);
+        assertEquals(1, feed.starts);
+        assertTrue("held tap 4", press());
+        lift();
+        assertEquals("the held one plays it", 2, feed.starts);
+        assertTrue("held tap 5", press());
+        lift();
+        assertTrue("tap 6", tap());
+        assertEquals("pauses", 3, feed.pauses);
+        assertEquals("plays", 3, feed.starts);
+        assertEquals("playing again", Boolean.TRUE, feed.playing);
+    }
+
+    /** When the tap handler gets a held press as a tap too, the tap pauses the video and the lift adds nothing. */
+    @Test
+    public void aPressTheTapHandlerAlsoGetsPausesOnce() {
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        assertTrue(press());
+        assertTrue("the press's own tap", tap());
+        lift();
+        assertEquals("pauses", 1, feed.pauses);
+        assertEquals("plays", 0, feed.starts);
+        assertTrue("a later tap plays it", tap());
+        assertEquals(1, feed.starts);
+    }
+
+    /**
+     * A press a scroll takes over ends without a lift and leaves the video playing. A lift with no press taken, or one
+     * for another post's press, does nothing either, and a new press forgets the last one.
+     */
+    @Test
+    public void onlyTheLiftOfATakenPressPausesOrPlays() {
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        assertTrue(press());
+        FeedTapPause.released(handler, media, state, false);
+        lift();
+        assertEquals("a scroll took it", 0, feed.pauses + feed.starts);
+
+        assertTrue(press());
+        FeedTapPause.released(handler, media, new Object(), true);
+        assertEquals("another post's lift", 0, feed.pauses + feed.starts);
+        feed.page = "another post";
+        assertFalse("a press on another post", press());
+        feed.page = "post";
+        lift();
+        assertEquals("the new press forgot the old one", 0, feed.pauses + feed.starts);
+        assertNull(feed.marked);
+    }
+
+    /**
+     * A press on a post that isn't the one playing, on an ad, or with the switch off, paused or the settings not ready
+     * stays Instagram's, and so does its lift. A press with the switch on is counted as left, not as a tap.
+     */
+    @Test
+    public void aPressThatIsNotTheirsIsInstagrams() {
+        assertFalse("off", press());
+        lift();
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        feed.page = "another post";
+        assertFalse("another post", press());
+        lift();
+        feed.page = "post";
+        feed.ad = new Object();
+        assertFalse("an ad", press());
+        lift();
+        feed.ad = null;
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", press());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("not ready", press()));
+        assertFalse(FeedTapPause.pressed(null, media, state));
+        assertFalse(FeedTapPause.pressed(handler, null, state));
+        assertFalse(FeedTapPause.pressed(handler, media, null));
+        FeedTapPause.released(null, null, null, true);
+        assertEquals(0, feed.pauses + feed.starts);
+        assertNull(feed.marked);
+        String report = report();
+        assertTrue(report, report.contains(FeedTapPause.PRESS_LEFT + " 2"));
+        assertFalse(report, report.contains("taps left"));
+        assertFalse(report, report.contains(FeedTapPause.PRESS_TAKEN));
+    }
+
+    /** A press that throws before it's taken stays Instagram's and is reported, and its lift does nothing. */
+    @Test
+    public void aFailureInAPressLeavesItToInstagram() {
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        feed.failReading = new IllegalStateException("gone");
+        assertFalse(press());
+        feed.failReading = null;
+        lift();
+        assertEquals(0, feed.pauses + feed.starts);
+        String missing = HookStatus.missing(FamilyNames.FEED_TAP_PAUSE).toString();
+        assertTrue(missing, missing.contains(FeedTapPause.PRESS) && missing.contains("IllegalStateException"));
     }
 }

@@ -38,20 +38,26 @@ class TapFeedVideoToPauseHookTest {
     private val objectType = "Ljava/lang/Object;"
     private val marker = "$FEED_TAP_PAUSE->NOT_PATCHED:$objectType"
 
-    /** The instructions the hook adds: three moves, the call, its answer, the test and the return. */
+    /** The instructions the tap and press hooks add: three moves, the call, its answer, the test and the return. */
     private val hookLength = 7
 
+    /** The instructions the release hook adds: four moves and the call. */
+    private val releaseLength = 5
+
     /**
-     * The hook the patch writes is in the FeedTapPause the bundle ships, public and static, and takes the handler, the post
-     * and the post's state as Objects. Every stub the patch fills is in the reader, static, answering an Object for its
-     * Objects, still answering the marker, with no more registers than an invoke can name.
+     * The hooks the patch writes are in the FeedTapPause the bundle ships, public and static: the tap's and the press's
+     * take the handler, the post and the post's state as Objects, the release's those and whether it was a lift. Every
+     * stub the patch fills is in the reader, static, answering an Object for its Objects, still answering the marker,
+     * with no more registers than an invoke can name.
      */
     @Test
     fun theHookAndItsStubsAreInTheExtension() {
         val declared = ExtensionDex.classDef(FEED_TAP_PAUSE).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$FEED_TAPPED is not in the extension: $declared", FEED_TAPPED.substringAfter("->") in declared)
+        for (hook in listOf(FEED_TAPPED, FEED_PRESSED, FEED_RELEASED)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
         val reader = ExtensionDex.classDef(FEED_PLAYER_READER)
         for ((name, count) in FEED_PLAYER_STUBS) {
             val stub = reader.methods.singleOrNull { it.name == name }
@@ -69,8 +75,9 @@ class TapFeedVideoToPauseHookTest {
     /**
      * In each of the version's seven builds the tap handler, the controller and the player are found by their strings, the
      * hook goes in once, first thing in the handler, reading the handler, the post and the state from their own registers,
-     * and every stub is filled. Every other instruction of the handler's class and of the controller stays in place. Read
-     * as the patcher reads an APK, and copied.
+     * and every stub is filled. The handler class's press entry and release are found by their shapes, and each gets its
+     * own hook once, first thing, reading its own registers. Every other instruction of the handler's class and of the
+     * controller stays in place. Read as the patcher reads an APK, and copied.
      */
     @Test
     fun eachDeclaredBuildHoldsItsFeedTap() {
@@ -95,15 +102,23 @@ class TapFeedVideoToPauseHookTest {
                 assertEquals("$what: the page lookup", listOf(objectType, "I"), found.pager.parameterTypes.map(Any::toString))
                 assertEquals("$what: the state's note", listOf("Z"), found.mark.parameterTypes.map(Any::toString))
                 assertEquals("$what: the state", found.handler.parameterTypes[4].toString(), found.mark.definingClass)
+                assertEquals("$what: the press entry's class", parts.handler, found.press.definingClass)
+                assertEquals("$what: the release's class", parts.handler, found.release.definingClass)
+                val point = found.handler.parameterTypes[2].toString()
+                val state = found.handler.parameterTypes[4].toString()
+                assertEquals("$what: the press entry", listOf("Landroid/view/View;", media, point, state),
+                    found.press.parameterTypes.map(Any::toString))
+                assertEquals("$what: the release", listOf(media, point, state, "Z"), found.release.parameterTypes.map(Any::toString))
                 if (apk.extension == "apks") {
                     // The declared build's own names, 385611438.
                     assertEquals(
                         "$what: the names",
-                        listOf("A05", "A0B", "A0F", "A00", "A0q", "A01", "A00", "A0B", "A03", "A0F", "A0S", "A0s", "A3C"),
+                        listOf("A05", "A06", "A09", "A0B", "A0F", "A00", "A0q", "A01", "A00", "A0B", "A03", "A0F", "A0S", "A0s", "A3C"),
                         listOf(
-                            found.handler.name, found.moduleSupplier.name, found.controllerField.name, found.playerField.name,
-                            found.isPlaying.name, found.itemField.name, found.shown.name, found.pageField.name, found.play.name,
-                            found.pause.name, found.reasonKey.name, found.mark.name, found.adDetails.name,
+                            found.handler.name, found.press.name, found.release.name, found.moduleSupplier.name,
+                            found.controllerField.name, found.playerField.name, found.isPlaying.name, found.itemField.name,
+                            found.shown.name, found.pageField.name, found.play.name, found.pause.name, found.reasonKey.name,
+                            found.mark.name, found.adDetails.name,
                         ),
                     )
                 }
@@ -136,11 +151,66 @@ class TapFeedVideoToPauseHookTest {
                 assertEquals("$what: and lands in the first local", 0, (code[4] as OneRegisterInstruction).registerA)
                 assertEquals("$what: a no goes on to the handler's first instruction", hookLength,
                     (code[5] as BuilderOffsetInstruction).target.location.index)
-                val added = (0 until hookLength).toSet()
+
+                // The press entry: the same guard, on the post in p2 and the state in p4, in no other method.
+                val pressing = listOf(parts.handler, parts.controller, FEED_PLAYER_READER).flatMap { type ->
+                    context.mutableClassDefBy(type).methods.filter { m -> m.code().any { it.referenceText() == FEED_PRESSED } }
+                }
+                assertEquals("$what: methods asking about a press", listOf(parts.handler to found.press.name),
+                    pressing.map { it.definingClass to it.name })
+                val press = pressing.single()
+                val pressCode = press.code()
+                assertEquals("$what: the press is asked about once", 1, pressCode.count { it.referenceText() == FEED_PRESSED })
+                assertEquals(
+                    "$what: the press hook comes first",
+                    listOf(
+                        Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC,
+                        Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID,
+                    ),
+                    pressCode.take(hookLength).map { it.opcode },
+                )
+                val pressP0 = press.implementation!!.registerCount - 5
+                assertEquals("$what: the press's handler, post and state are read from their own registers",
+                    listOf(pressP0, pressP0 + 2, pressP0 + 4), pressCode.take(3).map { (it as TwoRegisterInstruction).registerB })
+                assertEquals("$what: into the press's first three locals", listOf(0, 1, 2),
+                    pressCode.take(3).map { (it as OneRegisterInstruction).registerA })
+                assertEquals("$what: which the press call hands over", listOf(0, 1, 2), pressCode[3].arguments())
+                assertEquals("$what: the press answer lands in the first local and is tested there", listOf(0, 0),
+                    listOf((pressCode[4] as OneRegisterInstruction).registerA, (pressCode[5] as OneRegisterInstruction).registerA))
+                assertEquals("$what: a no goes on to the press entry's first instruction", hookLength,
+                    (pressCode[5] as BuilderOffsetInstruction).target.location.index)
+
+                // The release: told first thing, with the post in p1, the state in p3 and the lift in p4, and goes on.
+                val releasing = listOf(parts.handler, parts.controller, FEED_PLAYER_READER).flatMap { type ->
+                    context.mutableClassDefBy(type).methods.filter { m -> m.code().any { it.referenceText() == FEED_RELEASED } }
+                }
+                assertEquals("$what: methods telling of a release", listOf(parts.handler to found.release.name),
+                    releasing.map { it.definingClass to it.name })
+                val release = releasing.single()
+                val releaseCode = release.code()
+                assertEquals("$what: the release is told once", 1, releaseCode.count { it.referenceText() == FEED_RELEASED })
+                assertEquals(
+                    "$what: the release hook comes first",
+                    listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_FROM16, Opcode.INVOKE_STATIC),
+                    releaseCode.take(releaseLength).map { it.opcode },
+                )
+                val releaseP0 = release.implementation!!.registerCount - 5
+                assertEquals("$what: the release's handler, post, state and lift are read from their own registers",
+                    listOf(releaseP0, releaseP0 + 1, releaseP0 + 3, releaseP0 + 4),
+                    releaseCode.take(4).map { (it as TwoRegisterInstruction).registerB })
+                assertEquals("$what: into the release's first four locals", listOf(0, 1, 2, 3),
+                    releaseCode.take(4).map { (it as OneRegisterInstruction).registerA })
+                assertEquals("$what: which the release call hands over", listOf(0, 1, 2, 3), releaseCode[4].arguments())
+
                 for ((method, original) in originals) {
-                    val mine = if (method.definingClass == handler.definingClass && method.name == handler.name &&
-                        method.parameterTypes.map(Any::toString) == handler.parameterTypes.map(Any::toString)
-                    ) added else emptySet()
+                    val params = method.parameterTypes.map(Any::toString)
+                    fun isThe(hooked: Method) = method.definingClass == hooked.definingClass && method.name == hooked.name &&
+                        params == hooked.parameterTypes.map(Any::toString)
+                    val mine = when {
+                        isThe(handler) || isThe(press) -> (0 until hookLength).toSet()
+                        isThe(release) -> (0 until releaseLength).toSet()
+                        else -> emptySet()
+                    }
                     original.assertPreserved("$what ${method.definingClass}->${method.name}", method, mine)
                 }
 
@@ -174,7 +244,9 @@ class TapFeedVideoToPauseHookTest {
             val message = failure.message!!
             assertTrue(message, message.startsWith("Tap a feed video to pause it: ") && said in message)
             val handler = context.mutableClassDefBy(parts.handler)
-            assertTrue("$missing: something was written", handler.methods.none { m -> m.code().any { it.referenceText() == FEED_TAPPED } })
+            assertTrue("$missing: something was written", handler.methods.none { m ->
+                m.code().any { it.referenceText() in listOf(FEED_TAPPED, FEED_PRESSED, FEED_RELEASED) }
+            })
         }
     }
 

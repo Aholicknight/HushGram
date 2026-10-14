@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.feed.tap
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
@@ -47,6 +48,8 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodRefere
 private const val PATCH = "Tap a feed video to pause it"
 internal const val FEED_TAP_PAUSE = "$EXTENSION_PACKAGE/feed/FeedTapPause;"
 internal const val FEED_TAPPED = "$FEED_TAP_PAUSE->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
+internal const val FEED_PRESSED = "$FEED_TAP_PAUSE->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
+internal const val FEED_RELEASED = "$FEED_TAP_PAUSE->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Z)V"
 
 /** The extension class holding the stubs the patch fills, apart from the hook Instagram's tap calls. */
 internal const val FEED_PLAYER_READER = "$EXTENSION_PACKAGE/feed/FeedPlayerReader;"
@@ -76,14 +79,17 @@ private const val ITEM_READ_REACH = 8
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
 /**
- * A tap on the video playing in a feed pauses it in place instead of opening it in Reels.
+ * A tap on the video playing in a feed pauses it in place instead of opening it in Reels, and the
+ * next tap plays it again.
  *
- * The hook still runs the controller's own play on a tap of a paused video, so it often plays again
- * too, but that isn't guaranteed: after a pause Instagram's feed lifecycle can release the
- * controller's player or rebind its item before the next tap, and a tap that then finds no player
- * falls through to Instagram, which opens Reels. So the text promises only the pause. The split
- * HookStatus counts (FeedTapPause's "taps left" reasons) name which check a tap fell through on, for
- * the next device run.
+ * The text promises only the pause until a device run shows taps alternating any number of times.
+ * The pause leaves the controller's playing item bound (only its bind and the player's stop
+ * callback write it), so the next tap finds the same post and the controller's play resumes it: an
+ * S25 run on 385611438 counted one tap left with nothing playing yet, one pause and one play, all in
+ * place. Its fourth tap opened Reels without reaching the tap handler at all. That was a press held
+ * past Instagram's hold delay, a server value, which the feed's gesture listener sends to the
+ * handler class's press entry in place of the tap handler. The patch now guards that entry and its
+ * release too (see [applyFeedTapPause]).
  *
  * Instagram 450 sends every tap on a feed post through one handler, which decides between opening
  * the post in the Reels viewer, showing its tags, turning its sound on and a few more. Only with
@@ -99,6 +105,11 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * the one playing, the switch off, Pause, a settings screen that isn't ready and anything that
  * throws all answer no, and the handler goes on exactly as it was. The speaker button has its own
  * listener and never reaches this handler.
+ *
+ * A press held past the hold delay goes to the handler class's press entry instead, which opens the
+ * post in Reels (or plays it faster), and its end to the class's release. The extension takes such a
+ * press on the playing video under the same checks, so the press entry returns, and its lift then
+ * pauses or plays the video like a tap.
  *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
@@ -134,9 +145,13 @@ val tapFeedVideoToPausePatch = bytecodePatch(
  *           called with the name [reasonName] gives [reasonKey]
  * @property mark the post state's note of whether the video was playing when it was tapped
  * @property adDetails Media's getter for a sponsored post's ad details
+ * @property press the handler class's press entry, which a press held past Instagram's hold delay
+ *           reaches in place of [handler], and [release] the class's end of that press
  */
 internal class FeedTap(
     val handler: Method,
+    val press: Method,
+    val release: Method,
     val moduleSupplier: FieldReference,
     val supplierValue: MethodReference,
     val supplierIsInterface: Boolean,
@@ -166,6 +181,10 @@ internal class FeedTap(
  * controller, the class loading [FEED_CONTROLLER_STRING], taking (Media, c, holder, state, d, int,
  * boolean) and answering a boolean.
  *
+ * The handler's class also holds the press entry and its release, each the one instance void method
+ * of its shape there: (View, Media, point, state) and (Media, point, state, boolean), with the point
+ * and the state the handler's own third and fifth parameter types.
+ *
  * That controller tap holds everything else. It looks up the page of the post that was tapped from
  * the state's page number, and compares it with the post its playing item shows. It plays through
  * the controller's one static (controller, String, boolean, boolean, boolean) method, once, with
@@ -186,9 +205,27 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
         ?: refuse("expected one feed tap handler loading \"$FEED_TAP_HANDLER_STRING\", found ${handlers.size}")
     val handlerClass = classDefBy(handler.definingClass)
     val where = "${handler.definingClass}->${handler.name}"
+    val point = handler.parameterTypes[2].toString()
     val holder = handler.parameterTypes[3].toString()
     val state = handler.parameterTypes[4].toString()
     if (handler.localRegisterCount() < HOOK_LOCALS) refuse("$where has ${handler.localRegisterCount()} local register(s), needs $HOOK_LOCALS")
+
+    // A press held past the hold delay: the class's one (View, Media, point, state) entry and its one
+    // (Media, point, state, boolean) release, 06FA.A06 and 06FA.A09 on 450.
+    fun instanceVoid(vararg parameters: String) = handlerClass.methods.filter {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.implementation != null &&
+            it.parameterTypes.map(Any::toString) == parameters.toList()
+    }
+    val presses = instanceVoid(VIEW, MEDIA, point, state)
+    val press = presses.singleOrNull()
+        ?: refuse("expected one press entry ($VIEW, $MEDIA, $point, $state) in ${handler.definingClass}, found ${presses.size}")
+    val releases = instanceVoid(MEDIA, point, state, "Z")
+    val release = releases.singleOrNull()
+        ?: refuse("expected one press release ($MEDIA, $point, $state, boolean) in ${handler.definingClass}, found ${releases.size}")
+    if (press.localRegisterCount() < PRESS_LOCALS) refuse("${press.definingClass}->${press.name} has ${press.localRegisterCount()} local register(s), needs $PRESS_LOCALS")
+    if (release.localRegisterCount() < RELEASE_LOCALS) {
+        refuse("${release.definingClass}->${release.name} has ${release.localRegisterCount()} local register(s), needs $RELEASE_LOCALS")
+    }
 
     val controllers = classesLoadingString(FEED_CONTROLLER_STRING)
     val controllerClass = controllers.singleOrNull()
@@ -395,6 +432,8 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
 
     return FeedTap(
         handler = handler,
+        press = press,
+        release = release,
         moduleSupplier = moduleSupplier,
         supplierValue = supplierValue,
         supplierIsInterface = supplierIsInterface,
@@ -417,13 +456,22 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
     )
 }
 
-/** The locals the hook borrows first thing in the handler, where none holds anything yet. */
+/** The locals each hook borrows first thing in its method, where none holds anything yet. */
 private const val HOOK_LOCALS = 3
+private const val PRESS_LOCALS = 3
+private const val RELEASE_LOCALS = 4
 
 /**
  * Fills the reader's stubs, then asks [FEED_TAPPED] first thing in the handler with the handler, the
  * post and the post's state. A yes returns from the handler, which answers nothing; a no goes on to
  * its first instruction.
+ *
+ * The press entry asks [FEED_PRESSED] first thing the same way, with the handler, the post and the
+ * state, and returns on a yes, so a held press the extension takes neither opens Reels nor speeds the
+ * video up. The release tells [FEED_RELEASED] first thing, with the handler, the post, the state and
+ * whether the press ended in a lift, and then goes on: the lift of a press the extension took pauses
+ * or plays the video, and the release only resets Instagram's hold, which a press entry that
+ * returned never set.
  *
  * Each stub works in its own parameters: the build compiles a stub's `return NOT_PATCHED` into its
  * parameter's register, so it has no local to lend. The pause and the play take spare parameters
@@ -547,6 +595,33 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
             ExternalLabel("stock", getInstruction(0)),
         )
     }
+    // The press entry is (View, Media, point, state): the post is p2 and the state p4.
+    mutable(found.press).apply {
+        addInstructionsWithLabels(
+            0,
+            """
+                move-object/from16 v0, p0
+                move-object/from16 v1, p2
+                move-object/from16 v2, p4
+                invoke-static { v0, v1, v2 }, $FEED_PRESSED
+                move-result v0
+                if-eqz v0, :stock
+                return-void
+            """,
+            ExternalLabel("stock", getInstruction(0)),
+        )
+    }
+    // The release is (Media, point, state, boolean): the post is p1, the state p3 and the lift p4.
+    mutable(found.release).addInstructions(
+        0,
+        """
+            move-object/from16 v0, p0
+            move-object/from16 v1, p1
+            move-object/from16 v2, p3
+            move/from16 v3, p4
+            invoke-static { v0, v1, v2, v3 }, $FEED_RELEASED
+        """,
+    )
 }
 
 /** The string the instruction at [at] writes: a const-string's, or a static pool's answer moved out right there. */
