@@ -1310,6 +1310,17 @@ once-call Lapp/hushgram/extension/instagram/misc/EmojiStyle;->replaceStrategy(I)
 once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->list(Landroid/content/res/ColorStateList;)Landroid/content/res/ColorStateList; in static (Landroid/content/Context;I)Landroid/content/res/ColorStateList; sites 3 holding Failed\sto\sinflate\sColorStateList,\sleaving\sit\sto\sthe\sframework
 shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I holding LX/*;->*(Ljava/lang/Object;I)V LX/*;->*(Landroid/content/Context;I)I
 shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I lacking static LX/*;->*(Ljava/lang/Object;*)V holding Landroid/content/Context;->getColor(I)I LX/*;->*(Landroid/content/Context;I)I
+# The two reads that take a fallback color resource hand theirs to AccentColor.color the same way
+# (00WF.A0c and 0989.A05 on 385713073, each asking 00WF.A0d, the resolver's class's one static
+# (Context, int, int) int calling the resolver, and returning getColor of its answer). The first runs
+# the same check, the second is bare and moves class between builds, so they're told apart as the
+# first two are. The value read (00WF.A0Z on 385713073, beside the resolver) hands TypedValue.data
+# and the TypedValue to AccentColor.value right before its return; mentions, hashtags and links in
+# captions and comments get their color from it (#8). Left out, those stay Instagram's blue.
+# AccentColorHookTest checks all of them on the eight 451 builds, and each rule picks one method on each.
+shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;II)I holding LX/*;->*(Ljava/lang/Object;I)V Landroid/content/Context;->getColor(I)I LX/*;->*(Landroid/content/Context;II)I
+shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;II)I lacking static LX/*;->*(Ljava/lang/Object;*)V holding Landroid/content/Context;->getColor(I)I LX/*;->*(Landroid/content/Context;II)I
+once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->value(ILandroid/util/TypedValue;)I in static (Landroid/content/Context;I)I holding Landroid/util/TypedValue;->data:I Landroid/content/res/Resources$Theme;->resolveAttribute(ILandroid/util/TypedValue;Z)Z LX/*;->*(Ljava/lang/Object;I)V
 # Font hands each Prism Sans Typeface Instagram's font helper keeps to Fonts.prismTypeface right
 # before it's kept: three times in the helper's static initializer (00QW.<clinit> on 451, 00QV on
 # 385713109 and 385713111, the static ()V of the one class holding the string below) and once in

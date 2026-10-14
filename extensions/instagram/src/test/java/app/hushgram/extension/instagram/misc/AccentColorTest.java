@@ -11,6 +11,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.content.res.ColorStateList;
+import android.util.TypedValue;
 
 import org.junit.After;
 import org.junit.Before;
@@ -130,6 +131,35 @@ public class AccentColorTest {
                 + AccentColor.COLOR + " 3"), HookStatus.report());
     }
 
+    /**
+     * #8: the value read hands over what an attribute resolves to. A color, the way mentions,
+     * hashtags and links get theirs, swaps like any other read. The same bits as a number, a size or
+     * a reference go through untouched, and so does a value with no TypedValue.
+     */
+    @Test
+    public void aThemeValueSwapsOnlyWhenItsAColor() {
+        Settings.ACCENT_COLOR.save(true);
+        AccentHue purple = AccentHue.PURPLE;
+        assertEquals(0xff000000 | purple.linkOnLight, AccentColor.value(CLASSIC_LINK, typed(TypedValue.TYPE_INT_COLOR_ARGB8, CLASSIC_LINK)));
+        assertEquals(0xff000000 | purple.linkOnDark, AccentColor.value(0xff85a1ff, typed(TypedValue.TYPE_INT_COLOR_RGB8, 0xff85a1ff)));
+        assertEquals(0xff7638fa, AccentColor.value(BLUE, typed(TypedValue.TYPE_INT_COLOR_ARGB4, BLUE)));
+        assertEquals(WHITE, AccentColor.value(WHITE, typed(TypedValue.TYPE_INT_COLOR_ARGB8, WHITE)));
+        for (int type : new int[] {TypedValue.TYPE_INT_DEC, TypedValue.TYPE_INT_HEX, TypedValue.TYPE_DIMENSION,
+                TypedValue.TYPE_REFERENCE, TypedValue.TYPE_STRING, TypedValue.TYPE_INT_BOOLEAN, TypedValue.TYPE_NULL}) {
+            assertEquals("type " + type, CLASSIC_LINK, AccentColor.value(CLASSIC_LINK, typed(type, CLASSIC_LINK)));
+        }
+        assertEquals(BLUE, AccentColor.value(BLUE, null));
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 4, 0 found, 0 missing. Counted: "
+                + AccentColor.COLOR + " 3"), HookStatus.report());
+
+        Settings.ACCENT_COLOR.save(false);
+        assertEquals("off, Instagram's own", CLASSIC_LINK, AccentColor.value(CLASSIC_LINK, typed(TypedValue.TYPE_INT_COLOR_ARGB8, CLASSIC_LINK)));
+        Settings.ACCENT_COLOR.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused, Instagram's own", CLASSIC_LINK, AccentColor.value(CLASSIC_LINK, typed(TypedValue.TYPE_INT_COLOR_ARGB8, CLASSIC_LINK)));
+    }
+
     /** Every color picked swaps, and Instagram blue picked leaves the stock blue. */
     @Test
     public void eachColorPickedAndInstagramBlue() {
@@ -237,6 +267,14 @@ public class AccentColorTest {
         Settings.ACCENT_HUE.save(AccentHue.PINK);
         assertEquals(0xffd6005a, AccentColor.color(BLUE));
         assertFalse(button == AccentColor.list(button));
+    }
+
+    /** A TypedValue as Theme.resolveAttribute fills it: its type and its data. */
+    private static TypedValue typed(int type, int data) {
+        TypedValue value = new TypedValue();
+        value.type = type;
+        value.data = data;
+        return value;
     }
 
     /** A Prism primary button's list: pressed, disabled, selected white and the fill for the rest. */

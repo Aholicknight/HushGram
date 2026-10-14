@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.misc;
 
 import android.content.res.ColorStateList;
 import android.os.Parcel;
+import android.util.TypedValue;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -19,10 +20,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Helper for the "Accent color" patch: Instagram's blue turns into the color picked in HushGram
  * settings.
  *
- * <p>Instagram reads most of its colors from its theme, through two small methods that resolve a
- * theme attribute and answer the color, and reads a button's colors for each of its states as a
- * color state list through AndroidX's loader. The patch hands every color those two answer to
- * {@link #color} and every list the loader answers to {@link #list}.
+ * <p>Instagram reads most of its colors from its theme, through small methods that resolve a theme
+ * attribute and answer the color (two plain ones and two that take a fallback color), and reads a
+ * button's colors for each of its states as a color state list through AndroidX's loader. Its text
+ * spans (mentions, hashtags, links) take the value the attribute resolves to straight from one more
+ * read. The patch hands every color those reads answer to {@link #color}, the value read's answer to
+ * {@link #value}, and every list the loader answers to {@link #list}.
  *
  * <p>Only Instagram's exact accent blues change, each into the shade of the picked color that plays
  * the same part (see {@link #swap}), and each keeps its alpha. So a list keeps its states: a disabled
@@ -72,6 +75,24 @@ public final class AccentColor {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "theme color", failure);
             return color;
         }
+    }
+
+    /**
+     * Injected before Instagram's theme value read returns: the one that answers what an attribute
+     * resolves to as it stands, which is how mentions, hashtags and links in captions, comments
+     * and search get their color (#8). Answers [data] swapped as {@link #color} does when [value]
+     * holds a color, and [data] itself for a size, a number or anything else. Never throws.
+     */
+    public static int value(int data, TypedValue value) {
+        try {
+            if (value == null || value.type < TypedValue.TYPE_FIRST_COLOR_INT || value.type > TypedValue.TYPE_LAST_COLOR_INT) {
+                return data;
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "theme value", failure);
+            return data;
+        }
+        return color(data);
     }
 
     /**

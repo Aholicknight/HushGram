@@ -27,6 +27,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
@@ -35,6 +36,7 @@ private const val PATCH = "Accent color"
 internal const val ACCENT_COLOR = "$EXTENSION_PACKAGE/misc/AccentColor;"
 internal const val SWAP_COLOR = "$ACCENT_COLOR->color(I)I"
 internal const val SWAP_LIST = "$ACCENT_COLOR->list(Landroid/content/res/ColorStateList;)Landroid/content/res/ColorStateList;"
+internal const val SWAP_VALUE = "$ACCENT_COLOR->value(ILandroid/util/TypedValue;)I"
 
 /** What AndroidX ResourcesCompat logs when it can't inflate a color state list itself. */
 internal const val INFLATE_FAILED = "Failed to inflate ColorStateList, leaving it to the framework"
@@ -50,12 +52,15 @@ private const val TYPED_VALUE = "Landroid/util/TypedValue;"
  *
  * Instagram reads its colors from the theme. Most reads go through one of two small statics taking
  * a Context and a theme attribute, which resolve the attribute to a color resource and answer
- * Context.getColor of it, and color state lists (a button's colors for each of its states) go
- * through AndroidX ResourcesCompat's loader. The patch hands each color those answer, and each list
- * the loader answers, to the extension. With the switch on it swaps only Instagram's exact accent
- * blues for the matching shade of the color picked, keeping each one's alpha, so a list's pressed,
- * disabled and selected states keep their own look. Every other color goes through untouched, and
- * no resource or color table changes.
+ * Context.getColor of it, or one of two that take a fallback color resource as well, and color state
+ * lists (a button's colors for each of its states) go through AndroidX ResourcesCompat's loader.
+ * Mentions, hashtags and links in captions, comments and search take their color from one more
+ * static beside the resolver, which answers the value the attribute resolves to as it stands
+ * (TypedValue.data). The patch hands each color those answer, each such value with the TypedValue
+ * that says whether it's a color, and each list the loader answers, to the extension. With the
+ * switch on it swaps only Instagram's exact accent blues for the matching shade of the color picked,
+ * keeping each one's alpha, so a list's pressed, disabled and selected states keep their own look.
+ * Every other color goes through untouched, and no resource or color table changes.
  */
 @Suppress("unused")
 val accentColorPatch = bytecodePatch(
@@ -77,8 +82,17 @@ val accentColorPatch = bytecodePatch(
 
 private fun refuse(why: String): Nothing = throw PatchException("$PATCH: $why")
 
-/** ResourcesCompat's color state list loader, and the two statics that read a theme attribute's color. */
-internal class AccentReads(val loader: MutableMethod, val colorReads: List<MutableMethod>)
+/**
+ * ResourcesCompat's color state list loader, the two statics that read a theme attribute's color,
+ * the two that read it with a fallback color, and the one that reads the value an attribute
+ * resolves to.
+ */
+internal class AccentReads(
+    val loader: MutableMethod,
+    val colorReads: List<MutableMethod>,
+    val fallbackReads: List<MutableMethod>,
+    val valueRead: MutableMethod,
+)
 
 /**
  * Finds every method the patch changes and checks the extension before anything changes.
@@ -87,8 +101,14 @@ internal class AccentReads(val loader: MutableMethod, val colorReads: List<Mutab
  * reads are the statics taking a Context and an attribute that end by calling an attribute
  * resolver (a static of that shape calling Theme.resolveAttribute and reading TypedValue's
  * resourceId, with no getColor of its own) on their own two parameters, calling getColor on the
- * Context with its answer and returning that. A const and a static check may come first. 450 has
- * two of them in every build, and any other count means a build this wasn't written for.
+ * Context with its answer and returning that. A const and a static check may come first. 450 and
+ * 451 have two of them in every build, and any other count means a build this wasn't written for.
+ *
+ * Both reads ask one resolver, and its class holds the other two kinds. The fallback resolver is
+ * its one static `(Context, int, int)int` calling the resolver and asking for no color, and the
+ * fallback reads are the statics of that shape ending the way the color reads do with it, two in
+ * every 451 build. The value read is its one static `(Context, int)int` that resolves its own
+ * attribute against the theme and returns TypedValue.data straight from the TypedValue it filled.
  */
 internal fun BytecodePatchContext.findAccentReads(): AccentReads {
     val loaders = classesLoadingString(INFLATE_FAILED).flatMap { classDef ->
@@ -110,8 +130,28 @@ internal fun BytecodePatchContext.findAccentReads(): AccentReads {
     if (reads.size != 2) {
         refuse("expected two statics reading a theme attribute's color, found ${reads.size}: ${reads.joinToString { it.where() }}")
     }
+    val resolver = reads.map { it.resolverCalled() }.distinct().singleOrNull()
+        ?.let { called -> resolvers.single { it.definingClass == called.first && it.name == called.second } }
+        ?: refuse("the two color reads ask different resolvers: ${reads.joinToString { it.where() }}")
+    val resolverClass = classDefByOrNull(resolver.definingClass) ?: refuse("no class ${resolver.definingClass}")
 
-    for (hook in listOf(SWAP_COLOR, SWAP_LIST)) {
+    val fallbackResolvers = resolverClass.methods.filter { it.resolvesWithFallback(resolver) }
+    val fallbackResolver = fallbackResolvers.singleOrNull()
+        ?: refuse("expected one static (Context, int, int) int in ${resolver.definingClass} asking ${resolver.name}, found ${fallbackResolvers.size}")
+    val fallbackReads = classesCalling(fallbackResolver.definingClass, fallbackResolver.name).flatMap { classDef ->
+        classDef.methods.filter { it.readsColorThrough(fallbackResolver) }
+    }.distinctBy { it.where() }
+    if (fallbackReads.size != 2) {
+        refuse("expected two statics reading a theme color with a fallback, found ${fallbackReads.size}: ${fallbackReads.joinToString { it.where() }}")
+    }
+
+    val valueReads = resolverClass.methods.filter { it.readsThemeValue() }
+    val valueRead = valueReads.singleOrNull()
+        ?: refuse("expected one static (Context, int) int in ${resolver.definingClass} answering TypedValue.data, found ${valueReads.size}")
+    val dataRead = valueRead.code().takeLast(2)[0] as TwoRegisterInstruction
+    if (dataRead.registerA > 15 || dataRead.registerB > 15) refuse("${valueRead.where()} keeps its value or its TypedValue past v15")
+
+    for (hook in listOf(SWAP_COLOR, SWAP_LIST, SWAP_VALUE)) {
         if (classDefByOrNull(ACCENT_COLOR)?.methods?.any {
                 "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook &&
                     AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
@@ -120,18 +160,19 @@ internal fun BytecodePatchContext.findAccentReads(): AccentReads {
             refuse("the extension has no public static $hook")
         }
     }
-    return AccentReads(mutable(loader), reads.map { mutable(it) })
+    return AccentReads(mutable(loader), reads.map { mutable(it) }, fallbackReads.map { mutable(it) }, mutable(valueRead))
 }
 
 /**
- * Every list the loader returns goes through AccentColor.list, and the color each read returns
- * through AccentColor.color, at the return's own label so a branch to the return passes through it
- * too. The range form takes any register, and move-result writes the answer back over the value.
+ * Every list the loader returns goes through AccentColor.list, the color each read returns through
+ * AccentColor.color, and the value read's answer through AccentColor.value with its TypedValue, at
+ * the return's own label so a branch to the return passes through it too. The range form takes any
+ * register, and move-result writes the answer back over the value.
  */
 internal fun BytecodePatchContext.swapAccentColors() {
     val found = findAccentReads()
     found.loader.filterEveryReturn(PATCH, SWAP_LIST)
-    for (read in found.colorReads) {
+    for (read in found.colorReads + found.fallbackReads) {
         val at = read.code().indexOfLast { it.opcode == Opcode.RETURN }
         val register = (read.code()[at] as OneRegisterInstruction).registerA
         read.addInstructionsAtControlFlowLabel(
@@ -142,6 +183,17 @@ internal fun BytecodePatchContext.swapAccentColors() {
             """,
         )
     }
+    val read = found.valueRead
+    val at = read.code().lastIndex
+    val data = (read.code()[at] as OneRegisterInstruction).registerA
+    val typedValue = (read.code()[at - 1] as TwoRegisterInstruction).registerB
+    read.addInstructionsAtControlFlowLabel(
+        at,
+        """
+            invoke-static { v$data, v$typedValue }, $SWAP_VALUE
+            move-result v$data
+        """,
+    )
 }
 
 private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
@@ -167,31 +219,67 @@ private fun Method.resolvesAttribute(): Boolean {
         }
 }
 
+/** A static (Context, int, int) int in the resolver's class calling the resolver and asking for no color. */
+private fun Method.resolvesWithFallback(resolver: Method): Boolean =
+    AccessFlags.STATIC.isSet(accessFlags) && returnType == "I" && implementation != null &&
+        parameterTypes.map(Any::toString) == listOf(CONTEXT, "I", "I") &&
+        code().any { it.opcode == Opcode.INVOKE_STATIC && it.calls(resolver.definingClass, resolver.name) } &&
+        code().none { it.calls(CONTEXT, "getColor") }
+
 /**
- * Whether this is a static (Context, int) int ending `invoke-static {p0, p1}, resolver`,
- * `move-result vA`, `invoke-virtual {p0, vA}, Context->getColor(I)I`, `move-result vB`, `return
- * vB`, after at most a const and a static call that write neither parameter.
+ * A static (Context, int) int that resolves its own attribute against the theme, asks for no color
+ * and ends `iget vA, vB, TypedValue->data:I`, `return vA`, the TypedValue it filled still in vB.
  */
-private fun Method.readsColorThrough(resolver: Method): Boolean {
+private fun Method.readsThemeValue(): Boolean {
     if (!isStaticContextAnd("I")) return false
     val code = code()
-    if (code.size !in 5..7) return false
-    val context = parameterRegisterNumber(0)
+    if (code.size < 2 || code.any { it.calls(CONTEXT, "getColor") }) return false
     val attribute = parameterRegisterNumber(1)
+    if (code.none { it.opcode == Opcode.INVOKE_VIRTUAL && it.calls(THEME, "resolveAttribute") && (it as FiveRegisterInstruction).registerD == attribute }) {
+        return false
+    }
+    val (read, ret) = code.takeLast(2)
+    if (read.opcode != Opcode.IGET || ret.opcode != Opcode.RETURN) return false
+    val field = (read as ReferenceInstruction).reference as FieldReference
+    if (field.definingClass != TYPED_VALUE || field.name != "data") return false
+    val data = (read as TwoRegisterInstruction).registerA
+    return data == (ret as OneRegisterInstruction).registerA && data != read.registerB
+}
+
+/** The class and name of the static a color read asks right before getColor. */
+private fun Method.resolverCalled(): Pair<String, String> {
+    val reference = (code().takeLast(5)[0] as ReferenceInstruction).reference as MethodReference
+    return reference.definingClass to reference.name
+}
+
+/**
+ * Whether this is a static taking a Context and ints like [resolver], ending `invoke-static {p0,
+ * p1...}, resolver`, `move-result vA`, `invoke-virtual {p0, vA}, Context->getColor(I)I`,
+ * `move-result vB`, `return vB`, after at most a const and a static call that write no parameter.
+ */
+private fun Method.readsColorThrough(resolver: Method): Boolean {
+    val parameters = resolver.parameterTypes.map(Any::toString)
+    if (!AccessFlags.STATIC.isSet(accessFlags) || returnType != "I" || implementation == null) return false
+    if (parameterTypes.map(Any::toString) != parameters) return false
+    val code = code()
+    if (code.size !in 5..7) return false
+    val own = parameters.indices.map { parameterRegisterNumber(it) }
+    val context = own[0]
     val tail = code.takeLast(5)
     val prefix = code.dropLast(5)
     if (prefix.any { it.opcode != Opcode.CONST_4 && it.opcode != Opcode.INVOKE_STATIC }) return false
-    if (prefix.any { it.opcode == Opcode.CONST_4 && (it as OneRegisterInstruction).registerA in setOf(context, attribute) }) return false
+    if (prefix.any { it.opcode == Opcode.CONST_4 && (it as OneRegisterInstruction).registerA in own }) return false
 
     val resolve = tail[0]
     val called = (resolve as? ReferenceInstruction)?.reference as? MethodReference ?: return false
     if (resolve.opcode != Opcode.INVOKE_STATIC || called.definingClass != resolver.definingClass || called.name != resolver.name ||
-        called.parameterTypes.map(Any::toString) != listOf(CONTEXT, "I") || called.returnType != "I"
+        called.parameterTypes.map(Any::toString) != parameters || called.returnType != "I"
     ) {
         return false
     }
     val passed = resolve as FiveRegisterInstruction
-    if (passed.registerCount != 2 || passed.registerC != context || passed.registerD != attribute) return false
+    val registers = listOf(passed.registerC, passed.registerD, passed.registerE, passed.registerF, passed.registerG)
+    if (passed.registerCount != own.size || registers.take(own.size) != own) return false
     if (tail[1].opcode != Opcode.MOVE_RESULT) return false
     val resource = (tail[1] as OneRegisterInstruction).registerA
 
