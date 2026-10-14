@@ -79,6 +79,7 @@ public class ReelSeekThumbTest {
         activity.close();
         Settings.REEL_SEEK_THUMB.resetToDefault();
         Settings.BIG_REEL_SEEK_BAR.resetToDefault();
+        Settings.DM_REEL_SEEK_BAR.resetToDefault();
         Settings.REEL_SEEK_BAR.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -348,6 +349,80 @@ public class ReelSeekThumbTest {
         ShadowLooper.idleMainLooper();
         assertSame(track, bar.getProgressDrawable());
         assertTrue(container.getClipChildren());
+    }
+
+    /**
+     * #10: the bar like DM videos draws Instagram's chat video track, thin and gray with the played part
+     * white, through the middle of a plain white handle 16dp across, and puts no fade behind it.
+     */
+    @Test @Config(qualifiers = "xxhdpi")
+    public void theDmLookIsAThinGrayTrackAndAPlainWhiteHandleWithNoFade() {
+        bar.setPadding(0, 21, 0, 0);
+        bar.setSecondaryProgress(100);
+        Drawable track = bar.getProgressDrawable();
+        Drawable background = bar.getBackground();
+        Settings.REEL_SEEK_BAR.save(false);
+        Settings.DM_REEL_SEEK_BAR.save(true);
+        refresh();
+
+        assertNotSame(track, bar.getProgressDrawable());
+        assertSame("no fade", background, bar.getBackground());
+        assertTrue("nothing needs to draw past its edges", container.getClipChildren());
+        float density = bar.getResources().getDisplayMetrics().density;
+        Drawable thumb = bar.getThumb();
+        assertEquals(Math.min(Math.round(ReelTimeLabel.DM_THUMB_DP * density), bar.getHeight()), thumb.getIntrinsicWidth());
+        Bitmap circle = Bitmap.createBitmap(thumb.getIntrinsicWidth(), thumb.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Drawable copy = thumb.getConstantState().newDrawable();
+        copy.setBounds(0, 0, circle.getWidth(), circle.getHeight());
+        copy.draw(new Canvas(circle));
+        int edge = circle.getPixel(circle.getWidth() / 2, 1);
+        assertTrue("no dark outline: " + Integer.toHexString(edge), Color.alpha(edge) == 0 || Color.red(edge) > 200);
+
+        Bitmap pixels = Bitmap.createBitmap(400, 28, Bitmap.Config.ARGB_8888);
+        bar.draw(new Canvas(pixels));
+        int middle = bar.getPaddingTop() + thumb.getBounds().centerY();
+        assertEquals("played", Color.WHITE, pixels.getPixel(10, middle));
+        assertEquals("not played yet, however much has loaded", ReelTimeLabel.DM_TRACK_COLOR, pixels.getPixel(350, middle));
+        int thickness = Math.round(ReelTimeLabel.DM_TRACK_DP * density);
+        assertEquals("thinner than the bigger bar's", 0, Color.alpha(pixels.getPixel(350, middle + thickness)));
+        assertTrue(ReelSeekBar.switchedOn());
+        assertEquals("short reels keep the bar", 1L, ReelSeekBar.minSeconds(7L));
+    }
+
+    /** With Bigger seek bar on too the DM look wins, and moving between the two keeps Instagram's own for Off. */
+    @Test public void theDmLookWinsOverTheBiggerBarAndBothGiveInstagramsBack() {
+        Drawable track = bar.getProgressDrawable();
+        Drawable background = bar.getBackground();
+        Settings.BIG_REEL_SEEK_BAR.save(true);
+        refresh();
+        assertNotSame("the fade is up", background, bar.getBackground());
+        assertFalse(container.getClipChildren());
+        Drawable bigger = bar.getProgressDrawable();
+
+        Settings.DM_REEL_SEEK_BAR.save(true);
+        refresh();
+        assertNotSame(bigger, bar.getProgressDrawable());
+        assertNotSame(track, bar.getProgressDrawable());
+        assertSame("the fade comes off", background, bar.getBackground());
+        assertTrue(container.getClipChildren());
+        float density = bar.getResources().getDisplayMetrics().density;
+        assertEquals(Math.min(Math.round(ReelTimeLabel.DM_THUMB_DP * density), bar.getHeight()), bar.getThumb().getIntrinsicWidth());
+
+        Settings.DM_REEL_SEEK_BAR.save(false);
+        refresh();
+        assertNotSame("back to the bigger bar", background, bar.getBackground());
+        Settings.BIG_REEL_SEEK_BAR.save(false);
+        refresh();
+        assertSame(track, bar.getProgressDrawable());
+        assertSame(background, bar.getBackground());
+        assertTrue(container.getClipChildren());
+
+        Settings.DM_REEL_SEEK_BAR.save(true);
+        refresh();
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        refresh();
+        assertSame("paused, Instagram's track", track, bar.getProgressDrawable());
+        assertSame(original, bar.getThumb());
     }
 
     private void refresh() {

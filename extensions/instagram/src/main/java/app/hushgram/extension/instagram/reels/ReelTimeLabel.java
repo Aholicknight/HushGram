@@ -111,6 +111,15 @@ final class ReelTimeLabel {
     static final int BIG_TRACK_COLOR = 0x55FFFFFF;
     static final int BIG_FADE_COLOR = 0x66000000;
 
+    /**
+     * The bar like DM videos (#10), from Instagram's own player for a video opened in a chat: its
+     * video_seek_bar_drawable, a 3dp track in grey_5 (#999999) with the played part white, and its
+     * seek_bar_thumb, a plain white circle 16dp across. No fade, as there's none in that player.
+     */
+    static final float DM_TRACK_DP = 3f;
+    static final float DM_THUMB_DP = 16f;
+    static final int DM_TRACK_COLOR = 0xFF999999;
+
     /** The space between the label and the bar's track, and around the label's text. */
     private static final float GAP_DP = 4f;
 
@@ -147,10 +156,14 @@ final class ReelTimeLabel {
         Drawable originalThumb;
         GradientDrawable thumb;
         int originalThumbOffset;
+        /** Whether the thumb is the DM look's, with no outline. */
+        boolean thumbDm;
         /** The bigger bar: Instagram's own track and background, ours in their place, and the views let draw past their edges. */
         boolean styled;
         Drawable originalProgress;
         LayerDrawable bigTrack;
+        /** Whether the track drawn is the DM look's rather than the bigger bar's. */
+        boolean trackDm;
         Drawable originalBackground;
         LayerDrawable backdrop;
         int fadeIndex;
@@ -367,8 +380,9 @@ final class ReelTimeLabel {
     private static void updateThumb(SeekBar bar, State state, boolean wanted) {
         float density = bar.getResources().getDisplayMetrics().density;
         boolean big = wanted && ReelSeekBar.bigOn();
-        updateStyle(bar, state, big);
-        int diameter = Math.min(Math.round((big ? BIG_THUMB_DP : 10) * density), bar.getHeight());
+        boolean dm = big && ReelSeekBar.dmOn();
+        updateStyle(bar, state, big, dm);
+        int diameter = Math.min(Math.round((dm ? DM_THUMB_DP : big ? BIG_THUMB_DP : 10) * density), bar.getHeight());
         if (!wanted || diameter <= 0) {
             if (state.thumb != null && bar.getThumb() == state.thumb) {
                 bar.setThumb(state.originalThumb);
@@ -379,7 +393,7 @@ final class ReelTimeLabel {
             return;
         }
         if (state.thumb == null || bar.getThumb() != state.thumb
-                || state.thumb.getIntrinsicWidth() != diameter) {
+                || state.thumb.getIntrinsicWidth() != diameter || state.thumbDm != dm) {
             if (state.thumb == null || bar.getThumb() != state.thumb) {
                 state.originalThumb = bar.getThumb();
                 state.originalThumbOffset = bar.getThumbOffset();
@@ -387,9 +401,11 @@ final class ReelTimeLabel {
             GradientDrawable thumb = new GradientDrawable();
             thumb.setShape(GradientDrawable.OVAL);
             thumb.setColor(Color.WHITE);
-            thumb.setStroke(Math.max(1, Math.round(density)), Color.BLACK);
+            // Instagram's DM thumb is a plain white circle; the others keep a thin outline for light videos.
+            if (!dm) thumb.setStroke(Math.max(1, Math.round(density)), Color.BLACK);
             thumb.setSize(diameter, diameter);
             state.thumb = thumb;
+            state.thumbDm = dm;
             // AbsSeekBar only positions a replacement when its old thumb is non-null. A same-call
             // seed makes Android lay out a previously absent thumb without changing playback progress.
             if (bar.getThumb() == null) bar.setThumb(new GradientDrawable());
@@ -417,8 +433,11 @@ final class ReelTimeLabel {
      * the bar's parent up to the first with room for the fade are let draw past their edges for it.
      * Costs nothing per frame once set; it starts over only if the bar's size or place changes or
      * Instagram swaps a drawable. Off, it gives Instagram's drawables and clipping back.
+     *
+     * <p>With [dm], the track is the DM look's thin one and there's no fade, so the bar keeps
+     * Instagram's background and the views around it keep their clipping.
      */
-    private static void updateStyle(SeekBar bar, State state, boolean big) {
+    private static void updateStyle(SeekBar bar, State state, boolean big, boolean dm) {
         ViewParent parent = bar.getParent();
         if (!big || !(parent instanceof ViewGroup)) {
             unstyle(bar, state);
@@ -427,10 +446,21 @@ final class ReelTimeLabel {
         int height = bar.getHeight();
         if (height <= 0) return;
         float density = bar.getResources().getDisplayMetrics().density;
-        if (state.bigTrack == null) state.bigTrack = bigTrack(density);
+        if (state.bigTrack == null || state.trackDm != dm) {
+            LayerDrawable before = state.bigTrack;
+            state.bigTrack = dm ? track(density, DM_TRACK_DP, DM_TRACK_COLOR) : track(density, BIG_TRACK_DP, BIG_TRACK_COLOR);
+            state.trackDm = dm;
+            // Switching looks keeps the drawable Instagram had before either.
+            if (before != null && bar.getProgressDrawable() == before) bar.setProgressDrawable(state.bigTrack);
+        }
         if (bar.getProgressDrawable() != state.bigTrack) {
             state.originalProgress = bar.getProgressDrawable();
             bar.setProgressDrawable(state.bigTrack);
+        }
+        if (dm) {
+            dropBackdrop(bar, state);
+            state.styled = true;
+            return;
         }
         boolean moved = state.styledHeight != height || state.styledBottom != bar.getBottom();
         if (state.backdrop == null || bar.getBackground() != state.backdrop) {
@@ -473,9 +503,14 @@ final class ReelTimeLabel {
         if (!state.styled) return;
         state.styled = false;
         if (bar.getProgressDrawable() == state.bigTrack) bar.setProgressDrawable(state.originalProgress);
-        if (bar.getBackground() == state.backdrop) bar.setBackground(state.originalBackground);
-        restoreClipping(state);
         state.originalProgress = null;
+        dropBackdrop(bar, state);
+    }
+
+    /** Gives the bar Instagram's background back, and the views around it their clipping, when the fade is up. */
+    private static void dropBackdrop(SeekBar bar, State state) {
+        if (state.backdrop != null && bar.getBackground() == state.backdrop) bar.setBackground(state.originalBackground);
+        restoreClipping(state);
         state.originalBackground = null;
         state.backdrop = null;
         state.styledHeight = -1;
@@ -491,16 +526,16 @@ final class ReelTimeLabel {
     }
 
     /**
-     * A translucent track with the progress over it in white, both [BIG_TRACK_DP] thick, drawn in code (#10).
+     * A track in [color] with the progress over it in white, both [thicknessDp] thick, drawn in code (#10).
      * The progress draws as far across as its level says. A ClipDrawable clipped it to the track's bounds,
      * which Instagram keeps a few pixels high at the bottom of the bar, so the thicker line came out no
      * thicker than Instagram's. The bar puts how much of the reel has loaded on the layer called
      * secondaryProgress, or on the whole drawable when there's none, and from there it reached the progress
      * layer as well: once a reel had loaded, the line was white from end to end. The empty layer takes it.
      */
-    private static LayerDrawable bigTrack(float density) {
-        float thickness = BIG_TRACK_DP * density;
-        LayerDrawable track = new LayerDrawable(new Drawable[] {new Pill(BIG_TRACK_COLOR, thickness, false),
+    private static LayerDrawable track(float density, float thicknessDp, int color) {
+        float thickness = thicknessDp * density;
+        LayerDrawable track = new LayerDrawable(new Drawable[] {new Pill(color, thickness, false),
                 new ColorDrawable(Color.TRANSPARENT), new Pill(Color.WHITE, thickness, true)});
         track.setId(0, android.R.id.background);
         track.setId(1, android.R.id.secondaryProgress);

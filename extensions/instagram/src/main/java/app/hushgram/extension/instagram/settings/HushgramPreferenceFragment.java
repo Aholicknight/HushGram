@@ -933,6 +933,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.BIG_REEL_SEEK_BAR, L10n.t("Bigger seek bar on reels"),
                     L10n.t("Makes the seek bar thicker, with a round white handle and the time above it, over a soft "
                             + "dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.")));
+            reels.add(toggle(context, Settings.DM_REEL_SEEK_BAR, L10n.t("Seek bar like DM videos"),
+                    L10n.t("Gives reels the seek bar of a video in a chat, a thin gray line that turns white as it plays, "
+                            + "with a big round white handle. The time shows above it. Drag it to seek. When Bigger seek "
+                            + "bar is on too, this look wins. It also keeps the bar on short reels.")));
         }
         if (build.contains(PatchFamily.REEL_BLUR_BARS)) {
             reels.add(toggle(context, Settings.BLUR_REEL_BARS, L10n.t("Blur the bars around a reel"),

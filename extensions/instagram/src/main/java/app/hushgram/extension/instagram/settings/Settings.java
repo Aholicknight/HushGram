@@ -1459,6 +1459,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_big_reel_seek_bar", FALSE);
 
     /**
+     * The seek bar of a video opened in a chat on every ordinary reel (#10): Instagram's thin gray
+     * line that turns white as it plays and its big round white thumb, with the time label and no
+     * fade, drawn on Instagram's own bar ({@link app.hushgram.extension.instagram.reels.ReelSeekBar}).
+     * Takes over from {@link #BIG_REEL_SEEK_BAR} when both are on. Also keeps the bar on short reels.
+     * Off to start.
+     */
+    public static final BooleanSetting DM_REEL_SEEK_BAR =
+            new BooleanSetting("hushgram_dm_reel_seek_bar", FALSE);
+
+    /**
      * A reel shows the date and time it was posted on a line under its author's name
      * ({@link app.hushgram.extension.instagram.reels.ReelPostTime}), the way a post's exact time
      * writes it (#172). Read as each reel's title is drawn, so a change shows from the next reel.

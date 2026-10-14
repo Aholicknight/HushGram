@@ -8,6 +8,8 @@ Every HushGram release, newest first.
 
 #### Features
 
+* **Instagram - Keep a seek bar on Reels:** New switch under Reels, Seek bar like DM videos, off by default. Reels get the bar Instagram shows on a video in a chat, a thin gray line that turns white as it plays with a big round white handle, and the time above it. With Bigger seek bar on too, this look wins. Asked for in #10.
+
 * **Instagram - HushGram settings:** Quick setups can be hidden from the settings home with a long press on its row, and its help line now says so. The Quick setups on the home page row on Settings backup brings it back. The choice stays out of settings backups and Quick setups, and Pause leaves it alone.
 
 * **Instagram - HushGram settings:** Long-press Instagram's feed logo to open HushGram settings, even while paused. Taps keep Instagram's behavior, and its own long press runs first. It works on the newer Home header with feed tabs too.
@@ -152,6 +154,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide suggested accounts in Reels:** The Friends tab in Reels no longer fills up with people to follow when it has no reels for you. With the switch on you get Instagram's own empty Friends tab instead. Reported in #167.
 * **Instagram - Hide suggested people on profiles:** With the Discover people button hidden, the buttons left in a profile's row, like Edit profile and Share profile, now stretch to fill it. A gap used to sit where the button had been. Reported in #87.
+
 * **Instagram - HushGram launch screen:** Instagram's own logo and "from Meta" no longer show on a gray screen right after the HushGram logo. With the switch on, Instagram skips the logo animation it plays as it opens, so the HushGram screen hands straight over to Instagram. Reported in #5.
 
 * **Instagram - Open developer options:** A long press of Home no longer leaves Instagram's loading spinner up for good. When its developer options haven't loaded after 12 seconds, the spinner closes and the MetaConfig editor opens in their place, with a toast saying why. If the editor can't open there, the toast says so instead. Diagnostics counts each time it happens. Reported in #158.

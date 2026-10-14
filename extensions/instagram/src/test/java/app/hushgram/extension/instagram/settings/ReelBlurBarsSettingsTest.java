@@ -86,7 +86,8 @@ public class ReelBlurBarsSettingsTest {
         for (int i = 0; i < keys.length; i++) keys[i] = reels.getPreference(i).getKey();
         int bigger = Arrays.asList(keys).indexOf(Settings.BIG_REEL_SEEK_BAR.key);
         assertTrue(Arrays.toString(keys), bigger >= 0);
-        assertEquals("right after Bigger seek bar on reels", Settings.BLUR_REEL_BARS.key, keys[bigger + 1]);
+        assertEquals("Seek bar like DM videos right after Bigger seek bar on reels", Settings.DM_REEL_SEEK_BAR.key, keys[bigger + 1]);
+        assertEquals("right after the seek bar's rows", Settings.BLUR_REEL_BARS.key, keys[bigger + 2]);
         assertFalse(row.isChecked());
         assertFalse(Settings.BLUR_REEL_BARS.get());
         assertFalse("the viewer reads the switch as pages settle, so no restart prompt", Settings.BLUR_REEL_BARS.rebootApp);
