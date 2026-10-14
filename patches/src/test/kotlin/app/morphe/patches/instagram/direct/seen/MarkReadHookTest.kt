@@ -241,6 +241,33 @@ class MarkReadHookTest {
         changed(M.ROUTE, "handle", "Instagram's handler for marking a chat read doesn't hand its unread call false") {
             it[13] = ImmutableInstruction11n(Opcode.CONST_4, 0, 1)
         }
+
+    /**
+     * 451's 385713109, 385713111 and 385713117 outline the handler's null checks into a static
+     * helper that answers false, and hand that answer to the unread call.
+     */
+    @Test fun anUnreadFalseFromAnOutlinedHelperIsTaken() {
+        val context = PatchContexts.of(outlinedRoute(M.outlined()))
+        context.readWithoutSeenReceipt()
+        val bridges = context.mutableClassDefBy(INSTAGRAM_CHATS).methods.associateBy { it.name }
+        assertBridge(bridges, "markUnread", listOf(Opcode.CHECK_CAST to USER_SESSION, Opcode.CHECK_CAST to THREAD_KEY,
+            Opcode.INVOKE_STATIC to M.UNREAD_CALL.toString(), Opcode.RETURN_VOID to null))
+    }
+
+    @Test fun anOutlinedHelperThatCanAnswerTrueIsRefused() =
+        refuses(outlinedRoute(M.outlined(answer = 1)), "Instagram's handler for marking a chat read doesn't hand its unread call false")
+
+    @Test fun anOutlinedHelperThatBranchesIsRefused() =
+        refuses(outlinedRoute(M.outlined(branches = true)), "Instagram's handler for marking a chat read doesn't hand its unread call false")
+
+    @Test fun anOutlinedHelperThatIsMissingIsRefused() =
+        refuses(outlinedRoute(null), "Instagram's handler for marking a chat read doesn't hand its unread call false")
+
+    /** The stand-ins with the route's false asked of [helper] by account and thread id, as 451's outlined builds have it. */
+    private fun outlinedRoute(helper: ClassDef?) = M.edit(M.classes() + listOfNotNull(helper), M.ROUTE, "handle") {
+        it[13] = call(Opcode.INVOKE_STATIC, listOf(7, 8), M.OUTLINED)
+        it.add(14, ImmutableInstruction11x(Opcode.MOVE_RESULT, 0))
+    }
     @Test fun aRouteThatNeverSendsTheReceiptIsRefused() =
         changed(M.ROUTE, "handle", "expected one receipt sent by Instagram's handler for marking a chat read, found 0") {
             it[12] = call(Opcode.INVOKE_STATIC, listOf(7, 0, 8, 5, 2), M.SENDER, "log", listOf(USER_SESSION, M.DETAIL, STRING, STRING, STRING), "V")
@@ -551,6 +578,7 @@ internal object MarkReadFixture {
     private val MANAGER = ImmutableFieldReference(F.MANAGER, "instance", F.MANAGER)
     val SEND = ImmutableMethodReference(SENDER, "send", listOf(USER_SESSION, DETAIL, STRING, STRING, STRING), "V")
     val UNREAD_CALL = ImmutableMethodReference(SENDER, "unread", listOf(USER_SESSION, THREAD_KEY, "Z"), "V")
+    val OUTLINED = ImmutableMethodReference("Lfixture/Outlined;", "A1U", listOf(OBJECT, OBJECT), "Z")
     val LAST = ImmutableMethodReference(MESSAGES, "last", listOf(CHAT), MESSAGE)
     val MESSAGE_ID = ImmutableMethodReference(MESSAGE, "id", emptyList(), STRING)
     val RECEIPT_KEY = ImmutableMethodReference(F.MUTATION, "key", emptyList(), THREAD_KEY)
@@ -778,6 +806,20 @@ internal object MarkReadFixture {
     })
 
     /** [replace] for this fixture's own classes, kept whole but for the one method. */
+    /**
+     * Redex's outlined null checks, shaped like 451's 385713117: the answer set to [answer] first,
+     * a check of each object, and the answer back. With [branches], a branch can skip to the return.
+     */
+    fun outlined(answer: Int = 0, branches: Boolean = false): ClassDef = clazz(OUTLINED.definingClass, listOf(
+        method(OUTLINED.definingClass, OUTLINED.name, OUTLINED.parameterTypes.map(Any::toString), "Z", 3, listOfNotNull(
+            ImmutableInstruction11n(Opcode.CONST_4, 0, answer),
+            ImmutableInstruction21t(Opcode.IF_EQZ, 1, 8).takeIf { branches },
+            call(Opcode.INVOKE_STATIC, listOf(1, 0), "Lfixture/Checks;", "notNull", listOf(OBJECT, "I"), "V"),
+            call(Opcode.INVOKE_STATIC, listOf(2), "Lfixture/Checks;", "notNull", listOf(OBJECT), "V"),
+            ImmutableInstruction11x(Opcode.RETURN, 0),
+        ), static = true),
+    ))
+
     fun edit(classes: List<ClassDef>, type: String, name: String, change: (MutableList<Instruction>) -> Unit): List<ClassDef> =
         replace(classes, type, name, change)
 

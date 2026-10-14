@@ -29,6 +29,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -184,7 +185,7 @@ internal fun BytecodePatchContext.findMarkRead(seen: ThreadSeenTargets): MarkRea
         sender.parameters().let { it.size != 5 || it[0] != USER_SESSION || !it[1].startsWith("L") || it.drop(2) != List(3) { STRING_TYPE } }
     ) refuse("live receipt sender doesn't take an account, a detail and three ids")
     val pick = pickMessage(route, sender)
-    val unread = unreadCall(route)
+    val unread = unreadCall(route, byType)
 
     val builderRef = rowBuilder(methods, markAsUnread)
     val builder = mutableMethod(builderRef)
@@ -507,8 +508,12 @@ private fun pickMessage(route: Method, sender: Method): Pick {
     return pick
 }
 
-/** The call [route] takes a chat's unread mark off with: Instagram's (account, chat key, boolean), handed false. */
-private fun unreadCall(route: Method): MethodReference {
+/**
+ * The call [route] takes a chat's unread mark off with: Instagram's (account, chat key, boolean), handed false.
+ * The false is a const/4 of its own, or, where Redex outlines the handler's opening null checks into one
+ * static helper (451's 385713109, 385713111 and 385713117), that helper's answer, which [answersFalse].
+ */
+private fun unreadCall(route: Method, classes: Map<String, ClassDef>): MethodReference {
     val code = route.visualCode()
     val at = code.indices.filter { index ->
         code[index].opcode == Opcode.INVOKE_STATIC && code[index].call()?.let {
@@ -517,11 +522,36 @@ private fun unreadCall(route: Method): MethodReference {
     }.one("call Instagram's handler for marking a chat read takes the unread mark off with")
     val flag = code[at].namedRegisters()[2]
     val set = (at - 1 downTo 0).firstOrNull { code[it].writes(flag) }
-    if (set == null || code[set].opcode != Opcode.CONST_4 || (code[set] as NarrowLiteralInstruction).narrowLiteral != 0) {
+    if (set == null || !writesFalse(code, set, classes)) {
         refuse("Instagram's handler for marking a chat read doesn't hand its unread call false")
     }
     requireOrigin(THREAD_SEEN_PATCH, route, at, flag, set, "false handed to the unread call")
     return code[at].call()!!
+}
+
+/** Whether [code]'s write at [at] is a false: a const/4 0, or the result of a static helper that [answersFalse]. */
+private fun writesFalse(code: List<Instruction>, at: Int, classes: Map<String, ClassDef>): Boolean {
+    val write = code[at]
+    if (write.opcode == Opcode.CONST_4) return (write as NarrowLiteralInstruction).narrowLiteral == 0
+    if (write.opcode != Opcode.MOVE_RESULT || at == 0 || code[at - 1].opcode != Opcode.INVOKE_STATIC) return false
+    val asked = code[at - 1].call()?.takeIf { it.returnType == "Z" } ?: return false
+    val helper = classes[asked.definingClass]?.methods?.singleOrNull { it.static() && it.key() == asked.key() }
+    return helper?.answersFalse() == true
+}
+
+/**
+ * A helper that can only answer false: no branch, one return, and the register it returns written
+ * once, by a const/4 0, before it. Anything else it does (the null checks) can throw, never change that.
+ */
+private fun Method.answersFalse(): Boolean {
+    val code = visualCode()
+    if (code.any { it is OffsetInstruction }) return false
+    val back = code.indices.filter { code[it].opcode == Opcode.RETURN }.singleOrNull() ?: return false
+    if (code.drop(back + 1).isNotEmpty()) return false
+    val answer = (code[back] as OneRegisterInstruction).registerA
+    val writes = code.indices.filter { code[it].writes(answer) }
+    return writes.size == 1 && writes[0] < back && code[writes[0]].opcode == Opcode.CONST_4 &&
+        (code[writes[0]] as NarrowLiteralInstruction).narrowLiteral == 0
 }
 
 /** The field a chat key's toString writes right after [THREAD_KEY_TEXT]: its own thread id. */
