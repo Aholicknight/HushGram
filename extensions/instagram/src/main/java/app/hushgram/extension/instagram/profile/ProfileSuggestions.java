@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.profile;
 
 import android.view.View;
+import android.widget.LinearLayout;
 
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
@@ -36,7 +37,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *   <li>{@link #keepStandaloneRow} is asked before the header adds its row of suggestions, and a 0
  *       leaves the row out of the header's list, so nothing is bound for it;</li>
  *   <li>{@link #chainingButton} gets the person-plus button once Instagram has set it up, and hides
- *       it.</li>
+ *       it, and the row's other buttons spread over the space it leaves ({@link #fitRow}).</li>
  * </ul>
  * Every other row of the header (bio, counts, links, highlights) and the action buttons themselves
  * are left alone.
@@ -116,6 +117,20 @@ public final class ProfileSuggestions {
      */
     private static final Map<View, Integer> hidden = new WeakHashMap<>();
 
+    /**
+     * The tags Instagram gives the icon buttons of a profile's action row, the ones it sizes apart
+     * from the text buttons: the person-plus button, Saved and the overflow menu.
+     */
+    static final Set<String> ICON_TAGS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "chaining_icon", "saved", "overflow_menu")));
+
+    /** What's counted when the row's text buttons take the hidden button's space, and when they give it back. */
+    static final String ROW_SPREAD = "action buttons spread over the hidden button's space";
+    static final String ROW_PUT_BACK = "action buttons put back to Instagram's widths";
+
+    /** The text buttons this class gave a weight, so only those lose it again. Weak, as {@link #hidden} is. */
+    private static final Map<View, Boolean> spread = new WeakHashMap<>();
+
     private ProfileSuggestions() {
     }
 
@@ -159,20 +174,80 @@ public final class ProfileSuggestions {
         if (button == null) return;
         boolean hide = hides(CHAINING_BUTTON, on);
         try {
+            boolean changed;
             synchronized (hidden) {
                 if (hide) {
                     int was = button.getVisibility();
                     button.setVisibility(View.GONE);
                     // Only the first hide records it: a later one would record GONE as its own.
                     if (!hidden.containsKey(button)) hidden.put(button, was);
+                    changed = true;
                 } else {
                     Integer was = hidden.remove(button);
                     if (was != null) button.setVisibility(was);
+                    changed = was != null;
                 }
             }
+            // The button isn't in the row yet: Instagram empties the row and adds each button back
+            // after setting it up. A post waits until it's attached there again.
+            if (changed) button.post(() -> fitRow(button));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, CHAINING_BUTTON, failure);
         }
+    }
+
+    /**
+     * Spreads the action row's other buttons over the space the hidden person-plus button leaves
+     * (#87), or takes that back once the button shows again. Never throws.
+     *
+     * <p>Instagram doesn't let the row's buttons share it: it works out a fixed width for each text
+     * button (Follow, Message, Edit profile, Share profile) from the row's width, how many there are,
+     * and whether an icon button sits beside them, which keeps its own fixed width. The icon buttons
+     * are the ones it tags {@link #ICON_TAGS}. So with the person-plus button gone the text buttons
+     * keep widths that leave room for it, and a gap sits at the end of the row. Each visible text
+     * button here gets a weight of 1, so the row hands them that space in equal parts on top of
+     * Instagram's widths. Where there's no space left over, as in a row with no icon or one whose
+     * icon shows, a weight changes nothing, and Instagram's own widths keep working as they did.
+     */
+    static void fitRow(View button) {
+        try {
+            if (!(button.getParent() instanceof LinearLayout)) return;
+            LinearLayout row = (LinearLayout) button.getParent();
+            if (row.getOrientation() != LinearLayout.HORIZONTAL) return;
+            boolean gone;
+            synchronized (hidden) {
+                gone = hidden.containsKey(button) && button.getVisibility() == View.GONE;
+            }
+            int moved = 0;
+            synchronized (spread) {
+                for (int i = 0; i < row.getChildCount(); i++) {
+                    View child = row.getChildAt(i);
+                    if (child == button || child == null || isIcon(child)) continue;
+                    if (!(child.getLayoutParams() instanceof LinearLayout.LayoutParams)) continue;
+                    LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) child.getLayoutParams();
+                    if (gone && child.getVisibility() != View.GONE && params.weight == 0 && !spread.containsKey(child)) {
+                        params.weight = 1;
+                        spread.put(child, Boolean.TRUE);
+                        moved++;
+                    } else if (!gone && spread.remove(child) != null) {
+                        // Only a weight this gave goes back, and only while it's still that weight.
+                        if (params.weight == 1) params.weight = 0;
+                        moved++;
+                    }
+                }
+            }
+            if (moved == 0) return;
+            row.requestLayout();
+            HookStatus.counted(FamilyNames.PROFILE_SUGGESTIONS, gone ? ROW_SPREAD : ROW_PUT_BACK);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, ROW_SPREAD, failure);
+        }
+    }
+
+    /** Whether Instagram counts [child] as one of the row's icon buttons, by the tag it gives it. */
+    private static boolean isIcon(View child) {
+        Object tag = child.getTag();
+        return tag != null && ICON_TAGS.contains(tag.toString());
     }
 
     /**

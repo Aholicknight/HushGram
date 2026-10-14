@@ -151,6 +151,7 @@ Every HushGram release, newest first.
 #### Bug Fixes
 
 * **Instagram - Hide suggested accounts in Reels:** The Friends tab in Reels no longer fills up with people to follow when it has no reels for you. With the switch on you get Instagram's own empty Friends tab instead. Reported in #167.
+* **Instagram - Hide suggested people on profiles:** With the Discover people button hidden, the buttons left in a profile's row, like Edit profile and Share profile, now stretch to fill it. A gap used to sit where the button had been. Reported in #87.
 
 * **Instagram - Open developer options:** A long press of Home no longer leaves Instagram's loading spinner up for good. When its developer options haven't loaded after 12 seconds, the spinner closes and the MetaConfig editor opens in their place, with a toast saying why. If the editor can't open there, the toast says so instead. Diagnostics counts each time it happens. Reported in #158.
 

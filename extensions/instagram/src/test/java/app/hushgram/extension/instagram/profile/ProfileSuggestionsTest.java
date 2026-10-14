@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.view.View;
+import android.widget.LinearLayout;
 
 import org.junit.After;
 import org.junit.Before;
@@ -198,6 +199,100 @@ public class ProfileSuggestionsTest {
         String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.CHAINING_BUTTON + "'"));
         assertTrue(missing, missing.contains(UnsupportedOperationException.class.getName()));
+    }
+
+    /**
+     * #87: with the person-plus button hidden, the text buttons Instagram sized to leave room for it
+     * share that room in equal parts, so no gap sits at the end of the row. Turned off again, they go
+     * back to Instagram's own widths and the button takes its place.
+     */
+    @Test
+    public void theRowsOtherButtonsTakeTheHiddenButtonsSpace() {
+        LinearLayout row = row();
+        View edit = add(row, "generic", 400);
+        View share = add(row, "generic", 400);
+        View button = add(row, "chaining_icon", 150);
+        assertEquals("Instagram's own widths, room left for the button", List.of(400, 400, 150), measure(row, edit, share, button));
+
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+        assertEquals(View.GONE, button.getVisibility());
+        assertEquals("the gap split between the two", List.of(500, 500), measure(row, edit, share));
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+        assertEquals("a second bind changes nothing more", List.of(500, 500), measure(row, edit, share));
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ProfileSuggestions.ROW_SPREAD + " 1"));
+
+        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+        assertEquals(View.VISIBLE, button.getVisibility());
+        assertEquals("Instagram's widths again", List.of(400, 400, 150), measure(row, edit, share, button));
+        assertEquals(0f, ((LinearLayout.LayoutParams) edit.getLayoutParams()).weight, 0f);
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ProfileSuggestions.ROW_PUT_BACK + " 1"));
+    }
+
+    /**
+     * An icon button Instagram keeps at its own width (Saved, the overflow menu) stays that width,
+     * and a button Instagram weighted itself keeps its weight when the row is put back.
+     */
+    @Test
+    public void iconButtonsAndInstagramsOwnWeightsAreLeftAlone() {
+        LinearLayout row = row();
+        View follow = add(row, "generic", 300);
+        View saved = add(row, "saved", 100);
+        View weighted = add(row, "generic", 300);
+        ((LinearLayout.LayoutParams) weighted.getLayoutParams()).weight = 2;
+        View button = add(row, "chaining_icon", 150);
+
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+        assertEquals("only the unweighted text button grows here", List.of(300 + 300 / 3, 100, 300 + 600 / 3),
+                measure(row, follow, saved, weighted));
+        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+        assertEquals(0f, ((LinearLayout.LayoutParams) follow.getLayoutParams()).weight, 0f);
+        assertEquals(2f, ((LinearLayout.LayoutParams) weighted.getLayoutParams()).weight, 0f);
+        assertEquals(0f, ((LinearLayout.LayoutParams) saved.getLayoutParams()).weight, 0f);
+    }
+
+    /** A button outside a row, or in a row that runs down the screen, changes nothing around it. */
+    @Test
+    public void aButtonOutsideAHorizontalRowChangesNothing() {
+        View alone = new View(context);
+        ProfileSuggestions.chainingButton(alone);
+        ProfileSuggestions.fitRow(alone);
+        LinearLayout column = row();
+        column.setOrientation(LinearLayout.VERTICAL);
+        View text = add(column, "generic", 400);
+        View button = add(column, "chaining_icon", 150);
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+        assertEquals(0f, ((LinearLayout.LayoutParams) text.getLayoutParams()).weight, 0f);
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains(ProfileSuggestions.ROW_SPREAD));
+    }
+
+    private LinearLayout row() {
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        return row;
+    }
+
+    private View add(LinearLayout row, String tag, int width) {
+        View view = new View(context);
+        view.setTag(tag);
+        row.addView(view, new LinearLayout.LayoutParams(width, 100));
+        return view;
+    }
+
+    /** The widths [views] get in a row 1000 px wide, as a phone measures it. */
+    private static List<Integer> measure(LinearLayout row, View... views) {
+        row.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(100, View.MeasureSpec.EXACTLY));
+        List<Integer> widths = new ArrayList<>();
+        for (View view : views) widths.add(view.getMeasuredWidth());
+        return widths;
     }
 
     /**
