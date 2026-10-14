@@ -1461,6 +1461,14 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z 
 shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (Landroid/os/Bundle;)V holding android_purge_26_q2_ClipsPiPFragment_onCreate
 once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->stored(I)V in instance (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;L*;Lkotlin/jvm/functions/Function0;IJZ)V sites 2 holding android_purge_26_q3_ClipsOptInAutoscrollPluginImpl_handleAutoscrollModeClick
 once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->timerSet(J)V in instance ()Ljava/lang/Object; calling static Ljava/lang/System;->currentTimeMillis()J sites 3 holding android_purge_26_q3_ClipsOptInAutoscrollPluginImpl_logDurationTap
+# Move on when a reel ends (#175) is for accounts Instagram offers no auto scroll to. There the Reels
+# viewer builds no scroller, so its one read of whether auto scroll is offered passes through
+# ReelAutoScroll.install right after it, in front of the branch that skips building the scroller. The
+# builder is the one static method taking a Context first that loads the trace section below, on all
+# seven 450 builds. The check it reads and the menus that read it too call install nowhere. Left out,
+# the switch does nothing where Instagram offers no auto scroll. Twice or elsewhere, it isn't the hook
+# the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->install(I)Z in static (Landroid/content/Context;*)V holding ClipsViewerFragment.onCreate:clipsAutoScroller
 #
 # Stop Reels scrolling hands the Reels pager to ReelScrolling.pager right after the Reels viewer's
 # onViewCreated stores it (06Bw on 449, the one method of its shape holding the setup marker below),

@@ -1410,6 +1410,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_reel_auto_scroll", FALSE);
 
     /**
+     * A reel that ends moves on to the next one instead of playing again, through Instagram's own
+     * Reels auto scroller ({@link app.hushgram.extension.instagram.reels.ReelAutoScroll}), on an
+     * account Instagram doesn't offer auto scroll to as well (#175). The Reels viewer builds its
+     * scroller as it opens, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting REEL_AUTO_ADVANCE =
+            new BooleanSetting("hushgram_reel_auto_advance", FALSE, true);
+
+    /**
      * A finger can't move the Reels viewer on to the next reel, and a pull down doesn't load new
      * ones ({@link app.hushgram.extension.instagram.reels.ReelScrolling}). A viewer turns its pager
      * off as it opens, so a change takes a restart. Off to start.

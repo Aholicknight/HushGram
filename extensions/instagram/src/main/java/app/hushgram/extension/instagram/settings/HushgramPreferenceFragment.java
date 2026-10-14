@@ -924,6 +924,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.KEEP_REEL_AUTO_SCROLL, L10n.t("Keep auto scroll on"),
                     L10n.t("Once you turn on Instagram's auto scroll in Reels, it stays on after a restart or after "
                             + "you leave Reels, until you turn it off.")));
+            reels.add(toggle(context, Settings.REEL_AUTO_ADVANCE, L10n.t("Move on when a reel ends"),
+                    L10n.t("When a reel ends, Reels moves on to the next one instead of playing it again. It uses "
+                            + "Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. "
+                            + "Restart Instagram to see the change.")));
         }
         if (build.contains(PatchFamily.REEL_SCROLLING)) {
             reels.add(toggle(context, Settings.STOP_REELS_SCROLLING, L10n.t("Stop Reels scrolling"),
@@ -1751,6 +1755,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     if (family == PatchFamily.DISABLE_ANALYTICS) aliases.append(" contacts contact location setup analytics ")
                             .append(L10n.t("Contacts, location setup, analytics"));
                     if (family == PatchFamily.FOLLOWING_FEED) aliases.append(" following home feed");
+                    if (Settings.REEL_AUTO_ADVANCE.key.equals(key)) aliases.append(" auto advance autoloop loop next reels");
                     if (family == PatchFamily.REEL_DECLUTTER || family == PatchFamily.REEL_DOWNLOAD
                             || family == PatchFamily.REEL_WATCH_HISTORY || family == PatchFamily.REELS_TAB
                             || family == PatchFamily.KEEP_REEL_SPEED || family == PatchFamily.TAP_TO_PLAY

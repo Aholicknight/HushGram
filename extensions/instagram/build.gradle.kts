@@ -914,10 +914,15 @@ tasks.register("verifyAndroidBoundaries") {
                 "theSavedPreferenceIsAnsweredButNeverRemembered[28]", "theSavedPreferenceIsAnsweredButNeverRemembered[37]",
                 "nothingIsWrittenWhenTheChoiceIsUnchanged[28]", "nothingIsWrittenWhenTheChoiceIsUnchanged[37]",
                 "offPausedAndUnreadyKeepInstagramsAnswer[28]", "offPausedAndUnreadyKeepInstagramsAnswer[37]",
-                "aThrowingSwitchOrMemoryKeepsInstagramsAnswerAndIsReported[28]", "aThrowingSwitchOrMemoryKeepsInstagramsAnswerAndIsReported[37]"),
+                "aThrowingSwitchOrMemoryKeepsInstagramsAnswerAndIsReported[28]", "aThrowingSwitchOrMemoryKeepsInstagramsAnswerAndIsReported[37]",
+                "moveOnBuildsTheScrollerAndAnswersOn[28]", "moveOnBuildsTheScrollerAndAnswersOn[37]",
+                "moveOnNeverWritesTheRememberedChoice[28]", "moveOnNeverWritesTheRememberedChoice[37]",
+                "moveOnStandsDownWhilePausedOrUnread[28]", "moveOnStandsDownWhilePausedOrUnread[37]"),
             "app.hushgram.extension.instagram.settings.ReelAutoScrollSettingsTest" to listOf(
                 "missingPatchHasNoAutoScrollSwitch[28]", "missingPatchHasNoAutoScrollSwitch[37]",
-                "autoScrollSwitchStartsOffPersistsAndHonorsPause[28]", "autoScrollSwitchStartsOffPersistsAndHonorsPause[37]"),
+                "autoScrollSwitchStartsOffPersistsAndHonorsPause[28]", "autoScrollSwitchStartsOffPersistsAndHonorsPause[37]",
+                "moveOnSwitchStartsOffUnderKeepAsksForARestartAndHonorsPause[28]",
+                "moveOnSwitchStartsOffUnderKeepAsksForARestartAndHonorsPause[37]"),
             "app.hushgram.extension.instagram.media.TapToPlayTest" to listOf(
                 "autoScrollStartsTheReelItMovesToAndArmsIt[28]", "autoScrollStartsTheReelItMovesToAndArmsIt[37]",
                 "aMoveStartsOnePlayerOnly[28]", "aMoveStartsOnePlayerOnly[37]",
