@@ -267,6 +267,29 @@ public class FriendshipChipTest {
         assertFalse(chip.underPicture);
     }
 
+    /**
+     * 451 stretches the counts block to the picture column's height, empty under the counts (#157,
+     * S22 2026-10-14). A pill wider than the picture reaching into that empty room stays under the
+     * picture: only what the neighbor shows is in the way.
+     */
+    @Test
+    public void thePillMayReachIntoANeighborsEmptyRoom() {
+        pictured(20, 260, 0);
+        right.getLayoutParams().height = LinearLayout.LayoutParams.MATCH_PARENT;
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        layOut();
+        ShadowLooper.idleMainLooper();
+        layOut();
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        assertTrue(chip.underPicture);
+        Rect pill = chip.pill.getBounds();
+        assertFalse(pill.isEmpty());
+        assertTrue("it reaches past the picture's column", pill.right > inRow(column).right);
+        assertTrue("into the stretched block's rectangle", pill.bottom <= inRow(right).bottom);
+        String report = String.join("\n", HookStatus.report());
+        assertFalse(report, report.contains(FriendshipChip.NO_PICTURE_ROOM));
+    }
+
     /** A picture column with a height of its own would squeeze the picture, so the small chip goes under the counts. */
     @Test
     public void aColumnNotSizedToItsPictureGetsNoRoom() {

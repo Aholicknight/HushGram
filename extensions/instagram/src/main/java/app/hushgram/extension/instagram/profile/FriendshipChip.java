@@ -50,8 +50,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * holds the counts too, gets the room as padding at its bottom, which it can only take when it's as
  * tall as what it holds. The pill is drawn in that shared view's overlay, since it's wider than the
  * picture. Instagram's layouts can't be read offline, so each layout is checked: a column that
- * isn't sized to its content, or a pill that would touch any of the shared view's other children,
- * puts the small pill under the counts instead.
+ * isn't sized to its content, or a pill that would touch anything the shared view's other children
+ * show, puts the small pill under the counts instead.
  *
  * <p>Runs on the main thread, where Instagram binds the header.
  */
@@ -444,18 +444,34 @@ final class FriendshipChip {
             }
         }
 
-        /** The first of [row]'s children but [column] on screen that [bounds] touch, or null. */
+        /** The first of [row]'s children but [column] showing something that [bounds] touch, or null. */
         @Nullable
         private static View touching(ViewGroup row, View column, Rect bounds) {
             for (int i = 0; i < row.getChildCount(); i++) {
                 View child = row.getChildAt(i);
-                if (child == column || child.getVisibility() != View.VISIBLE) continue;
-                if (child.getWidth() == 0 || child.getHeight() == 0) continue;
-                if (Rect.intersects(bounds, new Rect(child.getLeft(), child.getTop(), child.getRight(), child.getBottom()))) {
-                    return child;
-                }
+                if (child != column && shows(child, bounds, child.getLeft(), child.getTop())) return child;
             }
             return null;
+        }
+
+        /**
+         * Whether [view], at [left] and [top] in the row, shows anything inside [bounds]: itself when
+         * it has a background or holds nothing, else any of its children. 451 stretches the counts
+         * block to the picture's height, empty under the counts, and a pill wider than the picture
+         * reaching into that room covers nothing (#157, S22 2026-10-14).
+         */
+        private static boolean shows(View view, Rect bounds, int left, int top) {
+            if (view.getVisibility() != View.VISIBLE || view.getWidth() == 0 || view.getHeight() == 0) return false;
+            if (!Rect.intersects(bounds, new Rect(left, top, left + view.getWidth(), top + view.getHeight()))) return false;
+            if (!(view instanceof ViewGroup) || view.getBackground() != null || ((ViewGroup) view).getChildCount() == 0) return true;
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                if (shows(child, bounds, left + child.getLeft() - group.getScrollX(), top + child.getTop() - group.getScrollY())) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /** [view]'s id name, or its class's name when it has none Instagram named. */
