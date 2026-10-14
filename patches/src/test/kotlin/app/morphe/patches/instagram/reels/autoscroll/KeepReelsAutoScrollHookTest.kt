@@ -346,6 +346,11 @@ class KeepReelsAutoScrollHookTest {
                 if (wanted) found[classDef.type] = ImmutableClassDef.of(classDef)
             }
         }
+        // 451's callbacks call a static log helper holding the duration marker instead of holding it.
+        val logHelpers = found.values.flatMap { it.methods }
+            .filter { AUTOSCROLL_DURATION_TAP in it.markers() && AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.text() }.toSet()
+        fun Method.durationCallback() = !AccessFlags.STATIC.isSet(accessFlags) &&
+            (AUTOSCROLL_DURATION_TAP in markers() || code().any { it.referenceText() in logHelpers })
         val preferenceClass = found.values.single { type -> type.methods.any { m -> m.name == "<clinit>" && m.code().any { it.string() == AUTOSCROLL_PREFERENCE } } }
         val getter = preferenceClass.methods.single { AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" && it.parameterTypes.size == 1 }
         val setter = preferenceClass.methods.single {
@@ -374,6 +379,7 @@ class KeepReelsAutoScrollHookTest {
                 for (method in classDef.methods) {
                     for (instruction in method.code()) {
                         if (instruction.calls(setter) || instruction.referenceText() == memoryText) wanted = true
+                        if (instruction.referenceText() in logHelpers) wanted = true
                         if (instruction.opcode == Opcode.NEW_INSTANCE && instruction.referenceText() == scrollerClass.type) wanted = true
                         val field = instruction.reference() as? FieldReference ?: continue
                         if (instruction.opcode.setsRegister() && field.definingClass in stateClasses && classDef.type !in stateClasses) {
@@ -401,11 +407,11 @@ class KeepReelsAutoScrollHookTest {
         val click = context.mutableClassDefBy(plugin.type).methods.single { AUTOSCROLL_MODE_CLICK in it.markers() }
         assertChoiceFirst(label, click)
         assertChoiceKept(label, click, setter.text(), memoryText)
-        val callback = found.values.flatMap { it.methods.toList() }.single { AUTOSCROLL_DURATION_TAP in it.markers() && it.code().any { code -> code.calls(expirationSetter) } }
+        val callback = found.values.flatMap { it.methods.toList() }.single { it.durationCallback() && it.code().any { code -> code.calls(expirationSetter) } }
         assertTimerChoices(context.method(callback), expirationSetter.text())
         assertEquals("${label}: native expiration setter is unchanged", expirationSetter.code().map { Triple(it.opcode, it.referenceText(), it.arguments()) },
             context.method(expirationSetter).code().map { Triple(it.opcode, it.referenceText(), it.arguments()) })
-        val cancellation = found.values.flatMap { it.methods.toList() }.single { AUTOSCROLL_DURATION_TAP in it.markers() && it.text() != callback.text() }
+        val cancellation = found.values.flatMap { it.methods.toList() }.single { it.durationCallback() && it.text() != callback.text() }
         assertEquals("${label}: cancellation is unchanged", cancellation.code().map { Triple(it.opcode, it.referenceText(), it.arguments()) },
             context.method(cancellation).code().map { Triple(it.opcode, it.referenceText(), it.arguments()) })
 

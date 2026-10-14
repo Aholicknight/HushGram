@@ -1487,9 +1487,11 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bind(Ljava/lang/
 # test, which checks on the 449 fixture that every return passes through answer. The handler also
 # hands its choice to ReelAutoScroll.stored right after it keeps it in memory and right after it
 # saves it, the two calls its stored rule counts. The timed choice's duration callback, the invoke()
-# holding the logDurationTap marker that asks System.currentTimeMillis (0dxn on 450's 385611438),
-# hands each of the three expiration times it saves to ReelAutoScroll.timerSet right after the save.
-# Both pick one method on all seven 450 builds. Two methods read the
+# that asks System.currentTimeMillis and reads the Reels list's LazyListState (0jlk on 451's
+# 385713073, which calls the static log helper 0FiQ.A00 holding the logDurationTap marker; the x86
+# 385713117 holds the marker in the callback itself, 0Ugn, as 450 did), hands each of the three
+# expiration times it saves to ReelAutoScroll.timerSet right after the save.
+# Both pick one method on all eight 451 builds. Two methods read the
 # memory itself (the manager's one boolean) and pass what they read through answer once, right
 # after the read: the Reels viewer's state (07Bj.A0V on 449, the one method holding its marker
 # below) and the picture in picture fragment's onCreate (0Xrc.onCreate). The test finds every read
@@ -1501,7 +1503,7 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->saved(I)Z i
 shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (*)L*; holding android_purge_26_q3_VideoPlaybackUseCase_getUiState
 shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (Landroid/os/Bundle;)V holding android_purge_26_q2_ClipsPiPFragment_onCreate
 once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->stored(I)V in instance (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;L*;Lkotlin/jvm/functions/Function0;IJZ)V sites 2 holding android_purge_26_q3_ClipsOptInAutoscrollPluginImpl_handleAutoscrollModeClick
-once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->timerSet(J)V in instance ()Ljava/lang/Object; calling static Ljava/lang/System;->currentTimeMillis()J sites 3 holding android_purge_26_q3_ClipsOptInAutoscrollPluginImpl_logDurationTap
+once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->timerSet(J)V in instance ()Ljava/lang/Object; calling static Ljava/lang/System;->currentTimeMillis()J sites 3 holding Landroidx/compose/foundation/lazy/LazyListState;->A02()LX/*;
 # Move on when a reel ends (#175) is for accounts Instagram offers no auto scroll to. There the Reels
 # viewer builds no scroller, so its one read of whether auto scroll is offered passes through
 # ReelAutoScroll.install right after it, in front of the branch that skips building the scroller. The

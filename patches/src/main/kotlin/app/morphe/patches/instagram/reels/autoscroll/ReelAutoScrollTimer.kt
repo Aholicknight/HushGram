@@ -6,6 +6,7 @@ package app.morphe.patches.instagram.reels.autoscroll
 
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.markers
@@ -53,6 +54,14 @@ internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method,
         if (type.methods.any { it.name == "<clinit>" && it.timerCode().any { code -> code.timerString() == AUTOSCROLL_EXPIRATION } }) timers += type
         type.methods.filter { AUTOSCROLL_DURATION_TAP in it.markers() }.forEach { callbacks += type to it }
     }
+    // 451 moved the marker out of the callbacks into a static log helper both call (on 385713073
+    // LX/0FiQ->A00), so the callbacks are the methods calling a marked static method too.
+    callbacks.filter { (_, method) -> AccessFlags.STATIC.isSet(method.accessFlags) }.forEach { (_, helper) ->
+        classesCalling(helper.definingClass, helper.name).forEach { caller ->
+            caller.methods.filter { method -> method.timerCode().any { it.timerMethod()?.toString() == helper.toString() } }
+                .forEach { callbacks += caller to it }
+        }
+    }
     val timer = timers.singleOrNull() ?: refuseTimer("expected one expiration preference class, found ${timers.size}")
     if (timer.methods.none { it.name == "<clinit>" && it.timerCode().any { code -> code.timerString() == AUTOSCROLL_EXPIRATION_GETTER } }) {
         refuseTimer("${timer.type} doesn't name the expiration timestamp getter")
@@ -62,7 +71,8 @@ internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method,
     val saved = proveExpirationSetter(setter, check)
     proveBoxedTimestamp(saved)
     // The cancellation callback holds the same log marker on 449, but never saves an expiration.
-    val savingCallbacks = callbacks.filter { (_, method) -> method.timerCode().any { it.timerMethod()?.toString() == setter.toString() } }
+    val savingCallbacks = callbacks.distinctBy { (_, method) -> method.toString() }
+        .filter { (_, method) -> method.timerCode().any { it.timerMethod()?.toString() == setter.toString() } }
     val (type, callback) = savingCallbacks.singleOrNull() ?: refuseTimer("expected one saving duration callback, found ${savingCallbacks.size}")
     if (callback.name != "invoke" || callback.timerParameters().isNotEmpty() || callback.returnType != "Ljava/lang/Object;" ||
         !callback.concreteTimer() || AccessFlags.STATIC.isSet(callback.accessFlags) || "Lkotlin/jvm/functions/Function0;" !in type.interfaces
@@ -75,9 +85,13 @@ internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method,
     ) refuseTimer("${click.definingClass}->${click.name} doesn't construct the three duration choices")
     val constructor = type.methods.singleOrNull { it.concreteTimer() && !AccessFlags.STATIC.isSet(it.accessFlags) && it.toString() == constructors.first().toString() }
         ?: refuseTimer("${type.type} has no declared duration constructor")
-    val prefParameter = constructor.timerParameters().indices.filter { constructor.timerParameters()[it] == prefs }.singleOrNull()
-        ?: refuseTimer("${type.type}'s duration constructor doesn't capture one $prefs")
     val constructorCode = constructor.timerCode()
+    val typed = constructor.timerParameters().indices.filter { constructor.timerParameters()[it] == prefs }
+    val prefParameter = when (typed.size) {
+        1 -> typed.single()
+        0 -> castCapture(type, constructor, constructorCode, callback, prefs)
+        else -> null
+    } ?: refuseTimer("${type.type}'s duration constructor doesn't capture one $prefs")
     val prefRegister = constructor.parameterRegisterNumber(prefParameter)
     val selfRegister = constructor.implementation!!.registerCount - constructor.timerParameters().sumOf { p -> if (p == "J" || p == "D") 2 else 1 } - 1
     val captures = constructorCode.indices.filter {
@@ -144,6 +158,36 @@ internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method,
     }
     if (kinds != setOf(Long.MAX_VALUE, 3600000L, 86400000L)) refuseTimer("${type.type}'s duration choices aren't always, one hour and one day")
     return TimerChoices(MethodSite(type.type, callback.name, callback.timerParameters()), keeps)
+}
+
+/**
+ * The constructor parameter holding the preferences when none is typed [prefs]: 451 merges the
+ * duration choices into a lambda class that keeps what it captures as Objects (on 385713073 LX/0jlk
+ * takes five Objects, a String, an int and a long). It's the one Object parameter the constructor
+ * stores in the one field of its own the callback reads and casts to [prefs] right away. The checks
+ * after this prove each save reads that field and casts it, or the patch fails.
+ */
+private fun castCapture(type: ClassDef, constructor: Method, constructorCode: List<Instruction>, callback: Method, prefs: String): Int? {
+    val self = callback.implementation!!.registerCount - 1
+    val code = callback.timerCode()
+    val fields = code.indices.mapNotNull { at ->
+        val read = code[at]
+        val cast = code.getOrNull(at + 1)
+        val field = read.timerField()
+        if (read.opcode == Opcode.IGET_OBJECT && field?.definingClass == type.type && (read as TwoRegisterInstruction).registerB == self &&
+            cast?.opcode == Opcode.CHECK_CAST && (cast as OneRegisterInstruction).registerA == read.registerA &&
+            (cast as ReferenceInstruction).reference.toString() == prefs
+        ) field.toString() else null
+    }.distinct()
+    val field = fields.singleOrNull() ?: return null
+    val parameters = constructor.timerParameters()
+    val selfRegister = constructor.implementation!!.registerCount - parameters.sumOf { if (it == "J" || it == "D") 2 else 1 } - 1
+    return parameters.indices.filter { index ->
+        parameters[index] == "Ljava/lang/Object;" && constructorCode.any {
+            it.opcode == Opcode.IPUT_OBJECT && (it as TwoRegisterInstruction).registerA == constructor.parameterRegisterNumber(index) &&
+                it.registerB == selfRegister && it.timerField()?.toString() == field
+        }
+    }.singleOrNull()
 }
 
 /** The native setter passes its wide parameter through the descriptor and metadata the check reads. */
