@@ -38,7 +38,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>With Show the Reels tab on, a list Instagram built without Reels gets it back right after
  * Home, from the same enum, and Hide the Reels tab wins when both are on. With Show the Messages tab
- * on, a list without Messages gets it before Profile, or last without one (#160).
+ * on, a list without Messages gets it before Profile, or last without one (#160). Show the Activity
+ * tab does the same for Activity, the enum's NEWS, whose screen is the one the heart on Home's header
+ * opens (#156).
  *
  * <p>Reels themselves aren't touched. A reel in the feed, a shared reel and the Reels viewer open as
  * before. The list is built as Instagram starts, so a change to the switch shows after a restart.
@@ -62,6 +64,15 @@ public final class ReelsTab {
 
     /** What a list given the Messages tab is counted under. */
     static final String MESSAGES_ADDED = "Messages tab added";
+
+    /**
+     * The Activity tab's name in the same enum. Instagram's tab host builds the same notifications
+     * screen for it that the heart on Home's header opens.
+     */
+    static final String ACTIVITY = "NEWS";
+
+    /** What a list given the Activity tab is counted under. */
+    static final String ACTIVITY_ADDED = "Activity tab added";
 
     /** The diagnostic counter route: each tab list Instagram builds, and the tabs taken out of it. */
     static final String ROUTE = "Reels tab";
@@ -100,6 +111,7 @@ public final class ReelsTab {
             List<?> shown = withoutHidden(tabs);
             if (!hiddenByName(REELS) && showing()) shown = withReels(shown);
             if (showingMessages()) shown = withMessages(shown);
+            if (showingActivity()) shown = withActivity(shown);
             shown = TabOrder.apply(shown);
             TabStart.remember(shown);
             return shown;
@@ -201,25 +213,38 @@ public final class ReelsTab {
      * something that isn't a tab, or its enum has no Messages.
      */
     static List<?> withMessages(List<?> tabs) {
+        return withBeforeProfile(tabs, MESSAGES, MESSAGES_ADDED);
+    }
+
+    /**
+     * A copy of [tabs] with Activity before Profile, or last when there's no Profile, when the list
+     * has no Activity; otherwise [tabs] as it came, the same as {@link #withMessages}.
+     */
+    static List<?> withActivity(List<?> tabs) {
+        return withBeforeProfile(tabs, ACTIVITY, ACTIVITY_ADDED);
+    }
+
+    /** [tabs] with the tab called [name] before Profile, counted under [added], as {@link #withMessages} says. */
+    private static List<?> withBeforeProfile(List<?> tabs, String name, String added) {
         if (tabs.isEmpty() || !(tabs.get(0) instanceof Enum)) return tabs;
         int at = tabs.size();
         for (int index = 0; index < tabs.size(); index++) {
             Object tab = tabs.get(index);
             if (!(tab instanceof Enum)) return tabs;
-            String name = ((Enum<?>) tab).name();
-            if (MESSAGES.equals(name)) return tabs;
-            if (PROFILE.equals(name)) at = index;
+            String each = ((Enum<?>) tab).name();
+            if (name.equals(each)) return tabs;
+            if (PROFILE.equals(each)) at = index;
         }
-        Object messages;
+        Object wanted;
         try {
-            messages = named((Enum<?>) tabs.get(0), MESSAGES);
-        } catch (IllegalArgumentException noMessages) {
+            wanted = named((Enum<?>) tabs.get(0), name);
+        } catch (IllegalArgumentException missing) {
             return tabs;
         }
         List<Object> shown = new ArrayList<>(tabs);
-        shown.add(at, messages);
-        HookStatus.counted(FamilyNames.REELS_TAB, MESSAGES_ADDED);
-        Logger.printDebug(() -> "Reels tab: put Messages on a list of " + tabs.size() + " tabs");
+        shown.add(at, wanted);
+        HookStatus.counted(FamilyNames.REELS_TAB, added);
+        Logger.printDebug(() -> "Reels tab: put " + name + " on a list of " + tabs.size() + " tabs");
         return shown;
     }
 
@@ -300,5 +325,9 @@ public final class ReelsTab {
 
     private static boolean showingMessages() {
         return Utils.settingsReady() && Settings.SHOW_MESSAGES_TAB.get();
+    }
+
+    private static boolean showingActivity() {
+        return Utils.settingsReady() && Settings.SHOW_ACTIVITY_TAB.get();
     }
 }

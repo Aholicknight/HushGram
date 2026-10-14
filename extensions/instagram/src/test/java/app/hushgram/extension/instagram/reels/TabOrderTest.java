@@ -50,6 +50,7 @@ public class TabOrderTest {
         TabStart.forgetForTests();
         Settings.TAB_ORDER.resetToDefault();
         Settings.HIDE_SEARCH_TAB.resetToDefault();
+        Settings.SHOW_ACTIVITY_TAB.resetToDefault();
         Settings.START_TAB.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -115,13 +116,19 @@ public class TabOrderTest {
     @Test public void theSavedTextIsReadForTheTabsItKnowsOnlyOnceEach() {
         assertEquals(Collections.emptyList(), TabOrder.parse(null));
         assertEquals(Collections.emptyList(), TabOrder.parse("  "));
-        assertEquals(Arrays.asList("DIRECT", "FEED"), TabOrder.parse(" DIRECT , ,NEWS,FEED,DIRECT,feed"));
+        assertEquals(Arrays.asList("DIRECT", "FEED"), TabOrder.parse(" DIRECT , ,SHOPPING,FEED,DIRECT,feed"));
+        assertEquals("Activity, for Show the Activity tab", Arrays.asList("NEWS", "FEED"), TabOrder.parse("NEWS,FEED"));
         assertEquals("DIRECT,FEED", TabOrder.join(Arrays.asList("DIRECT", "FEED")));
     }
 
     @Test public void theSettingsListShowsTheBarAsLastBuiltInTheOrderChosen() {
-        assertEquals("every tab before a bar is built", TabOrder.TABS, TabOrder.choices(""));
+        assertEquals("every tab but Activity before a bar is built",
+                Arrays.asList("FEED", "SEARCH", "CLIPS", "DIRECT", "CREATION", "PROFILE"), TabOrder.choices(""));
         assertEquals(Arrays.asList("CREATION", "FEED", "SEARCH", "CLIPS", "DIRECT", "PROFILE"), TabOrder.choices("CREATION"));
+        Settings.SHOW_ACTIVITY_TAB.save(true);
+        assertEquals("Activity too once its switch is on", TabOrder.TABS, TabOrder.choices(""));
+        assertEquals(Arrays.asList("NEWS", "FEED", "SEARCH", "CLIPS", "DIRECT", "CREATION", "PROFILE"), TabOrder.choices("NEWS"));
+        Settings.SHOW_ACTIVITY_TAB.resetToDefault();
 
         Settings.HIDE_SEARCH_TAB.save(true);
         ReelsTab.tabs(BUILT);

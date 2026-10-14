@@ -37,9 +37,12 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * tabs, and the list goes through as it came. The list Instagram built is never changed.
  */
 public final class TabOrder {
-    /** The tabs the choice can order, by their names in Instagram's tab enum, in a stable default order. */
+    /**
+     * The tabs the choice can order, by their names in Instagram's tab enum, in a stable default order.
+     * NEWS is Activity, on the bar only with Show the Activity tab (#156).
+     */
     public static final List<String> TABS = Collections.unmodifiableList(
-            Arrays.asList("FEED", "SEARCH", "CLIPS", "DIRECT", "CREATION", "PROFILE"));
+            Arrays.asList("FEED", "SEARCH", "CLIPS", "DIRECT", "NEWS", "CREATION", "PROFILE"));
 
     /** What a reordered bar is counted under. */
     static final String APPLIED = "Tab order applied";
@@ -121,7 +124,8 @@ public final class TabOrder {
 
     /**
      * The tabs for the settings list, in the order the bar shows them with [saved] applied: the tabs
-     * on the bar as Instagram last built it, or every tab the choice knows before it has.
+     * on the bar as Instagram last built it, or every tab the choice knows before it has. Activity is
+     * left out of that fallback unless Show the Activity tab is on, since only that switch puts it there.
      */
     public static List<String> choices(@Nullable String saved) {
         List<String> built = instagramOrder;
@@ -131,7 +135,12 @@ public final class TabOrder {
                 if (TABS.contains(name)) base.add(name);
             }
         }
-        if (base.isEmpty()) base.addAll(TABS);
+        if (base.isEmpty()) {
+            boolean activity = Utils.settingsReady() && Settings.SHOW_ACTIVITY_TAB.get();
+            for (String name : TABS) {
+                if (activity || !ReelsTab.ACTIVITY.equals(name)) base.add(name);
+            }
+        }
         List<String> chosen = new ArrayList<>();
         for (String name : parse(saved)) {
             if (base.contains(name)) chosen.add(name);

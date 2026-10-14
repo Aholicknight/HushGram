@@ -167,6 +167,18 @@ public class TabOrderSettingsTest {
         assertEquals(colors.title, moved.getCurrentTextColor());
     }
 
+    /** Activity is listed by its own name once Show the Activity tab puts it on the bar (#156). */
+    @Test public void anAddedActivityTabIsListedAsActivity() throws Exception {
+        Settings.SHOW_ACTIVITY_TAB.save(true);
+        try {
+            open(PatchFamily.REELS_TAB);
+            AlertDialog dialog = openList();
+            assertEquals(Arrays.asList("Home", "Search", "Reels", "Messages", "Activity", "Create", "Profile"), shown(dialog));
+        } finally {
+            Settings.SHOW_ACTIVITY_TAB.resetToDefault();
+        }
+    }
+
     @Test public void instagramsOrderClearsTheChoice() throws Exception {
         Settings.TAB_ORDER.save("PROFILE,DIRECT");
         open(PatchFamily.REELS_TAB);
