@@ -993,7 +993,8 @@ once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->allow(Ljava/ut
 # allowStart() first, after reading the IgGrootPlayer it plays and checking whether its logger is
 # the Reels viewer's (the Tap to play choice of where, #39); it's the one method holding its log
 # line, a static taking its player, a reason and two flags. IgGrootPlayer's pause tells paused()
-# first. It holds no string, so the rule picks it by its class's prepare log line: of the class's
+# first. Its strings are a tap's reasons on 451 and none on 450, nothing to anchor a rule on, so
+# the rule picks it by its class's prepare log line: of the class's
 # two methods taking a string and answering nothing, the pause is the one that hands a string on to
 # a (String) method of one of Instagram's renamed classes, the player underneath; the other only
 # logs. Left out, a video starts with no tap, or a pause no longer disarms the player; twice or
