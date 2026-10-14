@@ -40,6 +40,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -499,10 +500,20 @@ class DownloadReelHookTest {
                 assertEquals("$where: the filter's arguments", 2, hook.registerCount)
                 assertEquals("$where: the check's answer", (code[at - 1] as OneRegisterInstruction).registerA, answer)
                 val types = eligible.parameterTypes.map(Any::toString)
-                val index = (if (AccessFlags.STATIC.isSet(eligible.accessFlags)) 0 else 1) + types.indexOf(MEDIA)
-                val handed = when (call) {
-                    is RegisterRangeInstruction -> call.startRegister + index
-                    else -> (call as Instruction35c).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF, it.registerG)[index] }
+                val arguments = when (call) {
+                    is RegisterRangeInstruction -> (call.startRegister until call.startRegister + call.registerCount).toList()
+                    else -> (call as Instruction35c).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF, it.registerG).take(it.registerCount) }
+                }
+                val handed = if (MEDIA in types) {
+                    arguments[(if (AccessFlags.STATIC.isSet(eligible.accessFlags)) 0 else 1) + types.indexOf(MEDIA)]
+                } else {
+                    // 451's check takes the post's wrapper, which a static (Media) call makes before it: the filter gets that Media.
+                    val made = (at - 3 downTo 1).first { index ->
+                        code[index].opcode == Opcode.MOVE_RESULT_OBJECT && (code[index] as OneRegisterInstruction).registerA in arguments &&
+                            ((code[index - 1] as? ReferenceInstruction)?.reference as? MethodReference)?.parameterTypes?.map(Any::toString) == listOf(MEDIA)
+                    }
+                    assertEquals("$where: the wrapper's maker", Opcode.INVOKE_STATIC, code[made - 1].opcode)
+                    (code[made - 1] as Instruction35c).registerC
                 }
                 assertEquals("$where: the reel handed to the filter", handed, reel)
             }
