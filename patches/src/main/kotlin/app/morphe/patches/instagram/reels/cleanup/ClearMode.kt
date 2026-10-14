@@ -161,11 +161,14 @@ internal fun BytecodePatchContext.findClearMode(): ClearModeHooks {
     val left = dismiss.afterAction(listOf(0, 1))
 
     // The viewer's turn-on: reads the reel the pager is on once, keeps it and tests it for null right away.
+    // The read asks the pager for its reel, or, where Redex folded the pager lookup into it (451's
+    // x86 385713117 has LX/03ST->A01), is a static call handed the one thing the pager comes from.
     val enabled = single(CLEAR_MODE_ENABLED)
     val code = enabled.body()
     val reads = code.indices.filter { at ->
         val call = code[at].methodReference() ?: return@filter false
-        !code[at].isStaticCall() && call.returnType == item && call.parameterTypes.isEmpty()
+        call.returnType == item &&
+            if (code[at].isStaticCall()) call.parameterTypes.size == 1 else call.parameterTypes.isEmpty()
     }
     val read = reads.singleOrNull()
         ?: stop("${enabled.describe()} reads the reel the pager is on ${reads.size} times, expected once")

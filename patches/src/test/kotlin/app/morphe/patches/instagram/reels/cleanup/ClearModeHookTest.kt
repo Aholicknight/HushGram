@@ -47,6 +47,7 @@ class ClearModeHookTest {
     private val item = "Lfixture/ClipsItem;"
     private val viewer = "Lfixture/Viewer;"
     private val pager = "Lfixture/Pager;"
+    private val pagers = "Lfixture/Pagers;"
     private val actions = "Lfixture/ViewerActions;"
     private val listener = "Lfixture/PagerListener;"
     private val button = "Lfixture/ExitButton;"
@@ -141,6 +142,24 @@ class ClearModeHookTest {
         )
         assertEquals(item, reelId[0].type())
         assertEquals("$item->getId()$stringType", reelId[1].referenceText())
+    }
+
+    /**
+     * 451's x86 385713117 folds the pager lookup into the read: one static call handed what the pager
+     * comes from answers the reel. The reel is still handed over right before Instagram's own test.
+     */
+    @Test
+    fun aReadFoldedIntoAStaticCallIsHookedToo() {
+        val context = PatchContexts.of(classes(Shape(pagerFolded = true)))
+
+        context.keepClearMode()
+
+        val enabled = context.method(actions, "enabled")
+        val asked = enabled.indexOfFirst { it.referenceText() == CLEAR_MODE_CURRENT }
+        assertEquals("the reel isn't read just before", "$pagers->current($pager)$item", enabled[asked - 2].referenceText())
+        assertCall("the reel handed over", enabled[asked], CLEAR_MODE_CURRENT, listOf(2))
+        assertEquals(Opcode.CHECK_CAST, enabled[asked + 2].opcode)
+        assertEquals("Instagram's own test doesn't follow", Opcode.IF_EQZ, enabled[asked + 3].opcode)
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
@@ -355,6 +374,7 @@ class ClearModeHookTest {
         val handlerOverwritten: Boolean = false,
         val enabledInDismiss: Boolean = false,
         val pagerReads: Int = 1,
+        val pagerFolded: Boolean = false,
         val reelTested: Boolean = true,
         val jumpToTest: Boolean = false,
         val noReelCalls: Boolean = false,
@@ -464,7 +484,10 @@ class ClearModeHookTest {
             ),
         )
 
-        val read = "invoke-virtual { v0 }, $pager->current()$item\nmove-result-object v2\n".repeat(shape.pagerReads)
+        val read = (
+            if (shape.pagerFolded) "invoke-static { v0 }, $pagers->current($pager)$item\nmove-result-object v2\n"
+            else "invoke-virtual { v0 }, $pager->current()$item\nmove-result-object v2\n"
+            ).repeat(shape.pagerReads)
         val answer = "sget-object v0, $unit\nreturn-object v0"
         val enabledMarker = if (shape.enabledInDismiss) "ClipsViewerNavigatorProvider_handleLongPress" else CLEAR_MODE_ENABLED
         val enabled = method(actions, "enabled", listOf(anyType, anyType), anyType, 6, """

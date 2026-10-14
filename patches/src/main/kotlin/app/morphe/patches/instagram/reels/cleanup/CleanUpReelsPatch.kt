@@ -417,10 +417,13 @@ private fun BytecodePatchContext.directReplyBar(show: Method, hide: Method, crea
     val check = code.getOrNull(madeAt + 1)
     val call = code.getOrNull(madeAt + 2)
     val called = (call as? ReferenceInstruction)?.reference as? MethodReference
+    // The call may name the hide on a class the controller extends (on 451's 385713073 onViewCreated
+    // calls the abstract LX/0Fk2;->A0r, which LX/0P82, the controller, overrides with the hide): on the
+    // controller it reads the flag off, it has to reach the hide all the same.
     val hides = check != null && check.opcode == Opcode.IF_EQZ && (check as OneRegisterInstruction).registerA == read.registerA &&
         call != null && call.opcode == Opcode.INVOKE_VIRTUAL && called != null && called.name == hide.name &&
         called.parameterTypes.isEmpty() && called.returnType == "V" &&
-        (called.definingClass == type || called.definingClass == hide.definingClass) &&
+        (called.definingClass == type || called.definingClass in extended) && resolvesTo(type, called, hide) &&
         (call as FiveRegisterInstruction).let { it.registerCount == 1 && it.registerC == read.registerB }
     if (!hides) {
         throw PatchException("$what: onViewCreated doesn't call the hide on the controller right after finding the hidden flag $flag set")
@@ -430,6 +433,22 @@ private fun BytecodePatchContext.directReplyBar(show: Method, hide: Method, crea
         created, flagRead(created, madeAt, "$what: onViewCreated"),
         "${source.definingClass}->${source.name}:${source.type}",
     )
+}
+
+/**
+ * Whether a virtual call of [called] on an object of [type] runs [target]: the first class from
+ * [type] up through its superclasses declaring a method of that name and shape with a body is
+ * [target]'s.
+ */
+private fun BytecodePatchContext.resolvesTo(type: String, called: MethodReference, target: Method): Boolean {
+    val shape = called.parameterTypes.map(Any::toString)
+    val declaring = generateSequence(classDefByOrNull(type)) { it.superclass?.let(::classDefByOrNull) }.firstOrNull { owner ->
+        owner.methods.any {
+            it.name == called.name && it.returnType == called.returnType && it.parameterTypes.map(Any::toString) == shape &&
+                it.implementation != null && !AccessFlags.STATIC.isSet(it.accessFlags)
+        }
+    }
+    return declaring?.type == target.definingClass && target.name == called.name
 }
 
 /** The registers of the hidden flag's read at instruction [at] of [method], checked for a hook right after it. */

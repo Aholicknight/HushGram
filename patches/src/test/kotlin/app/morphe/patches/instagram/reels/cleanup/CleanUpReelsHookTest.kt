@@ -102,6 +102,21 @@ class CleanUpReelsHookTest {
     }
 
     /**
+     * On 451's 385713073 the controller declares the hide itself, over an abstract one of the class it
+     * extends, and onViewCreated calls it through that class. The call still runs the hide.
+     */
+    @Test
+    fun aHideTheControllerDeclaresIsCalledThroughTheClassItExtends() {
+        val context = PatchContexts.of(classes(replyBar = "hide in the controller"))
+
+        context.hideReelParts()
+
+        val show = context.mutableClassDefBy(REPLY_BASE).methods.single { it.name == "A0u" }
+        val created = context.mutableClassDefBy(REPLY).methods.single { it.name == "onViewCreated" }
+        assertReplyBarGuarded("hide in the controller", show, created, "$REPLY->hidden:Z", "$REPLY->source:$CLIPS_VIEWER_SOURCE", "A0t")
+    }
+
+    /**
      * A reply bar controller without the viewer's source, or whose hidden flag can't be told, or
      * read where a hook right after it would be skipped or lose the controller, fails the patch,
      * and so does a viewer's source that doesn't name a chat.
@@ -110,7 +125,7 @@ class CleanUpReelsHookTest {
     fun aReplyBarControllerItCantReadFailsThePatch() {
         for (case in listOf(
             "no source", "two flags", "over the controller", "jumped", "read twice", "no hide", "hide on another register",
-            "show elsewhere", "no chat source",
+            "show elsewhere", "no chat source", "hide overridden",
         )) {
             val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes(replyBar = case)).hideReelParts() }
             assertTrue("$case: ${failure.message}", failure.message!!.contains("direct reply bar"))
@@ -659,10 +674,21 @@ class CleanUpReelsHookTest {
             const-string v0, "android_purge_26_q3_ClipsViewerSpotlightReplyBarController_showReplyBar"
             return-void
         """, static = false)
-        val hide = method(REPLY_BASE, "A0t", emptyList(), "V", 2, """
+        val marked = """
             const-string v0, "android_purge_26_q3_$DIRECT_REPLY_BAR_HIDE"
             return-void
-        """, static = false)
+        """
+        // On 451 the controller declares the hide itself, over an abstract one of the class it extends.
+        val hide = if (shape == "hide in the controller") {
+            ImmutableMethod(REPLY_BASE, "A0t", emptyList(), "V", AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, null, null, null)
+        } else {
+            method(REPLY_BASE, "A0t", emptyList(), "V", 2, marked, static = false)
+        }
+        val own = when (shape) {
+            "hide in the controller" -> method(REPLY, "A0t", emptyList(), "V", 2, marked, static = false)
+            "hide overridden" -> method(REPLY, "A0t", emptyList(), "V", 1, "return-void", static = false)
+            else -> null
+        }
         val again = if (shape == "read twice") "iget-boolean v0, v4, $REPLY->hidden:Z" else ""
         val hidden = when (shape) {
             "no hide" -> "const/4 v1, 0x0"
@@ -687,7 +713,7 @@ class CleanUpReelsHookTest {
         """, static = false)
         val controller = ImmutableClassDef(
             REPLY, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, if (shape == "show elsewhere") "Ljava/lang/Object;" else REPLY_BASE,
-            null, null, null, fields, listOf(created),
+            null, null, null, fields, listOfNotNull(created, own),
         )
         val name = if (shape == "no chat source") "DIRECT_SEARCH" else CHAT_SOURCE
         val source = classOf(
