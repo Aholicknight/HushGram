@@ -1100,6 +1100,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_PAID_PARTNERSHIP_REELS =
             new BooleanSetting("hushgram_hide_paid_partnership_reels", FALSE);
 
+    /**
+     * Reels whose post carries Instagram's own AI label
+     * ({@link app.hushgram.extension.instagram.reels.AiLabeledReels}). Read as each page of reels
+     * arrives, so a change shows from the next page. Off to start.
+     */
+    public static final BooleanSetting HIDE_AI_LABELED_REELS =
+            new BooleanSetting("hushgram_hide_ai_labeled_reels", FALSE);
+
     /** An explicit Copy action for original comment text. Off until enabled. */
     public static final BooleanSetting COPY_COMMENTS =
             new BooleanSetting("hushgram_copy_comments", FALSE);

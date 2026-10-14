@@ -1097,3 +1097,7 @@ That file isn't a font HushGram can use. Your font hasn't changed.	이 파일은
 Font saved. Restart Instagram to see it.	글꼴을 저장했습니다. 보려면 Instagram을 다시 시작하세요.
 # context: toast when Instagram starts and the picked font file won't load
 Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	글꼴 파일을 불러오지 못해 Instagram 글꼴이 표시됩니다. HushGram 설정 > 레이아웃에서 다시 선택하세요.
+# context: Reels switch title; it leaves out reels that carry Instagram's own AI label
+Hide AI-labeled reels	AI 라벨이 있는 릴스 숨기기
+# context: the line under the Hide AI-labeled reels switch
+Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Instagram 자체 AI 라벨이 붙은 릴스를 뺍니다. 그 라벨이 없는 릴스는 AI로 만들었더라도 그대로 둡니다.

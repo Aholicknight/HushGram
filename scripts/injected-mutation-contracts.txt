@@ -1484,6 +1484,13 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelsSuggestions;->netego(Ljav
 # one method hooked, and that the extension's names are the Reels tab lanes'.
 once-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
 
+# Hide AI-labeled reels hands the same pages, at the same join, to AiLabeledReels.page before Hide
+# paid partnership Reels' filter, once. Its stubs read Media's ai_label_info getter and the label's
+# should_read_attribution_label and attribution_label_text getters through the label interface.
+# HideAiLabeledReelsHookTest checks those getters on all eight 451 builds against Instagram's own
+# test for showing the AI label under a reel.
+once-call Lapp/hushgram/extension/instagram/reels/AiLabeledReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
+
 # Show a reel's exact time hands the Reels title and the list of its column's parts to
 # ReelPostTime.line just before the title makes that column (the one method loading the title's
 # render marker below), once, so the line with the time goes in after the name row and Instagram's

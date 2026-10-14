@@ -1098,3 +1098,7 @@ That file isn't a font HushGram can use. Your font hasn't changed.	File itu buka
 Font saved. Restart Instagram to see it.	Font disimpan. Mulai ulang Instagram untuk melihatnya.
 # context: toast when Instagram starts and the picked font file won't load
 Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	File fontmu tidak bisa dimuat, jadi font Instagram yang ditampilkan. Pilih lagi di Pengaturan HushGram > Tata letak.
+# context: Reels switch title; it leaves out reels that carry Instagram's own AI label
+Hide AI-labeled reels	Sembunyikan reel berlabel AI
+# context: the line under the Hide AI-labeled reels switch
+Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Menghilangkan reel yang membawa label AI milik Instagram. Reel tanpa label itu tetap ada, meski dibuat dengan AI.

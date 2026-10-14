@@ -14,6 +14,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.reels.ailabel.AI_PAGE_FILTER
 import app.morphe.patches.instagram.reels.suggested.TO_CLIPS_ITEM
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -108,6 +109,37 @@ class HidePaidPartnershipReelsHookTest {
             assertTrue("$type->$name was hooked", method.code().none { it.referenceText() == PARTNERSHIP_PAGE_FILTER })
         }
         assertStubsFilled("the stand-in", context, item, "post", "partnership", "boost")
+    }
+
+    /**
+     * Hide AI-labeled reels finds the same join after this patch has hooked it, and its filter goes
+     * in first at the join's label, so the page and its fallback pass through both filters once.
+     */
+    @Test
+    fun hideAiLabeledReelsFiltersTheSamePageFirst() {
+        val context = PatchContexts.of(classes())
+        val sites = context.findPaidPartnershipReels()
+        context.hidePaidPartnershipReels(sites)
+
+        val again = context.findReelsPage("Hide AI-labeled reels")
+        assertEquals("the join", sites.join, again.join)
+        assertEquals("the page's register", sites.list, again.list)
+        assertEquals("the module field", sites.moduleField, again.moduleField)
+        context.filterReelsPage(again, AI_PAGE_FILTER)
+
+        val success = context.mutableClassDefBy(callback).methods.single { it.name == "success" }
+        val code = success.code()
+        assertEquals(
+            "both filters at the join",
+            listOf(AI_PAGE_FILTER, PARTNERSHIP_PAGE_FILTER),
+            code.drop(sites.join).take(8).mapNotNull { it.referenceText()?.takeIf { text -> text.startsWith("Lapp/") } },
+        )
+        assertEquals("one AI filter call", 1, code.count { it.referenceText() == AI_PAGE_FILTER })
+        assertEquals("one partnership filter call", 1, code.count { it.referenceText() == PARTNERSHIP_PAGE_FILTER })
+        assertEquals("the AI filter's answer in the page's register", sites.list, (code[sites.join + 3] as OneRegisterInstruction).registerA)
+        val jumps = success.implementation!!.instructions.withIndex()
+            .filter { (_, instruction) -> (instruction as? BuilderOffsetInstruction)?.target?.location?.index == sites.join }.map { it.index }
+        assertTrue("the page's check doesn't land on the first filter: $jumps", jumps.isNotEmpty())
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */

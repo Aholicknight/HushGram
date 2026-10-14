@@ -1098,3 +1098,7 @@ That file isn't a font HushGram can use. Your font hasn't changed.	Ese archivo n
 Font saved. Restart Instagram to see it.	Fuente guardada. Reinicia Instagram para verla.
 # context: toast when Instagram starts and the picked font file won't load
 Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	No se pudo cargar tu archivo de fuente, así que se muestra la fuente de Instagram. Elígelo de nuevo en Configuración de HushGram > Diseño.
+# context: Reels switch title; it leaves out reels that carry Instagram's own AI label
+Hide AI-labeled reels	Ocultar reels con etiqueta de IA
+# context: the line under the Hide AI-labeled reels switch
+Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Deja fuera los reels que llevan la etiqueta de IA de Instagram. Un reel sin esa etiqueta se queda, aunque lo haya hecho una IA.

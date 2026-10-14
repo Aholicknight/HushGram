@@ -259,6 +259,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean aiLabeledReels() {
+        return false;
+    }
+
     public static boolean commentCopy() {
         return false;
     }

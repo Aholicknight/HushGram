@@ -71,6 +71,7 @@ Every HushGram release, newest first.
 * **Instagram - Keep Reels auto scroll on:** New switch, Move on when a reel ends. The next reel plays instead of a loop, whether or not Instagram offers Auto scroll, and its switch can't stop it. Starts off, needs a restart. Asked for in #175.
 
 * **Instagram - Font:** New patch. A Font list under Layout picks Instagram's font, your phone's font, or a .ttf or .otf file from your phone. Bold and italic text stay bold and italic. A file that isn't a font changes nothing and says so. It starts on Instagram's font and needs a restart. Emoji keep their own style. Asked for in #166 and #5.
+* **Instagram - Hide AI-labeled reels:** New switch under Reels in HushGram settings, off by default, that keeps reels with Instagram's own AI label out of the Reels tab. A reel counts only when its label says to show itself and has text, the same test Instagram makes before it shows the label. A reel without that label stays, even if AI made it. Reels you open from search, a profile, Saved or a message still play, and a page where every reel carries the label is kept whole. Asked for in #174.
 
 #### Improvements
 

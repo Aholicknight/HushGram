@@ -58,7 +58,7 @@ val changeLikeAnimationPatch = bytecodePatch(
         "animations Instagram made for its Rings creators. Starts off. Turn it on in HushGram settings > Reels.",
     default = true,
 ) {
-    category("Reels")
+    category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

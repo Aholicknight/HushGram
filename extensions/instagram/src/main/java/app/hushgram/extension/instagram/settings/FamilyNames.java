@@ -93,6 +93,7 @@ public final class FamilyNames {
     public static final String REELS_TAB = "Hide the Reels tab";
     public static final String REELS_SUGGESTIONS = "Hide suggested accounts in Reels";
     public static final String PAID_PARTNERSHIP_REELS = "Hide paid partnership Reels";
+    public static final String AI_LABELED_REELS = "Hide AI-labeled reels";
     public static final String KEEP_REEL_SPEED = "Keep the reel speed";
     public static final String REEL_POST_TIME = "Show a reel's exact time";
     public static final String REEL_SEEK_BAR = "Keep a seek bar on Reels";

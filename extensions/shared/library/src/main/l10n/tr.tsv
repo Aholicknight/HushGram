@@ -1098,3 +1098,7 @@ That file isn't a font HushGram can use. Your font hasn't changed.	Bu dosya Hush
 Font saved. Restart Instagram to see it.	Yazı tipi kaydedildi. Görmek için Instagram'ı yeniden başlat.
 # context: toast when Instagram starts and the picked font file won't load
 Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	Yazı tipi dosyan yüklenemedi, bu yüzden Instagram'ın yazı tipi gösteriliyor. HushGram ayarları > Düzen bölümünden yeniden seç.
+# context: Reels switch title; it leaves out reels that carry Instagram's own AI label
+Hide AI-labeled reels	Yapay zeka etiketli reel'leri gizle
+# context: the line under the Hide AI-labeled reels switch
+Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Instagram'ın kendi yapay zeka etiketini taşıyan reel'leri dışarıda bırakır. Bu etiketi olmayan bir reel, yapay zekayla yapılmış olsa bile kalır.
