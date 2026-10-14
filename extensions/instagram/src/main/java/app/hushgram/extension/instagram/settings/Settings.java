@@ -1521,6 +1521,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_feed_download_button", FALSE, parentsAny(DOWNLOAD_VIDEOS, DOWNLOAD_PHOTOS));
 
     /**
+     * A Download icon in the column beside a reel, under Save, so a tap saves the reel without
+     * opening its menu (#178). It saves what Download in the reel's menu saves, through the same call
+     * ({@link app.hushgram.extension.instagram.download.ReelDownloadButton}), so it waits for Download
+     * on reels. Starts off, so the column stays Instagram's own.
+     */
+    public static final BooleanSetting REEL_DOWNLOAD_BUTTON =
+            new BooleanSetting("hushgram_reel_download_button", FALSE, parent(DOWNLOAD_REELS));
+
+    /**
      * Hold to download: two fingers (or three) held still on a feed post's picture or video, or on a reel,
      * save what's under them with the same save as Download in the menu
      * ({@link app.hushgram.extension.instagram.download.HoldDownload}). Instagram's one-finger long press

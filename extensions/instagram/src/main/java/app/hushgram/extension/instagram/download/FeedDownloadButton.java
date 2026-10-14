@@ -757,6 +757,10 @@ public final class FeedDownloadButton {
             paint.setColorFilter(filter);
         }
 
+        @Override public ColorFilter getColorFilter() {
+            return paint.getColorFilter();
+        }
+
         @Override public int getOpacity() {
             return PixelFormat.TRANSLUCENT;
         }

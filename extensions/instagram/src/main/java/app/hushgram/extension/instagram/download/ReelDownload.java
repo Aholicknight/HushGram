@@ -362,32 +362,65 @@ public final class ReelDownload {
             HookStatus.invoked(FamilyNames.REEL_DOWNLOAD);
             String row = row(option);
             ours = row != null;
-            Context context = activity != null ? activity : Utils.getContext();
-            // Open in another player has its own switch, and comes without Download on reels.
-            if (PLAYER_OPTION.equals(row)) {
-                if (ExternalPlayer.on()) ExternalPlayer.open(context, media, FamilyNames.REEL_DOWNLOAD);
-                return true;
-            }
-            if (!on()) return ours;
-            if ((row == null || REEL_OPTION.equals(row))
-                    && ExternalDownload.handOff(context, ExternalDownload.postLink(media, true), FamilyNames.REEL_DOWNLOAD)) {
-                return true;
-            }
-            boolean started = VIDEO_OPTION.equals(row) ? saveAsVideo(context, media)
-                : PHOTO_OPTION.equals(row) ? savePhotos(context, media)
-                : COVER_OPTION.equals(row) ? saveCover(context, media)
-                : saveReel(context, media);
-            if (!started) {
-                Context application = context.getApplicationContext();
-                Feedback.show(application, L10n.t(application, "Download failed"), true);
-            }
-            return true;
+            return saveRow(row, media, activity) || ours;
         } catch (Throwable t) {
             // It runs inside Instagram's click dispatch, where a throw ends the app. Instagram's own
             // download goes ahead instead, for its own Download row.
             HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu", t);
             return ours;
         }
+    }
+
+    /**
+     * What a tap on [row] in the reel menu does to [media], with null for Download itself: the
+     * save the menu's handler starts, which the Download button beside a reel starts too
+     * ({@link ReelDownloadButton}). Answers false only when Download on reels is off and the row
+     * isn't Open in another player, so nothing was done. A save that can't start says so.
+     */
+    static boolean saveRow(String row, Object media, Activity activity) {
+        Context context = activity != null ? activity : Utils.getContext();
+        // Open in another player has its own switch, and comes without Download on reels.
+        if (PLAYER_OPTION.equals(row)) {
+            if (ExternalPlayer.on()) ExternalPlayer.open(context, media, FamilyNames.REEL_DOWNLOAD);
+            return true;
+        }
+        if (!on()) return false;
+        if ((row == null || REEL_OPTION.equals(row))
+                && ExternalDownload.handOff(context, ExternalDownload.postLink(media, true), FamilyNames.REEL_DOWNLOAD)) {
+            return true;
+        }
+        boolean started = VIDEO_OPTION.equals(row) ? saveAsVideo(context, media)
+            : PHOTO_OPTION.equals(row) ? savePhotos(context, media)
+            : COVER_OPTION.equals(row) ? saveCover(context, media)
+            : saveReel(context, media);
+        if (!started) {
+            Context application = context.getApplicationContext();
+            Feedback.show(application, L10n.t(application, "Download failed"), true);
+        }
+        return true;
+    }
+
+    /**
+     * Whether the menu shows Download as video and Download as photo in Download's place for [media]:
+     * a photo with no video file or manifest whose music has a track to fetch, the check {@link #rows}
+     * makes, without its counts. [media] isn't null.
+     */
+    static boolean musicRows(Object media) {
+        if (!renditions(media).isEmpty() || InstagramMedia.dashManifest(media) != null) return false;
+        if (StoryDownload.pictures(media).isEmpty()) return false;
+        MusicVideo.Music music = MusicVideo.music(media);
+        return music != null && music.url != null;
+    }
+
+    /**
+     * Whether a tap on Download would find anything of [media] to save: a video file, a manifest,
+     * carousel pages or a picture, the ways {@link #saveReel} goes.
+     */
+    static boolean savable(Object media) {
+        if (media == null) return false;
+        if (!renditions(media).isEmpty() || InstagramMedia.dashManifest(media) != null) return true;
+        List<?> pages = InstagramMedia.carouselMedia(media);
+        return pages != null && pages.size() >= 2 || !StoryDownload.pictures(media).isEmpty();
     }
 
     /**

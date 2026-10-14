@@ -81,12 +81,47 @@ public class DownloadSettingsTest {
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
         Settings.FEED_DOWNLOAD_BUTTON.resetToDefault();
+        Settings.REEL_DOWNLOAD_BUTTON.resetToDefault();
         Settings.HOLD_TO_DOWNLOAD.resetToDefault();
         Settings.HOLD_FINGERS.resetToDefault();
         Settings.HOLD_TIME.resetToDefault();
         Settings.DOWNLOAD_SKIP_SAVED.resetToDefault();
         DownloadHistory.clear(RuntimeEnvironment.getApplication());
         SavesForTests.forgetHistoryForTests();
+    }
+
+    /**
+     * Download button on reels (#178) sits under Downloads, right after the feed post one when that
+     * is in the build too. It starts off, waits for Download on reels and goes in a settings file. A
+     * build without the reel download has none.
+     */
+    @Test
+    public void theReelButtonSitsUnderDownloadsAndWaitsForDownloadOnReels() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup downloads = section(page.getPreferenceScreen(), "Downloads");
+            Preference row = downloads.findPreference(Settings.REEL_DOWNLOAD_BUTTON.key);
+            assertTrue("the reel button isn't under Downloads", row instanceof SwitchPreference);
+            assertEquals("Download button on reels", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()).contains("Needs Download on reels"));
+            assertFalse("it starts off", ((SwitchPreference) row).isChecked());
+            assertTrue(row.isEnabled());
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_REELS.key)).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse("it waits for Download on reels", row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_DOWNLOAD_BUTTON.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_BUTTON.key) + 1, indexOfKey(rows, Settings.REEL_DOWNLOAD_BUTTON.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.REEL_DOWNLOAD_BUTTON.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.REEL_DOWNLOAD_BUTTON.key));
+        }
     }
 
     /** The reel switch sits in Reels, starts on, and says Instagram's menu comes back when it's off. */

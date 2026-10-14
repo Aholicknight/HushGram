@@ -116,6 +116,11 @@ internal const val REDUCED_MARKER = "ClipsOrganicMediaItemViewMoreOptionsControl
  * let in, so its menu, divider included, stays Instagram's. Builders that put Download anywhere else
  * never let it in for the player.
  *
+ * A separate switch puts a Download icon in the column beside a reel, under Save, whose tap saves
+ * what the menu's Download saves (#178). The column is a component, so the icon joins its list of
+ * buttons as it's composed ([addReelDownloadButtonWhereItFits]). A build whose column differs keeps
+ * the menu's Download without the icon, with a warning.
+ *
  * Everything is found before anything changes, so a build that differs stops the patch naming
  * what it couldn't find, and nothing is half done.
  */
@@ -125,7 +130,8 @@ val downloadReelPatch = bytecodePatch(
     description = "Adds Download to the menu of every reel and saves it without Instagram's watermark. You choose " +
         "the quality, and best is the default. A separate Download cover switch also saves the reel's cover " +
         "picture, the largest one the post carries. Download as video on a carousel with music saves every page, " +
-        "in order. On by default. Turn it off in HushGram settings > Reels.",
+        "in order. A separate switch under Downloads puts a download icon under Save beside each reel. On by " +
+        "default. Turn it off in HushGram settings > Reels.",
     default = true,
 ) {
     category("Downloads")
@@ -136,6 +142,7 @@ val downloadReelPatch = bytecodePatch(
     execute {
         requireStatusMethod("reelDownload")
         offerDownloadOnEveryReel()
+        addReelDownloadButtonWhereItFits()
         enableStatus("reelDownload")
     }
 }

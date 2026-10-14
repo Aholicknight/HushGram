@@ -1349,12 +1349,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 downloads.addPreference(toggle(context, Settings.FEED_DOWNLOAD_BUTTON, L10n.t("Download button on feed posts"),
                         L10n.t("Puts a download icon in the row under a post, left of Save, so one tap saves it without "
                                 + "opening the menu. On a carousel it asks for this page or all of them.")));
+                if (build.contains(PatchFamily.REEL_DOWNLOAD)) downloads.addPreference(reelDownloadButtonRow(context));
                 downloads.addPreference(toggle(context, Settings.HOLD_TO_DOWNLOAD, L10n.t("Hold to download"),
                         L10n.t("Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's "
                                 + "under them, the same as Download in the menu. Instagram's one-finger long press stays as "
                                 + "it was. Needs Download feed videos or photos, and Download on reels for reels.")));
                 downloads.addPreference(holdFingersRow(context));
                 downloads.addPreference(holdTimeRow(context));
+            }
+            if (build.contains(PatchFamily.REEL_DOWNLOAD) && !build.contains(PatchFamily.VIDEO_DOWNLOAD)) {
+                downloads.addPreference(reelDownloadButtonRow(context));
             }
             if (build.contains(PatchFamily.PROFILE_PICTURE)) {
                 downloads.addPreference(toggle(context, Settings.SAVE_PROFILE_PICTURES, L10n.t("Save profile picture"),
@@ -1735,6 +1739,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key));
                     belongs |= family == PatchFamily.VIDEO_DOWNLOAD && (Settings.HOLD_TO_DOWNLOAD.key.equals(key)
                             || Settings.HOLD_FINGERS.key.equals(key) || Settings.HOLD_TIME.key.equals(key));
+                    belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_DOWNLOAD_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
@@ -4363,6 +4368,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return L10n.f("On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the "
                 + "screen, change tab or press Back to bring it back. Restart Instagram after changing it.",
                 delay.millis / 1000);
+    }
+
+    /** The Download icon beside a reel (#178), under Downloads next to the feed post one. */
+    static SwitchPreference reelDownloadButtonRow(Context context) {
+        return toggle(context, Settings.REEL_DOWNLOAD_BUTTON, L10n.t("Download button on reels"),
+                L10n.t("Puts a download icon under Save beside a reel, so one tap saves it the way Download in its "
+                        + "menu does. Needs Download on reels."));
     }
 
     /** How many fingers Hold to download waits for. Its summary is the count chosen. */
