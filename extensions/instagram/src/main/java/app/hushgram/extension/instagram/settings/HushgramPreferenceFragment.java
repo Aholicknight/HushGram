@@ -927,6 +927,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.REEL_AUTO_ADVANCE, L10n.t("Move on when a reel ends"),
                     L10n.t("When a reel ends, Reels moves on to the next one instead of playing it again. It uses "
                             + "Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. "
+                            + "While it's on, Instagram's own Auto scroll switch can't turn it off. "
                             + "Restart Instagram to see the change.")));
         }
         if (build.contains(PatchFamily.REEL_SCROLLING)) {

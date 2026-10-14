@@ -50,7 +50,10 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * account there's no switch to turn on and nothing listening for a reel's end. While that setting
  * is on, the viewer's own read of the check passes through {@link #install}, which answers yes, so
  * the viewer builds the scroller and hands it each reel's loop as it does on any other account, and
- * {@link #answer} and {@link #saved} answer on. Whether a reel that ended may move on is still the
+ * {@link #answer} answers on, so Instagram's own Auto scroll switch, where there is one, can't turn
+ * it off. {@link #saved} doesn't: where Instagram's check reads the saved preference, an on from the
+ * getter comes back to {@link #answer} as Instagram's own and would be remembered as a choice.
+ * Whether a reel that ended may move on is still the
  * scroller's to decide, by its own checks of what's on screen, a finger on the reel, an open sheet
  * and the reel's kind, and the move is its own. The remembered choice isn't touched: it follows
  * Instagram's switches alone, so turning this off leaves auto scroll the way it was last set.
@@ -114,19 +117,19 @@ public final class ReelAutoScroll {
 
     /**
      * Injected at every return of the saved auto scroll preference's getter, with the saved value as
-     * an int (non-zero is on). Answers on when the preference is, while Move on when a reel ends is
-     * on, and while the switch is on, also when auto scroll was last left on, so the Reels tab's long
-     * press offers to turn off what's on. Remembers nothing: see the class notes.
+     * an int (non-zero is on). Answers on when the preference is, and while the switch is on, also
+     * when auto scroll was last left on, so the Reels tab's long press offers to turn off what's on.
+     * Move on when a reel ends doesn't count here (see the class notes). Remembers nothing.
      */
     public static boolean saved(int instagram) {
-        return saved(instagram, ReelAutoScroll::switchedOn, ReelAutoScroll::advancing, SAVED);
+        return saved(instagram, ReelAutoScroll::switchedOn, SAVED);
     }
 
-    static boolean saved(int instagram, BooleanSupplier on, BooleanSupplier advancing, Memory memory) {
+    static boolean saved(int instagram, BooleanSupplier on, Memory memory) {
         boolean stored = instagram != 0;
         try {
             HookStatus.invoked(FamilyNames.REEL_AUTO_SCROLL);
-            return stored || advancing.getAsBoolean() || (on.getAsBoolean() && memory.on());
+            return stored || (on.getAsBoolean() && memory.on());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_AUTO_SCROLL, "auto scroll saved", failure);
             return stored;

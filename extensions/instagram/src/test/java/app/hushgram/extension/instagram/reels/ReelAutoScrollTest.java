@@ -233,14 +233,14 @@ public class ReelAutoScrollTest {
     @Test
     public void theSavedPreferenceIsAnsweredButNeverRemembered() {
         CountingMemory memory = new CountingMemory(false);
-        assertFalse(ReelAutoScroll.saved(0, () -> true, () -> false, memory));
-        assertTrue(ReelAutoScroll.saved(1, () -> true, () -> false, memory));
-        assertTrue("any non-zero is on", ReelAutoScroll.saved(0x7f, () -> true, () -> false, memory));
+        assertFalse(ReelAutoScroll.saved(0, () -> true, memory));
+        assertTrue(ReelAutoScroll.saved(1, () -> true, memory));
+        assertTrue("any non-zero is on", ReelAutoScroll.saved(0x7f, () -> true, memory));
         assertFalse(memory.on);
         memory.on = true;
-        assertTrue("left on answers for a cleared preference", ReelAutoScroll.saved(0, () -> true, () -> false, memory));
-        assertFalse("switch off, the preference stands", ReelAutoScroll.saved(0, () -> false, () -> false, memory));
-        assertTrue(ReelAutoScroll.saved(1, () -> false, () -> false, memory));
+        assertTrue("left on answers for a cleared preference", ReelAutoScroll.saved(0, () -> true, memory));
+        assertFalse("switch off, the preference stands", ReelAutoScroll.saved(0, () -> false, memory));
+        assertTrue(ReelAutoScroll.saved(1, () -> false, memory));
         assertEquals(0, memory.writes);
 
         Settings.REEL_AUTO_SCROLL_ON.save(true);
@@ -413,11 +413,11 @@ public class ReelAutoScrollTest {
         ReelAutoScroll.stored(0, () -> {
             throw new IllegalStateException("settings went away");
         }, new CountingMemory(true));
-        assertFalse(ReelAutoScroll.saved(0, () -> true, () -> false, broken));
-        assertTrue(ReelAutoScroll.saved(1, () -> true, () -> false, broken));
+        assertFalse(ReelAutoScroll.saved(0, () -> true, broken));
+        assertTrue(ReelAutoScroll.saved(1, () -> true, broken));
         assertFalse(ReelAutoScroll.saved(0, () -> {
             throw new IllegalStateException("settings went away");
-        }, () -> false, new CountingMemory(true)));
+        }, new CountingMemory(true)));
         assertFalse("the viewer builds no scroller on a switch that throws", ReelAutoScroll.install(0, () -> {
             throw new IllegalStateException("settings went away");
         }));
@@ -454,7 +454,7 @@ public class ReelAutoScrollTest {
         assertTrue(ReelAutoScroll.install(1));
         assertTrue("any non-zero is yes", ReelAutoScroll.install(0x7f));
         assertTrue("the scroller is told auto scroll is on", ReelAutoScroll.answer(0));
-        assertTrue("and so is the Reels tab's long press", ReelAutoScroll.saved(0));
+        assertFalse("the Reels tab's long press shows the remembered choice", ReelAutoScroll.saved(0));
         assertFalse("with Keep auto scroll on off and nothing remembered",
                 Settings.KEEP_REEL_AUTO_SCROLL.get() || Settings.REEL_AUTO_SCROLL_ON.savedValue());
 
@@ -473,7 +473,7 @@ public class ReelAutoScrollTest {
     public void moveOnNeverWritesTheRememberedChoice() {
         CountingMemory memory = new CountingMemory(false);
         for (int i = 0; i < 5; i++) assertTrue(ReelAutoScroll.answer(0, () -> true, () -> true, () -> true, memory));
-        assertTrue(ReelAutoScroll.saved(0, () -> true, () -> true, memory));
+        assertFalse("the saved getter answers what's remembered, not the switch", ReelAutoScroll.saved(0, () -> true, memory));
         assertTrue(ReelAutoScroll.install(0, () -> true));
         assertEquals("answering on for the switch is no choice of Instagram's", 0, memory.writes);
         assertFalse(memory.on);

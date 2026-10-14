@@ -62,7 +62,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Tap a feed video to pause it:** New patch. A tap on the video playing in a feed pauses it in place instead of opening it in Reels. The switch is under Feed and starts off. Asked for in #137.
 
-* **Instagram - Keep Reels auto scroll on:** New switch, Move on when a reel ends. Reels plays the next reel instead of looping, even if your account has no Auto scroll option. It starts off and needs a restart. Asked for in #175.
+* **Instagram - Keep Reels auto scroll on:** New switch, Move on when a reel ends. The next reel plays instead of a loop, whether or not Instagram offers Auto scroll, and its switch can't stop it. Starts off, needs a restart. Asked for in #175.
 
 #### Improvements
 
