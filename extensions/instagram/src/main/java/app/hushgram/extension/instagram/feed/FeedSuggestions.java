@@ -668,8 +668,10 @@ public final class FeedSuggestions {
     /**
      * Injected in the binder of the header Instagram draws after Home's end of feed card, right before
      * it sets the header's title to its section's name ("Suggested for you"), with that name and the
-     * section. Answers "" while Hide suggested posts is on and the section holds nothing that shows,
-     * and [title] otherwise, or when anything goes wrong.
+     * section. Answers "" while Hide suggested posts is on, has taken something out of Home in this
+     * run, and the section holds nothing that shows, and [title] otherwise, or when anything goes
+     * wrong. A section that's empty for another reason, one still loading or one Instagram fills
+     * after the bind, keeps its title while the switch has taken nothing out.
      *
      * <p>Instagram reads the header and its section's items out of the end of feed card's own data, and
      * the feed item helper {@link #filter} sits on reads those items too, so with every suggestion
@@ -680,7 +682,7 @@ public final class FeedSuggestions {
     public static String sectionTitle(String title, Object section) {
         if (title == null || section == null) return title;
         try {
-            if (!Utils.settingsReady() || !Settings.HIDE_SUGGESTED_POSTS.get()) return title;
+            if (!Utils.settingsReady() || !Settings.HIDE_SUGGESTED_POSTS.get() || !tookOut) return title;
             List<?> items = sections.apply(section);
             if (items == null || showsAny(items)) return title;
             HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, SECTION_TITLE_DROPPED);

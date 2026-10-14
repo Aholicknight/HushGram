@@ -66,12 +66,14 @@ public class SuggestedSectionTitleTest {
         PauseForTests.resume();
         Settings.HIDE_SUGGESTED_POSTS.save(true);
         FeedSuggestions.sections = section -> ((Section) section).items;
+        FeedSuggestions.tookOut = true;
         HookStatus.clear();
     }
 
     @After
     public void restore() {
         FeedSuggestions.sections = FeedSuggestions::sectionItems;
+        FeedSuggestions.tookOut = false;
         Settings.HIDE_SUGGESTED_POSTS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -88,6 +90,15 @@ public class SuggestedSectionTitleTest {
         assertEquals("", title(Collections.emptyList()));
         String report = String.join("\n", HookStatus.report());
         assertTrue(report, report.contains(FeedSuggestions.SECTION_TITLE_DROPPED));
+    }
+
+    /** An empty section while the switch has taken nothing out of Home is empty for another reason, so it keeps its title. */
+    @Test
+    public void anEmptySectionKeepsItsTitleUntilTheSwitchTookSomethingOut() {
+        FeedSuggestions.tookOut = false;
+        assertEquals(TITLE, title(Collections.emptyList()));
+        FeedSuggestions.tookOut = true;
+        assertEquals("", title(Collections.emptyList()));
     }
 
     /** Instagram moves an end of feed card that opens the section above the header, so it doesn't count. */
