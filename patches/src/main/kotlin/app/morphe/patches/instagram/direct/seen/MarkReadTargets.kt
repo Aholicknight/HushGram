@@ -575,7 +575,7 @@ private fun threadIdField(key: ClassDef): FieldReference {
 }
 
 /** Refuses unless [type] is a public class and [member], when given, is public too, so the extension can reach it. */
-private fun requirePublic(classes: Map<String, ClassDef>, type: String, member: Any?) {
+internal fun requirePublic(classes: Map<String, ClassDef>, type: String, member: Any?) {
     val owner = classes[type] ?: refuse("$type is missing")
     val flags = when (member) {
         null -> AccessFlags.PUBLIC.value
@@ -588,14 +588,14 @@ private fun requirePublic(classes: Map<String, ClassDef>, type: String, member: 
     }
 }
 
-private fun requireHook(extension: ClassDef, name: String, parameters: List<String>, returns: String) {
+internal fun requireHook(extension: ClassDef, name: String, parameters: List<String>, returns: String) {
     extension.methods.filter {
         it.name == name && it.parameters() == parameters && it.returnType == returns && it.public() && it.static()
     }.one("extension's public static $name")
 }
 
 /** Each bridge's stub in [INSTAGRAM_CHATS], with the body that goes into it. */
-private fun BytecodePatchContext.chatBridges(bodies: List<Pair<Triple<String, List<String>, String>, String>>): List<ChatBridge> {
+internal fun BytecodePatchContext.chatBridges(bodies: List<Pair<Triple<String, List<String>, String>, String>>): List<ChatBridge> {
     val chats = classDefByOrNull(INSTAGRAM_CHATS) ?: refuse("extension has no $INSTAGRAM_CHATS")
     val stubs = mutableClassDefBy(chats).methods
     return bodies.map { (shape, body) ->

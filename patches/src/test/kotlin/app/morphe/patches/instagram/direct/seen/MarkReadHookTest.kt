@@ -57,6 +57,9 @@ class MarkReadHookTest {
         assertEquals(M.PICKED, found.together.definingClass)
         assertEquals(7, found.togetherAt)
         assertEquals("the account id bridge is written on its own, so either patch can write it", 8, found.bridges.size)
+        val keep = context.findKeepUnread(seen)
+        assertEquals(M.STATES, keep.lifecycle.definingClass)
+        assertEquals("storeSession", keep.bridge.stub.name)
 
         val before = input.associate { it.type to snapshot(it.methods) }
         val original = input.associate { it.type to it.methods.associate { method -> method.name to method.visualCode() } }
@@ -112,8 +115,13 @@ class MarkReadHookTest {
             Opcode.INVOKE_STATIC to M.UNREAD_CALL.toString(), Opcode.RETURN_VOID to null))
         assertEquals("each argument goes to Instagram's sender in its place", listOf(0, 1, 2, 3, 4), bridges.getValue("sendSeen").visualCode()[2].namedRegisters())
         assertEquals(listOf(0, 1, 2), bridges.getValue("markUnread").visualCode()[2].namedRegisters())
+        assertBridge(bridges, "storeSession", listOf(Opcode.CHECK_CAST to M.STORE_IMPL, Opcode.IGET_OBJECT to M.STORE_SESSION.toString(),
+            Opcode.RETURN_OBJECT to null))
 
-        val hooked = setOf("${F.HANDLER}->send(", "${M.ROWS}->rows(", "${M.ACTIONS}->act(", "${M.PICKED}->onClick(")
+        val states = context.mutableClassDefBy(M.STATES).methods.single { it.name == "report" }
+        assertStateGuard(states, original.getValue(M.STATES).getValue("report"))
+
+        val hooked = setOf("${F.HANDLER}->send(", "${M.ROWS}->rows(", "${M.ACTIONS}->act(", "${M.PICKED}->onClick(", "${M.STATES}->report(")
         for (candidate in input) {
             val now = snapshot(context.mutableClassDefBy(candidate.type).methods)
             if (candidate.type == INSTAGRAM_CHATS) continue
@@ -124,7 +132,31 @@ class MarkReadHookTest {
         assertEquals(1, context.callsTo(OFFER_MARK_READ, input))
         assertEquals(1, context.callsTo(MARK_READ, input))
         assertEquals(1, context.callsTo(MARK_READ_TOGETHER, input))
+        assertEquals(1, context.callsTo(KEEP_UNREAD, input))
     }
+
+    @Test fun aMissingStateReportIsRefused() = refuses(M.classes().filter { it.type != M.STATES }, "$STATES_REFUSAL, found 0")
+    @Test fun aSecondStateReportIsRefused() = refuses(M.classes() + M.states("Lfixture/OtherStates;"), "$STATES_REFUSAL, found 2")
+    @Test fun aStateReportForAnotherReceiptIsRefused() =
+        refuses(M.classes().map { if (it.type == M.STATES) M.states(receipt = F.BASE) else it }, "$STATES_REFUSAL, found 0")
+    @Test fun aStoreThatIsntAnInterfaceIsRefused() = refuses(M.classes().map { if (it.type == M.STORE) M.store(flags = AccessFlags.PUBLIC.value) else it },
+        "the queue reports a receipt's state to a chat store that isn't an interface")
+    @Test fun aStateReportThatNeverReachesTheStoreIsRefused() = changed(M.STATES, "report", "the receipt's state never reaches the chat store") { code ->
+        for (at in code.indices) if (code[at].opcode == Opcode.INVOKE_INTERFACE) code[at] = touch(1)
+    }
+    @Test fun aJumpToTheStartOfTheStateReportIsRefused() = changed(M.STATES, "report", "a jump reaches the start of the receipt's state report") {
+        it[11] = ImmutableInstruction21t(Opcode.IF_EQZ, 0, -it.take(11).sumOf { instruction -> instruction.codeUnits })
+    }
+    @Test fun aMissingStoreClassIsRefused() = refuses(M.classes().filter { it.type != M.STORE_IMPL }, "expected one chat store class, found 0")
+    @Test fun aSecondStoreClassIsRefused() = refuses(M.classes() + M.storeImpl("Lfixture/OtherStore;"), "expected one chat store class, found 2")
+    @Test fun aStoreAccountTheExtensionCantReachIsRefused() =
+        refuses(M.classes().map { if (it.type == M.STORE_IMPL) M.storeImpl(sessionFlags = AccessFlags.FINAL.value) else it },
+            "isn't public, so the extension can't reach it")
+    @Test fun anExtensionWithoutTheUnreadHookIsRefused() = refuses(M.classes().map { if (it.type == THREAD_SEEN) M.extension(keepUnread = false) else it },
+        "expected one extension's public static keepUnread, found 0")
+    @Test fun aMissingStoreSessionBridgeIsRefused() =
+        refuses(M.classes().map { if (it.type == INSTAGRAM_CHATS) M.bridges(without = "storeSession") else it },
+            "expected one extension's chat bridge storeSession, found 0")
 
     @Test fun aMenuWithoutMarkAsReadIsRefused() = changed(M.MENU, "<clinit>", "$MENU_REFUSAL, found none") { it[6] = text(2, "MARK_AS_SEEN") }
     @Test fun aSecondMenuNamingBothIsRefused() = refuses(M.classes() + M.menu("Lfixture/OtherChatMenuAction;"), "$MENU_REFUSAL, found L")
@@ -359,6 +391,7 @@ class MarkReadHookTest {
         private const val QUEUE_REFUSAL = "expected one receipt Instagram's Mark as read for chats picked together queues"
         private const val ROUTE_REFUSAL = "expected exactly one Instagram handler for marking a chat read in this Instagram build"
         private const val PICK_REFUSAL = "expected one message Instagram's handler for marking a chat read sends its receipt for, found 0"
+        private const val STATES_REFUSAL = "expected one static method the queue reports a chat receipt's state to"
 
         /** Stand-ins the tap trace hands the guard. */
         internal const val CHOSEN = "chosen row"
@@ -519,6 +552,30 @@ class MarkReadHookTest {
             assertEquals("only the extension's call leads to the sender's", listOf(at), flow.normal.indices.filter { at + 1 in flow.normal[it] })
         }
 
+        /**
+         * The extension is asked first, with the receipt and the chat store, and its yes returns
+         * before the store hears anything. Its no goes on to [original], which follows unchanged.
+         */
+        internal fun assertStateGuard(method: Method, original: List<Instruction>) {
+            val code = method.visualCode()
+            assertEquals(listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT,
+                Opcode.IF_EQZ, Opcode.RETURN_VOID), code.take(6).map { it.opcode })
+            for (parameter in 0..1) {
+                val move = code[parameter] as TwoRegisterInstruction
+                assertEquals(listOf(parameter, method.parameterRegisterNumber(parameter)), listOf(move.registerA, move.registerB))
+            }
+            assertEquals(KEEP_UNREAD, code[2].visualReference().toString())
+            assertEquals(listOf(0, 1), code[2].namedRegisters())
+            assertEquals(0, (code[3] as OneRegisterInstruction).registerA)
+            assertEquals(0, (code[4] as OneRegisterInstruction).registerA)
+            assertEquals(1, code.count { it.visualReference()?.toString() == KEEP_UNREAD })
+            assertEquals(shape(original), shape(code.drop(6)))
+            val flow = ControlFlow.of(method)
+            assertEquals("the extension's no goes on to Instagram's report", setOf(5, 6), flow.normal[4].toSet())
+            assertTrue("its yes returns", flow.normal[5].isEmpty())
+            assertEquals("nothing else reaches Instagram's report", listOf(4), flow.normal.indices.filter { 6 in flow.normal[it] })
+        }
+
         /** The bridge's body is [body], ahead of the stub it replaces. */
         internal fun assertBridge(bridges: Map<String, Method>, name: String, body: List<Pair<Opcode, String?>>) {
             val code = bridges.getValue(name).visualCode()
@@ -562,6 +619,9 @@ internal object MarkReadFixture {
     const val BLOCKS = "Lfixture/ThreadActionChecks;"
     const val PICKED = "Lfixture/PickedChats;"
     const val LOG = "Lfixture/Log;"
+    const val STATES = "Lfixture/ReceiptStates;"
+    const val STORE = "Lfixture/ChatStore;"
+    const val STORE_IMPL = "Lfixture/InboxStore;"
     const val LIST = "Ljava/util/List;"
     private const val ENUM = "Ljava/lang/Enum;"
     private const val INTEGER = "Ljava/lang/Integer;"
@@ -575,6 +635,7 @@ internal object MarkReadFixture {
     val CAN_MOVE = ImmutableFieldReference(CAPABILITY, "move", CAPABILITY)
     val CAN_UNREAD = ImmutableFieldReference(CAPABILITY, "unread", CAPABILITY)
     val PICKED_SESSION = ImmutableFieldReference(PICKED, "session", USER_SESSION)
+    val STORE_SESSION = ImmutableFieldReference(STORE_IMPL, "session", USER_SESSION)
     private val MANAGER = ImmutableFieldReference(F.MANAGER, "instance", F.MANAGER)
     val SEND = ImmutableMethodReference(SENDER, "send", listOf(USER_SESSION, DETAIL, STRING, STRING, STRING), "V")
     val UNREAD_CALL = ImmutableMethodReference(SENDER, "unread", listOf(USER_SESSION, THREAD_KEY, "Z"), "V")
@@ -593,7 +654,45 @@ internal object MarkReadFixture {
     fun classes(): List<ClassDef> = F.classes().filter { it.type != F.CREATOR && it.type != THREAD_SEEN } + listOf(
         sender(), mutation(), seenBase(), seenItem(), session(), menu(), capability(), rows(), blocks(), actions(), picked(),
         chat(), inboxChat(), messages(), message(), detail(), key(), route(), extension(), bridges(),
+        states(), store(), storeImpl(),
     )
+
+    /**
+     * Where the queue reports a receipt's state, static as 451's is: the chat store hears the
+     * receipt's chat key once it's sent, and again once it's given up on. The two locals are v0 and
+     * v1, and the receipt, the store and the state are v2 to v4.
+     */
+    fun states(type: String = STATES, receipt: String = F.MUTATION, store: String = STORE): ClassDef {
+        val equals = ImmutableMethodReference(STRING, "equals", listOf(OBJECT), "Z")
+        val code = mutableListOf<Instruction>(
+            text(0, RECEIPT_SENT), call(Opcode.INVOKE_VIRTUAL, listOf(4, 0), equals), ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+            ImmutableInstruction21t(Opcode.IF_EQZ, 0, 0), call(Opcode.INVOKE_VIRTUAL, listOf(2), RECEIPT_KEY),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1), call(Opcode.INVOKE_INTERFACE, listOf(3, 1), store, "kept", listOf(THREAD_KEY), "V"),
+            ImmutableInstruction10x(Opcode.RETURN_VOID),
+            text(0, RECEIPT_GIVEN_UP), call(Opcode.INVOKE_VIRTUAL, listOf(4, 0), equals), ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+            ImmutableInstruction21t(Opcode.IF_EQZ, 0, 0), call(Opcode.INVOKE_VIRTUAL, listOf(2), RECEIPT_KEY),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1), call(Opcode.INVOKE_INTERFACE, listOf(3, 1), store, "dropped", listOf(THREAD_KEY), "V"),
+            ImmutableInstruction10x(Opcode.RETURN_VOID),
+        )
+        code[3] = ImmutableInstruction21t(Opcode.IF_EQZ, 0, offset(code, 3, 8))
+        code[11] = ImmutableInstruction21t(Opcode.IF_EQZ, 0, offset(code, 11, 15))
+        return clazz(type, listOf(method(type, "report", listOf(receipt, store, STRING), "V", 5, code, static = true)))
+    }
+
+    /** The chat store's interface, which the queue reaches the store through. */
+    fun store(flags: Int = INTERFACE): ClassDef = ImmutableClassDef(STORE, flags, OBJECT, null, null, null, null,
+        listOf("kept", "dropped").map {
+            ImmutableMethod(STORE, it, listOf(parameter(THREAD_KEY)), "V", AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, null, null, null)
+        })
+
+    /** The chat store's class: it keeps its account and logs a seen state for a chat it doesn't hold. */
+    fun storeImpl(type: String = STORE_IMPL, sessionFlags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value): ClassDef =
+        ImmutableClassDef(type, PUBLIC or AccessFlags.FINAL.value, OBJECT, listOf(STORE), null, null,
+            listOf(ImmutableField(type, STORE_SESSION.name, USER_SESSION, sessionFlags, null, null, null)),
+            listOf("kept", "dropped").map { name ->
+                method(type, name, listOf(THREAD_KEY), "V", 3, listOf(text(0, STORE_SEEN_MISSING),
+                    call(Opcode.INVOKE_STATIC, listOf(0), LOG, "event", listOf(STRING), "V"), ImmutableInstruction10x(Opcode.RETURN_VOID)))
+            })
 
     /**
      * The receipt's live sender, static as 450's is, which fills in the receipt's details from the
@@ -778,7 +877,7 @@ internal object MarkReadFixture {
         text(0, MARK_READ_DONE), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
     ))))
 
-    fun extension(offer: Boolean = true, markRead: Boolean = true, together: Boolean = true): ClassDef = clazz(THREAD_SEEN, listOfNotNull(
+    fun extension(offer: Boolean = true, markRead: Boolean = true, together: Boolean = true, keepUnread: Boolean = true): ClassDef = clazz(THREAD_SEEN, listOfNotNull(
         method(THREAD_SEEN, "hold", listOf(OBJECT, OBJECT), "Z", 3, listOf(ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
             ImmutableInstruction11x(Opcode.RETURN, 0)), static = true),
         method(THREAD_SEEN, "offerMarkRead", listOf(LIST, OBJECT), "V", 2, listOf(ImmutableInstruction10x(Opcode.RETURN_VOID)), static = true)
@@ -787,6 +886,8 @@ internal object MarkReadFixture {
             ImmutableInstruction11x(Opcode.RETURN, 0)), static = true).takeIf { markRead },
         method(THREAD_SEEN, "markReadTogether", listOf(OBJECT, OBJECT, STRING, STRING, STRING), "V", 5,
             listOf(ImmutableInstruction10x(Opcode.RETURN_VOID)), static = true).takeIf { together },
+        method(THREAD_SEEN, "keepUnread", listOf(OBJECT, OBJECT), "Z", 3, listOf(ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+            ImmutableInstruction11x(Opcode.RETURN, 0)), static = true).takeIf { keepUnread },
     ))
 
     /** The extension's bridge stubs, as javac writes them: null back, or nothing done. */
@@ -795,6 +896,7 @@ internal object MarkReadFixture {
         "receiptMessage" to (listOf(OBJECT) to STRING), "lastMessage" to (listOf(OBJECT) to OBJECT),
         "messageId" to (listOf(OBJECT) to STRING), "senderId" to (listOf(OBJECT) to STRING),
         "sendSeen" to (listOf(OBJECT, OBJECT, STRING, STRING, STRING) to "V"), "markUnread" to (listOf(OBJECT, OBJECT, "Z") to "V"),
+        "storeSession" to (listOf(OBJECT) to OBJECT),
     ).filter { it.first != without }.map { (name, shape) ->
         val (parameters, returns) = shape
         if (returns == "V") {

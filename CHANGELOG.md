@@ -30,6 +30,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Long press to zoom:** New Keep the zoom open choice under it, off by default. The zoom stays up after you let go, so you can drag around and pinch from 1x to 4x. A tap or Back closes it. Asked for in #149.
 
+* **Instagram - Read messages without the seen receipt:** New Keep chats unread here switch under it, on by default. A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read, and a newer message in it stays unread too. Asked for in #184.
+
 * **Instagram - Hide suggested people on profiles:** A new switch under Profiles, Hide Suggested for you on follow lists, leaves that section off the bottom of followers and following lists. Every account in the list stays. Asked for in #139.
 
 * **Instagram - Hide suggested people on profiles:** Another new switch under Profiles, Hide Complete your profile, takes those cards (Add bio, Find people to follow and the rest) off your own profile. Your bio, counts and posts stay. Asked for in #159.

@@ -317,6 +317,8 @@ Hide Instants	Instants ausblenden
 Removes the stack of Instants (quick photos from friends) from your messages. Restart Instagram to see the change.	Entfernt den Stapel mit Instants (schnelle Fotos von Freunden) aus deinen Nachrichten. Starte Instagram neu, um die Änderung zu sehen.
 Read messages without the seen receipt	Nachrichten ohne Gesehen-Bestätigung lesen
 Opening a chat doesn't tell people you've seen their messages, and you still see when they've seen yours. To let one chat know, long press it in your messages and tap Mark as read.	Wenn du einen Chat öffnest, erfährt niemand, dass du die Nachrichten gesehen hast, und du siehst weiterhin, wann andere deine gesehen haben. Soll ein Chat es doch erfahren, halte ihn in deinen Nachrichten gedrückt und tippe auf Als gelesen markieren.
+Keep chats unread here	Chats hier ungelesen lassen
+A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.	Ein Chat, den du öffnest, bleibt auf diesem Handy in deinen Nachrichten ungelesen, bis du ihn gedrückt hältst und auf Als gelesen markieren tippst. Eine neuere Nachricht darin bleibt ebenfalls ungelesen.
 # context: the toasts after tapping Mark as read on a chat's long press while seen receipts are held
 Marked as read	Als gelesen markiert
 Couldn't mark as read	Konnte nicht als gelesen markiert werden

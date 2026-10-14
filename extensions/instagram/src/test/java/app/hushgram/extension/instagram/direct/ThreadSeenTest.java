@@ -63,6 +63,9 @@ public class ThreadSeenTest {
     private static final Session SESSION = new Session("a1");
     private static final Session OTHER = new Session("a2");
 
+    /** The chat store of the first account. */
+    private static final Store STORE = new Store(SESSION);
+
     private final long[] now = {5_000L};
     private final LongSupplier clock = () -> now[0];
     private FakeChats chats;
@@ -81,6 +84,7 @@ public class ThreadSeenTest {
     @After
     public void restore() {
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
+        Settings.KEEP_CHATS_UNREAD.resetToDefault();
         Settings.VIEW_DM_MEDIA_ANONYMOUSLY.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -505,6 +509,97 @@ public class ThreadSeenTest {
         assertTrue(missing, missing.contains("'" + ThreadSeen.TOGETHER + "'"));
     }
 
+    @Test
+    public void withBothSwitchesOnAnOpenedChatStaysUnread() {
+        assertTrue(Settings.KEEP_CHATS_UNREAD.defaultValue);
+        assertTrue("with nothing marked read, nothing is read off the receipt", ThreadSeen.keepUnread(null, null));
+        assertTrue(keep(receipt("t1", "m1")));
+        assertTrue(ThreadSeen.keepUnread(receipt("t1", "m1"), STORE, ThreadSeen::keepsUnread, chats, clock));
+        assertNothingReported();
+    }
+
+    @Test
+    public void aChatMarkedReadClearsAndANewerMessageStaysUnread() {
+        assertTrue(mark(MARK, chat("m1", "s1"), new Key("t1")));
+        assertFalse("Mark as read clears the chat it marked", keep(receipt("t1", "m1")));
+        assertTrue("a newer message in the same chat stays unread", keep(receipt("t1", "m2")));
+        assertTrue(keep(receipt("t2", "m1")));
+        assertTrue("a mark on one account leaves the other's chats unread",
+                ThreadSeen.keepUnread(receipt("t1", "m1"), new Store(OTHER), ON, chats, clock));
+
+        ThreadSeen.restartForTests();
+        assertFalse("the mark outlives a restart, as the receipt it lets through does", keep(receipt("t1", "m1")));
+        assertTrue(keep(receipt("t1", "m2")));
+
+        now[0] += ReadMarks.KEEP_MS + 1;
+        assertTrue("once the mark is past its age, the chat is kept unread again", keep(receipt("t1", "m1")));
+        assertNothingReported();
+    }
+
+    @Test
+    public void chatsMarkedReadTogetherClearToo() {
+        ThreadSeen.markReadTogether(SESSION, "t1", "m1", ON, chats, clock);
+        assertFalse(keep(receipt("t1", "m1")));
+        assertTrue(keep(receipt("t3", "m3")));
+        assertNothingReported();
+    }
+
+    @Test
+    public void offTheSubSwitchOffPausedAndUnreadyClearTheChat() {
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        assertFalse("with receipts sent, the chat clears as it always has", ThreadSeen.keepUnread(null, null));
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(true);
+
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertFalse(ThreadSeen.keepUnread(null, null));
+        assertTrue("the receipt is still held", ThreadSeen.hold(null, null));
+        Settings.KEEP_CHATS_UNREAD.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(ThreadSeen.keepUnread(null, null));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertFalse(ThreadSeen.keepUnread(null, null)));
+        SettingsContextRule.beforeThePauseIsDecided(() -> assertFalse(ThreadSeen.keepUnread(null, null)));
+
+        assertTrue(ThreadSeen.keepUnread(null, null));
+        assertNothingReported();
+    }
+
+    @Test
+    public void aReceiptOrStoreThatCantBeReadClearsTheChat() {
+        assertTrue(mark(MARK, chat("m1", "s1"), new Key("t1")));
+        assertFalse(keep(null));
+        assertFalse(keep(receipt(null, "m2")));
+        assertFalse(keep(receipt("t1", "")));
+        assertFalse(ThreadSeen.keepUnread(receipt("t1", "m2"), null, ON, chats, clock));
+        assertFalse(ThreadSeen.keepUnread(receipt("t1", "m2"), new Store(new Session(null)), ON, chats, clock));
+        assertNothingReported();
+    }
+
+    @Test
+    public void aThrowingSwitchOrStoreClearsTheChatAndIsReported() {
+        assertFalse(ThreadSeen.keepUnread(receipt("t1", "m1"), STORE, THROWS, chats, clock));
+        assertTrue(mark(MARK, chat("m1", "s1"), new Key("t1")));
+        chats.storeThrows = true;
+        assertFalse(keep(receipt("t1", "m2")));
+        chats.storeThrows = false;
+        chats.keyThrows = true;
+        assertFalse(keep(receipt("t1", "m2")));
+        chats.keyThrows = false;
+        assertTrue(keep(receipt("t1", "m2")));
+
+        String missing = HookStatus.missing(FamilyNames.THREAD_SEEN).toString();
+        assertTrue(missing, missing.contains("'" + ThreadSeen.UNREAD + "'"));
+        assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+    }
+
+    private boolean keep(Object receipt) {
+        return ThreadSeen.keepUnread(receipt, STORE, ON, chats, clock);
+    }
+
     private boolean mark(Object chosen, Object thread, Object key) {
         return ThreadSeen.markRead(chosen, MARK, SESSION, thread, key, ON, chats, clock);
     }
@@ -557,6 +652,14 @@ public class ThreadSeenTest {
         }
     }
 
+    private static final class Store {
+        final Session session;
+
+        Store(Session session) {
+            this.session = session;
+        }
+    }
+
     private static final class Key {
         final String thread;
 
@@ -605,6 +708,13 @@ public class ThreadSeenTest {
         boolean keyThrows;
         boolean messageThrows;
         boolean accountThrows;
+        boolean storeThrows;
+
+        @Override
+        public Object storeSession(Object store) {
+            if (storeThrows) throw new IllegalStateException("the store went away");
+            return store instanceof Store ? ((Store) store).session : null;
+        }
 
         @Override
         public String accountId(Object session) {

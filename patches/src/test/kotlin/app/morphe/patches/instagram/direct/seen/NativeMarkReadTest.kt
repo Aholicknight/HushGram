@@ -15,6 +15,7 @@ import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.SESSI
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.TapTrace
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.assertOfferGated
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.assertRowOffer
+import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.assertStateGuard
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.assertTapGuard
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.assertTogetherHook
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.traceTapGuard
@@ -60,12 +61,16 @@ class NativeMarkReadTest {
         assertEquals(USER_SESSION, found.session.type)
         assertEquals(found.action.definingClass, found.session.definingClass)
         assertEquals("the account id bridge is written on its own, so either patch can write it", 8, found.bridges.size)
+        val unread = context.findKeepUnread(seen)
+        assertTrue(AccessFlags.STATIC.isSet(unread.lifecycle.accessFlags))
+        assertEquals("the receipt's own states", seen.mutation, unread.lifecycle.parameterTypes[0].toString())
 
         val first = seen.handler.visualCode().first()
         val rows = found.builder.visualCode()
         val act = found.action.visualCode()
         val picked = found.together.visualCode()
-        val hooked = listOf(seen.handler, found.builder, found.action, found.together).map { "${it.definingClass}->${it.name}(" }
+        val report = unread.lifecycle.visualCode()
+        val hooked = listOf(seen.handler, found.builder, found.action, found.together, unread.lifecycle).map { "${it.definingClass}->${it.name}(" }
         val before = classes.mapValues { snapshot(it.value.methods) }
         context.readWithoutSeenReceipt()
 
@@ -81,6 +86,7 @@ class NativeMarkReadTest {
                 traceTapGuard(found.action, found.tapAt, found.chosen, found.thread, found.key, blocked = true, handled = handled))
         }
         assertTogetherHook(found.together, picked, found.togetherAt)
+        assertStateGuard(unread.lifecycle, report)
         for ((type, original) in before) {
             if (type == INSTAGRAM_CHATS) continue
             val now = snapshot(context.mutableClassDefBy(type).methods)
@@ -103,10 +109,13 @@ class NativeMarkReadTest {
         val rows = found.builder.visualCode()
         val act = found.action.visualCode()
         val picked = found.together.visualCode()
+        val unread = context.findKeepUnread(seen)
+        val report = unread.lifecycle.visualCode()
         context.readWithoutSeenReceipt()
         assertRowOffer(found.builder, found.rows, found.markAsRead.toString(), rows, found.offerAt)
         assertTapGuard(found.action, found.markAsRead.toString(), found.session.toString(), act, found.tapAt)
         assertTogetherHook(found.together, picked, found.togetherAt)
+        assertStateGuard(unread.lifecycle, report)
     }
 
     companion object {
@@ -116,8 +125,9 @@ class NativeMarkReadTest {
          * The chat receipt's classes, plus the chat menu's enum, the classes whose methods take it or
          * read it into a list, Instagram's handler for marking a chat read, its check for a blocked
          * chat action and its Mark as read for chats picked together, every class those name, the
-         * receipt's details and the classes they extend, the account class, and the extension's hooks
-         * and bridges.
+         * receipt's details and the classes they extend, the account class, where the queue reports the
+         * receipt's states to the chat store with that store's interface and class, and the extension's
+         * hooks and bridges.
          */
         private fun markReadClasses(bundle: File): Map<String, ClassDef> = cached.get(bundle) {
             val classes = threadClasses(bundle).toMutableMap()
@@ -140,6 +150,15 @@ class NativeMarkReadTest {
             }
             val seen = PatchContexts.of(classes.values).findThreadSeen()
             val named = mutableSetOf(seen.mutation, THREAD_KEY)
+            // Where the queue reports the receipt's states to the chat store, the store's interface it
+            // names, and the store's class.
+            for (states in FixtureDex.classesHolding(bundle, RECEIPT_GIVEN_UP)) {
+                val reports = states.methods.filter { it.parameterTypes.firstOrNull()?.toString() == seen.mutation }
+                if (reports.isEmpty()) continue
+                classes[states.type] = states
+                reports.forEach { report -> named += report.parameterTypes.map(Any::toString) }
+            }
+            FixtureDex.classesHolding(bundle, STORE_SEEN_MISSING).forEach { classes[it.type] = it }
             for (candidate in classes.values.toList()) for (method in candidate.methods) {
                 if (method.takes(menu.type)) named += method.parameterTypes.map(Any::toString)
                 if (method.visualCode().none { it.visualString() == MARK_READ_HANDLER } && !method.readsInto(menu.type)) continue

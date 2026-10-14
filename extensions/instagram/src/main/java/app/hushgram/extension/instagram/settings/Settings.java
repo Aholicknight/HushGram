@@ -312,6 +312,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_read_without_seen_receipt", FALSE);
 
     /**
+     * Under {@link #READ_WITHOUT_SEEN_RECEIPT}: a chat opened while its receipt is held stays unread
+     * in your messages until Mark as read lets that receipt go (#184). Read each time Instagram
+     * records a chat seen, so a change applies the next time a chat opens. On to start, so a held
+     * chat doesn't read as seen on this phone either.
+     */
+    public static final BooleanSetting KEEP_CHATS_UNREAD =
+            new BooleanSetting("hushgram_keep_chats_unread", TRUE, parent(READ_WITHOUT_SEEN_RECEIPT));
+
+    /**
      * The typing indicator a chat shows the other person while you write
      * ({@link app.hushgram.extension.instagram.direct.TypingStatus}). Read each time you start
      * typing, so a change applies the next time. Off to start.

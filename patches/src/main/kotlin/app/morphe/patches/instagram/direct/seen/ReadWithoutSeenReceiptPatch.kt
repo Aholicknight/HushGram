@@ -41,15 +41,18 @@ val readWithoutSeenReceiptPatch = bytecodePatch(
 }
 
 /**
- * Resolves the receipt's handler and everything Mark as read needs before changing anything, then
- * holds the receipt back, offers Mark as read on a chat's long press and lets the receipts of
- * chats marked read through.
+ * Resolves the receipt's handler, everything Mark as read needs and where the chat store hears the
+ * receipt's state before changing anything. Then holds the receipt back, offers Mark as read on a
+ * chat's long press, lets the receipts of chats marked read through and keeps a held chat unread on
+ * this phone.
  */
 internal fun BytecodePatchContext.readWithoutSeenReceipt() {
     val seen = findThreadSeen()
     val marks = findMarkRead(seen)
+    val unread = findKeepUnread(seen)
     holdBackThreadSeen(seen)
     markReadByHand(marks)
+    keepChatsUnread(unread)
 }
 
 /** [holdBackThreadSeen] on the handler this build resolves to, with nothing else hooked. */
@@ -57,8 +60,8 @@ internal fun BytecodePatchContext.holdBackThreadSeen() = holdBackThreadSeen(find
 
 /**
  * Completes the chat receipt's queued task through Instagram's own success callback before any
- * request is built. The chat still clears on this phone, since that happens before the queue runs,
- * and the receipt isn't retried after a restart. The extension is handed the receipt and the
+ * request is built, so the receipt isn't retried after a restart. Whether the chat clears on this
+ * phone is up to [keepChatsUnread], since the store hears of the receipt before this handler runs. The extension is handed the receipt and the
  * account the handler sends it for, so it can let through the one for a message marked read.
  */
 internal fun holdBackThreadSeen(found: ThreadSeenTargets) {

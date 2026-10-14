@@ -758,6 +758,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("Opening a chat doesn't tell people you've seen their messages, and you still see "
                                 + "when they've seen yours. To let one chat know, long press it in your messages and "
                                 + "tap Mark as read.")));
+                messages.addPreference(toggle(context, Settings.KEEP_CHATS_UNREAD, L10n.t("Keep chats unread here"),
+                        L10n.t("A chat you open stays unread in your messages on this phone until you long press it "
+                                + "and tap Mark as read. A newer message in it stays unread too.")));
             }
             if (build.contains(PatchFamily.TYPING)) {
                 messages.addPreference(toggle(context, Settings.HIDE_TYPING, L10n.t("Hide that you're typing"),
