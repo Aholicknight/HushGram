@@ -1339,6 +1339,14 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->followL
 # ProfileCompletionHookTest checks on all seven 450 builds that the check is that one.
 start-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->hideCompletionCards()Z in instance (L*;)Z holding const:0x3e940ede const:0x8263c5ae const:0xff70a8f4 const:0xdac
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->hideCompletionCards()Z in instance (L*;)Z holding const:0x3e940ede const:0x8263c5ae const:0xff70a8f4 const:0xdac
+#
+# Hide People you don't follow back, Hide suggested people on profiles' fourth switch, hands the list
+# the notifications' parser fills under follow_backs to ProfileSuggestions.followBacks right before
+# the parser writes it into its model (LX/081e.unsafeParseFromJson writing LX/028N.A0Q on 385611438),
+# the one method loading that key. A null answer reads as a reply without those accounts. Left out,
+# the section comes back; twice or elsewhere, it isn't the hook the patch wrote. FollowBacksHookTest
+# checks on all seven 450 builds that the write is that one and that the parser's loop lands on the call.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->followBacks(Ljava/util/List;)Ljava/util/List; in instance (L*;)Ljava/lang/Object; holding follow_backs
 
 # Hide highlights asks ProfileHighlights before the same row list (0BNk.buildRowViewTypes on 449)
 # adds the row of story highlights, in place of its read of the tray's row type. It's called once

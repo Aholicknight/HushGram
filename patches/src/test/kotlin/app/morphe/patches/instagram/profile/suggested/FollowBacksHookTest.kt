@@ -1,0 +1,237 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.morphe.patches.instagram.profile.suggested
+
+import app.morphe.ExtensionDex
+import app.morphe.Fixtures
+import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/** Hide People you don't follow back, Hide suggested people on profiles' fourth switch: the parser's write, found and answered. */
+class FollowBacksHookTest {
+    private val parser = "Lfixture/InboxParser;"
+    private val json = "Lfixture/Json;"
+    private val inbox = "Lfixture/Inbox;"
+    private val followBacksField = "$inbox->followBacks:Ljava/util/List;"
+
+    /** The hook the patch writes is in the ProfileSuggestions the bundle ships, public and static. */
+    @Test
+    fun theHookIsInTheExtension() {
+        val declared = ExtensionDex.classDef(FOLLOW_BACKS.substringBefore("->")).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$FOLLOW_BACKS is not in the extension: $declared", FOLLOW_BACKS.substringAfter("->") in declared)
+    }
+
+    /**
+     * The list goes through the extension right before the parser keeps it, the call sitting where the
+     * loop over the accounts lands, and the other key's list is left alone.
+     */
+    @Test
+    fun theParsersListIsAnswered() {
+        val context = PatchContexts.of(classes())
+        val before = classes().single().methods.single().code().size
+
+        val site = context.findFollowBacks()
+        context.hideFollowBacks(site)
+
+        assertEquals("the field", followBacksField, site.field)
+        val patched = context.mutableClassDefBy(parser).methods.single()
+        assertAnswered("stand-in", patched, site.register, site.field)
+        assertEquals("what else was added", before + 2, patched.code().size)
+        val code = patched.code()
+        val hook = code.indexOfFirst { it.referenceText() == FOLLOW_BACKS }
+        val outOfAccounts = code.indexOfFirst { it.referenceText() == "$json->user()Ljava/lang/Object;" } + 2
+        assertEquals("the loop's test", Opcode.IF_EQZ, code[outOfAccounts].opcode)
+        assertEquals("the loop's way out lands on the call", hook, patched.targetOf(outOfAccounts))
+    }
+
+    /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
+        val cases = listOf(
+            classes(keys = 0) to "expected one parser loading \"$FOLLOW_BACKS_KEY\" once, found 0 loads",
+            classes(keys = 2) to "expected one parser loading \"$FOLLOW_BACKS_KEY\" once, found 2 loads",
+            classes(madeOf = "Ljava/util/LinkedList;") to "$parser->unsafeParseFromJson doesn't make a list for \"$FOLLOW_BACKS_KEY\"",
+            classes(fieldType = "Ljava/util/Collection;") to "expected one write of the \"$FOLLOW_BACKS_KEY\" list in $parser->unsafeParseFromJson, found 0",
+            classes(readAfter = true) to "$parser->unsafeParseFromJson reads v3 after keeping \"$FOLLOW_BACKS_KEY\"",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) {
+                context.hideFollowBacks(context.findFollowBacks())
+            }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+                .filter { method -> method.code().any { it.referenceText() == FOLLOW_BACKS } }
+            assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
+    /**
+     * In each declared build the one load of the key is the notifications' parser's, and its list is
+     * answered right before the write, where the loop over the accounts lands. On 450's 385611438
+     * that's LX/081e.unsafeParseFromJson writing LX/028N.A0Q.
+     */
+    @Test
+    fun eachDeclaredBuildHidesTheSection() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        // The declared build and the other builds of the version, each compiled on its own.
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
+        assertEquals("the seven 450 builds: ${bundles.map { it.name }}", 7, bundles.size)
+        for (bundle in bundles) {
+            val holders = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                for (classDef in dex.classes) {
+                    if (classDef.methods.any { m -> m.code().any { it.string() == FOLLOW_BACKS_KEY } }) holders += ImmutableClassDef.of(classDef)
+                }
+            }
+            val context = PatchContexts.of(holders)
+
+            val site = context.findFollowBacks()
+            context.hideFollowBacks(site)
+
+            val patched = context.mutableClassDefBy(site.type).methods.single {
+                it.name == "unsafeParseFromJson" && it.returnType == "Ljava/lang/Object;" &&
+                    it.parameterTypes.map(CharSequence::toString) == site.parameters
+            }
+            assertAnswered(bundle.name, patched, site.register, site.field)
+            val hook = patched.code().indexOfFirst { it.referenceText() == FOLLOW_BACKS }
+            val targets = patched.jumpTargets()
+            assertTrue("${bundle.name}: the loop over the accounts lands on the call", hook in targets)
+            assertFalse("${bundle.name}: a jump skips the call", hook + 1 in targets || hook + 2 in targets)
+            assertEquals(
+                "${bundle.name}: methods hooked", 1,
+                holders.map { it.type }.distinct().sumOf { type -> context.mutableClassDefBy(type).methods.count { m -> m.code().any { it.referenceText() == FOLLOW_BACKS } } },
+            )
+        }
+    }
+
+    /** The range call with the list's register, its answer back in that register, then the parser's own write of it. */
+    private fun assertAnswered(what: String, method: Method, register: Int, field: String) {
+        val code = method.code()
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == FOLLOW_BACKS })
+        val call = code.indexOfFirst { it.referenceText() == FOLLOW_BACKS }
+        assertTrue("$what: the key loads before the call", (0 until call).any { code[it].string() == FOLLOW_BACKS_KEY })
+        assertEquals("$what: the call", Opcode.INVOKE_STATIC_RANGE, code[call].opcode)
+        assertEquals("$what: what it's handed", register, (code[call] as RegisterRangeInstruction).startRegister)
+        assertEquals("$what: one register", 1, (code[call] as RegisterRangeInstruction).registerCount)
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT_OBJECT, code[call + 1].opcode)
+        assertEquals("$what: the register", register, (code[call + 1] as OneRegisterInstruction).registerA)
+        val write = code[call + 2]
+        assertEquals("$what: the write", Opcode.IPUT_OBJECT, write.opcode)
+        assertEquals("$what: what's written", register, (write as TwoRegisterInstruction).registerA)
+        assertEquals("$what: where", field, ((write as ReferenceInstruction).reference as FieldReference).let { "${it.definingClass}->${it.name}:${it.type}" })
+    }
+
+    /**
+     * Shaped like 450's: the parser loops over the reply's keys, makes a new list for each list key,
+     * fills the follow back one in a loop that branches to the write when it runs out, writes each
+     * list into a field of its model, and returns the model when the keys run out.
+     */
+    private fun classes(
+        keys: Int = 1,
+        madeOf: String = "Ljava/util/ArrayList;",
+        fieldType: String = "Ljava/util/List;",
+        readAfter: Boolean = false,
+    ): List<ClassDef> {
+        val followBacks = List(keys) { n ->
+            """
+                :follow$n
+                const-string v0, "$FOLLOW_BACKS_KEY"
+                invoke-virtual {v1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+                move-result v0
+                if-eqz v0, :${if (n + 1 < keys) "follow${n + 1}" else "next"}
+                new-instance v3, $madeOf
+                invoke-direct {v3}, $madeOf-><init>()V
+                :item$n
+                invoke-virtual {p1}, $json->user()Ljava/lang/Object;
+                move-result-object v0
+                if-eqz v0, :kept$n
+                invoke-virtual {v3, v0}, Ljava/util/AbstractCollection;->add(Ljava/lang/Object;)Z
+                goto :item$n
+                :kept$n
+                iput-object v3, v6, $inbox->followBacks${if (n == 0) "" else "$n"}:$fieldType
+                goto :next
+            """.trimIndent()
+        }.joinToString("\n")
+        val body = listOfNotNull(
+            "new-instance v6, $inbox",
+            "invoke-direct {v6}, $inbox-><init>()V",
+            ":next",
+            "invoke-virtual {p1}, $json->name()Ljava/lang/String;",
+            "move-result-object v1",
+            "if-eqz v1, :done",
+            "const-string v0, \"friend_request_stories\"",
+            "invoke-virtual {v1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z",
+            "move-result v0",
+            "if-eqz v0, :${if (keys > 0) "follow0" else "next"}",
+            "new-instance v3, Ljava/util/ArrayList;",
+            "invoke-direct {v3}, Ljava/util/ArrayList;-><init>()V",
+            "iput-object v3, v6, $inbox->requests:Ljava/util/List;",
+            "goto :next",
+            followBacks.ifEmpty { null },
+            ":done",
+            if (readAfter) "invoke-static {v3}, Lfixture/Log;->kept(Ljava/lang/Object;)V" else null,
+            "const-string v0, \"old_stories\"",
+            "return-object v6",
+        ).joinToString("\n")
+        val parse = method(parser, "unsafeParseFromJson", listOf(json), "Ljava/lang/Object;", 7, AccessFlags.PUBLIC.value, body)
+        return listOf(classDef(parser, "Ljava/lang/Object;", listOf(parse)))
+    }
+
+    private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, flags: Int, body: String): Method {
+        val total = registers + parameters.size + if (AccessFlags.STATIC.isSet(flags)) 0 else 1
+        val mutable = MutableMethod(
+            ImmutableMethod(
+                owner, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, flags, null, null,
+                ImmutableMethodImplementation(total, emptyList(), null, null),
+            ),
+        )
+        mutable.addInstructionsWithLabels(0, body.lines().filter { it.isNotBlank() }.joinToString("\n") { it.trim() })
+        return ImmutableMethod.of(mutable)
+    }
+
+    private fun classDef(type: String, superclass: String, methods: List<Method>): ClassDef =
+        ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, superclass, null, null, null, null, methods)
+
+    private fun MutableMethod.jumpTargets(): Set<Int> =
+        implementation!!.instructions.filterIsInstance<BuilderOffsetInstruction>().map { it.target.location.index }.toSet()
+
+    private fun MutableMethod.targetOf(index: Int): Int =
+        (implementation!!.instructions[index] as BuilderOffsetInstruction).target.location.index
+
+    private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+
+    private fun Instruction.referenceText(): String? = ((this as? ReferenceInstruction)?.reference as? MethodReference)?.toString()
+
+    private fun Instruction.string(): String? = ((this as? ReferenceInstruction)?.reference as? StringReference)?.string
+}

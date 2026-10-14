@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.profile;
 
 import android.view.View;
 
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.BooleanSupplier;
@@ -44,6 +45,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * above its posts. Its posts ask one check whether to add them, and {@link #hideCompletionCards}
  * answers first: a yes makes that check say no, so the cards are never added.
  *
+ * <p>Your notifications can end with People you don't follow back, accounts that follow you with a
+ * Follow back button on each. The notifications' parser hands those accounts to {@link #followBacks}
+ * before keeping them, and a null means there are none, so the section isn't built.
+ *
  * <p>Each hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer stands.
  */
@@ -56,6 +61,7 @@ public final class ProfileSuggestions {
     static final String CHAINING_BUTTON = "discover people button";
     static final String FOLLOW_LIST = "follow list section";
     static final String COMPLETION_CARDS = "complete your profile cards";
+    static final String FOLLOW_BACKS = "people you don't follow back";
 
     /**
      * The person-plus buttons this class hid, with the visibility each had. Instagram reuses the
@@ -150,6 +156,22 @@ public final class ProfileSuggestions {
         return hides(COMPLETION_CARDS, on);
     }
 
+    /**
+     * Injected where the notifications' parser keeps the accounts it read for People you don't follow
+     * back (#161), the suggestion section under your notifications. Answers null while Hide People you
+     * don't follow back is on, the same as a reply without those accounts, so the notifications build
+     * no section for them at all. Otherwise, or when anything goes wrong, [accounts] as they came.
+     * A follow notification is a story of its own and never passes here. Never throws.
+     */
+    public static List<?> followBacks(List<?> accounts) {
+        return followBacks(accounts, ProfileSuggestions::followBacksOn);
+    }
+
+    static List<?> followBacks(List<?> accounts, BooleanSupplier on) {
+        if (accounts == null || accounts.isEmpty()) return accounts;
+        return hides(FOLLOW_BACKS, on) ? null : accounts;
+    }
+
     /** Whether to hide this part now, counting it either way. False when anything goes wrong. */
     private static boolean hides(String part, BooleanSupplier on) {
         try {
@@ -175,5 +197,9 @@ public final class ProfileSuggestions {
 
     private static boolean completionOn() {
         return Utils.settingsReady() && Settings.HIDE_PROFILE_COMPLETION.get();
+    }
+
+    private static boolean followBacksOn() {
+        return Utils.settingsReady() && Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.get();
     }
 }

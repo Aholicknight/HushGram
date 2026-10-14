@@ -998,6 +998,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_profile_completion", FALSE);
 
     /**
+     * The People you don't follow back section under your notifications, accounts that follow you
+     * with a Follow back button on each
+     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#followBacks}). Read each
+     * time the notifications load, so off or paused, the section is back on the next load. Follow
+     * notifications stay either way. Off to start (#161).
+     */
+    public static final BooleanSetting HIDE_FOLLOW_BACK_SUGGESTIONS =
+            new BooleanSetting("hushgram_hide_follow_back_suggestions", FALSE);
+
+    /**
      * The row of story highlights on profiles
      * ({@link app.hushgram.extension.instagram.profile.ProfileHighlights}). Read each time Instagram
      * lays out a profile's header, so a change shows on the next profile opened. Off to start.

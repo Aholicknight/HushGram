@@ -6,6 +6,8 @@ package app.hushgram.extension.instagram.profile;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -20,6 +22,10 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -57,6 +63,7 @@ public class ProfileSuggestionsTest {
         Settings.HIDE_PROFILE_SUGGESTIONS.resetToDefault();
         Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.resetToDefault();
         Settings.HIDE_PROFILE_COMPLETION.resetToDefault();
+        Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -264,5 +271,50 @@ public class ProfileSuggestionsTest {
         assertFalse(ProfileSuggestions.hideCompletionCards(THROWS));
         String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.COMPLETION_CARDS + "'"));
+    }
+
+    /**
+     * #161: People you don't follow back goes only with its own switch. On, the parsed accounts come
+     * back null, as if the reply had none, and that's counted, with the profile switch on or off; off,
+     * paused or unready, the same list comes back. A missing or empty list passes as it came, uncounted.
+     */
+    @Test
+    public void peopleYouDontFollowBackGoOnlyWithTheirOwnSwitch() {
+        List<String> accounts = new ArrayList<>(Arrays.asList("one", "two"));
+        assertSame("the profile switch alone", accounts, ProfileSuggestions.followBacks(accounts));
+
+        Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.save(true);
+        assertNull(ProfileSuggestions.followBacks(accounts));
+        assertEquals("the list itself is left alone", 2, accounts.size());
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.ROUTE));
+        assertTrue(report, report.contains("1 removed"));
+        assertTrue(report, report.contains(ProfileSuggestions.FOLLOW_BACKS));
+        assertNull(ProfileSuggestions.followBacks(null));
+        List<String> none = new ArrayList<>();
+        assertSame(none, ProfileSuggestions.followBacks(none));
+        report = FeedFilterCounters.report().toString();
+        assertTrue("nothing to hide isn't counted: " + report, report.contains("1 removed"));
+        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
+        assertNull("with the profile switch off", ProfileSuggestions.followBacks(accounts));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", accounts, ProfileSuggestions.followBacks(accounts));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertSame("unready", accounts, ProfileSuggestions.followBacks(accounts)));
+
+        Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.save(false);
+        assertSame("off", accounts, ProfileSuggestions.followBacks(accounts));
+    }
+
+    /** A follow back switch that throws hands the accounts back and says which hook threw. */
+    @Test
+    public void aThrowingFollowBackSwitchFailsOpenAndIsReported() {
+        List<String> accounts = Collections.singletonList("one");
+        assertSame(accounts, ProfileSuggestions.followBacks(accounts, THROWS));
+        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.FOLLOW_BACKS + "'"));
     }
 }

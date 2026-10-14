@@ -38,6 +38,7 @@ public class FollowListSuggestionsSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.resetToDefault();
         Settings.HIDE_PROFILE_COMPLETION.resetToDefault();
+        Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -49,6 +50,7 @@ public class FollowListSuggestionsSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.resetToDefault();
         Settings.HIDE_PROFILE_COMPLETION.resetToDefault();
+        Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -91,6 +93,28 @@ public class FollowListSuggestionsSettingsTest {
         assertTrue(PatchFamily.PROFILE_SUGGESTIONS.switches.contains(Settings.HIDE_PROFILE_COMPLETION));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_PROFILE_COMPLETION.key));
     }
+    /** #161: Hide People you don't follow back comes right after Hide Complete your profile, starts off, is kept in a backup and answers off while paused. */
+    @Test public void hidePeopleYouDontFollowBackComesNextAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.key);
+        assertNotNull(row);
+        assertEquals("Hide People you don't follow back", row.getTitle().toString());
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("new followers stay"));
+        PreferenceGroup profiles = row.getParent();
+        assertEquals("Profiles", profiles.getTitle().toString());
+        String[] keys = new String[profiles.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = profiles.getPreference(i).getKey();
+        assertEquals(Arrays.toString(keys), Settings.HIDE_PROFILE_COMPLETION.key,
+                keys[Arrays.asList(keys).indexOf(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.key) - 1]);
+        assertFalse(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.get());
+        assertTrue(PatchFamily.PROFILE_SUGGESTIONS.switches.contains(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.key));
+        Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.get());
+        assertTrue(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.savedValue());
+    }
     @Test public void aSavedSwitchAnswersOffWhilePaused() throws Exception {
         open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
         Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(true);
@@ -104,5 +128,6 @@ public class FollowListSuggestionsSettingsTest {
         open(EnumSet.of(PatchFamily.PROFILE_HIGHLIGHTS));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_PROFILE_COMPLETION.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.key));
     }
 }

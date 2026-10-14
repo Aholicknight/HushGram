@@ -1164,6 +1164,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("Hide Complete your profile"),
                         L10n.t("Takes the Complete your profile cards, like Add bio and Find people to follow, off "
                                 + "your own profile. Your bio, counts and posts stay.")));
+                profiles.addPreference(toggle(context, Settings.HIDE_FOLLOW_BACK_SUGGESTIONS,
+                        L10n.t("Hide People you don't follow back"),
+                        L10n.t("Takes the People you don't follow back section off the bottom of your notifications. "
+                                + "Notifications about new followers stay.")));
             }
             if (build.contains(PatchFamily.PROFILE_HIGHLIGHTS)) {
                 profiles.addPreference(toggle(context, Settings.HIDE_HIGHLIGHTS, L10n.t("Hide highlights"),
