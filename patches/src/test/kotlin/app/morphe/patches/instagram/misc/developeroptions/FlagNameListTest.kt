@@ -113,9 +113,8 @@ class FlagNameListTest {
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
                 val rows = hooksTheList(bundle, bundle.name)
-                // 450's builder makes its two kinds of row from v6's entry, labels in v4 and v1.
-                assertEquals(bundle.name, listOf(46, 72), rows.map { it.at })
-                assertEquals(bundle.name, listOf(Triple(6, 4, 1), Triple(6, 4, 1)), rows.map { Triple(it.entry, it.parameter, it.config) })
+                // 451's builder makes its two kinds of row from v2's entry, labels in v1 and v0.
+                assertEquals(bundle.name, listOf(listOf(30, 2, 1, 0), listOf(40, 2, 1, 0)), rows.map { listOf(it.at, it.entry, it.parameter, it.config) })
                 checked += version
             }
         }
@@ -124,10 +123,9 @@ class FlagNameListTest {
 
     /**
      * The other builds of a declared version (#77, #95, #91). Every one hooks MetaConfig's list, and
-     * every one has the same two row sites, whether it makes the labels inline (385611404, 385611431,
-     * 385611438) or through the entry's getters (385611395, 385611400) or a static helper that takes
-     * the entry (the x86 and x86_64 builds, 385611439 and 385611440). Before #91 the last four
-     * refused and went without Import flag names.
+     * every one has the same two row sites, whether it makes the labels inline, through the entry's
+     * getters or through a static helper that takes the entry. Before #91 the builds making them
+     * through getters or a helper refused and went without Import flag names.
      */
     @Test fun everyBuildHooksMetaConfigsListWithTheSameTwoRows() {
         val hooked = mutableMapOf<String, Int>()
@@ -135,8 +133,8 @@ class FlagNameListTest {
             val label = bundle.parentFile.name
             hooked[label] = hooksTheList(bundle, label).size
         }
-        for (build in listOf("395", "400", "404", "431", "439", "440")) {
-            assertEquals("385611$build: $hooked", 2, hooked.entries.single { it.key.endsWith("-385611$build") }.value)
+        for (build in listOf("078", "082", "109", "111", "116", "117", "118")) {
+            assertEquals("385713$build: $hooked", 2, hooked.entries.single { it.key.endsWith("-385713$build") }.value)
         }
         assertEquals(hooked.toString(), setOf(2), hooked.values.toSet())
     }

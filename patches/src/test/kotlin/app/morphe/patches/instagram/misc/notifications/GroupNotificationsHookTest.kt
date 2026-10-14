@@ -207,7 +207,7 @@ class GroupNotificationsHookTest {
         val cancelsByShape = CANCEL_SHAPES.associateWith { shape ->
             methods.count { method -> method.instructions().any { it.cancelCall() == shape } }
         }
-        assertEquals("${label}: methods cancelling by shape", mapOf(cancelUntagged to 4, cancelTagged to 23), cancelsByShape)
+        assertEquals("${label}: methods cancelling by shape", mapOf(cancelUntagged to 4, cancelTagged to 24), cancelsByShape)
 
         val context = PatchContexts.of(callers)
         val sent = context.groupNotifications()

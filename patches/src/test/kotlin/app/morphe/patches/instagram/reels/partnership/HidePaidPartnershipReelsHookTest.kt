@@ -156,13 +156,13 @@ class HidePaidPartnershipReelsHookTest {
     }
 
     /**
-     * On the declared build and each other build of 450, the one method hooked is the Reels viewer's
+     * On the declared build and each other build of 451, the one method hooked is the Reels viewer's
      * network callback, where its page and fallback meet, with the field its fetcher fills from the
      * viewer's getModuleName. The twelve sources answering a page, found here by scanning the whole
      * build for callers of the converter and its helpers, are left as they are, the one holding a
      * search's SearchContext and the one the profile's mapper makes among them. The module names the
      * extension filters are exactly the Reels tab's: "clips_viewer_" and the source of each lane
-     * Instagram's lane enum lists, and the two names its tab container answers. The names of
+     * Instagram's lane enum lists, and the names its tab container answers. The names of
      * search, profile, audio, hashtag, location, Saved and message viewers aren't among them.
      */
     @Test
@@ -255,15 +255,15 @@ class HidePaidPartnershipReelsHookTest {
                 })
             }
 
-            val viewerSource = marked.getValue(TAB_CONTAINER_MODULE).single()
-            assertEquals("${bundle.name}: the tab container's class", VIEWER_SOURCE, viewerSource.type)
-            val values = sourceValues(viewerSource)
+            val values = sourceValues(FixtureDex.classes(bundle, setOf(VIEWER_SOURCE)).values.single())
             val lane = marked.getValue(LANE_SOURCE).single()
             val lanes = lane.methods.single { it.name == "<clinit>" }.code().mapNotNull { instruction ->
                 (instruction.reference() as? FieldReference)?.takeIf { instruction.opcode == Opcode.SGET_OBJECT && it.definingClass == VIEWER_SOURCE }
                     ?.let { "clips_viewer_" + values[it.name] }
             }.toSet()
-            val container = markedBy(TAB_CONTAINER_MODULE).single().code().mapNotNull { it.string() }.filter { it.startsWith("clips_viewer_") }
+            // 451's Redex inlines getClipsTabContainerModule into its callers, so its names are those of every marked copy.
+            val container = markedBy(TAB_CONTAINER_MODULE).flatMap { method -> method.code().mapNotNull { it.string() } }.filter { it.startsWith("clips_viewer_") }
+            assertTrue("${bundle.name}: the tab container answers no name", container.isNotEmpty())
             assertEquals("${bundle.name}: the Reels tab's module names", lanes + container, tabModules)
             for (chosen in listOf(
                 "clips_profile", "self_clips_profile", "serp_top_clips_unit", "audio_page", "feed_hashtag",
@@ -274,7 +274,7 @@ class HidePaidPartnershipReelsHookTest {
             }
             checked++
         }
-        assertEquals("the seven builds of 450 weren't all read", 7, checked)
+        assertEquals("the eight builds of 451 weren't all read", 8, checked)
     }
 
     /**
