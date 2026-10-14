@@ -8,6 +8,8 @@ Every HushGram release, newest first.
 
 #### Features
 
+* **Instagram - HushGram settings:** Quick setups can be hidden from the settings home with a long press on its row, and its help line now says so. The Quick setups on the home page row on Settings backup brings it back. The choice stays out of settings backups and Quick setups, and Pause leaves it alone.
+
 * **Instagram - HushGram settings:** Long-press Instagram's feed logo to open HushGram settings, even while paused. Taps keep Instagram's behavior, and its own long press runs first. It works on the newer Home header with feed tabs too.
 
 * **Instagram - HushGram settings:** Quick setups, under Search, turns on a Quiet or Privacy set of switches in one tap, or puts every switch back the way it started. Your locks stay as they are.

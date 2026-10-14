@@ -1054,7 +1054,13 @@ Report a problem	Sorun bildir
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Sürümlerin ve ayarların önceden doldurulmuş bir GitHub raporu açar. Ne olduğunu ekle.
 # context: the settings row under Search, and the title of its dialog of one-tap choices
 Quick setups	Hızlı kurulumlar
-Turn on a set of switches in one tap, or put every switch back the way it started.	Bir grup anahtarı tek dokunuşla aç veya tüm anahtarları başlangıçtaki hâline döndür.
+Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row.	Bir grup anahtarı tek dokunuşla aç veya tüm anahtarları başlangıçtaki hâline döndür. Bu satırı gizlemek için basılı tut.
+# context: row on Settings backup that hides or shows the Quick setups row on the home page, and its two summaries
+Quick setups on the home page	Ana sayfada hızlı kurulumlar
+Shown. Tap to hide it.	Gösteriliyor. Gizlemek için dokun.
+Hidden. Tap to show it again.	Gizli. Yeniden göstermek için dokun.
+# context: toast after a long press hides Quick setups; the page named is Settings backup
+Quick setups hidden. Bring it back from %1$s.	Hızlı kurulumlar gizlendi. %1$s sayfasından geri getirebilirsin.
 # context: a Quick setups choice that hides ads, suggestions and promotions
 Quiet	Sessiz
 # context: a Quick setups choice that turns on the privacy switches

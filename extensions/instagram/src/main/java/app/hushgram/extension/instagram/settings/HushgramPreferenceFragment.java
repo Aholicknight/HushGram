@@ -158,6 +158,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String REPORT_ROW_KEY = "action_report_problem";
     /** The row under Search that offers Quiet, Privacy and Back to defaults. */
     static final String QUICK_SETUPS_ROW_KEY = "action_quick_setups";
+    /** Settings backup's row that hides or shows the Quick setups row on the home page. */
+    static final String RESTORE_QUICK_SETUPS_ROW_KEY = "action_restore_quick_setups";
     /** The English of the row listing what Pause can't reach, and its key in {@link L10n}. */
     static final String STAYS_WHILE_PAUSED = "Stays in while paused";
     /** The Before you sign in notice's key, which finds it on the screen. */
@@ -338,6 +340,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             list.setDivider(null);
             list.setDividerHeight(0);
             list.setBackgroundColor(Color.BLACK);
+            // A long press on Quick setups takes it off the home, and Settings backup brings it back.
+            list.setOnItemLongClickListener((parent, row, position, id) -> {
+                if (quickSetups == null || parent.getItemAtPosition(position) != quickSetups) return false;
+                return hideQuickSetups();
+            });
         }
         showTitle(openCategory == null ? null : openCategory.getTitle());
     }
@@ -1609,6 +1616,20 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         undoConfiguration.setTitle(L10n.t("Undo settings import"));
         backup.addPreference(mark(undoConfiguration, SettingsIcons.DELETE));
         showConfiguration();
+        Row restoreQuick = new Row(context);
+        restoreQuick.setKey(RESTORE_QUICK_SETUPS_ROW_KEY);
+        restoreQuick.setPersistent(false);
+        restoreQuick.actsAtOnce = true;
+        restoreQuick.setTitle(L10n.t("Quick setups on the home page"));
+        restoreQuick.setSummary(restoreQuickSetupsSummary());
+        restoreQuick.setOnPreferenceClickListener(p -> {
+            if (Settings.HIDE_QUICK_SETUPS.save(!Settings.HIDE_QUICK_SETUPS.savedValue())) {
+                p.setSummary(restoreQuickSetupsSummary());
+                filterSettings();
+            }
+            return true;
+        });
+        backup.addPreference(mark(restoreQuick, SettingsIcons.TOOLS));
 
         // Named for its rows: the screen's own title already says HushGram.
         PreferenceCategory hushgram = category(screen, L10n.t("Pause and diagnostics"), SettingsIcons.PAUSE, null);
@@ -1673,7 +1694,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Row quick = quickSetups = new Row(context);
         quick.setKey(QUICK_SETUPS_ROW_KEY);
         quick.setTitle(L10n.t("Quick setups"));
-        quick.setSummary(L10n.t("Turn on a set of switches in one tap, or put every switch back the way it started."));
+        quick.setSummary(L10n.t("Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row."));
         quick.setPersistent(false);
         quick.setOrder(-5);
         quick.setOnPreferenceClickListener(p -> {
@@ -2145,6 +2166,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             String text = searchText(row.getTitle()) + " " + searchText(row.getSummary()) + looseAliases[i];
             boolean match = true;
             for (String term : terms) if (!text.contains(term)) { match = false; break; }
+            // A long press took Quick setups off the home, and a search leaves it off too.
+            if (row == quickSetups && Settings.HIDE_QUICK_SETUPS.savedValue()) match = false;
             boolean shown = match && (terms.length > 0 || !pages || openCategory == null);
             if (terms.length > 0 && match) matches++;
             if (shown) {
@@ -2235,6 +2258,21 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             line.setTitle(text);
             screen.addPreference(line);
         }
+    }
+
+    /** What the Settings backup row says about the Quick setups row on the home page. */
+    private static String restoreQuickSetupsSummary() {
+        return Settings.HIDE_QUICK_SETUPS.savedValue() ? L10n.t("Hidden. Tap to show it again.") : L10n.t("Shown. Tap to hide it.");
+    }
+
+    /** A long press on Quick setups: the row leaves the home at once and a toast says where it went. */
+    private boolean hideQuickSetups() {
+        if (!Settings.HIDE_QUICK_SETUPS.save(true)) return false;
+        Preference restore = findPreference(RESTORE_QUICK_SETUPS_ROW_KEY);
+        if (restore != null) restore.setSummary(restoreQuickSetupsSummary());
+        filterSettings();
+        Utils.showToastLong(L10n.f("Quick setups hidden. Bring it back from %1$s.", L10n.t("Settings backup")));
+        return true;
     }
 
     /**

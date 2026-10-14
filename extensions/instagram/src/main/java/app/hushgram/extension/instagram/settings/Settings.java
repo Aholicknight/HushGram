@@ -1749,4 +1749,12 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting SIGN_IN_NOTICE_HIDDEN =
             new BooleanSetting("hushgram_sign_in_notice_hidden", FALSE, false, false);
+
+    /**
+     * A long press took the Quick setups row off the settings home. It isn't a switch: a pause
+     * doesn't bring the row back, no Quick setups choice touches it, and a settings backup leaves
+     * it out. The Quick setups on the home page row on Settings backup brings it back.
+     */
+    public static final BooleanSetting HIDE_QUICK_SETUPS =
+            new BooleanSetting("hushgram_hide_quick_setups", FALSE, false, false);
 }
