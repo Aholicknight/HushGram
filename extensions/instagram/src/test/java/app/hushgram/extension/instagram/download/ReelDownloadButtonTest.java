@@ -269,17 +269,47 @@ public class ReelDownloadButtonTest {
     }
 
     @Test
-    public void anUnreadableMoreLeavesSavesMargin() {
-        ReelDownloadButton.bridge = new FakeBridge() {
-            @Override public int moreTop(Object column, Context context) {
-                throw new IllegalStateException("unreadable");
-            }
-        };
+    public void anUnreadableMoreLeavesSavesMarginAndTheIcon() {
         long eightDp = ReelDownloadButton.PX_BITS | 23;
-        FakeBridge failing = (FakeBridge) ReelDownloadButton.bridge;
-        assertSame(failing.made, ReelDownloadButton.lithoAboveMore(new Column(new Item(Kind.ORGANIC, "reel")), null, 124, eightDp));
-        assertEquals(eightDp, failing.margin);
-        assertTrue(String.join("\n", HookStatus.report()).contains("reel download button spacing"));
+        // A rewritten bridge that no longer fits throws an Error, not an exception.
+        for (Throwable thrown : new Throwable[] {
+                new IncompatibleClassChangeError("moreTop"), new NoSuchMethodError("moreTop"), new IllegalStateException("unreadable")}) {
+            HookStatus.clear();
+            FakeBridge failing = new FakeBridge() {
+                @Override public int moreTop(Object column, Context context) {
+                    if (thrown instanceof Error) throw (Error) thrown;
+                    throw (RuntimeException) thrown;
+                }
+            };
+            ReelDownloadButton.bridge = failing;
+            String name = thrown.getClass().getSimpleName();
+            assertSame(name + " still gets the icon", failing.made,
+                    ReelDownloadButton.lithoAboveMore(new Column(new Item(Kind.ORGANIC, "reel")), null, 124, eightDp));
+            assertEquals(name + " keeps Save's margin", eightDp, failing.margin);
+            assertTrue(name + " is counted", String.join("\n", HookStatus.report()).contains(ReelDownloadButton.COUNT_MORE_UNREAD + " 1"));
+            assertTrue(name + " isn't a miss, since the button works", HookStatus.missing(FamilyNames.REEL_DOWNLOAD).isEmpty());
+        }
+    }
+
+    @Test
+    public void aMarginNotInPixelsIsKeptAndCounted() {
+        Column column = new Column(new Item(Kind.ORGANIC, "reel"));
+        long dp = Double.doubleToRawLongBits(8.0);
+        bridge.moreTop = -23;
+        assertSame(bridge.made, ReelDownloadButton.lithoAboveMore(column, null, 124, dp));
+        assertEquals("a margin in dp is handed on as it came", dp, bridge.margin);
+        String report = String.join("\n", HookStatus.report());
+        assertTrue("and counted, so a gap that's gone again shows", report.contains(ReelDownloadButton.COUNT_NOT_PIXELS + " 1"));
+        assertTrue(HookStatus.missing(FamilyNames.REEL_DOWNLOAD).isEmpty());
+
+        bridge.moreTop = 0;
+        ReelDownloadButton.lithoAboveMore(column, null, 124, dp);
+        bridge.moreTop = -23;
+        ReelDownloadButton.lithoAboveMore(column, null, 124, ReelDownloadButton.PX_BITS | 23);
+        ReelDownloadButton.litho(column, null, 124, dp);
+        assertTrue("with nothing to make up, in pixels, or over Share, nothing more is counted",
+                String.join("\n", HookStatus.report()).contains(ReelDownloadButton.COUNT_NOT_PIXELS + " 1"));
+        assertFalse(String.join("\n", HookStatus.report()).contains(ReelDownloadButton.COUNT_MORE_UNREAD));
     }
 
     @Test

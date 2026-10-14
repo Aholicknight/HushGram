@@ -54,6 +54,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public final class ReelDownloadButton {
     private static final String SOURCE = "ReelDownloadButton";
     static final String COUNT_REFUSED = "reel button not placed";
+    /** The icon over More placed with Save's margin, since More's top margin couldn't be read. */
+    static final String COUNT_MORE_UNREAD = "reel button over More kept Save's margin, More's unread";
+    /** The icon over More placed with Save's margin, since that margin wasn't in pixels. */
+    static final String COUNT_NOT_PIXELS = "reel button over More kept Save's margin, not in pixels";
     /** Instagram's download glyph, by name since the number changes from build to build. */
     private static final String ICON_NAME = "instagram_download_outline_24";
     /** The kind of an ordinary reel, as the reel's item names it. Ads and cards have other kinds. */
@@ -71,6 +75,7 @@ public final class ReelDownloadButton {
     /** Instagram's download glyph, looked up once: 0 until then, -1 when this build has none. */
     static volatile int glyph;
     private static volatile boolean logged;
+    private static volatile boolean moreUnreadLogged;
 
     private ReelDownloadButton() {
     }
@@ -244,14 +249,29 @@ public final class ReelDownloadButton {
         }
     }
 
-    /** The icon's bottom margin over More, or Save's own [margin] when More's top can't be read. */
+    /**
+     * The icon's bottom margin over More. When More's top can't be read, an Error from the bridge
+     * included, or Save's [margin] isn't in pixels, the icon still goes in with Save's margin and
+     * the case is counted under its own name, since the button itself works.
+     */
     private static long underAboveMore(Object column, Context context, long margin) {
+        int moreTop;
         try {
-            return marginAboveMore(margin, bridge.moreTop(column, context));
-        } catch (RuntimeException unreadable) {
-            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel download button spacing", unreadable);
+            moreTop = bridge.moreTop(column, context);
+        } catch (Throwable unreadable) {
+            HookStatus.counted(FamilyNames.REEL_DOWNLOAD, COUNT_MORE_UNREAD);
+            if (!moreUnreadLogged) {
+                moreUnreadLogged = true;
+                Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE,
+                        () -> "More's top margin couldn't be read, so the reel button kept Save's", unreadable);
+            }
             return margin;
         }
+        if (moreTop != 0 && !inPixels(margin)) {
+            HookStatus.counted(FamilyNames.REEL_DOWNLOAD, COUNT_NOT_PIXELS);
+            return margin;
+        }
+        return marginAboveMore(margin, moreTop);
     }
 
     /**
@@ -260,16 +280,14 @@ public final class ReelDownloadButton {
      * that isn't in pixels is left as it is.
      */
     static long marginAboveMore(long margin, int moreTop) {
-        if (moreTop == 0) return margin;
-        int pixels;
-        if (margin == 0) {
-            pixels = 0;
-        } else if ((margin & NAN_BITS) == NAN_BITS && (margin & PX_BITS) == PX_BITS) {
-            pixels = (int) margin;
-        } else {
-            return margin;
-        }
+        if (moreTop == 0 || !inPixels(margin)) return margin;
+        int pixels = margin == 0 ? 0 : (int) margin;
         return PX_BITS | (Math.max(0, pixels - moreTop) & 0xFFFFFFFFL);
+    }
+
+    /** Whether Litho reads [margin] as pixels: none at all, or a NaN carrying the pixel bits. */
+    static boolean inPixels(long margin) {
+        return margin == 0 || ((margin & NAN_BITS) == NAN_BITS && (margin & PX_BITS) == PX_BITS);
     }
 
     /** Whether the icon shows: its switch and Download on reels. Paused answers no. */
@@ -316,6 +334,7 @@ public final class ReelDownloadButton {
     static void resetForTests() {
         glyph = 0;
         logged = false;
+        moreUnreadLogged = false;
     }
 
     /**
