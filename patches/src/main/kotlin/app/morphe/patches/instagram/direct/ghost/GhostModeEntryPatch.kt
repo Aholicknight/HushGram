@@ -183,13 +183,13 @@ private fun Instruction.call() = reference() as? MethodReference
 private fun Method.holds(string: String) = code().any { (it.reference() as? StringReference)?.string == string }
 
 /**
- * Finds the New message button's configuration in 450's older inbox header without a name that a
+ * Finds the New message button's configuration in the older inbox header without a name that a
  * build renames. The New message tap logs [NEW_MESSAGE_TAPPED] in one method, and the one method of the
  * inbox header's controller (the class holding [INBOX_OPTIONS_TAPPED]) that calls it starts a new
- * message. The only View.OnClickListener class that calls that starts the same way is a switch over
- * its constructor's number, and the one case that reaches the call is the button's. The header
- * builder is the one place that makes that listener with that number. A different build fails the
- * search with a reason, and nothing is changed.
+ * message. The View.OnClickListener classes that call that start (one on 450, two on 451) are
+ * switches over their constructor's number, and a case reaching the call starts a message. The
+ * header builder is the one place that makes such a listener with such a number in a button's
+ * configuration. A different build fails the search with a reason, and nothing is changed.
  */
 internal fun BytecodePatchContext.findGhostEntries(): List<GhostEntry> {
     val (controller, start) = findNewMessageStart()
@@ -198,17 +198,24 @@ internal fun BytecodePatchContext.findGhostEntries(): List<GhostEntry> {
     val listeners = classesCalling(controller.type, start.name).filter { owner ->
         CLICK_LISTENER in owner.interfaces && owner.methods.any { it.name == "onClick" && it.callsStart().isNotEmpty() }
     }
-    val listener = listeners.singleOrNull() ?: refuse("expected one tap listener class that starts a new message, found ${listeners.size}")
-    val onClick = listener.methods.singleOrNull { it.name == "onClick" && it.parameterTypes.map(CharSequence::toString) == listOf(VIEW) }
-        ?: refuse("the tap listener has no onClick(View)")
-    val keys = onClick.callsStart().flatMap { caseReaching(onClick, it) }.distinct()
-    if (keys.isEmpty()) refuse("no case of the tap listener starts a new message")
+    if (listeners.isEmpty()) refuse("no tap listener class starts a new message")
+    if (listeners.size > 2) refuse("expected one or two tap listener classes that start a new message, found ${listeners.size}")
 
     // Every place that makes one of those listeners in a button configuration. The phone's New
     // message button is one; the same call also starts a message from other buttons, whose
-    // listeners are made elsewhere and are left alone.
-    val makers = classesCreating(listener.type).flatMap { owner ->
-        owner.methods.flatMap { method -> keys.mapNotNull { listening(method, listener.type, it) }.map { method to it } }
+    // listeners are made elsewhere and are left alone. 451 adds the inbox fragment's own listener,
+    // an if chain over its number rather than a switch, made only by the fragment and never by a
+    // button builder; it has no case to match and is passed over. If the button ever moved to such
+    // a listener, no builder is found and the search refuses.
+    val makers = listeners.flatMap { listener ->
+        val onClick = listener.methods.singleOrNull { it.name == "onClick" && it.parameterTypes.map(CharSequence::toString) == listOf(VIEW) }
+            ?: refuse("the tap listener ${listener.type} has no onClick(View)")
+        if (onClick.code().none { it.opcode == Opcode.PACKED_SWITCH || it.opcode == Opcode.SPARSE_SWITCH }) return@flatMap emptyList<Pair<Method, Int>>()
+        val keys = onClick.callsStart().flatMap { caseReaching(onClick, it) }.distinct()
+        if (keys.isEmpty()) refuse("no case of the tap listener ${listener.type} starts a new message")
+        classesCreating(listener.type).flatMap { owner ->
+            owner.methods.flatMap { method -> keys.mapNotNull { listening(method, listener.type, it) }.map { method to it } }
+        }
     }
     val entries = makers.mapNotNull { (builder, made) -> entryAt(builder, made, controller.type) }
     if (entries.isEmpty()) refuse("none of the ${makers.size} places that make the New message listener is the inbox header's button builder")

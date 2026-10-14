@@ -36,7 +36,7 @@ import java.io.File
 
 /**
  * Ghost mode from the inbox: the New message button in the inbox's top bar gets the extension's
- * long press, put in its configuration right after its tap listener, on every declared 450 build
+ * long press, put in its configuration right after its tap listener, on every declared build
  * and the other builds of that version. The button's tap, and every other method, stay as they were.
  */
 class GhostModeEntryHookTest {
