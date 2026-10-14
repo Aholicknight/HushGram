@@ -14,12 +14,18 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.DrawableContainer;
+import android.graphics.drawable.DrawableWrapper;
+import android.graphics.drawable.RippleDrawable;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.ImageView;
+import android.widget.Space;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -444,34 +450,73 @@ final class FriendshipChip {
             }
         }
 
-        /** The first of [row]'s children but [column] showing something that [bounds] touch, or null. */
+        /** The view under [row]'s children but [column] that shows something [bounds] touch, or null. */
         @Nullable
         private static View touching(ViewGroup row, View column, Rect bounds) {
             for (int i = 0; i < row.getChildCount(); i++) {
                 View child = row.getChildAt(i);
-                if (child != column && shows(child, bounds, child.getLeft(), child.getTop())) return child;
+                if (child == column) continue;
+                View shown = shown(child, bounds, child.getLeft(), child.getTop());
+                if (shown != null) return shown;
             }
             return null;
         }
 
         /**
-         * Whether [view], at [left] and [top] in the row, shows anything inside [bounds]: itself when
-         * it has a background or holds nothing, else any of its children. 451 stretches the counts
-         * block to the picture's height, empty under the counts, and a pill wider than the picture
-         * reaching into that room covers nothing (#157, S22 2026-10-14).
+         * The view in [view], at [left] and [top] in the row, that shows something inside [bounds], or
+         * null: a group counts by its background when that draws at rest, else by its children. 451
+         * stretches the counts block and its tappable counts to the picture's height, empty and with
+         * only a press ripple under the numbers, and a pill wider than the picture reaching into that
+         * room covers nothing (#157, S22 2026-10-14).
          */
-        private static boolean shows(View view, Rect bounds, int left, int top) {
-            if (view.getVisibility() != View.VISIBLE || view.getWidth() == 0 || view.getHeight() == 0) return false;
-            if (!Rect.intersects(bounds, new Rect(left, top, left + view.getWidth(), top + view.getHeight()))) return false;
-            if (!(view instanceof ViewGroup) || view.getBackground() != null || ((ViewGroup) view).getChildCount() == 0) return true;
+        @Nullable
+        private static View shown(View view, Rect bounds, int left, int top) {
+            if (view.getVisibility() != View.VISIBLE || view.getWidth() == 0 || view.getHeight() == 0) return null;
+            if (!Rect.intersects(bounds, new Rect(left, top, left + view.getWidth(), top + view.getHeight()))) return null;
+            if (drawsAtRest(view.getBackground())) return view;
+            if (!(view instanceof ViewGroup)) return drawsContent(view) ? view : null;
             ViewGroup group = (ViewGroup) view;
+            if (group.getChildCount() == 0) return group.willNotDraw() ? null : group;
             for (int i = 0; i < group.getChildCount(); i++) {
                 View child = group.getChildAt(i);
-                if (shows(child, bounds, left + child.getLeft() - group.getScrollX(), top + child.getTop() - group.getScrollY())) {
-                    return true;
-                }
+                View shown = shown(child, bounds, left + child.getLeft() - group.getScrollX(), top + child.getTop() - group.getScrollY());
+                if (shown != null) return shown;
             }
-            return false;
+            return null;
+        }
+
+        /** Whether a view with no background of its own draws anything: not a spacer, an empty text or an empty image. */
+        private static boolean drawsContent(View view) {
+            if (view instanceof Space || view.getClass() == View.class) return false;
+            if (view instanceof TextView) {
+                TextView text = (TextView) view;
+                if (text.length() > 0) return true;
+                for (Drawable side : text.getCompoundDrawablesRelative()) {
+                    if (side != null) return true;
+                }
+                return false;
+            }
+            if (view instanceof ImageView) return ((ImageView) view).getDrawable() != null;
+            return true;
+        }
+
+        /**
+         * Whether [background] shows anything while nothing is pressed: not a ripple with nothing but
+         * its mask under it, nor a clear color.
+         */
+        private static boolean drawsAtRest(@Nullable Drawable background) {
+            if (background == null || background.getAlpha() == 0) return false;
+            if (background instanceof ColorDrawable) return Color.alpha(((ColorDrawable) background).getColor()) != 0;
+            if (background instanceof RippleDrawable) {
+                RippleDrawable ripple = (RippleDrawable) background;
+                for (int i = 0; i < ripple.getNumberOfLayers(); i++) {
+                    if (ripple.getId(i) != android.R.id.mask && drawsAtRest(ripple.getDrawable(i))) return true;
+                }
+                return false;
+            }
+            if (background instanceof DrawableContainer) return drawsAtRest(background.getCurrent());
+            if (background instanceof DrawableWrapper) return drawsAtRest(((DrawableWrapper) background).getDrawable());
+            return true;
         }
 
         /** [view]'s id name, or its class's name when it has none Instagram named. */

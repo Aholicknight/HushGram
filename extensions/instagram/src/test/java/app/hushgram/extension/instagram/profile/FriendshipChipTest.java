@@ -15,8 +15,10 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.RippleDrawable;
 import android.view.View;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
@@ -268,14 +270,17 @@ public class FriendshipChipTest {
     }
 
     /**
-     * 451 stretches the counts block to the picture column's height, empty under the counts (#157,
-     * S22 2026-10-14). A pill wider than the picture reaching into that empty room stays under the
-     * picture: only what the neighbor shows is in the way.
+     * 451 stretches the counts block and its tappable counts to the picture column's height, empty
+     * under the numbers but for a press ripple (#157, S22 2026-10-14). A pill wider than the picture
+     * reaching into that room stays under the picture: only what the neighbor shows at rest is in
+     * the way.
      */
     @Test
     public void thePillMayReachIntoANeighborsEmptyRoom() {
         pictured(20, 260, 0);
         right.getLayoutParams().height = LinearLayout.LayoutParams.MATCH_PARENT;
+        right.setBackground(new RippleDrawable(ColorStateList.valueOf(Color.GRAY), null, null));
+        right.addView(new View(right.getContext()), new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
         FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
         layOut();
         ShadowLooper.idleMainLooper();
@@ -288,6 +293,23 @@ public class FriendshipChipTest {
         assertTrue("into the stretched block's rectangle", pill.bottom <= inRow(right).bottom);
         String report = String.join("\n", HookStatus.report());
         assertFalse(report, report.contains(FriendshipChip.NO_PICTURE_ROOM));
+    }
+
+    /** A neighbor whose own color fills the room the pill would take is in the way, and the report names it. */
+    @Test
+    public void aNeighborsColoredBackgroundIsInTheWay() {
+        pictured(20, 260, 0);
+        right.getLayoutParams().height = LinearLayout.LayoutParams.MATCH_PARENT;
+        right.setBackgroundColor(Color.DKGRAY);
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        layOut();
+        ShadowLooper.idleMainLooper();
+        layOut();
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        String report = String.join("\n", HookStatus.report());
+        assertFalse(report, chip.underPicture);
+        assertTrue(chip.pictureBlocked);
+        assertTrue(report, report.contains(FriendshipChip.WOULD_TOUCH + "LinearLayout 1"));
     }
 
     /** A picture column with a height of its own would squeeze the picture, so the small chip goes under the counts. */
