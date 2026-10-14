@@ -6,8 +6,13 @@ package app.hushgram.extension.instagram.profile;
 
 import android.view.View;
 
+import java.lang.ref.WeakReference;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.BooleanSupplier;
 
@@ -53,6 +58,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * builder asks {@link #hidesFollowBackSection} about each such section that has accounts, before it
  * adds the header: a yes skips the section, header, rows and footer, as if it had none.
  *
+ * <p>Your notifications also get rows that only suggest something, a thread from an account you
+ * don't follow or someone you might know (#181). The row parser hands each row and its kind to
+ * {@link #notificationParsed}, and the reply's list asks {@link #keepNotification} before adding it:
+ * a null there is the list's own check for a row that didn't parse, so the row is never drawn.
+ *
  * <p>Each hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer stands.
  */
@@ -72,6 +82,32 @@ public final class ProfileSuggestions {
 
     /** The diagnostic count of suggestion sections the notifications' builder asked about, any type. */
     static final String SECTIONS = "notification suggestion sections";
+
+    /** The diagnostic counter route of notification rows, by the server's name for each row's kind. */
+    static final String NOTIFICATIONS = "Notification rows";
+    static final String NO_TYPE = "no type";
+    static final String SUGGESTION_ROWS = "suggestion rows in notifications";
+
+    /**
+     * The server's names for notification rows that only suggest something to you, read off the
+     * notifications of an account that gets them on Instagram 451 (2026-10-14): "<name>, who you might
+     * know, is on Instagram" and "Check out your new follow suggestions" are connect_lowlness, and
+     * "<name> posted a thread you might be interested in" is the Threads one.
+     */
+    static final Set<String> SUGGESTION_TYPES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "connect_lowlness",
+            "ig_text_app_non_onboarded_unconnected_daily_digest")));
+
+    /** The prefix of every Threads ("text app") row, and the words in the names of those from accounts you aren't connected to. */
+    static final String THREADS_PREFIX = "ig_text_app_";
+    static final List<String> THREADS_SUGGESTION_WORDS = Collections.unmodifiableList(Arrays.asList("unconnected", "suggest", "recommend"));
+
+    /**
+     * The last row this thread's parser found to be a suggestion. The reply's list adds each row right
+     * after parsing it, on the same thread, so the row checked there is this one. Weak, since the parser
+     * also serves replies that never ask.
+     */
+    private static final ThreadLocal<WeakReference<Object>> lastSuggestion = new ThreadLocal<>();
 
     /**
      * The person-plus buttons this class hid, with the visibility each had. Instagram reuses the
@@ -202,6 +238,60 @@ public final class ProfileSuggestions {
         return FOLLOW_BACK_TYPE.equals(type) && decides(FOLLOW_BACKS, on);
     }
 
+    /**
+     * Injected right before the notifications' row parser hands back a row, with the row and the
+     * server's name for its kind (#181). Counts the name for the diagnostic report, and remembers a
+     * row that only suggests something, so {@link #keepNotification} can leave it out of the list.
+     * Never throws.
+     */
+    public static void notificationParsed(Object row, String type) {
+        try {
+            HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
+            FeedFilterCounters.sawKind(NOTIFICATIONS, type == null ? NO_TYPE : type);
+            lastSuggestion.set(row != null && isSuggestion(type) ? new WeakReference<>(row) : null);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, SUGGESTION_ROWS, failure);
+        }
+    }
+
+    /**
+     * Whether a row of this kind only suggests something: one of {@link #SUGGESTION_TYPES}, or a
+     * Threads row whose name says it comes from an account you aren't connected to or is a suggestion.
+     * Replies, likes and mentions on Threads say neither and stay.
+     */
+    static boolean isSuggestion(String type) {
+        if (type == null) return false;
+        if (SUGGESTION_TYPES.contains(type)) return true;
+        if (!type.startsWith(THREADS_PREFIX)) return false;
+        for (String word : THREADS_SUGGESTION_WORDS) {
+            if (type.contains(word)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Injected where the notifications' reply adds each row it parsed to its list, the null check
+     * right after. Answers null, which that check skips, for a row {@link #notificationParsed} found
+     * to be a suggestion while Hide suggestions in notifications is on. Any other row, the switch off,
+     * paused or unready, or anything going wrong, answers [row] as it came. Never throws.
+     */
+    public static Object keepNotification(Object row) {
+        return keepNotification(row, ProfileSuggestions::notificationSuggestionsOn);
+    }
+
+    static Object keepNotification(Object row, BooleanSupplier on) {
+        if (row == null) return null;
+        try {
+            WeakReference<Object> marked = lastSuggestion.get();
+            if (marked == null || marked.get() != row) return row;
+            lastSuggestion.set(null);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, SUGGESTION_ROWS, failure);
+            return row;
+        }
+        return decides(SUGGESTION_ROWS, on) ? null : row;
+    }
+
     /** Whether to hide this part now, counting the call and the part either way. False when anything goes wrong. */
     private static boolean hides(String part, BooleanSupplier on) {
         HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
@@ -236,5 +326,9 @@ public final class ProfileSuggestions {
 
     private static boolean followBacksOn() {
         return Utils.settingsReady() && Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.get();
+    }
+
+    private static boolean notificationSuggestionsOn() {
+        return Utils.settingsReady() && Settings.HIDE_NOTIFICATION_SUGGESTIONS.get();
     }
 }

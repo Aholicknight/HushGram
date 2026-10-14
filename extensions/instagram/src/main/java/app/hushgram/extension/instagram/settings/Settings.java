@@ -1010,6 +1010,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_follow_back_suggestions", FALSE);
 
     /**
+     * Notification rows that only suggest something, a thread from an account you don't follow or
+     * someone you might know
+     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#keepNotification}). Read each
+     * time the notifications load, so off or paused, the rows are back on the next load. Likes,
+     * comments, mentions and new followers stay either way. Off to start (#181).
+     */
+    public static final BooleanSetting HIDE_NOTIFICATION_SUGGESTIONS =
+            new BooleanSetting("hushgram_hide_notification_suggestions", FALSE);
+
+    /**
      * The row of story highlights on profiles
      * ({@link app.hushgram.extension.instagram.profile.ProfileHighlights}). Read each time Instagram
      * lays out a profile's header, so a change shows on the next profile opened. Off to start.

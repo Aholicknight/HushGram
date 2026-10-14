@@ -72,15 +72,15 @@ private const val INTEGER = "Ljava/lang/Integer;"
  * Takes the accounts Instagram suggests off profiles. In the default selection with its switch off:
  * suggestions are one of Instagram's features, so leaving them out is the user's pick. Asked for in
  * #15 and #20, its follow list switch in #139, its Complete your profile switch in #159 and its
- * People you don't follow back switch in #161.
+ * People you don't follow back switch in #161 and its suggestions in notifications switch in #181.
  */
 @Suppress("unused")
 val hideProfileSuggestionsPatch = bytecodePatch(
     name = "Hide suggested people on profiles",
     description = "Takes Suggested for you and the Discover people button off profiles. Bios, counts and posts stay. " +
         "More switches take Suggested for you off the followers and following lists, the Complete your profile " +
-        "cards off your own profile and People you don't follow back off your notifications. Starts off. Turn it " +
-        "on in HushGram settings > Profiles.",
+        "cards off your own profile, and People you don't follow back and suggested threads and people off your " +
+        "notifications. Starts off. Turn it on in HushGram settings > Profiles.",
 ) {
     category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -93,11 +93,16 @@ val hideProfileSuggestionsPatch = bytecodePatch(
         val completion = findCompletionGate()
         val followBacks = findFollowBacks()
         val followBackSection = findFollowBackSectionOrWarn()
+        val notificationSuggestions = findNotificationSuggestionsOrWarn()
         hideProfileSuggestions(sites)
         hideFollowListSuggestions(followList)
         hideCompletionCards(completion)
         hideFollowBacks(followBacks)
         followBackSection?.let { hideFollowBackSection(it) }
+        notificationSuggestions?.let { (rows, lists) ->
+            noteNotificationRows(rows)
+            keepNotificationRows(lists)
+        }
         enableStatus("profileSuggestions")
     }
 }

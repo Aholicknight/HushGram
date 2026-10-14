@@ -64,6 +64,7 @@ public class ProfileSuggestionsTest {
         Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.resetToDefault();
         Settings.HIDE_PROFILE_COMPLETION.resetToDefault();
         Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.resetToDefault();
+        Settings.HIDE_NOTIFICATION_SUGGESTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -362,5 +363,96 @@ public class ProfileSuggestionsTest {
         assertFalse(ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE, THROWS));
         String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.FOLLOW_BACKS + "'"));
+    }
+
+    /**
+     * #181: the kinds the S22's inbox sent for "who you might know", "Check out your new follow
+     * suggestions" and a suggested thread are suggestions, and so is any Threads kind naming an account
+     * you aren't connected to or a suggestion. Likes, comments, follows and Threads replies aren't.
+     */
+    @Test
+    public void onlyKindsThatSuggestSomethingAreSuggestions() {
+        assertTrue(ProfileSuggestions.isSuggestion("connect_lowlness"));
+        assertTrue(ProfileSuggestions.isSuggestion("ig_text_app_non_onboarded_unconnected_daily_digest"));
+        assertTrue(ProfileSuggestions.isSuggestion("ig_text_app_recommended_threads"));
+        assertTrue(ProfileSuggestions.isSuggestion("ig_text_app_suggested_profiles"));
+        assertFalse(ProfileSuggestions.isSuggestion("ig_text_app_reply"));
+        assertFalse(ProfileSuggestions.isSuggestion("ig_text_app_mention"));
+        assertFalse("a suggestion word outside Threads", ProfileSuggestions.isSuggestion("suggested_users"));
+        assertFalse(ProfileSuggestions.isSuggestion("like"));
+        assertFalse(ProfileSuggestions.isSuggestion("comment"));
+        assertFalse(ProfileSuggestions.isSuggestion("user_followed"));
+        assertFalse(ProfileSuggestions.isSuggestion(""));
+        assertFalse(ProfileSuggestions.isSuggestion(null));
+    }
+
+    /**
+     * #181: a row the parser called a suggestion leaves the list only while Hide suggestions in
+     * notifications is on, once, and only that same row. Every kind shows in the report. Off, paused or
+     * unready, every row stays.
+     */
+    @Test
+    public void suggestionRowsInNotificationsGoOnlyWithTheirOwnSwitch() {
+        Object suggestion = new Object();
+        Object like = new Object();
+        ProfileSuggestions.notificationParsed(suggestion, "connect_lowlness");
+        assertSame("the profile switch alone", suggestion, ProfileSuggestions.keepNotification(suggestion));
+        String ran = String.join("\n", HookStatus.report());
+        assertTrue(ran, ran.contains(FamilyNames.PROFILE_SUGGESTIONS));
+
+        Settings.HIDE_NOTIFICATION_SUGGESTIONS.save(true);
+        ProfileSuggestions.notificationParsed(suggestion, "connect_lowlness");
+        assertNull(ProfileSuggestions.keepNotification(suggestion));
+        assertSame("a row is only taken once", suggestion, ProfileSuggestions.keepNotification(suggestion));
+        ProfileSuggestions.notificationParsed(like, "like");
+        assertSame(like, ProfileSuggestions.keepNotification(like));
+        ProfileSuggestions.notificationParsed(like, null);
+        assertSame("no kind", like, ProfileSuggestions.keepNotification(like));
+        ProfileSuggestions.notificationParsed(suggestion, "connect_lowlness");
+        assertSame("another row than the one parsed", like, ProfileSuggestions.keepNotification(like));
+        assertNull(ProfileSuggestions.keepNotification(suggestion));
+        assertNull("no row", ProfileSuggestions.keepNotification(null));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.NOTIFICATIONS));
+        assertTrue(report, report.contains("connect_lowlness"));
+        assertTrue(report, report.contains(ProfileSuggestions.NO_TYPE));
+        assertTrue(report, report.contains(ProfileSuggestions.SUGGESTION_ROWS + " 2"));
+        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
+        ProfileSuggestions.notificationParsed(suggestion, "connect_lowlness");
+        assertNull("with the profile switch off", ProfileSuggestions.keepNotification(suggestion));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        ProfileSuggestions.notificationParsed(suggestion, "connect_lowlness");
+        assertSame("paused", suggestion, ProfileSuggestions.keepNotification(suggestion));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        ProfileSuggestions.notificationParsed(suggestion, "connect_lowlness");
+        SettingsContextRule.withoutContext(() -> assertSame("unready", suggestion, ProfileSuggestions.keepNotification(suggestion)));
+
+        Settings.HIDE_NOTIFICATION_SUGGESTIONS.save(false);
+        ProfileSuggestions.notificationParsed(suggestion, "connect_lowlness");
+        assertSame("off", suggestion, ProfileSuggestions.keepNotification(suggestion));
+    }
+
+    /** A row parsed on another thread isn't taken from this thread's list. */
+    @Test
+    public void aSuggestionParsedOnAnotherThreadStays() throws InterruptedException {
+        Settings.HIDE_NOTIFICATION_SUGGESTIONS.save(true);
+        Object suggestion = new Object();
+        Thread parser = new Thread(() -> ProfileSuggestions.notificationParsed(suggestion, "connect_lowlness"));
+        parser.start();
+        parser.join();
+        assertSame(suggestion, ProfileSuggestions.keepNotification(suggestion));
+    }
+
+    /** A notification switch that throws leaves the row in the list and says which hook threw. */
+    @Test
+    public void aThrowingNotificationSwitchFailsOpenAndIsReported() {
+        Object suggestion = new Object();
+        ProfileSuggestions.notificationParsed(suggestion, "connect_lowlness");
+        assertSame(suggestion, ProfileSuggestions.keepNotification(suggestion, THROWS));
+        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.SUGGESTION_ROWS + "'"));
     }
 }

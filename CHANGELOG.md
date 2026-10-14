@@ -36,6 +36,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide suggested people on profiles:** New switch under Profiles, Hide People you don't follow back, off by default. It takes that section and its Follow back buttons off your notifications. Notifications about new followers stay. Asked for in #161.
 
+* **Instagram - Hide suggested people on profiles:** New switch under Profiles, Hide suggestions in notifications, off by default. Rows that only suggest something, like a thread from an account you don't follow or someone you might know, leave your notifications. Likes, comments, mentions and new followers stay. Asked for in #181.
+
 * **Instagram - Hide suggested stories:** A new switch under Stories, Hide Suggested for you between stories, leaves out the cards of accounts to follow that Instagram slips between the stories you tap through. Asked for in #154.
 
 * **Instagram - Story ring size:** New Ring color list under it. Pick Blue, Purple, Red, Orange or Gold for the rings of stories you haven't watched. Watched rings stay gray and Close Friends stays green. It starts on Instagram's own colors. Asked for in #176.

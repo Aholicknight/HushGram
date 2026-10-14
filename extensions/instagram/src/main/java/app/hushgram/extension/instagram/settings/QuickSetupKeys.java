@@ -51,7 +51,8 @@ final class QuickSetupKeys {
             Settings.HIDE_PROFILE_SUGGESTIONS,
             Settings.HIDE_FOLLOW_LIST_SUGGESTIONS,
             Settings.HIDE_PROFILE_COMPLETION,
-            Settings.HIDE_FOLLOW_BACK_SUGGESTIONS));
+            Settings.HIDE_FOLLOW_BACK_SUGGESTIONS,
+            Settings.HIDE_NOTIFICATION_SUGGESTIONS));
 
     /** Less said about you: seen receipts, typing, active status, screenshots, link tags and usage reports. */
     static final List<BooleanSetting> PRIVACY = Collections.unmodifiableList(Arrays.asList(

@@ -1176,6 +1176,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("Hide People you don't follow back"),
                         L10n.t("Takes the People you don't follow back section off the bottom of your notifications. "
                                 + "Notifications about new followers stay.")));
+                profiles.addPreference(toggle(context, Settings.HIDE_NOTIFICATION_SUGGESTIONS,
+                        L10n.t("Hide suggestions in notifications"),
+                        L10n.t("Takes rows that only suggest something off your notifications, like a thread from an "
+                                + "account you don't follow or someone you might know. Likes, comments, mentions and "
+                                + "new followers stay.")));
             }
             if (build.contains(PatchFamily.PROFILE_HIGHLIGHTS)) {
                 profiles.addPreference(toggle(context, Settings.HIDE_HIGHLIGHTS, L10n.t("Hide highlights"),

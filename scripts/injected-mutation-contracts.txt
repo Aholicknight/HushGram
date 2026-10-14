@@ -1383,6 +1383,18 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->followB
 # way past the section. Left out, the section comes back. Twice or elsewhere, it isn't the hook the
 # patch wrote. FollowBacksHookTest checks on all seven 450 builds where the call sits and what it reads.
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->hidesFollowBackSection(Ljava/lang/String;)Z in static (Landroid/content/Context;L*;Lcom/instagram/common/session/UserSession;L*;L*;L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZZ)L*; holding FRIENDING_UNIT_FALLBACK FOLLOW_BACK
+#
+# Hide suggestions in notifications, Hide suggested people on profiles' fifth switch (#181): the
+# notifications' row parser (LX/02F9.unsafeParseFromJson on 385713073), the one method loading
+# notif_name and story_type, hands the row and its kind's name to ProfileSuggestions.notificationParsed
+# right before its one return of the row. The reply holding the rows (LX/01DS.unsafeParseFromJson),
+# the one method loading new_stories and old_stories, hands each row it parsed to
+# ProfileSuggestions.keepNotification before each list's null check, once for each of its five lists
+# of rows (new and old among them). Left out,
+# the suggestion rows come back; twice or elsewhere, it isn't the hook the patch wrote.
+# NotificationSuggestionsHookTest checks on all eight 451 builds where each call sits and what it reads.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->notificationParsed(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;)Ljava/lang/Object; holding notif_name story_type
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->keepNotification(Ljava/lang/Object;)Ljava/lang/Object; in instance (L*;)Ljava/lang/Object; sites 5 holding new_stories old_stories
 
 # Hide highlights asks ProfileHighlights before the same row list (0BNk.buildRowViewTypes on 449)
 # adds the row of story highlights, in place of its read of the tray's row type. It's called once
