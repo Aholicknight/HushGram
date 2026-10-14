@@ -46,8 +46,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * answers first: a yes makes that check say no, so the cards are never added.
  *
  * <p>Your notifications can end with People you don't follow back, accounts that follow you with a
- * Follow back button on each. The notifications' parser hands those accounts to {@link #followBacks}
- * before keeping them, and a null means there are none, so the section isn't built.
+ * Follow back button on each. They come two ways, and the notifications' list builder draws both
+ * under the same header. The older reply lists them under their own key, and its parser hands them to
+ * {@link #followBacks} before keeping them: a null means there are none, so the section isn't built.
+ * The newer reply sends them as one of its suggestion sections with the type FOLLOW_BACK, and the
+ * builder asks {@link #hidesFollowBackSection} about each such section that has accounts, before it
+ * adds the header: a yes skips the section, header, rows and footer, as if it had none.
  *
  * <p>Each hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer stands.
@@ -62,6 +66,12 @@ public final class ProfileSuggestions {
     static final String FOLLOW_LIST = "follow list section";
     static final String COMPLETION_CARDS = "complete your profile cards";
     static final String FOLLOW_BACKS = "people you don't follow back";
+
+    /** The type the notifications' reply gives the People you don't follow back section. */
+    static final String FOLLOW_BACK_TYPE = "FOLLOW_BACK";
+
+    /** The diagnostic count of suggestion sections the notifications' builder asked about, any type. */
+    static final String SECTIONS = "notification suggestion sections";
 
     /**
      * The person-plus buttons this class hid, with the visibility each had. Instagram reuses the
@@ -161,21 +171,46 @@ public final class ProfileSuggestions {
      * back (#161), the suggestion section under your notifications. Answers null while Hide People you
      * don't follow back is on, the same as a reply without those accounts, so the notifications build
      * no section for them at all. Otherwise, or when anything goes wrong, [accounts] as they came.
-     * A follow notification is a story of its own and never passes here. Never throws.
+     * A follow notification is a story of its own and never passes here. Counts the call even with
+     * no accounts, so the diagnostic report shows the hook ran. Never throws.
      */
     public static List<?> followBacks(List<?> accounts) {
         return followBacks(accounts, ProfileSuggestions::followBacksOn);
     }
 
     static List<?> followBacks(List<?> accounts, BooleanSupplier on) {
+        HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
         if (accounts == null || accounts.isEmpty()) return accounts;
-        return hides(FOLLOW_BACKS, on) ? null : accounts;
+        return decides(FOLLOW_BACKS, on) ? null : accounts;
     }
 
-    /** Whether to hide this part now, counting it either way. False when anything goes wrong. */
+    /**
+     * Injected where the notifications' list builder has a suggestion section from the server with
+     * accounts in it and is about to add its header (#161). True, skip the whole section, when [type]
+     * is People you don't follow back's and Hide People you don't follow back is on. False, Instagram
+     * goes on to draw it, for any other section, with the switch off, paused or unready, or when
+     * anything goes wrong. Follow notifications are stories, not sections, and never pass here.
+     * Never throws.
+     */
+    public static boolean hidesFollowBackSection(String type) {
+        return hidesFollowBackSection(type, ProfileSuggestions::followBacksOn);
+    }
+
+    static boolean hidesFollowBackSection(String type, BooleanSupplier on) {
+        HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
+        HookStatus.counted(FamilyNames.PROFILE_SUGGESTIONS, SECTIONS);
+        return FOLLOW_BACK_TYPE.equals(type) && decides(FOLLOW_BACKS, on);
+    }
+
+    /** Whether to hide this part now, counting the call and the part either way. False when anything goes wrong. */
     private static boolean hides(String part, BooleanSupplier on) {
+        HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
+        return decides(part, on);
+    }
+
+    /** Whether to hide this part now, counting the part either way. False when anything goes wrong. */
+    private static boolean decides(String part, BooleanSupplier on) {
         try {
-            HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
             FeedFilterCounters.sawKind(ROUTE, part);
             if (!on.getAsBoolean()) return false;
             FeedFilterCounters.removed(ROUTE, 1, part);

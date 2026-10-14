@@ -92,10 +92,12 @@ val hideProfileSuggestionsPatch = bytecodePatch(
         val followList = findFollowListSuggestions()
         val completion = findCompletionGate()
         val followBacks = findFollowBacks()
+        val followBackSection = findFollowBackSection()
         hideProfileSuggestions(sites)
         hideFollowListSuggestions(followList)
         hideCompletionCards(completion)
         hideFollowBacks(followBacks)
+        hideFollowBackSection(followBackSection)
         enableStatus("profileSuggestions")
     }
 }

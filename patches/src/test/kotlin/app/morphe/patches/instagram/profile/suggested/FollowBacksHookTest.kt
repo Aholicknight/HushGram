@@ -17,6 +17,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -35,20 +36,72 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Hide People you don't follow back, Hide suggested people on profiles' fourth switch: the parser's write, found and answered. */
+/** Hide People you don't follow back, Hide suggested people on profiles' fourth switch: the parser's write and the builder's section, found and answered. */
 class FollowBacksHookTest {
     private val parser = "Lfixture/InboxParser;"
     private val json = "Lfixture/Json;"
     private val inbox = "Lfixture/Inbox;"
     private val followBacksField = "$inbox->followBacks:Ljava/util/List;"
 
-    /** The hook the patch writes is in the ProfileSuggestions the bundle ships, public and static. */
+    /** The hooks the patch writes are in the ProfileSuggestions the bundle ships, public and static. */
     @Test
     fun theHookIsInTheExtension() {
         val declared = ExtensionDex.classDef(FOLLOW_BACKS.substringBefore("->")).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$FOLLOW_BACKS is not in the extension: $declared", FOLLOW_BACKS.substringAfter("->") in declared)
+        for (hook in listOf(FOLLOW_BACKS, FOLLOW_BACK_SECTION)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
+    }
+
+    /**
+     * In each declared build the notifications' list builder is the one method loading
+     * FRIENDING_UNIT_FALLBACK, and the section hook goes right after its rows check for a server
+     * section, before FOLLOW_BACK loads and the header goes in: the section's type in, the answer in the
+     * rows check's register, and a yes taking the rows check's own way past the section. On 450's
+     * 385611438 that's LX/0BYR.A00, the type in v15 and the answer in v2.
+     */
+    @Test
+    fun eachDeclaredBuildSkipsTheFollowBackSection() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
+        assertEquals("the seven 450 builds: ${bundles.map { it.name }}", 7, bundles.size)
+        for (bundle in bundles) {
+            val holders = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                for (classDef in dex.classes) {
+                    if (classDef.methods.any { m -> m.code().any { it.string() == FALLBACK_SECTION } }) holders += ImmutableClassDef.of(classDef)
+                }
+            }
+            val context = PatchContexts.of(holders)
+
+            val site = context.findFollowBackSection()
+            context.hideFollowBackSection(site)
+
+            val patched = context.mutableClassDefBy(site.type).methods.single {
+                it.name == site.name && it.returnType == site.returnType && it.parameterTypes.map(CharSequence::toString) == site.parameters
+            }
+            val code = patched.code()
+            assertEquals("${bundle.name}: hooks", 1, code.count { it.referenceText() == FOLLOW_BACK_SECTION })
+            val call = code.indexOfFirst { it.referenceText() == FOLLOW_BACK_SECTION }
+            assertEquals("${bundle.name}: the call", Opcode.INVOKE_STATIC_RANGE, code[call].opcode)
+            assertEquals("${bundle.name}: what it's handed", site.section, (code[call] as RegisterRangeInstruction).startRegister)
+            assertEquals("${bundle.name}: one register", 1, (code[call] as RegisterRangeInstruction).registerCount)
+            assertEquals("${bundle.name}: the answer", Opcode.MOVE_RESULT, code[call + 1].opcode)
+            assertEquals("${bundle.name}: the answer's register", site.answer, (code[call + 1] as OneRegisterInstruction).registerA)
+            assertEquals("${bundle.name}: the yes branch", Opcode.IF_NEZ, code[call + 2].opcode)
+            assertEquals("${bundle.name}: what it tests", site.answer, (code[call + 2] as OneRegisterInstruction).registerA)
+            assertEquals("${bundle.name}: FOLLOW_BACK loads next", FOLLOW_BACK_TYPE, code[call + 3].string())
+            assertEquals("${bundle.name}: the rows check comes first", "Ljava/util/List;->isEmpty()Z", code[call - 3].referenceText())
+            assertEquals("${bundle.name}: the rows check's branch", Opcode.IF_NEZ, code[call - 1].opcode)
+            assertEquals("${bundle.name}: a yes goes where no rows go", patched.targetOf(call - 1), patched.targetOf(call + 2))
+            assertTrue("${bundle.name}: the way past the section is before it", patched.targetOf(call + 2) < call)
+            val targets = patched.jumpTargets()
+            assertFalse("${bundle.name}: a jump lands in or skips the call", call in targets || call + 1 in targets || call + 2 in targets)
+            val hash = (call + 3 until code.size).first { code[it].referenceText() == "Ljava/lang/String;->hashCode()I" }
+            val switched = (code[hash] as? RegisterRangeInstruction)?.startRegister ?: (code[hash] as FiveRegisterInstruction).registerC
+            assertEquals("${bundle.name}: the type the header switch reads", site.section, switched)
+        }
     }
 
     /**

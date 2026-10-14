@@ -1001,7 +1001,8 @@ public class Settings extends BaseSettings {
     /**
      * The People you don't follow back section under your notifications, accounts that follow you
      * with a Follow back button on each
-     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#followBacks}). Read each
+     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#followBacks} and
+     * {@link app.hushgram.extension.instagram.profile.ProfileSuggestions#hidesFollowBackSection}). Read each
      * time the notifications load, so off or paused, the section is back on the next load. Follow
      * notifications stay either way. Off to start (#161).
      */

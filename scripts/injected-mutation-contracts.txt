@@ -1358,6 +1358,14 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->hideCom
 # the section comes back; twice or elsewhere, it isn't the hook the patch wrote. FollowBacksHookTest
 # checks on all seven 450 builds that the write is that one and that the parser's loop lands on the call.
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->followBacks(Ljava/util/List;)Ljava/util/List; in instance (L*;)Ljava/lang/Object; holding follow_backs
+#
+# The newer notifications reply sends the same accounts as a suggestion section typed FOLLOW_BACK, and
+# the notifications' list builder (LX/0BYR.A00 on 385611438), the one method loading
+# FRIENDING_UNIT_FALLBACK, asks ProfileSuggestions.hidesFollowBackSection right after its rows check
+# for that section, before FOLLOW_BACK loads and the header goes in. A yes takes the rows check's own
+# way past the section. Left out, the section comes back. Twice or elsewhere, it isn't the hook the
+# patch wrote. FollowBacksHookTest checks on all seven 450 builds where the call sits and what it reads.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->hidesFollowBackSection(Ljava/lang/String;)Z in static (Landroid/content/Context;L*;Lcom/instagram/common/session/UserSession;L*;L*;L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZZ)L*; holding FRIENDING_UNIT_FALLBACK FOLLOW_BACK
 
 # Hide highlights asks ProfileHighlights before the same row list (0BNk.buildRowViewTypes on 449)
 # adds the row of story highlights, in place of its read of the tray's row type. It's called once

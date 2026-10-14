@@ -276,10 +276,15 @@ public class ProfileSuggestionsTest {
     /**
      * #161: People you don't follow back goes only with its own switch. On, the parsed accounts come
      * back null, as if the reply had none, and that's counted, with the profile switch on or off; off,
-     * paused or unready, the same list comes back. A missing or empty list passes as it came, uncounted.
+     * paused or unready, the same list comes back. A missing or empty list passes as it came, with no
+     * removal counted, though the report still shows the hook ran.
      */
     @Test
     public void peopleYouDontFollowBackGoOnlyWithTheirOwnSwitch() {
+        assertNull(ProfileSuggestions.followBacks(null));
+        String ran = String.join("\n", HookStatus.report());
+        assertTrue("an empty answer still shows the hook ran: " + ran, ran.contains(FamilyNames.PROFILE_SUGGESTIONS));
+
         List<String> accounts = new ArrayList<>(Arrays.asList("one", "two"));
         assertSame("the profile switch alone", accounts, ProfileSuggestions.followBacks(accounts));
 
@@ -314,6 +319,47 @@ public class ProfileSuggestionsTest {
     public void aThrowingFollowBackSwitchFailsOpenAndIsReported() {
         List<String> accounts = Collections.singletonList("one");
         assertSame(accounts, ProfileSuggestions.followBacks(accounts, THROWS));
+        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.FOLLOW_BACKS + "'"));
+    }
+
+    /**
+     * #161 on the newer reply: the notifications' builder skips a section typed FOLLOW_BACK only while
+     * Hide People you don't follow back is on, and counts it. Any other section, or no type, is drawn.
+     * Off, paused or unready, Instagram draws them all. Every call shows in the report, any type.
+     */
+    @Test
+    public void theFollowBackSectionGoesOnlyWithItsOwnSwitch() {
+        assertFalse("the profile switch alone", ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+        String ran = String.join("\n", HookStatus.report());
+        assertTrue(ran, ran.contains(ProfileSuggestions.SECTIONS));
+
+        Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.save(true);
+        assertTrue(ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+        assertFalse("another section", ProfileSuggestions.hidesFollowBackSection("SCHOOLMATES"));
+        assertFalse("follow requests", ProfileSuggestions.hidesFollowBackSection("FOLLOW_REQUEST"));
+        assertFalse("no type", ProfileSuggestions.hidesFollowBackSection(null));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.FOLLOW_BACKS));
+        assertTrue("only the follow back section is counted: " + report, report.contains("1 removed"));
+        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
+        assertTrue("with the profile switch off", ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE)));
+
+        Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.save(false);
+        assertFalse("off", ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+    }
+
+    /** A follow back switch that throws while the builder asks leaves the section to Instagram and says which hook threw. */
+    @Test
+    public void aThrowingFollowBackSectionSwitchFailsOpenAndIsReported() {
+        assertFalse(ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE, THROWS));
         String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.FOLLOW_BACKS + "'"));
     }
