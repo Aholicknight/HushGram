@@ -1321,6 +1321,12 @@ shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in st
 shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;II)I holding LX/*;->*(Ljava/lang/Object;I)V Landroid/content/Context;->getColor(I)I LX/*;->*(Landroid/content/Context;II)I
 shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;II)I lacking static LX/*;->*(Ljava/lang/Object;*)V holding Landroid/content/Context;->getColor(I)I LX/*;->*(Landroid/content/Context;II)I
 once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->value(ILandroid/util/TypedValue;)I in static (Landroid/content/Context;I)I holding Landroid/util/TypedValue;->data:I Landroid/content/res/Resources$Theme;->resolveAttribute(ILandroid/util/TypedValue;Z)Z LX/*;->*(Ljava/lang/Object;I)V
+# HushGram launch screen hands both of the main screen's answers on whether Instagram's own logo
+# animation follows Android's launch screen to LaunchScreen.instagramLogo, right after each is taken
+# in: the post-splash extra's read and the check before the logo inside Android's screen
+# (InstagramMainActivity.A0p, the one method holding the extra's name in that shape). Left out,
+# Instagram's logo and "from Meta" show again right after HushGram's mark (#5).
+once-call Lapp/hushgram/extension/instagram/misc/LaunchScreen;->instagramLogo(I)I in instance (Lcom/instagram/common/session/UserSession;Z)V sites 2 holding extra_post_splash_screen_animation_enabled
 # Font hands each Prism Sans Typeface Instagram's font helper keeps to Fonts.prismTypeface right
 # before it's kept: three times in the helper's static initializer (00QW.<clinit> on 451, 00QV on
 # 385713109 and 385713111, the static ()V of the one class holding the string below) and once in

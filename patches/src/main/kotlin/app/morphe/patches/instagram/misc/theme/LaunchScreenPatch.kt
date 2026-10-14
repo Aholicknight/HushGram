@@ -4,15 +4,28 @@
  */
 package app.morphe.patches.instagram.misc.theme
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.ResourcePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.resourcePatch
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import java.io.File
@@ -31,6 +44,22 @@ internal const val LAUNCH_MARK = "hushgram_launch_mark"
 
 internal const val SPLASH_ICON = "android:windowSplashScreenAnimatedIcon"
 internal const val SPLASH_BRANDING = "android:windowSplashScreenBrandingImage"
+
+internal const val LAUNCH_SCREEN = "$EXTENSION_PACKAGE/misc/LaunchScreen;"
+internal const val INSTAGRAM_LOGO = "$LAUNCH_SCREEN->instagramLogo(I)I"
+
+/** Instagram's main screen, which every launcher alias opens. */
+internal const val MAIN_ACTIVITY = "Lcom/instagram/mainactivity/InstagramMainActivity;"
+
+/**
+ * The extra Instagram's start screen hands its main screen when Instagram's logo animation should
+ * follow Android's launch screen, as a copy of that screen drawn over the app.
+ */
+internal const val POST_SPLASH_EXTRA = "extra_post_splash_screen_animation_enabled"
+
+private const val INTENT = "Landroid/content/Intent;"
+private const val CONTEXT = "Landroid/content/Context;"
+private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
 /**
  * HushGram's mark, drawn from vectors so it's sharp on every screen: the pink to plum tile of the
@@ -132,16 +161,114 @@ private val launchThemePatch = resourcePatch {
 }
 
 /**
+ * The one method of [MAIN_ACTIVITY] reading [POST_SPLASH_EXTRA], and the two answers in it the
+ * extension filters, by the index of the move-result that takes each one in.
+ */
+internal class LogoAnswers(val method: MutableMethod, val extra: Int, val gate: Int)
+
+/**
+ * Finds where Instagram's main screen decides whether its own logo animation follows Android's
+ * launch screen, and checks the extension, before anything changes.
+ *
+ * The method is the one of [MAIN_ACTIVITY] loading [POST_SPLASH_EXTRA]. It reads that extra with its
+ * one Intent.getBooleanExtra, and an answer of true draws Instagram's copy of its launch screen over
+ * the app. Otherwise its one static (Context, UserSession) boolean, the check that Android is 12 or
+ * newer, animations run and Instagram's flag is on, decides whether Instagram pulses its logo inside
+ * Android's screen. Each answer is taken in by a move-result right after its call.
+ */
+internal fun BytecodePatchContext.findLogoAnswers(): LogoAnswers {
+    val activity = classDefByOrNull(MAIN_ACTIVITY) ?: refuse("no $MAIN_ACTIVITY")
+    val holders = activity.methods.filter { method -> method.code().any { it.loads(POST_SPLASH_EXTRA) } }
+    val holder = holders.singleOrNull()
+        ?: refuse("expected one method of $MAIN_ACTIVITY loading \"$POST_SPLASH_EXTRA\", found ${holders.size}")
+    val code = holder.code()
+
+    val reads = code.indices.filter { code[it].opcode == Opcode.INVOKE_VIRTUAL && code[it].calls(INTENT, "getBooleanExtra") }
+    val read = reads.singleOrNull() ?: refuse("expected one Intent.getBooleanExtra in ${holder.where()}, found ${reads.size}")
+    // The key is the string loaded last into the register the read passes, at most three instructions before it.
+    val key = (code[read] as FiveRegisterInstruction).registerD
+    val lastLoad = (maxOf(0, read - 3) until read).lastOrNull { at ->
+        val instruction = code[at]
+        (instruction.opcode == Opcode.CONST_STRING || instruction.opcode == Opcode.CONST_STRING_JUMBO) &&
+            (instruction as OneRegisterInstruction).registerA == key
+    }
+    if (lastLoad == null || !code[lastLoad].loads(POST_SPLASH_EXTRA)) {
+        refuse("${holder.where()} reads another extra than \"$POST_SPLASH_EXTRA\"")
+    }
+
+    val gates = code.indices.filter { at ->
+        val called = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
+        code[at].opcode == Opcode.INVOKE_STATIC && called != null && called.returnType == "Z" &&
+            called.parameterTypes.map(Any::toString) == listOf(CONTEXT, USER_SESSION)
+    }
+    val gate = gates.singleOrNull()
+        ?: refuse("expected one static (Context, UserSession) boolean in ${holder.where()}, found ${gates.size}")
+
+    for (at in listOf(read, gate)) {
+        if (code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT) refuse("${holder.where()} takes no answer in after instruction $at")
+    }
+    if (classDefByOrNull(LAUNCH_SCREEN)?.methods?.any {
+            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == INSTAGRAM_LOGO &&
+                AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
+        } != true
+    ) {
+        refuse("the extension has no public static $INSTAGRAM_LOGO")
+    }
+    val method = mutableClassDefBy(MAIN_ACTIVITY).methods.single {
+        it.name == holder.name && it.parameterTypes.map(Any::toString) == holder.parameterTypes.map(Any::toString) &&
+            it.returnType == holder.returnType
+    }
+    return LogoAnswers(method, read + 1, gate + 1)
+}
+
+/**
+ * Both answers go through LaunchScreen.instagramLogo right after the move-result that takes each in,
+ * the later one first so the earlier index still holds. The range form takes any register, and
+ * move-result writes the answer back where Instagram reads it.
+ */
+internal fun BytecodePatchContext.skipInstagramLogo() {
+    val found = findLogoAnswers()
+    for (at in listOf(found.extra, found.gate).sortedDescending()) {
+        val register = (found.method.code()[at] as OneRegisterInstruction).registerA
+        found.method.addInstructions(
+            at + 1,
+            """
+                invoke-static/range { v$register .. v$register }, $INSTAGRAM_LOGO
+                move-result v$register
+            """,
+        )
+    }
+}
+
+private fun Instruction.loads(value: String): Boolean =
+    (opcode == Opcode.CONST_STRING || opcode == Opcode.CONST_STRING_JUMBO) &&
+        ((this as ReferenceInstruction).reference as StringReference).string == value
+
+private fun Instruction.calls(definingClass: String, name: String): Boolean =
+    ((this as? ReferenceInstruction)?.reference as? MethodReference)?.let {
+        it.definingClass == definingClass && it.name == name
+    } == true
+
+private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+
+private fun Method.where(): String = "$definingClass->$name"
+
+/**
  * HushGram's mark on the screen Android shows while Instagram starts. Included in the default
  * selection with its switch off.
  *
  * Android draws that screen itself, from the launch theme, before any of Instagram's code runs, and
- * takes it down at Instagram's first frame. 450 never asks it to stay up, and its launcher
- * activities wear [INSTAGRAM_LAUNCH_THEME]. So the patch changes no code. It adds a theme of its own
- * next to that one, and the extension, on Android 13 and newer, tells Android to use it for later
- * starts while the switch is on (Activity.getSplashScreen().setSplashScreenTheme). Android keeps the
- * answer itself, so the switch costs a start nothing. Android 12 and older only ever use the
- * manifest's theme, so they keep Instagram's screen.
+ * takes it down at Instagram's first frame. Instagram's launcher activities wear
+ * [INSTAGRAM_LAUNCH_THEME]. The patch adds a theme of its own next to that one, and the extension, on
+ * Android 13 and newer, tells Android to use it for later starts while the switch is on
+ * (Activity.getSplashScreen().setSplashScreenTheme). Android keeps the answer itself, so the switch
+ * costs a start nothing. Android 12 and older only ever use the manifest's theme, so they keep
+ * Instagram's screen.
+ *
+ * 451's main screen can follow Android's screen with Instagram's own logo animation, which put
+ * Instagram's logo and "from Meta" on a gray screen right after HushGram's (#5). The patch passes
+ * both of the main screen's answers on whether to run it through the extension, which skips it while
+ * the switch is on, so HushGram's screen goes straight to Instagram's first frame.
  */
 @Suppress("unused")
 val launchScreenPatch = bytecodePatch(
@@ -156,6 +283,7 @@ val launchScreenPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("launchScreen")
+        skipInstagramLogo()
         enableStatus("launchScreen")
     }
 }

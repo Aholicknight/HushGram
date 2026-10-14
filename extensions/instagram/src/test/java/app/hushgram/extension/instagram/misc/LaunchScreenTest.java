@@ -286,13 +286,51 @@ public class LaunchScreenTest {
         assertEquals("a finishing activity is left alone", List.of(THEME, 0), splash.told);
     }
 
-    /** Android 12 and older have no way to name a launch theme at run time, so nothing is asked. */
+    /**
+     * With the switch on, Instagram's own logo animation after the launch screen is skipped and
+     * counted, and Android is told nothing for it. Off, or with nothing to skip, Instagram's answer stands.
+     */
+    @Test
+    public void instagramsLogoIsSkippedWhileTheSwitchIsOn() {
+        assertEquals("off, Instagram's answer stands", 1, LaunchScreen.instagramLogo(1));
+        HookStatus.clear();
+
+        Settings.LAUNCH_SCREEN.save(true);
+        assertEquals(0, LaunchScreen.instagramLogo(1));
+        assertEquals(Collections.singletonList(counted(LaunchScreen.LOGO_SKIPPED)), HookStatus.report());
+        assertEquals("nothing to skip", 0, LaunchScreen.instagramLogo(0));
+        assertEquals("nothing more counted", Collections.singletonList(counted(LaunchScreen.LOGO_SKIPPED)), HookStatus.report());
+        assertTrue("Android is told nothing", splash.told.isEmpty());
+    }
+
+    /** Paused, Instagram's logo follows as it ships, though the switch is on. */
+    @Test
+    public void pausedInstagramsLogoStays() {
+        Settings.LAUNCH_SCREEN.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(1, LaunchScreen.instagramLogo(1));
+        assertFalse(HookStatus.report().toString().contains(LaunchScreen.LOGO_SKIPPED));
+    }
+
+    /** Before settings can be read, Instagram's answer stands and nothing is counted. */
+    @Test
+    public void instagramsLogoStaysBeforeSettingsCanBeRead() {
+        Settings.LAUNCH_SCREEN.save(true);
+        SettingsContextRule.beforeThePauseIsDecided(() -> assertEquals(1, LaunchScreen.instagramLogo(1)));
+        assertTrue(HookStatus.report().isEmpty());
+    }
+
+    /**
+     * Android 12 and older have no way to name a launch theme at run time, so nothing is asked, and
+     * Instagram's logo still follows its own launch screen there.
+     */
     @Test
     @Config(sdk = 28)
     public void androidTwelveAndOlderAreLeftAlone() {
         Settings.LAUNCH_SCREEN.save(true);
         assertFalse(LaunchScreen.follow(activity));
         LaunchScreen.followLater(activity);
+        assertEquals(1, LaunchScreen.instagramLogo(1));
         assertTrue(splash.told.isEmpty());
         assertTrue(HookStatus.report().isEmpty());
     }
