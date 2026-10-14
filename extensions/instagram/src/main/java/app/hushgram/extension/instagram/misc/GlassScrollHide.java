@@ -167,6 +167,9 @@ final class GlassScrollHide {
     private final Rect other = new Rect();
     private final int[] place = new int[2];
     @Nullable private WeakReference<View> scroller;
+    /** Whether this drag's list is still to be found, at its first move, under where the finger went down. */
+    private boolean findScrollerAtMove;
+    private int downX, downY;
     /** What the bar is away for, a list or a Reels viewer: the one the timer watches until the bar is back. */
     @Nullable private WeakReference<View> guard;
     private boolean hidden;
@@ -337,12 +340,22 @@ final class GlassScrollHide {
                     drag.cancel();
                     return;
                 }
-                View found = findScroller(bar.getRootView(), Math.round(event.getRawX()), Math.round(event.getRawY()), 0);
-                scroller = found == null ? null : new WeakReference<>(found);
+                // The list is looked for at the first move. A Compose list answers canScrollVertically
+                // from the last down it was handed, and this runs before the window hands it this one,
+                // so on a screen just opened it said it couldn't scroll (#65, 451's Activity tab).
+                scroller = null;
+                findScrollerAtMove = true;
+                downX = Math.round(event.getRawX());
+                downY = Math.round(event.getRawY());
                 drag.start(event.getRawX(), event.getRawY());
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (!drag.isActive()) return;
+                if (findScrollerAtMove) {
+                    findScrollerAtMove = false;
+                    View found = findScroller(bar.getRootView(), downX, downY, 0);
+                    scroller = found == null ? null : new WeakReference<>(found);
+                }
                 int direction = drag.move(event.getRawX(), event.getRawY(), slop);
                 if (direction == SHOW) {
                     refused = false;

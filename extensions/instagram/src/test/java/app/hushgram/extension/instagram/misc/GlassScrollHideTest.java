@@ -64,12 +64,16 @@ public class GlassScrollHideTest {
     static final class FakeList extends FrameLayout {
         boolean awayFromTop;
         boolean canGoOn = true;
+        /** Like a Compose list: it knows what it can scroll only once the window has handed it the down. */
+        boolean needsDown;
+        boolean sawDown;
 
         FakeList(Context context) {
             super(context);
         }
 
         @Override public boolean canScrollVertically(int direction) {
+            if (needsDown && !sawDown) return false;
             return direction < 0 ? awayFromTop : canGoOn;
         }
     }
@@ -196,6 +200,16 @@ public class GlassScrollHideTest {
         root.layout(0, 0, 1080, 1920);
         list.awayFromTop = true;
         drag(-300);
+        assertTrue(hide.isHidden());
+    }
+
+    /** #65 on 451: Activity is a Compose list, which answers only after the window hands it the down. */
+    @Test public void aListThatAnswersOnlyAfterTheDownStillHides() {
+        list.needsDown = true;
+        list.awayFromTop = true;
+        touch(MotionEvent.ACTION_DOWN, 500, 900);
+        list.sawDown = true;
+        for (int i = 1; i <= 10; i++) touch(MotionEvent.ACTION_MOVE, 500, 900 - 300 * i / 10f);
         assertTrue(hide.isHidden());
     }
 
