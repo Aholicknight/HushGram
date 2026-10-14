@@ -5,6 +5,7 @@
 package app.morphe.patches.instagram.share
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
@@ -217,12 +218,14 @@ internal fun BytecodePatchContext.guardGroupButton(build: SheetMethod) {
  * the box that action before the reveal runs, and the box shows its action again whenever it
  * refreshes while the action is on, so hiding it alone isn't enough. A jump to the instruction
  * after the call didn't come through it and skips the guard, as it should. Later sites of one
- * method go first, so writing one doesn't move another.
+ * method go first, so writing one doesn't move another. The guard sits mid-method, so its own
+ * label goes through addInstructionsWithLabels: plain addInstructions leaves it pointing into the
+ * compiled snippet, and the dex then branches to the snippet's offset from the method's start.
  */
 internal fun BytecodePatchContext.guardGroupAction(reveals: List<RevealSite>) {
     reveals.sortedByDescending { it.at }.forEach { site ->
         val answer = site.free
-        mutableMethod(site.method).addInstructions(
+        mutableMethod(site.method).addInstructionsWithLabels(
             site.at + 1,
             """
                 invoke-static { }, $HIDE_GROUP_ACTION

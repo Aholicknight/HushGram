@@ -12,6 +12,7 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -248,7 +249,9 @@ class HideShareSheetGroupHookTest {
     /**
      * Right after each of the method's [sites] calls showing the search box's action: the extension
      * call and its test, then on a yes false into the answer's register, and the same box's action
-     * hidden and turned off with it; one guard per site.
+     * hidden and turned off with it; one guard per site. A no jumps to the instruction right after
+     * the guard in this method, not to its place in the compiled snippet, which the dex would read
+     * as an offset from the method's start.
      */
     private fun assertRevealGuarded(what: String, method: Method, sites: Int) {
         val code = method.implementation!!.instructions.toList()
@@ -269,6 +272,9 @@ class HideShareSheetGroupHookTest {
                 assertTrue("$what: $setter", call.names("$SEARCH_BOX->$setter(Z)V"))
                 assertEquals("$what: $setter's box and false", listOf(box, answer), (call as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD) })
             }
+            val skip = (code[hook + 2] as BuilderOffsetInstruction).target.location
+            assertEquals("$what: a no skips to the guard's end", hook + 6, skip.index)
+            assertTrue("$what: the guard's end is its nop", skip.instruction === code[hook + 6] && code[hook + 6].opcode == Opcode.NOP)
         }
     }
 
