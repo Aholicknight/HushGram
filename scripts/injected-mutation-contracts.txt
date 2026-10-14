@@ -83,8 +83,8 @@ once-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->units(Ljav
 # the static (UserSession, boolean) method answering a boolean from two rollout flags. It holds no
 # string, so the rules pick it by the fields it reads and its device check, pinned to 450. Left out,
 # Instants stay with the switch on; twice or elsewhere, it isn't the guard the patch wrote.
-start-call Lapp/hushgram/extension/instagram/direct/Instants;->hide()Z in static (Lcom/instagram/common/session/UserSession;Z)Z holding const:0x8105bb00001ac7
-once-call Lapp/hushgram/extension/instagram/direct/Instants;->hide()Z in static (Lcom/instagram/common/session/UserSession;Z)Z holding const:0x8105bb00001ac7
+start-call Lapp/hushgram/extension/instagram/direct/Instants;->hide()Z in static (Lcom/instagram/common/session/UserSession;Z)Z holding const:0x8105b600001a75
+once-call Lapp/hushgram/extension/instagram/direct/Instants;->hide()Z in static (Lcom/instagram/common/session/UserSession;Z)Z holding const:0x8105b600001a75
 # Read messages without the seen receipt (#13) hands ThreadSeen.hold(Object, Object) the receipt and
 # the account the handler keeps first in the mutation queue's handler for an ordinary chat's seen
 # receipt (05cs.Gsm on 450), the one method holding both names of the GraphQL mutation that carries
@@ -555,7 +555,7 @@ once-call Lapp/hushgram/extension/instagram/direct/LastActive;->exact(J)Ljava/la
 # a story item and answering a boolean, it's the one that asks the item whether it's an ad (EZ5
 # on 450, EWC on 449). Left out, a finished story moves on; twice or elsewhere, it isn't the
 # answer the patch wrote.
-once-call Lapp/hushgram/extension/instagram/stories/StoryLoop;->loop(I)Z in instance (Lcom/instagram/model/reels/ReelItem;)Z holding const:0x8110170002571b
+once-call Lapp/hushgram/extension/instagram/stories/StoryLoop;->loop(I)Z in instance (Lcom/instagram/model/reels/ReelItem;)Z holding const:0x81100c000256be
 # Restore trust on re-signed builds puts its call first in the package signer reader, which its
 # fingerprint picks by the SigningInfo and PackageInfo calls it makes. The reader holds no string,
 # so the rule holds the old signatures array it reads, which 28 methods read on 449. Of
@@ -851,12 +851,12 @@ once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->remaining(Ljav
 # Hide the Music for you card answers the read of the music midcard config's is_enabled flag through
 # StoriesTray.musicCard(I)Z, right after its move-result in a static check of the session (05kB.A00
 # on 450). The check holds no string and no field only it makes, but it reads the config by the
-# literal id of the flag (0x810cca0001477f), a constant that is the same on every 450 build, so that
+# literal id of the flag (0x810cc0000146f1), a constant that is the same on every 450 build, so that
 # literal picks it. HideMusicCardHookTest still checks on every declared fixture that the flag has
 # one read, in a check of the session asked by code that casts to the class holding
 # MusicMidcardRepository. Left out, the card keeps coming; twice or elsewhere, it isn't the answer
 # the patch wrote.
-once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->musicCard(I)Z in static (Lcom/instagram/common/session/UserSession;)Z holding const:0x810cca0001477f
+once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->musicCard(I)Z in static (Lcom/instagram/common/session/UserSession;)Z holding const:0x810cc0000146f1
 #
 # Hide Suggested for you between stories reads a story item's netego type and asks
 # StoriesTray.netego(String)Z first thing in the viewer's static check of an ad or a netego (05hZ.A07
@@ -1133,7 +1133,7 @@ once-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->holdBackMessag
 # isn't the ask the patch wrote.
 start-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->tab(Ljava/lang/Object;)Ljava/lang/Object; in static (*)V holding feed_viewpager_view_not_found
 shared-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->tab(Ljava/lang/Object;)Ljava/lang/Object; in static (*)V holding feed_viewpager_view_not_found
-# The same switch reads one server flag (0x8104e200051584) as it makes the tab pager: on, the pager
+# The same switch reads one server flag (0x8104dd00051545) as it makes the tab pager: on, the pager
 # opens on the asked tab, off, on its first tab. Tab order answers that read through startAtTab.
 # Left out, a bar whose order puts another tab before Home opens on that tab at every start.
 once-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->startAtTab(I)Z in static (*)V holding feed_viewpager_view_not_found
@@ -1722,8 +1722,8 @@ start-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(L
 shared-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding comment_sheet_prefix_
 start-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding reel_comments_sheet
 shared-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding reel_comments_sheet
-start-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding LX/*;->*(Landroidx/fragment/app/Fragment;)Lcom/instagram/common/session/UserSession; const:0x811116000d5cda
-shared-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding LX/*;->*(Landroidx/fragment/app/Fragment;)Lcom/instagram/common/session/UserSession; const:0x811116000d5cda
+start-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding LX/*;->*(Landroidx/fragment/app/Fragment;)Lcom/instagram/common/session/UserSession; const:0x81110b000d5c8d
+shared-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding LX/*;->*(Landroidx/fragment/app/Fragment;)Lcom/instagram/common/session/UserSession; const:0x81110b000d5c8d
 # Hide Notes on profile pictures answers the two reads of Instagram's is_consumption_disabled flag
 # for profiles through ProfileNotes.consumptionDisabled, right after each read's move-result. One
 # read is in the profile header builder, the instance (View, three objects, boolean) void method
@@ -1744,8 +1744,8 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileNotes;->creationDisab
 # neighbors read the same field but reach the setting through it. Field and method names are pinned
 # 450 data. Left out, video stories stay at 720 with the switch on; twice or elsewhere, it isn't the
 # guard the patch wrote. UploadStoriesAtFullQualityHookTest finds the check in all seven 450 builds.
-start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQuality(Ljava/lang/Object;)Z in instance ()Z holding const:0x810bb400014136 LX/*;->*(LX/*;)Z
-once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQuality(Ljava/lang/Object;)Z in instance ()Z holding const:0x810bb400014136 LX/*;->*(LX/*;)Z
+start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQuality(Ljava/lang/Object;)Z in instance ()Z holding const:0x810baa000140a5 LX/*;->*(LX/*;)Z
+once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQuality(Ljava/lang/Object;)Z in instance ()Z holding const:0x810baa000140a5 LX/*;->*(LX/*;)Z
 
 # Full screen Reels and Home (#147) hands both bar heights Instagram's window insets listener keeps
 # (00oX.F1L on 450, the decor's insets listener of WindowInsetsManager) to FullScreenBars.barHeight

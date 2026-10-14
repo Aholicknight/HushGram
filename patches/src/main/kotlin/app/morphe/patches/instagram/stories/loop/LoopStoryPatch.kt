@@ -35,7 +35,7 @@ private const val STORY_ITEM = "Lcom/instagram/model/reels/ReelItem;"
  * viewer's private check of whether a story item plays again, after the check has already said no
  * for an ad and for a few special kinds of story.
  */
-internal const val STORY_LOOP_FLAG = 0x8110170001571aL
+internal const val STORY_LOOP_FLAG = 0x81100c000156bdL
 
 /**
  * Plays a story again when it ends instead of moving on. In the default selection with its switch

@@ -76,7 +76,7 @@ private const val VIEW = "Landroid/view/View;"
  * puts a Meta AI chats ("hatch") button in Home's top bar when the server's list has no messages
  * button, and the same item in the bar's settings list.
  */
-internal val SEARCH_FLAGS = listOf(0x81067f00111f66L, 0x81041600061138L, 0x810414001b112eL, 0x8116a000017225L)
+internal val SEARCH_FLAGS = listOf(0x81067900111f10L, 0x810411000610fcL, 0x81040f001b10f2L, 0x81169800017263L)
 
 /** The Search tab's flag, which the search results page reads too (#152). */
 internal val RESULTS_FLAG = SEARCH_FLAGS[0]

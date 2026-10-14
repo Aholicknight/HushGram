@@ -51,14 +51,14 @@ internal const val BIND = "$REEL_SEEK_BAR->bind(Ljava/lang/Object;I)V"
  * Reels progress controller keeps its limits. The first two read an ad's own minimum in the same
  * place, picked in a branch.
  */
-internal const val ORGANIC_MIN_SECONDS = 0x82092100291499L
+internal const val ORGANIC_MIN_SECONDS = 0x82091900291476L
 internal const val ORGANIC_MIN_SECONDS_READS = 3
 
 /**
  * Whether a short ordinary reel's bar is the hidden kind, shown only while you hold the reel. 450
  * reads it once, where the seek bar row's state is worked out, in the same place as the ads' flag.
  */
-internal const val ORGANIC_LAZY = 0x81092100103399L
+internal const val ORGANIC_LAZY = 0x8109190010330cL
 internal const val ORGANIC_LAZY_READS = 1
 
 /** The markers, after Instagram's release prefix, of the methods that prove the reads are the seek bar's. */
