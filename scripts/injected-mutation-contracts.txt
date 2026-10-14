@@ -682,10 +682,12 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->sectionTitle(
 # rule picks those; HideMetaAiHookTest checks all seven reads on the fixture. The Meta AI chats
 # button's flag is read once by Home's top bar setup, the method taking the action bar that holds
 # "MainFeedActionBarDelegate:configureActionBar", and once by the bar's item list's constructor, the
-# one taking a Context that holds "homecoming_opt_out_replace" and "reels_second_opt_in".
+# one taking a Context that holds "homecoming_opt_out_replace" and "homecoming_opt_in" (451 dropped
+# the "reels_second_opt_in" 450's held). On 451 the top bar setup also asks the Search tab flag's
+# wrapper before it builds its meta_ai button, a call the patch answers too, so it has two.
 shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->searchFlag(I)Z in instance ()Ljava/lang/Object; holding direct_inbox hatch_channel_enabled
-shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->searchFlag(I)Z in instance (L*;)V holding MainFeedActionBarDelegate:configureActionBar meta_ai
-shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->searchFlag(I)Z in instance (Landroid/content/Context;L*;L*;)V holding homecoming_opt_out_replace reels_second_opt_in
+shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->searchFlag(I)Z in instance (L*;)V sites 2 holding MainFeedActionBarDelegate:configureActionBar meta_ai
+shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->searchFlag(I)Z in instance (Landroid/content/Context;L*;L*;)V holding homecoming_opt_out_replace homecoming_opt_in
 # Home's top bar setup also passes each button name it takes from the server's list through
 # homeButton(), once, right after the name's cast.
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->homeButton(Ljava/lang/String;)Ljava/lang/String; in instance (L*;)V holding MainFeedActionBarDelegate:configureActionBar meta_ai
