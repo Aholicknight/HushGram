@@ -32,7 +32,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide the Reels tab:** New switch under Tab bar, Show the Activity tab, off by default. It puts Activity, the screen the heart at the top of Home opens, on your tab bar before Profile, and Tab order can move it. Hide notifications on Home's header takes the heart away if you'd rather have only the tab. Asked for in #156.
 
-* **Instagram - Show if a profile follows you:** New Follow label choice under Profiles, right below Show it as a chip. Under the counts keeps the chip where it's always been. Small, under the picture draws a smaller chip centered under the profile picture, and a profile with no room there gets the small chip under the counts. Asked for in #157.
+* **Instagram - Show if a profile follows you:** New Follow label choice under Profiles, right below Show it as a chip. Under the counts keeps the chip where it's always been. Small, under the picture draws a smaller chip centered under the profile picture, and a profile with no room there gets the small chip under the counts. Diagnostics says what took the room. Asked for in #157.
 
 * **Instagram - Clean up Reels:** New Burn-in guard, off by default. It fades a reel's buttons and bars after 5 idle seconds, and can also move the screen a step every 2 minutes. Asked for in #162.
 

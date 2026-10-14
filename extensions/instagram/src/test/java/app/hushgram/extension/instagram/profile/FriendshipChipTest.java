@@ -258,7 +258,9 @@ public class FriendshipChipTest {
         assertEquals("the column gets its room back", ownBottom, column.getPaddingBottom());
         assertEquals(countsBottom + chip.roomNow(), counts.getPaddingBottom());
         assertEquals(counts.getHeight() - countsBottom, chip.pill.getBounds().bottom);
-        assertTrue(String.join("\n", HookStatus.report()).contains(FriendshipChip.NO_PICTURE_ROOM + " 1"));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(FriendshipChip.NO_PICTURE_ROOM + " 1"));
+        assertTrue("and what it would have run into", report.contains(FriendshipChip.WOULD_TOUCH));
 
         FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
         assertSame("the next bind keeps it under the counts", chip, FriendshipChip.shownUnder(counts));
@@ -277,6 +279,8 @@ public class FriendshipChipTest {
         assertTrue(chip.small);
         assertEquals(ownBottom, column.getPaddingBottom());
         assertNull(FriendshipChip.pictureColumn(counts));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue("the report says how tall the column is held", report.contains(FriendshipChip.COLUMN_HELD + "300 px 1"));
     }
 
     /** Changing the choice moves the chip at the next bind and gives the old place its room back. */

@@ -65,6 +65,15 @@ final class FriendshipChip {
     /** What a chip put under the picture, or moved under the counts for want of room there, is counted under. */
     static final String UNDER_PICTURE = "Follow chip under the picture";
     static final String NO_PICTURE_ROOM = "Follow chip under the counts, no room under the picture";
+    /**
+     * Counted beside NO_PICTURE_ROOM with why: no picture column, the height Instagram holds the
+     * column at, or what the small pill would have run into. 451's header builds in code, so the
+     * report is where a phone tells which it was (#157).
+     */
+    static final String NO_COLUMN = "no picture column";
+    static final String COLUMN_HELD = "picture column held at ";
+    static final String TOO_WIDE = "small chip wider than the header";
+    static final String WOULD_TOUCH = "small chip would touch ";
 
     /** The icons, Instagram's own, by name. A build without them gets a chip without an icon. */
     static final String FOLLOWING_ICON = "instagram_user_following_outline_24";
@@ -118,7 +127,10 @@ final class FriendshipChip {
         if (chip == null) {
             chip = new Chip(block, small, column);
             chip.pictureBlocked = blocked;
-            if (small && !chip.underPicture) HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, NO_PICTURE_ROOM);
+            if (small && !chip.underPicture) {
+                HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, NO_PICTURE_ROOM);
+                if (!blocked) HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, noColumnReason(block));
+            }
             SHOWN.put(block, chip);
         }
         chip.show(relation, style);
@@ -192,6 +204,26 @@ final class FriendshipChip {
      */
     @Nullable
     static View pictureColumn(View block) {
+        View column = columnHoldingPicture(block);
+        if (column == null) return null;
+        ViewGroup.LayoutParams params = column.getLayoutParams();
+        return params != null && params.height == ViewGroup.LayoutParams.WRAP_CONTENT ? column : null;
+    }
+
+    /** Why [block]'s header has no picture column to grow: none found, or the height its column is held at. */
+    static String noColumnReason(View block) {
+        View column = columnHoldingPicture(block);
+        if (column == null) return NO_COLUMN;
+        ViewGroup.LayoutParams params = column.getLayoutParams();
+        if (params == null) return COLUMN_HELD + "no layout params";
+        if (params.height == ViewGroup.LayoutParams.MATCH_PARENT) return COLUMN_HELD + "its parent's height";
+        if (params.height == 0) return COLUMN_HELD + "0, sized by its constraints";
+        return COLUMN_HELD + params.height + " px";
+    }
+
+    /** The picture's column of [block]'s header whatever its size, or null when there's none. */
+    @Nullable
+    private static View columnHoldingPicture(View block) {
         int id = pictureFrameId(block.getContext());
         if (id == 0) return null;
         View at = block;
@@ -203,8 +235,7 @@ final class FriendshipChip {
             if (frame != null && frame != group) {
                 View column = childHolding(group, frame);
                 if (column == null || column == at || column.getVisibility() != View.VISIBLE) return null;
-                ViewGroup.LayoutParams params = column.getLayoutParams();
-                return params != null && params.height == ViewGroup.LayoutParams.WRAP_CONTENT ? column : null;
+                return column;
             }
             at = group;
         }
@@ -277,6 +308,8 @@ final class FriendshipChip {
         boolean pictureBlocked;
         /** Whether the pill under the picture has been counted in the diagnostics, which it is once. */
         private boolean counted;
+        /** Why the pill didn't fit under the picture, counted when it moves under the counts. */
+        @Nullable private String blockedBy;
         final Pill pill;
         /** The host's own bottom padding, which the chip's room goes on top of. */
         int ownBottom;
@@ -397,7 +430,9 @@ final class FriendshipChip {
             int left = Math.max(start, Math.min(middle - width / 2, end - width));
             int bottom = column.getTop() + column.getHeight() - ownBottom;
             Rect bounds = new Rect(left, bottom - height, left + width, bottom);
-            if (width > end - start || touchesAnother(row, column, bounds)) {
+            View touched = width > end - start ? null : touching(row, column, bounds);
+            if (width > end - start || touched != null) {
+                blockedBy = touched == null ? TOO_WIDE : WOULD_TOUCH + name(touched);
                 pill.setBounds(0, 0, 0, 0);
                 row.post(this::moveUnderCounts);
                 return;
@@ -409,17 +444,31 @@ final class FriendshipChip {
             }
         }
 
-        /** Whether [bounds] in [row] touch any of its children but [column] that's on screen. */
-        private static boolean touchesAnother(ViewGroup row, View column, Rect bounds) {
+        /** The first of [row]'s children but [column] on screen that [bounds] touch, or null. */
+        @Nullable
+        private static View touching(ViewGroup row, View column, Rect bounds) {
             for (int i = 0; i < row.getChildCount(); i++) {
                 View child = row.getChildAt(i);
                 if (child == column || child.getVisibility() != View.VISIBLE) continue;
                 if (child.getWidth() == 0 || child.getHeight() == 0) continue;
                 if (Rect.intersects(bounds, new Rect(child.getLeft(), child.getTop(), child.getRight(), child.getBottom()))) {
-                    return true;
+                    return child;
                 }
             }
-            return false;
+            return null;
+        }
+
+        /** [view]'s id name, or its class's name when it has none Instagram named. */
+        private static String name(View view) {
+            int id = view.getId();
+            if (id != View.NO_ID) {
+                try {
+                    return view.getResources().getResourceEntryName(id);
+                } catch (RuntimeException unnamed) {
+                    // An id made in code has no name.
+                }
+            }
+            return view.getClass().getSimpleName();
         }
 
         /** [view]'s left edge in [ancestor]'s coordinates. */
@@ -444,6 +493,7 @@ final class FriendshipChip {
             underPicture = false;
             pictureBlocked = true;
             HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, NO_PICTURE_ROOM);
+            if (blockedBy != null) HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, blockedBy);
             attach(block, block);
             makeRoom(block);
             place();
