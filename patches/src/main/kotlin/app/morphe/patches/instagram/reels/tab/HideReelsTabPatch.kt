@@ -66,6 +66,11 @@ internal const val SESSION = "Lcom/instagram/common/session/UserSession;"
  * tab host's switch to a tab is where every start, notification and link that picks a tab ends up;
  * both hand their Reels to the extension, which answers with Home.
  *
+ * Hide the Home tab adds three more, see HomeTabTargets: the method that names Home as the tab the
+ * back stack starts from, the saved back stack read as Instagram restores, and the switch between
+ * two tabs that can start the stack again. Each asks the extension, which answers with the Start tab
+ * while Home is off the bar.
+ *
  * In the default selection with its switch off, so the tab bar stays as it was until the reader turns it
  * on.
  */
@@ -75,7 +80,7 @@ val hideReelsTabPatch = bytecodePatch(
     description = "Takes the Reels tab off the tab bar. Reels in your feed and reels people send you still open. " +
         "A second switch, Show the Reels tab, puts it back after Home when Instagram built your bar without one, " +
         "and Hide wins if both are on. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels. " +
-        "Under Tab bar, switches do the same for Search, Create and Profile, two put Messages or Activity on the bar when Instagram left them off, switches take the Create and notifications buttons off Home's header, others add a Search, Messages or Ghost mode button to it or put Instagram's logo in its middle, two center the name at the top of profiles and the title on other screens, a list puts the tabs in your order, and another picks the tab Instagram opens on.",
+        "Under Tab bar, switches do the same for Home, Search, Create and Profile, two put Messages or Activity on the bar when Instagram left them off, switches take the Create and notifications buttons off Home's header, others add a Search, Messages or Ghost mode button to it or put Instagram's logo in its middle, two center the name at the top of profiles and the title on other screens, a list puts the tabs in your order, and another picks the tab Instagram opens on.",
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -90,9 +95,11 @@ val hideReelsTabPatch = bytecodePatch(
         val header = findHomeHeader()
         val tabs = findReelsTab()
         val search = findSearchButton(tabs)
+        val home = findHomeTab(tabs)
         hideReelsTab(tabs)
         hideHomeHeaderButtons(header)
         addSearchButton(search)
+        hideHomeTab(home)
         enableStatus("reelsTab")
     }
 }

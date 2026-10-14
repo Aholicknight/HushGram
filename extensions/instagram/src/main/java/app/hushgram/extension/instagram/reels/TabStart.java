@@ -220,6 +220,7 @@ public final class TabStart {
 
     /** Takes the process back to before its first start, for tests. */
     static void forgetForTests() {
+        ReelsTab.forgetHomeForTests();
         firstStart = UNKNOWN;
         onTheBar = null;
         tabEnum = null;

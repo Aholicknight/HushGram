@@ -85,6 +85,10 @@ public class TabSwitchesSettingsTest {
             assertTrue(key.key, PatchFamily.REELS_TAB.switches.stream().anyMatch(setting -> setting.key.equals(key.key)));
             assertTrue(key.key, ConfigurationBackup.eligible().containsKey(key.key));
         }
+        Preference home = row(Settings.HIDE_HOME_TAB.key);
+        assertEquals("Hide the Home tab", String.valueOf(home.getTitle()));
+        assertTrue("says Home stays without a Start tab on the bar", String.valueOf(home.getSummary())
+                .contains("pick one other than Home that's on the bar, or Home stays"));
         assertEquals("Hide the Search tab", String.valueOf(row(Settings.HIDE_SEARCH_TAB.key).getTitle()));
         assertEquals("Hide the Create tab", String.valueOf(row(Settings.HIDE_CREATE_TAB.key).getTitle()));
         assertEquals("Hide the Profile tab", String.valueOf(row(Settings.HIDE_PROFILE_TAB.key).getTitle()));
@@ -137,7 +141,8 @@ public class TabSwitchesSettingsTest {
     }
 
     private static List<BooleanSettingKey> keys() {
-        return Arrays.asList(new BooleanSettingKey(Settings.HIDE_SEARCH_TAB), new BooleanSettingKey(Settings.HIDE_CREATE_TAB),
+        return Arrays.asList(new BooleanSettingKey(Settings.HIDE_HOME_TAB),
+                new BooleanSettingKey(Settings.HIDE_SEARCH_TAB), new BooleanSettingKey(Settings.HIDE_CREATE_TAB),
                 new BooleanSettingKey(Settings.HIDE_PROFILE_TAB), new BooleanSettingKey(Settings.SHOW_MESSAGES_TAB),
                 new BooleanSettingKey(Settings.SHOW_ACTIVITY_TAB));
     }

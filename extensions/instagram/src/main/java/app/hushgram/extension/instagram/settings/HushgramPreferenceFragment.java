@@ -1260,6 +1260,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             PreferenceCategory glass = category(screen, L10n.t("Tab bar"), SettingsIcons.TAB_BAR,
                     L10n.t("Pick your tabs, their order and how the bar looks."));
             if (build.contains(PatchFamily.REELS_TAB)) {
+                glass.addPreference(toggle(context, Settings.HIDE_HOME_TAB, L10n.t("Hide the Home tab"),
+                        L10n.t("Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home "
+                                + "that's on the bar, or Home stays. Restart Instagram to see the change.")));
                 glass.addPreference(toggle(context, Settings.HIDE_SEARCH_TAB, L10n.t("Hide the Search tab"),
                         L10n.t("Takes Search off the tab bar and closes up the gap. Restart Instagram to see the change.")));
                 glass.addPreference(toggle(context, Settings.HIDE_CREATE_TAB, L10n.t("Hide the Create tab"),

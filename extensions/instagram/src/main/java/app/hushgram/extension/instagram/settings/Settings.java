@@ -1339,6 +1339,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_show_activity_tab", FALSE, true);
 
     /**
+     * Home is off the tab bar, and the Start tab takes its place wherever Instagram would open Home:
+     * the first tab, Back, links, notifications and a restored back stack (#90). Needs a Start tab
+     * other than Home that is still on the bar, and keeps Home without one. Built into the same tab
+     * list as {@link #HIDE_REELS_TAB}, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_HOME_TAB =
+            new BooleanSetting("hushgram_hide_home_tab", FALSE, true);
+
+    /**
      * Search is off the tab bar, and a switch meant for it lands on Home. Built into the same tab
      * list as {@link #HIDE_REELS_TAB}, so a change takes a restart. Off to start.
      */

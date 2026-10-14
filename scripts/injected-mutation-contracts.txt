@@ -1185,6 +1185,21 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->tabs(Ljava/util/Lis
 # HideReelsTabHookTest checks on the declared fixture that each of the three lands once, where it
 # should.
 shared-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->tab(Ljava/lang/Object;)Ljava/lang/Object; in (Lcom/instagram/common/session/UserSession;)LX/*; calling instance LX/*;->*(Lcom/instagram/common/session/UserSession;)Z holding LX/*;->A0D:LX/*; LX/*;->A08:LX/*;
+# Hide the Home tab (#90) hands ReelsTab.root every tab Instagram's back stack can take Home from.
+# The root is in the list builder's class, which holds "default" as the tabs() rule says, and reads
+# Home there: the enum's A0C, its constants being named in alphabetical order. Held to the method,
+# the read and the session check alone also pick a premium upsell method on 451, so the rule is
+# class-holding, and the root is the class's one instance method taking a session, answering a
+# renamed class and calling the static home tab. Both of its returns ask. The navigation class's
+# constructor is the one method holding the back stack's saved-state key with the startup tab
+# extra, and its one turn of a saved name into a tab asks. Its push between two tabs, the one
+# method holding pushTabFragment, asks about both tabs first, since it can clear the stack and
+# start it again. Each picks its one method on all eight 451 fixtures. Left out, Back, a link or a
+# restored stack can land on a Home the bar doesn't have. HideHomeTabHookTest checks on every
+# fixture build that each lands where it should.
+shared-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->root(Ljava/lang/Object;)Ljava/lang/Object; in instance (Lcom/instagram/common/session/UserSession;)LX/*; calling static LX/*;->*(Lcom/instagram/common/session/UserSession;)LX/*; sites 2 class-holding default LX/*;->A0C:LX/*;
+shared-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->root(Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/content/Intent;Landroid/os/Bundle;Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;LX/*;LX/*;Ljava/util/List;)V holding NavigationController.BUNDLE_KEY_BACK_STACK MainActivityAccountHelper.STARTUP_TAB
+shared-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->root(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;LX/*;ZZZ)V sites 2 holding NavigationController.pushTabFragment
 #
 # Keep the reel speed hands the extension each speed first thing in the Reels player controller's
 # setPlaybackSpeed, the one method holding its marker. The hold handler, the one method holding

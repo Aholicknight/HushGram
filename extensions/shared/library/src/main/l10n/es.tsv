@@ -891,6 +891,8 @@ Long press %1$s to pick the playback quality instead of that tab's usual action.
 Playback quality: %1$s. The next video you open uses it.	Calidad de reproducción: %1$s. El próximo vídeo que abras la usará.
 Couldn't save the playback quality. Open HushGram settings to set it.	No se pudo guardar la calidad de reproducción. Abre los ajustes de HushGram para elegirla.
 Support HushGram	Apoya HushGram
+Hide the Home tab	Ocultar la pestaña de Inicio
+Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	Quita Inicio de la barra de pestañas. La pestaña que elijas en Pestaña de inicio se abre donde se abriría Inicio, así que elige una distinta de Inicio que esté en la barra, o Inicio se queda. Reinicia Instagram para ver el cambio.
 Hide the Search tab	Ocultar la pestaña de Búsqueda
 Takes Search off the tab bar and closes up the gap. Restart Instagram to see the change.	Quita Búsqueda de la barra de pestañas y cierra el hueco. Reinicia Instagram para ver el cambio.
 Hide the Create tab	Ocultar la pestaña de Crear

@@ -8,6 +8,8 @@ Every HushGram release, newest first.
 
 #### Features
 
+* **Instagram - Hide the Reels tab:** New switch under Tab bar, Hide the Home tab, off by default. Home comes off the tab bar and your Start tab opens wherever Home would have, so starting the app, Back, links and notifications all land on a tab that's still there. It needs a Start tab other than Home that's on your bar. Without one, Home stays. Asked for in #90.
+
 * **Instagram - Glass tab bar:** New Slide across the tabs switch, off by default. Put a finger on the pill and slide it sideways, and the highlight follows it. Let go and the tab under your finger opens. Taps and long presses on a tab work as before. Asked for in #136.
 
 * **Instagram - Keep a seek bar on Reels:** New switch under Reels, Seek bar like DM videos, off by default. Reels get the bar Instagram shows on a video in a chat, a thin gray line that turns white as it plays with a big round white handle, and the time above it. With Bigger seek bar on too, this look wins. Asked for in #10.
