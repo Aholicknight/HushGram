@@ -147,60 +147,60 @@ class StoryRetryQueueTest {
         refused(changed(classes, method, 6, "iget-object v1, p0, $owner->pending:Ljava/util/LinkedHashMap;"), "lookup uses another store's maps")
     }
 
-    @Test fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative450() {
-        for (classes in proofInputs()) claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative450Check(classes)
+    @Test fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative() {
+        for (classes in proofInputs()) claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNativeCheck(classes)
     }
 
-    @Test fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative450Check)
+    @Test fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNativeCheck)
     }
 
-    @Test fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative450() {
-        for (classes in proofInputs()) concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative450Check(classes)
+    @Test fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative() {
+        for (classes in proofInputs()) concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeCheck(classes)
     }
 
-    @Test fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative450Check)
+    @Test fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeCheck)
     }
 
-    @Test fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative450() {
-        for (classes in proofInputs()) overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative450Check(classes)
+    @Test fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative() {
+        for (classes in proofInputs()) overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNativeCheck(classes)
     }
 
-    @Test fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative450Check)
+    @Test fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNativeCheck)
     }
 
-    @Test fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative450() {
-        for (classes in proofInputs()) methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative450Check(classes)
+    @Test fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative() {
+        for (classes in proofInputs()) methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeCheck(classes)
     }
 
-    @Test fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative450Check)
+    @Test fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeCheck)
     }
 
-    @Test fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative450() {
-        for (classes in proofInputs()) loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative450Check(classes)
+    @Test fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative() {
+        for (classes in proofInputs()) loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNativeCheck(classes)
     }
 
-    @Test fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative450Check)
+    @Test fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNativeCheck)
     }
 
-    @Test fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative450() {
-        for (classes in proofInputs()) anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative450Check(classes)
+    @Test fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative() {
+        for (classes in proofInputs()) anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNativeCheck(classes)
     }
 
-    @Test fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative450Check)
+    @Test fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNativeCheck)
     }
 
-    @Test fun encodedStaticHandlesCannotBypassAnyBridgeOnNative450() {
-        for (classes in proofInputs()) encodedStaticHandlesCannotBypassAnyBridgeOnNative450Check(classes)
+    @Test fun encodedStaticHandlesCannotBypassAnyBridgeOnNative() {
+        for (classes in proofInputs()) encodedStaticHandlesCannotBypassAnyBridgeOnNativeCheck(classes)
     }
 
-    @Test fun encodedStaticHandlesCannotBypassAnyBridgeOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::encodedStaticHandlesCannotBypassAnyBridgeOnNative450Check)
+    @Test fun encodedStaticHandlesCannotBypassAnyBridgeOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::encodedStaticHandlesCannotBypassAnyBridgeOnNativeCheck)
     }
 
     @Test fun missingMonitorHandlerRefusesUntouched() {
@@ -362,7 +362,7 @@ class StoryRetryQueueTest {
         return replace(classes, owner, methods = owner.methods.map { if (it == method) replacement else it })
     }
 
-    private fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative450Check(classes: List<ClassDef>) {
+    private fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val owner = classes.single { it.type == found.queue!!.owner }
         val run = owner.methods.single { it.name == found.queue!!.run }
@@ -378,7 +378,7 @@ class StoryRetryQueueTest {
         refused(changed(classes, claim, 0, "const/4 v${claim.code()[0].namedRegisters().single()}, 0x1"), "native literal at 0")
     }
 
-    private fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative450Check(classes: List<ClassDef>) {
+    private fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
         for (owner in listOf(found.store, found.queue!!.owner, "Ljava/lang/Object;"))
@@ -393,7 +393,7 @@ class StoryRetryQueueTest {
         }
     }
 
-    private fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative450Check(classes: List<ClassDef>) {
+    private fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val owner = classes.single { it.type == found.queue!!.owner }
         val run = owner.methods.single { it.name == found.queue!!.run }
@@ -415,7 +415,7 @@ class StoryRetryQueueTest {
             "claim aliases its live ownership registers")
     }
 
-    private fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative450Check(classes: List<ClassDef>) {
+    private fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
         for (owner in listOf(found.store, found.queue!!.owner, "Ljava/lang/Object;")) {
@@ -436,7 +436,7 @@ class StoryRetryQueueTest {
         }
     }
 
-    private fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative450Check(classes: List<ClassDef>) {
+    private fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val run = classes.single { it.type == found.queue!!.owner }.methods.single { it.name == found.queue!!.run }
         for ((result, branch, register) in listOf(
@@ -450,7 +450,7 @@ class StoryRetryQueueTest {
         }
     }
 
-    private fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative450Check(classes: List<ClassDef>) {
+    private fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val store = classes.single { it.type == found.store }
         val bridge = store.methods.single { it.name == found.retry!!.name }
@@ -472,7 +472,7 @@ class StoryRetryQueueTest {
         refused(classes.map { if (it.type == store.type) changedStore else it } + interfaceType + extra, "store isn't final without interfaces")
     }
 
-    private fun encodedStaticHandlesCannotBypassAnyBridgeOnNative450Check(classes: List<ClassDef>) {
+    private fun encodedStaticHandlesCannotBypassAnyBridgeOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
         for (owner in listOf(found.store, found.queue!!.owner, "Ljava/lang/Object;")) {
