@@ -175,6 +175,64 @@ public class ReelsSuggestionsTest {
         assertTrue(report, report.contains("SUGGESTED_USERS 3"));
     }
 
+    /**
+     * On, the friends tab's page of people to follow (#167) is answered null, which Instagram reads
+     * as no page, and counted under its own name. Any other kind stays and is named on the kept line.
+     */
+    @Test
+    public void withTheSwitchOnTheFriendsTabPageIsTakenOut() {
+        assertNull(ReelsSuggestions.friendsTab(new Item(Kind.SUGGESTED_USERS)));
+        Item reel = new Item(Kind.ORGANIC);
+        assertSame(reel, ReelsSuggestions.friendsTab(reel));
+        assertNull(ReelsSuggestions.friendsTab(null));
+
+        List<String> report = FeedFilterCounters.report();
+        assertEquals(report.toString(), 2, report.size());
+        String all = report.toString();
+        assertTrue(all, all.contains(ReelsSuggestions.ROUTE + ": 0 lists, 0 items, 1 removed"));
+        assertTrue(all, all.contains("suggested_users_friends_lane 1"));
+        assertTrue(all, all.contains(ReelsSuggestions.KEPT_ROUTE));
+        assertTrue(all, all.contains("suggested_users_friends_lane ORGANIC 1"));
+    }
+
+    /** Off, paused or before the settings are read, the friends tab keeps its page, though it's still counted. */
+    @Test
+    public void offPausedAndUnreadyKeepTheFriendsTabPage() {
+        Item page = new Item(Kind.SUGGESTED_USERS);
+
+        Settings.HIDE_REELS_SUGGESTIONS.save(false);
+        assertSame(page, ReelsSuggestions.friendsTab(page));
+        Settings.HIDE_REELS_SUGGESTIONS.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame(page, ReelsSuggestions.friendsTab(page));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertSame(page, ReelsSuggestions.friendsTab(page)));
+
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains("0 removed"));
+        assertTrue(report, report.contains("suggested_users_friends_lane 3"));
+    }
+
+    /** A reader or a switch that throws keeps the friends tab's page, and the throw is reported. */
+    @Test
+    public void aFriendsTabPageThatCantBeReadStays() {
+        Item page = new Item(Kind.SUGGESTED_USERS);
+        assertSame(page, ReelsSuggestions.friendsTab(page, (item, names, family) -> {
+            throw new IllegalAccessException("field went private");
+        }, () -> true));
+        assertSame(page, ReelsSuggestions.friendsTab(page, (item, names, family) -> "SUGGESTED_USERS", () -> {
+            throw new IllegalStateException("settings went away");
+        }));
+
+        String missing = HookStatus.missing(FamilyNames.REELS_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'friends tab page'"));
+        assertTrue(missing, missing.contains(IllegalAccessException.class.getName()));
+    }
+
     /** An item with no kind to read stays, and the class with no kind is reported once. */
     @Test
     public void anItemWithNoKindStays() {

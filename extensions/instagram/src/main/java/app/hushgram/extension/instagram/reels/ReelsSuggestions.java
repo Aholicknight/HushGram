@@ -36,6 +36,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Every unit that stays and isn't a reel or an ad is counted by its kind, and every netego unit
  * that stays by its type, under {@link #KEPT_ROUTE}. A screen of suggestions that still shows (#167)
  * then has its name in the reporter's Diagnostics, with or without Debug logging.
+ *
+ * <p>The friends tab of Reels, when it has no reels to show, shows a page of people to follow
+ * instead ("Instagram is better with friends", #167). Instagram makes that page into a clips item of
+ * its own, outside the converter, so the patch passes it through {@link #friendsTab} where it's
+ * made. An item answered null there is no page to Instagram, which then shows its own empty friends
+ * tab.
  */
 public final class ReelsSuggestions {
     /** The clips item kinds of a card of accounts or creators to follow, by the names Instagram 449 gives them. */
@@ -51,6 +57,9 @@ public final class ReelsSuggestions {
 
     /** The diagnostic counter route for the units kept that aren't reels or ads, by kind or netego type. */
     static final String KEPT_ROUTE = "Reels units kept";
+
+    /** What the friends tab's page of people to follow counts as, by the name Instagram logs it under. */
+    static final String FRIENDS_TAB_PAGE = "suggested_users_friends_lane";
 
     /**
      * Reads an item's kind, whatever it is, from its enum field whose type names one of [markers];
@@ -110,6 +119,33 @@ public final class ReelsSuggestions {
             return takeOut(item, type, on);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REELS_SUGGESTIONS, "netego unit", failure);
+            return item;
+        }
+    }
+
+    /**
+     * Injected at each return of the method that makes the friends tab's page of people to follow
+     * into a clips item. Answers null for it while the switch is on, so Instagram shows its own empty
+     * friends tab in its place, and [item] itself otherwise, or when it isn't a card of people to
+     * follow, or when anything goes wrong. Never throws.
+     */
+    public static Object friendsTab(Object item) {
+        return friendsTab(item, ReelsSuggestions::kindOf, ReelsSuggestions::switchedOn);
+    }
+
+    static Object friendsTab(Object item, KindReader reader, BooleanSupplier on) {
+        if (item == null) return null;
+        try {
+            HookStatus.invoked(FamilyNames.REELS_SUGGESTIONS);
+            String kind = reader.kindOf(item, KINDS, FamilyNames.REELS_SUGGESTIONS);
+            if (kind == null) return item;
+            if (!KINDS.contains(kind)) {
+                FeedFilterCounters.sawKind(KEPT_ROUTE, FRIENDS_TAB_PAGE + " " + kind);
+                return item;
+            }
+            return takeOut(item, FRIENDS_TAB_PAGE, on);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REELS_SUGGESTIONS, "friends tab page", failure);
             return item;
         }
     }

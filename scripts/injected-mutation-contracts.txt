@@ -1474,6 +1474,12 @@ once-call Lapp/hushgram/extension/instagram/profile/PostsList;->resumed(Ljava/la
 # that converter, twelve on 449, which no rule here counts, so it rests on
 # HideReelsSuggestionsHookTest, which checks on the 449 fixture that every return passes through it.
 once-call Lapp/hushgram/extension/instagram/reels/ReelsSuggestions;->netego(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object; in static (L*;Lcom/instagram/common/session/UserSession;)LX/*; holding android_purge_26_q2_ClipsItemExt_toClipsItemCombined
+# It also hands the item Instagram makes for the friends tab's page of people to follow (the page
+# the tab shows when it has no reels, #167) to ReelsSuggestions.friendsTab at both returns of the
+# one method loading the trace name below (04Fl.A03 on 451, beside the converter), and nowhere else.
+# Left out, that page shows with the switch on. HideReelsSuggestionsHookTest checks on all eight 451
+# builds that the method has two returns and both pass through the hook.
+once-call Lapp/hushgram/extension/instagram/reels/ReelsSuggestions;->friendsTab(Ljava/lang/Object;)Ljava/lang/Object; in static (L*;)LX/*; sites 2 holding android_purge_26_q2_ClipsItemExt_toFriendLaneEmptyStateClipsItem
 
 # Hide paid partnership Reels hands each page the Reels viewer's network callback takes to
 # PaidPartnershipReels.page, with the viewer's module name, where the page and its fallback meet

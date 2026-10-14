@@ -9,6 +9,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.feed.requireOneKindField
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -35,9 +36,17 @@ private const val PATCH = "Hide suggested accounts in Reels"
 internal const val REELS_SUGGESTIONS = "$EXTENSION_PACKAGE/reels/ReelsSuggestions;"
 internal const val REELS_FILTER = "$REELS_SUGGESTIONS->filter(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val NETEGO_FILTER = "$REELS_SUGGESTIONS->netego(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;"
+internal const val FRIENDS_TAB_FILTER = "$REELS_SUGGESTIONS->friendsTab(Ljava/lang/Object;)Ljava/lang/Object;"
 
 /** The trace marker of the converter that makes each Reels item (a clips item) from the server's. */
 internal const val TO_CLIPS_ITEM = "android_purge_26_q2_ClipsItemExt_toClipsItemCombined"
+
+/**
+ * The trace marker of the method that makes the page of people to follow, which the Reels friends
+ * tab shows when it has no reels ("Instagram is better with friends", #167), into a clips item of
+ * its own. That item never goes through the converter.
+ */
+internal const val TO_FRIENDS_TAB_PAGE = "android_purge_26_q2_ClipsItemExt_toFriendLaneEmptyStateClipsItem"
 
 /**
  * Two of the netego unit types, which the Reels viewer's binder dispatch compares a netego unit's
@@ -84,6 +93,12 @@ internal object ClipsItemConverterFingerprint : Fingerprint(
     custom = { method, _ -> method.holdsString(TO_CLIPS_ITEM) },
 )
 
+/** The method that makes the friends tab's page of people to follow into a clips item, by its trace marker. */
+internal object FriendsTabPageFingerprint : Fingerprint(
+    strings = listOf(TO_FRIENDS_TAB_PAGE),
+    custom = { method, _ -> method.holdsString(TO_FRIENDS_TAB_PAGE) },
+)
+
 /**
  * The Reels viewer's binder dispatch for one clips item and its position, answering the binder:
  * the one method taking an object and an int, answering an object, that compares a netego unit's
@@ -98,7 +113,8 @@ internal object NetegoDispatchFingerprint : Fingerprint(
 
 /**
  * The converter, its item type, and its return of the item made from a netego unit: that return's
- * index and register, the register holding the netego unit there, and the unit's type field.
+ * index and register, the register holding the netego unit there, and the unit's type field. Then
+ * the method making the friends tab's page of people to follow into an item of the same type.
  */
 internal class ReelsSuggestionSites(
     val converter: String,
@@ -109,6 +125,9 @@ internal class ReelsSuggestionSites(
     val netegoItem: Int,
     val netegoUnit: Int,
     val typeField: String,
+    val friendsTab: String,
+    val friendsTabName: String,
+    val friendsTabParameters: List<String>,
 )
 
 /**
@@ -116,8 +135,10 @@ internal class ReelsSuggestionSites(
  * one enum field, the one the extension reads. The netego unit's type is the one String field the
  * binder dispatch reads off another class, and that class is the netego unit: the converter has to
  * return, once, the item a call taking the unit makes, with the unit still in its register and
- * nothing jumping to the return. Fails before anything changes when any of it isn't there exactly
- * once, since that's an update this patch hasn't seen.
+ * nothing jumping to the return. The friends tab's page is made by the one method holding
+ * [TO_FRIENDS_TAB_PAGE], which has to answer the same item type and return it somewhere. Fails
+ * before anything changes when any of it isn't there exactly once, since that's an update this
+ * patch hasn't seen.
  */
 internal fun BytecodePatchContext.findReelsSuggestions(): ReelsSuggestionSites {
     val converter = uniqueMethod(PATCH, "Reels item converter holding \"$TO_CLIPS_ITEM\"", ClipsItemConverterFingerprint)
@@ -159,9 +180,15 @@ internal fun BytecodePatchContext.findReelsSuggestions(): ReelsSuggestionSites {
     // Two locals the netego hook may borrow, checked now so a method short of them changes nothing.
     converter.freeLocalsAt(PATCH, netegoReturn, 2)
 
+    val page = uniqueMethod(PATCH, "Reels friends tab page maker holding \"$TO_FRIENDS_TAB_PAGE\"", FriendsTabPageFingerprint)
+    val pageWhere = "${page.definingClass}->${page.name}"
+    if (page.returnType != itemType) refuse("$pageWhere answers ${page.returnType}, not a $itemType")
+    if (page.instructions().none { it.opcode == Opcode.RETURN_OBJECT }) refuse("$pageWhere returns no item")
+
     return ReelsSuggestionSites(
         converter.definingClass, converter.name, converter.parameterTypes.map(CharSequence::toString), itemType,
         netegoReturn, item, unit, typeField,
+        page.definingClass, page.name, page.parameterTypes.map(CharSequence::toString),
     )
 }
 
@@ -170,6 +197,9 @@ internal fun BytecodePatchContext.findReelsSuggestions(): ReelsSuggestionSites {
  * with it. Then every return of the converter passes its item through [REELS_FILTER], at the
  * return's own label so a branch straight to a return passes through it too. Each answer is cast
  * back to the item type; null stays null, and every caller of the converter skips a null item.
+ * Every return of the friends tab's page maker passes its item through [FRIENDS_TAB_FILTER] the
+ * same way. That method answers null itself when the server sent no page, and the friends tab
+ * then shows Instagram's own empty state.
  */
 internal fun BytecodePatchContext.hideReelsSuggestions(sites: ReelsSuggestionSites) {
     val converter = mutableClassDefBy(sites.converter).methods.single {
@@ -188,16 +218,26 @@ internal fun BytecodePatchContext.hideReelsSuggestions(sites: ReelsSuggestionSit
         """,
     )
 
-    val returns = converter.instructions().withIndex()
+    converter.filterEveryReturn(REELS_FILTER, sites.itemType)
+
+    val page = mutableClassDefBy(sites.friendsTab).methods.single {
+        it.name == sites.friendsTabName && it.parameterTypes.map(CharSequence::toString) == sites.friendsTabParameters
+    }
+    page.filterEveryReturn(FRIENDS_TAB_FILTER, sites.itemType)
+}
+
+/** Passes the item at each object return through [filter], at the return's own label, and casts it back to [itemType]. */
+private fun MutableMethod.filterEveryReturn(filter: String, itemType: String) {
+    val returns = instructions().withIndex()
         .filter { it.value.opcode == Opcode.RETURN_OBJECT }
         .map { it.index to (it.value as OneRegisterInstruction).registerA }
     returns.asReversed().forEach { (index, register) ->
-        converter.addInstructionsAtControlFlowLabel(
+        addInstructionsAtControlFlowLabel(
             index,
             """
-                invoke-static/range { v$register .. v$register }, $REELS_FILTER
+                invoke-static/range { v$register .. v$register }, $filter
                 move-result-object v$register
-                check-cast v$register, ${sites.itemType}
+                check-cast v$register, $itemType
             """,
         )
     }
