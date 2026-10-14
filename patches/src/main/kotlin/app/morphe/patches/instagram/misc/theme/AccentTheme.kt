@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.misc.theme
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.ResourcePatchContext
@@ -30,11 +31,18 @@ private const val PATCH = "Accent color"
 internal const val ACCENT_THEME = "$EXTENSION_PACKAGE/misc/AccentTheme;"
 internal const val APPLY_THEME = "$ACCENT_THEME->apply(Landroid/content/Context;)V"
 
+/**
+ * The extension's stub the patch writes the attribute list into, space separated. Not a string
+ * resource: Instagram answers those from its string packs by number, so an added one reads back as
+ * one of Instagram's own strings.
+ */
+internal const val ATTRIBUTES_STUB = "$ACCENT_THEME->attributes()Ljava/lang/String;"
+
 /** The activity every screen of Instagram's own extends, whose theme setup ends with Prism's overrides. */
 internal const val IG_FRAGMENT_ACTIVITY = "Lcom/instagram/base/activity/IgFragmentActivity;"
 
-/** The string resource listing, space separated, every theme attribute the patch gives a style of its own. */
-internal const val ACCENT_ATTRIBUTES = "hushgram_accent_attributes"
+/** Every theme attribute [accentThemePatch] gave a style of its own, space separated, once it has run. */
+internal var accentAttributes: String? = null
 
 private const val CONTEXT = "Landroid/content/Context;"
 private const val THEME = "Landroid/content/res/Resources\$Theme;"
@@ -175,14 +183,13 @@ internal fun accentUses(styles: List<Document>, colors: Map<String, Set<Int>>): 
 }
 
 /**
- * What the patch adds for [uses], into the decoded attrs.xml, colors.xml, styles.xml and strings.xml
- * of the default configuration:
+ * What the patch adds for [uses], into the decoded attrs.xml, colors.xml and styles.xml of the default
+ * configuration, answering every attribute a use has, space separated, for [ATTRIBUTES_STUB]:
  *
  * - an attribute for each shade the uses need (a part and an alpha), `hushgram_accent_fill_ff`;
  * - each color's value of each of those shades, `hushgram_accent_purple_fill_ff`;
  * - for each color, a style setting each shade attribute to that color's resource;
- * - for each use, a style setting its attribute to its shade attribute, `?attr/hushgram_accent_fill_ff`;
- * - [ACCENT_ATTRIBUTES], naming every attribute a use has.
+ * - for each use, a style setting its attribute to its shade attribute, `?attr/hushgram_accent_fill_ff`.
  *
  * The extension lays a color's style and the styles for whatever its theme's attributes hold onto the
  * theme. The shade attributes stand between them because a part and alpha is the same whatever color
@@ -190,13 +197,13 @@ internal fun accentUses(styles: List<Document>, colors: Map<String, Set<Int>>): 
  * out, since some of Instagram's reads take the resource an attribute resolves to and ask for its color.
  * Refuses if any name it adds is already there.
  */
-internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: Document, styles: Document, strings: Document) {
+internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: Document, styles: Document): String {
     val shades = uses.map { it.shade }.distinct().sorted()
-    val taken = (attrs.children("attr") + colors.children("color") + styles.children("style") + strings.children("string"))
+    val taken = (attrs.children("attr") + colors.children("color") + styles.children("style"))
         .mapTo(HashSet()) { it.getAttribute("name") }
     val adding = shades.map(::shadeAttribute) +
         ACCENT_PALETTES.flatMap { palette -> shades.map { paletteColor(palette, it) } + paletteStyle(palette) } +
-        uses.map { it.style } + ACCENT_ATTRIBUTES
+        uses.map { it.style }
     adding.firstOrNull { it in taken }?.let { refuse("the resources already have a $it") }
 
     for (shade in shades) {
@@ -230,10 +237,7 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
             })
         })
     }
-    strings.documentElement.appendChild(strings.createElement("string").apply {
-        setAttribute("name", ACCENT_ATTRIBUTES)
-        textContent = uses.map { it.attribute }.distinct().joinToString(" ")
-    })
+    return uses.map { it.attribute }.distinct().joinToString(" ")
 }
 
 /**
@@ -241,9 +245,9 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
  * attribute found. Refuses unless Instagram's link and primary button attributes are among them, the
  * ones 451's bio links and the Follow buttons on the Activity tab read through their styles (#8).
  * The other configurations are only read: document() writes its file back, and the patcher re-encodes
- * every file written.
+ * every file written. Answers the attributes, as [addAccentResources] does.
  */
-internal fun ResourcePatchContext.addAccentTheme() {
+internal fun ResourcePatchContext.addAccentTheme(): String {
     val values = get("res").listFiles { file -> file.isDirectory && file.name.startsWith("values") }.orEmpty()
     val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
     fun read(name: String) = values.map { File(it, name) }.filter { it.isFile }.map { builder.parse(it) }
@@ -251,19 +255,25 @@ internal fun ResourcePatchContext.addAccentTheme() {
     for (needed in listOf("igds_color_link", "igds_color_primary_button_indigo")) {
         if (uses.none { it.attribute == needed }) refuse("no style sets $needed to one of Instagram's blues")
     }
-    document("res/values/attrs.xml").use { attrs ->
+    return document("res/values/attrs.xml").use { attrs ->
         document("res/values/colors.xml").use { colors ->
-            document("res/values/styles.xml").use { styles ->
-                document("res/values/strings.xml").use { strings -> addAccentResources(uses, attrs, colors, styles, strings) }
-            }
+            document("res/values/styles.xml").use { styles -> addAccentResources(uses, attrs, colors, styles) }
         }
     }
 }
 
 internal val accentThemePatch = resourcePatch {
     execute {
-        addAccentTheme()
+        accentAttributes = null
+        accentAttributes = addAccentTheme()
     }
+}
+
+/** The attributes [accentThemePatch] listed, refusing before any change when it hasn't run or listed none it can write. */
+internal fun requireAccentAttributes(attributes: String? = accentAttributes): String {
+    if (attributes.isNullOrEmpty()) refuse("the theme resources weren't added")
+    if (!attributes.all { it.isLetterOrDigit() || it in "_:. " }) refuse("an attribute's name can't be written into the code: $attributes")
+    return attributes
 }
 
 /**
@@ -295,27 +305,37 @@ internal fun BytecodePatchContext.findThemeOverrides(): MutableMethod {
     val returns = overrides.code().indices.filter { overrides.code()[it].opcode == Opcode.RETURN_VOID }
     if (returns.isEmpty()) refuse("${overrides.where()} never returns")
     overrides.requireParameterIntact(PATCH, 0, returns)
-    if (classDefByOrNull(ACCENT_THEME)?.methods?.any {
-            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == APPLY_THEME &&
-                AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
-        } != true
-    ) {
-        refuse("the extension has no public static $APPLY_THEME")
+    for (needed in listOf(APPLY_THEME, ATTRIBUTES_STUB)) {
+        if (extensionMethod(needed) == null) refuse("the extension has no public static $needed")
     }
+    if ((extensionMethod(ATTRIBUTES_STUB)?.implementation?.registerCount ?: 0) < 1) refuse("$ATTRIBUTES_STUB has no register to write into")
     return mutableClassDefBy(overrides.definingClass).methods.single {
         it.name == overrides.name && it.parameterTypes.map(Any::toString) == listOf(CONTEXT) && it.returnType == "V"
     }
 }
 
-/** AccentTheme.apply runs with the activity at each of the overrides' returns, once Instagram's styles are all on. */
-internal fun BytecodePatchContext.applyAccentTheme() {
+/**
+ * Writes [attributes] into the extension's stub, then runs AccentTheme.apply with the activity at
+ * each of the overrides' returns, once Instagram's styles are all on.
+ */
+internal fun BytecodePatchContext.applyAccentTheme(attributes: String = requireAccentAttributes()) {
     val overrides = findThemeOverrides()
+    val listed = requireAccentAttributes(attributes)
+    mutableClassDefBy(ACCENT_THEME).methods.single { it.signature() == ATTRIBUTES_STUB }
+        .addInstructions(0, "const-string v0, \"$listed\"\nreturn-object v0")
     val context = overrides.parameterRegisterNumber(0)
     val returns = overrides.code().indices.filter { overrides.code()[it].opcode == Opcode.RETURN_VOID }
     for (at in returns.asReversed()) {
         overrides.addInstructionsAtControlFlowLabel(at, "invoke-static/range { v$context .. v$context }, $APPLY_THEME")
     }
 }
+
+private fun BytecodePatchContext.extensionMethod(signature: String): Method? =
+    classDefByOrNull(ACCENT_THEME)?.methods?.singleOrNull {
+        it.signature() == signature && AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
+    }
+
+private fun Method.signature(): String = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
 private fun Instruction.calls(definingClass: String, name: String): Boolean =
     ((this as? ReferenceInstruction)?.reference as? MethodReference)?.let {

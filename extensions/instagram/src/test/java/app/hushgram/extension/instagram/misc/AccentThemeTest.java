@@ -8,6 +8,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import android.content.Context;
+import android.content.ContextWrapper;
+import android.content.res.Resources;
 import android.util.TypedValue;
 
 import org.junit.After;
@@ -31,6 +33,9 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class AccentThemeTest {
+    /** A package of its own, so the resource numbers looked up for the app in another test aren't reused. */
+    private static final String THEMED = "app.hushgram.test.themed";
+
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     @Before
@@ -102,6 +107,45 @@ public class AccentThemeTest {
         HookStatus.clear();
         AccentTheme.apply(context);
         assertEquals("Instagram's own blue picked", List.of(), HookStatus.report());
+    }
+
+    /**
+     * With the styles there but no listed attribute set on the theme, nothing goes on and that's counted.
+     * Without the list the patch writes in, it's counted as missing.
+     */
+    @Test
+    public void aThemeWithNoBlueIsCountedAndLeftAlone() {
+        Settings.ACCENT_COLOR.save(true);
+        Context app = RuntimeEnvironment.getApplication();
+        Resources listed = new Resources(app.getAssets(), app.getResources().getDisplayMetrics(), app.getResources().getConfiguration()) {
+            @Override
+            public int getIdentifier(String name, String type, String defPackage) {
+                if (!THEMED.equals(defPackage)) return 0;
+                if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.PURPLE))) return 0x7f990001;
+                // Attributes no theme sets, so none resolves.
+                if (type.equals("attr")) return name.equals("igds_color_link") ? 0x7f990003 : 0x7f990004;
+                return 0;
+            }
+        };
+        Context context = new ContextWrapper(app) {
+            @Override
+            public Resources getResources() {
+                return listed;
+            }
+
+            @Override
+            public String getPackageName() {
+                return THEMED;
+            }
+        };
+        AccentTheme.apply(context, "igds_color_link igds_color_primary_button_indigo");
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1"),
+                HookStatus.report());
+
+        HookStatus.clear();
+        AccentTheme.apply(context);
+        assertEquals("the patch's list never written in", List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: "
+                + AccentTheme.MISSING + " 1"), HookStatus.report());
     }
 
     private static TypedValue color(int argb) {

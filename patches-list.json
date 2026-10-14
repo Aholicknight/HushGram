@@ -11,7 +11,8 @@
       "use": true,
       "dependencies": [
         "BytecodePatch",
-        "HushGram settings"
+        "HushGram settings",
+        "ResourcePatch"
       ],
       "compatiblePackages": {
         "com.instagram.android": [

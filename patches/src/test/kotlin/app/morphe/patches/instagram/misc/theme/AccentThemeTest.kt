@@ -131,7 +131,7 @@ class AccentThemeTest {
         assertEquals(null, parseColor("@color/x"))
     }
 
-    /** A shade attribute per part and alpha, each color's values and style, a style per use and the list. */
+    /** A shade attribute per part and alpha, each color's values and style, a style per use, and the list answered. */
     @Test
     fun theResourcesAddedPointEachUseAtItsShade() {
         val uses = setOf(
@@ -142,9 +142,8 @@ class AccentThemeTest {
         val attrs = parse("<resources><attr name=\"igds_color_link\" format=\"reference|color\" /></resources>")
         val colors = parse("<resources />")
         val styles = parse("<resources><style name=\"Theme.Instagram\" /></resources>")
-        val strings = parse("<resources><string name=\"ok\">OK</string></resources>")
 
-        addAccentResources(uses, attrs, colors, styles, strings)
+        val listed = addAccentResources(uses, attrs, colors, styles)
 
         assertEquals(
             listOf("igds_color_link", "hushgram_accent_fill_4d", "hushgram_accent_link_on_dark_ff", "hushgram_accent_link_on_light_ff"),
@@ -177,29 +176,35 @@ class AccentThemeTest {
             added["HushGramAccent_igds_color_selected_text_background_fill_4d"],
         )
         assertEquals(ACCENT_PALETTES.size + uses.size, added.size)
-        assertEquals(
-            "igds_color_link igds_color_selected_text_background",
-            strings.elements("string").single { it.getAttribute("name") == ACCENT_ATTRIBUTES }.textContent,
-        )
+        assertEquals("igds_color_link igds_color_selected_text_background", listed)
 
-        val again = assertThrows(PatchException::class.java) { addAccentResources(uses, attrs, parse("<resources />"), parse("<resources />"), parse("<resources />")) }
+        val again = assertThrows(PatchException::class.java) { addAccentResources(uses, attrs, parse("<resources />"), parse("<resources />")) }
         assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_fill_4d"))
     }
 
     @Test
-    fun theHookIsInTheExtension() {
+    fun theHookAndTheStubAreInTheExtension() {
         val declared = app.morphe.ExtensionDex.classDef(ACCENT_THEME).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
-            .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$APPLY_THEME is not in the extension: $declared", APPLY_THEME in declared)
+            .associateBy { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$APPLY_THEME is not in the extension: ${declared.keys}", APPLY_THEME in declared)
+        val stub = declared[ATTRIBUTES_STUB]
+        assertTrue("$ATTRIBUTES_STUB is not in the extension: ${declared.keys}", stub != null)
+        assertTrue("the stub has a register to write into", stub!!.implementation!!.registerCount >= 1)
     }
 
-    /** The overrides' every return runs AccentTheme.apply with the activity, and anything else refuses before a change. */
+    /**
+     * The attribute list goes into the stub and the overrides' every return runs AccentTheme.apply with
+     * the activity. Anything else refuses before a change.
+     */
     @Test
     fun everyReturnOfTheOverridesAppliesTheTheme() {
         val context = PatchContexts.of(listOf(activity(), overrides(), extension()))
-        context.applyAccentTheme()
+        context.applyAccentTheme("igds_color_link android:textColorLink")
         assertApplied("stand-in", context.mutableClassDefBy(OVERRIDES).methods.single { it.name == "A04" }, returns = 2)
+        val written = context.mutableClassDefBy(ACCENT_THEME).methods.single { it.name == "attributes" }.code()
+        assertEquals(listOf(Opcode.CONST_STRING, Opcode.RETURN_OBJECT), written.take(2).map { it.opcode })
+        assertEquals("igds_color_link android:textColorLink", (written.first() as ReferenceInstruction).reference.toString())
 
         for ((case, classes) in listOf(
             "no activity" to listOf(overrides(), extension()),
@@ -209,13 +214,21 @@ class AccentThemeTest {
             "overrides applying one style" to listOf(activity(), overrides(styles = 1), extension()),
             "overrides writing over the activity" to listOf(activity(), overrides(reuseContext = true), extension()),
             "no hook in the extension" to listOf(activity(), overrides()),
+            "no stub in the extension" to listOf(activity(), overrides(), extension(stub = false)),
         )) {
-            val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).applyAccentTheme() }
+            val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).applyAccentTheme("igds_color_link") }
             assertTrue("$case: ${failure.message}", failure.message!!.startsWith("Accent color"))
+        }
+        for ((case, attributes) in listOf("no list" to "", "a quote in a name" to "igds_color_link\"")) {
+            val untouched = PatchContexts.of(listOf(activity(), overrides(), extension()))
+            val failure = assertThrows(case, PatchException::class.java) { untouched.applyAccentTheme(attributes) }
+            assertTrue("$case: ${failure.message}", failure.message!!.startsWith("Accent color"))
+            assertEquals("$case: the stub untouched", listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT),
+                untouched.classDefBy(ACCENT_THEME).methods.single { it.name == "attributes" }.code().map { it.opcode })
         }
         val stub = overrides(styles = 1)
         val refused = PatchContexts.of(listOf(activity(), stub, extension()))
-        assertThrows(PatchException::class.java) { refused.applyAccentTheme() }
+        assertThrows(PatchException::class.java) { refused.applyAccentTheme("igds_color_link") }
         assertEquals(stub.methods.single().implementation!!.instructions.map { it.opcode },
             refused.classDefBy(OVERRIDES).methods.single().implementation!!.instructions.map { it.opcode })
     }
@@ -238,7 +251,7 @@ class AccentThemeTest {
             val found = context.findThemeOverrides()
             assertEquals("$code: the overrides", "${called.definingClass}->${called.name}", "${found.definingClass}->${found.name}")
             val returns = found.code().count { it.opcode == Opcode.RETURN_VOID }
-            context.applyAccentTheme()
+            context.applyAccentTheme("igds_color_link")
             assertApplied(code, context.mutableClassDefBy(called.definingClass).methods.single { it.name == called.name && it.parameterTypes.size == 1 }, returns)
         }
     }
@@ -257,18 +270,22 @@ class AccentThemeTest {
                 ZipFile(bundle).use { zip -> zip.getInputStream(zip.getEntry("base.apk")).use { input -> base.outputStream().use(input::copyTo) } }
             }
             val patched = File(work, "patched.apk")
+            var listed = ""
             val before = decoded(apk, File(work, "patch")) { context ->
                 val ids = ids(context.get("res"))
-                context.addAccentTheme()
+                listed = context.addAccentTheme()
                 encoded(context).copyTo(patched)
                 ids
             }
+            val attributes = listed.split(" ")
+            assertTrue("$code: the list, $listed", "igds_color_link" in attributes && "igds_color_primary_button_indigo" in attributes)
+            assertEquals("$code: the list is one the stub takes", listed, requireAccentAttributes(listed))
             decoded(patched, File(work, "check")) { context ->
                 val res = context.get("res")
                 val after = ids(res)
                 val added = (after.keys - before.keys).map { after.getValue(it) }.toSet()
                 assertTrue("$code: numbers gone", (before.keys - after.keys).isEmpty())
-                assertTrue("$code: the list", "string/$ACCENT_ATTRIBUTES" in added)
+                assertTrue("$code: no string added, ${added.filter { it.startsWith("string/") }}", added.none { it.startsWith("string/") })
                 assertTrue("$code: a palette", "style/${paletteStyle(ACCENT_PALETTES.first())}" in added)
                 assertTrue("$code: the link's dark style", "style/HushGramAccent_igds_color_link_link_on_dark_ff" in added)
                 assertTrue("$code: the link's light style", "style/HushGramAccent_igds_color_link_link_on_light_ff" in added)
@@ -385,14 +402,21 @@ class AccentThemeTest {
             return classOf(OVERRIDES, method(OVERRIDES, "A04", listOf(CONTEXT), 3, body, static = false))
         }
 
-        fun extension(): ClassDef = classOf(ACCENT_THEME, method(ACCENT_THEME, "apply", listOf(CONTEXT), 0, "return-void", static = true))
+        /** AccentTheme's hook, and the attribute stub as javac and D8 leave `return null`. */
+        fun extension(stub: Boolean = true): ClassDef = classOf(
+            ACCENT_THEME,
+            *listOfNotNull(
+                method(ACCENT_THEME, "apply", listOf(CONTEXT), 0, "return-void", static = true),
+                if (stub) method(ACCENT_THEME, "attributes", emptyList(), 1, "const/4 v0, 0x0\nreturn-object v0", static = true, returns = "Ljava/lang/String;") else null,
+            ).toTypedArray(),
+        )
 
-        fun method(type: String, name: String, parameters: List<String>, locals: Int, body: String, static: Boolean): Method {
+        fun method(type: String, name: String, parameters: List<String>, locals: Int, body: String, static: Boolean, returns: String = "V"): Method {
             val registers = locals + parameters.size + if (static) 0 else 1
             return ImmutableMethod.of(
                 MutableMethod(
                     ImmutableMethod(
-                        type, name, parameters.map { ImmutableMethodParameter(it, null, null) }, "V",
+                        type, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns,
                         AccessFlags.PUBLIC.value or (if (static) AccessFlags.STATIC.value else 0), null, null,
                         ImmutableMethodImplementation(registers, emptyList(), null, null),
                     ),

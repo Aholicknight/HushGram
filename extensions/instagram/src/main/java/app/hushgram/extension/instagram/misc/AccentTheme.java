@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.util.TypedValue;
 
+import androidx.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -38,11 +41,11 @@ public final class AccentTheme {
     /** What's counted each time the picked color goes onto a theme. */
     static final String APPLIED = "themes given the accent color";
 
-    /** What's counted when the patch's styles aren't in the app, so the theme is left alone. */
+    /** What's counted when the patch's styles or its list of attributes aren't in the app, so the theme is left alone. */
     static final String MISSING = "themes left blue, the accent styles are missing";
 
-    /** The string resource the patch adds, naming every attribute it made styles for. */
-    static final String ATTRIBUTES = "hushgram_accent_attributes";
+    /** What's counted when a theme holds none of the blues the patch made styles for. */
+    static final String NO_BLUE = "themes with no accent blue";
 
     /** Resource numbers by type and name, 0 for none. They don't change while the app runs. */
     private static final Map<String, Integer> IDS = new HashMap<>();
@@ -52,6 +55,21 @@ public final class AccentTheme {
 
     /** Injected at each return of the method laying Instagram's overrides over [context]'s theme. Never throws. */
     public static void apply(Context context) {
+        apply(context, attributes());
+    }
+
+    /**
+     * Filled in by the patch: every theme attribute it made styles for, space separated, or null. It's
+     * written into the code because Instagram answers its string resources from its own string packs by
+     * number, so a string the patch added would read back as one of Instagram's.
+     */
+    @Nullable
+    public static String attributes() {
+        return null;
+    }
+
+    /** {@link #apply(Context)} with the attributes the patch listed. */
+    static void apply(Context context, @Nullable String listed) {
         try {
             AccentHue hue = AccentColor.picked();
             if (hue == null || context == null) return;
@@ -60,14 +78,13 @@ public final class AccentTheme {
             Resources.Theme theme = context.getTheme();
             String app = context.getPackageName();
             int palette = id(resources, paletteStyle(hue), "style", app);
-            int listed = id(resources, ATTRIBUTES, "string", app);
-            if (palette == 0 || listed == 0) {
+            if (palette == 0 || listed == null || listed.isEmpty()) {
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, MISSING);
                 return;
             }
             List<Integer> styles = new ArrayList<>();
             TypedValue value = new TypedValue();
-            for (String attribute : resources.getString(listed).split(" ")) {
+            for (String attribute : listed.split(" ")) {
                 int attr = attribute.startsWith("android:")
                         ? id(resources, attribute.substring("android:".length()), "attr", "android")
                         : id(resources, attribute, "attr", app);
@@ -76,10 +93,16 @@ public final class AccentTheme {
                 int styleId = style == null ? 0 : id(resources, style, "style", app);
                 if (styleId != 0) styles.add(styleId);
             }
-            if (styles.isEmpty()) return;
+            if (styles.isEmpty()) {
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, NO_BLUE);
+                Logger.printDebug(() -> "Accent color: no accent blue on " + context.getClass().getName() + "'s theme, "
+                        + held(resources, theme, listed, app));
+                return;
+            }
             theme.applyStyle(palette, true);
             for (int style : styles) theme.applyStyle(style, true);
             HookStatus.counted(FamilyNames.ACCENT_COLOR, APPLIED);
+            Logger.printDebug(() -> "Accent color: " + styles.size() + " styles on " + context.getClass().getName() + "'s theme");
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "theme", failure);
         }
@@ -95,6 +118,23 @@ public final class AccentTheme {
         if (role == AccentColor.Role.NONE) return null;
         return "HushGramAccent_" + attribute.replace(':', '_') + "_" + role.name().toLowerCase(Locale.ROOT)
                 + String.format(Locale.ROOT, "_%02x", value.data >>> 24);
+    }
+
+    /** What each listed attribute holds on [theme], as type and data, for the debug log. */
+    private static String held(Resources resources, Resources.Theme theme, String listed, String app) {
+        StringBuilder held = new StringBuilder();
+        TypedValue value = new TypedValue();
+        for (String attribute : listed.split(" ")) {
+            int attr = attribute.startsWith("android:")
+                    ? resources.getIdentifier(attribute.substring("android:".length()), "attr", "android")
+                    : resources.getIdentifier(attribute, "attr", app);
+            if (held.length() > 0) held.append(", ");
+            held.append(attribute).append('=');
+            if (attr == 0) held.append("no attribute");
+            else if (!theme.resolveAttribute(attr, value, true)) held.append("unset");
+            else held.append(value.type).append('/').append(Integer.toHexString(value.data));
+        }
+        return held.toString();
     }
 
     /** The style setting every shade attribute to [hue]'s colors. */

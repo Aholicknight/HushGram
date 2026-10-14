@@ -87,9 +87,10 @@ val accentColorPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("accentColor")
+        val attributes = requireAccentAttributes()
         findThemeOverrides()
         swapAccentColors()
-        applyAccentTheme()
+        applyAccentTheme(attributes)
         enableStatus("accentColor")
     }
 }
