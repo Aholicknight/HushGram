@@ -106,7 +106,8 @@ public class ReelAutoScrollSettingsTest {
         assertNotNull(row);
         assertEquals("Move on when a reel ends", row.getTitle().toString());
         assertEquals("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own "
-                + "auto scroll, even on accounts where Instagram doesn't offer it. Restart Instagram to see the change.",
+                + "auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll "
+                + "switch can't turn it off. Restart Instagram to see the change.",
                 row.getSummary().toString());
         assertEquals("Reels", row.getParent().getTitle().toString());
         assertSame(keep.getParent(), row.getParent());
