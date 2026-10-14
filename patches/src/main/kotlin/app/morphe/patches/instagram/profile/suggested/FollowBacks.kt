@@ -12,11 +12,13 @@ import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.util.ControlFlow
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.namedRegisters
 import app.morphe.util.readsAfter
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -43,6 +45,7 @@ internal const val FOLLOW_BACK_TYPE = "FOLLOW_BACK"
  */
 internal const val FALLBACK_SECTION = "FRIENDING_UNIT_FALLBACK"
 
+private const val STRING = "Ljava/lang/String;"
 private const val IS_EMPTY = "Ljava/util/List;->isEmpty()Z"
 private const val HASH_CODE = "Ljava/lang/String;->hashCode()I"
 
@@ -151,8 +154,12 @@ internal class FollowBackSectionSite(
  * has checked the section has rows: List.isEmpty, its answer, and an if-nez past the section when
  * there are none. Nothing else jumps to the load, so it runs only for a section with rows. After it
  * the builder switches on the section's type, a String.hashCode compared with FOLLOW_BACK's hash, to
- * pick the header, and that hashCode's register holds the type at the load as long as nothing between
- * writes it. Fails before anything changes when any of that isn't so.
+ * pick the header, and that hashCode's register is the one the hook hands over.
+ *
+ * The hook reads that register at the load, so it has to hold a String there on every path, or ART
+ * rejects the whole builder class and the notifications screen crashes. A straight line from the load
+ * to hashCode proves nothing once a branch in between can loop back and write it, so [holdsStringOnEveryPath]
+ * walks every path into the load instead. Fails before anything changes when any of that isn't so.
  */
 internal fun BytecodePatchContext.findFollowBackSection(): FollowBackSectionSite {
     val builders = classesLoadingString(FALLBACK_SECTION).flatMap { classDef ->
@@ -177,7 +184,8 @@ internal fun BytecodePatchContext.findFollowBackSection(): FollowBackSectionSite
     if (!checked) refuse("$where doesn't skip a section without rows right before loading \"$FOLLOW_BACK_TYPE\"")
     val result = (answer as OneRegisterInstruction).registerA
     if (at in builder.jumpTargets()) refuse("$where jumps to its \"$FOLLOW_BACK_TYPE\" load")
-    val skip = ControlFlow.of(builder).normal[at - 1].first()
+    val flow = ControlFlow.of(builder)
+    val skip = flow.normal[at - 1].first()
 
     val hash = (at + 1 until code.size).firstOrNull { code[it].methodText() == HASH_CODE }
         ?: refuse("$where doesn't switch on the section's type after loading \"$FOLLOW_BACK_TYPE\"")
@@ -186,16 +194,95 @@ internal fun BytecodePatchContext.findFollowBackSection(): FollowBackSectionSite
         refuse("$where's switch on the section's type doesn't compare it with \"$FOLLOW_BACK_TYPE\"")
     }
     val section = code[hash].namedRegisters().single()
-    val written = (at until hash).filter {
-        val destination = (code[it] as? OneRegisterInstruction)?.registerA
-        code[it].opcode.setsRegister() && destination != null &&
-            (destination == section || (code[it].opcode.setsWideRegister() && destination + 1 == section))
+    if (!builder.holdsStringOnEveryPath(flow, at, section)) {
+        refuse("$where's v$section doesn't hold a String on every path into its \"$FOLLOW_BACK_TYPE\" load")
     }
-    if (written.isNotEmpty()) refuse("$where writes over the section's type (v$section) at ${written.joinToString()} before switching on it")
     return FollowBackSectionSite(
         builder.definingClass, builder.name, builder.parameterTypes.map(CharSequence::toString), builder.returnType,
         at, section, result, skip,
     )
+}
+
+/**
+ * [findFollowBackSection], or null with a warning in the patch log when the build isn't one it can
+ * read, so the rest of the patch still goes in, the older reply's hook included.
+ */
+internal fun BytecodePatchContext.findFollowBackSectionOrWarn(): FollowBackSectionSite? = try {
+    findFollowBackSection()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without hiding the newer notifications' People you don't follow back section.")
+    null
+}
+
+/** How many register copies [holdsStringOnEveryPath] follows back before it gives up. */
+private const val COPY_DEPTH = 4
+
+/**
+ * Whether [register] holds a String, or nothing, on entry to [index] on every path into it. Walks back
+ * over every edge, a branch's, a goto's, a switch's and a handler's, to each write that can reach
+ * [index], and takes only a const-string, a check-cast to String, a read of a String field, the result
+ * of a call answering a String, or a move-object from a register that holds a String there by the same
+ * test. A path that
+ * gets back to the method's start without a write needs a String parameter in that register. A handler
+ * gets what was there before the instruction that threw, so a write is skipped on that edge.
+ */
+private fun Method.holdsStringOnEveryPath(flow: ControlFlow, index: Int, register: Int, depth: Int = COPY_DEPTH): Boolean {
+    if (depth < 0) return false
+    val code = flow.instructions
+    val into = Array(code.size) { mutableListOf<Pair<Int, Boolean>>() }
+    code.indices.forEach { from ->
+        flow.normal[from].forEach { into[it] += from to false }
+        flow.exceptional[from].forEach { into[it] += from to true }
+    }
+    val queued = BooleanArray(code.size)
+    val pending = ArrayDeque(listOf(index))
+    queued[index] = true
+    val writes = sortedSetOf<Int>()
+    var fromStart = false
+    while (pending.isNotEmpty()) {
+        val at = pending.removeFirst()
+        if (at == 0) fromStart = true
+        for ((from, thrown) in into[at]) {
+            if (!thrown && code[from].writes(register)) {
+                writes += from
+            } else if (!queued[from]) {
+                queued[from] = true
+                pending += from
+            }
+        }
+    }
+    if (fromStart && parameterType(register) != STRING) return false
+    return writes.all { at ->
+        val write = code[at]
+        when (write.opcode) {
+            Opcode.CONST_STRING, Opcode.CONST_STRING_JUMBO -> true
+            Opcode.CHECK_CAST -> ((write as ReferenceInstruction).reference as TypeReference).type == STRING
+            Opcode.MOVE_RESULT_OBJECT -> ((code.getOrNull(at - 1) as? ReferenceInstruction)?.reference as? MethodReference)?.returnType == STRING
+            Opcode.IGET_OBJECT, Opcode.SGET_OBJECT -> ((write as ReferenceInstruction).reference as FieldReference).type == STRING
+            Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16 ->
+                holdsStringOnEveryPath(flow, at, (write as TwoRegisterInstruction).registerB, depth - 1)
+            else -> false
+        }
+    }
+}
+
+/** Whether this instruction writes [register], a wide write into the one below it included. */
+private fun Instruction.writes(register: Int): Boolean {
+    val destination = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return opcode.setsRegister() && (destination == register || (opcode.setsWideRegister() && destination + 1 == register))
+}
+
+/** The declared type of the parameter held in [register] on entry, or null when it holds none. */
+private fun Method.parameterType(register: Int): String? {
+    val wide = setOf("J", "D")
+    val types = parameterTypes.map(CharSequence::toString)
+    // Parameters fill the last registers, after this for an instance method.
+    var next = implementation!!.registerCount - types.sumOf { if (it in wide) 2 else 1 }
+    for (type in types) {
+        if (next == register) return type
+        next += if (type in wide) 2 else 1
+    }
+    return null
 }
 
 /**
