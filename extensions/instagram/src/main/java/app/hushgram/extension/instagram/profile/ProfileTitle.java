@@ -223,9 +223,9 @@ public final class ProfileTitle {
             if (screens && id != View.NO_ID && id == sharedId && view instanceof ViewGroup) {
                 centerTitle((ViewGroup) view, areaId, titleId);
                 // The shared bar sits near the top of the window: with no profile bar to look for,
-                // the rest of the window has nothing more to do.
+                // the rest of the window has nothing more to do. With one, the walk goes on into
+                // the shared bar too, since a profile's own bar can stand in a custom view there.
                 if (!profiles) return;
-                continue;
             }
             if (view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;

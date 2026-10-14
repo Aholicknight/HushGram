@@ -272,4 +272,35 @@ public class ScreenTitleTest {
         assertEquals("the title stays centered", 188f, group.getTranslationX(), 0f);
         assertTrue(ProfileTitle.watchingLayoutsForTests());
     }
+
+    /** A profile's own bar inside the shared bar, as a custom view there, still gets its name centered. */
+    @Test public void aProfileBarInsideTheSharedBarIsCenteredToo() {
+        bar.setId(View.NO_ID);
+        column.removeView(bar);
+        FrameLayout shared = new FrameLayout(activity);
+        shared.setId(SHARED);
+        shared.addView(bar, new FrameLayout.LayoutParams(1080, 157));
+        LinearLayout profile = new LinearLayout(activity);
+        profile.setId(PROFILE_BAR);
+        profile.addView(new View(activity), new LinearLayout.LayoutParams(136, 158));
+        FrameLayout names = new FrameLayout(activity);
+        names.setId(NAMES);
+        View name = new View(activity);
+        FrameLayout.LayoutParams at = new FrameLayout.LayoutParams(460, 158);
+        at.leftMargin = 139;
+        names.addView(name, at);
+        LinearLayout.LayoutParams around = new LinearLayout.LayoutParams(604, 158);
+        around.leftMargin = 45;
+        profile.addView(names, around);
+        profile.addView(new View(activity), new LinearLayout.LayoutParams(272, 158));
+        shared.addView(profile, new FrameLayout.LayoutParams(1080, 158));
+        column.addView(shared, 0, new LinearLayout.LayoutParams(1080, 158));
+        layout();
+
+        Settings.CENTER_PROFILE_NAME.save(true);
+        Settings.CENTER_SCREEN_TITLES.save(true);
+        ProfileTitle.resumed(activity);
+        assertEquals("the shared bar's title is centered", 188f, group.getTranslationX(), 0f);
+        assertEquals("and so is the name in the profile bar inside it", -10f, name.getTranslationX(), 0f);
+    }
 }
