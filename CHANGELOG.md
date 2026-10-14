@@ -172,7 +172,7 @@ Every HushGram release, newest first.
 
 * **Instagram - See who a story mentions:** The mentions pill sits at the end of the name and time row, not under the name, so the header keeps its height on stories with mentions. A tap around the pill opens the list too. Reported in #151.
 
-* **Instagram - Hide suggested posts:** Hide 'Are you interested' questions now also catches the bubble Instagram adds from a second part of its feed code, when the question comes without a subtitle. Reported in #131.
+* **Instagram - Hide suggested posts:** Hide 'Are you interested' questions now also catches the bubble Instagram adds from a second part of its feed code, when the question comes without a subtitle. Reported in #131 and #182.
 
 * **Instagram - Lock your messages:** With the phone in a right-to-left language like Arabic or Hebrew, the cover stays over the messages. It used to slide to the right edge on a new layout, which could leave part of the inbox showing.
 
