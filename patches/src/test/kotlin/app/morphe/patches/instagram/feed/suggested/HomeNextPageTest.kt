@@ -12,6 +12,8 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -117,6 +119,26 @@ class HomeNextPageTest {
             listOf(call.registerC, call.registerD))
     }
 
+    /**
+     * 451's builder is static and takes the adapter as a parameter (the second on 385713073), so that
+     * parameter is what's handed over first thing, not p0.
+     */
+    @Test
+    fun aStaticBuilderHandsOverTheAdapterItTakes() {
+        val context = PatchContexts.of(world(staticBuilder = true))
+        val targets = context.findHomeNextPage()
+        assertEquals(listOf("Lfixture/FeedState;", adapter, "Z"), targets.builderParameters)
+        assertEquals("p1", targets.adapterRegister)
+
+        targets.write(context)
+
+        val builder = context.classDefBy(adapter).methods.single { it.name == "buildModels" }
+        val code = builder.implementation!!.instructions.toList()
+        assertTrue("first thing", code[0].calls(HOME_BUILD_STARTS))
+        assertEquals("the adapter, p1", builder.implementation!!.registerCount - 2, (code[0] as RegisterRangeInstruction).startRegister)
+        assertEquals("once", 1, code.count { it.calls(HOME_BUILD_STARTS) })
+    }
+
     /** A build where any part can't be pinned down to one is refused, and the patch warns and leaves everything as it was. */
     @Test
     fun aBuildMissingAnyPartIsRefusedAndLeftAlone() {
@@ -138,11 +160,11 @@ class HomeNextPageTest {
 
     /**
      * In each build of the declared version, the declared bundle and the other builds of it, Home's
-     * list builder is MainfeedAdapter.buildModels(int, Integer), the policy's call for the next page
-     * is the (Map)V method the visible spinner's caller makes, the policy is held in a lazy field of
-     * the adapter, and the feed's paging source is a String field. The builder hands its adapter to
-     * the extension first thing. On 450's 385611438 that's LX/01ls->A1A, LX/01ls->A0m, LX/01lQ->A00,
-     * A02() and EBU(), and LX/01mK->A01.
+     * list builder is MainfeedAdapter.buildModels, the policy's call for the next page is the (Map)V
+     * method the visible spinner's caller makes, the policy is held in a lazy field of the adapter,
+     * and the feed's paging source is a String field. The builder hands its adapter to the extension
+     * first thing: 450's builder was the adapter's own (int, Integer) method and handed over p0;
+     * 451's is static (on 385713073 LX/05cW->A05) and hands over the parameter of the adapter's type.
      */
     @Test
     fun eachBuildAsksHomesPolicyForTheNextPage() {
@@ -185,7 +207,7 @@ class HomeNextPageTest {
             val context = PatchContexts.of((FixtureDex.withStringPools(bundle, sliced) + ExtensionDex.classDef(HOME_NEXT_PAGE)).distinctBy { it.type })
 
             val targets = context.findHomeNextPage()
-            assertEquals("$where: the builder", listOf("I", "Ljava/lang/Integer;"), targets.builderParameters)
+            assertEquals("$where: the builder takes the adapter once", 1, targets.builderParameters.count { it == targets.adapter })
             assertEquals("$where: the adapter", adapterClass.type, targets.adapter)
             assertEquals("$where: the policy", policyClass.type, targets.policy)
             assertEquals("$where: asked of the policy", targets.policy, targets.ask.definingClass)
@@ -202,14 +224,19 @@ class HomeNextPageTest {
                 .single { it.name == targets.builder && it.parameterTypes.map(CharSequence::toString) == targets.builderParameters }
             val code = builder.implementation!!.instructions.toList()
             assertTrue("$where: first thing", code[0].calls(HOME_BUILD_STARTS))
-            assertEquals("$where: the adapter, p0", builder.implementation!!.registerCount - 3, (code[0] as RegisterRangeInstruction).startRegister)
+            val adapterAt = if (AccessFlags.STATIC.isSet(builder.accessFlags)) {
+                builder.parameterRegisterNumber(targets.builderParameters.indexOf(targets.adapter))
+            } else {
+                builder.localRegisterCount()
+            }
+            assertEquals("$where: the adapter", adapterAt, (code[0] as RegisterRangeInstruction).startRegister)
             assertEquals("$where: once", 1, code.count { it.calls(HOME_BUILD_STARTS) })
             assertTrue("$where: the stub asks ${targets.ask}", stubBody(context, "askNextPage", 4)[2].calls(targets.ask.toString()))
             assertTrue("$where: the stub reads ${targets.policyField}", stubBody(context, "policyOf", 5)[1].reads(targets.policyField.toString()))
             checked++
         }
         assertEquals("every build was checked", bundles.size + others.size, checked)
-        assertEquals("the declared build and the six others", 7, checked)
+        assertEquals("the declared build and the seven others", 8, checked)
     }
 
     /**
@@ -241,11 +268,14 @@ class HomeNextPageTest {
         fields: List<String> = listOf("policy"),
         publicSource: Boolean = true,
         spinnerString: String = VISIBLE_SPINNER,
+        staticBuilder: Boolean = false,
     ): List<ClassDef> = listOf(
         classDef(adapter, listOf(
-            method(adapter, "buildModels", "V", registers = 6, parameters = listOf("I", "Ljava/lang/Integer;"), body = """
+            // 451's builder is static and takes the adapter second, after the feed's state.
+            method(adapter, "buildModels", "V", registers = 6, static = staticBuilder,
+                parameters = if (staticBuilder) listOf("Lfixture/FeedState;", adapter, "Z") else listOf("I", "Ljava/lang/Integer;"), body = """
                 const-string v0, "$BUILD_MODELS"
-                iget-object v1, v3, $adapter->feed:$feed
+                iget-object v1, ${if (staticBuilder) "v4" else "v3"}, $adapter->feed:$feed
                 iget-boolean v2, v1, $feed->ended:Z
                 if-nez v2, :done
                 const-string v0, "$SHIMMER_KEY"
@@ -333,11 +363,15 @@ class HomeNextPageTest {
         ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == string
     } == true
 
-    private fun method(type: String, name: String, returnType: String, registers: Int, body: String, parameters: List<String> = emptyList()): Method {
+    private fun method(
+        type: String, name: String, returnType: String, registers: Int, body: String, parameters: List<String> = emptyList(),
+        static: Boolean = false,
+    ): Method {
         val mutable = MutableMethod(
             ImmutableMethod(
                 type, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returnType,
-                AccessFlags.PUBLIC.value, null, null, ImmutableMethodImplementation(registers, emptyList(), null, null),
+                AccessFlags.PUBLIC.value or (if (static) AccessFlags.STATIC.value else 0), null, null,
+                ImmutableMethodImplementation(registers, emptyList(), null, null),
             ),
         )
         mutable.addInstructionsWithLabels(0, body.trimIndent())

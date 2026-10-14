@@ -627,9 +627,10 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePageStart
 shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePageParsed()V in instance (L*;)Ljava/lang/Object; sites 2 holding feed_items pull_to_refresh_window_ms
 # Hidden accounts learns whose Home it is from homeSession, first thing in the constructor of Home's
 # cache source (MainFeedCacheDataSource, a kept name): its one constructor taking a boolean and the
-# session, in the class holding the two strings below. Left out, one list counts for every account.
-start-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (ZLcom/instagram/common/session/UserSession;)V class-holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
-once-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (ZLcom/instagram/common/session/UserSession;)V class-holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
+# session, in the class holding the two strings below. 451 takes the session first, 450 took it
+# last. Left out, one list counts for every account.
+start-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (Lcom/instagram/common/session/UserSession;Z)V class-holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
+once-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (Lcom/instagram/common/session/UserSession;Z)V class-holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
 # Instagram keeps one cache source for each session, so its constructor runs once for an account and a switch back to an
 # account never reaches it. The source's start (the one instance method of the class holding both strings, reading the
 # session out of the source first thing) runs each time Home comes up and hands the same session over again. Left out,
@@ -641,18 +642,19 @@ once-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Lj
 # each of its two reads: the model builder, the one method holding both strings below, and the
 # adapter's empty check. The check holds no string, and a class-holding rule for it would count the
 # builder beside it, so it has no rule. Left out of the builder, a Home emptied of suggestions keeps
-# its loading placeholder for good.
-shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->feedEnded(I)I in instance (ILjava/lang/Integer;)V holding MainfeedAdapter.buildModels shimmer
+# its loading placeholder for good. 451's builder is a static method handed the adapter and its
+# state (05cW.A05 on 451's 385713073), where 450's was an instance method of the adapter.
+shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->feedEnded(I)I in static (LX/*;LX/*;LX/*;ZZZ)V holding MainfeedAdapter.buildModels shimmer
 # Right before each of those reads, homeFeedRead gets the feed object the flag is read from, so
 # feedEnded can ask it whether it's empty. Same two methods, same reason the empty check has no rule.
-shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homeFeedRead(Ljava/lang/Object;)V in instance (ILjava/lang/Integer;)V holding MainfeedAdapter.buildModels shimmer
-# The same builder hands its adapter to HomeNextPage.buildStarts() first thing, so after a page of
+shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homeFeedRead(Ljava/lang/Object;)V in static (LX/*;LX/*;LX/*;ZZZ)V holding MainfeedAdapter.buildModels shimmer
+# The same builder hands the adapter it's given to HomeNextPage.buildStarts() first thing, so after a page of
 # For you the switches left short, the next page is asked for once the build is done (#52). The five
 # HomeNextPage stubs the patch fills are the extension's own methods, called only by HomeNextPage, so
 # they get no rule; HomeNextPageTest checks them on each declared build. Left out, Home waits for the
 # scroll and grows one post at a time on an account whose pages are mostly suggestions.
-start-call Lapp/hushgram/extension/instagram/feed/HomeNextPage;->buildStarts(Ljava/lang/Object;)V in instance (ILjava/lang/Integer;)V holding MainfeedAdapter.buildModels shimmer
-once-call Lapp/hushgram/extension/instagram/feed/HomeNextPage;->buildStarts(Ljava/lang/Object;)V in instance (ILjava/lang/Integer;)V holding MainfeedAdapter.buildModels shimmer
+start-call Lapp/hushgram/extension/instagram/feed/HomeNextPage;->buildStarts(Ljava/lang/Object;)V in static (LX/*;LX/*;LX/*;ZZZ)V holding MainfeedAdapter.buildModels shimmer
+once-call Lapp/hushgram/extension/instagram/feed/HomeNextPage;->buildStarts(Ljava/lang/Object;)V in static (LX/*;LX/*;LX/*;ZZZ)V holding MainfeedAdapter.buildModels shimmer
 # It also answers the load more row's end card rule, in the row's show check (the one instance
 # method answering a boolean that holds Following's paging source): whether the feed pages as
 # Following's through endCardRule(), and whether there's a next page through moreAfterFollowing().
@@ -783,8 +785,11 @@ once-call Lapp/hushgram/extension/instagram/feed/ProductTags;->indicator(I)I in 
 # module checks meet and the question's row is about to be added, and a yes goes on to the builder's
 # return. The builder is the one instance method of the shape (adapter list, Object, Object)V that
 # holds both feed module names: the feed adapter's other builder takes three objects of its own
-# classes, so the shape tells them apart on all seven 450 builds.
+# classes, so the shape tells them apart on all eight 451 builds. It asks once more in the feed item
+# binder group's builder, where the question's row goes in too (#131): the one instance method
+# taking three Redex objects that holds both names (05rL.A06 on 451's 385713073).
 once-call Lapp/hushgram/extension/instagram/feed/FeedInterest;->hide()Z in instance (L*;Ljava/lang/Object;Ljava/lang/Object;)V holding feed_timeline feed_timeline_older
+once-call Lapp/hushgram/extension/instagram/feed/FeedInterest;->hide()Z in instance (LX/*;LX/*;LX/*;)V holding feed_timeline feed_timeline_older
 #
 # Start Home on Following passes every read of the two flags behind Instagram's For you and
 # Following picker through flag(), and the saved feed's getter passes the name it read through

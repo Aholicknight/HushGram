@@ -13,6 +13,7 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCallingInto
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.patchLog
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -56,6 +57,7 @@ internal class HomeNextPageTargets(
     val adapter: String,
     val builder: String,
     val builderParameters: List<String>,
+    val adapterRegister: String,
     val policyField: FieldReference,
     val lazyValue: MethodReference,
     val policy: String,
@@ -111,7 +113,7 @@ internal class HomeNextPageTargets(
         )
         context.mutableClassDefBy(adapter).methods
             .single { it.name == builder && it.parameterTypes.map(CharSequence::toString) == builderParameters }
-            .addInstructions(0, "invoke-static/range { p0 .. p0 }, $HOME_BUILD_STARTS")
+            .addInstructions(0, "invoke-static/range { $adapterRegister .. $adapterRegister }, $HOME_BUILD_STARTS")
     }
 }
 
@@ -130,8 +132,9 @@ internal class HomeNextPageTargets(
  *   to the policy, or an interface of it, right after reading it.
  * - The feed's paging source: the String field of the feed the show check compares with Following's.
  *
- * Instagram 450's 385611438 has them as LX/01ls->A1A, LX/01ls->A0m, LX/01lQ->A00(Map), A02() and
- * EBU(), and LX/01mK->A01. Everything the extension reaches has to be public.
+ * Instagram 450's builder was an instance method of the adapter. 451's (385713073's LX/05cW->A05) is
+ * static and takes the adapter as one of its parameters, the one of the adapter's type, which is what
+ * gets handed over then. Everything the extension reaches has to be public.
  */
 internal fun BytecodePatchContext.findHomeNextPage(): HomeNextPageTargets {
     val builders = classesHolding(BUILD_MODELS, SHIMMER_KEY).flatMap { classDef ->
@@ -140,7 +143,12 @@ internal fun BytecodePatchContext.findHomeNextPage(): HomeNextPageTargets {
     val (adapterClass, builder) = builders.singleOrNull()
         ?: refuse("expected one method holding $BUILD_MODELS and $SHIMMER_KEY, found ${builders.size}")
     val adapter = adapterClass.type
-    if (AccessFlags.STATIC.isSet(builder.accessFlags)) refuse("$adapter->${builder.name} is static, so it has no adapter to hand over")
+    val adapterRegister = if (!AccessFlags.STATIC.isSet(builder.accessFlags)) "p0" else {
+        val taken = builder.parameterTypes.indices.filter { builder.parameterTypes[it].toString() == adapter }
+        builder.parameterRegister(
+            taken.singleOrNull() ?: refuse("$adapter->${builder.name} is static and takes ${taken.size} adapters, not one to hand over"),
+        )
+    }
     val feed = builderFeed(builder)
 
     val (policyClass, shows) = findLoadMoreRow()
@@ -185,6 +193,7 @@ internal fun BytecodePatchContext.findHomeNextPage(): HomeNextPageTargets {
         adapter = adapter,
         builder = builder.name,
         builderParameters = builder.parameterTypes.map(CharSequence::toString),
+        adapterRegister = adapterRegister,
         policyField = field,
         lazyValue = lazyValue,
         policy = policy,

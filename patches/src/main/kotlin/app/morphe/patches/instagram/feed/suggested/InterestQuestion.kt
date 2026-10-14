@@ -78,7 +78,7 @@ internal class InterestQuestion(
  * being [HOME_MODULE] or [OLDER_MODULE], and then the row's type constant and a jump to the shared
  * add. The question's absence and a module that isn't Home's both go straight to the builder's
  * return. The hook goes where the two module checks meet, so it only runs, and only counts, for a
- * row that was about to be added. On 450's 385611438 that's LX/02eE->buildRowViewTypes, Media.A2J()
+ * row that was about to be added. On 451's 385713073 that's LX/05sE->buildRowViewTypes, Media.A2I()
  * and the add at instruction 442. Anything else is an update this patch hasn't seen, and it stops.
  */
 internal fun BytecodePatchContext.findInterestQuestion(): InterestQuestion {
@@ -169,12 +169,12 @@ internal fun BytecodePatchContext.findInterestQuestion(): InterestQuestion {
 /**
  * Finds the other place the question's row goes in (#131): the feed item binder group, which Home
  * can be built with too. It reads the same question from the post's data and adds the row when the
- * server styles it UNIFIED_NO_SUBTEXT (the question without a subtitle, `LX/04My.A0F` on 450), again
+ * server styles it UNIFIED_NO_SUBTEXT (the question without a subtitle, `LX/06An.A0F` on 385713073), again
  * only for [HOME_MODULE] and [OLDER_MODULE]. It's the one other method loading both names, held or
  * asked of a string pool, that loads [home]'s row type, and it loads it once: the load, its ordinal
  * and the add, right after a Home check and a style check that both skip the add. The hook goes on
- * the load, and a yes goes on to the instruction after the add. On 450's 385611438 that's
- * LX/02dI->A05 and the load at instruction 774. Anything else stops the patch.
+ * the load, and a yes goes on to the instruction after the add. On 451's 385713073 that's
+ * LX/05rL->A06 and the load at instruction 779. Anything else stops the patch.
  */
 internal fun BytecodePatchContext.findGroupedInterestQuestion(home: InterestQuestion): InterestQuestion {
     val found = mutableListOf<Triple<Method, List<Instruction>, Int>>()
