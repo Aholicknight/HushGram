@@ -1183,19 +1183,21 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->resuming(Ljava/lan
 shared-call Lapp/hushgram/extension/instagram/misc/ExternalBrowser;->redirect(Landroid/app/Activity;Landroid/content/Intent;)Z in instance (Landroid/os/Bundle;)V holding BLA.onCreate_start BLA.onCreate_end
 shared-call Lapp/hushgram/extension/instagram/misc/ExternalBrowser;->redirect(Landroid/app/Activity;Landroid/content/Intent;)Z in instance (Landroid/content/Intent;)V holding BLABD.onActivityNewIntent.fragmentCommit_start
 #
-# Hide group buttons on the share sheet asks the extension first thing in the two methods of the
-# share sheet that touch its New group button and load no string: the build, which inflates the
-# button's stub and keeps it, and the reveal, which shows the button or, without one, the search
-# box's own New group action. Each is the one method of its shape writing or reading the
-# createGroupButton field. It asks again first thing in the message bar's show of its send-as-group
-# button, the one method of its shape reading the binder's views field. That field's name and type
-# are obfuscated on 449, but the binder loads no string at all. Left out, a button comes back; twice or elsewhere,
-# it isn't the guard the patch wrote. HideShareSheetGroupHookTest checks on the 449 fixture that all
-# three land first.
+# Hide group buttons on the share sheet asks the extension first thing in the share sheet's build of
+# its New group button, which inflates the button's stub and keeps it, loads no string and is the
+# one method of its shape writing the createGroupButton field. 451 copies the reveal, which shows
+# the button or, without one, the search box's own New group action, into two methods of the sheet,
+# onActivityResult and onViewCreated, each the one method of its shape reading the field, and the
+# patch asks right after each place they show the search box's action, so each gets a once-call of
+# its own. It asks again first thing in the message bar's show of its send-as-group button, the one
+# method of its shape reading the binder's views field. That field's name and type are obfuscated,
+# but the binder loads no string at all. Left out, a button comes back; twice or elsewhere, it isn't
+# the guard the patch wrote. HideShareSheetGroupHookTest checks on each 451 fixture that all of them
+# land where they should.
 start-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupButton()Z in instance (Landroid/view/ViewStub;ZZ)V holding Linstagram/features/direct/fragment/sharesheet/DirectShareSheetFragment;->createGroupButton:Landroid/view/View;
 once-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupButton()Z in instance (Landroid/view/ViewStub;ZZ)V holding Linstagram/features/direct/fragment/sharesheet/DirectShareSheetFragment;->createGroupButton:Landroid/view/View;
-start-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupAction()Z in instance ()V holding Linstagram/features/direct/fragment/sharesheet/DirectShareSheetFragment;->createGroupButton:Landroid/view/View;
-once-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupAction()Z in instance ()V holding Linstagram/features/direct/fragment/sharesheet/DirectShareSheetFragment;->createGroupButton:Landroid/view/View;
+once-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupAction()Z in instance (IILandroid/content/Intent;)V holding Linstagram/features/direct/fragment/sharesheet/DirectShareSheetFragment;->createGroupButton:Landroid/view/View;
+once-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupAction()Z in instance (Landroid/view/View;Landroid/os/Bundle;)V holding Linstagram/features/direct/fragment/sharesheet/DirectShareSheetFragment;->createGroupButton:Landroid/view/View;
 start-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupSend()Z in instance (Ljava/util/List;ZLcom/instagram/common/session/UserSession;)V holding Landroid/view/ViewGroup$LayoutParams;->width:I
 once-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupSend()Z in instance (Ljava/util/List;ZLcom/instagram/common/session/UserSession;)V holding Landroid/view/ViewGroup$LayoutParams;->width:I
 # Story ring size passes the stories row's item size through StoryRing.size right after each of the

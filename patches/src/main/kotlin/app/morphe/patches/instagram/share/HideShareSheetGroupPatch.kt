@@ -10,6 +10,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
+import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -17,8 +18,11 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
@@ -66,7 +70,7 @@ val hideShareSheetGroupPatch = bytecodePatch(
         val sheet = findShareSheet()
         val send = findGroupSend()
         guardGroupButton(sheet.build)
-        guardGroupAction(sheet.reveal)
+        guardGroupAction(sheet.reveals)
         guardGroupSend(send)
         enableStatus("shareSheet")
     }
@@ -75,15 +79,23 @@ val hideShareSheetGroupPatch = bytecodePatch(
 /** A method by its class, name and parameter types. */
 internal class SheetMethod(val type: String, val name: String, val parameters: List<String>)
 
+/**
+ * A place the share sheet shows the search box's own New group action: the method, the index of
+ * its [ACTION_VISIBLE] call on the box read from [STICKY_SEARCH_BOX], the register holding the box
+ * there, and a local the guard after it may borrow.
+ */
+internal class RevealSite(val method: SheetMethod, val at: Int, val box: Int, val free: Int)
+
 /** Where the share sheet builds its New group button from a stub, and where it reveals the button. */
-internal class ShareSheetSites(val build: SheetMethod, val reveal: SheetMethod)
+internal class ShareSheetSites(val build: SheetMethod, val reveals: List<RevealSite>)
 
 /**
- * Finds the share sheet's two New group methods by the [GROUP_BUTTON] field. The build is the one
- * method writing it: it inflates a stub it takes and keeps what comes out. The reveal is the one
- * no-argument method reading it that, when there's no button, shows the search box's action with
- * [ACTION_VISIBLE] instead. Checks the search box field and both setters the guard calls are there.
- * Fails when any of that isn't so, since that's an update this patch hasn't seen.
+ * Finds the share sheet's New group methods by the [GROUP_BUTTON] field. The build is the one
+ * method writing it: it inflates a stub it takes and keeps what comes out. The reveals are where a
+ * method reading it shows, when there's no button, the search box's action with [ACTION_VISIBLE]
+ * instead: on 450 one method of its own, which 451's 385713073 copies into onActivityResult and
+ * onViewCreated. Checks the search box field and both setters the guard calls are there. Fails when
+ * any of that isn't so, since that's an update this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findShareSheet(): ShareSheetSites {
     val sheet = classDefByOrNull(SHARE_SHEET) ?: refuse("$SHARE_SHEET isn't in this Instagram")
@@ -111,15 +123,29 @@ internal fun BytecodePatchContext.findShareSheet(): ShareSheetSites {
     // this sits just past the locals, and the guard reads a field of it, which reaches v15 at most.
     if (build.locals() > 15) refuse("$buildAt keeps this past v15, out of reach of a field read")
 
-    val reveals = sheet.methods.filter {
-        !it.isStatic() && it.returnType == "V" && it.parameterTypes.isEmpty() &&
-            it.touchesGroupButton(Opcode.IGET_OBJECT) && it.implementation!!.instructions.any { call -> call.calls(SEARCH_BOX, ACTION_VISIBLE) }
-    }
-    val reveal = reveals.singleOrNull()
-        ?: refuse("expected one method of $SHARE_SHEET revealing its $GROUP_BUTTON or the search box's action, found ${reveals.size}")
-    if (reveal.locals() !in 2..15) refuse("$SHARE_SHEET->${reveal.name} has fewer than two registers of its own, or keeps this past v15")
+    val reveals = sheet.methods.filter { it.testsGroupButton() }.flatMap { method -> revealsIn(method) }
+    if (reveals.isEmpty()) refuse("expected a method of $SHARE_SHEET revealing its $GROUP_BUTTON or the search box's action, found none")
 
-    return ShareSheetSites(build.site(SHARE_SHEET), reveal.site(SHARE_SHEET))
+    return ShareSheetSites(build.site(SHARE_SHEET), reveals)
+}
+
+/**
+ * The calls in [method] showing the search box's action: each [ACTION_VISIBLE] on a register last
+ * written by a read of [STICKY_SEARCH_BOX], in a register an invoke can name, with a local free
+ * after the call for the guard's answer.
+ */
+private fun revealsIn(method: Method): List<RevealSite> {
+    val code = method.implementation!!.instructions.toList()
+    return code.indices.filter { code[it].calls(SEARCH_BOX, ACTION_VISIBLE) }.mapNotNull { at ->
+        val box = (code[at] as FiveRegisterInstruction).registerC
+        val read = (at - 1 downTo 0).firstOrNull { code[it].writes(box) } ?: return@mapNotNull null
+        val field = (code[read].takeIf { it.opcode == Opcode.IGET_OBJECT } as? ReferenceInstruction)?.reference as? FieldReference
+        if (field?.definingClass != SHARE_SHEET || field.name != STICKY_SEARCH_BOX) return@mapNotNull null
+        val where = "$SHARE_SHEET->${method.name}"
+        if (box > 15) refuse("$where keeps the search box past v15 at instruction $at, out of reach of the guard's calls")
+        val free = method.freeLocalsAt(PATCH, at + 1, 1, except = listOf(box)).single()
+        RevealSite(method.site(SHARE_SHEET), at, box, free)
+    }
 }
 
 /** Where the bar under the sheet shows its send-as-group button, the session's parameter register there, and where it hides the button. */
@@ -186,29 +212,30 @@ internal fun BytecodePatchContext.guardGroupButton(build: SheetMethod) {
 }
 
 /**
- * Asks [HIDE_GROUP_ACTION] first thing in the reveal, and on a yes hides and turns off the search
- * box's action in its place and returns. Where the sheet put New group in the search box, it gave
+ * Asks [HIDE_GROUP_ACTION] right after each reveal shows the search box's action, and on a yes
+ * hides and turns off that action again. Where the sheet put New group in the search box, it gave
  * the box that action before the reveal runs, and the box shows its action again whenever it
- * refreshes while the action is on, so hiding it alone isn't enough.
+ * refreshes while the action is on, so hiding it alone isn't enough. A jump to the instruction
+ * after the call didn't come through it and skips the guard, as it should. Later sites of one
+ * method go first, so writing one doesn't move another.
  */
-internal fun BytecodePatchContext.guardGroupAction(reveal: SheetMethod) {
-    mutableMethod(reveal).addInstructions(
-        0,
-        """
-            invoke-static { }, $HIDE_GROUP_ACTION
-            move-result v0
-            if-eqz v0, :reveal
-            iget-object v0, p0, $SHARE_SHEET->$STICKY_SEARCH_BOX:$SEARCH_BOX
-            if-eqz v0, :hidden
-            const/4 v1, 0x0
-            invoke-virtual { v0, v1 }, $SEARCH_BOX->$ACTION_VISIBLE(Z)V
-            invoke-virtual { v0, v1 }, $SEARCH_BOX->$ACTION_ENABLED(Z)V
-            :hidden
-            return-void
-            :reveal
-            nop
-        """,
-    )
+internal fun BytecodePatchContext.guardGroupAction(reveals: List<RevealSite>) {
+    reveals.sortedByDescending { it.at }.forEach { site ->
+        val answer = site.free
+        mutableMethod(site.method).addInstructions(
+            site.at + 1,
+            """
+                invoke-static { }, $HIDE_GROUP_ACTION
+                move-result v$answer
+                if-eqz v$answer, :shown
+                const/4 v$answer, 0x0
+                invoke-virtual { v${site.box}, v$answer }, $SEARCH_BOX->$ACTION_VISIBLE(Z)V
+                invoke-virtual { v${site.box}, v$answer }, $SEARCH_BOX->$ACTION_ENABLED(Z)V
+                :shown
+                nop
+            """,
+        )
+    }
 }
 
 /**
@@ -254,6 +281,25 @@ private fun Method.touchesGroupButton(opcode: Opcode) = implementation?.instruct
         field.definingClass == SHARE_SHEET && field.name == GROUP_BUTTON && field.type == VIEW
     }
 } == true
+
+/** Whether the method reads [GROUP_BUTTON] and tests it for null right away, as a reveal does. */
+private fun Method.testsGroupButton(): Boolean {
+    val code = implementation?.instructions?.toList() ?: return false
+    return code.indices.any { at ->
+        code[at].opcode == Opcode.IGET_OBJECT && ((code[at] as ReferenceInstruction).reference as FieldReference).let { field ->
+            field.definingClass == SHARE_SHEET && field.name == GROUP_BUTTON && field.type == VIEW
+        } && code.getOrNull(at + 1)?.let {
+            (it.opcode == Opcode.IF_EQZ || it.opcode == Opcode.IF_NEZ) &&
+                (it as OneRegisterInstruction).registerA == (code[at] as TwoRegisterInstruction).registerA
+        } == true
+    }
+}
+
+private fun Instruction.writes(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val written = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return written == register || (opcode.setsWideRegister() && written + 1 == register)
+}
 
 private fun Instruction.calls(type: String, name: String) =
     ((this as? ReferenceInstruction)?.reference as? MethodReference)?.let { it.definingClass == type && it.name == name } == true
