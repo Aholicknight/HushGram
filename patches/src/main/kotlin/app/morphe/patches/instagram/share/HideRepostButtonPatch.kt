@@ -80,9 +80,9 @@ private const val BOOLEAN = "Ljava/lang/Boolean;"
 private const val BOUNCY_UFI_BUTTON = "Lcom/instagram/ui/widget/bouncyufibutton/IgBouncyUfiButtonImageView;"
 private const val UFI_COUNT = "Lcom/instagram/common/ui/base/IgTextView;"
 
-/** Feed's inflated repost icon and count in Instagram 450, the same ids in every build. */
-internal const val REPOSTS_UFI_ICON_ID = 0x7f0b3614
-internal const val REPOSTS_UFI_COUNT_ID = 0x7f0b3613
+/** Feed's inflated repost icon and count in Instagram 451 (`reposts_ufi_icon`, `reposts_ufi_count`), the same ids in all eight builds. */
+internal const val REPOSTS_UFI_ICON_ID = 0x7f0b362e
+internal const val REPOSTS_UFI_COUNT_ID = 0x7f0b362d
 
 /**
  * The role the component renderer gives the Repost button. Its label is a string resource, and
