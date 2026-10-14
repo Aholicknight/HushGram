@@ -68,6 +68,10 @@ Every HushGram release, newest first.
 
 #### Improvements
 
+* **Instagram:** HushGram now patches Instagram 451.0.0.53.80 instead of 450.0.0.50.77. Before patching, get the APKMirror variant labelled (arm64-v8a) (480-640dpi) (Android 9.0+) with build number 385713073. All eight builds of 451 patch: the arm64 ones (385713073, 385713078, 385713082, 385713109 and 385713116), the x86 one (385713117) and the x86_64 ones (385713111 and 385713118). Instagram 451 renumbered many of the server switches and resource ids the patches read and moved some of the code they hook, so each patch was pointed at its new spot.
+
+* **Tooling:** The fixture tests run against Instagram 451's eight builds. Facts that differ from build to build, like which builds look a string up in a shared pool instead of loading it, were measured again on 451.
+
 * **Tooling:** Device builds support separate keystore and key passwords, including an empty store password. The installer also picks one ADB executable when the path lists more than one.
 
 * **Instagram - HushGram settings:** Restart now reopens settings on the page you were on.
