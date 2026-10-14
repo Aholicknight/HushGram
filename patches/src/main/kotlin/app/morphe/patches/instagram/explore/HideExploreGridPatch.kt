@@ -8,9 +8,11 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patches.instagram.misc.analytics.loadsString
 import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
@@ -101,17 +103,18 @@ internal class ExploreParser(
 )
 
 /**
- * Finds the one `unsafeParseFromJson` holding [SECTIONS] and [PAGING_TOKEN], and in it the fields
- * the page's sections and its two "more" flags are read into. Fails when there isn't exactly one
- * such parser, or it reads them some other way, since that's an update this patch hasn't seen.
+ * Finds the one `unsafeParseFromJson` loading [SECTIONS] and [PAGING_TOKEN], and in it the fields
+ * the page's sections and its two "more" flags are read into. Either key may be loaded itself or
+ * asked of a Redex string pool: 451's 385713109 and 385713111 pool [SECTIONS] and the other builds
+ * load it themselves. Fails when there isn't exactly one such parser, or it reads them some other
+ * way, since that's an update this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findExploreParser(): ExploreParser {
     val found = mutableListOf<Pair<String, Method>>()
-    classesHolding(SECTIONS, PAGING_TOKEN).forEach { classDef ->
+    classesLoadingString(PAGING_TOKEN).forEach { classDef ->
         classDef.methods.forEach { method ->
             if (method.name != "unsafeParseFromJson") return@forEach
-            val strings = method.strings()
-            if (SECTIONS in strings && PAGING_TOKEN in strings) found += classDef.type to method
+            if (loadsString(method, SECTIONS) && loadsString(method, PAGING_TOKEN)) found += classDef.type to method
         }
     }
     val (type, method) = found.singleOrNull()
@@ -119,8 +122,7 @@ internal fun BytecodePatchContext.findExploreParser(): ExploreParser {
     val code = method.implementation!!.instructions.toList()
     val where = "$type->${method.name}"
 
-    // A key is loaded by const-string or asked of a Redex string pool, which differs by build:
-    // 450's 385611395 pools auto_load_more_enabled and the others load it themselves (#77).
+    // A key is loaded by const-string or asked of a Redex string pool, which differs by build (#77).
     fun fieldAfter(key: String, opcode: Opcode, fieldType: String): Pair<FieldReference, Int> {
         val at = code.indices.firstOrNull { stringLoadedAt(code, it) == key } ?: refuse("$where doesn't read $key")
         val write = code.drop(at + 1).firstOrNull { it.opcode in FIELD_WRITES }

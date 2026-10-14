@@ -99,16 +99,15 @@ class HideSearchSuggestionsHookTest {
     }
 
     /**
-     * In each declared build both builders are there once and hooked. On 450's 385611438 they're
-     * LX/0H2f.A02 (the older section) and LX/0I5d.A00 (the newer builder, whose items are LX/0I6e,
-     * kind LX/0GRI).
+     * In each of the eight 451 builds both builders (the older section and the newer builder) are
+     * there once and hooked.
      */
     @Test
     fun eachDeclaredBuildHooksBothBuilders() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         // The declared build and the other builds of the version, each compiled on its own.
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("the seven 450 builds: ${bundles.map { it.name }}", 7, bundles.size)
+        assertEquals("the eight 451 builds: ${bundles.map { it.name }}", 8, bundles.size)
         for (bundle in bundles) {
             val holders = mutableListOf<ClassDef>()
             val casts = mutableSetOf<String>()
