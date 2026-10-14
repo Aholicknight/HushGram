@@ -22,6 +22,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide the Reels tab:** New Center titles on other screens switch under Tab bar, off by default. The title at the top of screens like notifications moves to the middle as far as the buttons beside it allow. Asked for in #161.
 
+* **Instagram - Hide the Reels tab:** New switch under Tab bar, Messages button on Home's header, off by default. When Instagram moved Messages to your tab bar, a Messages button comes back at the top of Home and opens your messages like the tab. Asked for in #156.
+
 * **Instagram - Clean up Reels:** New Burn-in guard, off by default. It fades a reel's buttons and bars after 5 idle seconds, and can also move the screen a step every 2 minutes. Asked for in #162.
 
 * **Instagram - Clean up Reels:** New switch under Reels, Hide the reply bar on reels from chats, off by default. A reel you open from a chat loses its Reply to box, quick reactions and plus button. The chat itself stays the same. Asked for in #177.

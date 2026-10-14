@@ -893,6 +893,11 @@ Ghost mode button on Home's header	Ghost-Modus-Taste oben auf der Startseite
 Adds a ghost button at the top of Home, next to Messages when it's there and at the end of the buttons when it isn't. Tap it to turn Ghost mode on or off. Restart Instagram to see the change.	Fügt oben auf der Startseite eine Geist-Taste hinzu, neben Nachrichten, wenn es dort ist, und sonst am Ende der Tasten. Ein Tipp schaltet den Ghost-Modus an oder aus. Starte Instagram neu, um die Änderung zu sehen.
 Search button on Home's header	Suche-Taste oben auf der Startseite
 Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too, unless you swipe between your tabs. Restart Instagram to see the change.	Fügt oben auf der Startseite eine Lupe hinzu, die die Suche öffnet, wie der Suche-Tab. Das klappt auch bei ausgeblendetem Suche-Tab, außer du wischst zwischen deinen Tabs. Starte Instagram neu, um die Änderung zu sehen.
+Messages button on Home's header	Nachrichten-Taste oben auf der Startseite
+Adds a Messages button at the top of Home when Instagram moved Messages to your tab bar. A tap opens your messages like the tab does. Restart Instagram to see the change.	Fügt oben auf der Startseite eine Nachrichten-Taste hinzu, wenn Instagram die Nachrichten in deine Tab-Leiste verschoben hat. Ein Tippen öffnet deine Nachrichten wie der Tab. Starte Instagram neu, um die Änderung zu sehen.
+# context: toasts when the Messages button on Home's header can't open Messages because it isn't on the swiping tab bar
+To open Messages here, turn on Show the Messages tab and restart.	Um die Nachrichten hier zu öffnen, schalte „Nachrichten-Tab anzeigen“ ein und starte neu.
+Restart Instagram to put Messages on your tab bar.	Starte Instagram neu, damit die Nachrichten in deiner Tab-Leiste sind.
 Center the logo on Home's header	Logo oben auf der Startseite zentrieren
 Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden or added. A feed's name shown there is centered too. Restart Instagram to see the change.	Setzt das Instagram-Logo oben auf der Startseite in die Mitte, auch wenn Tasten dort ausgeblendet oder hinzugefügt sind. Ein dort angezeigter Feed-Name wird ebenfalls zentriert. Starte Instagram neu, um die Änderung zu sehen.
 Center the name on profiles	Namen auf Profilen zentrieren

@@ -893,6 +893,11 @@ Ghost mode button on Home's header	Ana sayfa üstünde Hayalet modu düğmesi
 Adds a ghost button at the top of Home, next to Messages when it's there and at the end of the buttons when it isn't. Tap it to turn Ghost mode on or off. Restart Instagram to see the change.	Ana sayfanın üstüne bir hayalet düğmesi ekler. Mesajlar oradaysa onun yanına, değilse düğmelerin sonuna gelir. Hayalet modunu açıp kapatmak için dokun. Değişikliği görmek için Instagram'ı yeniden başlat.
 Search button on Home's header	Ana sayfa üstünde Ara düğmesi
 Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too, unless you swipe between your tabs. Restart Instagram to see the change.	Ana sayfanın üstüne, Ara sekmesi gibi aramayı açan bir büyüteç ekler. Ara sekmesi gizliyken de çalışır, sekmeler arasında kaydırıyorsan çalışmaz. Değişikliği görmek için Instagram'ı yeniden başlat.
+Messages button on Home's header	Ana sayfa üstünde Mesajlar düğmesi
+Adds a Messages button at the top of Home when Instagram moved Messages to your tab bar. A tap opens your messages like the tab does. Restart Instagram to see the change.	Instagram Mesajlar'ı sekme çubuğuna taşıdıysa Ana sayfanın üstüne bir Mesajlar düğmesi ekler. Dokununca mesajların sekmedeki gibi açılır. Değişikliği görmek için Instagram'ı yeniden başlat.
+# context: toasts when the Messages button on Home's header can't open Messages because it isn't on the swiping tab bar
+To open Messages here, turn on Show the Messages tab and restart.	Mesajlar'ı burada açmak için Mesajlar sekmesini göster'i aç ve yeniden başlat.
+Restart Instagram to put Messages on your tab bar.	Mesajlar'ı sekme çubuğuna koymak için Instagram'ı yeniden başlat.
 Center the logo on Home's header	Ana sayfa üstündeki logoyu ortala
 Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden or added. A feed's name shown there is centered too. Restart Instagram to see the change.	Üstteki düğmeler gizlenmiş ya da eklenmiş olsa bile Instagram logosunu Ana sayfanın üstünde ortaya koyar. Orada gösterilen akış adı da ortalanır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Center the name on profiles	Profillerde adı ortala

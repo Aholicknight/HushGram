@@ -144,12 +144,14 @@ public final class SearchHeaderButton {
         }
     }
 
-    private static int switchTo(Activity activity, Object tab) {
+    /** Switches [activity]'s tab host to [tab] through {@link #select}. The Messages button on the header uses it too. */
+    static int switchTo(Activity activity, Object tab) {
         ToIntBiFunction<Object, Object> stand = selectForTests;
         return stand != null ? stand.applyAsInt(activity, tab) : select(activity, tab);
     }
 
-    private static boolean tabsSwipe(Activity activity) {
+    /** Whether [activity]'s tabs swipe sideways, through {@link #paging}. */
+    static boolean tabsSwipe(Activity activity) {
         ToIntFunction<Object> stand = pagingForTests;
         return (stand != null ? stand.applyAsInt(activity) : paging(activity)) != 0;
     }

@@ -31,6 +31,7 @@ import java.util.function.BooleanSupplier;
 import app.hushgram.extension.instagram.download.FeedDownloadButton;
 import app.hushgram.extension.instagram.reels.HomeHeader;
 import app.hushgram.extension.instagram.reels.HomeLogo;
+import app.hushgram.extension.instagram.reels.MessagesHeaderButton;
 import app.hushgram.extension.instagram.reels.SearchHeaderButton;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -61,10 +62,11 @@ public final class GhostHeaderButton {
     static final String NO_ANCHOR = "Home header Ghost button not placed, no row to put it in";
 
     /**
-     * Injected first thing as Home's header draws from its state. Queues the placement of this
-     * button and of the Search button ({@link SearchHeaderButton}) behind the draw, then the
-     * centering of the logo ({@link HomeLogo}), which goes last so it sees every button the header
-     * ends up with. Never throws, and does nothing to the header itself.
+     * Injected first thing as Home's header draws from its state. Queues the placement of the
+     * Search button ({@link SearchHeaderButton}), the Messages button ({@link MessagesHeaderButton})
+     * and this button behind the draw, then the centering of the logo ({@link HomeLogo}), which goes
+     * last so it sees every button the header ends up with. Never throws, and does nothing to the
+     * header itself.
      */
     public static void drew(View header) {
         try {
@@ -72,6 +74,8 @@ public final class GhostHeaderButton {
             if (header == null) return;
             header.post(() -> {
                 SearchHeaderButton.place(header);
+                // Before the ghost, which goes right before whichever Messages button the header shows.
+                MessagesHeaderButton.place(header);
                 place(header);
                 HomeLogo.center(header);
             });
@@ -82,8 +86,9 @@ public final class GhostHeaderButton {
 
     /**
      * Puts the button in, leaves the one there, or takes it out, as the switch, Pause and the build
-     * say. It goes right before Messages, or at the end of the header's end row of buttons when
-     * Messages isn't on the header (it's on the tab bar for some accounts).
+     * say. It goes right before Messages, Instagram's own or the one HushGram adds, or at the end of
+     * the header's end row of buttons when no Messages is on the header (it's on the tab bar for some
+     * accounts).
      */
     static void place(View header) {
         try {
@@ -92,6 +97,14 @@ public final class GhostHeaderButton {
                     && Settings.GHOST_BUTTON_ON_HOME.get() && !switches.isEmpty();
             View inbox = HomeHeader.inboxOf(header);
             LinearLayout row = HomeHeader.inboxRowOf(header);
+            if (row == null) {
+                LinearLayout end = HomeHeader.endRowOf(header);
+                View added = MessagesHeaderButton.in(end);
+                if (added != null) {
+                    inbox = added;
+                    row = end;
+                }
+            }
             boolean besideMessages = row != null;
             if (row == null) row = HomeHeader.endRowOf(header);
             if (row == null) {

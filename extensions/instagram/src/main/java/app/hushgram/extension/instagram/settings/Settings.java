@@ -1362,6 +1362,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_search_button_on_home", FALSE, true);
 
     /**
+     * A Messages button on Home's header when the header has no Messages button of its own, because
+     * Instagram put Messages on the tab bar (#156). It opens the Messages tab the way Instagram's own
+     * header button does ({@link app.hushgram.extension.instagram.reels.MessagesHeaderButton}). The
+     * header builds it as it draws, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting MESSAGES_BUTTON_ON_HOME =
+            new BooleanSetting("hushgram_messages_button_on_home", FALSE, true);
+
+    /**
      * Instagram's logo sits in the middle of Home's header, with the buttons on each side, as
      * Instagram's newer header has it ({@link app.hushgram.extension.instagram.reels.HomeLogo}). The
      * header centers it as it draws, so a change takes a restart. Off to start.
