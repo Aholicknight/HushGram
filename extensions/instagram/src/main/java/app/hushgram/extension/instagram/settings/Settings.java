@@ -830,6 +830,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_hide_on_scroll", FALSE, true, parent(GLASS_TAB_BAR));
 
     /**
+     * Under {@link #GLASS_TAB_BAR}: a finger put on the pill and slid sideways carries the highlight, and
+     * lifting it opens the tab under it ({@link app.hushgram.extension.instagram.misc.GlassTabSlide}, #136).
+     * Taps and long presses on a tab stay Instagram's. Read as the bar is built, so a change asks for a
+     * restart. Off to start.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_SLIDE =
+            new BooleanSetting("hushgram_glass_tab_bar_slide", FALSE, true, parent(GLASS_TAB_BAR));
+
+    /**
      * Under {@link #GLASS_TAB_BAR_HAPTICS}: which tick plays ({@link app.hushgram.extension.instagram.misc.HapticStyle}).
      * Starts on the phone's own click. A choice because only a hand can say which feels right.
      */

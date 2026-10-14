@@ -72,7 +72,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * inside a pill, a little extra height for the gap under the pill, and a background that draws the
  * pill: the content behind it blurred ({@link RenderEffect}, Android 12 and newer), a tint taken
  * from the colour Instagram gave the bar, a soft highlight and a hairline edge. The tab Instagram
- * marks selected gets a lighter capsule that slides to the next one. Without blur, or with
+ * marks selected gets a lighter capsule that slides to the next one. With Slide across the tabs on, a
+ * finger slid along the pill carries the capsule and opens the tab it lifts over ({@link GlassTabSlide}).
+ * Without blur, or with
  * Android's blur unavailable, the pill is the same tint, more opaque.
  *
  * <p>Sizes follow the pill on Instagram's iPhone tab bar, as proportions of the screen's width
@@ -426,6 +428,7 @@ public final class GlassTabBar {
             Glass glass = new Glass((ViewGroup) found);
             applied.put(found, new WeakReference<>(glass));
             glass.watchScrolling(activity.getWindow());
+            glass.watchSlides(activity.getWindow());
             HookStatus.invoked(FamilyNames.GLASS_TAB_BAR);
             Logger.printDebug(() -> "Glass tab bar: restyled the tab bar");
         } catch (Throwable failure) {
@@ -681,7 +684,7 @@ public final class GlassTabBar {
     }
 
     private static final class Glass implements ViewTreeObserver.OnPreDrawListener,
-            View.OnAttachStateChangeListener {
+            View.OnAttachStateChangeListener, GlassTabSlide.Host {
         private final ViewGroup bar;
         private final float density;
         private final boolean blurWanted;
@@ -707,6 +710,11 @@ public final class GlassTabBar {
          * for it (#170). Null with the switch off and the wait on Never.
          */
         @Nullable private final GlassScrollHide scrollHide;
+        /** Carries the capsule along with a finger slid across the pill, with that switch on (#136). Null with it off. */
+        @Nullable private final GlassTabSlide slide;
+        /** Where a sliding finger holds the capsule's middle, in the bar's pixels, or NaN while none does. */
+        private float dragX = Float.NaN;
+        private final RectF touchArea = new RectF();
         /** Whether this slide has had its tick: one tick for a change of tab, however many tabs the capsule crosses. */
         private boolean tickedThisSlide;
         private final boolean floating;
@@ -755,6 +763,8 @@ public final class GlassTabBar {
             long reelsMillis = hideOnReels == null ? 0L : hideOnReels.millis;
             this.scrollHide = hideOnScroll || reelsMillis > 0
                     ? new GlassScrollHide(bar, () -> !HushgramPause.isPaused(), hideOnScroll, reelsMillis) : null;
+            this.slide = Settings.GLASS_TAB_BAR_SLIDE.get()
+                    ? new GlassTabSlide(bar, this, () -> !HushgramPause.isPaused()) : null;
             this.base = baseColor(bar.getBackground());
             this.originalLeft = bar.getPaddingLeft();
             this.originalRight = bar.getPaddingRight();
@@ -787,6 +797,27 @@ public final class GlassTabBar {
 
         void restoreScrolling() {
             if (scrollHide != null) scrollHide.restoreNow();
+        }
+
+        void watchSlides(Window window) {
+            if (slide == null) return;
+            try {
+                GlassTabSlide.install(window, slide);
+                HookStatus.counted(FamilyNames.GLASS_TAB_BAR, GlassTabSlide.COUNT_WATCHING);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "tab slide", failure);
+            }
+        }
+
+        @Override public boolean onPill(float x, float y) {
+            return pill.pillBounds(touchArea) && touchArea.contains(x, y);
+        }
+
+        @Override public void follow(float x) {
+            dragX = x;
+            // A slide is a touch like any other, so the wait to hide the bar on Reels starts over.
+            if (scrollHide != null) scrollHide.arm();
+            bar.invalidate();
         }
 
         /**
@@ -1192,7 +1223,15 @@ public final class GlassTabBar {
                 float targetLeft = Math.max(rect.left + inset, selected.getLeft() + selected.getTranslationX() - grow);
                 float targetRight = Math.min(rect.right - inset, selected.getRight() + selected.getTranslationX() + grow);
                 long now = AnimationUtils.currentAnimationTimeMillis();
-                if (Float.isNaN(fromLeft)) {
+                if (!Float.isNaN(dragX)) {
+                    // A finger slides it (#136): it sits on the finger, as wide as the selected tab's, and
+                    // ticks for each tab it crosses. Once the finger lifts it slides from here to the tab.
+                    float width = targetRight - targetLeft;
+                    fromLeft = nowLeft = toLeft = followLeft(dragX, width, rect.left + inset, rect.right - inset);
+                    fromRight = nowRight = toRight = toLeft + width;
+                    slideStart = now - SLIDE_MS;
+                    tickedThisSlide = false;
+                } else if (Float.isNaN(fromLeft)) {
                     fromLeft = nowLeft = toLeft = targetLeft;
                     fromRight = nowRight = toRight = targetRight;
                     slideStart = now - SLIDE_MS;
@@ -1436,6 +1475,15 @@ public final class GlassTabBar {
         float t = elapsed / (float) SLIDE_MS;
         float rest = 1f - t;
         return 1f - rest * rest * rest;
+    }
+
+    /**
+     * Where the capsule's left edge goes while a finger slides it (#136): [width] wide, centered on
+     * [finger], and kept between [min] and [max]. With no room to move it stays at [min].
+     */
+    static float followLeft(float finger, float width, float min, float max) {
+        if (max - min <= width) return min;
+        return Math.max(min, Math.min(max - width, finger - width / 2f));
     }
 
     /**

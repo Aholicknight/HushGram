@@ -848,6 +848,8 @@ Takes the accounts Instagram suggests off the bottom of your messages. Your chat
 A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Vurgu bir sekmenin üzerinden her geçtiğinde hafif bir titreşim verir; ekranlar arasında dokunurken veya kaydırırken çubuğu takip eder.
 Blur behind the tab bar	Sekme çubuğunun arkasında bulanıklık
 Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Android 12 ve üzerinde hapın arkasındaki görüntüyü bulanıklaştırır. Kapalıyken hap, buzlu bir renk tonudur.
+Slide across the tabs	Sekmeler arasında kaydır
+Put a finger on the pill and slide it sideways. The highlight follows your finger, and letting go opens the tab under it. Taps and long presses on a tab work as before. Restart Instagram after changing it.	Parmağını çubuğa koyup yana kaydır. Vurgu parmağını takip eder ve bıraktığında altındaki sekme açılır. Sekmeye dokunmak ve basılı tutmak eskisi gibi çalışır. Değiştirdikten sonra Instagram'ı yeniden başlatın.
 Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Instagram'ın sekme çubuğunu, bulunduğun sekmeyi vurgulayan yüzen, yuvarlak bir cam hap olarak çizer. Değiştirdikten sonra Instagram'ı yeniden başlat.
 Glass tab bar	Cam sekme çubuğu
 Haptics on the tab bar	Sekme çubuğunda titreşim

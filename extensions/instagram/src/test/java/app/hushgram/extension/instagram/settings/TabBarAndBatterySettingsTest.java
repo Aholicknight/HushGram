@@ -37,6 +37,7 @@ import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
@@ -72,6 +73,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTICS.resetToDefault();
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
+        Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
@@ -115,8 +117,10 @@ public class TabBarAndBatterySettingsTest {
         assertFalse(glass.isChecked());
         assertTrue(Settings.GLASS_TAB_BAR.rebootApp);
         assertEquals(Arrays.asList(Settings.GLASS_TAB_BAR, Settings.GLASS_TAB_BAR_BLUR, Settings.GLASS_TAB_BAR_FLOAT,
-                Settings.GLASS_TAB_BAR_HAPTICS, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL), PatchFamily.GLASS_TAB_BAR.switches);
-        for (String key : List.of(Settings.GLASS_TAB_BAR_BLUR.key, Settings.GLASS_TAB_BAR_HAPTICS.key, Settings.GLASS_TAB_BAR_FLOAT.key, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.key)) {
+                Settings.GLASS_TAB_BAR_HAPTICS, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, Settings.GLASS_TAB_BAR_SLIDE),
+                PatchFamily.GLASS_TAB_BAR.switches);
+        for (String key : List.of(Settings.GLASS_TAB_BAR_BLUR.key, Settings.GLASS_TAB_BAR_HAPTICS.key, Settings.GLASS_TAB_BAR_FLOAT.key,
+                Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.key, Settings.GLASS_TAB_BAR_SLIDE.key)) {
             assertNotNull(key, row(key));
         }
 
@@ -265,6 +269,47 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR.save(false);
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(true);
         assertFalse("no glass bar, nothing to slide away", Settings.GLASS_TAB_BAR_REELS_HIDE.isAvailable());
+    }
+
+    /**
+     * Slide across the tabs (#136) is a switch right after Blur behind the tab bar, off to start, offered with
+     * the glass bar, backed up, and read as the bar is built, so it asks for a restart. Pause turns it off.
+     */
+    @Test public void slideAcrossTheTabsStartsOffAfterTheBlurAndAsksForARestart() throws Exception {
+        open(PatchFamily.GLASS_TAB_BAR);
+        SwitchPreference slide = (SwitchPreference) row(Settings.GLASS_TAB_BAR_SLIDE.key);
+        assertNotNull(slide);
+        assertEquals("Slide across the tabs", String.valueOf(slide.getTitle()));
+        assertEquals("Put a finger on the pill and slide it sideways. The highlight follows your finger, and letting go "
+                + "opens the tab under it. Taps and long presses on a tab work as before. Restart Instagram after "
+                + "changing it.", String.valueOf(slide.getSummary()));
+        assertFalse(slide.isChecked());
+        assertFalse(Settings.GLASS_TAB_BAR_SLIDE.defaultValue);
+        assertTrue(Settings.GLASS_TAB_BAR_SLIDE.rebootApp);
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), slide);
+        assertEquals("Tab bar", String.valueOf(section.getTitle()));
+        int blurAt = -1;
+        int slideAt = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            String key = section.getPreference(i).getKey();
+            if (Settings.GLASS_TAB_BAR_BLUR.key.equals(key)) blurAt = i;
+            if (Settings.GLASS_TAB_BAR_SLIDE.key.equals(key)) slideAt = i;
+        }
+        assertTrue(blurAt >= 0);
+        assertEquals("right after Blur behind the tab bar", blurAt + 1, slideAt);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_SLIDE.key));
+
+        Settings.GLASS_TAB_BAR.save(false);
+        assertFalse("no glass bar, no highlight to slide", Settings.GLASS_TAB_BAR_SLIDE.isAvailable());
+        Settings.GLASS_TAB_BAR.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_SLIDE.isAvailable());
+
+        Settings.GLASS_TAB_BAR_SLIDE.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_SLIDE.get());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused, no slide", Settings.GLASS_TAB_BAR_SLIDE.get());
+        assertTrue(Settings.GLASS_TAB_BAR_SLIDE.savedValue());
     }
 
     /** Every wait on the list is a whole number of seconds, shortest first, so the label and the timer agree. */

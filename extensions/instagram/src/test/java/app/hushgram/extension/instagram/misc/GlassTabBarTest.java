@@ -20,11 +20,14 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.os.SystemClock;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -72,6 +75,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTICS.resetToDefault();
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
+        Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         GlassTabBar.resetForTests();
@@ -420,6 +424,94 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * Slide across the tabs (#136): a finger slid along the pill carries the capsule, centered on the
+     * finger, nothing opens while it's down, and lifting it over a tab opens that tab, where the capsule
+     * then settles.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aFingerSlidAlongThePillCarriesTheCapsuleAndOpensTheTabItLiftsOver() {
+        GlassTabBar.animationsOnForTests = false;
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            Settings.GLASS_TAB_BAR_SLIDE.save(true);
+            assertTrue(host.bar.getChildAt(0).performClick());
+            GlassTabBar.apply(host.activity);
+            host.layout();
+            Window.Callback callback = host.activity.getWindow().getCallback();
+            int[] at = new int[2];
+            host.bar.getLocationOnScreen(at);
+            float y = at[1] + host.bar.getHeight() / 2f;
+            View first = host.bar.getChildAt(0);
+            View fourth = host.bar.getChildAt(3);
+            float from = (first.getLeft() + first.getRight()) / 2f;
+            float to = (fourth.getLeft() + fourth.getRight()) / 2f;
+            long down = SystemClock.uptimeMillis();
+            send(callback, down, down, MotionEvent.ACTION_DOWN, at[0] + from, y);
+            send(callback, down, down + 16, MotionEvent.ACTION_MOVE, at[0] + from + host.dp(30), y);
+            send(callback, down, down + 32, MotionEvent.ACTION_MOVE, at[0] + to, y);
+            try (Pixels ignored = host.background()) {
+                RectF slot = ReflectionHelpers.getField(host.bar.getBackground(), "capsule");
+                assertEquals("the capsule sits on the finger", to, slot.centerX(), 0.5f);
+            }
+            assertEquals("nothing opens while the finger is down", 1, host.clicks.get());
+
+            send(callback, down, down + 48, MotionEvent.ACTION_UP, at[0] + to, y);
+            assertEquals(2, host.clicks.get());
+            assertTrue(fourth.isSelected());
+            try (Pixels ignored = host.background()) {
+                RectF slot = ReflectionHelpers.getField(host.bar.getBackground(), "capsule");
+                assertEquals("the capsule settles on the tab", to, slot.centerX(), 0.5f);
+            }
+        }
+    }
+
+    /** Off, the same slide is Instagram's: the window isn't wrapped and the capsule stays on the open tab. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void withTheSwitchOffASlideMovesNothing() {
+        GlassTabBar.animationsOnForTests = false;
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            Window.Callback before = host.activity.getWindow().getCallback();
+            assertTrue(host.bar.getChildAt(0).performClick());
+            GlassTabBar.apply(host.activity);
+            host.layout();
+            assertSame("no watcher without the switch", before, host.activity.getWindow().getCallback());
+            View first = host.bar.getChildAt(0);
+            int[] at = new int[2];
+            host.bar.getLocationOnScreen(at);
+            float y = at[1] + host.bar.getHeight() / 2f;
+            float from = (first.getLeft() + first.getRight()) / 2f;
+            long down = SystemClock.uptimeMillis();
+            send(before, down, down, MotionEvent.ACTION_DOWN, at[0] + from, y);
+            send(before, down, down + 16, MotionEvent.ACTION_MOVE, at[0] + from + host.dp(200), y);
+            try (Pixels ignored = host.background()) {
+                RectF slot = ReflectionHelpers.getField(host.bar.getBackground(), "capsule");
+                assertTrue("the capsule stays on the open tab", slot.centerX() < first.getRight());
+            }
+            send(before, down, down + 32, MotionEvent.ACTION_CANCEL, at[0] + from + host.dp(200), y);
+        }
+    }
+
+    @Test
+    public void aSlidCapsuleCentersOnTheFingerInsideThePill() {
+        assertEquals(150f, GlassTabBar.followLeft(200f, 100f, 10f, 500f), 0f);
+        assertEquals("held at the left end", 10f, GlassTabBar.followLeft(20f, 100f, 10f, 500f), 0f);
+        assertEquals("held at the right end", 400f, GlassTabBar.followLeft(490f, 100f, 10f, 500f), 0f);
+        assertEquals("no room to move", 10f, GlassTabBar.followLeft(200f, 600f, 10f, 500f), 0f);
+    }
+
+    private static void send(Window.Callback callback, long down, long time, int action, float x, float y) {
+        MotionEvent event = MotionEvent.obtain(down, time, action, x, y, 0);
+        try {
+            callback.dispatchTouchEvent(event);
+        } finally {
+            event.recycle();
+        }
+    }
+
     private static Map<View, ?> registry() {
         return ReflectionHelpers.getStaticField(GlassTabBar.class, "applied");
     }
@@ -455,6 +547,7 @@ public class GlassTabBarTest {
             Settings.GLASS_TAB_BAR_BLUR.save(blur);
             Settings.GLASS_TAB_BAR_HAPTICS.save(false);
             Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(false);
+            Settings.GLASS_TAB_BAR_SLIDE.save(false);
             controller = Robolectric.buildActivity(Activity.class).setup();
             activity = controller.get();
             activity.getApplicationInfo().flags |= android.content.pm.ApplicationInfo.FLAG_SUPPORTS_RTL;

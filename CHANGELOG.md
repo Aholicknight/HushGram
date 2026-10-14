@@ -8,6 +8,8 @@ Every HushGram release, newest first.
 
 #### Features
 
+* **Instagram - Glass tab bar:** New Slide across the tabs switch, off by default. Put a finger on the pill and slide it sideways, and the highlight follows it. Let go and the tab under your finger opens. Taps and long presses on a tab work as before. Asked for in #136.
+
 * **Instagram - Keep a seek bar on Reels:** New switch under Reels, Seek bar like DM videos, off by default. Reels get the bar Instagram shows on a video in a chat, a thin gray line that turns white as it plays with a big round white handle, and the time above it. With Bigger seek bar on too, this look wins. Asked for in #10.
 
 * **Instagram - HushGram settings:** Quick setups can be hidden from the settings home with a long press on its row, and its help line now says so. The Quick setups on the home page row on Settings backup brings it back. The choice stays out of settings backups and Quick setups, and Pause leaves it alone.

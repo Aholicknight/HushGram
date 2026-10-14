@@ -220,8 +220,8 @@ final class GlassScrollHide {
     static void install(Window window, GlassScrollHide hide) {
         Window.Callback inner = window.getCallback();
         if (inner == null) return;
-        // Hold to download's and Burn-in guard's watchers may have wrapped this one since, in either
-        // order, so they're looked through.
+        // Hold to download's, Burn-in guard's and the tab slide's watchers may have wrapped this one
+        // since, in any order, so they're looked through.
         for (Window.Callback seen = inner; seen != null; ) {
             if (Proxy.isProxyClass(seen.getClass()) && Proxy.getInvocationHandler(seen) instanceof Watcher) {
                 Watcher watcher = (Watcher) Proxy.getInvocationHandler(seen);
@@ -234,7 +234,7 @@ final class GlassScrollHide {
                 hide.arm();
                 return;
             }
-            Window.Callback next = BurnInGuard.innerOf(HoldDownload.innerOf(seen));
+            Window.Callback next = GlassTabSlide.innerOf(BurnInGuard.innerOf(HoldDownload.innerOf(seen)));
             if (next == seen) break;
             seen = next;
         }
