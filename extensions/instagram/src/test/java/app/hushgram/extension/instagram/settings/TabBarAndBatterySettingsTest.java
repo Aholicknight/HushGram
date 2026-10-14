@@ -74,6 +74,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_HAPTICS.resetToDefault();
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
+        Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
@@ -117,10 +118,10 @@ public class TabBarAndBatterySettingsTest {
         assertFalse(glass.isChecked());
         assertTrue(Settings.GLASS_TAB_BAR.rebootApp);
         assertEquals(Arrays.asList(Settings.GLASS_TAB_BAR, Settings.GLASS_TAB_BAR_BLUR, Settings.GLASS_TAB_BAR_FLOAT,
-                Settings.GLASS_TAB_BAR_HAPTICS, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, Settings.GLASS_TAB_BAR_SLIDE),
-                PatchFamily.GLASS_TAB_BAR.switches);
+                Settings.GLASS_TAB_BAR_HAPTICS, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, Settings.GLASS_TAB_BAR_SLIDE,
+                Settings.GLASS_TAB_BAR_LIQUID), PatchFamily.GLASS_TAB_BAR.switches);
         for (String key : List.of(Settings.GLASS_TAB_BAR_BLUR.key, Settings.GLASS_TAB_BAR_HAPTICS.key, Settings.GLASS_TAB_BAR_FLOAT.key,
-                Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.key, Settings.GLASS_TAB_BAR_SLIDE.key)) {
+                Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.key, Settings.GLASS_TAB_BAR_SLIDE.key, Settings.GLASS_TAB_BAR_LIQUID.key)) {
             assertNotNull(key, row(key));
         }
 
@@ -310,6 +311,47 @@ public class TabBarAndBatterySettingsTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse("paused, no slide", Settings.GLASS_TAB_BAR_SLIDE.get());
         assertTrue(Settings.GLASS_TAB_BAR_SLIDE.savedValue());
+    }
+
+    /**
+     * The liquid glass look (#65) is a switch right after Slide across the tabs, off to start, offered with the
+     * glass bar, backed up, and read as the bar is built, so it asks for a restart. Pause turns it off.
+     */
+    @Test public void theLiquidLookStartsOffAfterTheSlideAndAsksForARestart() throws Exception {
+        open(PatchFamily.GLASS_TAB_BAR);
+        SwitchPreference liquid = (SwitchPreference) row(Settings.GLASS_TAB_BAR_LIQUID.key);
+        assertNotNull(liquid);
+        assertEquals("Liquid glass look", String.valueOf(liquid.getTitle()));
+        assertEquals("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list "
+                + "down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. "
+                + "Restart Instagram after changing it.", String.valueOf(liquid.getSummary()));
+        assertFalse(liquid.isChecked());
+        assertFalse(Settings.GLASS_TAB_BAR_LIQUID.defaultValue);
+        assertTrue(Settings.GLASS_TAB_BAR_LIQUID.rebootApp);
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), liquid);
+        assertEquals("Tab bar", String.valueOf(section.getTitle()));
+        int slideAt = -1;
+        int liquidAt = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            String key = section.getPreference(i).getKey();
+            if (Settings.GLASS_TAB_BAR_SLIDE.key.equals(key)) slideAt = i;
+            if (Settings.GLASS_TAB_BAR_LIQUID.key.equals(key)) liquidAt = i;
+        }
+        assertTrue(slideAt >= 0);
+        assertEquals("right after Slide across the tabs", slideAt + 1, liquidAt);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_LIQUID.key));
+
+        Settings.GLASS_TAB_BAR.save(false);
+        assertFalse("no glass bar, no liquid look", Settings.GLASS_TAB_BAR_LIQUID.isAvailable());
+        Settings.GLASS_TAB_BAR.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_LIQUID.isAvailable());
+
+        Settings.GLASS_TAB_BAR_LIQUID.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_LIQUID.get());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused, the floating bar of before", Settings.GLASS_TAB_BAR_LIQUID.get());
+        assertTrue(Settings.GLASS_TAB_BAR_LIQUID.savedValue());
     }
 
     /** Every wait on the list is a whole number of seconds, shortest first, so the label and the timer agree. */

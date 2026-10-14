@@ -850,6 +850,8 @@ Blur behind the tab bar	Sekme çubuğunun arkasında bulanıklık
 Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Android 12 ve üzerinde hapın arkasındaki görüntüyü bulanıklaştırır. Kapalıyken hap, buzlu bir renk tonudur.
 Slide across the tabs	Sekmeler arasında kaydır
 Put a finger on the pill and slide it sideways. The highlight follows your finger, and letting go opens the tab under it. Taps and long presses on a tab work as before. Restart Instagram after changing it.	Parmağını çubuğa koyup yana kaydır. Vurgu parmağını takip eder ve bıraktığında altındaki sekme açılır. Sekmeye dokunmak ve basılı tutmak eskisi gibi çalışır. Değiştirdikten sonra Instagram'ı yeniden başlatın.
+Liquid glass look	Sıvı cam görünümü
+Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.	Çubuğu ve vurgusunu tamamen yuvarlar, Ara'yı kendi cam dairesine koyar. Bir listeyi aşağı kaydırınca çubuk, bulunduğun sekme ile Ara'ya küçülür. Kaydırırken sekme çubuğunu gizle açıksa küçülmez. Değiştirdikten sonra Instagram'ı yeniden başlatın.
 Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Instagram'ın sekme çubuğunu, bulunduğun sekmeyi vurgulayan yüzen, yuvarlak bir cam hap olarak çizer. Değiştirdikten sonra Instagram'ı yeniden başlat.
 Glass tab bar	Cam sekme çubuğu
 Haptics on the tab bar	Sekme çubuğunda titreşim

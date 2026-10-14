@@ -822,4 +822,103 @@ public class GlassScrollHideTest {
         idle(10_000);
         assertFalse(hide.isHidden());
     }
+
+    /** A shrinker that notes each call and refuses to shrink while [allowed] is false. */
+    private static GlassScrollHide.Shrinker noting(java.util.List<String> calls, AtomicBoolean allowed) {
+        return (on, now) -> {
+            if (on && !allowed.get()) return false;
+            calls.add((on ? "shrink" : "grow") + (now ? " now" : ""));
+            return true;
+        };
+    }
+
+    /**
+     * With the liquid look (#65) a scroll down shrinks the bar to its compact row where it would slide away. The
+     * bar itself never moves, and scrolling back up, a finger on the row, reaching the top and a restore grow it.
+     */
+    @Test public void aShrinkerShrinksTheBarWhereAScrollWouldSlideItAway() {
+        java.util.List<String> calls = new java.util.ArrayList<>();
+        hide = new GlassScrollHide(bar, running::get, true, 0L, noting(calls, new AtomicBoolean(true)));
+        list.awayFromTop = true;
+        drag(-300);
+        assertTrue(hide.isHidden());
+        assertTrue(hide.isShrunk());
+        settle();
+        assertEquals("the bar isn't slid", 0f, bar.getTranslationY(), 0f);
+        assertFalse("a shrunk bar is still on screen", hide.isOffScreen());
+        assertEquals(java.util.List.of("shrink"), calls);
+
+        touch(MotionEvent.ACTION_UP, 500, 600);
+        touch(MotionEvent.ACTION_DOWN, 500, 600);
+        for (int i = 1; i <= 10; i++) touch(MotionEvent.ACTION_MOVE, 500, 600 + 30 * i);
+        assertFalse("scrolling back up grows it", hide.isShrunk());
+        assertEquals(java.util.List.of("shrink", "grow"), calls);
+        touch(MotionEvent.ACTION_UP, 500, 900);
+
+        drag(-300);
+        touch(MotionEvent.ACTION_UP, 500, 600);
+        assertTrue(hide.isShrunk());
+        touch(MotionEvent.ACTION_DOWN, 500, 1800);
+        assertFalse("a finger on the row grows it", hide.isShrunk());
+        assertFalse(hide.isHidden());
+        touch(MotionEvent.ACTION_UP, 500, 1800);
+
+        drag(-300);
+        touch(MotionEvent.ACTION_UP, 500, 600);
+        assertTrue(hide.isShrunk());
+        list.awayFromTop = false;
+        idle(GlassScrollHide.WATCH_MS * 2);
+        assertFalse("reaching the top grows it", hide.isShrunk());
+
+        list.awayFromTop = true;
+        drag(-300);
+        touch(MotionEvent.ACTION_UP, 500, 600);
+        assertTrue(hide.isShrunk());
+        hide.restoreNow();
+        assertFalse(hide.isShrunk());
+        assertEquals("a restore grows it at once", "grow now", calls.get(calls.size() - 1));
+        assertEquals(0f, bar.getTranslationY(), 0f);
+    }
+
+    /** A bar that can't shrink, with Search open say, stays as it is for the rest of the drag, and never slides. */
+    @Test public void aShrinkerThatRefusesLeavesTheBarAlone() {
+        java.util.List<String> calls = new java.util.ArrayList<>();
+        hide = new GlassScrollHide(bar, running::get, true, 0L, noting(calls, new AtomicBoolean(false)));
+        list.awayFromTop = true;
+        drag(-300);
+        assertFalse(hide.isHidden());
+        assertFalse(hide.isShrunk());
+        settle();
+        assertEquals(0f, bar.getTranslationY(), 0f);
+        assertTrue(calls.isEmpty());
+    }
+
+    /** Pause grows a shrunk bar at once at the next touch, as it brings a slid one back. */
+    @Test public void pausingGrowsAShrunkBarAtOnce() {
+        java.util.List<String> calls = new java.util.ArrayList<>();
+        hide = new GlassScrollHide(bar, running::get, true, 0L, noting(calls, new AtomicBoolean(true)));
+        list.awayFromTop = true;
+        drag(-300);
+        touch(MotionEvent.ACTION_UP, 500, 600);
+        assertTrue(hide.isShrunk());
+        running.set(false);
+        touch(MotionEvent.ACTION_DOWN, 500, 900);
+        assertFalse(hide.isShrunk());
+        assertEquals("grow now", calls.get(calls.size() - 1));
+    }
+
+    /** The wait on Reels still slides the bar away with a shrinker given: only a scroll shrinks it. */
+    @Test public void onReelsTheWaitSlidesTheBarEvenWithAShrinker() {
+        addReelsViewer();
+        java.util.List<String> calls = new java.util.ArrayList<>();
+        hide = new GlassScrollHide(bar, running::get, true, 2000L, noting(calls, new AtomicBoolean(true)));
+        GlassScrollHide.install(activity.getWindow(), hide);
+        tap(500, 900);
+        idle(2100);
+        assertTrue(hide.isHidden());
+        assertFalse(hide.isShrunk());
+        settle();
+        assertTrue(bar.getTranslationY() > 100f);
+        assertTrue(calls.isEmpty());
+    }
 }

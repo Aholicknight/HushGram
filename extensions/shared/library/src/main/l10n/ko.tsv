@@ -849,6 +849,8 @@ Blur behind the tab bar	탭 바 뒤 흐림 효과
 Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Android 12 이상에서 알약 모양 뒤에 있는 화면을 흐리게 합니다. 끄면 알약은 불투명한 색조가 됩니다.
 Slide across the tabs	탭 사이 밀어서 이동
 Put a finger on the pill and slide it sideways. The highlight follows your finger, and letting go opens the tab under it. Taps and long presses on a tab work as before. Restart Instagram after changing it.	알약 모양 바에 손가락을 대고 옆으로 미세요. 하이라이트가 손가락을 따라가고, 손을 떼면 그 아래의 탭이 열립니다. 탭을 누르거나 길게 누르는 동작은 그대로입니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
+Liquid glass look	리퀴드 글래스 스타일
+Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.	알약 모양 바와 하이라이트를 둥글게 만들고 검색을 별도의 유리 원에 둡니다. 목록을 아래로 스크롤하면 바가 지금 보고 있는 탭과 검색만 남기고 줄어듭니다. 스크롤할 때 탭 바 숨기기가 켜져 있으면 줄어들지 않습니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
 Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Instagram의 탭 바를 현재 탭이 강조된 둥근 유리 알약 모양으로 띄워 그립니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
 Glass tab bar	유리 탭 바
 Haptics on the tab bar	탭 바 햅틱

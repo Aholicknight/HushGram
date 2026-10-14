@@ -839,6 +839,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_slide", FALSE, true, parent(GLASS_TAB_BAR));
 
     /**
+     * Under {@link #GLASS_TAB_BAR}: the liquid glass look (#65). The pill and its highlight are fully round,
+     * Search sits in a glass circle of its own beside the pill, and with {@link #GLASS_TAB_BAR_HIDE_ON_SCROLL}
+     * off, scrolling a list down shrinks the bar to the tab you're on and Search
+     * ({@link app.hushgram.extension.instagram.misc.GlassTabBar}). Read as the bar is built, so a change asks
+     * for a restart. Off to start.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_LIQUID =
+            new BooleanSetting("hushgram_glass_tab_bar_liquid", FALSE, true, parent(GLASS_TAB_BAR));
+
+    /**
      * Under {@link #GLASS_TAB_BAR_HAPTICS}: which tick plays ({@link app.hushgram.extension.instagram.misc.HapticStyle}).
      * Starts on the phone's own click. A choice because only a hand can say which feels right.
      */

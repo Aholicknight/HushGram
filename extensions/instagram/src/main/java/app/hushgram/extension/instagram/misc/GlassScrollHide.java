@@ -58,6 +58,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * is away for a reel the timer looks at the viewer in place of a list, and brings the bar back as soon as
  * the viewer isn't the screen showing. The wait is one delayed call, dropped whenever the bar is put back
  * at once, and never made with the choice on Never.
+ *
+ * <p>With the glass bar's liquid look (#65) and this switch off, a scroll down shrinks the bar to its compact
+ * row through a {@link Shrinker} where it would have slid away. Everything that brings a slid bar back grows
+ * it again, and so does a finger put down on the row.
  */
 final class GlassScrollHide {
     /** How far a drag must go, and how far it must turn back to flip, in dp. */
@@ -75,6 +79,13 @@ final class GlassScrollHide {
     static final String COUNT_RESTORED = "bar restored by the guard";
     static final String COUNT_REELS_HID = "reels hid the bar";
     static final String COUNT_TAPPED_BACK = "tap brought the bar back";
+    static final String COUNT_SHRANK = "scroll shrank the bar";
+
+    /** What shrinks the bar to a compact row where a scroll would slide it away: the liquid look (#65). */
+    interface Shrinker {
+        /** Shrinks the bar, or grows it back when not [on], at once when [now]. Says whether it did. */
+        boolean shrink(boolean on, boolean now);
+    }
 
     /** What a drag says about the bar. */
     static final int KEEP = 0;
@@ -171,6 +182,10 @@ final class GlassScrollHide {
     /** Whether a window's watcher hands this its touches. Without them nothing could bring the bar back, so no wait starts. */
     private boolean installed;
     private boolean fingerDown;
+    /** What shrinks the bar in place of a scroll sliding it away, or null. The wait on Reels still slides it. */
+    @Nullable private final Shrinker shrinker;
+    /** Whether a scroll shrank the bar, in place of sliding it away. */
+    private boolean shrunk;
     private final Runnable watch = this::watchScroller;
     private final Runnable reelsWait = this::waitedOnReels;
 
@@ -191,10 +206,18 @@ final class GlassScrollHide {
      * @param reelsMillis how long the Reels screen goes untouched before the bar slides away, or 0 for never
      */
     GlassScrollHide(View bar, BooleanSupplier running, boolean onScroll, long reelsMillis) {
+        this(bar, running, onScroll, reelsMillis, null);
+    }
+
+    /**
+     * @param shrinker what shrinks the bar to a compact row where a scroll would slide it away, or null to slide it
+     */
+    GlassScrollHide(View bar, BooleanSupplier running, boolean onScroll, long reelsMillis, @Nullable Shrinker shrinker) {
         this.bar = bar;
         this.running = running;
         this.onScroll = onScroll;
         this.reelsMillis = Math.max(0L, reelsMillis);
+        this.shrinker = shrinker;
         this.density = bar.getResources().getDisplayMetrics().density;
         this.slop = Math.max(SLOP_DP * density, ViewConfiguration.get(bar.getContext()).getScaledTouchSlop());
     }
@@ -203,9 +226,14 @@ final class GlassScrollHide {
         return hidden;
     }
 
-    /** Whether the bar has slid all the way off, so nothing needs drawing behind it. */
+    /** Whether the bar has slid all the way off, so nothing needs drawing behind it. A shrunk bar is still on screen. */
     boolean isOffScreen() {
-        return hidden && bar.getTranslationY() >= travel() - 1f;
+        return hidden && !shrunk && bar.getTranslationY() >= travel() - 1f;
+    }
+
+    /** Whether a scroll shrank the bar to its compact row, in place of sliding it away. */
+    boolean isShrunk() {
+        return shrunk;
     }
 
     private float travel() {
@@ -295,6 +323,12 @@ final class GlassScrollHide {
                 refused = false;
                 if (byReels && atHome(event)) {
                     // Away for a reel, and a finger where the bar sits wants it back. That is all this touch does.
+                    drag.cancel();
+                    slideBack(COUNT_TAPPED_BACK);
+                    return;
+                }
+                if (shrunk && onBar(event)) {
+                    // A finger on the compact row wants the whole bar back. The touch still goes on to the tab under it.
                     drag.cancel();
                     slideBack(COUNT_TAPPED_BACK);
                     return;
@@ -447,15 +481,25 @@ final class GlassScrollHide {
 
     /**
      * Slides the bar off the bottom and starts the timer that watches [held], the list or the Reels viewer
-     * the bar is away for. Only its translation changes.
+     * the bar is away for. Only its translation changes. With a shrinker, a scroll shrinks the bar to its
+     * compact row instead, and when it can't, the bar stays as it is for the rest of this drag.
      */
     private void slideAway(@Nullable WeakReference<View> held, boolean reels, String counted) {
+        if (!reels && shrinker != null) {
+            if (!shrinker.shrink(true, false)) {
+                refused = true;
+                return;
+            }
+            shrunk = true;
+            counted = COUNT_SHRANK;
+        } else {
+            moved = true;
+            bar.animate().cancel();
+            bar.animate().translationY(travel()).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator()).start();
+        }
         guard = held;
         byReels = reels;
         hidden = true;
-        moved = true;
-        bar.animate().cancel();
-        bar.animate().translationY(travel()).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator()).start();
         bar.removeCallbacks(watch);
         bar.postDelayed(watch, WATCH_MS);
         HookStatus.counted(FamilyNames.GLASS_TAB_BAR, counted);
@@ -471,6 +515,12 @@ final class GlassScrollHide {
         hidden = false;
         byReels = false;
         bar.removeCallbacks(watch);
+        if (shrunk) {
+            shrunk = false;
+            shrinker.shrink(false, false);
+            HookStatus.counted(FamilyNames.GLASS_TAB_BAR, counted);
+            return;
+        }
         bar.animate().cancel();
         bar.animate().translationY(0f).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator())
                 .withEndAction(() -> moved = hidden).start();
@@ -488,6 +538,10 @@ final class GlassScrollHide {
         hidden = false;
         byReels = false;
         fingerDown = false;
+        if (shrunk) {
+            shrunk = false;
+            shrinker.shrink(false, true);
+        }
         if (!moved) return;
         moved = false;
         bar.animate().cancel();
