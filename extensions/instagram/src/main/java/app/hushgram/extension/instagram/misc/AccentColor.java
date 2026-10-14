@@ -144,11 +144,19 @@ public final class AccentColor {
      * screen and #85a1ff or #8593ff on a dark one. The older theme, which accounts outside Prism
      * get, draws links (mentions, hashtags, bio links) in blue_8 (#00376b) on a light screen and in
      * blue_1 (#e0f1ff) on a dark one, and fills a selected pill or comment with that same pale blue.
+     *
+     * 451 adds shades of its own. indigo_0700 (#708dff) is the link on a dark screen, which code
+     * picks rather than a theme attribute. indigo_0800 (#5c77ff), indigo_0900 (#5465fe) and
+     * indigo_1100 (#4150f7) fill badges, carousel dots and strong buttons, and indigo_000, _0100,
+     * _050 and _0300 are a selected pill's pale backgrounds, held down or not.
      */
     static Role role(int color) {
         switch (color & 0xffffff) {
             case 0x0095f6:
             case 0x4a5df9:
+            case 0x5c77ff:
+            case 0x5465fe:
+            case 0x4150f7:
                 return Role.FILL;
             case 0x3b52e7:
                 return Role.PRESSED;
@@ -160,8 +168,13 @@ public final class AccentColor {
                 return Role.LINK_ON_LIGHT;
             case 0x85a1ff:
             case 0x8593ff:
+            case 0x708dff:
                 return Role.LINK_ON_DARK;
             case 0xe0f1ff:
+            case 0xeff1ff:
+            case 0xebf1ff:
+            case 0xdbdfff:
+            case 0xccddff:
                 return Role.PALE;
             default:
                 return Role.NONE;

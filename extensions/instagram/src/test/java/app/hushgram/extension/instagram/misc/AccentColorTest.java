@@ -102,6 +102,24 @@ public class AccentColorTest {
                 + AccentColor.COLOR + " 9"), HookStatus.report());
     }
 
+    /**
+     * #8 on 451: the dark screen's link (#708dff, seen on the S22's captions and mentions), the
+     * indigo fills of badges, dots and strong buttons, and a selected pill's pale backgrounds.
+     */
+    @Test
+    public void theNewerIndigoShadesTakeTheColor() {
+        Settings.ACCENT_COLOR.save(true);
+        AccentHue purple = AccentHue.PURPLE;
+        assertEquals(0xff000000 | purple.linkOnDark, AccentColor.color(0xff708dff));
+        for (int fill : new int[] {0xff5c77ff, 0xff5465fe, 0xff4150f7}) {
+            assertEquals(Integer.toHexString(fill), 0xff000000 | purple.fill, AccentColor.color(fill));
+        }
+        for (int pale : new int[] {0xffeff1ff, 0xffebf1ff, 0xffdbdfff, 0xffccddff}) {
+            assertEquals(Integer.toHexString(pale), 0xff000000 | purple.pale, AccentColor.color(pale));
+        }
+        assertEquals("a see-through link keeps its alpha", 0x99000000 | purple.linkOnDark, AccentColor.color(0x99708dff));
+    }
+
     /** No other color changes: text, backgrounds, grays and Instagram's other pale blues stay as they are. */
     @Test
     public void everyOtherColorGoesThrough() {
