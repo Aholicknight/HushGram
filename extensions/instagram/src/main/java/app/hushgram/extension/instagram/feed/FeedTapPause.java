@@ -229,14 +229,15 @@ public final class FeedTapPause {
 
     /**
      * Asked first thing in the release of the feed's tap handler class, with the handler, the post,
-     * its state and whether the press ended in a lift rather than a scroll taking it over. For the
-     * press {@link #pressed} took, a lift pauses or plays the video the way a tap does, unless the
-     * tap handler got that press too and already did. Either way the release then goes on as it was,
-     * which only resets Instagram's hold. Anything else is left alone. Never throws.
+     * its state and whether the press ended in a lift rather than a scroll taking it over (Instagram's
+     * boolean, passed as an int: 0 for a scroll). For the press {@link #pressed} took, a lift pauses
+     * or plays the video the way a tap does, unless the tap handler got that press too and already
+     * did. Either way the release then goes on as it was, which only resets Instagram's hold.
+     * Anything else is left alone. Never throws.
      */
-    public static void released(@Nullable Object handler, @Nullable Object media, @Nullable Object state, boolean lifted) {
+    public static void released(@Nullable Object handler, @Nullable Object media, @Nullable Object state, int lifted) {
         try {
-            if (state == null || !letGo(state) || !lifted) return;
+            if (state == null || !letGo(state) || lifted == 0) return;
             if (handler == null || media == null || !switchedOn()) return;
             HookStatus.bound(FamilyNames.FEED_TAP_PAUSE, RELEASE);
         } catch (Throwable failure) {

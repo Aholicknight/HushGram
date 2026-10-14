@@ -49,7 +49,7 @@ private const val PATCH = "Tap a feed video to pause it"
 internal const val FEED_TAP_PAUSE = "$EXTENSION_PACKAGE/feed/FeedTapPause;"
 internal const val FEED_TAPPED = "$FEED_TAP_PAUSE->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
 internal const val FEED_PRESSED = "$FEED_TAP_PAUSE->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
-internal const val FEED_RELEASED = "$FEED_TAP_PAUSE->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Z)V"
+internal const val FEED_RELEASED = "$FEED_TAP_PAUSE->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)V"
 
 /** The extension class holding the stubs the patch fills, apart from the hook Instagram's tap calls. */
 internal const val FEED_PLAYER_READER = "$EXTENSION_PACKAGE/feed/FeedPlayerReader;"
@@ -73,6 +73,13 @@ private const val STRING = "Ljava/lang/String;"
 private const val INTEGER = "Ljava/lang/Integer;"
 private const val BOOLEAN = "Ljava/lang/Boolean;"
 
+/**
+ * How many parameters the tap handler takes: 450's (View, Media, point, holder, state, y, int,
+ * boolean), or 451's, which adds one more object after y (on 385713073 LX/07Vc). The post and the
+ * state the hook reads keep their places, the second and the fifth.
+ */
+private val HANDLER_PARAMETERS = 8..9
+
 /** How far past its read of the playing item the controller's tap asks that item for its post. */
 private const val ITEM_READ_REACH = 8
 
@@ -91,7 +98,7 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * handler class's press entry in place of the tap handler. The patch now guards that entry and its
  * release too (see [applyFeedTapPause]).
  *
- * Instagram 450 sends every tap on a feed post through one handler, which decides between opening
+ * Instagram 450 and 451 send every tap on a feed post through one handler, which decides between opening
  * the post in the Reels viewer, showing its tags, turning its sound on and a few more. Only with
  * TalkBack on does the feed video controller it ends in pause and play the video. That pause and
  * play is a short run of the controller's own tap: ask the player whether it's playing, then call
@@ -142,7 +149,7 @@ val tapFeedVideoToPausePatch = bytecodePatch(
  *           that item shows, a carousel's page when the post is a carousel
  * @property pageField the post state's page number, and [pager] Instagram's lookup of a post's page
  * @property play the controller's play, called with [FEED_START_REASON], and [pause] its pause,
- *           called with the name [reasonName] gives [reasonKey]
+ *           called with [reasonText] on 451, or on 450 with the name [reasonName] gives [reasonKey]
  * @property mark the post state's note of whether the video was playing when it was tapped
  * @property adDetails Media's getter for a sponsored post's ad details
  * @property press the handler class's press entry, which a press held past Instagram's hold delay
@@ -167,15 +174,17 @@ internal class FeedTap(
     val pager: MethodReference,
     val play: MethodReference,
     val pause: MethodReference,
-    val reasonKey: FieldReference,
-    val reasonName: MethodReference,
+    val reasonText: String?,
+    val reasonKey: FieldReference?,
+    val reasonName: MethodReference?,
     val mark: MethodReference,
     val adDetails: MethodReference,
 )
 
 /**
  * The handler is the one instance method returning void with the parameters (View, Media, x, holder,
- * state, y, int, boolean) that loads [FEED_TAP_HANDLER_STRING]. It hands a tap on a video to one
+ * state, y, int, boolean), 451 adding one more object before the int, that loads
+ * [FEED_TAP_HANDLER_STRING] (see [HANDLER_PARAMETERS]). It hands a tap on a video to one
  * method of the feed video module, taking (Media, holder, state, a, b, int, boolean), which it gets
  * from a lazy field of its own, and that method hands it to one method of the feed video
  * controller, the class loading [FEED_CONTROLLER_STRING], taking (Media, c, holder, state, d, int,
@@ -198,8 +207,8 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
     val handlers = classesLoadingString(FEED_TAP_HANDLER_STRING).flatMap { it.methods }.filter { method ->
         val p = method.parameterTypes.map(Any::toString)
         !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.implementation != null &&
-            p.size == 8 && p[0] == VIEW && p[1] == MEDIA && p.slice(2..5).all { it.startsWith("L") } && p[6] == "I" && p[7] == "Z" &&
-            loadsString(method, FEED_TAP_HANDLER_STRING)
+            p.size in HANDLER_PARAMETERS && p[0] == VIEW && p[1] == MEDIA && p.subList(2, p.size - 2).all { it.startsWith("L") } &&
+            p[p.size - 2] == "I" && p[p.size - 1] == "Z" && loadsString(method, FEED_TAP_HANDLER_STRING)
     }
     val handler = handlers.singleOrNull()
         ?: refuse("expected one feed tap handler loading \"$FEED_TAP_HANDLER_STRING\", found ${handlers.size}")
@@ -211,7 +220,7 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
     if (handler.localRegisterCount() < HOOK_LOCALS) refuse("$where has ${handler.localRegisterCount()} local register(s), needs $HOOK_LOCALS")
 
     // A press held past the hold delay: the class's one (View, Media, point, state) entry and its one
-    // (Media, point, state, boolean) release, 06FA.A06 and 06FA.A09 on 450.
+    // (Media, point, state, boolean) release, 00G1.A06 and 00G1.A09 on 451's 385713073.
     fun instanceVoid(vararg parameters: String) = handlerClass.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.implementation != null &&
             it.parameterTypes.map(Any::toString) == parameters.toList()
@@ -320,25 +329,33 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
     val playerFields = controllerClass.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == player }
     val playerField = playerFields.singleOrNull() ?: refuse("expected $controller to hold one $player, found ${playerFields.size}")
 
-    // Pause: the controller's one instance (String), called once with the name of an Integer constant.
+    // Pause: the controller's one instance (String), called once with one reason: on 450 the name of an
+    // Integer constant, on 451 a string of its own ("tapped" on 385713073).
     val pauses = controllerClass.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(STRING)
     }
     val pause = pauses.singleOrNull() ?: refuse("expected one pause (String) in $controller, found ${pauses.size}")
     val pauseCalls = code.indices.filter { code[it].opcode == Opcode.INVOKE_VIRTUAL && code[it].methodReference()?.let { call -> pause.matches(call) } == true }
     val pauseAt = pauseCalls.singleOrNull() ?: refuse("expected $tapName to pause once, found ${pauseCalls.size}")
-    val named = writesReaching(tap, pauseAt, (code[pauseAt] as FiveRegisterInstruction).registerD).singleOrNull()
-        ?.takeIf { it > 0 && code[it].opcode == Opcode.MOVE_RESULT_OBJECT }?.let { it - 1 }
-    val reasonName = named?.let { code[it].methodReference() }
-    if (named == null || reasonName == null || code[named].opcode != Opcode.INVOKE_STATIC || reasonName.returnType != STRING ||
-        reasonName.parameterTypes.map(Any::toString) != listOf(INTEGER)
-    ) {
-        refuse("$tapName doesn't pause with the name of one of Instagram's reasons")
-    }
-    val keyed = writesReaching(tap, named, (code[named] as FiveRegisterInstruction).registerC).singleOrNull()
-    val reasonKey = keyed?.let { code[it].fieldReference() }
-    if (keyed == null || reasonKey == null || code[keyed].opcode != Opcode.SGET_OBJECT || reasonKey.type != INTEGER) {
-        refuse("$tapName doesn't name its pause reason from one constant")
+    val reasonWrite = writesReaching(tap, pauseAt, (code[pauseAt] as FiveRegisterInstruction).registerD).singleOrNull()
+    val reasonText = reasonWrite?.let { stringWrittenAt(code, it) }
+    var reasonKey: FieldReference? = null
+    var reasonName: MethodReference? = null
+    if (reasonText == null) {
+        val named = reasonWrite?.takeIf { it > 0 && code[it].opcode == Opcode.MOVE_RESULT_OBJECT }?.let { it - 1 }
+        reasonName = named?.let { code[it].methodReference() }
+        if (named == null || reasonName == null || code[named].opcode != Opcode.INVOKE_STATIC || reasonName.returnType != STRING ||
+            reasonName.parameterTypes.map(Any::toString) != listOf(INTEGER)
+        ) {
+            refuse("$tapName doesn't pause with one string or the name of one of Instagram's reasons")
+        }
+        val keyed = writesReaching(tap, named, (code[named] as FiveRegisterInstruction).registerC).singleOrNull()
+        reasonKey = keyed?.let { code[it].fieldReference() }
+        if (keyed == null || reasonKey == null || code[keyed].opcode != Opcode.SGET_OBJECT || reasonKey.type != INTEGER) {
+            refuse("$tapName doesn't name its pause reason from one constant")
+        }
+    } else if (reasonText == FEED_START_REASON) {
+        refuse("$tapName pauses with the reason it plays with, \"$FEED_START_REASON\"")
     }
 
     // The post the playing item shows, and the page of the post that was tapped.
@@ -393,8 +410,8 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
     // The stubs run in the extension, so every class they cast to and every member they name must be
     // public, and declared where they name it: one found only on a superclass counts as unreachable.
     val stateClass = classDefByOrNull(state) ?: refuse("this build has no $state")
-    val keyClass = classDefByOrNull(reasonKey.definingClass) ?: refuse("this build has no ${reasonKey.definingClass}")
-    val nameClass = classDefByOrNull(reasonName.definingClass) ?: refuse("this build has no ${reasonName.definingClass}")
+    val keyClass = reasonKey?.let { classDefByOrNull(it.definingClass) ?: refuse("this build has no ${it.definingClass}") }
+    val nameClass = reasonName?.let { classDefByOrNull(it.definingClass) ?: refuse("this build has no ${it.definingClass}") }
     val pagerClass = classDefByOrNull(pager.definingClass) ?: refuse("this build has no ${pager.definingClass}")
     val unreachable = listOfNotNull(
         handlerClass.takeUnless { it.isPublic() }?.type,
@@ -404,8 +421,8 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
         playerClass.takeUnless { it.isPublic() }?.type,
         itemClass.takeUnless { it.isPublic() }?.type,
         stateClass.takeUnless { it.isPublic() }?.type,
-        keyClass.takeUnless { it.isPublic() }?.type,
-        nameClass.takeUnless { it.isPublic() }?.type,
+        keyClass?.takeUnless { it.isPublic() }?.type,
+        nameClass?.takeUnless { it.isPublic() }?.type,
         pagerClass.takeUnless { it.isPublic() }?.type,
         "$moduleSupplier".takeUnless { handlerClass.declares(moduleSupplier) },
         "$supplierValue".takeUnless { supplierIsInterface || supplierClass.declares(supplierValue) },
@@ -418,8 +435,8 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
         "$pager".takeUnless { pagerClass.declares(pager, static = true) },
         "$controller->${play.name}".takeUnless { play.isPublicMember() },
         "$controller->${pause.name}".takeUnless { pause.isPublicMember() },
-        "$reasonKey".takeUnless { keyClass.declares(reasonKey, static = true) },
-        "$reasonName".takeUnless { nameClass.declares(reasonName, static = true) },
+        reasonKey?.let { key -> "$key".takeUnless { keyClass!!.declares(key, static = true) } },
+        reasonName?.let { name -> "$name".takeUnless { nameClass!!.declares(name, static = true) } },
         "$mark".takeUnless { stateClass.declares(mark) },
     )
     if (unreachable.isNotEmpty()) refuse("the extension can't reach ${unreachable.joinToString()}")
@@ -449,6 +466,7 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
         pager = pager,
         play = play.reference(),
         pause = pause.reference(),
+        reasonText = reasonText,
         reasonKey = reasonKey,
         reasonName = reasonName,
         mark = mark,
@@ -547,13 +565,13 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
             return-object p0
         """,
     )
+    val reason = found.reasonText?.let { "const-string p1, \"$it\"" }
+        ?: "sget-object p1, ${found.reasonKey}\ninvoke-static { p1 }, ${found.reasonName}\nmove-result-object p1"
     stub("pause").addInstructionsWithLabels(
         0,
         """
             check-cast p0, ${found.controller}
-            sget-object p1, ${found.reasonKey}
-            invoke-static { p1 }, ${found.reasonName}
-            move-result-object p1
+            $reason
             invoke-virtual { p0, p1 }, ${found.pause}
             return-object p0
         """,

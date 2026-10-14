@@ -135,7 +135,7 @@ public class FeedTapPauseTest {
     }
 
     private void lift() {
-        FeedTapPause.released(handler, media, state, true);
+        FeedTapPause.released(handler, media, state, 1);
     }
 
     /** Off to start: the tap is Instagram's, and only the call itself is counted. */
@@ -352,12 +352,12 @@ public class FeedTapPauseTest {
     public void onlyTheLiftOfATakenPressPausesOrPlays() {
         Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
         assertTrue(press());
-        FeedTapPause.released(handler, media, state, false);
+        FeedTapPause.released(handler, media, state, 0);
         lift();
         assertEquals("a scroll took it", 0, feed.pauses + feed.starts);
 
         assertTrue(press());
-        FeedTapPause.released(handler, media, new Object(), true);
+        FeedTapPause.released(handler, media, new Object(), 1);
         assertEquals("another post's lift", 0, feed.pauses + feed.starts);
         feed.page = "another post";
         assertFalse("a press on another post", press());
@@ -393,7 +393,7 @@ public class FeedTapPauseTest {
         assertFalse(FeedTapPause.pressed(null, media, state));
         assertFalse(FeedTapPause.pressed(handler, null, state));
         assertFalse(FeedTapPause.pressed(handler, media, null));
-        FeedTapPause.released(null, null, null, true);
+        FeedTapPause.released(null, null, null, 1);
         assertEquals(0, feed.pauses + feed.starts);
         assertNull(feed.marked);
         String report = report();

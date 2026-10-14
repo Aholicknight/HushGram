@@ -73,7 +73,7 @@ class TapFeedVideoToPauseHookTest {
     }
 
     /**
-     * In each of the version's seven builds the tap handler, the controller and the player are found by their strings, the
+     * In each of the version's eight builds the tap handler, the controller and the player are found by their strings, the
      * hook goes in once, first thing in the handler, reading the handler, the post and the state from their own registers,
      * and every stub is filled. The handler class's press entry and release are found by their shapes, and each gets its
      * own hook once, first thing, reading its own registers. Every other instruction of the handler's class and of the
@@ -82,7 +82,7 @@ class TapFeedVideoToPauseHookTest {
     @Test
     fun eachDeclaredBuildHoldsItsFeedTap() {
         val bundles = bundles()
-        assertEquals("seven builds of the version", 7, bundles.size)
+        assertEquals("eight builds of the version", 8, bundles.size)
         for (apk in bundles) {
             val name = name(apk)
             val parts = parts(apk)
@@ -110,14 +110,16 @@ class TapFeedVideoToPauseHookTest {
                     found.press.parameterTypes.map(Any::toString))
                 assertEquals("$what: the release", listOf(media, point, state, "Z"), found.release.parameterTypes.map(Any::toString))
                 if (apk.extension == "apks") {
-                    // The declared build's own names, 385611438.
+                    // The declared build's own names, 385713073. 451 pauses with a string of its own, no
+                    // Integer constant named.
+                    assertEquals("$what: the pause reason", "tapped", found.reasonText)
                     assertEquals(
                         "$what: the names",
-                        listOf("A05", "A06", "A09", "A0B", "A0F", "A00", "A0q", "A01", "A00", "A0B", "A03", "A0F", "A0S", "A0s", "A3C"),
+                        listOf("A05", "A06", "A09", "A0C", "A0F", "A00", "A0p", "A01", "A00", "A0B", "A03", "A0F", "A0r", "A3C"),
                         listOf(
                             found.handler.name, found.press.name, found.release.name, found.moduleSupplier.name,
                             found.controllerField.name, found.playerField.name, found.isPlaying.name, found.itemField.name,
-                            found.shown.name, found.pageField.name, found.play.name, found.pause.name, found.reasonKey.name,
+                            found.shown.name, found.pageField.name, found.play.name, found.pause.name,
                             found.mark.name, found.adDetails.name,
                         ),
                     )
@@ -141,7 +143,7 @@ class TapFeedVideoToPauseHookTest {
                     ),
                     code.take(hookLength).map { it.opcode },
                 )
-                val p0 = handler.implementation!!.registerCount - 9
+                val p0 = handler.implementation!!.registerCount - found.handler.parameterTypes.size - 1
                 assertEquals("$what: the handler, the post and the state are read from their own registers",
                     listOf(p0, p0 + 2, p0 + 5), code.take(3).map { (it as TwoRegisterInstruction).registerB })
                 assertEquals("$what: into the first three locals", listOf(0, 1, 2), code.take(3).map { (it as OneRegisterInstruction).registerA })
