@@ -131,4 +131,27 @@ public class ThreadsButtonTest {
 
         SettingsContextRule.withoutContext(() -> assertSame(buttons, ThreadsButton.buttons(buttons)));
     }
+
+    /** 451's Threads chip stays until the switch goes on, then each one asked about is left out and counted. */
+    @Test
+    public void theThreadsChipIsLeftOutWithTheSwitchOn() {
+        assertFalse(ThreadsButton.hideBanner());
+        Settings.HIDE_THREADS_BUTTON.save(true);
+        assertTrue(ThreadsButton.hideBanner());
+        assertTrue(ThreadsButton.hideBanner());
+        assertEquals(List.of(FamilyNames.THREADS_BUTTON + ": invoked 3, 0 found, 0 missing. Counted: "
+                + ThreadsButton.CHIP_LEFT_OUT + " 2"), HookStatus.report());
+    }
+
+    @Test
+    public void pausedAndUnreadyKeepTheChip() {
+        Settings.HIDE_THREADS_BUTTON.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(ThreadsButton.hideBanner());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertFalse(ThreadsButton.hideBanner()));
+    }
 }

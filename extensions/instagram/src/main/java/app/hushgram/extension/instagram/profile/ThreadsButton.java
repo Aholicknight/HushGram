@@ -29,8 +29,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * icons, told by the icon's resource name, which Instagram's build keeps. The bar then never adds
  * the button, so no gap is left where it was.
  *
- * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet, an icon
- * that can't be named or anything thrown, the list goes through as it came.
+ * <p>Instagram 451 shows Threads as a chip under the bio on most profiles instead. The method adding
+ * that chip asks {@link #hideBanner} first and skips the chip when it says so.
+ *
+ * <p>The hooks fail open: with the switch off, HushGram paused, the settings not read yet, an icon
+ * that can't be named or anything thrown, the list goes through as it came and the chip is added.
  */
 public final class ThreadsButton {
     /** The start of the resource name of each of Instagram's Threads icons. */
@@ -38,6 +41,9 @@ public final class ThreadsButton {
 
     /** What's counted for each Threads button left out. */
     static final String LEFT_OUT = "Threads button left out";
+
+    /** What's counted for each Threads chip left off a profile's header. */
+    static final String CHIP_LEFT_OUT = "Threads chip left out";
 
     /** Icon resource names already looked up, "" for an id with no resource. */
     private static final Map<Integer, String> NAMES = new ConcurrentHashMap<>();
@@ -57,6 +63,23 @@ public final class ThreadsButton {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.THREADS_BUTTON, "profile buttons", failure);
             return buttons;
+        }
+    }
+
+    /**
+     * Injected first thing in the method that adds the Threads chip to the row of chips under a
+     * profile's bio, where Instagram 451 shows the Threads link. Answers true to leave the chip out,
+     * so the other chips close up. Never throws, and answers false whenever it can't tell.
+     */
+    public static boolean hideBanner() {
+        try {
+            HookStatus.invoked(FamilyNames.THREADS_BUTTON);
+            if (!Utils.settingsReady() || !Settings.HIDE_THREADS_BUTTON.get()) return false;
+            HookStatus.counted(FamilyNames.THREADS_BUTTON, CHIP_LEFT_OUT);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.THREADS_BUTTON, "profile Threads chip", failure);
+            return false;
         }
     }
 

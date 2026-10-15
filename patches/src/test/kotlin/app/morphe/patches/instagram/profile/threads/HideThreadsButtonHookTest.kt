@@ -53,6 +53,98 @@ class HideThreadsButtonHookTest {
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$BUTTONS is not in the extension: $declared", BUTTONS.substringAfter("->") in declared)
         assertTrue("the $ICON_STUB stub is not in the extension: $declared", "$ICON_STUB(Ljava/lang/Object;)I" in declared)
+        assertTrue("$HIDE_BANNER is not in the extension: $declared", HIDE_BANNER.substringAfter("->") in declared)
+    }
+
+    /** The method adding the Threads chip asks the extension first and returns before the chip is made when told to. */
+    @Test
+    fun theThreadsChipIsSkippedWhenTheExtensionSaysSo() {
+        val context = PatchContexts.of(bannerClasses() + ExtensionDex.classDef(THREADS_BUTTON))
+        val site = context.findThreadsBanner()
+        val before = context.adder(site).code().map { it.describe() }
+
+        context.hideThreadsBanner(site)
+
+        assertEquals("the chip", chip, site.banner)
+        assertBannerHooked("the stand-in", context, site, before)
+    }
+
+    /** A chip or an adder the patch can't place fails at patch time, saying what it found. */
+    @Test
+    fun aThreadsChipThePatchCantPlaceFails() {
+        val cases = listOf(
+            bannerClasses(impression = false) to "expected one Threads chip loading \"$BANNER_TAP\" and \"$BANNER_IMPRESSION\", found 0",
+            bannerClasses(adders = 0) to "expected one method adding the Threads chip $chip to a profile's banners, found 0",
+            bannerClasses(adders = 2) to "expected one method adding the Threads chip $chip to a profile's banners, found 2",
+            bannerClasses(session = "Ljava/lang/Object;") to "expected one method adding the Threads chip $chip to a profile's banners, found 0",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes + ExtensionDex.classDef(THREADS_BUTTON))
+            val failure = assertThrows(expected, PatchException::class.java) { context.findThreadsBanner() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
+    /** In each declared build the one method adding the Threads chip under a profile's bio asks the extension first. */
+    @Test
+    fun eachDeclaredBuildAsksBeforeAddingTheThreadsChip() {
+        forEachFixture { banner(it, it.name) }
+    }
+
+    /** The same on every other build of the version. */
+    @Test
+    fun eachOtherBuildAsksBeforeAddingTheThreadsChipToo() {
+        for (base in Fixtures.otherBuilds()) banner(base, base.parentFile.name)
+    }
+
+    private fun banner(bundle: File, label: String) {
+        val loading = (FixtureDex.classesLoading(bundle, BANNER_TAP) + FixtureDex.classesLoading(bundle, BANNER_IMPRESSION)).distinctBy { it.type }
+        val candidates = loading.map { it.type }.toSet()
+        val creators = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it in candidates } }) { method ->
+            method.code().any { it.opcode == Opcode.NEW_INSTANCE && (it.reference() as? TypeReference)?.type in candidates }
+        }.map { it.definingClass }.toSet()
+        val classes = (loading + FixtureDex.classes(bundle, creators).values).distinctBy { it.type }
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, classes) + ExtensionDex.classDef(THREADS_BUTTON))
+        val site = context.findThreadsBanner()
+        val before = context.adder(site).code().map { it.describe() }
+
+        context.hideThreadsBanner(site)
+
+        assertBannerHooked(label, context, site, before)
+    }
+
+    /** The ask, its answer, the skip and Instagram's own code after it, untouched. */
+    private fun assertBannerHooked(what: String, context: BytecodePatchContext, site: ThreadsBannerSite, before: List<String>) {
+        val adder = context.adder(site)
+        val code = adder.code()
+        assertEquals("$what: the ask", HIDE_BANNER, code[0].referenceText())
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[1].opcode)
+        assertEquals("$what: the branch", Opcode.IF_EQZ, code[2].opcode)
+        assertEquals("$what: the skip", Opcode.RETURN_VOID, code[3].opcode)
+        assertEquals("$what: Instagram's code after it", before, code.drop(4).map { it.describe() })
+        assertTrue("$what: the branch goes to Instagram's first instruction", 4 in adder.jumpTargets())
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == HIDE_BANNER })
+    }
+
+    private fun BytecodePatchContext.adder(site: ThreadsBannerSite): MutableMethod =
+        mutableClassDefBy(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
+
+    private val chip = "Lfixture/ThreadsChip;"
+    private val banners = "Lfixture/Banners;"
+
+    /** A chip whose constructor loads its two events, and the static method that makes one and adds it to the list. */
+    private fun bannerClasses(adders: Int = 1, impression: Boolean = true, session: String = USER_SESSION): List<ClassDef> {
+        val events = "const-string v0, \"$BANNER_TAP\"" + if (impression) "\nconst-string v0, \"$BANNER_IMPRESSION\"" else ""
+        val init = method(chip, "<init>", emptyList(), "V", 1, body = "$events\ninvoke-direct { p0 }, Ljava/lang/Object;-><init>()V\nreturn-void")
+        val adds = (0 until adders).map { index ->
+            method(banners, "A0$index", listOf(session, "Ljava/lang/Object;", "Ljava/lang/Object;", "Ljava/util/List;"), "V", 1, static = true, body = """
+                new-instance v0, $chip
+                invoke-direct { v0 }, $chip-><init>()V
+                invoke-interface { p3, v0 }, Ljava/util/List;->add(Ljava/lang/Object;)Z
+                return-void
+            """)
+        }
+        return listOf(classDef(chip, listOf(init)), classDef(banners, adds))
     }
 
     /**

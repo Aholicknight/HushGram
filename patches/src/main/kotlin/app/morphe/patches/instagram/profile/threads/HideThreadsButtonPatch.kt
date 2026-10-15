@@ -6,12 +6,17 @@ package app.morphe.patches.instagram.profile.threads
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
+import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.misc.analytics.loadsString
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCreating
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
@@ -42,6 +47,13 @@ internal const val BAR_GROUP = "Lcom/instagram/common/ui/base/IgLinearLayout;"
 internal const val THREADS_BUTTON = "$EXTENSION_PACKAGE/profile/ThreadsButton;"
 internal const val BUTTONS = "$THREADS_BUTTON->buttons(Ljava/util/List;)Ljava/util/List;"
 internal const val ICON_STUB = "icon"
+internal const val HIDE_BANNER = "$THREADS_BUTTON->hideBanner()Z"
+
+/** The events only the Threads chip under a profile's bio logs, loaded by its constructor. */
+internal const val BANNER_TAP = "tap_threads_banner"
+internal const val BANNER_IMPRESSION = "impression_threads_banner"
+internal const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
+private const val ADD = "Ljava/util/List;->add(Ljava/lang/Object;)Z"
 
 private const val LIST = "Ljava/util/List;"
 private const val OBJECT = "Ljava/lang/Object;"
@@ -53,7 +65,9 @@ private const val ITERATOR = "Ljava/util/List;->iterator()Ljava/util/Iterator;"
  * switch initially off, so leaving the button out remains the user's pick.
  *
  * Only the list the bar builds its buttons from changes. The menu, the bell and the other buttons
- * are built as before, and the Threads profile is still a tap away in the menu.
+ * are built as before, and the Threads profile is still a tap away in the menu. Instagram 451 shows
+ * Threads as a chip under the bio instead on most profiles, so the method adding that chip asks the
+ * extension first too, and the other chips stay.
  */
 @Suppress("unused")
 val hideThreadsButtonPatch = bytecodePatch(
@@ -68,7 +82,10 @@ val hideThreadsButtonPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("threadsButton")
-        hideThreadsButton(findThreadsButton())
+        val button = findThreadsButton()
+        val banner = findThreadsBanner()
+        hideThreadsButton(button)
+        hideThreadsBanner(banner)
         enableStatus("threadsButton")
     }
 }
@@ -188,6 +205,59 @@ internal fun BytecodePatchContext.hideThreadsButton(site: ThreadsButtonSite) {
             invoke-static/range { v${site.register} .. v${site.register} }, $BUTTONS
             move-result-object v${site.register}
         """,
+    )
+}
+
+/** Where the Threads chip is added: the static [name] of [type], taking [parameters]. */
+internal class ThreadsBannerSite(val type: String, val name: String, val parameters: List<String>, val banner: String)
+
+/**
+ * Finds the one place a profile's header adds its Threads chip, failing before anything changes
+ * when any of it isn't there exactly once. Instagram 451 moved the Threads link from the top bar to
+ * a chip in the header's row of banners, under the bio. The chip is the class whose constructor
+ * loads both [BANNER_TAP] and [BANNER_IMPRESSION], and it's added to the row's list by one static
+ * method taking the session first and the list last, which creates the chip and adds it. Both the
+ * View and the Compose headers build from that list.
+ */
+internal fun BytecodePatchContext.findThreadsBanner(): ThreadsBannerSite {
+    val banners = classesLoadingString(BANNER_TAP).filter { candidate ->
+        candidate.methods.any { it.name == "<init>" && loadsString(it, BANNER_TAP) && loadsString(it, BANNER_IMPRESSION) }
+    }
+    val banner = banners.singleOrNull()?.type
+        ?: refuse("expected one Threads chip loading \"$BANNER_TAP\" and \"$BANNER_IMPRESSION\", found ${banners.size}")
+    val adders = classesCreating(banner).flatMap { owner -> owner.methods.map { owner to it } }.filter { (_, method) ->
+        val takes = method.parameters()
+        val code = method.code()
+        val created = code.indexOfFirst { it.opcode == Opcode.NEW_INSTANCE && (it.reference() as? TypeReference)?.type == banner }
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && takes.size == 4 &&
+            takes.first() == USER_SESSION && takes.last() == LIST &&
+            created >= 0 && code.drop(created).any { it.call()?.toString() == ADD }
+    }
+    val (owner, adder) = adders.singleOrNull()
+        ?: refuse("expected one method adding the Threads chip $banner to a profile's banners, found ${adders.size}")
+    val registers = adder.implementation?.registerCount ?: refuse("${owner.type}->${adder.name} has no code")
+    if (registers - adder.parameters().size < 1) refuse("${owner.type}->${adder.name} has no local for the hook")
+    return ThreadsBannerSite(owner.type, adder.name, adder.parameters(), banner)
+}
+
+/**
+ * Asks [HIDE_BANNER] first thing in the method adding the Threads chip, and returns before the chip
+ * is made when it says so. The other chips close up, and a profile whose only chip was Threads gets
+ * Instagram's own header with no banners. Only called once [findThreadsBanner] found everything.
+ */
+internal fun BytecodePatchContext.hideThreadsBanner(site: ThreadsBannerSite) {
+    val adder = mutableClassDefBy(site.type).methods.single {
+        it.name == site.name && it.parameters() == site.parameters && it.returnType == "V"
+    }
+    adder.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { }, $HIDE_BANNER
+            move-result v0
+            if-eqz v0, :add
+            return-void
+        """,
+        ExternalLabel("add", adder.getInstruction(0)),
     )
 }
 
