@@ -514,6 +514,44 @@ public class FriendshipChipTest {
     }
 
     /**
+     * #157: Instagram hides the name of a profile with no name, and the label alone in the slot
+     * beside it ran into the counts. The name comes back empty so the label keeps the name's line;
+     * a named profile's name, and a nameless one's while the chip shows, are left as they are.
+     */
+    @Test
+    public void aNamelessProfileKeepsTheNamesLineForTheLabel() {
+        TextView name = (TextView) ((LinearLayout) pronouns.getParent()).getChildAt(0);
+        name.setId(View.generateViewId());
+        FriendshipStatus.fullNameIdForTests = name.getId();
+        try {
+            name.setVisibility(View.GONE);
+            pronouns.setVisibility(View.GONE);
+            FriendshipStatus.inPlaceOfPronouns(pronouns, new Profile(false, null));
+            assertEquals("the chip shows, so the name stays hidden", View.GONE, name.getVisibility());
+
+            Settings.FRIENDSHIP_STATUS_CHIP.save(false);
+            name.setText("Someone else");
+            FriendshipStatus.inPlaceOfPronouns(pronouns, new Profile(false, null));
+            assertEquals("Doesn't follow you", pronouns.getText().toString());
+            assertEquals(View.VISIBLE, pronouns.getVisibility());
+            assertEquals("the name's line is back", View.VISIBLE, name.getVisibility());
+            assertEquals("with nothing in it", "", name.getText().toString());
+            assertTrue(String.join("\n", HookStatus.report()).contains(FriendshipStatus.NAME_LINE + " 1"));
+
+            name.setText("Named");
+            FriendshipStatus.inPlaceOfPronouns(pronouns, new Profile(true, null));
+            assertEquals("a name showing is left alone", "Named", name.getText().toString());
+
+            Settings.SHOW_FRIENDSHIP_STATUS.save(false);
+            name.setVisibility(View.GONE);
+            FriendshipStatus.inPlaceOfPronouns(pronouns, new Profile(false, null));
+            assertEquals("switched off, it's as Instagram left it", View.GONE, name.getVisibility());
+        } finally {
+            FriendshipStatus.fullNameIdForTests = 0;
+        }
+    }
+
+    /**
      * The map of chips is weak on the counts block, so its value mustn't hold the block, or any
      * view or context that leads back to it, strongly: the entry would keep the header and the
      * Activity alive, and anyShown() true, for as long as the app runs. Neither the chip nor its

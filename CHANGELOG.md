@@ -13,6 +13,7 @@ Every HushGram release, newest first.
 * **Instagram - Download any reel:** The Download button beside a reel now uses Instagram's own icon made for that column, the one Save's is drawn from, so it's the same size and line weight as the buttons above it instead of bigger and bolder. Reported in #198.
 * **Instagram - Glass tab bar:** Opening a chat with the floating glass bar on left its message box too low, so the keyboard covered half of it, and on phones with navigation buttons it sat behind them. Chats keep the right space at the bottom again, and leaving one no longer leaves a black strip under the pill in your messages. Reported in #196.
 * **Instagram - Full screen Reels and Home:** Opening Instagram straight onto Reels with full screen on could keep a black strip at the top and another at the bottom until you switched tabs. Screens built before the bars went away now get the new room too, so Reels fills the screen from the start. Reported in #200.
+* **Instagram - Show if a profile follows you:** On a profile with no name, the Follows you or Doesn't follow you label sat on top of the post and follower counts. It takes the line where the name would be now. Reported in #157.
 
 ## 0.0.11 (2026-10-15)
 
