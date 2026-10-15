@@ -548,7 +548,12 @@ tasks.register("verifyAndroidBoundaries") {
                 "aPressTheTapHandlerAlsoGetsPausesOnce[28]", "aPressTheTapHandlerAlsoGetsPausesOnce[37]",
                 "onlyTheLiftOfATakenPressPausesOrPlays[28]", "onlyTheLiftOfATakenPressPausesOrPlays[37]",
                 "aPressThatIsNotTheirsIsInstagrams[28]", "aPressThatIsNotTheirsIsInstagrams[37]",
-                "aFailureInAPressLeavesItToInstagram[28]", "aFailureInAPressLeavesItToInstagram[37]"),
+                "aFailureInAPressLeavesItToInstagram[28]", "aFailureInAPressLeavesItToInstagram[37]",
+                "aTapThatReachesTheReelsLauncherPausesAndPlays[28]", "aTapThatReachesTheReelsLauncherPausesAndPlays[37]",
+                "otherOpeningsGoToReels[28]", "otherOpeningsGoToReels[37]",
+                "aLauncherTapThatIsNotTheirsOpensReels[28]", "aLauncherTapThatIsNotTheirsOpensReels[37]",
+                "aHeldPressThatReachesTheLauncherPausesOnce[28]", "aHeldPressThatReachesTheLauncherPausesOnce[37]",
+                "aFailureAtTheLauncherOpensReels[28]", "aFailureAtTheLauncherOpensReels[37]"),
             "app.hushgram.extension.instagram.settings.FeedTapPauseSettingsTest" to listOf(
                 "theSwitchIsUnderFeedBetweenFeedSoundAndTheZoomAndStartsOff[28]", "theSwitchIsUnderFeedBetweenFeedSoundAndTheZoomAndStartsOff[37]",
                 "theSwitchAloneStillMakesTheFeedSection[28]", "theSwitchAloneStillMakesTheFeedSection[37]",

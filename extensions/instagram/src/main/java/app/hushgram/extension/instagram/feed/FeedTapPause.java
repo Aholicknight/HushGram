@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.feed;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.function.Function;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -41,6 +42,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * tap as well, {@link #tapped} pauses or plays it and lets go of the state, so the lift doesn't do
  * it twice. A press a scroll takes over ends without a lift and leaves the video as it was.
  *
+ * <p>On Instagram 451 a tap can open Reels without reaching that handler: with an accessibility
+ * service connected, Instagram puts a click listener on the video that skips the gesture detector,
+ * and the video's overlays open Reels on their own. All of them end in the feed's one Reels launcher,
+ * which asks {@link #opening} first thing with where it was asked from. A tap on a video (Instagram's
+ * {@code VIDEO_TAP}) on the playing post pauses or plays it under the same checks, and a yes ends the
+ * launcher there. Every other opening goes on to Reels. Each opening with the switch on is counted
+ * under its entry point's name, so one report says which way a phone's taps come.
+ *
  * <p>Everything else is left to Instagram: a sponsored post, a photo, a carousel on a photo, a video
  * the controller doesn't have playing, a feed with no video controller. So is every tap or press while
  * the switch is off, HushGram is paused or the settings aren't ready, and any one this throws on
@@ -69,10 +78,17 @@ public final class FeedTapPause {
     static final String PRESS_TAKEN = "held presses taken as taps";
     static final String PRESS_LEFT = "held presses left to Instagram";
 
+    /** What {@link HookStatus} counts for each Reels opening with the switch on, followed by its entry point's name. */
+    static final String OPENED_FROM = "Reels openings from ";
+
+    /** The entry point of a tap on a feed video, the one opening {@link #opening} pauses or plays in place of. */
+    static final String VIDEO_TAP = "VIDEO_TAP";
+
     /** The hooks' names in a failure report. */
     static final String TAP = "feed tap";
     static final String PRESS = "feed press";
     static final String RELEASE = "feed press lift";
+    static final String OPEN = "feed Reels opening";
 
     /** What {@link FeedPlayerReader}'s stubs return until the patch fills them in. */
     static final Object NOT_PATCHED = new Object();
@@ -82,6 +98,10 @@ public final class FeedTapPause {
         /** The feed video controller behind the tap [handler], or null. */
         @Nullable
         Object controllerOf(Object handler);
+
+        /** The same controller, behind the feed's Reels [launcher], or null. */
+        @Nullable
+        Object controllerOfLauncher(Object launcher);
 
         /** The post the controller's playing item shows, or null while nothing is playing. */
         @Nullable
@@ -120,6 +140,10 @@ public final class FeedTapPause {
     private static final class Patched implements Videos {
         @Override public Object controllerOf(Object handler) {
             return FeedPlayerReader.controllerOf(handler);
+        }
+
+        @Override public Object controllerOfLauncher(Object launcher) {
+            return FeedPlayerReader.controllerOfLauncher(launcher);
         }
 
         @Override public Object shownOf(Object controller) {
@@ -198,7 +222,7 @@ public final class FeedTapPause {
             HookStatus.threw(FamilyNames.FEED_TAP_PAUSE, TAP, failure);
             return false;
         }
-        return toggle(handler, media, state, TAP);
+        return toggle(feed -> feed.controllerOf(handler), media, state, TAP);
     }
 
     /**
@@ -215,7 +239,8 @@ public final class FeedTapPause {
             if (handler == null || media == null || state == null) return false;
             if (!switchedOn()) return false;
             HookStatus.bound(FamilyNames.FEED_TAP_PAUSE, PRESS);
-            if (target(videos, handler, media, state, true) == null) return false;
+            Videos feed = videos;
+            if (target(feed, feed.controllerOf(handler), media, state, true) == null) return false;
             held = new WeakReference<>(state);
             HookStatus.counted(FamilyNames.FEED_TAP_PAUSE, PRESS_TAKEN);
             Logger.printDebug(() -> "Feed video: took a held press, its lift pauses or plays it");
@@ -244,27 +269,53 @@ public final class FeedTapPause {
             HookStatus.threw(FamilyNames.FEED_TAP_PAUSE, RELEASE, failure);
             return;
         }
-        toggle(handler, media, state, RELEASE);
+        toggle(feed -> feed.controllerOf(handler), media, state, RELEASE);
     }
 
     /**
-     * Pauses the video the controller has playing when [media] is that post, or plays it when it's
-     * paused, and tells the post's [state] which it was. True when it did. False leaves the gesture to
-     * Instagram, counted under the check it failed. A failure after the pause or the play still
-     * answers true, under the [hook]'s name in the report. Never throws.
+     * Asked first thing in the feed's Reels launcher, which every way into Reels from a feed post ends
+     * in, with the launcher, where it was asked from (an enum of Instagram's), the post and its state.
+     * True means a tap on the playing video paused or played it and the launcher is done. False lets
+     * Reels open: the switch is off, HushGram is paused, the settings aren't ready, the opening isn't a
+     * tap on a video ({@link #VIDEO_TAP}), or the tap fails a check {@link #tapped} makes. A tap that
+     * ends a held press {@link #pressed} took is that press's own, so its lift does nothing more. Not
+     * counted as invoked, like the press. Never throws.
      */
-    private static boolean toggle(Object handler, Object media, Object state, String hook) {
+    public static boolean opening(@Nullable Object launcher, @Nullable Object entryPoint, @Nullable Object media,
+                                  @Nullable Object state) {
+        try {
+            if (launcher == null || media == null || state == null) return false;
+            if (!switchedOn()) return false;
+            HookStatus.bound(FamilyNames.FEED_TAP_PAUSE, OPEN);
+            String from = entryPoint instanceof Enum ? ((Enum<?>) entryPoint).name() : String.valueOf(entryPoint);
+            HookStatus.counted(FamilyNames.FEED_TAP_PAUSE, OPENED_FROM + from);
+            if (!VIDEO_TAP.equals(from)) return false;
+            letGo(state);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_TAP_PAUSE, OPEN, failure);
+            return false;
+        }
+        return toggle(feed -> feed.controllerOfLauncher(launcher), media, state, OPEN);
+    }
+
+    /**
+     * Pauses the video the controller [reach] finds has playing when [media] is that post, or plays it
+     * when it's paused, and tells the post's [state] which it was. True when it did. False leaves the
+     * gesture to Instagram, counted under the check it failed. A failure after the pause or the play
+     * still answers true, under the [hook]'s name in the report. Never throws.
+     */
+    private static boolean toggle(Function<Videos, Object> reach, Object media, Object state, String hook) {
         boolean handled = false;
         try {
             Videos feed = videos;
-            Target target = target(feed, handler, media, state, false);
+            Target target = target(feed, reach.apply(feed), media, state, false);
             if (target == null) return false;
             boolean wasPlaying = target.wasPlaying;
             Object done = wasPlaying ? feed.pause(target.controller) : feed.start(target.controller);
             if (unfilled(done, wasPlaying ? "the controller's pause" : "the controller's play")) return false;
             handled = true;
             HookStatus.counted(FamilyNames.FEED_TAP_PAUSE, wasPlaying ? PAUSED : PLAYED);
-            String gesture = TAP.equals(hook) ? "a tap" : "a held press";
+            String gesture = TAP.equals(hook) ? "a tap" : OPEN.equals(hook) ? "a tap opening Reels" : "a held press";
             Logger.printDebug(() -> "Feed video: " + gesture + (wasPlaying ? " paused it" : " played it"));
             unfilled(feed.mark(state, wasPlaying), "the post state's note");
             return true;
@@ -275,14 +326,13 @@ public final class FeedTapPause {
     }
 
     /**
-     * The controller to pause or play [media] through, and whether its player is playing, when [media]
+     * The [controller] to pause or play [media] through, and whether its player is playing, when [media]
      * is the post the controller has playing, isn't sponsored, and the player says. Null otherwise,
      * counted under the check it failed ({@link #PRESS_LEFT} for a [press]), or reported as the
      * member the build is missing.
      */
     @Nullable
-    private static Target target(Videos feed, Object handler, Object media, Object state, boolean press) {
-        Object controller = feed.controllerOf(handler);
+    private static Target target(Videos feed, @Nullable Object controller, Object media, Object state, boolean press) {
         if (unfilled(controller, "the feed video controller")) return null;
         if (controller == null) return left(LEFT_NO_CONTROLLER, press);
         Object shown = feed.shownOf(controller);

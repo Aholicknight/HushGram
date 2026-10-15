@@ -10,15 +10,15 @@ import androidx.annotation.Nullable;
  * Reaches the feed's video controller and its player for {@link FeedTapPause}.
  *
  * <p>Every method here is a stub the "Tap a feed video to pause it" patch fills in with the build's
- * own fields and calls: the feed tap handler's lazy field for the feed video module, the module's
- * controller, the controller's player and the item it has playing, and the controller's own pause
- * and play. A stub works in its own parameters, since the build compiles its {@code return} into
+ * own fields and calls: the feed tap handler's and the Reels launcher's lazy fields for the feed video
+ * module, the module's controller, the controller's player and the item it has playing, and the
+ * controller's own pause and play. A stub works in its own parameters, since the build compiles its {@code return} into
  * its parameter's register and leaves it no local to lend, which is why the pause and the play take
  * spare ones.
  *
  * <p>The stubs live here and not in {@link FeedTapPause}, which Instagram's tap handler calls on
  * every tap: a stub the phone's verifier refused would take the whole class down with it. Only
- * {@link FeedTapPause#tapped} reaches this class, inside its try.
+ * {@link FeedTapPause}'s hooks reach this class, inside their tries.
  */
 final class FeedPlayerReader {
     private FeedPlayerReader() { }
@@ -26,6 +26,12 @@ final class FeedPlayerReader {
     /** Filled in by the patch: the feed video controller the tap handler's module holds, or null. */
     @Nullable
     static Object controllerOf(Object handler) {
+        return FeedTapPause.NOT_PATCHED;
+    }
+
+    /** Filled in by the patch: the same controller, reached from the feed's Reels launcher, or null. */
+    @Nullable
+    static Object controllerOfLauncher(Object launcher) {
         return FeedTapPause.NOT_PATCHED;
     }
 

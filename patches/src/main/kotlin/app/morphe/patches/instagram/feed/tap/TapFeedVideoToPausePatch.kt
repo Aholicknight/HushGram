@@ -26,6 +26,7 @@ import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.reels.cleanup.CLIPS_VIEWER_SOURCE
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -38,6 +39,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -50,18 +52,26 @@ internal const val FEED_TAP_PAUSE = "$EXTENSION_PACKAGE/feed/FeedTapPause;"
 internal const val FEED_TAPPED = "$FEED_TAP_PAUSE->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
 internal const val FEED_PRESSED = "$FEED_TAP_PAUSE->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
 internal const val FEED_RELEASED = "$FEED_TAP_PAUSE->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)V"
+internal const val FEED_OPENING = "$FEED_TAP_PAUSE->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
 
 /** The extension class holding the stubs the patch fills, apart from the hook Instagram's tap calls. */
 internal const val FEED_PLAYER_READER = "$EXTENSION_PACKAGE/feed/FeedPlayerReader;"
 
 /** The reader's stubs the patch fills in, each (name, parameter count). */
 internal val FEED_PLAYER_STUBS = listOf(
-    "controllerOf" to 1, "shownOf" to 1, "pageOf" to 2, "adDetailsOf" to 1, "playerOf" to 1,
+    "controllerOf" to 1, "controllerOfLauncher" to 1, "shownOf" to 1, "pageOf" to 2, "adDetailsOf" to 1, "playerOf" to 1,
     "playing" to 1, "pause" to 2, "start" to 4, "mark" to 2,
 )
 
 /** A string only the feed's tap handler loads, for the soft error it logs when a tap has nowhere to go. */
 internal const val FEED_TAP_HANDLER_STRING = "FeedMediaTapHandlerV2-softError"
+
+/** A string the feed's Reels launcher loads, the argument naming the profile a profile's feed belongs to. */
+internal const val REELS_LAUNCHER_STRING = "ContextualFeedFragment.ARGUMENT_HOST_PROFILE_USER_ID"
+
+/** Two names of the enum saying where the Reels launcher was asked from: a tap on a feed video, and a preview. */
+internal const val VIDEO_TAP = "VIDEO_TAP"
+internal const val FEED_PREVIEW = "FEED_PREVIEW"
 
 /** The reason the feed video controller plays a video with when a tap asks for it. */
 internal const val FEED_START_REASON = "start"
@@ -72,6 +82,8 @@ private const val OBJECT = "Ljava/lang/Object;"
 private const val STRING = "Ljava/lang/String;"
 private const val INTEGER = "Ljava/lang/Integer;"
 private const val BOOLEAN = "Ljava/lang/Boolean;"
+private const val LIST = "Ljava/util/List;"
+private const val ENUM = "Ljava/lang/Enum;"
 
 /**
  * How many parameters the tap handler takes: 450's (View, Media, point, holder, state, y, int,
@@ -118,6 +130,13 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * press on the playing video under the same checks, so the press entry returns, and its lift then
  * pauses or plays the video like a tap.
  *
+ * On 451 a tap can reach Reels without the handler too: a phone run on 385713073 with the switch on
+ * opened Reels and never asked. With an accessibility service connected Instagram adds a click listener to the video
+ * that skips the gesture detector, and the video's overlays open Reels on their own. Every one of those
+ * ends in the feed's one Reels launcher, so the patch asks the extension first thing there as well, with
+ * where the launcher was asked from. A tap on the playing video (Instagram's VIDEO_TAP) pauses or plays
+ * it under the same checks and the launcher returns; every other opening goes on to Reels.
+ *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
  */
@@ -154,11 +173,17 @@ val tapFeedVideoToPausePatch = bytecodePatch(
  * @property adDetails Media's getter for a sponsored post's ad details
  * @property press the handler class's press entry, which a press held past Instagram's hold delay
  *           reaches in place of [handler], and [release] the class's end of that press
+ * @property launcher the feed's Reels launcher, which every way into Reels from a feed post ends in,
+ *           and [launcherSupplier] its lazy field handing over the module, read through [launcherValue]
  */
 internal class FeedTap(
     val handler: Method,
     val press: Method,
     val release: Method,
+    val launcher: Method,
+    val launcherSupplier: FieldReference,
+    val launcherValue: MethodReference,
+    val launcherIsInterface: Boolean,
     val moduleSupplier: FieldReference,
     val supplierValue: MethodReference,
     val supplierIsInterface: Boolean,
@@ -278,6 +303,12 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
     val controllerFields = moduleClass.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == controller }
     val controllerField = controllerFields.singleOrNull()
         ?: refuse("expected $module to hold one $controller, found ${controllerFields.size}")
+    val launcher = findReelsLauncher(state, module)
+    val launcherClass = classDefBy(launcher.method.definingClass)
+    val launcherSupplierClass = classDefByOrNull(launcher.supplier.type) ?: refuse("this build has no ${launcher.supplier.type}")
+    if (AccessFlags.INTERFACE.isSet(launcherSupplierClass.accessFlags) != launcher.isInterface) {
+        refuse("${launcher.method.definingClass}->${launcher.method.name} asks ${launcher.supplier.type} for its value the wrong way for what it is")
+    }
 
     // The controller's own tap, which the module's tap hands over to.
     val moduleMethod = moduleClass.methods.singleOrNull { it.matches(moduleTap) && it.implementation != null }
@@ -426,6 +457,10 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
         pagerClass.takeUnless { it.isPublic() }?.type,
         "$moduleSupplier".takeUnless { handlerClass.declares(moduleSupplier) },
         "$supplierValue".takeUnless { supplierIsInterface || supplierClass.declares(supplierValue) },
+        launcherClass.takeUnless { it.isPublic() }?.type,
+        launcherSupplierClass.takeUnless { it.isPublic() }?.type,
+        "${launcher.supplier}".takeUnless { launcherClass.declares(launcher.supplier) },
+        "${launcher.value}".takeUnless { launcher.isInterface || launcherSupplierClass.declares(launcher.value) },
         "$module->${controllerField.name}".takeUnless { controllerField.isPublicMember() },
         "$controller->${playerField.name}".takeUnless { playerField.isPublicMember() },
         "$isPlaying".takeUnless { playerClass.declares(isPlaying) },
@@ -451,6 +486,10 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
         handler = handler,
         press = press,
         release = release,
+        launcher = launcher.method,
+        launcherSupplier = launcher.supplier,
+        launcherValue = launcher.value,
+        launcherIsInterface = launcher.isInterface,
         moduleSupplier = moduleSupplier,
         supplierValue = supplierValue,
         supplierIsInterface = supplierIsInterface,
@@ -474,10 +513,89 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
     )
 }
 
+/** The feed's Reels launcher and its lazy field handing over the feed video module, read through [value]. */
+internal class ReelsLauncher(val method: Method, val supplier: FieldReference, val value: MethodReference, val isInterface: Boolean)
+
+/**
+ * The feed's Reels launcher (00R0.A00 on 451's 385713073), the one way into the Reels viewer from a feed
+ * post: the one instance void method of a class loading [REELS_LAUNCHER_STRING] that takes (View, entry
+ * point, a, b, Media, [state], List, boolean, boolean) and asks a static method for the viewer's source,
+ * the entry point being the enum naming [VIDEO_TAP] and [FEED_PREVIEW]. It reads [module], the one the
+ * tap handler hands a tap to, from a lazy field of its own, which is how the extension reaches the
+ * controller from there.
+ */
+private fun BytecodePatchContext.findReelsLauncher(state: String, module: String): ReelsLauncher {
+    val launchers = classesLoadingString(REELS_LAUNCHER_STRING).flatMap { it.methods }.filter { method ->
+        val p = method.parameterTypes.map(Any::toString)
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.implementation != null &&
+            p.size == 9 && p[0] == VIEW && p[4] == MEDIA && p[5] == state && p[6] == LIST && p[7] == "Z" && p[8] == "Z" &&
+            isEntryPoint(p[1]) && loadsString(method, REELS_LAUNCHER_STRING) &&
+            method.code().any { it.opcode == Opcode.INVOKE_STATIC && it.methodReference()?.returnType == CLIPS_VIEWER_SOURCE }
+    }
+    val launcher = launchers.singleOrNull() ?: refuse(
+        "expected one Reels launcher taking ($VIEW, the entry point naming $VIDEO_TAP, ..., $MEDIA, $state, $LIST, boolean, boolean), " +
+            "found ${launchers.size}",
+    )
+    val where = "${launcher.definingClass}->${launcher.name}"
+    if (launcher.localRegisterCount() < LAUNCHER_LOCALS) refuse("$where has ${launcher.localRegisterCount()} local register(s), needs $LAUNCHER_LOCALS")
+
+    // Its way to the module: a lazy field of its own, asked for its value and cast to the module, with
+    // moves in between on 451.
+    val code = launcher.code()
+    val suppliers = code.indices.mapNotNull { at ->
+        val asked = code[at]
+        val value = asked.methodReference() ?: return@mapNotNull null
+        val result = code.getOrNull(at + 1) ?: return@mapNotNull null
+        val cast = code.getOrNull(at + 2) ?: return@mapNotNull null
+        if (asked.opcode !in ASKS || value.name != "getValue" || value.parameterTypes.isNotEmpty() || value.returnType != OBJECT ||
+            result.opcode != Opcode.MOVE_RESULT_OBJECT || cast.opcode != Opcode.CHECK_CAST ||
+            ((cast as ReferenceInstruction).reference as TypeReference).type != module ||
+            (cast as OneRegisterInstruction).registerA != (result as OneRegisterInstruction).registerA
+        ) {
+            return@mapNotNull null
+        }
+        val receiver = (asked as? FiveRegisterInstruction)?.registerC ?: (asked as RegisterRangeInstruction).startRegister
+        val field = fieldReadInto(launcher, code, at, receiver) ?: return@mapNotNull null
+        if (field.definingClass != launcher.definingClass || field.type != value.definingClass) return@mapNotNull null
+        Triple(field, value, asked.opcode == Opcode.INVOKE_INTERFACE || asked.opcode == Opcode.INVOKE_INTERFACE_RANGE)
+    }.distinctBy { (field, value, _) -> "$field $value" }
+    val (supplier, value, isInterface) = suppliers.singleOrNull()
+        ?: refuse("expected one lazy field of ${launcher.definingClass} handing over $module, found ${suppliers.size}")
+    return ReelsLauncher(launcher, supplier, value, isInterface)
+}
+
+/** Whether [type] is the enum saying where the Reels launcher was asked from, the one naming [VIDEO_TAP] and [FEED_PREVIEW]. */
+private fun BytecodePatchContext.isEntryPoint(type: String): Boolean {
+    val entryPoints = classDefByOrNull(type) ?: return false
+    if (entryPoints.superclass != ENUM) return false
+    val names = entryPoints.methods.singleOrNull { it.name == "<clinit>" } ?: return false
+    return loadsString(names, VIDEO_TAP) && loadsString(names, FEED_PREVIEW)
+}
+
+/** The field an iget-object read into [register] for the instruction at [at], through up to a few moves, or null. */
+private fun fieldReadInto(method: Method, code: List<Instruction>, at: Int, register: Int): FieldReference? {
+    var from = at
+    var into = register
+    repeat(MOVES_FOLLOWED) {
+        val write = writesReaching(method, from, into).singleOrNull() ?: return null
+        val written = code[write]
+        if (written.opcode == Opcode.IGET_OBJECT) return written.fieldReference()
+        if (written.opcode !in OBJECT_MOVES) return null
+        into = (written as TwoRegisterInstruction).registerB
+        from = write
+    }
+    return null
+}
+
+private val ASKS = setOf(Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE)
+private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+private const val MOVES_FOLLOWED = 4
+
 /** The locals each hook borrows first thing in its method, where none holds anything yet. */
 private const val HOOK_LOCALS = 3
 private const val PRESS_LOCALS = 3
 private const val RELEASE_LOCALS = 4
+private const val LAUNCHER_LOCALS = 4
 
 /**
  * Fills the reader's stubs, then asks [FEED_TAPPED] first thing in the handler with the handler, the
@@ -490,6 +608,10 @@ private const val RELEASE_LOCALS = 4
  * whether the press ended in a lift, and then goes on: the lift of a press the extension took pauses
  * or plays the video, and the release only resets Instagram's hold, which a press entry that
  * returned never set.
+ *
+ * The Reels launcher asks [FEED_OPENING] first thing with the launcher, where it was asked from, the
+ * post and the state, and returns on a yes, so a tap that came another way pauses or plays the video
+ * in place of opening Reels.
  *
  * Each stub works in its own parameters: the build compiles a stub's `return NOT_PATCHED` into its
  * parameter's register, so it has no local to lend. The pause and the play take spare parameters
@@ -508,6 +630,22 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
             check-cast p0, ${found.handler.definingClass}
             iget-object p0, p0, ${found.moduleSupplier}
             $ask { p0 }, ${found.supplierValue}
+            move-result-object p0
+            if-eqz p0, :none
+            check-cast p0, ${found.module}
+            iget-object p0, p0, ${found.controllerField}
+            :none
+            return-object p0
+        """,
+    )
+    // The same controller, reached from the Reels launcher's own lazy field for the module.
+    val launcherAsk = if (found.launcherIsInterface) "invoke-interface" else "invoke-virtual"
+    stub("controllerOfLauncher").addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${found.launcher.definingClass}
+            iget-object p0, p0, ${found.launcherSupplier}
+            $launcherAsk { p0 }, ${found.launcherValue}
             move-result-object p0
             if-eqz p0, :none
             check-cast p0, ${found.module}
@@ -642,6 +780,24 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
             invoke-static { v0, v1, v2, v3 }, $FEED_RELEASED
         """,
     )
+    // The launcher is (View, entry point, a, b, Media, state, List, boolean, boolean): the entry point is
+    // p2, the post p5 and the state p6.
+    mutable(found.launcher).apply {
+        addInstructionsWithLabels(
+            0,
+            """
+                move-object/from16 v0, p0
+                move-object/from16 v1, p2
+                move-object/from16 v2, p5
+                move-object/from16 v3, p6
+                invoke-static { v0, v1, v2, v3 }, $FEED_OPENING
+                move-result v0
+                if-eqz v0, :stock
+                return-void
+            """,
+            ExternalLabel("stock", getInstruction(0)),
+        )
+    }
 }
 
 /** The string the instruction at [at] writes: a const-string's, or a static pool's answer moved out right there. */

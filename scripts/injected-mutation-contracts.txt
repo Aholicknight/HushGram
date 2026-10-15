@@ -1900,3 +1900,11 @@ start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->pressed(Ljava/l
 once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;)V class-holding FeedMediaTapHandlerV2-softError
 start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)V in instance (Lcom/instagram/feed/media/Media;L*;L*;Z)V class-holding FeedMediaTapHandlerV2-softError
 once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)V in instance (Lcom/instagram/feed/media/Media;L*;L*;Z)V class-holding FeedMediaTapHandlerV2-softError
+# On 451 a tap can reach Reels without the handler (an accessibility click, the video's overlays), and
+# every way in ends in the feed's one Reels launcher, the instance (View, entry point, two objects,
+# Media, state, List, boolean, boolean) void method holding the contextual feed's profile argument
+# (00R0.A00 on 451's 385713073). It asks FeedTapPause.opening first thing and returns on a yes. Left
+# out, such a tap still opens Reels with the switch on; later or twice, it isn't the guard the patch
+# wrote. The reader's controllerOfLauncher reaches the controller from the launcher's lazy field.
+start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;L*;L*;L*;Lcom/instagram/feed/media/Media;L*;Ljava/util/List;ZZ)V holding ContextualFeedFragment.ARGUMENT_HOST_PROFILE_USER_ID
+once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;L*;L*;L*;Lcom/instagram/feed/media/Media;L*;Ljava/util/List;ZZ)V holding ContextualFeedFragment.ARGUMENT_HOST_PROFILE_USER_ID

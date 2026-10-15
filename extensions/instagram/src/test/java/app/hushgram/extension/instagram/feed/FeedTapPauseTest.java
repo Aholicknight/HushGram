@@ -61,6 +61,14 @@ public class FeedTapPauseTest {
             return controller;
         }
 
+        int launcherAsked;
+
+        @Override public Object controllerOfLauncher(Object launcher) {
+            if (failReading != null) throw failReading;
+            launcherAsked++;
+            return controller;
+        }
+
         @Override public Object shownOf(Object controller) {
             return shown;
         }
@@ -136,6 +144,15 @@ public class FeedTapPauseTest {
 
     private void lift() {
         FeedTapPause.released(handler, media, state, 1);
+    }
+
+    /** Stand-ins for Instagram's entry points, an enum whose names its build keeps. */
+    private enum EntryPoint { VIDEO_TAP, FEED_PREVIEW }
+
+    private final Object launcher = new Object();
+
+    private boolean open(EntryPoint from) {
+        return FeedTapPause.opening(launcher, from, media, state);
     }
 
     /** Off to start: the tap is Instagram's, and only the call itself is counted. */
@@ -413,5 +430,91 @@ public class FeedTapPauseTest {
         assertEquals(0, feed.pauses + feed.starts);
         String missing = HookStatus.missing(FamilyNames.FEED_TAP_PAUSE).toString();
         assertTrue(missing, missing.contains(FeedTapPause.PRESS) && missing.contains("IllegalStateException"));
+    }
+
+    /**
+     * On 451 a tap can reach Reels without the tap handler. A tap on the playing video stops at the Reels launcher, which
+     * reaches the controller its own way: the first pauses, the next plays, and each opening is counted by where it came
+     * from. Not counted as invoked.
+     */
+    @Test
+    public void aTapThatReachesTheReelsLauncherPausesAndPlays() {
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        assertTrue("first tap", open(EntryPoint.VIDEO_TAP));
+        assertEquals("pauses", 1, feed.pauses);
+        assertEquals("the state hears it was playing", Boolean.TRUE, feed.marked);
+        assertTrue("second tap", open(EntryPoint.VIDEO_TAP));
+        assertEquals("plays", 1, feed.starts);
+        assertEquals("the controller came through the launcher", 2, feed.launcherAsked);
+        String report = report();
+        assertTrue(report, report.contains(FamilyNames.FEED_TAP_PAUSE + ": invoked 0"));
+        assertTrue(report, report.contains(FeedTapPause.OPENED_FROM + "VIDEO_TAP 2"));
+        assertTrue(report, report.contains(FeedTapPause.PAUSED + " 1"));
+        assertTrue(report, report.contains(FeedTapPause.PLAYED + " 1"));
+        assertTrue(HookStatus.missing(FamilyNames.FEED_TAP_PAUSE).toString(), HookStatus.missing(FamilyNames.FEED_TAP_PAUSE).isEmpty());
+    }
+
+    /** Any other opening goes on to Reels and is counted under its name; one with no enum is counted as it prints. */
+    @Test
+    public void otherOpeningsGoToReels() {
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        assertFalse(open(EntryPoint.FEED_PREVIEW));
+        assertFalse(FeedTapPause.opening(launcher, null, media, state));
+        assertEquals(0, feed.pauses + feed.starts);
+        assertEquals("nothing read for them", 0, feed.launcherAsked);
+        String report = report();
+        assertTrue(report, report.contains(FeedTapPause.OPENED_FROM + "FEED_PREVIEW 1"));
+        assertTrue(report, report.contains(FeedTapPause.OPENED_FROM + "null 1"));
+    }
+
+    /**
+     * Off, paused, not ready, missing an argument, on another post or an ad, a tap at the launcher opens Reels. Off
+     * counts nothing; with the switch on, the post's checks count as a tap's do.
+     */
+    @Test
+    public void aLauncherTapThatIsNotTheirsOpensReels() {
+        assertFalse("off", open(EntryPoint.VIDEO_TAP));
+        assertFalse(report(), report().contains(FeedTapPause.OPENED_FROM));
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", open(EntryPoint.VIDEO_TAP));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("not ready", open(EntryPoint.VIDEO_TAP)));
+        assertFalse(FeedTapPause.opening(null, EntryPoint.VIDEO_TAP, media, state));
+        assertFalse(FeedTapPause.opening(launcher, EntryPoint.VIDEO_TAP, null, state));
+        assertFalse(FeedTapPause.opening(launcher, EntryPoint.VIDEO_TAP, media, null));
+        feed.page = "another post";
+        assertFalse("another post", open(EntryPoint.VIDEO_TAP));
+        feed.page = "post";
+        feed.ad = new Object();
+        assertFalse("an ad", open(EntryPoint.VIDEO_TAP));
+        assertEquals(0, feed.pauses + feed.starts);
+        String report = report();
+        assertTrue(report, report.contains(FeedTapPause.LEFT_ANOTHER_POST + " 1"));
+        assertTrue(report, report.contains(FeedTapPause.LEFT_AN_AD + " 1"));
+    }
+
+    /** A held press that also reaches the launcher as a tap is paused there once, and its lift adds nothing. */
+    @Test
+    public void aHeldPressThatReachesTheLauncherPausesOnce() {
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        assertTrue(press());
+        assertTrue("the press's tap at the launcher", open(EntryPoint.VIDEO_TAP));
+        lift();
+        assertEquals("pauses", 1, feed.pauses);
+        assertEquals("plays", 0, feed.starts);
+    }
+
+    /** A failure reaching the controller from the launcher lets Reels open and is reported under the launcher's name. */
+    @Test
+    public void aFailureAtTheLauncherOpensReels() {
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        feed.failReading = new IllegalStateException("gone");
+        assertFalse(open(EntryPoint.VIDEO_TAP));
+        assertEquals(0, feed.pauses + feed.starts);
+        String missing = HookStatus.missing(FamilyNames.FEED_TAP_PAUSE).toString();
+        assertTrue(missing, missing.contains(FeedTapPause.OPEN) && missing.contains("IllegalStateException"));
     }
 }
