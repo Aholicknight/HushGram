@@ -25,6 +25,8 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.misc.GlassTabBar;
@@ -89,6 +91,23 @@ public final class FullScreenBars {
     /** Whether Instagram's copy of each bar's height holds a 0 HushGram answered (#196). */
     private static boolean statusTaken;
     private static boolean navTaken;
+    /** The status bar's answer of the listener pass in progress, -1 before one. */
+    private static int statusAnswer = -1;
+    /** The pair of heights the listener last kept, -1 before the first. */
+    private static int keptStatus = -1;
+    private static int keptNav = -1;
+    /** How many of an activity's bar heights listeners are kept to be told a new pair (#200). */
+    static final int ASKERS_KEPT = 16;
+    static final String COUNT_TOLD = "screens told the bars' new heights";
+    /**
+     * Each activity's kept bar heights listeners, newest last. Held strongly, since Instagram lets a
+     * listener go once it has called it, and each listener holds its screen, which holds the activity:
+     * an activity's entry goes when it's destroyed. Main thread only.
+     */
+    private static final WeakHashMap<Activity, ArrayList<Object>> askers = new WeakHashMap<>();
+    /** The activity last resumed, whose window Instagram's listener passes are for. */
+    private static WeakReference<Activity> resumed = new WeakReference<>(null);
+    private static Teller teller = FullScreenBars::tellHeights;
 
     private FullScreenBars() {
     }
@@ -218,6 +237,7 @@ public final class FullScreenBars {
         int kept = hiddenBarHeight(height);
         if (height > 0) statusOffered = height;
         statusTaken = taken(height, kept, statusTaken);
+        statusAnswer = kept;
         return kept;
     }
 
@@ -249,7 +269,86 @@ public final class FullScreenBars {
         }
         if (height > 0) navOffered = height;
         navTaken = taken(height, kept, navTaken);
+        heightsKept(statusAnswer, kept);
         return kept;
+    }
+
+    /**
+     * Called by Instagram's registration of a screen's bar heights listener in [activity], before it
+     * runs (#200). Instagram calls a listener once with the heights it keeps and then lets most of them
+     * go, so a screen built before the bars were hidden, like the Reels viewer on a cold start into
+     * Reels, kept the old heights as black strips until it resumed. While a full screen switch is on,
+     * the last {@link #ASKERS_KEPT} listeners of each activity are kept and told each new pair
+     * ({@link #heightsKept}). Off, nothing is kept.
+     */
+    public static void heightsAsked(Activity activity, Object listener) {
+        try {
+            if (activity == null || listener == null || !registered || !Utils.settingsReady()
+                    || HushgramPause.isPaused() || !eitherOn()) return;
+            ArrayList<Object> held = askers.get(activity);
+            if (held == null) {
+                held = new ArrayList<>();
+                askers.put(activity, held);
+            }
+            forgetListener(held, listener);
+            held.add(listener);
+            while (held.size() > ASKERS_KEPT) held.remove(0);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights listener", failure);
+        }
+    }
+
+    /** Called by Instagram's removal of a screen's bar heights listener in [activity]: it isn't told again. */
+    public static void heightsDropped(Activity activity, Object listener) {
+        try {
+            ArrayList<Object> held = activity == null ? null : askers.get(activity);
+            if (held != null) forgetListener(held, listener);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights listener", failure);
+        }
+    }
+
+    private static void forgetListener(ArrayList<Object> held, Object listener) {
+        for (int at = held.size() - 1; at >= 0; at--) {
+            if (held.get(at) == listener) held.remove(at);
+        }
+    }
+
+    /**
+     * The pair of heights Instagram's listener just kept. When it changed and a full screen switch is
+     * on, the resumed activity's kept listeners are told it on the next turn of the main loop, once
+     * Instagram's pass is over, with whatever pair is kept by then.
+     */
+    static void heightsKept(int status, int nav) {
+        try {
+            boolean changed = status != keptStatus || nav != keptNav;
+            keptStatus = status;
+            keptNav = nav;
+            if (!changed || !registered || !eitherOn()) return;
+            Activity activity = resumed.get();
+            ArrayList<Object> held = activity == null ? null : askers.get(activity);
+            if (held == null || held.isEmpty()) return;
+            List<Object> listeners = new ArrayList<>(held);
+            new Handler(Looper.getMainLooper()).post(() -> tellAll(listeners));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights kept", failure);
+        }
+    }
+
+    private static void tellAll(List<Object> listeners) {
+        for (Object listener : listeners) {
+            try {
+                teller.tell(listener, keptStatus, keptNav);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights told", failure);
+            }
+        }
+        HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_TOLD);
+    }
+
+    /** How a kept listener is told a pair of heights: the patch-filled stub outside tests. */
+    interface Teller {
+        void tell(Object listener, int status, int nav);
     }
 
     /**
@@ -303,12 +402,32 @@ public final class FullScreenBars {
         return heights;
     }
 
-    /** Tests start with nothing offered or taken. */
-    static void resetHeightsForTests() {
+    /** Tests start with nothing offered, taken, kept or held, and tell their own [tells]. */
+    static void resetHeightsForTests(@Nullable Teller tells) {
         statusOffered = 0;
         navOffered = 0;
         statusTaken = false;
         navTaken = false;
+        statusAnswer = -1;
+        keptStatus = -1;
+        keptNav = -1;
+        askers.clear();
+        teller = tells == null ? FullScreenBars::tellHeights : tells;
+    }
+
+    static void nowResumed(Activity activity) {
+        resumed = new WeakReference<>(activity);
+    }
+
+    /** Tests stand in for the application start, which registers the watcher. */
+    static void registeredForTests(boolean value) {
+        registered = value;
+    }
+
+    /** The listeners held for [activity], for tests. */
+    static List<Object> askersForTests(Activity activity) {
+        ArrayList<Object> held = askers.get(activity);
+        return held == null ? new ArrayList<>() : new ArrayList<>(held);
     }
 
     /** Whether a watched activity has the bars hidden. Main thread, as Instagram's listener is. */
@@ -349,6 +468,7 @@ public final class FullScreenBars {
 
     private static final class Watcher implements Application.ActivityLifecycleCallbacks {
         @Override public void onActivityResumed(@NonNull Activity activity) {
+            nowResumed(activity);
             track(activity);
         }
 
@@ -361,7 +481,10 @@ public final class FullScreenBars {
         @Override public void onActivityStarted(@NonNull Activity activity) { }
         @Override public void onActivityStopped(@NonNull Activity activity) { }
         @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle state) { }
-        @Override public void onActivityDestroyed(@NonNull Activity activity) { }
+        @Override public void onActivityDestroyed(@NonNull Activity activity) {
+            // Its listeners hold it, so the weak key alone would never let it go.
+            askers.remove(activity);
+        }
     }
 
     /** One resumed activity, watched for Reels or Home coming and going. */
@@ -511,5 +634,9 @@ public final class FullScreenBars {
 
     /** Filled in by the patch: stores [height] where Instagram's listener keeps the navigation bar's height. */
     public static void keepNavBarHeight(int height) {
+    }
+
+    /** Filled in by the patch: tells [listener], one of Instagram's bar heights listeners, a pair of heights. */
+    public static void tellHeights(Object listener, int status, int nav) {
     }
 }

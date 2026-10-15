@@ -21,6 +21,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -33,6 +34,10 @@ internal const val BAR_HEIGHT_HOOK = "$FULL_SCREEN_BARS->barHeight(I)I"
 internal const val NAV_BAR_HEIGHT_HOOK = "$FULL_SCREEN_BARS->navBarHeight(I)I"
 internal const val KEEP_STATUS_BAR_HEIGHT = "$FULL_SCREEN_BARS->keepStatusBarHeight(I)V"
 internal const val KEEP_NAV_BAR_HEIGHT = "$FULL_SCREEN_BARS->keepNavBarHeight(I)V"
+internal const val HEIGHTS_ASKED = "$FULL_SCREEN_BARS->heightsAsked(Landroid/app/Activity;Ljava/lang/Object;)V"
+internal const val HEIGHTS_DROPPED = "$FULL_SCREEN_BARS->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V"
+internal const val TELL_HEIGHTS = "$FULL_SCREEN_BARS->tellHeights(Ljava/lang/Object;II)V"
+private const val ACTIVITY = "Landroid/app/Activity;"
 
 /** What Instagram's window insets listener logs when it keeps a new status bar height. */
 internal const val STATUS_BAR_CHANGED =
@@ -62,7 +67,11 @@ internal val barHeightsPatch = bytecodePatch {
 
     execute {
         val listener = findBarHeights()
-        fillKeptHeights(listener.barHeightStores())
+        val stores = listener.barHeightStores()
+        val holder = stores.map { it.field.definingClass }.distinct().singleOrNull()
+            ?: refuse("the window insets listener keeps its heights in two classes")
+        fillKeptHeights(stores)
+        followHeightListeners(holder, listener.heightsListenerCall())
         routeBarHeights(listener)
     }
 }
@@ -120,12 +129,7 @@ internal fun BytecodePatchContext.findBarHeights(): MutableMethod {
  */
 internal fun Method.barHeightStores(): List<BarHeightStore> {
     val code = implementation?.instructions?.toList().orEmpty()
-    val notify = (2 until code.size).firstOrNull { at ->
-        val call = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
-        code[at].opcode == Opcode.INVOKE_INTERFACE && call != null && call.returnType == "V" &&
-            call.parameterTypes.map(CharSequence::toString) == listOf("I", "I") &&
-            code[at - 2].opcode == Opcode.SGET && code[at - 1].opcode == Opcode.SGET
-    } ?: refuse("the window insets listener hands its height listeners no two stored heights")
+    val notify = code.heightsNotifyAt()
     val stores = listOf(code[notify - 2], code[notify - 1]).map { read ->
         val field = (read as ReferenceInstruction).reference as FieldReference
         val at = code.indices.filter { index ->
@@ -138,6 +142,20 @@ internal fun Method.barHeightStores(): List<BarHeightStore> {
     }
     if (stores[0].field.sameAs(stores[1].field)) refuse("the window insets listener reads one height twice")
     return stores
+}
+
+/** Where the listener hands each height listener the two stored heights: an interface call on two static int reads. */
+private fun List<Instruction>.heightsNotifyAt(): Int = (2 until size).firstOrNull { at ->
+    val call = (this[at] as? ReferenceInstruction)?.reference as? MethodReference
+    this[at].opcode == Opcode.INVOKE_INTERFACE && call != null && call.returnType == "V" &&
+        call.parameterTypes.map(CharSequence::toString) == listOf("I", "I") &&
+        this[at - 2].opcode == Opcode.SGET && this[at - 1].opcode == Opcode.SGET
+} ?: refuse("the window insets listener hands its height listeners no two stored heights")
+
+/** The height listeners' method the listener calls with the two heights, like 0Dvn.GES(II)V on 451. */
+internal fun Method.heightsListenerCall(): MethodReference {
+    val code = implementation?.instructions?.toList().orEmpty()
+    return (code[code.heightsNotifyAt()] as ReferenceInstruction).reference as MethodReference
 }
 
 private fun FieldReference.sameAs(other: FieldReference) =
@@ -169,6 +187,42 @@ internal fun BytecodePatchContext.fillKeptHeights(stores: List<BarHeightStore>) 
         } ?: refuse("$FULL_SCREEN_BARS has no static V $name(I)")
         method.addInstructions(0, "sput p0, ${store.field.definingClass}->${store.field.name}:${store.field.type}")
     }
+}
+
+/**
+ * Lets FullScreenBars hear about each screen's bar heights listener and tell it a new pair (#200).
+ * The class holding the heights registers a listener through a static (Activity, listener, once) and
+ * removes one through (Activity, listener), which tell [HEIGHTS_ASKED] and [HEIGHTS_DROPPED] first.
+ * The [TELL_HEIGHTS] stub calls the listener's own method, [call]. Instagram calls most listeners once
+ * and lets them go, so the Reels viewer built before Full screen Reels hid the bars kept their old
+ * heights as black strips until it resumed.
+ */
+internal fun BytecodePatchContext.followHeightListeners(holderType: String, call: MethodReference) {
+    val type = call.definingClass
+    val listener = classDefByOrNull(type) ?: refuse("$type isn't in the app")
+    if (!AccessFlags.PUBLIC.isSet(listener.accessFlags) || !AccessFlags.INTERFACE.isSet(listener.accessFlags)) {
+        refuse("$type isn't a public interface the extension can call")
+    }
+    val holder = classDefByOrNull(holderType)?.let { mutableClassDefBy(holderType) } ?: refuse("$holderType isn't in the app")
+    fun registration(parameters: List<String>) = holder.methods.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.map(Any::toString) == parameters
+    }.singleOrNull() ?: refuse("$holderType has no single static V (${parameters.joinToString("")})")
+    registration(listOf(ACTIVITY, type, "Z")).addInstructions(0, "invoke-static { p0, p1 }, $HEIGHTS_ASKED")
+    registration(listOf(ACTIVITY, type)).addInstructions(0, "invoke-static { p0, p1 }, $HEIGHTS_DROPPED")
+
+    val bars = classDefByOrNull(FULL_SCREEN_BARS)?.let { mutableClassDefBy(FULL_SCREEN_BARS) }
+        ?: refuse("$FULL_SCREEN_BARS isn't in the extension")
+    val tell = bars.methods.singleOrNull {
+        "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == TELL_HEIGHTS.substringAfter("->") &&
+            AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("$FULL_SCREEN_BARS has no static ${TELL_HEIGHTS.substringAfter("->")}")
+    tell.addInstructions(
+        0,
+        """
+            check-cast p0, $type
+            invoke-interface { p0, p1, p2 }, $type->${call.name}(II)V
+        """,
+    )
 }
 
 /**

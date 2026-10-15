@@ -10,13 +10,19 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.os.Build;
+import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -51,7 +57,7 @@ public class FullScreenBarsTest {
     private View reelsTab, homeTab, otherTab;
 
     @Before public void prepare() {
-        FullScreenBars.resetHeightsForTests();
+        FullScreenBars.resetHeightsForTests(null);
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
         FullScreenBars.idForTests(FullScreenBars.VIEWER, VIEWER);
@@ -217,6 +223,70 @@ public class FullScreenBarsTest {
         FullScreenBars.takeNavBarHeight();
         assertArrayEquals("taken, so owed back once", new int[] {0, 63}, FullScreenBars.heightsToGiveBack());
         assertArrayEquals(new int[] {0, 0}, FullScreenBars.heightsToGiveBack());
+    }
+
+    /**
+     * #200: on a cold start into Reels the viewer's bar heights listener heard the bars' heights
+     * before Full screen Reels hid them, and Instagram let it go, so the strips stayed. While a switch
+     * is on, an activity's listeners are kept and told each new pair once Instagram's pass is over.
+     */
+    @Test public void keptListenersHearTheHeightsTheHideBrings() {
+        List<String> told = new ArrayList<>();
+        FullScreenBars.resetHeightsForTests((listener, status, nav) -> told.add(listener + " " + status + " " + nav));
+        FullScreenBars.registeredForTests(true);
+        try {
+            Object reels = "reels";
+            FullScreenBars.heightsAsked(activity, reels);
+            assertTrue("both switches off, nothing kept", FullScreenBars.askersForTests(activity).isEmpty());
+
+            Settings.FULL_SCREEN_REELS.save(true);
+            FullScreenBars.nowResumed(activity);
+            FullScreenBars.heightsAsked(activity, reels);
+            FullScreenBars.heightsAsked(activity, reels);
+            assertEquals("kept once", 1, FullScreenBars.askersForTests(activity).size());
+
+            heights(128, 63);
+            assertEquals(Collections.singletonList("reels 128 63"), told);
+            heights(128, 63);
+            assertEquals("the same pair isn't told again", 1, told.size());
+
+            showViewer(W, H);
+            assertTrue(watch().isHidden());
+            heights(128, 63);
+            assertEquals("the hide's pair", "reels 0 0", told.get(1));
+
+            FullScreenBars.heightsDropped(activity, reels);
+            assertTrue("dropped by Instagram", FullScreenBars.askersForTests(activity).isEmpty());
+            FullScreenBars.release(activity);
+            heights(128, 63);
+            assertEquals("a dropped listener isn't told", 2, told.size());
+        } finally {
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
+    /** An activity keeps its newest listeners only, so a screen built again and again doesn't pile them up. */
+    @Test public void anActivityKeepsItsNewestListeners() {
+        FullScreenBars.registeredForTests(true);
+        try {
+            Settings.FULL_SCREEN_REELS.save(true);
+            for (int i = 0; i <= FullScreenBars.ASKERS_KEPT; i++) FullScreenBars.heightsAsked(activity, "screen " + i);
+            List<Object> kept = FullScreenBars.askersForTests(activity);
+            assertEquals(FullScreenBars.ASKERS_KEPT, kept.size());
+            assertFalse("the oldest went", kept.contains("screen 0"));
+            assertEquals("screen " + FullScreenBars.ASKERS_KEPT, kept.get(kept.size() - 1));
+        } finally {
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
+    /** One pass of Instagram's insets listener with these offered heights, then the main loop's next turn. */
+    private static void heights(int status, int nav) {
+        FullScreenBars.barHeight(status);
+        FullScreenBars.navBarHeight(nav);
+        shadowOf(Looper.getMainLooper()).idle();
     }
 
     @Test public void aViewerOnlyPartlyOnScreenIsNotReels() {
