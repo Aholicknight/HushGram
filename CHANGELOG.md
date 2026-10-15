@@ -10,6 +10,7 @@ Every HushGram release, newest first.
 * **Instagram - Download any video:** New switch under Downloads, Save every page without asking, off by default. With Download button on feed posts on, a tap on a carousel saves all of its pages at once instead of asking which. Asked for in #190.
 * **Instagram - Hide the Reels tab:** Listed under Interface in Morphe's patch list now, next to the glass tab bar, since most of its switches are about the tab bar. That keeps Reels short enough to scan with the new caption words patch in it.
 * **Instagram - Show a reel's exact time:** New switch under the reel's time, Show how long ago a reel was posted, off by default. It adds the days, hours and minutes since the reel went up, like Oct 2, 3:45 PM · 1d 2h 5m ago, in the same language as the rest of HushGram. Searching for the patch's name now finds both of its choices too. Asked for in #195.
+* **Instagram - Download any reel:** The Download button beside a reel now uses Instagram's own icon made for that column, the one Save's is drawn from, so it's the same size and line weight as the buttons above it instead of bigger and bolder. Reported in #198.
 
 ## 0.0.11 (2026-10-15)
 

@@ -58,8 +58,13 @@ public final class ReelDownloadButton {
     static final String COUNT_MORE_UNREAD = "reel button over More kept Save's margin, More's unread";
     /** The icon over More placed with Save's margin, since that margin wasn't in pixels. */
     static final String COUNT_NOT_PIXELS = "reel button over More kept Save's margin, not in pixels";
-    /** Instagram's download glyph, by name since the number changes from build to build. */
-    private static final String ICON_NAME = "instagram_download_outline_24";
+    /**
+     * Instagram's download glyphs, by name since the numbers change from build to build. The 44dp
+     * one is drawn for a column like this one, as Save's own 44dp glyph is, so it has Save's weight
+     * and room around it. The 24dp one, stretched to Save's size, comes out thicker and larger
+     * (#198), so it only stands in when the build lacks the 44dp one.
+     */
+    static final String[] ICON_NAMES = {"instagram_download_outline_44", "instagram_download_outline_24"};
     /** The kind of an ordinary reel, as the reel's item names it. Ads and cards have other kinds. */
     static final String ORGANIC = "ORGANIC";
     /** The column's icons are white over the video unless Instagram skips dark mode there. */
@@ -309,8 +314,7 @@ public final class ReelDownloadButton {
         Resources resources = context.getResources();
         int known = glyph;
         if (known == 0) {
-            known = resources.getIdentifier(ICON_NAME, "drawable", context.getPackageName());
-            if (known == 0) known = -1;
+            known = glyphId(resources, context.getPackageName());
             glyph = known;
         }
         Drawable drawable = null;
@@ -328,6 +332,15 @@ public final class ReelDownloadButton {
         }
         drawable.setColorFilter(filter != null ? filter : new PorterDuffColorFilter(ON_MEDIA, PorterDuff.Mode.SRC_IN));
         return drawable;
+    }
+
+    /** The first of {@link #ICON_NAMES} that [packageName] has, or -1 when it has none of them. */
+    static int glyphId(Resources resources, String packageName) {
+        for (String name : ICON_NAMES) {
+            int id = resources.getIdentifier(name, "drawable", packageName);
+            if (id != 0) return id;
+        }
+        return -1;
     }
 
     /** Back to how a fresh start finds it. */

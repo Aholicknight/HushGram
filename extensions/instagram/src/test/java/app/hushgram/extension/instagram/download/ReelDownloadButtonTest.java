@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.ColorFilter;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
@@ -21,8 +22,10 @@ import android.view.View;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
@@ -232,6 +235,40 @@ public class ReelDownloadButtonTest {
         ColorFilter instagrams = new PorterDuffColorFilter(0xFF262626, PorterDuff.Mode.SRC_IN);
         assertSame(bridge.made, ReelDownloadButton.litho(column, instagrams, 120, 30));
         assertSame("Instagram's own tint where it has one", instagrams, bridge.drawable.getColorFilter());
+    }
+
+    @Test
+    public void theColumnsOwn44dpGlyphComesBeforeThe24dpOne() {
+        Map<String, Integer> both = new HashMap<>();
+        both.put("instagram_download_outline_24", 0x7f082462);
+        both.put("instagram_download_outline_44", 0x7f082463);
+        assertEquals("Save's size of glyph, so the icon has Save's weight (#198)", 0x7f082463,
+                ReelDownloadButton.glyphId(new Named(both), "com.instagram.android"));
+
+        Map<String, Integer> small = new HashMap<>();
+        small.put("instagram_download_outline_24", 0x7f082462);
+        assertEquals("a build without it gets the 24dp one", 0x7f082462,
+                ReelDownloadButton.glyphId(new Named(small), "com.instagram.android"));
+        assertEquals("and one with neither gets HushGram's own", -1,
+                ReelDownloadButton.glyphId(new Named(new HashMap<>()), "com.instagram.android"));
+    }
+
+    /** Resources that know only the drawables [ids] names. */
+    @SuppressWarnings("deprecation")
+    private static final class Named extends Resources {
+        private final Map<String, Integer> ids;
+
+        Named(Map<String, Integer> ids) {
+            super(Resources.getSystem().getAssets(), Resources.getSystem().getDisplayMetrics(),
+                    Resources.getSystem().getConfiguration());
+            this.ids = ids;
+        }
+
+        @Override
+        public int getIdentifier(String name, String type, String packageName) {
+            Integer id = "drawable".equals(type) && "com.instagram.android".equals(packageName) ? ids.get(name) : null;
+            return id == null ? 0 : id;
+        }
     }
 
     @Test
