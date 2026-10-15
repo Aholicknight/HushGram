@@ -4,9 +4,9 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
-### HushGram v0.0.11
+## 0.0.11 (2026-10-15)
 
-#### Features
+### Features
 
 * **Instagram - Hide the Reels tab:** New switch under Tab bar, Hide the Home tab, off by default. Home leaves the tab bar and your Start tab opens in its place, from the icon, Back, links or notifications. It needs another Start tab on your bar. Asked for in #90.
 
@@ -78,65 +78,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide AI-labeled reels:** New switch under Reels, off by default. Reels carrying Instagram's own AI label stay out of the Reels tab. Unlabeled reels stay, even if AI made them, and reels opened from search, profiles, Saved or chats still play. Asked for in #174.
 
-#### Improvements
-
-* **Instagram:** HushGram now patches Instagram 451.0.0.53.80 instead of 450.0.0.50.77. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385713073. All eight 451 builds patch, the x86 and x86_64 ones included.
-
-* **Tooling:** The fixture tests run against Instagram 451's eight builds. Facts that differ from build to build, like which builds look a string up in a shared pool instead of loading it, were measured again on 451.
-
-* **Instagram:** Patching takes about 4% less time with every patch on. Finding Instagram's lookups in its shared string pools starts from the patcher's index now, instead of reading every class that uses a pool. The patched app comes out the same. Refs #173.
-
-* **Tooling:** Device builds support separate keystore and key passwords, including an empty store password. The installer also picks one ADB executable when the path lists more than one.
-
-* **Instagram - HushGram settings:** When a change needs a restart, a Restart now bar shows at the bottom of settings. A tap restarts Instagram and reopens settings on the page you were on, and nothing restarts without that tap. Asked for in #146.
-
-* **Instagram - HushGram settings:** Hide inbox suggestions and Ask for larger photos now show Restart now when you change them.
-
-* **Instagram - HushGram settings:** Search lists the settings named for what you typed before the ones that only mention it, and works inside categories too. Rotating keeps your page and place. Empty results explain why an install may not have a setting.
-
-* **Instagram - HushGram settings:** Settings get clearer category descriptions, a rounded search field, pink icon tiles and compact switches. Focus, selection and pressed states look the same on cards, dialogs and actions, and everything stays readable at larger text sizes.
-
-* **Instagram - Hide your active status:** Its description says the change applies the next time you come back to Instagram, instead of asking for a restart it doesn't need.
-
-* **Instagram - Hide suggested accounts in Reels:** Diagnostics now names every other kind of unit Reels shows besides reels and ads. If a page of suggestions still gets through, a saved report says what it was.
-
-* **Instagram - Lock your messages:** PIN forms scroll and keep their labels visible. The keyboard can move to confirmation or submit, incomplete entries don't spend an attempt, and a retry countdown enables entry when the wait ends. Closing a form clears its digits.
-
-* **Instagram - Lock your messages:** Chats locked or hidden before this update stay that way on every account until you unlock them there. Their old names stay hidden until you open the chat again.
-
-* **Instagram - Save profile picture:** Close and Save have their own space below the preview, clear of system bars and edge gestures. Save stays unavailable while the picture loads, with a visible message and a spoken label.
-
-* **Instagram - Find the reel you came from:** Reel search actions share the same focus and press feedback as other controls.
-
-* **Instagram - HushGram settings:** When HushGram pauses itself because Instagram kept crashing at start, a message now says so on the first screen. Every switch is off until it's turned back on, so Ghost mode and the locks would otherwise stop without a word.
-
-* **Instagram - HushGram settings:** The two About rows are in Korean now, and two error messages read like the rest ("Couldn't" rather than "Could not"). Four Korean rows that spelled HushGram or Instagram wrong are fixed.
-
-* **Instagram - HushGram settings:** Set when you patched uses plain names now. Re-signed build fix is Instagram accepts this build, and Version code raised is No Play Store updates. The last row only repeated the intro, so it's gone.
-
-* **Instagram - HushGram settings:** Three switches have clearer names. Hide Accounts to follow is now Hide suggested accounts in Messages, Hide 'Are you interested' questions is Hide 'Are you interested?' bubbles, and Show a Reel seek thumb is Round handle on the seek bar.
-
-* **Instagram - HushGram settings:** The Before you sign in card shows on the main settings page only, not atop every category, and Tap to hide this sits on its own line so translations don't run it into the last sentence.
-
-* **Instagram - HushGram settings:** Recommended flags no longer shows Keep Reels auto scroll between sessions next to the Keep auto scroll on setting, unless you'd already set it. Then it stays so you can set it back.
-
-* **Instagram - HushGram settings:** The Support HushGram row at the end of settings is just its name now. The line under it is gone, and a search for coffee or Ko-fi still finds it.
-
-* **Instagram - Glass tab bar:** The bar has 12dp corners now instead of fully round ends, and the highlight behind the selected tab has 8dp corners. Tabs still respond in the same places.
-
-* **Instagram - Hide the Reels tab:** TalkBack reads the Ghost mode button on Home's header as "Ghost mode" with an on or off state, the way it reads a switch, instead of a sentence about what tapping does.
-
-* **Instagram - Accent color:** Mentions, hashtags and links in captions, comments, search results and bios take the color you picked, and so do the Activity tab's Follow buttons and a selected pill's pale blue. It works on Instagram's older look too. Asked for in #8.
-
-* **Instagram:** The context HushGram shares between its features is always Instagram's application now, never a screen. A closed screen can't be held in memory through it, whatever hands it in.
-
-* **Tooling:** Unreleased version headings now work with both the changelog checker and the release notes generator. Full-screen patch checks also verify control flow when jumps need a wider encoding.
-
-* **Tooling:** The build moves to Gradle 9.8.1, fixing three high severity advisories in 9.8.0 (GHSA-xwqc-3h47-hg64, GHSA-mvvg-497x-hmj8, GHSA-j5m7-59rp-24f5). The dependency audit now checks Gradle itself too. Gradle only runs at build time, so the bundle was never affected.
-
-* **Tooling:** The README is much shorter now, a user guide with the install steps, the settings, every patch and the supported builds. The long version, with every caveat and the build internals, is in the repository history.
-
-#### Bug Fixes
+### Bug Fixes
 
 * **Instagram - Hide suggested accounts in Reels:** The Friends tab in Reels no longer fills up with people to follow when it has no reels for you. With the switch on you get Instagram's own empty Friends tab instead. Reported in #167.
 
@@ -239,6 +181,64 @@ Every HushGram release, newest first.
 * **Instagram - Pure black dark mode:** The menus that slide up from the bottom are black now, a reel's menu included. They kept Instagram's dark gray before. Buttons keep their grays. Reported in #171.
 
 * **Instagram - Find the reel you came from:** The search waits for a profile's first reels to load instead of giving up after four seconds, and waits at the end of the loaded reels for the next page. Diagnostics says why a search ended. Reported in #30.
+
+### Improvements
+
+* **Instagram:** HushGram now patches Instagram 451.0.0.53.80 instead of 450.0.0.50.77. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385713073. All eight 451 builds patch, the x86 and x86_64 ones included.
+
+* **Tooling:** The fixture tests run against Instagram 451's eight builds. Facts that differ from build to build, like which builds look a string up in a shared pool instead of loading it, were measured again on 451.
+
+* **Instagram:** Patching takes about 4% less time with every patch on. Finding Instagram's lookups in its shared string pools starts from the patcher's index now, instead of reading every class that uses a pool. The patched app comes out the same. Refs #173.
+
+* **Tooling:** Device builds support separate keystore and key passwords, including an empty store password. The installer also picks one ADB executable when the path lists more than one.
+
+* **Instagram - HushGram settings:** When a change needs a restart, a Restart now bar shows at the bottom of settings. A tap restarts Instagram and reopens settings on the page you were on, and nothing restarts without that tap. Asked for in #146.
+
+* **Instagram - HushGram settings:** Hide inbox suggestions and Ask for larger photos now show Restart now when you change them.
+
+* **Instagram - HushGram settings:** Search lists the settings named for what you typed before the ones that only mention it, and works inside categories too. Rotating keeps your page and place. Empty results explain why an install may not have a setting.
+
+* **Instagram - HushGram settings:** Settings get clearer category descriptions, a rounded search field, pink icon tiles and compact switches. Focus, selection and pressed states look the same on cards, dialogs and actions, and everything stays readable at larger text sizes.
+
+* **Instagram - Hide your active status:** Its description says the change applies the next time you come back to Instagram, instead of asking for a restart it doesn't need.
+
+* **Instagram - Hide suggested accounts in Reels:** Diagnostics now names every other kind of unit Reels shows besides reels and ads. If a page of suggestions still gets through, a saved report says what it was.
+
+* **Instagram - Lock your messages:** PIN forms scroll and keep their labels visible. The keyboard can move to confirmation or submit, incomplete entries don't spend an attempt, and a retry countdown enables entry when the wait ends. Closing a form clears its digits.
+
+* **Instagram - Lock your messages:** Chats locked or hidden before this update stay that way on every account until you unlock them there. Their old names stay hidden until you open the chat again.
+
+* **Instagram - Save profile picture:** Close and Save have their own space below the preview, clear of system bars and edge gestures. Save stays unavailable while the picture loads, with a visible message and a spoken label.
+
+* **Instagram - Find the reel you came from:** Reel search actions share the same focus and press feedback as other controls.
+
+* **Instagram - HushGram settings:** When HushGram pauses itself because Instagram kept crashing at start, a message now says so on the first screen. Every switch is off until it's turned back on, so Ghost mode and the locks would otherwise stop without a word.
+
+* **Instagram - HushGram settings:** The two About rows are in Korean now, and two error messages read like the rest ("Couldn't" rather than "Could not"). Four Korean rows that spelled HushGram or Instagram wrong are fixed.
+
+* **Instagram - HushGram settings:** Set when you patched uses plain names now. Re-signed build fix is Instagram accepts this build, and Version code raised is No Play Store updates. The last row only repeated the intro, so it's gone.
+
+* **Instagram - HushGram settings:** Three switches have clearer names. Hide Accounts to follow is now Hide suggested accounts in Messages, Hide 'Are you interested' questions is Hide 'Are you interested?' bubbles, and Show a Reel seek thumb is Round handle on the seek bar.
+
+* **Instagram - HushGram settings:** The Before you sign in card shows on the main settings page only, not atop every category, and Tap to hide this sits on its own line so translations don't run it into the last sentence.
+
+* **Instagram - HushGram settings:** Recommended flags no longer shows Keep Reels auto scroll between sessions next to the Keep auto scroll on setting, unless you'd already set it. Then it stays so you can set it back.
+
+* **Instagram - HushGram settings:** The Support HushGram row at the end of settings is just its name now. The line under it is gone, and a search for coffee or Ko-fi still finds it.
+
+* **Instagram - Glass tab bar:** The bar has 12dp corners now instead of fully round ends, and the highlight behind the selected tab has 8dp corners. Tabs still respond in the same places.
+
+* **Instagram - Hide the Reels tab:** TalkBack reads the Ghost mode button on Home's header as "Ghost mode" with an on or off state, the way it reads a switch, instead of a sentence about what tapping does.
+
+* **Instagram - Accent color:** Mentions, hashtags and links in captions, comments, search results and bios take the color you picked, and so do the Activity tab's Follow buttons and a selected pill's pale blue. It works on Instagram's older look too. Asked for in #8.
+
+* **Instagram:** The context HushGram shares between its features is always Instagram's application now, never a screen. A closed screen can't be held in memory through it, whatever hands it in.
+
+* **Tooling:** Unreleased version headings now work with both the changelog checker and the release notes generator. Full-screen patch checks also verify control flow when jumps need a wider encoding.
+
+* **Tooling:** The build moves to Gradle 9.8.1, fixing three high severity advisories in 9.8.0 (GHSA-xwqc-3h47-hg64, GHSA-mvvg-497x-hmj8, GHSA-j5m7-59rp-24f5). The dependency audit now checks Gradle itself too. Gradle only runs at build time, so the bundle was never affected.
+
+* **Tooling:** The README is much shorter now, a user guide with the install steps, the settings, every patch and the supported builds. The long version, with every caveat and the build internals, is in the repository history.
 
 ## 0.0.9 (2026-10-11)
 
