@@ -21,6 +21,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -260,6 +261,40 @@ public class FullScreenBarsTest {
             FullScreenBars.release(activity);
             heights(128, 63);
             assertEquals("a dropped listener isn't told", 2, told.size());
+        } finally {
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
+    /**
+     * #200: back on Reels from another window, Instagram's copy holds the heights the pause gave back
+     * and its listener keeps them while the bars are hidden, so the hide takes both to 0 itself and the
+     * kept listeners hear it.
+     */
+    @Test public void comingBackToReelsTakesTheHeightsThePauseGaveBack() {
+        List<String> told = new ArrayList<>();
+        FullScreenBars.resetHeightsForTests((listener, status, nav) -> told.add(listener + " " + status + " " + nav));
+        FullScreenBars.registeredForTests(true);
+        try {
+            Settings.FULL_SCREEN_REELS.save(true);
+            FullScreenBars.nowResumed(activity);
+            FullScreenBars.heightsAsked(activity, "reels");
+            heights(75, 135);
+            showViewer(W, H);
+            FullScreenBars.Session session = watch();
+            assertTrue(session.isHidden());
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals(Arrays.asList("reels 75 135", "reels 0 0"), told);
+
+            FullScreenBars.giveBackBarHeights();
+            session.show();
+            assertFalse(session.isHidden());
+            session.evaluate();
+            assertTrue(session.isHidden());
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals("the hide took them again", Arrays.asList("reels 75 135", "reels 0 0", "reels 0 0"), told);
+            assertArrayEquals("and owes them back", new int[] {75, 135}, FullScreenBars.heightsToGiveBack());
         } finally {
             FullScreenBars.registeredForTests(false);
             FullScreenBars.resetHeightsForTests(null);

@@ -371,10 +371,41 @@ public final class FullScreenBars {
     public static void giveBackBarHeights() {
         try {
             int[] heights = heightsToGiveBack();
-            if (heights[0] > 0) keepStatusBarHeight(heights[0]);
-            if (heights[1] > 0) keepNavBarHeight(heights[1]);
+            if (heights[0] > 0) {
+                keepStatusBarHeight(heights[0]);
+                keptStatus = heights[0];
+            }
+            if (heights[1] > 0) {
+                keepNavBarHeight(heights[1]);
+                keptNav = heights[1];
+            }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "bar heights back", failure);
+        }
+    }
+
+    /**
+     * Called as a session hides the bars. Coming back to Reels from another window (HushGram's
+     * settings, a chat), Instagram's copy holds the real heights the pause gave back, and its listener
+     * keeps them while the bars are hidden, so the viewer kept a strip at the top and the bottom (#200).
+     * Each height not already 0 goes to 0 here, and the activity's kept listeners hear it.
+     */
+    static void takeHiddenHeights() {
+        try {
+            boolean took = false;
+            if (!statusTaken && statusOffered > 0) {
+                keepStatusBarHeight(0);
+                statusTaken = true;
+                took = true;
+            }
+            if (!navTaken && navOffered > 0) {
+                keepNavBarHeight(0);
+                navTaken = true;
+                took = true;
+            }
+            if (took) heightsKept(0, 0);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "bar heights hidden", failure);
         }
     }
 
@@ -597,6 +628,7 @@ public final class FullScreenBars {
             }
             saved = true;
             hidden = true;
+            takeHiddenHeights();
             HookStatus.invoked(FamilyNames.FULL_SCREEN_BARS);
             HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_HID);
         }
