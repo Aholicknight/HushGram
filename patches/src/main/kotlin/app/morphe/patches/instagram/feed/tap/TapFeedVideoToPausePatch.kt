@@ -134,8 +134,10 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * opened Reels and never asked. With an accessibility service connected Instagram adds a click listener to the video
  * that skips the gesture detector, and the video's overlays open Reels on their own. Every one of those
  * ends in the feed's one Reels launcher, so the patch asks the extension first thing there as well, with
- * where the launcher was asked from. A tap on the playing video (Instagram's VIDEO_TAP) pauses or plays
- * it under the same checks and the launcher returns; every other opening goes on to Reels.
+ * where the launcher was asked from. A tap on the playing video pauses or plays it under the same
+ * checks and the launcher returns; every other opening goes on to Reels. Instagram names that tap
+ * VIDEO_TAP on the gesture's way and BACKGROUND_TAP on the click listener's (a phone with uiautomator
+ * connected sent BACKGROUND_TAP on 2026-10-15).
  *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.

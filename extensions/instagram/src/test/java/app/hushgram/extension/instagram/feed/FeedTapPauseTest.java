@@ -147,7 +147,7 @@ public class FeedTapPauseTest {
     }
 
     /** Stand-ins for Instagram's entry points, an enum whose names its build keeps. */
-    private enum EntryPoint { VIDEO_TAP, FEED_PREVIEW }
+    private enum EntryPoint { VIDEO_TAP, BACKGROUND_TAP, FEED_PREVIEW, WATCH_AGAIN }
 
     private final Object launcher = new Object();
 
@@ -454,16 +454,35 @@ public class FeedTapPauseTest {
         assertTrue(HookStatus.missing(FamilyNames.FEED_TAP_PAUSE).toString(), HookStatus.missing(FamilyNames.FEED_TAP_PAUSE).isEmpty());
     }
 
+    /**
+     * With an accessibility service on, Instagram's click listener sends a tap on the video to the launcher as a
+     * background tap (the way a 451 phone did on 2026-10-15). It pauses and plays the same as a video tap.
+     */
+    @Test
+    public void aBackgroundTapAtTheLauncherPausesAndPlays() {
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        assertTrue("first tap", open(EntryPoint.BACKGROUND_TAP));
+        assertEquals("pauses", 1, feed.pauses);
+        assertTrue("second tap", open(EntryPoint.BACKGROUND_TAP));
+        assertEquals("plays", 1, feed.starts);
+        String report = report();
+        assertTrue(report, report.contains(FeedTapPause.OPENED_FROM + "BACKGROUND_TAP 2"));
+        assertTrue(report, report.contains(FeedTapPause.PAUSED + " 1"));
+        assertTrue(report, report.contains(FeedTapPause.PLAYED + " 1"));
+    }
+
     /** Any other opening goes on to Reels and is counted under its name; one with no enum is counted as it prints. */
     @Test
     public void otherOpeningsGoToReels() {
         Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
         assertFalse(open(EntryPoint.FEED_PREVIEW));
+        assertFalse("the end screen's button", open(EntryPoint.WATCH_AGAIN));
         assertFalse(FeedTapPause.opening(launcher, null, media, state));
         assertEquals(0, feed.pauses + feed.starts);
         assertEquals("nothing read for them", 0, feed.launcherAsked);
         String report = report();
         assertTrue(report, report.contains(FeedTapPause.OPENED_FROM + "FEED_PREVIEW 1"));
+        assertTrue(report, report.contains(FeedTapPause.OPENED_FROM + "WATCH_AGAIN 1"));
         assertTrue(report, report.contains(FeedTapPause.OPENED_FROM + "null 1"));
     }
 

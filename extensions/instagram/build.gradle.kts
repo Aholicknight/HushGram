@@ -550,6 +550,7 @@ tasks.register("verifyAndroidBoundaries") {
                 "aPressThatIsNotTheirsIsInstagrams[28]", "aPressThatIsNotTheirsIsInstagrams[37]",
                 "aFailureInAPressLeavesItToInstagram[28]", "aFailureInAPressLeavesItToInstagram[37]",
                 "aTapThatReachesTheReelsLauncherPausesAndPlays[28]", "aTapThatReachesTheReelsLauncherPausesAndPlays[37]",
+                "aBackgroundTapAtTheLauncherPausesAndPlays[28]", "aBackgroundTapAtTheLauncherPausesAndPlays[37]",
                 "otherOpeningsGoToReels[28]", "otherOpeningsGoToReels[37]",
                 "aLauncherTapThatIsNotTheirsOpensReels[28]", "aLauncherTapThatIsNotTheirsOpensReels[37]",
                 "aHeldPressThatReachesTheLauncherPausesOnce[28]", "aHeldPressThatReachesTheLauncherPausesOnce[37]",
