@@ -148,6 +148,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide suggested posts:** Hide posts from this account in a post's menu shows a crossed-out eye now, not Download's arrow.
 
+* **Instagram - Hide the Threads button:** Instagram 451 moved the Threads link into a chip under the bio, with the Threads logo and the account's name. With the switch on that chip stays out now too, and the other chips next to it stay put.
+
 * **Instagram - Hide suggested posts:** Hide 'Are you interested?' bubbles now also catches the bubble Instagram adds from a second part of its feed code, when the question comes without a subtitle. Reported in #131 and #182.
 
 * **Instagram - Hide suggested posts:** Once you've seen the latest posts on Home and every suggestion after them is hidden, the empty Suggested for you title goes away. The Older posts link stays. Reported in #104.
