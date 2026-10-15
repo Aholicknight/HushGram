@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -50,6 +51,7 @@ public class FullScreenBarsTest {
     private View reelsTab, homeTab, otherTab;
 
     @Before public void prepare() {
+        FullScreenBars.resetHeightsForTests();
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
         FullScreenBars.idForTests(FullScreenBars.VIEWER, VIEWER);
@@ -172,6 +174,38 @@ public class FullScreenBarsTest {
         assertEquals(63, FullScreenBars.barHeight(63));
         assertEquals("without a glass pill the navigation bar's height goes through", 63, FullScreenBars.navBarHeight(63));
         assertEquals(63, GlassTabBar.navBarHeight(63));
+    }
+
+    /**
+     * #196: a chat opens in an activity of its own and reads the bar heights Instagram kept before
+     * that window's insets reach the listener, so each height answered 0 is owed back as the activity
+     * pauses, at the height Instagram last offered for it, and only once.
+     */
+    @Test public void aPauseGivesBackTheHeightsAnsweredZero() {
+        assertEquals(128, FullScreenBars.barHeight(128));
+        assertEquals(63, FullScreenBars.navBarHeight(63));
+        assertArrayEquals("nothing was answered 0", new int[] {0, 0}, FullScreenBars.heightsToGiveBack());
+
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        assertEquals(0, FullScreenBars.barHeight(128));
+        assertEquals(0, FullScreenBars.navBarHeight(63));
+        // While the bars are hidden Instagram offers what it kept, the 0 it was given.
+        assertEquals(0, FullScreenBars.barHeight(0));
+        assertEquals(0, FullScreenBars.navBarHeight(0));
+        assertArrayEquals("the heights Instagram last offered", new int[] {128, 63}, FullScreenBars.heightsToGiveBack());
+        assertArrayEquals("owed once", new int[] {0, 0}, FullScreenBars.heightsToGiveBack());
+
+        assertEquals(0, FullScreenBars.navBarHeight(63));
+        FullScreenBars.giveBackBarHeights();
+        assertArrayEquals("the pause paid it", new int[] {0, 0}, FullScreenBars.heightsToGiveBack());
+
+        assertEquals(0, FullScreenBars.navBarHeight(63));
+        FullScreenBars.release(activity);
+        assertEquals("the bars came back", 63, FullScreenBars.navBarHeight(63));
+        assertArrayEquals("a height that went through isn't owed", new int[] {0, 0}, FullScreenBars.heightsToGiveBack());
     }
 
     @Test public void aViewerOnlyPartlyOnScreenIsNotReels() {

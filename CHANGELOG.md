@@ -11,6 +11,7 @@ Every HushGram release, newest first.
 * **Instagram - Hide the Reels tab:** Listed under Interface in Morphe's patch list now, next to the glass tab bar, since most of its switches are about the tab bar. That keeps Reels short enough to scan with the new caption words patch in it.
 * **Instagram - Show a reel's exact time:** New switch under the reel's time, Show how long ago a reel was posted, off by default. It adds the days, hours and minutes since the reel went up on a line under the time, like 1d 2h 5m ago, in the same language as the rest of HushGram. Searching for the patch's name now finds both of its choices too. Asked for in #195.
 * **Instagram - Download any reel:** The Download button beside a reel now uses Instagram's own icon made for that column, the one Save's is drawn from, so it's the same size and line weight as the buttons above it instead of bigger and bolder. Reported in #198.
+* **Instagram - Glass tab bar:** Opening a chat with the floating glass bar on left its message box too low, so the keyboard covered half of it, and on phones with navigation buttons it sat behind them. Chats keep the right space at the bottom again. Reported in #196.
 
 ## 0.0.11 (2026-10-15)
 

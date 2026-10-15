@@ -18,6 +18,7 @@ import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -30,6 +31,8 @@ internal const val FULL_SCREEN_BARS_PATCH = "Full screen Reels and Home"
 internal const val FULL_SCREEN_BARS = "$EXTENSION_PACKAGE/reels/FullScreenBars;"
 internal const val BAR_HEIGHT_HOOK = "$FULL_SCREEN_BARS->barHeight(I)I"
 internal const val NAV_BAR_HEIGHT_HOOK = "$FULL_SCREEN_BARS->navBarHeight(I)I"
+internal const val KEEP_STATUS_BAR_HEIGHT = "$FULL_SCREEN_BARS->keepStatusBarHeight(I)V"
+internal const val KEEP_NAV_BAR_HEIGHT = "$FULL_SCREEN_BARS->keepNavBarHeight(I)V"
 
 /** What Instagram's window insets listener logs when it keeps a new status bar height. */
 internal const val STATUS_BAR_CHANGED =
@@ -50,14 +53,17 @@ internal object BarHeightsFingerprint : Fingerprint(
  * every patch that changes them: Full screen Reels and Home (#147) and Glass tab bar, whose floating
  * pill lets the screens run down behind the gesture handle (#144). Written twice, the listener would
  * ask twice for each height. The status bar's height asks [BAR_HEIGHT_HOOK], the navigation bar's
- * [NAV_BAR_HEIGHT_HOOK]. Declared above [fullScreenBarsPatch]: a file's properties start in order, and
- * a patch that names this one before it exists would name nothing.
+ * [NAV_BAR_HEIGHT_HOOK]. The extension can put each height back where the listener keeps it
+ * ([fillKeptHeights], #196). Declared above [fullScreenBarsPatch]: a file's properties start in order,
+ * and a patch that names this one before it exists would name nothing.
  */
 internal val barHeightsPatch = bytecodePatch {
     dependsOn(instagramExtensionPatch)
 
     execute {
-        routeBarHeights(findBarHeights())
+        val listener = findBarHeights()
+        fillKeptHeights(listener.barHeightStores())
+        routeBarHeights(listener)
     }
 }
 
@@ -136,6 +142,34 @@ internal fun Method.barHeightStores(): List<BarHeightStore> {
 
 private fun FieldReference.sameAs(other: FieldReference) =
     definingClass == other.definingClass && name == other.name && type == other.type
+
+/**
+ * Fills the extension's two stubs that store a bar's height where the listener keeps it, the status
+ * bar's [KEEP_STATUS_BAR_HEIGHT] and the navigation bar's [KEEP_NAV_BAR_HEIGHT] (#196). As an
+ * activity pauses, FullScreenBars puts back each height it answered 0 for, since a chat opening in its
+ * own activity reads them before that window's insets reach the listener. The fields must be public
+ * statics of a public class, as on 451, for the extension to write them.
+ */
+internal fun BytecodePatchContext.fillKeptHeights(stores: List<BarHeightStore>) {
+    val bars = classDefByOrNull(FULL_SCREEN_BARS)?.let { mutableClassDefBy(FULL_SCREEN_BARS) }
+        ?: refuse("$FULL_SCREEN_BARS isn't in the extension")
+    for ((store, stub) in stores.zip(listOf(KEEP_STATUS_BAR_HEIGHT, KEEP_NAV_BAR_HEIGHT))) {
+        val holder = classDefByOrNull(store.field.definingClass) ?: refuse("${store.field.definingClass} isn't in the app")
+        val field = holder.fields.singleOrNull { it.name == store.field.name && it.type == store.field.type }
+            ?: refuse("${store.field.definingClass} has no field ${store.field.name}")
+        if (!AccessFlags.PUBLIC.isSet(holder.accessFlags) || !AccessFlags.PUBLIC.isSet(field.accessFlags) ||
+            !AccessFlags.STATIC.isSet(field.accessFlags)
+        ) {
+            refuse("${store.field.definingClass}->${store.field.name} isn't a public static the extension can write")
+        }
+        val name = stub.substringAfter("->").substringBefore('(')
+        val method = bars.methods.singleOrNull {
+            it.name == name && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf("I") &&
+                AccessFlags.STATIC.isSet(it.accessFlags)
+        } ?: refuse("$FULL_SCREEN_BARS has no static V $name(I)")
+        method.addInstructions(0, "sput p0, ${store.field.definingClass}->${store.field.name}:${store.field.type}")
+    }
+}
 
 /**
  * Each store asks the extension first: the store becomes the call, and the answer is stored in its

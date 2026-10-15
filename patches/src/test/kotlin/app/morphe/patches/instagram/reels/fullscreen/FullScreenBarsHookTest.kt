@@ -65,6 +65,41 @@ class FullScreenBarsHookTest {
         for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
     }
 
+    /**
+     * #196: the extension's two stubs store a height where the listener keeps each bar's, so a height
+     * answered 0 can be put back as an activity pauses. Each stub writes its parameter to the field the
+     * listener stores that bar's height in, and the fields are public statics it can reach.
+     */
+    @Test
+    fun eachDeclaredBuildCanPutTheHeightsBack() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                val types = FixtureDex.classesHolding(bundle, STATUS_BAR_CHANGED).map { it.type }.toSet()
+                val stores = PatchContexts.of(FixtureDex.classes(bundle, types).values).findBarHeights().barHeightStores()
+                val holders = stores.map { it.field.definingClass }.toSet()
+                val context = PatchContexts.of(FixtureDex.classes(bundle, types + holders).values + ExtensionDex.classDef(FULL_SCREEN_BARS))
+
+                context.fillKeptHeights(context.findBarHeights().barHeightStores())
+
+                val bars = context.mutableClassDefBy(FULL_SCREEN_BARS)
+                for ((store, stub) in stores.zip(listOf(KEEP_STATUS_BAR_HEIGHT, KEEP_NAV_BAR_HEIGHT))) {
+                    val what = "${bundle.name}: $stub"
+                    val method = bars.methods.single { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == stub }
+                    val code = method.code()
+                    val parameter = method.implementation!!.registerCount - 1
+                    assertEquals("$what: stores first", Opcode.SPUT, code[0].opcode)
+                    assertEquals("$what: its parameter", parameter, (code[0] as OneRegisterInstruction).registerA)
+                    assertEquals("$what: to the field the listener stores", store.field.toString(), code[0].referenceText())
+                    assertEquals("$what: then returns", Opcode.RETURN_VOID, code[1].opcode)
+                }
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
     private fun builds(bundle: File, label: String) {
         val types = FixtureDex.classesHolding(bundle, STATUS_BAR_CHANGED).map { it.type }.toSet()
         for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {

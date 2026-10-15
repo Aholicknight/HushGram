@@ -53,6 +53,7 @@ import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -702,6 +703,8 @@ public final class GlassTabBar {
         @Override public void onActivityPaused(@NonNull Activity activity) {
             nowBehind(activity);
             restoreAll();
+            // A chat opening in its own activity reads the navigation bar's height before its window asks (#196).
+            FullScreenBars.giveBackBarHeights();
         }
         @Override public void onActivityStopped(@NonNull Activity activity) { }
         @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle state) { }
