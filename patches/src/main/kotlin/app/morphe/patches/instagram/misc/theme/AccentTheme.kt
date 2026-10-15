@@ -4,7 +4,6 @@
  */
 package app.morphe.patches.instagram.misc.theme
 
-import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.ResourcePatchContext
@@ -14,6 +13,7 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.returnEarly
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -321,8 +321,7 @@ internal fun BytecodePatchContext.findThemeOverrides(): MutableMethod {
 internal fun BytecodePatchContext.applyAccentTheme(attributes: String = requireAccentAttributes()) {
     val overrides = findThemeOverrides()
     val listed = requireAccentAttributes(attributes)
-    mutableClassDefBy(ACCENT_THEME).methods.single { it.signature() == ATTRIBUTES_STUB }
-        .addInstructions(0, "const-string v0, \"$listed\"\nreturn-object v0")
+    mutableClassDefBy(ACCENT_THEME).methods.single { it.signature() == ATTRIBUTES_STUB }.returnEarly(listed)
     val context = overrides.parameterRegisterNumber(0)
     val returns = overrides.code().indices.filter { overrides.code()[it].opcode == Opcode.RETURN_VOID }
     for (at in returns.asReversed()) {
