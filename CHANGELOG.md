@@ -8,6 +8,7 @@ Every HushGram release, newest first.
 * **Instagram - HushGram settings:** HushGram's settings come in Italian when your phone is set to Italian. Like the other translations, it's a first draft that a native reader can still improve. Asked for in #194.
 * **Instagram - HushGram settings:** Searching for Download any video now also finds Download button on feed posts and the switch under it.
 * **Instagram - Download any video:** New switch under Downloads, Save every page without asking, off by default. With Download button on feed posts on, a tap on a carousel saves all of its pages at once instead of asking which. Asked for in #190.
+* **Instagram - Hide the Reels tab:** Listed under Interface in Morphe's patch list now, next to the glass tab bar, since most of its switches are about the tab bar. That keeps Reels short enough to scan with the new caption words patch in it.
 
 ## 0.0.11 (2026-10-15)
 

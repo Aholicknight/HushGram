@@ -82,7 +82,8 @@ val hideReelsTabPatch = bytecodePatch(
         "and Hide wins if both are on. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels. " +
         "Under Tab bar, switches do the same for Home, Search, Create and Profile, two put Messages or Activity on the bar when Instagram left them off, switches take the Create and notifications buttons off Home's header, others add a Search, Messages or Ghost mode button to it or put Instagram's logo in its middle, two center the name at the top of profiles and the title on other screens, a list puts the tabs in your order, and another picks the tab Instagram opens on.",
 ) {
-    category("Reels")
+    // Most of its switches sit under Tab bar, as the glass tab bar's do, and Reels was past 15 patches.
+    category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
