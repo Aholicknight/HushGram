@@ -638,7 +638,8 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
             return-object p0
         """,
     )
-    // The same controller, reached from the Reels launcher's own lazy field for the module.
+    // Answers an Object: the same controller, reached from the Reels launcher's own lazy field for the
+    // module, and null while a launcher's module isn't made yet.
     val launcherAsk = if (found.launcherIsInterface) "invoke-interface" else "invoke-virtual"
     stub("controllerOfLauncher").addInstructionsWithLabels(
         0,
