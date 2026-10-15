@@ -49,7 +49,6 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -74,6 +73,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -4717,40 +4717,42 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * The tabs on the bar in the order chosen. A tap on one moves it a place up and saves the order
-     * at once, keeping the list open, so a tab can be walked to the top. Instagram's order clears
-     * the choice. The bar is built as Instagram starts, so it shows after a restart.
+     * Every tab with a box for whether it's on the bar and a handle to drag it up or down, like
+     * Piko's (#207, {@link TabPicker}). OK saves what changed, Reset puts the list back to
+     * Instagram's order and tabs without saving, and Cancel leaves everything as it was. The bar is
+     * built as Instagram starts, so it shows after a restart.
      */
     void showTabOrder(Row row) {
         Context context = getActivity();
         if (context == null) return;
-        List<String> order = new ArrayList<>(TabOrder.choices(Settings.TAB_ORDER.get()));
-        ArrayAdapter<String> labels = new ArrayAdapter<>(context, android.R.layout.simple_list_item_1, tabLabels(order));
+        List<String> order = TabPicker.rows(Settings.TAB_ORDER.get());
+        Set<String> ticked = new LinkedHashSet<>();
+        for (String tab : order) {
+            if (TabPicker.shown(tab)) ticked.add(tab);
+        }
+        LinearLayout list = TabPicker.list(context, order, ticked);
+        ScrollView scroll = new ScrollView(context);
+        scroll.addView(list);
         AlertDialog dialog = show(new AlertDialog.Builder(context)
-                .setTitle(L10n.t("Tap a tab to move it up"))
-                .setAdapter(labels, null)
-                .setNeutralButton(L10n.t("Instagram's order"), (shown, which) -> {
-                    Settings.TAB_ORDER.save("");
-                    row.setSummary(tabOrderSummary(""));
-                })
-                .setPositiveButton(L10n.t("OK"), null));
+                .setTitle(L10n.t("Show and reorder tabs"))
+                .setView(scroll)
+                .setNeutralButton(L10n.t("Reset"), null)
+                .setNegativeButton(L10n.t("Cancel"), null)
+                .setPositiveButton(L10n.t("OK"), (shown, which) -> {
+                    AbstractPreferenceFragment.restartNoteOnce(context,
+                            () -> TabPicker.save(TabPicker.orderOf(list), TabPicker.tickedOf(list)));
+                    row.setSummary(tabOrderSummary(Settings.TAB_ORDER.get()));
+                }));
         if (dialog == null) return;
-        // A click listener of its own, so a tap moves the tab without closing the list.
-        dialog.getListView().setOnItemClickListener((parent, view, position, id) -> {
-            List<String> moved = TabOrder.movedUp(order, position);
-            order.clear();
-            order.addAll(moved);
-            Settings.TAB_ORDER.save(TabOrder.join(order));
-            labels.clear();
-            labels.addAll(tabLabels(order));
-            row.setSummary(tabOrderSummary(Settings.TAB_ORDER.get()));
+        // A click listener of its own, so Reset changes the list without closing it.
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(tapped -> {
+            List<String> instagrams = TabPicker.rows("");
+            Set<String> defaults = new LinkedHashSet<>();
+            for (String tab : instagrams) {
+                if (TabPicker.shownByDefault(tab)) defaults.add(tab);
+            }
+            TabPicker.fill(list, instagrams, defaults);
         });
-    }
-
-    private static List<String> tabLabels(List<String> names) {
-        List<String> labels = new ArrayList<>(names.size());
-        for (String name : names) labels.add(tabLabel(name));
-        return labels;
     }
 
     /** The tab Instagram opens on when it's started from its icon. Its summary says what the choice does. */

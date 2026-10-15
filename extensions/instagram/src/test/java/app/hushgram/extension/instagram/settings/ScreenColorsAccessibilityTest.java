@@ -365,7 +365,8 @@ public class ScreenColorsAccessibilityTest {
         assertEquals(1, list.getCheckedItemCount());
     }
 
-    @Test public void movingTabsRefreshesTheStyledAdapterAndKeepsItsOwnClickListener() throws Exception {
+    /** The tab picker's rows keep the page's colours once the dialog is styled, and Reset keeps it open (#207). */
+    @Test public void theTabPickerKeepsItsColoursAndResetKeepsItOpen() throws Exception {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REELS_TAB);
         HushgramPreferenceFragment page = new HushgramPreferenceFragment();
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
@@ -377,16 +378,19 @@ public class ScreenColorsAccessibilityTest {
         AlertDialog alert = ShadowAlertDialog.getLatestAlertDialog();
         opened.add(alert);
         ScreenColors.dialog(alert);
-        ListView list = alert.getListView();
-        assertEquals(Arrays.asList("Home", "Search", "Reels", "Messages", "Create", "Profile"), labels(list));
-        tap(list, 3);
-        assertTrue(alert.isShowing());
-        assertEquals(Arrays.asList("Home", "Search", "Messages", "Reels", "Create", "Profile"), labels(list));
-        assertEquals("FEED,SEARCH,DIRECT,CLIPS,CREATION,PROFILE", Settings.TAB_ORDER.get());
-        tap(list, 2);
-        assertEquals(Arrays.asList("Home", "Messages", "Search", "Reels", "Create", "Profile"), labels(list));
+        android.widget.LinearLayout list = (android.widget.LinearLayout)
+                alert.getWindow().getDecorView().findViewWithTag(TabPicker.HOME).getParent();
+        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        TabPicker.moveUp(list, 3);
+        assertEquals(TabPicker.MESSAGES, list.getChildAt(2).getTag());
         alert.getButton(DialogInterface.BUTTON_NEUTRAL).performClick();
         ShadowLooper.idleMainLooper();
+        assertTrue(alert.isShowing());
+        assertEquals(TabPicker.REELS, list.getChildAt(2).getTag());
+        for (int at = 0; at < list.getChildCount(); at++) {
+            android.widget.CheckBox box = TabPicker.box(list.getChildAt(at));
+            assertEquals(box.isEnabled() ? colors.title : colors.summary, box.getCurrentTextColor());
+        }
         assertEquals("", Settings.TAB_ORDER.get());
     }
 
@@ -507,12 +511,6 @@ public class ScreenColorsAccessibilityTest {
                 View.MeasureSpec.makeMeasureSpec(Math.round(819 * density), View.MeasureSpec.AT_MOST));
         root.layout(0, 0, root.getMeasuredWidth(), root.getMeasuredHeight());
         ShadowLooper.idleMainLooper();
-    }
-
-    private static List<String> labels(ListView list) {
-        List<String> result = new ArrayList<>();
-        for (int i = 0; i < list.getAdapter().getCount(); i++) result.add(String.valueOf(list.getAdapter().getItem(i)));
-        return result;
     }
 
     private static int color(ColorStateList colors, boolean enabled, boolean checked) {

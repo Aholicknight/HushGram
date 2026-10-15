@@ -151,11 +151,11 @@ public final class TabOrder {
         return chosen;
     }
 
-    /** [names] with the one at [index] moved one place toward the start. The first stays where it is. */
-    public static List<String> movedUp(List<String> names, int index) {
-        List<String> moved = new ArrayList<>(names);
-        if (index > 0 && index < moved.size()) Collections.swap(moved, index, index - 1);
-        return moved;
+    /** The names of the tabs on the bar in Instagram's order, after the hide switches, as last built, or null before. */
+    @Nullable
+    public static List<String> lastBuilt() {
+        List<String> built = instagramOrder;
+        return built == null ? null : Collections.unmodifiableList(built);
     }
 
     private static void remember(List<?> tabs) {
@@ -164,6 +164,11 @@ public final class TabOrder {
             if (tab instanceof Enum) names.add(((Enum<?>) tab).name());
         }
         instagramOrder = names;
+    }
+
+    /** Stands in for a bar Instagram built with [names], for the settings page's tests. */
+    public static void builtForTests(List<String> names) {
+        instagramOrder = new ArrayList<>(names);
     }
 
     /** Forgets the bar as last built, for tests, the settings page's included. */

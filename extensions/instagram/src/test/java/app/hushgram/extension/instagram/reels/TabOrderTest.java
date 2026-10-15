@@ -136,14 +136,6 @@ public class TabOrderTest {
         assertEquals(Arrays.asList("PROFILE", "FEED", "CLIPS", "DIRECT"), TabOrder.choices("SEARCH,PROFILE"));
     }
 
-    @Test public void aTapMovesATabOnePlaceUpAndTheFirstStays() {
-        List<String> names = Arrays.asList("FEED", "SEARCH", "DIRECT");
-        assertEquals(Arrays.asList("FEED", "DIRECT", "SEARCH"), TabOrder.movedUp(names, 2));
-        assertEquals(names, TabOrder.movedUp(names, 0));
-        assertEquals(names, TabOrder.movedUp(names, 7));
-        assertEquals("the list handed in is left as it was", Arrays.asList("FEED", "SEARCH", "DIRECT"), names);
-    }
-
     @Test public void aReorderedBarOpensThePagerOnTheAskedTabAndInstagramsOwnOrderKeepsItsAnswer() {
         assertTrue("Instagram's yes stays yes", ReelsTab.startAtTab(1));
         assertEquals("nothing built yet", false, ReelsTab.startAtTab(0));
