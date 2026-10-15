@@ -117,11 +117,12 @@ public class StoryRingTest {
     @Test
     public void eachColorHasItsTwoShades() {
         assertShades(StoryRingColor.BLUE, 0xFF2F8CFF, 0xFF3D5AFE);
+        assertShades(StoryRingColor.TEAL, 0xFF009E9E, 0xFF00897B);
         assertShades(StoryRingColor.PURPLE, 0xFF9B5CFF, 0xFFB14BE0);
         assertShades(StoryRingColor.RED, 0xFFFF3B30, 0xFFE0010D);
         assertShades(StoryRingColor.ORANGE, 0xFFF26B0F, 0xFFE0461F);
         assertShades(StoryRingColor.GOLD, 0xFFC58500, 0xFFB86E00);
-        assertEquals("a color with no shades listed here", 6, StoryRingColor.values().length);
+        assertEquals("a color with no shades listed here", 7, StoryRingColor.values().length);
     }
 
     /**

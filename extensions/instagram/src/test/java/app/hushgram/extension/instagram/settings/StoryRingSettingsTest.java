@@ -82,10 +82,10 @@ public class StoryRingSettingsTest {
             assertEquals("Ring color", String.valueOf(color.getDialogTitle()));
             List<String> entries = new ArrayList<>();
             for (CharSequence entry : color.getEntries()) entries.add(String.valueOf(entry));
-            assertEquals(Arrays.asList("Instagram's colors", "Blue", "Purple", "Red", "Orange", "Gold"), entries);
+            assertEquals(Arrays.asList("Instagram's colors", "Blue", "Teal", "Purple", "Red", "Orange", "Gold"), entries);
             List<String> values = new ArrayList<>();
             for (CharSequence value : color.getEntryValues()) values.add(String.valueOf(value));
-            assertEquals(Arrays.asList("INSTAGRAM", "BLUE", "PURPLE", "RED", "ORANGE", "GOLD"), values);
+            assertEquals(Arrays.asList("INSTAGRAM", "BLUE", "TEAL", "PURPLE", "RED", "ORANGE", "GOLD"), values);
 
             assertEquals("INSTAGRAM", color.getValue());
             assertEquals("Instagram's colors", String.valueOf(color.getSummary()));

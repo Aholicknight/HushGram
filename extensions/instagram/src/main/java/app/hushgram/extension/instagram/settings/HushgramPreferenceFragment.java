@@ -5047,6 +5047,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         switch (color) {
             case BLUE:
                 return L10n.t("Blue");
+            case TEAL:
+                return L10n.t("Teal");
             case PURPLE:
                 return L10n.t("Purple");
             case RED:

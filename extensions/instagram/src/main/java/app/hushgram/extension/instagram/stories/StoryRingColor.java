@@ -21,6 +21,7 @@ package app.hushgram.extension.instagram.stories;
 public enum StoryRingColor {
     INSTAGRAM(0, 0),
     BLUE(0xFF2F8CFF, 0xFF3D5AFE),
+    TEAL(0xFF009E9E, 0xFF00897B),
     PURPLE(0xFF9B5CFF, 0xFFB14BE0),
     RED(0xFFFF3B30, 0xFFE0010D),
     ORANGE(0xFFF26B0F, 0xFFE0461F),
