@@ -487,6 +487,17 @@ public final class GlassTabBar {
         return false;
     }
 
+    /** Whether [activity], resuming, has a floating glass pill set to show in it. */
+    static boolean floatingBarResuming(Activity activity) {
+        if (!Utils.settingsReady() || HushgramPause.isPaused()) return false;
+        for (Map.Entry<View, WeakReference<Glass>> entry : applied.entrySet()) {
+            WeakReference<Glass> held = entry.getValue();
+            Glass glass = held == null ? null : held.get();
+            if (glass != null && glass.floatsIn(activity)) return true;
+        }
+        return false;
+    }
+
     /** The room a floating pill makes under itself for the navigation bar: the height Instagram was answered 0 for. */
     static int navRoom(boolean floating) {
         return floating ? navTaken : 0;
@@ -696,6 +707,8 @@ public final class GlassTabBar {
         @Override public void onActivityResumed(@NonNull Activity activity) {
             nowInFront(activity);
             apply(activity);
+            // Ahead of the activity's screens, which read the navigation bar's height as they resume (#196).
+            if (floatingBarResuming(activity)) FullScreenBars.takeNavBarHeight();
         }
 
         @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) { }
@@ -1064,6 +1077,14 @@ public final class GlassTabBar {
         /** Whether this is a floating pill that shows in [activity]'s window. */
         boolean floatsShownIn(Activity activity) {
             return floating && bar.isShown() && ownedBy(bar, activity);
+        }
+
+        /**
+         * Whether this is a floating pill set to show in [activity], whether or not its window shows yet:
+         * a stopped activity's window is still hidden while it resumes.
+         */
+        boolean floatsIn(Activity activity) {
+            return floating && bar.getVisibility() == View.VISIBLE && ownedBy(bar, activity);
         }
 
         /**

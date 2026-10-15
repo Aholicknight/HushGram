@@ -279,6 +279,22 @@ public final class FullScreenBars {
         }
     }
 
+    /**
+     * Called as an activity with a floating glass pill showing resumes, before its screens do. The
+     * window it came back from (a chat) stored the navigation bar's real height, and a screen resuming
+     * under the pill (the inbox) read that before the pill's insets came round again, so it kept a
+     * strip under the pill (#196). Instagram's copy goes back to the pill's 0 at once.
+     */
+    public static void takeNavBarHeight() {
+        try {
+            if (navTaken || navOffered <= 0) return;
+            keepNavBarHeight(0);
+            navTaken = true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height again", failure);
+        }
+    }
+
     /** The status bar's and the navigation bar's heights owed back, 0 for one not answered 0. Owed once. */
     static int[] heightsToGiveBack() {
         int[] heights = {statusTaken ? statusOffered : 0, navTaken ? navOffered : 0};

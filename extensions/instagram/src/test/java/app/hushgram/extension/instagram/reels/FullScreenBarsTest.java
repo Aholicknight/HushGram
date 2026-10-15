@@ -208,6 +208,17 @@ public class FullScreenBarsTest {
         assertArrayEquals("a height that went through isn't owed", new int[] {0, 0}, FullScreenBars.heightsToGiveBack());
     }
 
+    /** #196: coming back under a floating pill, Instagram's copy goes back to 0 once, and is owed back again. */
+    @Test public void aPillComingBackTakesTheNavigationBarsHeightOnce() {
+        FullScreenBars.takeNavBarHeight();
+        assertArrayEquals("nothing offered yet, nothing taken", new int[] {0, 0}, FullScreenBars.heightsToGiveBack());
+        assertEquals(63, FullScreenBars.navBarHeight(63));
+        FullScreenBars.takeNavBarHeight();
+        FullScreenBars.takeNavBarHeight();
+        assertArrayEquals("taken, so owed back once", new int[] {0, 63}, FullScreenBars.heightsToGiveBack());
+        assertArrayEquals(new int[] {0, 0}, FullScreenBars.heightsToGiveBack());
+    }
+
     @Test public void aViewerOnlyPartlyOnScreenIsNotReels() {
         Settings.FULL_SCREEN_REELS.save(true);
         showViewer(W, H / 3);

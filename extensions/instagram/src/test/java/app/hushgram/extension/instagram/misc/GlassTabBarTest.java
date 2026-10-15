@@ -287,6 +287,35 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * #196: a stopped activity's window stays hidden through its resume, and its screens read the
+     * navigation bar's height as they resume. A floating pill set to show in it counts already, so
+     * Instagram's copy goes back to the pill's 0 ahead of them. A hidden bar or another activity doesn't.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aFloatingPillCountsWhileItsWindowIsStillHidden() {
+        GlassTabBar.resetForTests();
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            host.controller.pause().resume();
+            host.frame();
+            View decor = host.activity.getWindow().getDecorView();
+            decor.setVisibility(View.INVISIBLE);
+            assertFalse("its window doesn't show yet", GlassTabBar.floatingBarInFront());
+            assertTrue("but the pill is set to float in it", GlassTabBar.floatingBarResuming(host.activity));
+            host.bar.setVisibility(View.GONE);
+            assertFalse("a hidden bar", GlassTabBar.floatingBarResuming(host.activity));
+            host.bar.setVisibility(View.VISIBLE);
+            decor.setVisibility(View.VISIBLE);
+            ActivityController<Activity> other = Robolectric.buildActivity(Activity.class).setup();
+            try {
+                assertFalse("another activity", GlassTabBar.floatingBarResuming(other.get()));
+            } finally {
+                other.pause().stop().destroy();
+            }
+        }
+    }
+
     /** A pill over Instagram's own place, not floating, leaves the navigation bar's height alone and never asks for insets. */
     @Test
     @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
@@ -298,6 +327,7 @@ public class GlassTabBarTest {
             host.controller.pause().resume();
             host.frame();
             int height = host.bar.getLayoutParams().height;
+            assertFalse("nothing to take the height for", GlassTabBar.floatingBarResuming(host.activity));
             assertEquals(nav, GlassTabBar.navBarHeight(nav));
             host.frame();
             assertEquals(height, host.bar.getLayoutParams().height);
