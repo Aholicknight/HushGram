@@ -48,7 +48,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * post's exact time is: the date and the time in the phone's language, time zone and 12 or 24-hour
  * setting, like Oct 2, 3:45 PM, with the year for another year. {@link Settings#REEL_POST_TIME_SECONDS}
  * adds the seconds, like Oct 2, 3:45:30 PM, and {@link Settings#REEL_POST_TIME_AGO} how long ago that
- * was, like Oct 2, 3:45 PM · 1d 2h 5m ago (#195), worked out as the reel's title is made. A time that
+ * was, like 1d 2h 5m ago (#195), on a line of its own under the time, worked out as the reel's title
+ * is made. A time that
  * is zero, negative, too large to be one, or more than a day past the phone's clock isn't a posting
  * time, and gets no line.
  *
@@ -66,9 +67,6 @@ public final class ReelPostTime {
     private static final int DATE = StoryTime.FORMAT & ~DateUtils.FORMAT_SHOW_TIME;
 
     private static final long MINUTE = 60L * 1000;
-
-    /** Between the time and how long ago, the dot Instagram sets the parts of a reel's subtitle off with. */
-    static final String BETWEEN = " · ";
 
     /** What a tap on the line does: nothing. Instagram's subtitle text has to be given a listener. */
     private static final View.OnClickListener NO_CLICK = new View.OnClickListener() {
@@ -163,16 +161,17 @@ public final class ReelPostTime {
             Context context = Utils.getContext();
             String text = label(context, posted, Settings.REEL_POST_TIME_SECONDS.get(), now);
             if (text == null) return;
-            if (Settings.REEL_POST_TIME_AGO.get()) {
-                String ago = ago(context, now - posted * 1000L);
-                if (ago != null) text = text + BETWEEN + ago;
-            }
             Object component = reader.component(title, new Line(text));
             if (component == null) return;
             @SuppressWarnings("unchecked")
             List<Object> parts = (List<Object>) children;
             parts.add(component);
             HookStatus.bound(FamilyNames.REEL_POST_TIME, "reel time");
+            if (!Settings.REEL_POST_TIME_AGO.get()) return;
+            // A line of its own: next to the Follow button the two together ran out of room.
+            String ago = ago(context, now - posted * 1000L);
+            Object below = ago == null ? null : reader.component(title, new Line(ago));
+            if (below != null) parts.add(below);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_POST_TIME, "reel time", failure);
         }

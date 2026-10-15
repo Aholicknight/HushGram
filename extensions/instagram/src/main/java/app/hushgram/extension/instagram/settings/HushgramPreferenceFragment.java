@@ -932,7 +932,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.REEL_POST_TIME_SECONDS, L10n.t("Show seconds in a reel's time"),
                     L10n.t("Adds the seconds to a reel's time, like Oct 2, 3:45:30 PM.")));
             reels.add(toggle(context, Settings.REEL_POST_TIME_AGO, L10n.t("Show how long ago a reel was posted"),
-                    L10n.t("Adds the days, hours and minutes since it went up, like Oct 2, 3:45 PM · 1d 2h 5m ago.")));
+                    L10n.t("Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.")));
         }
         if (build.contains(PatchFamily.REEL_SEEK_BAR)) {
             reels.add(toggle(context, Settings.REEL_SEEK_BAR, L10n.t("Keep a seek bar"),

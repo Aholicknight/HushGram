@@ -151,7 +151,7 @@ public class ReelPostTimeTest {
         return new Title(new Post(takenAt));
     }
 
-    /** The words of the line [title] gets, or null when its parts come back as they went in. */
+    /** The words of the lines [title] gets, one per text line, or null when its parts come back as they went in. */
     private String lineOf(Object title) {
         List<Object> parts = parts();
         ReelPostTime.line(title, parts, reader, now);
@@ -159,10 +159,15 @@ public class ReelPostTimeTest {
             assertEquals(Arrays.asList(nameRow, audio), parts);
             return null;
         }
-        assertEquals("one line at most", 3, parts.size());
-        Subtitle made = (Subtitle) parts.get(2);
-        assertSame(title, made.title);
-        return String.valueOf(ReelPostTime.lineText(made.state));
+        assertTrue("two lines at most: " + parts, parts.size() <= 4);
+        StringBuilder words = new StringBuilder();
+        for (Object part : parts.subList(2, parts.size())) {
+            Subtitle made = (Subtitle) part;
+            assertSame(title, made.title);
+            if (words.length() > 0) words.append('\n');
+            words.append(ReelPostTime.lineText(made.state));
+        }
+        return words.toString();
     }
 
     /** On, a reel with a posting time gets one more part after Instagram's own, made for its title. */
@@ -197,7 +202,10 @@ public class ReelPostTimeTest {
         assertEquals("Oct 2, 3:45 PM", plain(lineOf(title)));
     }
 
-    /** How long ago follows the time only when asked for, with the seconds or without them (#195). */
+    /**
+     * How long ago shows only when asked for, on a line of its own under the time, with the seconds
+     * or without them (#195). Next to the Follow button the two on one line ran out of room.
+     */
     @Test
     public void howLongAgoShowsOnlyWhenAskedFor() {
         Title title = reel(postedOnOctober2(0));
@@ -205,9 +213,9 @@ public class ReelPostTimeTest {
         assertEquals("Oct 2, 3:45 PM", plain(lineOf(title)));
 
         Settings.REEL_POST_TIME_AGO.save(true);
-        assertEquals("Oct 2, 3:45 PM · 2h ago", plain(lineOf(title)));
+        assertEquals("Oct 2, 3:45 PM\n2h ago", plain(lineOf(title)));
         Settings.REEL_POST_TIME_SECONDS.save(true);
-        assertEquals("Oct 2, 3:45:30 PM · 2h ago", plain(lineOf(title)));
+        assertEquals("Oct 2, 3:45:30 PM\n2h ago", plain(lineOf(title)));
 
         assertEquals("a minute ahead of the phone's clock is a clock that's off, so just the time",
                 "Oct 2, 5:46:30 PM", plain(lineOf(reel(now / 1000L + 60))));

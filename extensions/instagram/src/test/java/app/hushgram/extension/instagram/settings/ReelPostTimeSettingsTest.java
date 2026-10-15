@@ -154,7 +154,7 @@ public class ReelPostTimeSettingsTest {
         SwitchPreference ago = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.REEL_POST_TIME_AGO.key);
         assertNotNull(ago);
         assertEquals("Show how long ago a reel was posted", ago.getTitle().toString());
-        assertEquals("Adds the days, hours and minutes since it went up, like Oct 2, 3:45 PM · 1d 2h 5m ago.",
+        assertEquals("Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.",
                 ago.getSummary().toString());
         assertFalse(ago.isChecked());
         assertEquals(Boolean.FALSE, Settings.REEL_POST_TIME_AGO.defaultValue);

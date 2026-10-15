@@ -1136,5 +1136,5 @@ No words yet	Ancora nessuna parola
 %1$d words	%1$d parole
 # context: Reels > Show a reel's exact time: how long ago a reel was posted (#195). %1$s is a short span like 1d 2h 5m, already in this language.
 Show how long ago a reel was posted	Mostra quanto tempo fa è stato pubblicato un reel
-Adds the days, hours and minutes since it went up, like Oct 2, 3:45 PM · 1d 2h 5m ago.	Aggiunge i giorni, le ore e i minuti da quando è stato pubblicato, come 2 ott, 15:45 · 1g 2h 5min fa.
+Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	Mostra i giorni, le ore e i minuti da quando è stato pubblicato su una riga sotto l'orario, come 1g 2h 5min fa.
 %1$s ago	%1$s fa
