@@ -372,6 +372,21 @@ public class DownloadSettingsTest {
         }
     }
 
+    /** Searching the patch's name finds the feed button and the switch under it, though neither says it. */
+    @Test
+    public void searchingThePatchsNameFindsTheFeedButtonRows() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            List<Preference> rows = rowsOf(page);
+            Preference button = rows.get(indexOfKey(rows, Settings.FEED_DOWNLOAD_BUTTON.key));
+            Preference all = rows.get(indexOfKey(rows, Settings.FEED_DOWNLOAD_ALL_PAGES.key));
+            page.searchSettings("download any video");
+            assertNotNull("the feed button", button.getParent());
+            assertNotNull("save every page", all.getParent());
+        }
+    }
+
     /**
      * Hold to download sits right below the Download button, starts off and waits for Download feed
      * videos or photos, as the button does. Its Fingers and Hold time lists follow it, start on two
