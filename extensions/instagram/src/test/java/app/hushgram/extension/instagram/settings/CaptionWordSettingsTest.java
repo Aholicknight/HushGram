@@ -55,6 +55,7 @@ public class CaptionWordSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_CAPTION_WORD_REELS.resetToDefault();
         Settings.REELS_BLOCKED_WORDS.resetToDefault();
+        Settings.HIDE_CAPTION_WORD_HOME.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(boolean installed) throws Exception {
@@ -111,6 +112,36 @@ public class CaptionWordSettingsTest {
         InputFilter[] filters = words.getEditText().getFilters();
         assertEquals(1, filters.length);
         assertEquals(ConfigurationBackup.MAX_WORDS_TEXT, ((InputFilter.LengthFilter) filters[0]).getMax());
+    }
+    /** Also on Home sits under the list, off to start and waiting for the switch, only with Home's reads in the build. */
+    @Test public void alsoOnHomeSitsUnderTheListWithHomesReadsInTheBuild() throws Exception {
+        PatchFamily.feedTypesForTests = true;
+        try {
+            open(true);
+            SwitchPreference hide = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_REELS.key);
+            Preference words = page.getPreferenceScreen().findPreference(Settings.REELS_BLOCKED_WORDS.key);
+            SwitchPreference home = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_HOME.key);
+            assertNotNull(home);
+            assertEquals("Also on Home", home.getTitle().toString());
+            assertFalse("off to start", home.isChecked());
+            PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), words);
+            assertEquals("right under the list", indexIn(section, words) + 1, indexIn(section, home));
+            assertFalse("waits for the switch", home.isEnabled());
+            hide.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(home.isEnabled());
+            page.searchSettings("hide reels by caption words");
+            assertNotNull("the patch's name finds it", home.getParent());
+            page.searchSettings("");
+            controller.close();
+            controller = null;
+
+            PatchFamily.feedTypesForTests = false;
+            open(true);
+            assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_HOME.key));
+        } finally {
+            PatchFamily.feedTypesForTests = null;
+        }
     }
     /** Searching the patch's name finds the list too, which says neither word of it itself. */
     @Test public void searchingThePatchsNameFindsBothRows() throws Exception {

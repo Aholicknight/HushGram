@@ -1128,6 +1128,8 @@ Save every page without asking	묻지 않고 모든 페이지 저장
 On a carousel, the download icon saves all of its pages at once instead of asking.	캐러셀에서는 다운로드 아이콘이 묻지 않고 모든 페이지를 한 번에 저장합니다.
 # context: Reels switch Hide reels by caption words, its Blocked words list row and that row's summary; %1$d is how many words
 Hide reels by caption words	캡션 단어로 릴스 숨기기
+Also on Home	홈에도 적용
+Leaves out posts on Home whose caption holds a word or phrase from the list too. Pull down on Home to refresh after changing it.	캡션에 목록의 단어나 문구가 있는 홈 게시물도 숨깁니다. 바꾼 뒤에는 홈을 아래로 당겨 새로고침하세요.
 Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	릴스 탭에서 캡션에 아래 목록의 단어나 문구가 들어 있는 릴스를 뺍니다. 직접 연 릴스는 그대로 재생됩니다.
 Blocked words	차단한 단어
 Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.	단어나 문구를 쉼표나 줄바꿈으로 구분해 입력하세요. 대소문자는 상관없고 해시태그도 됩니다.

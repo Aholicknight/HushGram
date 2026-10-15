@@ -843,6 +843,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. "
                             + "A reel you open yourself still plays.")));
             reels.add(blockedWordsRow(context));
+            if (PatchFamily.feedTypesInBuild()) {
+                reels.add(toggle(context, Settings.HIDE_CAPTION_WORD_HOME, L10n.t("Also on Home"),
+                        L10n.t("Leaves out posts on Home whose caption holds a word or phrase from the list too. "
+                                + "Pull down on Home to refresh after changing it.")));
+            }
         }
         if (build.contains(PatchFamily.REEL_DECLUTTER)) {
             reels.add(toggle(context, Settings.HIDE_REEL_FOLLOW_BUTTON, L10n.t("Hide the Follow button"),
@@ -1825,7 +1830,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
-                    belongs |= family == PatchFamily.CAPTION_WORD_REELS && Settings.REELS_BLOCKED_WORDS.key.equals(key);
+                    belongs |= family == PatchFamily.CAPTION_WORD_REELS && (Settings.REELS_BLOCKED_WORDS.key.equals(key)
+                            || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key));
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
                             || HIDDEN_CHATS_ROW.equals(key) || Settings.UNLOCK_WITH.key.equals(key)

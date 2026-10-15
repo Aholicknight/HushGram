@@ -30,7 +30,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The list is the words and phrases typed under the switch, split at commas and new lines, as
  * Hushfeed's Blocked caption words are, so a list from there pastes in as it is. A reel goes when
  * its caption, the post's own words with their hashtags, holds one of them, whatever the case. A
- * reel with no caption stays.
+ * reel with no caption stays. With Also on Home on, Home's posts are matched against the same list
+ * ({@link app.hushgram.extension.instagram.feed.FeedSuggestions#homeItem}).
  *
  * <p>A page where every reel would go keeps every item, so the viewer always has a reel to show,
  * and the report counts it. Off, paused, with an empty list, before the settings are read, or when
@@ -147,7 +148,7 @@ public final class CaptionWordReels {
     }
 
     /** Whether [caption] holds one of [words], which are already lower case. No caption holds nothing. */
-    static boolean holdsAny(String caption, List<String> words) {
+    public static boolean holdsAny(String caption, List<String> words) {
         if (caption == null || caption.isEmpty()) return false;
         String text = caption.toLowerCase(Locale.ROOT);
         for (String word : words) {
@@ -183,6 +184,15 @@ public final class CaptionWordReels {
     static List<String> wordsWhenOn() {
         if (!Utils.settingsReady() || !Settings.HIDE_CAPTION_WORD_REELS.get()) return Collections.emptyList();
         return cached(Settings.REELS_BLOCKED_WORDS.get());
+    }
+
+    /**
+     * The blocked words Home's posts are matched against: the list while the switch and its Also on
+     * Home are both on, and none while either is off, while paused or before the settings are read.
+     */
+    public static List<String> homeWordsWhenOn() {
+        if (!Utils.settingsReady() || !Settings.HIDE_CAPTION_WORD_HOME.get()) return Collections.emptyList();
+        return wordsWhenOn();
     }
 
     /**

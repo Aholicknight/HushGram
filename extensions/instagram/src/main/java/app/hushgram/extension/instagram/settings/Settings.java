@@ -1151,6 +1151,14 @@ public class Settings extends BaseSettings {
     public static final StringSetting REELS_BLOCKED_WORDS =
             new StringSetting("hushgram_reels_blocked_words", "", parent(HIDE_CAPTION_WORD_REELS));
 
+    /**
+     * {@link #REELS_BLOCKED_WORDS} on Home too: a post there whose caption holds one goes
+     * ({@link app.hushgram.extension.instagram.feed.FeedSuggestions#homeItem}). Waits for
+     * {@link #HIDE_CAPTION_WORD_REELS}, and is off to start (#192).
+     */
+    public static final BooleanSetting HIDE_CAPTION_WORD_HOME =
+            new BooleanSetting("hushgram_hide_caption_word_home", FALSE, parent(HIDE_CAPTION_WORD_REELS));
+
     /** An explicit Copy action for original comment text. Off until enabled. */
     public static final BooleanSetting COPY_COMMENTS =
             new BooleanSetting("hushgram_copy_comments", FALSE);

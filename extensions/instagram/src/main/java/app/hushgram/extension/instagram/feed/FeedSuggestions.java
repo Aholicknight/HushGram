@@ -17,6 +17,8 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 
+import app.hushgram.extension.instagram.download.InstagramMedia;
+import app.hushgram.extension.instagram.reels.CaptionWordReels;
 import app.hushgram.extension.instagram.reels.FeedReels;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.PatchFamily;
@@ -108,6 +110,12 @@ public final class FeedSuggestions {
 
     /** The report's count of posts Hide posts you've liked took out of Home. */
     static final String LIKED_REMOVED = "liked posts removed";
+
+    /** The kind counted for a post Hide reels by caption words' Also on Home took out of Home. */
+    static final String CAPTION_WORD = "caption word";
+
+    /** The report's count of posts Also on Home took out of Home for a word in their caption. */
+    static final String CAPTION_WORD_REMOVED = "caption word posts removed";
 
     /** The report's count of Suggested for you titles {@link #sectionTitle} left off a header with nothing under it. */
     static final String SECTION_TITLE_DROPPED = "suggested section titles left off with nothing under them";
@@ -280,7 +288,7 @@ public final class FeedSuggestions {
     private static boolean postSwitchOn() {
         return Settings.HIDE_FEED_VIDEOS.get() || Settings.HIDE_FEED_PHOTOS.get()
                 || Settings.HIDE_FEED_CAROUSELS.get() || Settings.HIDE_FEED_LIKED.get()
-                || !HiddenAccounts.hidden().isEmpty();
+                || !HiddenAccounts.hidden().isEmpty() || !CaptionWordReels.homeWordsWhenOn().isEmpty();
     }
 
     /** Whether any switch {@link #filter} takes items out for is on. */
@@ -554,26 +562,33 @@ public final class FeedSuggestions {
      * Injected right after Home keeps each item it reads, from its feed response and from its store
      * of the last run, beside Hide the home feed's filter when both are in. Answers null for a post
      * of one video, one photo or a carousel while that type's switch is on, a post you've liked
-     * while Hide posts you've liked is on, or a post by an account on {@link HiddenAccounts}, and
+     * while Hide posts you've liked is on, a post by an account on {@link HiddenAccounts}, or a post
+     * whose caption holds one of Hide reels by caption words' words while its Also on Home is on, and
      * [item] itself otherwise, or when anything goes wrong. An item with no post, a row of suggested
      * accounts for one, stays. Inside a page of Home's feed response it also counts the item toward
      * that page, and whether it was lost to {@link #filter} or to its own removals, for
      * {@link #homePageParsed}. Never throws.
      */
     public static Object homeItem(Object item) {
-        return homeItem(item, FeedSuggestions::itemType, FeedSuggestions::itemLiked, FeedSuggestions::author);
+        return homeItem(item, FeedSuggestions::itemType, FeedSuggestions::itemLiked, FeedSuggestions::author,
+                FeedSuggestions::captionOf);
     }
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf) {
-        return homeItem(item, typeOf, FeedSuggestions::itemLiked, FeedSuggestions::author);
+        return homeItem(item, typeOf, FeedSuggestions::itemLiked, FeedSuggestions::author, FeedSuggestions::captionOf);
     }
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf) {
-        return homeItem(item, typeOf, likedOf, FeedSuggestions::author);
+        return homeItem(item, typeOf, likedOf, FeedSuggestions::author, FeedSuggestions::captionOf);
     }
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
             Function<Object, String> authorOf) {
+        return homeItem(item, typeOf, likedOf, authorOf, FeedSuggestions::captionOf);
+    }
+
+    static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
+            Function<Object, String> authorOf, Function<Object, String> captionOf) {
         boolean lost = Boolean.TRUE.equals(JUST_TOOK_OUT.get());
         JUST_TOOK_OUT.remove();
         int[] page = PAGE.get();
@@ -583,9 +598,43 @@ public final class FeedSuggestions {
         }
         if (item == null) return null;
         Object kept = byType(item, typeOf) == null ? null
-                : byLiked(item, likedOf) == null ? null : byAuthor(item, authorOf);
+                : byLiked(item, likedOf) == null ? null
+                : byAuthor(item, authorOf) == null ? null : byCaption(item, captionOf);
         if (kept == null && page != null) page[1]++;
         return kept;
+    }
+
+    /**
+     * [item], or null while Also on Home is on and its post's caption holds one of Hide reels by
+     * caption words' words (#192). The caption isn't read while there are no words. A post with no
+     * caption, or one that can't be read, stays.
+     */
+    private static Object byCaption(Object item, Function<Object, String> captionOf) {
+        try {
+            List<String> words = CaptionWordReels.homeWordsWhenOn();
+            if (words.isEmpty()) return item;
+            if (!CaptionWordReels.holdsAny(captionOf.apply(item), words)) return item;
+            FeedFilterCounters.removed(TYPES_ROUTE, 1, CAPTION_WORD);
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD_REMOVED);
+            typesTookOut = true;
+            Logger.printDebug(() -> "Feed suggestions: took a post with a blocked caption word out of Home");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD, failure);
+            return item;
+        }
+    }
+
+    /**
+     * The caption text of the post {@link #homePost} finds in a feed item, or null when it carries
+     * none or the post has no caption. Reads the caption through the caption bridges Hide reels by
+     * caption words writes.
+     */
+    static String captionOf(Object item) {
+        Object media = homePost(item);
+        if (media == null) return null;
+        Object caption = InstagramMedia.caption(media);
+        return caption == null ? null : InstagramMedia.captionText(caption);
     }
 
     /** [item], or null while the switch for its post's type is on. */
