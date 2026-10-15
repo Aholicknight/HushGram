@@ -301,6 +301,36 @@ public class FullScreenBarsTest {
         }
     }
 
+    /**
+     * #203: with Full screen Home on, the first tab opened from Home (Messages, Profile) was built
+     * while Home had the bars hidden, so it heard 0 and drew under the status bar until the next
+     * switch. Its kept listener hears the real heights once the bars come back.
+     */
+    @Test public void aTabBuiltUnderHomesHiddenBarsHearsTheHeightsWhenTheyComeBack() {
+        List<String> told = new ArrayList<>();
+        FullScreenBars.resetHeightsForTests((listener, status, nav) -> told.add(listener + " " + status + " " + nav));
+        FullScreenBars.registeredForTests(true);
+        try {
+            Settings.FULL_SCREEN_HOME.save(true);
+            FullScreenBars.nowResumed(activity);
+            heights(75, 135);
+            select(homeTab);
+            FullScreenBars.Session session = watch();
+            assertTrue(session.isHidden());
+            heights(75, 135);
+            FullScreenBars.heightsAsked(activity, "messages");
+
+            select(otherTab);
+            session.evaluate();
+            assertFalse(session.isHidden());
+            heights(75, 135);
+            assertEquals("the new tab hears the bars' heights", "messages 75 135", told.get(told.size() - 1));
+        } finally {
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
     /** An activity keeps its newest listeners only, so a screen built again and again doesn't pile them up. */
     @Test public void anActivityKeepsItsNewestListeners() {
         FullScreenBars.registeredForTests(true);
