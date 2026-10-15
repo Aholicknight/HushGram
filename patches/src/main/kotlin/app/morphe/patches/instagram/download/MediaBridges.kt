@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.patchLog
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -217,10 +218,13 @@ internal fun BytecodePatchContext.pickerSizesBridge(patch: String, helper: Metho
  * and that comment's `text`, read through the comment's interface by the name its tree-backed class
  * gives the getter, as a comment's own text is. Media's getter is the one taking nothing that holds
  * the key's hash, since the comment's type has no kept name. Only Copy caption needs them, so a
- * build where either can't be told answers null, after the patch log says why, and Details goes in
- * without it.
+ * build where either can't be told answers null, after the patch log says why and what [without]
+ * leaves out, and Details goes in without it. Hide reels by caption words reads the same two.
  */
-internal fun BytecodePatchContext.captionBridges(patch: String): (() -> Unit)? = try {
+internal fun BytecodePatchContext.captionBridges(
+    patch: String,
+    without: String = "Details goes in without Copy caption",
+): (() -> Unit)? = try {
     val key = "caption".hashCode()
     val captions = classDefBy(MEDIA).methods.filter { method ->
         method.parameterTypes.isEmpty() && method.returnType.startsWith("L") && !AccessFlags.STATIC.isSet(method.accessFlags) &&
@@ -233,12 +237,12 @@ internal fun BytecodePatchContext.captionBridges(patch: String): (() -> Unit)? =
     val comment = caption.returnType
     anInterface(patch, comment)
     val textKey = "text".hashCode()
-    val trees = mutableListOf<ClassDef>()
-    classDefForEach { type ->
-        if (comment in type.interfaces && type.methods.any { method ->
-                method.parameterTypes.isEmpty() && method.returnType == "Ljava/lang/String;" &&
-                    method.implementation?.instructions?.any { it.loadsLiteral(textKey) } == true
-            }) trees += type
+    // Only the classes loading the key's hash are read, through the literal index, not every class.
+    val trees = classesLoading(textKey.toLong()).filter { type ->
+        comment in type.interfaces && type.methods.any { method ->
+            method.parameterTypes.isEmpty() && method.returnType == "Ljava/lang/String;" &&
+                method.implementation?.instructions?.any { it.loadsLiteral(textKey) } == true
+        }
     }
     val tree = trees.singleOrNull() ?: throw PatchException(
         "$patch: expected one tree-backed $comment reading its text, found " +
@@ -249,7 +253,7 @@ internal fun BytecodePatchContext.captionBridges(patch: String): (() -> Unit)? =
         Bridge("captionText", comment, throughInterface(patch, comment, tree.type, "text", "Ljava/lang/String;")),
     ))
 } catch (unknown: PatchException) {
-    patchLog.warning("${unknown.message}. Details goes in without Copy caption.")
+    patchLog.warning("${unknown.message}. $without.")
     null
 }
 

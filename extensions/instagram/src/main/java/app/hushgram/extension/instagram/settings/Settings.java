@@ -1136,6 +1136,21 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_AI_LABELED_REELS =
             new BooleanSetting("hushgram_hide_ai_labeled_reels", FALSE);
 
+    /**
+     * Reels whose caption holds one of {@link #REELS_BLOCKED_WORDS}
+     * ({@link app.hushgram.extension.instagram.reels.CaptionWordReels}). Read as each page of reels
+     * arrives, so a change shows from the next page. Off to start (#192).
+     */
+    public static final BooleanSetting HIDE_CAPTION_WORD_REELS =
+            new BooleanSetting("hushgram_hide_caption_word_reels", FALSE);
+
+    /**
+     * The words and phrases {@link #HIDE_CAPTION_WORD_REELS} looks for in a reel's caption, split at
+     * commas and new lines. A value control, not a switch. Empty to start.
+     */
+    public static final StringSetting REELS_BLOCKED_WORDS =
+            new StringSetting("hushgram_reels_blocked_words", "", parent(HIDE_CAPTION_WORD_REELS));
+
     /** An explicit Copy action for original comment text. Off until enabled. */
     public static final BooleanSetting COPY_COMMENTS =
             new BooleanSetting("hushgram_copy_comments", FALSE);

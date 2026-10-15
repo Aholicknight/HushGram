@@ -1126,3 +1126,11 @@ Leaves out reels that carry Instagram's own AI label. A reel without that label 
 # context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
 Save every page without asking	Alle Seiten ohne Nachfrage speichern
 On a carousel, the download icon saves all of its pages at once instead of asking.	Bei einem Karussell speichert das Download-Symbol alle Seiten auf einmal, statt nachzufragen.
+# context: Reels switch Hide reels by caption words, its Blocked words list row and that row's summary; %1$d is how many words
+Hide reels by caption words	Reels nach Wörtern in der Bildunterschrift ausblenden
+Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	Lässt im Reels-Tab Reels weg, deren Bildunterschrift ein Wort oder eine Wortgruppe aus der Liste unten enthält. Ein Reel, das du selbst öffnest, wird weiter abgespielt.
+Blocked words	Blockierte Wörter
+Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.	Wörter oder Wortgruppen, getrennt durch ein Komma oder eine neue Zeile. Groß- und Kleinschreibung spielt keine Rolle, und ein Hashtag funktioniert auch.
+No words yet	Noch keine Wörter
+%1$d word	%1$d Wort
+%1$d words	%1$d Wörter

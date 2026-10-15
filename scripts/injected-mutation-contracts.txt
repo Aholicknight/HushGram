@@ -1540,6 +1540,12 @@ once-call Lapp/hushgram/extension/instagram/reels/PaidPartnershipReels;->page(Lj
 # test for showing the AI label under a reel.
 once-call Lapp/hushgram/extension/instagram/reels/AiLabeledReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
 
+# Hide reels by caption words hands the same pages, at the same join, to CaptionWordReels.page
+# before the other two filters, once (#192). Its stub reads the item's post, and the caption comes
+# from the same caption bridges Details' Copy caption reads, which DownloadVideoHookTest checks on
+# all eight 451 builds. HidePaidPartnershipReelsHookTest checks the three filters meet at the join.
+once-call Lapp/hushgram/extension/instagram/reels/CaptionWordReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
+
 # Show a reel's exact time hands the Reels title and the list of its column's parts to
 # ReelPostTime.line just before the title makes that column (the one method loading the title's
 # render marker below), once, so the line with the time goes in after the name row and Instagram's

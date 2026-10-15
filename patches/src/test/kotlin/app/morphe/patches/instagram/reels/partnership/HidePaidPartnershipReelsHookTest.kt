@@ -15,6 +15,7 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.reels.ailabel.AI_PAGE_FILTER
+import app.morphe.patches.instagram.reels.captionwords.CAPTION_PAGE_FILTER
 import app.morphe.patches.instagram.reels.suggested.TO_CLIPS_ITEM
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -140,6 +141,35 @@ class HidePaidPartnershipReelsHookTest {
         val jumps = success.implementation!!.instructions.withIndex()
             .filter { (_, instruction) -> (instruction as? BuilderOffsetInstruction)?.target?.location?.index == sites.join }.map { it.index }
         assertTrue("the page's check doesn't land on the first filter: $jumps", jumps.isNotEmpty())
+    }
+
+    /**
+     * Hide reels by caption words finds the same join after both other filters, and its filter goes
+     * in first, so the page and its fallback pass through all three once (#192).
+     */
+    @Test
+    fun hideCaptionWordReelsFiltersTheSamePageFirst() {
+        val context = PatchContexts.of(classes())
+        val sites = context.findPaidPartnershipReels()
+        context.hidePaidPartnershipReels(sites)
+        context.filterReelsPage(context.findReelsPage("Hide AI-labeled reels"), AI_PAGE_FILTER)
+
+        val again = context.findReelsPage("Hide reels by caption words")
+        assertEquals("the join", sites.join, again.join)
+        assertEquals("the page's register", sites.list, again.list)
+        context.filterReelsPage(again, CAPTION_PAGE_FILTER)
+
+        val success = context.mutableClassDefBy(callback).methods.single { it.name == "success" }
+        val code = success.code()
+        assertEquals(
+            "three filters at the join",
+            listOf(CAPTION_PAGE_FILTER, AI_PAGE_FILTER, PARTNERSHIP_PAGE_FILTER),
+            code.drop(sites.join).take(12).mapNotNull { it.referenceText()?.takeIf { text -> text.startsWith("Lapp/") } },
+        )
+        for (filter in listOf(CAPTION_PAGE_FILTER, AI_PAGE_FILTER, PARTNERSHIP_PAGE_FILTER)) {
+            assertEquals("one call to $filter", 1, code.count { it.referenceText() == filter })
+        }
+        assertEquals("the caption filter's answer in the page's register", sites.list, (code[sites.join + 3] as OneRegisterInstruction).registerA)
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */

@@ -1126,3 +1126,11 @@ Leaves out reels that carry Instagram's own AI label. A reel without that label 
 # context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
 Save every page without asking	Tüm sayfaları sormadan kaydet
 On a carousel, the download icon saves all of its pages at once instead of asking.	Karuselde indirme simgesi sormak yerine tüm sayfaları tek seferde kaydeder.
+# context: Reels switch Hide reels by caption words, its Blocked words list row and that row's summary; %1$d is how many words
+Hide reels by caption words	Açıklamadaki kelimelere göre reel'leri gizle
+Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	Reels sekmesinde açıklaması aşağıdaki listeden bir kelime ya da ifade içeren reel'leri çıkarır. Kendin açtığın bir reel yine oynatılır.
+Blocked words	Engellenen kelimeler
+Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.	Aralarında virgül ya da yeni satır olan kelimeler veya ifadeler. Büyük küçük harf fark etmez, hashtag de olur.
+No words yet	Henüz kelime yok
+%1$d word	%1$d kelime
+%1$d words	%1$d kelime

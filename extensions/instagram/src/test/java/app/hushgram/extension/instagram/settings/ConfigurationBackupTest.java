@@ -248,6 +248,38 @@ public class ConfigurationBackupTest {
         assertEquals("  ", Settings.SPOOF_LOCATION_PLACE.savedValue());
     }
 
+    /**
+     * The blocked words come back with their line breaks and up to the row's own limit, which is
+     * longer than any other text's, and a list holding another control character is skipped (#192).
+     */
+    @Test public void blockedWordsRoundTripUpToTheirRowsLimit() throws Exception {
+        String words = "spoiler, #ad\ngiveaway\r\nlink in bio";
+        Settings.REELS_BLOCKED_WORDS.save(words);
+        byte[] exported = ConfigurationBackup.export();
+        Settings.REELS_BLOCKED_WORDS.resetToDefault();
+        ConfigurationBackup.Result result = ConfigurationBackup.restore(exported);
+        assertEquals(0, result.skipped);
+        assertEquals(words, Settings.REELS_BLOCKED_WORDS.savedValue());
+        ConfigurationBackup.forgetUndo();
+
+        String longest = new String(new char[ConfigurationBackup.MAX_WORDS_TEXT]).replace('\0', 'a');
+        assertEquals(1, ConfigurationBackup.restore(file(entry(Settings.REELS_BLOCKED_WORDS.key, "string", longest))).applied);
+        assertEquals(longest, Settings.REELS_BLOCKED_WORDS.savedValue());
+        ConfigurationBackup.forgetUndo();
+
+        assertNull(ConfigurationBackup.accepted(Settings.REELS_BLOCKED_WORDS, "string", longest + "a"));
+        assertNull(ConfigurationBackup.accepted(Settings.REELS_BLOCKED_WORDS, "string", "spoiler\tgiveaway"));
+        assertNull(ConfigurationBackup.accepted(Settings.REELS_BLOCKED_WORDS, "string", "spoiler\u0000"));
+        assertNull("other text keeps its own limit",
+                ConfigurationBackup.accepted(Settings.LIKE_ANIMATION, "string", new String(new char[ConfigurationBackup.MAX_TEXT + 1]).replace('\0', 'A')));
+        Settings.REELS_BLOCKED_WORDS.save("cat");
+        ConfigurationBackup.Result refused = ConfigurationBackup.restore(file(entry(Settings.HIDE_ADS.key, "boolean", false)
+                + "," + entry(Settings.REELS_BLOCKED_WORDS.key, "string", "dog\u0007")));
+        assertEquals(1, refused.applied);
+        assertEquals(1, refused.skipped);
+        assertEquals("cat", Settings.REELS_BLOCKED_WORDS.savedValue());
+    }
+
     // A text choice added to the file without a check of its own would never restore; its default
     // must pass the check too, or a file exported before it was ever changed would lose it.
     @Test public void everyExportedTextChoiceHasACheckItsDefaultPasses() {

@@ -263,6 +263,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean captionWordReels() {
+        return false;
+    }
+
     public static boolean commentCopy() {
         return false;
     }

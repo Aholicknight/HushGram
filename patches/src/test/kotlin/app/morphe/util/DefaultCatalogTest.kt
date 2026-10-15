@@ -76,6 +76,7 @@ import app.morphe.patches.instagram.profile.threads.hideThreadsButtonPatch
 import app.morphe.patches.instagram.reels.ailabel.hideAiLabeledReelsPatch
 import app.morphe.patches.instagram.reels.autoscroll.keepReelsAutoScrollPatch
 import app.morphe.patches.instagram.reels.blur.blurReelBarsPatch
+import app.morphe.patches.instagram.reels.captionwords.hideCaptionWordReelsPatch
 import app.morphe.patches.instagram.reels.cleanup.cleanUpReelsPatch
 import app.morphe.patches.instagram.reels.doubletap.turnOffDoubleTapLikePatch
 import app.morphe.patches.instagram.reels.origin.findReelOriginPatch
@@ -162,6 +163,7 @@ class DefaultCatalogTest {
         hideReelsSuggestionsPatch,
         hidePaidPartnershipReelsPatch,
         hideAiLabeledReelsPatch,
+        hideCaptionWordReelsPatch,
         hideReelsTabPatch,
         hideRepostButtonPatch,
         hideShareButtonPatch,

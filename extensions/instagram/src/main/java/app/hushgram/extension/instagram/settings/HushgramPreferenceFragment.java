@@ -32,6 +32,7 @@ import android.preference.SwitchPreference;
 import android.preference.TwoStatePreference;
 import android.text.Layout;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -113,6 +114,7 @@ import app.hushgram.extension.instagram.misc.Fonts;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.reels.BurnInMode;
+import app.hushgram.extension.instagram.reels.CaptionWordReels;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.StartTab;
 import app.hushgram.extension.instagram.reels.TabOrder;
@@ -835,6 +837,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.HIDE_AI_LABELED_REELS, L10n.t("Hide AI-labeled reels"),
                     L10n.t("Leaves out reels that carry Instagram's own AI label. A reel without that label stays, "
                             + "even if AI made it.")));
+        }
+        if (build.contains(PatchFamily.CAPTION_WORD_REELS)) {
+            reels.add(toggle(context, Settings.HIDE_CAPTION_WORD_REELS, L10n.t("Hide reels by caption words"),
+                    L10n.t("Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. "
+                            + "A reel you open yourself still plays.")));
+            reels.add(blockedWordsRow(context));
         }
         if (build.contains(PatchFamily.REEL_DECLUTTER)) {
             reels.add(toggle(context, Settings.HIDE_REEL_FOLLOW_BUTTON, L10n.t("Hide the Follow button"),
@@ -1812,6 +1820,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
+                    belongs |= family == PatchFamily.CAPTION_WORD_REELS && Settings.REELS_BLOCKED_WORDS.key.equals(key);
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
                             || HIDDEN_CHATS_ROW.equals(key) || Settings.UNLOCK_WITH.key.equals(key)
@@ -5627,6 +5636,72 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         ScrollView scroll = new ScrollView(context);
         scroll.addView(content);
         return scroll;
+    }
+
+    /**
+     * The words Hide reels by caption words looks for, typed with commas or new lines between them,
+     * as Hushfeed's Blocked caption words are, so a list from there pastes in as it is.
+     */
+    static WordsRow blockedWordsRow(Context context) {
+        WordsRow row = new WordsRow(context);
+        row.setKey(Settings.REELS_BLOCKED_WORDS.key);
+        row.setTitle(L10n.t("Blocked words"));
+        row.setDialogTitle(L10n.t("Blocked words"));
+        row.setDialogMessage(L10n.t("Words or phrases, with a comma or a new line between them. Capital letters don't "
+                + "matter, and a hashtag works too."));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        field.setMaxLines(6);
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(ConfigurationBackup.MAX_WORDS_TEXT)});
+        row.setText(Settings.REELS_BLOCKED_WORDS.savedValue());
+        return row;
+    }
+
+    /** What the blocked words row says under its title: how many words it holds, or that it has none. */
+    static String blockedWordsSummary(String stored) {
+        int count = CaptionWordReels.words(stored).size();
+        return count == 0 ? L10n.t("No words yet")
+                : L10n.quantity(count, "%1$d word", "%1$d words", count);
+    }
+
+    /**
+     * The blocked words' row. Its summary follows its text, whoever sets it: the person, the shared
+     * page syncing it from the setting, or an import.
+     */
+    static final class WordsRow extends EditTextPreference {
+        WordsRow(Context context) {
+            super(context);
+        }
+
+        @Override protected View onCreateDialogView() { return editDialogBody(this); }
+
+        @Override protected void onBindDialogView(View view) {
+            getEditText().setText(getText());
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            setSummary(blockedWordsSummary(text));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its edit dialog takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            fitAboveKeyboard(getDialog());
+        }
     }
 
     /**
