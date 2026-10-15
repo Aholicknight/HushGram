@@ -55,8 +55,8 @@ public class TimerLifecycleTest {
     private static final int BAR_ID = 0x7f0b0101;
     private static final int REELS_ID = 0x7f0b0170;
 
-    /** A list whose position the test sets. */
-    static final class FakeList extends View {
+    /** A list whose position the test sets. A group, like every list a scroll moves: a lone view is never taken for one. */
+    static final class FakeList extends FrameLayout {
         boolean awayFromTop = true;
 
         FakeList(Context context) {
