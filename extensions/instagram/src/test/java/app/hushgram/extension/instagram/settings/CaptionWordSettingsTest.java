@@ -112,6 +112,20 @@ public class CaptionWordSettingsTest {
         assertEquals(1, filters.length);
         assertEquals(ConfigurationBackup.MAX_WORDS_TEXT, ((InputFilter.LengthFilter) filters[0]).getMax());
     }
+    /** Searching the patch's name finds the list too, which says neither word of it itself. */
+    @Test public void searchingThePatchsNameFindsBothRows() throws Exception {
+        open(true);
+        Preference hide = page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_REELS.key);
+        Preference words = page.getPreferenceScreen().findPreference(Settings.REELS_BLOCKED_WORDS.key);
+        page.searchSettings("hide reels by caption words");
+        assertNotNull("the switch", hide.getParent());
+        assertNotNull("the list", words.getParent());
+        page.searchSettings("blocked words");
+        assertNull(hide.getParent());
+        assertNotNull(words.getParent());
+        page.searchSettings("");
+        assertNotNull(hide.getParent());
+    }
     private static int indexIn(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) {
             if (group.getPreference(i) == row) return i;
