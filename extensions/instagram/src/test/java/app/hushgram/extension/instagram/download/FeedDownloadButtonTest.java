@@ -79,6 +79,7 @@ public class FeedDownloadButtonTest {
     public void tearDown() {
         FeedDownloadButton.actions = original;
         FeedDownloadButton.resetForTests();
+        Settings.FEED_DOWNLOAD_ALL_PAGES.resetToDefault();
         Settings.FEED_DOWNLOAD_BUTTON.resetToDefault();
         Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
@@ -321,6 +322,29 @@ public class FeedDownloadButtonTest {
         assertEquals(Arrays.asList("choose", "save post state"), recorder.calls);
         recorder.all.run();
         assertEquals(Arrays.asList("choose", "save post state", "saveAll post"), recorder.calls);
+    }
+
+    /** Save every page without asking saves a carousel's pages on the tap, and leaves a single post as it was (#190). */
+    @Test
+    public void saveEveryPageWithoutAskingSkipsTheChoiceOnACarousel() {
+        Settings.FEED_DOWNLOAD_ALL_PAGES.save(true);
+        recorder.pages = Arrays.asList("one", "two", "three");
+        ImageView save = save(activity);
+        LinearLayout row = linearRow(save);
+        FeedDownloadButton.bind(save, "post", "state", activity);
+        buttonOf(row).performClick();
+        assertEquals(Collections.singletonList("saveAll post"), recorder.calls);
+
+        recorder.calls.clear();
+        recorder.pages = Collections.singletonList("one");
+        buttonOf(row).performClick();
+        assertEquals("one page still saves on its own", Collections.singletonList("save post state"), recorder.calls);
+
+        recorder.calls.clear();
+        recorder.pages = Arrays.asList("one", "two");
+        Settings.FEED_DOWNLOAD_ALL_PAGES.save(false);
+        buttonOf(row).performClick();
+        assertEquals("off, it asks again", Collections.singletonList("choose"), recorder.calls);
     }
 
     @Test

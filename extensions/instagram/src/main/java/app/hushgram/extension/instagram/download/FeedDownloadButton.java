@@ -63,7 +63,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>A tap saves through {@link VideoDownload#save}, so the file name, the account folder, the
  * quality and the Send downloads to another app switch are the ones the post's menu uses. A carousel
  * asks first: Download saves the page on screen, as its menu row does, and Save all saves every
- * page, as its other row does.
+ * page, as its other row does. With Save every page without asking on, a carousel skips the question
+ * and saves every page (#190).
  *
  * <p>Most of Home draws the same row as components instead: a Litho host that only Instagram's
  * own mounting may add children to (addView on it throws), whose Save button is a component spec
@@ -640,9 +641,9 @@ public final class FeedDownloadButton {
     }
 
     /**
-     * What a tap does with [post]: save it, or on a carousel ask which. A post the switches no longer
-     * let a tap save, since the icon went on, gets a short note instead. Off or paused, nothing.
-     * Never throws.
+     * What a tap does with [post]: save it, or on a carousel ask which, or save every page when Save
+     * every page without asking is on. A post the switches no longer let a tap save, since the icon
+     * went on, gets a short note instead. Off or paused, nothing. Never throws.
      */
     static void tap(View anchor, Object post, Object itemState, @Nullable Activity activity) {
         try {
@@ -652,6 +653,10 @@ public final class FeedDownloadButton {
             }
             List<?> pages = actions.pages(post);
             if (pages != null && pages.size() > 1) {
+                if (Settings.FEED_DOWNLOAD_ALL_PAGES.get()) {
+                    saveEvery(anchor, post, activity);
+                    return;
+                }
                 actions.choose(anchor, () -> saveOne(anchor, post, itemState, activity), () -> saveEvery(anchor, post, activity));
                 return;
             }

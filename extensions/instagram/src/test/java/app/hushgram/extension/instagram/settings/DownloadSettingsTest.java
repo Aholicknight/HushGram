@@ -81,6 +81,7 @@ public class DownloadSettingsTest {
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
         Settings.FEED_DOWNLOAD_BUTTON.resetToDefault();
+        Settings.FEED_DOWNLOAD_ALL_PAGES.resetToDefault();
         Settings.REEL_DOWNLOAD_BUTTON.resetToDefault();
         Settings.HOLD_TO_DOWNLOAD.resetToDefault();
         Settings.HOLD_FINGERS.resetToDefault();
@@ -115,7 +116,7 @@ public class DownloadSettingsTest {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.VIDEO_DOWNLOAD);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             List<Preference> rows = rowsOf(pageIn(controller));
-            assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_BUTTON.key) + 1, indexOfKey(rows, Settings.REEL_DOWNLOAD_BUTTON.key));
+            assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_ALL_PAGES.key) + 1, indexOfKey(rows, Settings.REEL_DOWNLOAD_BUTTON.key));
         }
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
@@ -349,6 +350,29 @@ public class DownloadSettingsTest {
     }
 
     /**
+     * Save every page without asking sits right under the feed's Download button, starts off, waits
+     * for the button and goes in a settings file with it (#190).
+     */
+    @Test
+    public void saveEveryPageSitsUnderTheFeedButtonAndWaitsForIt() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            int at = indexOfKey(rows, Settings.FEED_DOWNLOAD_ALL_PAGES.key);
+            assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_BUTTON.key) + 1, at);
+            SwitchPreference all = (SwitchPreference) rows.get(at);
+            assertEquals("Save every page without asking", String.valueOf(all.getTitle()));
+            assertFalse("it starts off", all.isChecked());
+            assertFalse("it waits for the Download button", all.isEnabled());
+            ((SwitchPreference) rows.get(indexOfKey(rows, Settings.DOWNLOAD_PHOTOS.key))).setChecked(true);
+            ((SwitchPreference) rows.get(indexOfKey(rows, Settings.FEED_DOWNLOAD_BUTTON.key))).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(all.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FEED_DOWNLOAD_ALL_PAGES.key));
+        }
+    }
+
+    /**
      * Hold to download sits right below the Download button, starts off and waits for Download feed
      * videos or photos, as the button does. Its Fingers and Hold time lists follow it, start on two
      * fingers and a second, wait for it, and go in a settings file with it. A build with only reel
@@ -361,7 +385,7 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             List<Preference> rows = rowsOf(pageIn(controller));
             int at = indexOfKey(rows, Settings.HOLD_TO_DOWNLOAD.key);
-            assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_BUTTON.key) + 1, at);
+            assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_ALL_PAGES.key) + 1, at);
             SwitchPreference hold = (SwitchPreference) rows.get(at);
             assertEquals("Hold to download", String.valueOf(hold.getTitle()));
             assertTrue(String.valueOf(hold.getSummary()).contains("Needs Download feed videos or photos"));

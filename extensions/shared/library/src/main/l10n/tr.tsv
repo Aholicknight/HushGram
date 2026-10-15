@@ -1123,3 +1123,6 @@ Couldn't load your font file, so Instagram's font shows. Pick it again in HushGr
 Hide AI-labeled reels	Yapay zeka etiketli reel'leri gizle
 # context: the line under the Hide AI-labeled reels switch
 Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Instagram'ın kendi yapay zeka etiketini taşıyan reel'leri dışarıda bırakır. Bu etiketi olmayan bir reel, yapay zekayla yapılmış olsa bile kalır.
+# context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
+Save every page without asking	Tüm sayfaları sormadan kaydet
+On a carousel, the download icon saves all of its pages at once instead of asking.	Karuselde indirme simgesi sormak yerine tüm sayfaları tek seferde kaydeder.

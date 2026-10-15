@@ -1123,3 +1123,6 @@ Couldn't load your font file, so Instagram's font shows. Pick it again in HushGr
 Hide AI-labeled reels	Sembunyikan reel berlabel AI
 # context: the line under the Hide AI-labeled reels switch
 Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Menghilangkan reel yang membawa label AI milik Instagram. Reel tanpa label itu tetap ada, meski dibuat dengan AI.
+# context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
+Save every page without asking	Simpan semua halaman tanpa bertanya
+On a carousel, the download icon saves all of its pages at once instead of asking.	Pada carousel, ikon unduh menyimpan semua halamannya sekaligus tanpa bertanya.
