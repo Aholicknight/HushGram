@@ -1910,5 +1910,6 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->released(Ljava/l
 # (00R0.A00 on 451's 385713073). It asks FeedTapPause.opening first thing and returns on a yes. Left
 # out, such a tap still opens Reels with the switch on; later or twice, it isn't the guard the patch
 # wrote. The reader's controllerOfLauncher reaches the controller from the launcher's lazy field.
-start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;L*;L*;L*;Lcom/instagram/feed/media/Media;L*;Ljava/util/List;ZZ)V holding ContextualFeedFragment.ARGUMENT_HOST_PROFILE_USER_ID
-once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;L*;L*;L*;Lcom/instagram/feed/media/Media;L*;Ljava/util/List;ZZ)V holding ContextualFeedFragment.ARGUMENT_HOST_PROFILE_USER_ID
+# 385713117 asks a string pool for the argument (pooled, 00R1.A00 there).
+start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;L*;L*;L*;Lcom/instagram/feed/media/Media;L*;Ljava/util/List;ZZ)V pooled holding ContextualFeedFragment.ARGUMENT_HOST_PROFILE_USER_ID
+once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;L*;L*;L*;Lcom/instagram/feed/media/Media;L*;Ljava/util/List;ZZ)V pooled holding ContextualFeedFragment.ARGUMENT_HOST_PROFILE_USER_ID
