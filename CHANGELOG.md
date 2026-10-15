@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram - HushGram settings:** HushGram's settings come in Italian when your phone is set to Italian. Like the other translations, it's a first draft that a native reader can still improve. Asked for in #194.
 * **Instagram - Download any video:** New switch under Downloads, Save every page without asking, off by default. With Download button on feed posts on, a tap on a carousel saves all of its pages at once instead of asking which. Asked for in #190.
 
 ## 0.0.11 (2026-10-15)
