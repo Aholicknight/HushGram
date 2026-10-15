@@ -131,13 +131,13 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * pauses or plays the video like a tap.
  *
  * On 451 a tap can reach Reels without the handler too: a phone run on 385713073 with the switch on
- * opened Reels and never asked. With an accessibility service connected Instagram adds a click listener to the video
- * that skips the gesture detector, and the video's overlays open Reels on their own. Every one of those
+ * opened Reels and never asked. The video's overlays open Reels on their own (a finished feed reel's end
+ * screen among them, which is what that run tapped), and a server setting can send Instagram's own tap
+ * there. Every one of those
  * ends in the feed's one Reels launcher, so the patch asks the extension first thing there as well, with
- * where the launcher was asked from. A tap on the playing video pauses or plays it under the same
- * checks and the launcher returns; every other opening goes on to Reels. Instagram names that tap
- * VIDEO_TAP on the gesture's way and BACKGROUND_TAP on the click listener's (a phone with uiautomator
- * connected sent BACKGROUND_TAP on 2026-10-15).
+ * where the launcher was asked from. A tap on the playing video (Instagram's VIDEO_TAP) pauses or plays
+ * it under the same checks and the launcher returns; every other opening goes on to Reels, among them
+ * the end screen of a finished feed reel (BACKGROUND_TAP for its backdrop, WATCH_AGAIN, WATCH_MORE_REELS).
  *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.

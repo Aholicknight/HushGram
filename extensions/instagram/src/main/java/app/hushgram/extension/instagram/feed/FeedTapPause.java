@@ -42,15 +42,15 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * tap as well, {@link #tapped} pauses or plays it and lets go of the state, so the lift doesn't do
  * it twice. A press a scroll takes over ends without a lift and leaves the video as it was.
  *
- * <p>On Instagram 451 a tap can open Reels without reaching that handler: with an accessibility
- * service connected, Instagram puts a click listener on the video that skips the gesture detector,
- * and the video's overlays open Reels on their own. All of them end in the feed's one Reels launcher,
- * which asks {@link #opening} first thing with where it was asked from. A tap on the playing post
- * pauses or plays it under the same checks, and a yes ends the launcher there. Instagram names such a
- * tap {@code VIDEO_TAP} on the gesture's way and {@code BACKGROUND_TAP} on the click listener's, which
- * is the way a phone with an accessibility service on sends every tap. Every other opening goes on to
- * Reels. Each opening with the switch on is counted under its entry point's name, so one report says
- * which way a phone's taps come.
+ * <p>On Instagram 451 a tap can open Reels without reaching that handler: the video's overlays open
+ * Reels on their own, the end screen a finished feed reel shows among them, and Instagram's own tap
+ * can be sent to Reels by a server setting. All of them end in the feed's one Reels launcher, which
+ * asks {@link #opening} first thing with where it was asked from. A tap on a video (Instagram's
+ * {@code VIDEO_TAP}) on the playing post pauses or plays it under the same checks, and a yes ends the
+ * launcher there. Every other opening goes on to Reels, the end screen a finished feed reel shows
+ * included: its backdrop ({@code BACKGROUND_TAP}), Watch again and Watch more reels. Each opening with
+ * the switch on is counted under its entry point's name, so one report says which way a phone's taps
+ * come.
  *
  * <p>Everything else is left to Instagram: a sponsored post, a photo, a carousel on a photo, a video
  * the controller doesn't have playing, a feed with no video controller. So is every tap or press while
@@ -83,9 +83,8 @@ public final class FeedTapPause {
     /** What {@link HookStatus} counts for each Reels opening with the switch on, followed by its entry point's name. */
     static final String OPENED_FROM = "Reels openings from ";
 
-    /** The entry points of a tap on a feed video, the openings {@link #opening} pauses or plays in place of. */
+    /** The entry point of a tap on a feed video, the one opening {@link #opening} pauses or plays in place of. */
     static final String VIDEO_TAP = "VIDEO_TAP";
-    static final String BACKGROUND_TAP = "BACKGROUND_TAP";
 
     /** The hooks' names in a failure report. */
     static final String TAP = "feed tap";
@@ -280,9 +279,9 @@ public final class FeedTapPause {
      * in, with the launcher, where it was asked from (an enum of Instagram's), the post and its state.
      * True means a tap on the playing video paused or played it and the launcher is done. False lets
      * Reels open: the switch is off, HushGram is paused, the settings aren't ready, the opening isn't a
-     * tap on a video ({@link #VIDEO_TAP} or {@link #BACKGROUND_TAP}), or the tap fails a check
-     * {@link #tapped} makes. A tap that ends a held press {@link #pressed} took is that press's own, so
-     * its lift does nothing more. Not counted as invoked, like the press. Never throws.
+     * tap on a video ({@link #VIDEO_TAP}), or the tap fails a check {@link #tapped} makes. A tap that
+     * ends a held press {@link #pressed} took is that press's own, so its lift does nothing more. Not
+     * counted as invoked, like the press. Never throws.
      */
     public static boolean opening(@Nullable Object launcher, @Nullable Object entryPoint, @Nullable Object media,
                                   @Nullable Object state) {
@@ -292,7 +291,7 @@ public final class FeedTapPause {
             HookStatus.bound(FamilyNames.FEED_TAP_PAUSE, OPEN);
             String from = entryPoint instanceof Enum ? ((Enum<?>) entryPoint).name() : String.valueOf(entryPoint);
             HookStatus.counted(FamilyNames.FEED_TAP_PAUSE, OPENED_FROM + from);
-            if (!VIDEO_TAP.equals(from) && !BACKGROUND_TAP.equals(from)) return false;
+            if (!VIDEO_TAP.equals(from)) return false;
             letGo(state);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_TAP_PAUSE, OPEN, failure);

@@ -455,20 +455,17 @@ public class FeedTapPauseTest {
     }
 
     /**
-     * With an accessibility service on, Instagram's click listener sends a tap on the video to the launcher as a
-     * background tap (the way a 451 phone did on 2026-10-15). It pauses and plays the same as a video tap.
+     * A finished feed reel shows Instagram's end screen. A tap on its backdrop reaches the launcher as a background
+     * tap (the way a 451 phone's did on 2026-10-15), and opens Reels even on the post the controller still holds.
      */
     @Test
-    public void aBackgroundTapAtTheLauncherPausesAndPlays() {
+    public void aTapOnTheEndScreenOpensReels() {
         Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
-        assertTrue("first tap", open(EntryPoint.BACKGROUND_TAP));
-        assertEquals("pauses", 1, feed.pauses);
-        assertTrue("second tap", open(EntryPoint.BACKGROUND_TAP));
-        assertEquals("plays", 1, feed.starts);
+        assertFalse(open(EntryPoint.BACKGROUND_TAP));
+        assertEquals(0, feed.pauses + feed.starts);
+        assertEquals("nothing read for it", 0, feed.launcherAsked);
         String report = report();
-        assertTrue(report, report.contains(FeedTapPause.OPENED_FROM + "BACKGROUND_TAP 2"));
-        assertTrue(report, report.contains(FeedTapPause.PAUSED + " 1"));
-        assertTrue(report, report.contains(FeedTapPause.PLAYED + " 1"));
+        assertTrue(report, report.contains(FeedTapPause.OPENED_FROM + "BACKGROUND_TAP 1"));
     }
 
     /** Any other opening goes on to Reels and is counted under its name; one with no enum is counted as it prints. */

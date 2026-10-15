@@ -117,13 +117,6 @@ class TapFeedVideoToPauseHookTest {
                     found.launcher.parameterTypes.map(Any::toString).subList(4, 6))
                 assertEquals("$what: the launcher's lazy field is its own", parts.launcher, found.launcherSupplier.definingClass)
                 assertEquals("$what: and is asked as the handler's is", found.supplierValue.toString(), found.launcherValue.toString())
-                // The extension pauses on these two by name: the gesture's tap, and the click listener's with an
-                // accessibility service on.
-                val entryNames = context.mutableClassDefBy(parts.entryPoints).methods.first { it.name == "<clinit>" }.code()
-                    .map { it.referenceText() }
-                for (tap in listOf("VIDEO_TAP", "BACKGROUND_TAP")) {
-                    assertTrue("$what: the launcher's entry points name $tap", tap in entryNames)
-                }
                 if (apk.extension == "apks") {
                     assertEquals("$what: the launcher's names", listOf("LX/00R0;", "A00", "A03"),
                         listOf(found.launcher.definingClass, found.launcher.name, found.launcherSupplier.name))
