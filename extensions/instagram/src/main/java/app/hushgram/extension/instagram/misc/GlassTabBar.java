@@ -503,6 +503,12 @@ public final class GlassTabBar {
         return floating ? navTaken : 0;
     }
 
+    /** The activity in front, or null: where FullScreenBars looks for the keyboard (#209). */
+    @Nullable
+    public static Activity activityInFront() {
+        return front.get();
+    }
+
     static void nowInFront(Activity activity) {
         front = new WeakReference<>(activity);
     }

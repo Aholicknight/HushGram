@@ -108,6 +108,8 @@ public final class FullScreenBars {
     /** The activity last resumed, whose window Instagram's listener passes are for. */
     private static WeakReference<Activity> resumed = new WeakReference<>(null);
     private static Teller teller = FullScreenBars::tellHeights;
+    static final String COUNT_KEYBOARD = "kept the navigation bar's space for the keyboard";
+    private static Keyboard keyboard = FullScreenBars::keyboardInFront;
 
     private FullScreenBars() {
     }
@@ -261,16 +263,50 @@ public final class FullScreenBars {
      * ({@link GlassTabBar#navBarHeight}). If anything throws, the height goes through as it came.
      */
     public static int navBarHeight(int height) {
-        int kept = hiddenBarHeight(height);
-        try {
-            kept = GlassTabBar.navBarHeight(kept);
-        } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height", failure);
+        int kept = height;
+        if (height <= 0 || !keyboardUp()) {
+            kept = hiddenBarHeight(height);
+            try {
+                kept = GlassTabBar.navBarHeight(kept);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height", failure);
+            }
         }
         if (height > 0) navOffered = height;
         navTaken = taken(height, kept, navTaken);
         heightsKept(statusAnswer, kept);
         return kept;
+    }
+
+    /**
+     * Whether the keyboard shows in the front window. It brings the navigation bar back with it, hidden
+     * or under a pill, and Instagram lifts a comment box or a chat's message box above the keyboard by
+     * the keyboard's height less this bar's, then pads it by the height it kept. A 0 kept the box a
+     * bar's height low, behind the keys (#209), so while the keyboard shows the height goes through.
+     */
+    static boolean keyboardUp() {
+        try {
+            if (!keyboard.shown()) return false;
+            HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_KEYBOARD);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "keyboard", failure);
+            return false;
+        }
+    }
+
+    private static boolean keyboardInFront() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false;
+        Activity activity = resumed.get();
+        if (activity == null) activity = GlassTabBar.activityInFront();
+        Window window = activity == null ? null : activity.getWindow();
+        WindowInsets insets = window == null ? null : window.getDecorView().getRootWindowInsets();
+        return insets != null && insets.isVisible(WindowInsets.Type.ime());
+    }
+
+    /** How the keyboard is looked for: the front window's insets outside tests. */
+    interface Keyboard {
+        boolean shown();
     }
 
     /**
@@ -444,6 +480,12 @@ public final class FullScreenBars {
         keptNav = -1;
         askers.clear();
         teller = tells == null ? FullScreenBars::tellHeights : tells;
+        keyboard = FullScreenBars::keyboardInFront;
+    }
+
+    /** Tests say whether the keyboard shows. */
+    static void keyboardForTests(Keyboard shows) {
+        keyboard = shows;
     }
 
     static void nowResumed(Activity activity) {

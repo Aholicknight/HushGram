@@ -184,6 +184,29 @@ public class FullScreenBarsTest {
     }
 
     /**
+     * #209: the keyboard brings the navigation bar back, and Instagram lifts a comment box above it
+     * by the keyboard's height less that bar's, so the 0 kept the box behind the keys. While the
+     * keyboard shows the height goes through, and once it closes the hidden bars take it again.
+     */
+    @Test public void theKeyboardGetsTheNavigationBarsHeight() {
+        boolean[] up = {false};
+        FullScreenBars.keyboardForTests(() -> up[0]);
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        assertTrue(watch().isHidden());
+        assertEquals(0, FullScreenBars.navBarHeight(63));
+
+        up[0] = true;
+        assertEquals("the comment box sat behind the keyboard", 63, FullScreenBars.navBarHeight(63));
+        assertEquals("the status bar stays hidden", 0, FullScreenBars.barHeight(128));
+        assertEquals("an unset height changed", -1, FullScreenBars.navBarHeight(-1));
+        assertArrayEquals("a height that went through isn't owed", new int[] {128, 0}, FullScreenBars.heightsToGiveBack());
+
+        up[0] = false;
+        assertEquals("the keyboard closed and the strip came back", 0, FullScreenBars.navBarHeight(63));
+    }
+
+    /**
      * #196: a chat opens in an activity of its own and reads the bar heights Instagram kept before
      * that window's insets reach the listener, so each height answered 0 is owed back as the activity
      * pauses, at the height Instagram last offered for it, and only once.
