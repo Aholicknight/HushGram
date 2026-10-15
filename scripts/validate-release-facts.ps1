@@ -158,6 +158,43 @@ function Get-DescriptionFacts {
     }
 }
 
+function Get-TaggedCatalogFacts {
+    <#
+    .SYNOPSIS
+        The patch count and the Instagram build of the catalog committed at tag v<Version>, or $null
+        when this checkout has no such tag or the file there can't be read.
+    .DESCRIPTION
+        The index description has named neither since 0.0.9, so while it lags the source this is
+        where the published release's facts come from. Answers @{ PatchCount; TargetVersion }, read
+        the way the source's own are. Continue for the call alone: git writes "unknown revision" on
+        stderr, which Windows PowerShell 5.1 turns into a terminating error under Stop, and the exit
+        code decides.
+    #>
+    param([string]$Root, [string]$Version)
+
+    $preference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $global:LASTEXITCODE = -1
+        $text = @(& git -C $Root show "refs/tags/v$($Version):patches-list.json" 2>$null)
+        $status = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $preference
+    }
+    if ($status -ne 0 -or $text.Count -eq 0) { return $null }
+    try {
+        $tagged = ($text -join "`n") | ConvertFrom-Json
+    } catch {
+        return $null
+    }
+    $count = @($tagged.patches).Count
+    if ($count -eq 0) { return $null }
+    return [pscustomobject]@{
+        PatchCount    = $count
+        TargetVersion = [string](Get-PatchTarget -PatchList $tagged).PackageVersion
+    }
+}
+
 $rootPath = (Resolve-Path -LiteralPath $Root).Path
 # The ZipFile reads below would take a relative -ArtifactPath from the process directory, which
 # Set-Location doesn't move, after Test-Path had found it in PowerShell's location.
@@ -344,8 +381,17 @@ Require-Match -Text $readme -Pattern "\b$patchCount patches\b" -Description 'REA
 # description that names them anyway has to name them right.
 if ($indexLagsSource) {
     $descriptionVersion = "v$publishedVersion"
+    $taggedFacts = if ($null -eq $publishedFacts.PatchCount -or $null -eq $publishedFacts.TargetVersion) {
+        Get-TaggedCatalogFacts -Root $rootPath -Version $publishedVersion
+    }
+    if ($taggedFacts) {
+        Write-Host ("[release] v$publishedVersion's catalog at its tag lists $($taggedFacts.PatchCount) patches " +
+            "for Instagram $($taggedFacts.TargetVersion)")
+    }
     if ($null -ne $publishedFacts.PatchCount) { $descriptionPatchCount = $publishedFacts.PatchCount }
+    elseif ($taggedFacts) { $descriptionPatchCount = $taggedFacts.PatchCount }
     if ($null -ne $publishedFacts.TargetVersion) { $descriptionTargetVersion = $publishedFacts.TargetVersion }
+    elseif ($taggedFacts) { $descriptionTargetVersion = $taggedFacts.TargetVersion }
 } else {
     # Only an index this release wrote is held to the new layout. While it lags, the old
     # description is history and stands as it is.

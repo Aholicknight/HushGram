@@ -2569,6 +2569,40 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
         foreach ($name in @('gradle.properties', 'patches-list.json', 'README.md', 'CHANGELOG.md', 'patches-bundle.json')) { Reset-FactsFile $name }
     }
 
+    # Patches added since the published release: the README's sentence still counts the release's
+    # own. The index description has named no count since 0.0.9, so the lenient check reads the
+    # release's catalog at its tag, and without the tag holds the sentence to the source's count.
+    $releasedCount = $countHere - 1
+    Set-FactsFile 'gradle.properties' { param($text) $text -replace '(?m)^(\s*version\s*=\s*)\S+', "`${1}$nextVersion" }
+    Set-FactsFile 'patches-list.json' { param($text) $text.Replace("`"v$versionHere`"", "`"v$nextVersion`"") }
+    Set-FactsFile 'README.md' { param($text) ($text -replace 'badge/version-\d+(?:\.\d+)+-', "badge/version-$nextVersion-" -replace
+        'alt="Version \d+(?:\.\d+)+"', "alt=`"Version $nextVersion`"").Replace("with $countHere patches. Add", "with $releasedCount patches. Add") }
+    Set-FactsFile 'CHANGELOG.md' { param($text) $text.Replace("## $versionHere (", "## Unreleased`n`n### HushGram v$nextVersion`n`n* A change on its way.`n`n## $versionHere (") }
+    $factsGit = Join-Path $factsRoot '.git'
+    $releasedFile = Join-Path ([System.IO.Path]::GetTempPath()) ('hushgram-tagged-' + [guid]::NewGuid().ToString('N') + '.json')
+    try {
+        Assert-Throws { Invoke-LenientFacts } "*latest release has $releasedCount patches, but it has $countHere*" `
+            'The lenient check took a count for the published release that no tag backs.'
+        # The release's catalog, one patch short, committed and tagged in a repository of the copy.
+        $releasedCatalog = Get-Content -LiteralPath (Join-Path $factsRoot 'patches-list.json') -Raw | ConvertFrom-Json
+        $releasedCatalog.patches = @($releasedCatalog.patches | Select-Object -Skip 1)
+        [System.IO.File]::WriteAllText($releasedFile, ($releasedCatalog | ConvertTo-Json -Depth 20), (New-Object System.Text.UTF8Encoding($false)))
+        & git -C $factsRoot init -q
+        $blob = [string](& git -C $factsRoot hash-object -w $releasedFile)
+        & git -C $factsRoot update-index --add --cacheinfo "100644,$($blob.Trim()),patches-list.json"
+        $tree = [string](& git -C $factsRoot write-tree)
+        $commit = [string](& git -C $factsRoot -c user.name=HushGram -c user.email=release@example.invalid commit-tree $tree.Trim() -m 'the release')
+        & git -C $factsRoot tag "v$versionHere" $commit.Trim()
+        Assert-True ($LASTEXITCODE -eq 0) "Could not tag the stand-in release's catalog in $factsRoot."
+        $said = Invoke-LenientFacts
+        Assert-True ($said -like "*v$versionHere's catalog at its tag lists $releasedCount patches for Instagram $buildHere*") `
+            "The lenient check didn't read the published release's count from its tag: $said"
+    } finally {
+        Remove-Item -LiteralPath $releasedFile -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $factsGit) { Remove-Item -LiteralPath $factsGit -Recurse -Force }
+        foreach ($name in @('gradle.properties', 'patches-list.json', 'README.md', 'CHANGELOG.md')) { Reset-FactsFile $name }
+    }
+
     # A dead link: the address has every right shape and names a release nobody published. GitHub
     # answers 404 for it; a stand-in for the request does here, so the case needs no network.
     & {
