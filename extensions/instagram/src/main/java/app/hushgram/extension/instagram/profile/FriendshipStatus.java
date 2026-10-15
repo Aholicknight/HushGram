@@ -180,7 +180,9 @@ public final class FriendshipStatus {
         if (followedBy == null) followedBy = friendshipFollowedBy(user);
         if (followedBy == null) followedBy = followedBy(user);
         if (followedBy == null) {
-            Logger.printDebug(() -> "Friendship status: Instagram hasn't said whether this account follows you");
+            boolean screenKnown = screen != null;
+            Logger.printDebug(() -> "Friendship status: Instagram hasn't said whether this account follows you"
+                    + (screenKnown ? " (the screen's answer has no follows-you flag)" : " (no screen answer yet)"));
             return null;
         }
         if (following == null) following = friendshipFollowing(user);
