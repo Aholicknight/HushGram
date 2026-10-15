@@ -1295,7 +1295,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                                 + "Restart Instagram to see the change.")));
                 glass.addPreference(toggle(context, Settings.SEARCH_BUTTON_ON_HOME, L10n.t("Search button on Home's header"),
                         L10n.t("Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works "
-                                + "with the Search tab hidden too, unless you swipe between your tabs. Restart Instagram "
+                                + "with the Search tab hidden too. Restart Instagram "
                                 + "to see the change.")));
                 glass.addPreference(toggle(context, Settings.MESSAGES_BUTTON_ON_HOME, L10n.t("Messages button on Home's header"),
                         L10n.t("Adds a Messages button at the top of Home when Instagram moved Messages to your tab bar. "
