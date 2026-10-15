@@ -1133,3 +1133,7 @@ Words or phrases, with a comma or a new line between them. Capital letters don't
 No words yet	아직 단어 없음
 %1$d word	단어 %1$d개
 %1$d words	단어 %1$d개
+# context: Reels > Show a reel's exact time: how long ago a reel was posted (#195). %1$s is a short span like 1d 2h 5m, already in this language.
+Show how long ago a reel was posted	릴스가 게시된 지 얼마나 됐는지 표시
+Adds the days, hours and minutes since it went up, like Oct 2, 3:45 PM · 1d 2h 5m ago.	게시된 뒤 지난 일, 시간, 분을 10월 2일 오후 3:45 · 1일 2시간 5분 전처럼 덧붙입니다.
+%1$s ago	%1$s 전

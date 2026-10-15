@@ -1134,3 +1134,7 @@ Words or phrases, with a comma or a new line between them. Capital letters don't
 No words yet	Belum ada kata
 %1$d word	%1$d kata
 %1$d words	%1$d kata
+# context: Reels > Show a reel's exact time: how long ago a reel was posted (#195). %1$s is a short span like 1d 2h 5m, already in this language.
+Show how long ago a reel was posted	Tampilkan sudah berapa lama reel diposting
+Adds the days, hours and minutes since it went up, like Oct 2, 3:45 PM · 1d 2h 5m ago.	Menambahkan hari, jam, dan menit sejak diposting, seperti 2 Okt, 15.45 · 1 hr, 2 j, 5 mnt yang lalu.
+%1$s ago	%1$s yang lalu

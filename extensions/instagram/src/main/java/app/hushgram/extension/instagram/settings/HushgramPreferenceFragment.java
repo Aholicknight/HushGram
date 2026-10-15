@@ -931,6 +931,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "A change shows from the next reel.")));
             reels.add(toggle(context, Settings.REEL_POST_TIME_SECONDS, L10n.t("Show seconds in a reel's time"),
                     L10n.t("Adds the seconds to a reel's time, like Oct 2, 3:45:30 PM.")));
+            reels.add(toggle(context, Settings.REEL_POST_TIME_AGO, L10n.t("Show how long ago a reel was posted"),
+                    L10n.t("Adds the days, hours and minutes since it went up, like Oct 2, 3:45 PM · 1d 2h 5m ago.")));
         }
         if (build.contains(PatchFamily.REEL_SEEK_BAR)) {
             reels.add(toggle(context, Settings.REEL_SEEK_BAR, L10n.t("Keep a seek bar"),
@@ -1807,6 +1809,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
+                    belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
+                            || Settings.REEL_POST_TIME_AGO.key.equals(key));
                     belongs |= family == PatchFamily.FRIENDSHIP_STATUS && Settings.FOLLOW_LABEL_PLACE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)

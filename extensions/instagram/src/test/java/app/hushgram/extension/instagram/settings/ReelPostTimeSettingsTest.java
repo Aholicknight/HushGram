@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.*;
 import android.app.Activity;
+import android.preference.Preference;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
 import java.util.Arrays;
@@ -45,6 +46,7 @@ public class ReelPostTimeSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.SHOW_REEL_POST_TIME.resetToDefault();
         Settings.REEL_POST_TIME_SECONDS.resetToDefault();
+        Settings.REEL_POST_TIME_AGO.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -56,6 +58,7 @@ public class ReelPostTimeSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.SHOW_REEL_POST_TIME.resetToDefault();
         Settings.REEL_POST_TIME_SECONDS.resetToDefault();
+        Settings.REEL_POST_TIME_AGO.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -82,8 +85,9 @@ public class ReelPostTimeSettingsTest {
         assertNotNull(row);
         PreferenceGroup reels = row.getParent();
         assertEquals("Reels", reels.getTitle().toString());
-        assertEquals(2, reels.getPreferenceCount());
+        assertEquals(3, reels.getPreferenceCount());
         assertEquals(Settings.REEL_POST_TIME_SECONDS.key, reels.getPreference(1).getKey());
+        assertEquals(Settings.REEL_POST_TIME_AGO.key, reels.getPreference(2).getKey());
         assertNull(page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_SPEED.key));
     }
     @Test public void reelTimeSwitchStartsOffUnderReelsAfterTheSpeedAndHonorsPause() throws Exception {
@@ -101,7 +105,8 @@ public class ReelPostTimeSettingsTest {
         assertTrue(Arrays.toString(keys), speed >= 0);
         assertEquals("right after Keep the reel speed", Settings.SHOW_REEL_POST_TIME.key, keys[speed + 1]);
         assertEquals("then its seconds", Settings.REEL_POST_TIME_SECONDS.key, keys[speed + 2]);
-        assertEquals("then the seek bar", Settings.REEL_SEEK_BAR.key, keys[speed + 3]);
+        assertEquals("then how long ago", Settings.REEL_POST_TIME_AGO.key, keys[speed + 3]);
+        assertEquals("then the seek bar", Settings.REEL_SEEK_BAR.key, keys[speed + 4]);
         assertFalse(row.isChecked());
         assertFalse(Settings.SHOW_REEL_POST_TIME.get());
         assertFalse("each reel's title reads the switch as it's drawn, so no restart prompt", Settings.SHOW_REEL_POST_TIME.rebootApp);
@@ -141,5 +146,39 @@ public class ReelPostTimeSettingsTest {
         row.setChecked(false);
         ShadowLooper.idleMainLooper();
         assertFalse(seconds.isEnabled());
+    }
+    /** How long ago is a choice of its own too (#195), off to start, backed up, and waiting for the switch. */
+    @Test public void howLongAgoStartsOffAndWaitsForTheSwitch() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_POST_TIME));
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SHOW_REEL_POST_TIME.key);
+        SwitchPreference ago = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.REEL_POST_TIME_AGO.key);
+        assertNotNull(ago);
+        assertEquals("Show how long ago a reel was posted", ago.getTitle().toString());
+        assertEquals("Adds the days, hours and minutes since it went up, like Oct 2, 3:45 PM · 1d 2h 5m ago.",
+                ago.getSummary().toString());
+        assertFalse(ago.isChecked());
+        assertEquals(Boolean.FALSE, Settings.REEL_POST_TIME_AGO.defaultValue);
+        assertFalse("read as each reel's title is drawn", Settings.REEL_POST_TIME_AGO.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_POST_TIME_AGO.key));
+
+        assertFalse("waits for Show a reel's exact time", ago.isEnabled());
+        row.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(ago.isEnabled());
+    }
+    /** Searching the patch's name finds both of its choices with it, and nothing of the patch next to it. */
+    @Test public void searchingThePatchsNameFindsItsChoices() throws Exception {
+        open(EnumSet.of(PatchFamily.KEEP_REEL_SPEED, PatchFamily.REEL_POST_TIME));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.SHOW_REEL_POST_TIME.key);
+        Preference seconds = page.getPreferenceScreen().findPreference(Settings.REEL_POST_TIME_SECONDS.key);
+        Preference ago = page.getPreferenceScreen().findPreference(Settings.REEL_POST_TIME_AGO.key);
+        Preference speed = page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_SPEED.key);
+        page.searchSettings("show a reel's exact time");
+        assertNotNull("the switch", row.getParent());
+        assertNotNull("its seconds", seconds.getParent());
+        assertNotNull("how long ago", ago.getParent());
+        assertNull("Keep the reel speed", speed.getParent());
+        page.searchSettings("");
+        assertNotNull(speed.getParent());
     }
 }

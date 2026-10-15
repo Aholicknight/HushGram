@@ -115,6 +115,7 @@ public final class ConfigurationBackup {
         }
         if (PatchFamily.REEL_POST_TIME.inBuild()) {
             settings.put(Settings.REEL_POST_TIME_SECONDS.key, Settings.REEL_POST_TIME_SECONDS);
+            settings.put(Settings.REEL_POST_TIME_AGO.key, Settings.REEL_POST_TIME_AGO);
         }
         if (PatchFamily.VIDEO_DOWNLOAD.inBuild()) settings.put(Settings.DOWNLOAD_FEED_COVER.key, Settings.DOWNLOAD_FEED_COVER);
         if (PatchFamily.VIDEO_DOWNLOAD.inBuild()) {

@@ -122,6 +122,7 @@ public class ReelPostTimeTest {
         PauseForTests.resume();
         Settings.SHOW_REEL_POST_TIME.save(true);
         Settings.REEL_POST_TIME_SECONDS.resetToDefault();
+        Settings.REEL_POST_TIME_AGO.resetToDefault();
         HookStatus.clear();
         now = postedOnOctober2(0) * 1000L + 2 * HOUR;
         // The date leaves the year out for this year, which is the year of the phone's clock.
@@ -136,6 +137,7 @@ public class ReelPostTimeTest {
         TimeZone.setDefault(zone);
         Settings.SHOW_REEL_POST_TIME.resetToDefault();
         Settings.REEL_POST_TIME_SECONDS.resetToDefault();
+        Settings.REEL_POST_TIME_AGO.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -193,6 +195,52 @@ public class ReelPostTimeTest {
 
         Settings.REEL_POST_TIME_SECONDS.save(false);
         assertEquals("Oct 2, 3:45 PM", plain(lineOf(title)));
+    }
+
+    /** How long ago follows the time only when asked for, with the seconds or without them (#195). */
+    @Test
+    public void howLongAgoShowsOnlyWhenAskedFor() {
+        Title title = reel(postedOnOctober2(0));
+        assertEquals("off to start", Boolean.FALSE, Settings.REEL_POST_TIME_AGO.defaultValue);
+        assertEquals("Oct 2, 3:45 PM", plain(lineOf(title)));
+
+        Settings.REEL_POST_TIME_AGO.save(true);
+        assertEquals("Oct 2, 3:45 PM · 2h ago", plain(lineOf(title)));
+        Settings.REEL_POST_TIME_SECONDS.save(true);
+        assertEquals("Oct 2, 3:45:30 PM · 2h ago", plain(lineOf(title)));
+
+        assertEquals("a minute ahead of the phone's clock is a clock that's off, so just the time",
+                "Oct 2, 5:46:30 PM", plain(lineOf(reel(now / 1000L + 60))));
+    }
+
+    /** Days, hours and minutes, the ones that aren't none, and the seconds under a minute. */
+    @Test
+    public void howLongAgoCountsDaysHoursAndMinutes() {
+        long second = 1000L;
+        long minute = 60 * second;
+        long day = 24 * HOUR;
+        assertEquals("1d 1h 1m ago", ReelPostTime.ago(context, day + HOUR + minute));
+        assertEquals("1d 5m ago", ReelPostTime.ago(context, day + 5 * minute + 59 * second));
+        assertEquals("2d ago", ReelPostTime.ago(context, 2 * day));
+        assertEquals("1h 1m ago", ReelPostTime.ago(context, 61 * minute));
+        assertEquals("59m ago", ReelPostTime.ago(context, HOUR - second));
+        assertEquals("30s ago", ReelPostTime.ago(context, 30 * second + 999));
+        assertEquals("0s ago", ReelPostTime.ago(context, 0));
+        assertEquals("400d ago", ReelPostTime.ago(context, 400 * day));
+        assertNull("ahead of the phone's clock", ReelPostTime.ago(context, -1));
+        assertNull(ReelPostTime.ago(null, HOUR));
+    }
+
+    /** A phone in Turkish, which HushGram speaks, gets the units and the ago in Turkish, never half in English. */
+    @Test
+    public void howLongAgoIsInTheLanguageOfHushGramsWords() {
+        RuntimeEnvironment.setQualifiers("+tr");
+        try {
+            String ago = ReelPostTime.ago(RuntimeEnvironment.getApplication(), 24 * HOUR + HOUR + 60 * 1000L);
+            assertEquals("ICU's short Turkish units: gün, saat, dakika", "1g 1 sa 1d önce", ago);
+        } finally {
+            RuntimeEnvironment.setQualifiers("+en-rUS");
+        }
     }
 
     /** A phone on a 24-hour clock gets its own clock, with the seconds and without. */

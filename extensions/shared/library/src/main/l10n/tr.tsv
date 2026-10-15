@@ -1134,3 +1134,7 @@ Words or phrases, with a comma or a new line between them. Capital letters don't
 No words yet	Henüz kelime yok
 %1$d word	%1$d kelime
 %1$d words	%1$d kelime
+# context: Reels > Show a reel's exact time: how long ago a reel was posted (#195). %1$s is a short span like 1d 2h 5m, already in this language.
+Show how long ago a reel was posted	Reel'in ne kadar önce paylaşıldığını göster
+Adds the days, hours and minutes since it went up, like Oct 2, 3:45 PM · 1d 2h 5m ago.	Paylaşıldığından beri geçen günleri, saatleri ve dakikaları ekler, 2 Eki, 15:45 · 1g 2 sa 5d önce gibi.
+%1$s ago	%1$s önce

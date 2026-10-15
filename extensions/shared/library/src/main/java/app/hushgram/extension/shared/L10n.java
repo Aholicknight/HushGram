@@ -304,7 +304,7 @@ public final class L10n {
      * The language the text comes out in: the one whose table answers, or English when none
      * does. Pseudo-locales are English underneath.
      */
-    static Locale textLocale(Context context) {
+    public static Locale textLocale(Context context) {
         List<String> tags = tags(context);
         if (pseudo(tags.get(0))) return Locale.ENGLISH;
         String tag = tableFor(tags).tag;

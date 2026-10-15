@@ -1528,6 +1528,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reel_post_time_seconds", FALSE, parent(SHOW_REEL_POST_TIME));
 
     /**
+     * {@link #SHOW_REEL_POST_TIME} adds how long ago the reel went up, in days, hours and minutes,
+     * like Oct 2, 3:45 PM · 1d 2h 5m ago (#195). Worked out as the reel comes up. Off to start.
+     */
+    public static final BooleanSetting REEL_POST_TIME_AGO =
+            new BooleanSetting("hushgram_reel_post_time_ago", FALSE, parent(SHOW_REEL_POST_TIME));
+
+    /**
      * A reel that doesn't fill the screen shows a blurred copy of itself in the bars above and below
      * it, or beside it, instead of black ({@link app.hushgram.extension.instagram.reels.ReelBlurBars}).
      * Looked at when the Reels viewer opens and then as pages settle, so a change shows the next time

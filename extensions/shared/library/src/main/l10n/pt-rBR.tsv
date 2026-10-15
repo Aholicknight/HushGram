@@ -1134,3 +1134,7 @@ Words or phrases, with a comma or a new line between them. Capital letters don't
 No words yet	Nenhuma palavra ainda
 %1$d word	%1$d palavra
 %1$d words	%1$d palavras
+# context: Reels > Show a reel's exact time: how long ago a reel was posted (#195). %1$s is a short span like 1d 2h 5m, already in this language.
+Show how long ago a reel was posted	Mostrar há quanto tempo um reel foi publicado
+Adds the days, hours and minutes since it went up, like Oct 2, 3:45 PM · 1d 2h 5m ago.	Adiciona os dias, horas e minutos desde a publicação, como 2 de out., 15:45 · há 1 dia 2 h 5 min.
+%1$s ago	há %1$s
