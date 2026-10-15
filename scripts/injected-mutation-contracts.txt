@@ -1321,8 +1321,12 @@ once-call Lapp/hushgram/extension/instagram/misc/EmojiStyle;->replaceStrategy(I)
 # told by what it lacks: it is a bare resolve-and-getColor, and every other method that resolves
 # a theme attribute and asks for its color (the first read, and the few that ask for one fixed
 # attribute) first calls a static helper taking an object to check it. The first read has its own
-# rule above, so each rule picks one.
-once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->list(Landroid/content/res/ColorStateList;)Landroid/content/res/ColorStateList; in static (Landroid/content/Context;I)Landroid/content/res/ColorStateList; sites 3 holding Failed\sto\sinflate\sColorStateList,\sleaving\sit\sto\sthe\sframework
+# rule above, so each rule picks one. AccentColor.list is shared, not once: since 773e6d54 each
+# getColorStateList form of Instagram's own Resources classes (05Ck, 0USG and 0USH on 385713073) passes
+# its answer through it too, and those classes hold no string a rule could pick them by on every
+# build. AccentColorHookTest holds those sites on the eight 451 builds; this rule holds the loader to
+# its three and keeps it out of any other method holding the log line.
+shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->list(Landroid/content/res/ColorStateList;)Landroid/content/res/ColorStateList; in static (Landroid/content/Context;I)Landroid/content/res/ColorStateList; sites 3 holding Failed\sto\sinflate\sColorStateList,\sleaving\sit\sto\sthe\sframework
 shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I holding LX/*;->*(Ljava/lang/Object;I)V LX/*;->*(Landroid/content/Context;I)I
 shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I lacking static LX/*;->*(Ljava/lang/Object;*)V holding Landroid/content/Context;->getColor(I)I LX/*;->*(Landroid/content/Context;I)I
 # The two reads that take a fallback color resource hand theirs to AccentColor.color the same way
