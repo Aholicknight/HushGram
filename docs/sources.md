@@ -893,7 +893,7 @@ A source with no licence, or one whose licence can't be combined with GPL-3.0, i
 
 The ledger is about Instagram, with one exception. HushGram's shared code came from two Facebook bundles, and provenance.json may only port from a source the ledger adopts, so those two sit in the ledger as adopted sources for Facebook. Nothing else in it is allowed to name another app.
 
-`scripts/audit-instagram-sources.ps1` keeps the ledger current. It reads the official Morphe bundle, the Morphe community directory, Awesome Morphe, the Morphe Patch Tracker, Jman's bundle index and the Morphe Archive, searches GitHub (and GitLab, given a token) for code naming Instagram's package, and then walks every source's branches, forks and licence. A repository whose files are byte for byte files the ledger already holds counts as a copy of that source, not as a new one. Anything else that moved (a new source, a licence that disappeared, a branch whose Instagram code changed, a fork we haven't seen) stops the audit until it's settled in the ledger.
+`scripts/audit-instagram-sources.ps1` keeps the ledger current. It reads the official Morphe bundle, the Morphe community directory, Awesome Morphe, the Morphe Patch Tracker, Jman's Patch Bundle Registry (through its GraphQL API, since its plain routes refuse a package as big as Instagram's) and the Morphe Archive, searches GitHub (and GitLab, given a token) for code naming Instagram's package, and then walks every source's branches, forks and licence. A repository whose files are byte for byte files the ledger already holds counts as a copy of that source, not as a new one. Anything else that moved (a new source, a licence that disappeared, a branch whose Instagram code changed, a fork we haven't seen) stops the audit until it's settled in the ledger.
 
 The audit never downloads anyone's code. It reads what the forges' APIs say about a repository and hashes licence text in memory. The only files it writes are its report and the ledger's dates.
 
@@ -933,17 +933,19 @@ Why HushGram exists at all comes down to the recorded comparison against Instagr
 
 So piko needs at least three fixes before its patches apply to 449, and there may be more past the third. That shaped HushGram's patches. None of them depends on anything but the settings patch, so one missed anchor can't take the rest down with it.
 
+[crimera/piko-ig-lite](https://github.com/crimera/piko-ig-lite) (GPL-3.0) is piko's author cutting the Instagram half down to Hide ads, Media downloads, Ghost mode and Disable swipe to camera on 449 and 448. [SatanMerde/D-moniakPatches](https://github.com/SatanMerde/D-moniakPatches) (GPL-3.0) republishes piko's Instagram set under another package, and [Aorus22/twitter-bookmarker](https://github.com/Aorus22/twitter-bookmarker) builds a piko bundle from a folder inside an X bookmark tool. That one has no licence at its root, so it's behavior-only. The first two are rejected, because anything worth reading is read from piko.
+
 Two more repositories carry piko's code. [ahmedyarub/morphe-patches](https://github.com/ahmedyarub/morphe-patches) (GPL-3.0) keeps piko's Instagram package next to patches of its own and a test that checks fingerprints. [zalfafa/piko](https://github.com/zalfafa/piko) is a copy of piko that isn't a GitHub fork. [chirag127/morphe-patches](https://github.com/chirag127/morphe-patches) keeps copies of piko's and brosssh's bundles in a folder, and its only Instagram patch of its own is a stub that does nothing.
 
 ### ReVanced and the bundles built on it
 
 **[ReVanced/revanced-patches](https://gitlab.com/ReVanced/revanced-patches)** (GPL-3.0) has the oldest Instagram patches in the ReVanced and Morphe world: hide ads, anonymous story viewing, share link cleaning, the Reels scrolling switches, the build-expired popup and a signature check fix. Its GitHub home has been blocked by a DMCA notice since March 2026, so GitLab holds it now, and several of its Instagram fixes live only on contributor branches there. It's a candidate.
 
-About twenty GitHub repositories hold copies of ReVanced's Instagram files, from byte-for-byte current ones to 2023 snapshots in ReVanced's old layout. The ledger records each as a copy of ReVanced rather than a source of its own.
+About twenty GitHub repositories hold copies of ReVanced's Instagram files, from byte-for-byte current ones to 2023 snapshots in ReVanced's old layout. The ledger records each as a copy of ReVanced rather than a source of its own. [Daniil-Ka/revanced-dual-subtitles](https://github.com/Daniil-Ka/revanced-dual-subtitles) is the newest of them, a YouTube subtitles fork whose Instagram files match ReVanced's dev branch. [GHD95/revanced-patches](https://github.com/GHD95/revanced-patches) (GPL-3.0) is a 2023 snapshot with one old Hide timeline ads patch, and [itsmartashub/rvplus](https://github.com/itsmartashub/rvplus) holds the same file. The ledger rejects the snapshot.
 
 Built on ReVanced's work, or next to it:
 
-- [bluecxt/instagram-revanced-patches](https://github.com/bluecxt/instagram-revanced-patches) (GPL-3.0) adds media download, swipe navigation, screenshot and navigation button patches of its own to ReVanced's set, and Jman's index lists it.
+- [bluecxt/instagram-revanced-patches](https://github.com/bluecxt/instagram-revanced-patches) (GPL-3.0) adds media download, swipe navigation, screenshot and navigation button patches of its own to ReVanced's set, and Jman's registry lists it.
 - [Aunali321/ReVancedExperiments](https://github.com/Aunali321/ReVancedExperiments) (GPL-3.0) has a media quality patch and a selectable bio patch nobody else has. [sam-reza/RevExp](https://github.com/sam-reza/RevExp) is a copy.
 - [daboynb/revanced-instagram-viewonce](https://github.com/daboynb/revanced-instagram-viewonce) (GPL-3.0) is one patch that keeps view-once media, and [Kydaix/Patches](https://github.com/Kydaix/Patches) (GPL-3.0) is one patch for the Instants gallery.
 - [wb1016/instagram-revanced-patches](https://github.com/wb1016/instagram-revanced-patches) renders HDR posts at normal brightness. It has no licence, so it's behavior-only.
@@ -956,6 +958,10 @@ Built on ReVanced's work, or next to it:
 
 Four multi-app bundles have one Instagram patch each, all GPL-3.0: a system font switch in [ch3thanhs/stylus](https://github.com/ch3thanhs/stylus), DM scroll position in [dawidd612/dudeks-morphe-patches](https://github.com/dawidd612/dudeks-morphe-patches), notification grouping in [giaaaacomo/nifty-patches-selection](https://github.com/giaaaacomo/nifty-patches-selection) and a share domain switch in [kareemlukitomo/morphe-patches](https://github.com/kareemlukitomo/morphe-patches). [lordbagel42/lobotagram](https://github.com/lordbagel42/lobotagram) is an early Reels-removal bundle with no licence, so it's behavior-only.
 
+Two newer multi-app bundles are candidates too. [kveld9/kveld-extra-morphe-patches](https://github.com/kveld9/kveld-extra-morphe-patches) (GPL-3.0) has four Instagram patches that cut telemetry, crash diagnostics, AR effects and ML Kit vision code on 447. [WaggBR/Wagg13Patch_Morphe](https://github.com/WaggBR/Wagg13Patch_Morphe) has a story mention indicator for 439, and GitHub reads its licence as GPL-3.0.
+
+Several bundles only carry Morphe's clone patch, which names Instagram in its list of apps it won't clone. The ledger keeps them out of scope: [cfels/vibe-patches](https://github.com/cfels/vibe-patches), [latanvillegas/modo-patches](https://github.com/latanvillegas/modo-patches), [nobianh78/tada-patches](https://github.com/nobianh78/tada-patches) and [noire342/moon-patches](https://github.com/noire342/moon-patches) joined them in October.
+
 ### Outside Morphe
 
 A lot of Instagram modding happens outside Morphe, in LSPosed modules and standalone patchers.
@@ -965,6 +971,7 @@ A lot of Instagram modding happens outside Morphe, in LSPosed modules and standa
 - [mamiiblt/instafel](https://github.com/mamiiblt/instafel) (MIT) patches Instagram Alpha builds with a patch engine of its own. It's a candidate, though its patches would have to be rewritten for Morphe.
 - [arnav-exe/dfinsta-redux](https://github.com/arnav-exe/dfinsta-redux) carries DFInsta's distraction-free edits to each new Instagram release, and [uuu38/instaX](https://github.com/uuu38/instaX) is a current module built against 440.1.0.46.86. Neither has a licence, so both are behavior-only.
 - [V-E-O/biliSpeed](https://github.com/V-E-O/biliSpeed) (GPL-3.0) is a playback speed module that hooks Instagram too.
+- Three MIT modules from October 2026 have nothing HushGram takes, so they're rejected. [maciasdav/igglass](https://github.com/maciasdav/igglass) restyles the tab bar as floating glass, [SmitroniX/insta-](https://github.com/SmitroniX/insta-) adds a floating bar and download buttons that HushGram's own save pipeline already covers, and [FahadBinHussain/glitchdraft](https://github.com/FahadBinHussain/glitchdraft) syncs message drafts to a server.
 
 The older download and ad modules, [iHelp101/XInsta](https://github.com/iHelp101/XInsta) and [TremendoX/UnclutterIG](https://github.com/TremendoX/UnclutterIG) among them, have no licence and target Instagram builds years old. The ledger keeps them as behavior-only. [pawjects/PawGram](https://github.com/pawjects/PawGram) is MIT, but it distributes prebuilt Instagram APKs rather than patch code, so there's nothing to take.
 
@@ -974,7 +981,9 @@ Threads (`com.instagram.barcelona`) shares a lot of code with Instagram, and a f
 
 ### Where HushGram is listed
 
-The 2026-10-01 census recorded HushGram in the [Morphe community directory](https://morphe-patches.software/?github=SysAdminDoc/HushGram#bundles:new). It didn't find a listing in [Awesome Morphe](https://github.com/nvbangg/awesome-morphe), the [Morphe Patch Tracker](https://drnx64.github.io/morphe-track-patches/), [Jman's ReVanced Patch Bundles](https://github.com/Jman-Github/ReVanced-Patch-Bundles) or the [Morphe Archive](https://rushiforai.github.io/morphe-archive/). The ledger keeps each check's date and result.
+The 2026-10-15 census found HushGram in all five indexes: the [Morphe community directory](https://morphe-patches.software/?github=SysAdminDoc/HushGram#bundles:new), [Awesome Morphe](https://github.com/nvbangg/awesome-morphe), the [Morphe Patch Tracker](https://drnx64.github.io/morphe-track-patches/), [Jman's Patch Bundle Registry](https://github.com/Jman-Github/Patch-Bundle-Registry) and the [Morphe Archive](https://rushiforai.github.io/morphe-archive/). On 2026-10-01 only the directory listed it. The ledger keeps each check's date and result.
+
+Two readers changed on the way. The Patch Tracker's data lists some bundles twice under keys that differ only in case, which the audit couldn't parse until it learned to read them as a case-sensitive map. Jman's index moved from static files to a catalog API, and the audit now asks its GraphQL endpoint for the newest bundles that patch Instagram.
 
 ### What we left out
 

@@ -307,7 +307,7 @@ $fixtureLedger = [ordered]@{
             hushgram = [ordered]@{ status = 'submitted'; url = 'https://github.com/nvbangg/awesome-morphe/issues/1'; submitted = '2026-09-01' } }
         [ordered]@{ id = 'morphe-patch-tracker'; name = 'Morphe Patch Tracker'; url = 'https://drnx64.github.io/morphe-track-patches/'
             hushgram = [ordered]@{ status = 'listed'; url = 'https://drnx64.github.io/morphe-track-patches/#/bundle/sysadmindoc'; checked = '2026-09-01' } }
-        [ordered]@{ id = 'jman-bundles'; name = 'Jman''s ReVanced Patch Bundles'; url = 'https://github.com/Jman-Github/ReVanced-Patch-Bundles'
+        [ordered]@{ id = 'jman-bundles'; name = 'Jman''s Patch Bundle Registry'; url = 'https://github.com/Jman-Github/Patch-Bundle-Registry'
             hushgram = [ordered]@{ status = 'not-listed'; checked = '2026-09-01' } }
         [ordered]@{ id = 'morphe-archive'; name = 'Morphe Archive'; url = 'https://rushiforai.github.io/morphe-archive/'
             hushgram = [ordered]@{ status = 'listed'; url = 'https://github.com/rushiforai/morphe-archive'; checked = '2026-09-01' } }
@@ -352,22 +352,21 @@ function New-FakeAnswers {
                 patches = @(@{ name = 'Hide ads'; compatiblePackagesKey = 0 }) })
             compatibilities = @(@{ packageName = 'com.instagram.android'; targets = @(@{ version = '449.0.0.52.84' }) }) } | ConvertTo-Json -Depth 8) }
         awesome = @{ Status = 200; Content = '{"fixture-owner/alpha-patches":{"com.instagram.android":"0123"},"SysAdminDoc/hushfeed":{"com.zhiliaoapp.musically":"4567"}}' }
-        tracker = @{ Status = 200; Content = (@{
-            'sysadmindoc:stable' = @{ repo_url = 'https://github.com/SysAdminDoc/HushGram'; apps = @(@{ package = 'com.instagram.android'; patches = @(@{ name = 'Hide ads' }) }) }
-            'alpha:stable' = @{ repo_url = 'https://github.com/fixture-owner/alpha-patches'; apps = @(@{ package = 'com.instagram.android'; patches = @(@{ name = 'Hide ads' }) }) }
-        } | ConvertTo-Json -Depth 8) }
-        jmanSources = @{ Status = 200; Content = '{"alpha-stable":{"patches":"https://api.github.com/repos/fixture-owner/alpha-patches"},"gamma-stable":{"patches":"https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches"}}' }
-        jmanCatalog = @{ Status = 200; Content = ("# Catalog`n| [Alpha](#alpha) | 1 | 1 | Generated |`n### X Alpha Bundle Patch List:`n" +
-            "| **Name** | **Description** | **Compatible Apps** | **Compatible Versions** |`n|---|---|---|---|`n" +
-            "| ${tick}Hide ads${tick} | ${tick}Removes ads.${tick} | ${tick}Instagram${tick} | ${tick}449.0.0.52.84${tick} |`n" +
-            "### X Gamma Bundle Patch List:`n| ${tick}Open links outside${tick} | ${tick}d${tick} | ${tick}com.instagram.android${tick} | ${tick}Any${tick} |`n") }
+        # The real tracker lists a bundle twice under keys that differ only in case ('immortalzeus:dev' and
+        # 'ImmortalZeus:dev'), which ConvertFrom-Json alone refuses, so the fixture is written as text.
+        tracker = @{ Status = 200; Content = ('{"sysadmindoc:stable":{"repo_url":"https://github.com/SysAdminDoc/HushGram","apps":[{"package":"com.instagram.android","patches":[{"name":"Hide ads"}]}]},' +
+            '"alpha:stable":{"repo_url":"https://github.com/fixture-owner/alpha-patches","apps":[{"package":"com.instagram.android","patches":[{"name":"Hide ads"}]}]},' +
+            '"Alpha:stable":{"repo_url":"https://github.com/fixture-owner/alpha-patches","apps":[{"package":"com.instagram.android","patches":[{"name":"Hide ads"}]}]}}') }
+        # Jman's registry answers GraphQL: whether HushGram is a source, and the latest bundles that patch Instagram.
+        jmanSelf = @{ Status = 200; Content = '{"data":{"source":[]}}' }
+        jmanBundles = @{ Status = 200; Content = '{"data":{"bundle":[{"source":{"url":"https://github.com/fixture-owner/alpha-patches"},"patches":[{"name":"Hide ads"}]},{"source":{"url":"https://gitlab.com/fixture-group/gamma-patches"},"patches":[{"name":"Open links outside"}]},{"source":{"url":"https://git.example.test/elsewhere/patches"},"patches":[{"name":"Off forge"}]}]}}' }
         archive = @{ Status = 200; Content = '{"name":"patches-list.json"}' }
         searchHits = @(
             @{ repository = @{ full_name = 'fixture-owner/alpha-patches' }; path = 'patches/Alpha.kt'; sha = $blobKnown }
             @{ repository = @{ full_name = 'copier/alpha-copy' }; path = 'patches/Alpha.kt'; sha = $blobMirror }
             @{ repository = @{ full_name = 'clone/alpha-clone' }; path = 'src/Alpha.kt'; sha = $blobKnown }
             @{ repository = @{ full_name = 'rushiforai/morphe-archive' }; path = 'examplepatches/fixture-owner/alpha-patches/patches-list.json'; sha = ('3b' * 20) }
-            @{ repository = @{ full_name = 'rushiforai/morphe-archive' }; path = 'examplepatches/Jman-Github/ReVanced-Patch-Bundles/patch-bundles/x/y-patches-list.json'; sha = ('4b' * 20) }
+            @{ repository = @{ full_name = 'rushiforai/morphe-archive' }; path = 'examplepatches/Jman-Github/Patch-Bundle-Registry/patch-bundles/x/y-patches-list.json'; sha = ('4b' * 20) }
             @{ repository = @{ full_name = 'noise/mentions-instagram' }; path = 'list.txt'; sha = ('5b' * 20) }
             @{ repository = @{ full_name = 'SysAdminDoc/HushGram' }; path = 'patches-list.json'; sha = ('6b' * 20) }
             # The archive keeps a recorded fork's patch list for its entry's own package, which is no bundle of its own.
@@ -417,8 +416,13 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
             '^https://morphe-patches\.software/data/bundles\.json$' { $answer = $a.directory; break }
             '^https://raw\.githubusercontent\.com/nvbangg/awesome-morphe/main/data/hashes\.json$' { $answer = $a.awesome; break }
             '^https://raw\.githubusercontent\.com/drnx64/morphe-track-patches/main/data/bundles\.json$' { $answer = $a.tracker; break }
-            '^https://raw\.githubusercontent\.com/Jman-Github/ReVanced-Patch-Bundles/bundles/patch-bundles/bundle-sources\.json$' { $answer = $a.jmanSources; break }
-            '^https://raw\.githubusercontent\.com/Jman-Github/ReVanced-Patch-Bundles/bundles/patch-bundles/PATCH-LIST-CATALOG\.md$' { $answer = $a.jmanCatalog; break }
+            '^https://patch-bundles\.api\.jmancentral\.com/graphql\?query=(.+)$' {
+                $graphql = [Uri]::UnescapeDataString($Matches[1])
+                if ($graphql -like '{ source(*') { $answer = $a.jmanSelf }
+                elseif ($graphql -like '{ bundle(*offset: 0,*') { $answer = $a.jmanBundles }
+                else { $answer = @{ Status = 200; Content = '{"data":{"bundle":[]}}' } }
+                break
+            }
             '^https://api\.github\.com/repos/rushiforai/morphe-archive/contents/examplepatches/SysAdminDoc/HushGram/patches-list\.json$' { $answer = $a.archive; break }
             '^https://api\.github\.com/search/code\?q=([^&]+)&per_page=100&page=1$' {
                 $query = [Uri]::UnescapeDataString($Matches[1])
@@ -646,9 +650,16 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
     Assert-Drift 'license-added' '*beta-module*now has a licence (MIT*' 'An unlicensed source that gained a licence'
     $fakeForge.Answers = New-FakeAnswers
 
-    $tick = [string][char]96 * 3
-    $fakeForge.Answers.jmanCatalog.Content += "### X Delta Bundle Patch List:`n| ${tick}Hide reels${tick} | ${tick}d${tick} | ${tick}Instagram${tick} | ${tick}Any${tick} |`n"
-    Assert-Drift 'index-unresolved' "*Jman's catalog lists Instagram patches under 'Delta'*" 'A Jman section no repository stands behind'
+    $fakeForge.Answers.jmanBundles.Content = '{"data":{"bundle":[{"source":{"url":"https://github.com/newcomer/ig-patches"},"patches":[{"name":"Hide reels"}]}]}}'
+    Assert-Drift 'addition' '*newcomer/ig-patches*Jman''s bundle index*' 'A bundle only the Jman registry lists'
+    $fakeForge.Answers = New-FakeAnswers
+
+    $fakeForge.Answers.jmanSelf.Content = '{"data":{"source":[{"url":"https://github.com/SysAdminDoc/HushGram"}]}}'
+    Assert-Drift 'listing-changed' '*Jman''s Patch Bundle Registry lists HushGram now*' 'The Jman registry taking HushGram on'
+    $fakeForge.Answers = New-FakeAnswers
+
+    $fakeForge.Answers.jmanSelf = @{ Status = 200; Content = '{"errors":[{"message":"Query exceeds catalog budget"}]}' }
+    Assert-Drift 'source-failed' '*Jman''s bundle index could not be read*refused the query*' 'A Jman registry that refuses the query'
     $fakeForge.Answers = New-FakeAnswers
 
     # An index still spelling a source by its old name is that source, not an addition.

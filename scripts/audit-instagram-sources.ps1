@@ -235,8 +235,12 @@ function Invoke-SourceRequest {
 }
 
 function ConvertFrom-SourceJson {
-    param([string]$Text, [string]$What)
+    # -AsHashtable is for a document whose keys differ only in case (the Morphe Patch Tracker lists
+    # immortalzeus:dev and ImmortalZeus:dev), which PowerShell 7 can only read as a case-sensitive map.
+    # Windows PowerShell has no such switch and reads the document as it always did.
+    param([string]$Text, [string]$What, [switch]$AsHashtable)
     try {
+        if ($AsHashtable -and $PSVersionTable.PSVersion.Major -ge 6) { return , ($Text | ConvertFrom-Json -AsHashtable) }
         return , ($Text | ConvertFrom-Json)
     } catch {
         throw "$What did not answer JSON: $($_.Exception.Message)"
@@ -252,10 +256,21 @@ function Get-JsonItems {
 }
 
 function Get-SourceJson {
-    param([string]$Uri, [string]$Auth = 'plain', [string]$What = $Uri)
+    param([string]$Uri, [string]$Auth = 'plain', [string]$What = $Uri, [switch]$AsHashtable)
     $answer = Invoke-SourceRequest -Uri $Uri -Auth $Auth
     if ($answer.Status -ne 200) { throw "$What answered HTTP $($answer.Status)." }
-    return , (ConvertFrom-SourceJson -Text $answer.Content -What $What)
+    return , (ConvertFrom-SourceJson -Text $answer.Content -What $What -AsHashtable:$AsHashtable)
+}
+
+function Get-JsonEntries {
+    # The name and value of every key of a parsed JSON object, whether it came back as an object or,
+    # for a document read with -AsHashtable, as a map.
+    param($Parsed)
+    if ($Parsed -is [System.Collections.IDictionary]) {
+        foreach ($name in $Parsed.Keys) { [pscustomobject]@{ Name = [string]$name; Value = $Parsed[$name] } }
+    } else {
+        foreach ($property in $Parsed.PSObject.Properties) { [pscustomobject]@{ Name = $property.Name; Value = $property.Value } }
+    }
 }
 
 function Get-PagedItems {
@@ -325,7 +340,7 @@ foreach ($item in @(Get-SourceProperty $ledgerDocument 'outOfScope' | Where-Obje
 # The indexes' own data repositories, read below as indexes. A code search hit in one is a copy of
 # a bundle's patch list, never a source of its own.
 $indexRepositories = @('github.com/nvbangg/awesome-morphe', 'github.com/drnx64/morphe-track-patches',
-    'github.com/jman-github/revanced-patch-bundles', 'github.com/rushiforai/morphe-archive', 'github.com/rushiforai/revanced-archive')
+    'github.com/jman-github/revanced-patch-bundles', 'github.com/jman-github/patch-bundle-registry', 'github.com/rushiforai/morphe-archive', 'github.com/rushiforai/revanced-archive')
 # The two archives keep examplepatches/<owner>/<name>/patches-list.json for every bundle they
 # found, which is a pointer back to that repository.
 $archiveRepositories = @('github.com/rushiforai/morphe-archive', 'github.com/rushiforai/revanced-archive')
@@ -451,10 +466,11 @@ Invoke-Source 'Awesome Morphe' {
 }
 
 Invoke-Source 'Morphe Patch Tracker' {
-    $tracker = Get-SourceJson -Uri 'https://raw.githubusercontent.com/drnx64/morphe-track-patches/main/data/bundles.json' -What 'the Morphe Patch Tracker'
+    $tracker = Get-SourceJson -Uri 'https://raw.githubusercontent.com/drnx64/morphe-track-patches/main/data/bundles.json' `
+        -What 'the Morphe Patch Tracker' -AsHashtable
     $seen = @{}
     $listed['morphe-patch-tracker'] = $false
-    foreach ($property in $tracker.PSObject.Properties) {
+    foreach ($property in (Get-JsonEntries $tracker)) {
         $bundle = $property.Value
         $key = ConvertTo-SourceKey ([string]$bundle.repo_url)
         if ($key -and $key -eq $selfKey) { $listed['morphe-patch-tracker'] = $true }
@@ -468,48 +484,45 @@ Invoke-Source 'Morphe Patch Tracker' {
 }
 
 Invoke-Source 'Jman''s bundle index' {
-    $bundleSources = Get-SourceJson -Uri 'https://raw.githubusercontent.com/Jman-Github/ReVanced-Patch-Bundles/bundles/patch-bundles/bundle-sources.json' `
-        -What 'Jman''s bundle-sources.json'
-    $byName = @{}
-    $listed['jman-bundles'] = $false
-    foreach ($property in $bundleSources.PSObject.Properties) {
-        $key = ConvertTo-SourceKey ([string](Get-SourceProperty $property.Value 'patches'))
-        if ($key -and $key -eq $selfKey) { $listed['jman-bundles'] = $true }
-        $name = ($property.Name -replace '-(stable|dev|latest)$', '').ToLowerInvariant()
-        if ($key -and -not $byName.ContainsKey($name)) { $byName[$name] = $key }
+    # Jman's bundle-sources.json and PATCH-LIST-CATALOG.md left the repository (now Patch-Bundle-Registry)
+    # for a catalog API. Its REST routes refuse a query for a package as big as Instagram's, so this reads
+    # its GraphQL endpoint (GET, read only): the newest stable and prerelease bundle of every source that
+    # patches the package, and whether HushGram is a source there at all.
+    $api = 'https://patch-bundles.api.jmancentral.com/graphql?query='
+    $selfPattern = ([string]$ledgerDocument.self.repository).TrimEnd('/') -replace '([\\_%])', '\$1'
+    $selfAnswer = Get-SourceJson -Uri ($api + [Uri]::EscapeDataString('{ source(where: {url: {_ilike: "' + ($selfPattern -replace '\\', '\\') + '"}}) { url } }')) `
+        -What 'Jman''s patch bundle registry'
+    if ($null -ne (Get-SourceProperty $selfAnswer 'errors')) {
+        throw "Jman's patch bundle registry refused the query: $(@($selfAnswer.errors | ForEach-Object { $_.message }) -join '; ')"
     }
-    $catalog = Invoke-SourceRequest -Uri 'https://raw.githubusercontent.com/Jman-Github/ReVanced-Patch-Bundles/bundles/patch-bundles/PATCH-LIST-CATALOG.md'
-    if ($catalog.Status -ne 200) { throw "Jman's patch list catalog answered HTTP $($catalog.Status)." }
-    $appPackages = @{ 'instagram' = 'com.instagram.android'; 'com.instagram.android' = 'com.instagram.android' }
-    $section = $null
-    $found = @{}
-    foreach ($line in ($catalog.Content -split "`r?`n")) {
-        if ($line.StartsWith('### ') -and $line -match 'Bundle Patch List:\s*$') {
-            $section = (($line -replace '^###\s+\S+\s+', '') -replace '\s+Bundle Patch List:\s*$', '').Trim()
-            continue
-        }
-        if ($null -eq $section -or -not $line.StartsWith('|')) { continue }
-        $cells = $line.Split('|')
-        if ($cells.Count -lt 5) { continue }
-        $name = $cells[1].Replace([string][char]96, '').Trim()
-        foreach ($app in ($cells[3].Replace([string][char]96, '').Trim() -split ',\s*')) {
-            $package = $appPackages[$app.Trim().ToLowerInvariant()]
-            if (-not $package) { continue }
-            if (-not $found.ContainsKey($section)) { $found[$section] = @{ Packages = @{}; Features = New-Object System.Collections.Generic.List[string] } }
-            $found[$section].Packages[$package] = $true
-            if ($name -and -not $found[$section].Features.Contains($name)) { $found[$section].Features.Add($name) }
+    $listed['jman-bundles'] = @(Get-JsonItems $selfAnswer.data.source).Count -gt 0
+    $byRepository = @{}
+    foreach ($package in $packages) {
+        for ($offset = 0; ; $offset += 100) {
+            $filter = 'patch_packages: {package: {name: {_eq: "' + $package + '"}}}'
+            $query = '{ bundle(where: {is_latest: {_eq: true}, patches: {' + $filter + '}}, limit: 100, offset: ' + $offset +
+                ', order_by: {id: asc}) { source { url } patches(where: {' + $filter + '}, limit: 100) { name } } }'
+            $page = Get-SourceJson -Uri ($api + [Uri]::EscapeDataString($query)) -What 'Jman''s patch bundle registry'
+            if ($null -ne (Get-SourceProperty $page 'errors')) {
+                throw "Jman's patch bundle registry refused the query: $(@($page.errors | ForEach-Object { $_.message }) -join '; ')"
+            }
+            $bundles = @(Get-JsonItems $page.data.bundle)
+            foreach ($bundle in $bundles) {
+                $key = ConvertTo-SourceKey ([string]$bundle.source.url)
+                if (-not $key) { continue }
+                if (-not $byRepository.ContainsKey($key)) { $byRepository[$key] = New-Object System.Collections.Generic.List[string] }
+                foreach ($patch in (Get-JsonItems $bundle.patches)) {
+                    if ($patch.name -and -not $byRepository[$key].Contains([string]$patch.name)) { $byRepository[$key].Add([string]$patch.name) }
+                }
+            }
+            if ($bundles.Count -lt 100) { break }
         }
     }
-    foreach ($sectionName in $found.Keys) {
-        $key = $byName[$sectionName.ToLowerInvariant()]
-        if (-not $key) {
-            Add-Finding -Kind 'index-unresolved' -Repository $null `
-                -Detail "Jman's catalog lists Instagram patches under '$sectionName', and bundle-sources.json names no repository for it" -Evidence $null
-            continue
-        }
-        Add-Candidate -Key $key -Source 'Jman''s bundle index' -Packages @($found[$sectionName].Packages.Keys) -Features @($found[$sectionName].Features)
+    foreach ($key in $byRepository.Keys) {
+        if ($key -eq $selfKey) { continue }
+        Add-Candidate -Key $key -Source 'Jman''s bundle index' -Packages $packages -Features @($byRepository[$key])
     }
-    "$($found.Count) Instagram bundles; HushGram " + $(if ($listed['jman-bundles']) { 'listed' } else { 'not listed' })
+    "$($byRepository.Count) Instagram bundles; HushGram " + $(if ($listed['jman-bundles']) { 'listed' } else { 'not listed' })
 }
 
 Invoke-Source 'Morphe Archive' {
