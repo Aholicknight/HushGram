@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram - Hide suggested posts:** Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts now catch suggested posts on Home too. Instagram 451 sends each suggested post wrapped in a unit of its own, and those switches only looked for a post outside it, so every suggested post stayed. Found while working on #192.
 * **Instagram - Story ring size:** Ring color has Teal now, a blue-green that stays easy to see on white and black pages alike. Asked for in #206.
 * **Instagram - Hide the Reels tab:** The Search button on Home's header opens search again with Hide the Search tab on, on phones where you can swipe sideways between tabs. Before, it only showed a note asking you to turn the switch off. It opens the same search screen as Instagram's own search links, and Back brings you to Home. Reported in #204.
 * **Instagram - Hide reels by caption words:** New patch with a switch and a Blocked words list under Reels, off and empty by default. A reel in the Reels tab goes when its caption holds one of your words or phrases, hashtags included, whatever the case. Put a comma or a new line between them, so a list from Hushfeed pastes straight in. Reels you open from a profile, search or a chat still play. Asked for in #192.

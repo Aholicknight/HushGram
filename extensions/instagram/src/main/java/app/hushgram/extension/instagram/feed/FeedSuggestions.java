@@ -561,11 +561,11 @@ public final class FeedSuggestions {
      * {@link #homePageParsed}. Never throws.
      */
     public static Object homeItem(Object item) {
-        return homeItem(item, FeedSuggestions::mediaType, FeedSuggestions::liked, FeedSuggestions::author);
+        return homeItem(item, FeedSuggestions::itemType, FeedSuggestions::itemLiked, FeedSuggestions::author);
     }
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf) {
-        return homeItem(item, typeOf, FeedSuggestions::liked, FeedSuggestions::author);
+        return homeItem(item, typeOf, FeedSuggestions::itemLiked, FeedSuggestions::author);
     }
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf) {
@@ -651,30 +651,99 @@ public final class FeedSuggestions {
     }
 
     /**
-     * The media_type of the post a feed item carries: 1 for one photo, 2 for one video, 8 for a
-     * carousel, and 0 when it carries none or the post doesn't say. The patch writes the body, which
-     * reads the item's post field and the post's media_type.
+     * The post a feed item carries: its own post field (a post from an account you follow, or an
+     * ad), else the post of the suggested post unit it holds ("explore_story", its "media_or_ad" and
+     * then its "media"), which is where Instagram 451 puts every suggested post on Home. Null when it
+     * carries none, or when anything goes wrong.
      */
-    public static int mediaType(Object item) {
-        return 0;
+    static Object homePost(Object item) {
+        return homePost(item, FeedSuggestions::itemPost, FeedSuggestions::exploreStory,
+                FeedSuggestions::storyPost, FeedSuggestions::storyMedia);
+    }
+
+    static Object homePost(Object item, Function<Object, Object> postOf, Function<Object, Object> storyOf,
+            Function<Object, Object> storyPostOf, Function<Object, Object> storyMediaOf) {
+        if (item == null) return null;
+        try {
+            Object post = postOf.apply(item);
+            if (post != null) return post;
+            Object story = storyOf.apply(item);
+            if (story == null) return null;
+            post = storyPostOf.apply(story);
+            return post != null ? post : storyMediaOf.apply(story);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "post read", failure);
+            return null;
+        }
+    }
+
+    /** {@link #mediaType} of the post {@link #homePost} finds in [item], 0 without one. */
+    static int itemType(Object item) {
+        Object post = homePost(item);
+        return post == null ? 0 : mediaType(post);
+    }
+
+    /** {@link #liked} of the post {@link #homePost} finds in [item], 0 without one. */
+    static int itemLiked(Object item) {
+        Object post = homePost(item);
+        return post == null ? 0 : liked(post);
     }
 
     /**
-     * Whether you've liked the post a feed item carries: 1 when its has_liked says so, and 0 when it
-     * says not, doesn't say or the item carries no post. The patch writes the body, which reads the
-     * item's post field and the post's has_liked.
+     * The username of whoever posted the post {@link #homePost} finds in [item], or null when there's
+     * none or the post doesn't say.
      */
-    public static int liked(Object item) {
-        return 0;
+    static String author(Object item) {
+        Object post = homePost(item);
+        return post == null ? null : HiddenAccounts.authorOfPost(post);
     }
 
     /**
-     * The username of whoever posted the post a feed item carries, or null when it carries none or
-     * the post doesn't say. The patch writes the body, which reads the item's post field, the post's
-     * user and that user's username. Null as built.
+     * Answers an Object: the post in a feed item's own post field, the one its factory from a post
+     * writes, or null. The patch writes the body. Null as built.
      */
-    public static String author(Object item) {
+    public static Object itemPost(Object item) {
         return null;
+    }
+
+    /**
+     * Answers an Object: the suggested post unit ("explore_story") a feed item holds, or null. The
+     * patch writes the body. Null as built.
+     */
+    public static Object exploreStory(Object item) {
+        return null;
+    }
+
+    /**
+     * Answers an Object: a suggested post unit's "media_or_ad" post, or null. The patch writes the
+     * body. Null as built.
+     */
+    public static Object storyPost(Object story) {
+        return null;
+    }
+
+    /**
+     * Answers an Object: a suggested post unit's "media" post, or null. The patch writes the body.
+     * Null as built.
+     */
+    public static Object storyMedia(Object story) {
+        return null;
+    }
+
+    /**
+     * The media_type of a post: 1 for one photo, 2 for one video, 8 for a carousel, and 0 when it
+     * doesn't say. The patch writes the body, which reads the post's media_type. 0 as built.
+     */
+    public static int mediaType(Object post) {
+        return 0;
+    }
+
+    /**
+     * Whether you've liked a post: 1 when its has_liked says so, and 0 when it says not or doesn't
+     * say. The patch writes the body, which reads the post's has_liked. 0 as built.
+     */
+    public static int liked(Object post) {
+        return 0;
     }
 
     /**
