@@ -225,25 +225,26 @@ public class FontsTest {
      */
     @Test
     public void emojiPicturesTakeAPickedFile() throws Exception {
-        assertNull("Instagram's font", Fonts.emojiTypeface("❤"));
+        Typeface instagrams = Typeface.MONOSPACE;
+        assertNull("Instagram's font leaves the phone's emoji", Fonts.emojiTypeface(null));
+        assertSame("and Instagram's own answer", instagrams, Fonts.emojiTypeface(instagrams));
         Settings.FONT.save(FontChoice.SYSTEM);
-        assertNull("the phone's font leaves the phone's emoji", Fonts.emojiTypeface("❤"));
+        assertNull("the phone's font leaves the phone's emoji", Fonts.emojiTypeface(null));
 
         keep(TRUE_TYPE);
-        Fonts.loader = file -> Typeface.SERIF;
         Settings.FONT.save(FontChoice.FILE);
         Fonts.resetForTests();
         Fonts.loader = file -> Typeface.SERIF;
-        Typeface heart = Fonts.emojiTypeface("❤");
+        Typeface heart = Fonts.emojiTypeface(null);
         assertSame(Typeface.SERIF, heart);
-        assertSame("the same one each time", heart, Fonts.emojiTypeface("🔥"));
+        assertSame("the same one each time, whatever Instagram answered", heart, Fonts.emojiTypeface(instagrams));
 
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertNull("paused", Fonts.emojiTypeface("❤"));
+        assertSame("paused", instagrams, Fonts.emojiTypeface(instagrams));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        assertEquals(List.of(FamilyNames.FONT + ": invoked 5, 0 found, 0 missing. Counted: " + Fonts.EMOJI + " 2"),
+        assertEquals(List.of(FamilyNames.FONT + ": invoked 6, 0 found, 0 missing. Counted: " + Fonts.EMOJI + " 2"),
                 HookStatus.report());
     }
 

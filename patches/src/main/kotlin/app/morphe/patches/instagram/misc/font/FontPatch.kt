@@ -13,6 +13,7 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -38,7 +39,7 @@ internal const val FONTS = "$EXTENSION_PACKAGE/misc/Fonts;"
 internal const val PRISM_TYPEFACE = "$FONTS->prismTypeface(Landroid/graphics/Typeface;)Landroid/graphics/Typeface;"
 internal const val TEXT_VIEW = "$FONTS->textView(Landroid/widget/TextView;)V"
 internal const val RESOURCE_FONT = "$FONTS->resourceFont(Landroid/content/Context;I)Landroid/graphics/Typeface;"
-internal const val EMOJI_TYPEFACE = "$FONTS->emojiTypeface(Ljava/lang/String;)Landroid/graphics/Typeface;"
+internal const val EMOJI_TYPEFACE = "$FONTS->emojiTypeface(Landroid/graphics/Typeface;)Landroid/graphics/Typeface;"
 
 /** The name Instagram's own emoji renderer gives the span it builds. No other class holds it. */
 internal const val EMOJI_MARKER = "FacebookEmoji"
@@ -76,8 +77,10 @@ private const val STRING = "Ljava/lang/String;"
  *
  * Instagram draws some emoji as pictures rather than text: the row above the comment box, reactions
  * and the like (#166). It draws each in the Typeface its own emoji lookup answers, null on current
- * Android, which means the phone's emoji. The extension answers that lookup first, with a picked
- * font file, so an emoji font picked as the Font reaches those too.
+ * Android, which means the phone's emoji. Each answer goes through the extension, which gives a
+ * picked font file instead, so an emoji font picked as the Font reaches those too. Instagram picks
+ * the lookup's class when it starts (its emoji renderer or one that answers nothing), so the patch
+ * changes the calls, not either class.
  */
 @Suppress("unused")
 val fontPatch = bytecodePatch(
@@ -102,6 +105,9 @@ private fun refuse(why: String): Nothing = throw PatchException("$PATCH: $why")
 /** One write of a Prism Sans Typeface into the helper's fields: where it is and the register written. */
 internal class PrismWrite(val method: Method, val at: Int, val register: Int)
 
+/** One call to the emoji lookup: where it is and the register its answer is moved into, the next instruction. */
+internal class EmojiCall(val method: Method, val at: Int, val register: Int)
+
 /** Every method the patch changes, found and checked before anything changes. */
 internal class FontSites(
     val writes: List<PrismWrite>,
@@ -109,7 +115,7 @@ internal class FontSites(
     val initializeAt: Int,
     val view: Int,
     val getFont: Method,
-    val emojiLookup: Method,
+    val emojiCalls: List<EmojiCall>,
 )
 
 /**
@@ -128,7 +134,10 @@ internal class FontSites(
  * static (Context, int) Typeface method. It needs a register of its own for the extension's answer.
  *
  * Instagram's emoji renderer is the one class holding [EMOJI_MARKER], and its emoji lookup the one
- * instance (String) Typeface method there, also with a register of its own for the answer.
+ * instance (String) Typeface method there. Instagram calls the lookup through the interface the
+ * renderer shares with the class that answers nothing, so the calls found are those to the lookup
+ * by the renderer's own name or any of its interfaces, each with its answer moved into a register
+ * by the next instruction. There has to be at least one.
  */
 internal fun BytecodePatchContext.findFontSites(): FontSites {
     val helpers = classesHolding(PRISM_MARKER)
@@ -186,9 +195,22 @@ internal fun BytecodePatchContext.findFontSites(): FontSites {
     }
     val emojiLookup = lookups.singleOrNull()
         ?: refuse("expected one (String) Typeface in ${renderer.type}, found ${lookups.size}")
-    if (emojiLookup.code().isEmpty() || emojiLookup.localRegisterCount() < 1) {
-        refuse("${renderer.type}->${emojiLookup.name} has no register free for the extension's answer")
+    val emojiCalls = (listOf(renderer.type) + renderer.interfaces.map(Any::toString)).flatMap { contract ->
+        val lookup = "$contract->${emojiLookup.name}($STRING)$TYPEFACE"
+        classesCalling(contract, emojiLookup.name).flatMap { caller ->
+            caller.methods.flatMap { method ->
+                val code = method.code()
+                code.withIndex().filter { (_, instruction) -> instruction.calls(lookup) }.map { (at, _) ->
+                    val moved = code.getOrNull(at + 1)
+                    if (moved?.opcode != Opcode.MOVE_RESULT_OBJECT) {
+                        refuse("${method.definingClass}->${method.name} doesn't keep the emoji lookup's answer at $at")
+                    }
+                    EmojiCall(method, at, (moved as OneRegisterInstruction).registerA)
+                }
+            }
+        }
     }
+    if (emojiCalls.isEmpty()) refuse("nothing calls ${renderer.type}->${emojiLookup.name}, by itself or its interfaces")
 
     for (hook in listOf(PRISM_TYPEFACE, TEXT_VIEW, RESOURCE_FONT, EMOJI_TYPEFACE)) {
         if (classDefByOrNull(FONTS)?.methods?.any {
@@ -199,7 +221,7 @@ internal fun BytecodePatchContext.findFontSites(): FontSites {
             refuse("the extension has no public static $hook")
         }
     }
-    return FontSites(writes, init, at, call.registerC, getFont, emojiLookup)
+    return FontSites(writes, init, at, call.registerC, getFont, emojiCalls)
 }
 
 /**
@@ -208,7 +230,8 @@ internal fun BytecodePatchContext.findFontSites(): FontSites {
  * method goes in first, so the earlier ones keep their places. Then Fonts.textView gets each
  * IgTextView right after Instagram sets it up. The range form takes any register. Last,
  * ResourcesCompat.getFont answers the extension's Typeface when there is one, and loads the
- * resource as before when it answers null. Instagram's emoji lookup does the same with the emoji.
+ * resource as before when it answers null. Each answer of Instagram's emoji lookup goes through
+ * Fonts.emojiTypeface right after it's moved into its register, the latest call in each method first.
  */
 internal fun BytecodePatchContext.swapFonts() {
     val found = findFontSites()
@@ -239,17 +262,18 @@ internal fun BytecodePatchContext.swapFonts() {
         """,
         ExternalLabel("resource", getFont.getInstruction(0)),
     )
-    val lookup = mutable(found.emojiLookup)
-    lookup.addInstructionsWithLabels(
-        0,
-        """
-            invoke-static { p1 }, $EMOJI_TYPEFACE
-            move-result-object v0
-            if-eqz v0, :instagram
-            return-object v0
-        """,
-        ExternalLabel("instagram", lookup.getInstruction(0)),
-    )
+    for ((method, calls) in found.emojiCalls.groupBy { it.method }) {
+        val mutable = mutable(method)
+        for (call in calls.sortedByDescending { it.at }) {
+            mutable.addInstructions(
+                call.at + 2,
+                """
+                    invoke-static/range { v${call.register} .. v${call.register} }, $EMOJI_TYPEFACE
+                    move-result-object v${call.register}
+                """,
+            )
+        }
+    }
 }
 
 private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
