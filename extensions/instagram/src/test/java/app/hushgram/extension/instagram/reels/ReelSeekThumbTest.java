@@ -332,6 +332,49 @@ public class ReelSeekThumbTest {
     }
 
     /**
+     * #10, as logged on the S22: Instagram moves the bar with an animated setProgress, and Android sets the
+     * new level, then starts its own short animation over from the old one, so the level went new, old,
+     * new within a frame. The line goes by the bar's progress, so that doesn't restart its ease, and the
+     * handle stays on the line's end wherever Android's animation has it.
+     */
+    @Test public void androidsOwnProgressAnimationDoesNotRestartTheEase() {
+        Settings.BIG_REEL_SEEK_BAR.save(true);
+        refresh();
+        ReelTimeLabel.Thumb thumb = (ReelTimeLabel.Thumb) bar.getThumb();
+        ReelTimeLabel.Pill line = (ReelTimeLabel.Pill) ((LayerDrawable) bar.getProgressDrawable())
+                .findDrawableByLayerId(android.R.id.progress);
+        int room = bar.getWidth() - bar.getPaddingLeft() - bar.getPaddingRight()
+                - thumb.getIntrinsicWidth() + 2 * bar.getThumbOffset();
+        ShadowSystemClock.advanceBy(ReelTimeLabel.Pill.EASE_MAX_MS + 1, TimeUnit.MILLISECONDS);
+        bar.setProgress(30);
+        ShadowSystemClock.advanceBy(100, TimeUnit.MILLISECONDS);
+        long step = SystemClock.uptimeMillis();
+        bar.setProgress(40);
+        line.setLevel(3000);
+        ShadowSystemClock.advanceBy(10, TimeUnit.MILLISECONDS);
+        line.setLevel(4000);
+        long now = SystemClock.uptimeMillis();
+        float shown = line.shownLevel(now);
+        assertTrue("still on its way a frame later, not there at once: " + shown, shown > 3000f && shown < 3300f);
+        assertEquals("the handle on the line's end", (shown - 4000f) / 10000f * room, thumb.shift(), 0.5f);
+        line.setLevel(3000);
+        assertEquals("the handle on the line's end while Android has it back", (shown - 3000f) / 10000f * room,
+                thumb.shift(), 0.5f);
+        line.setLevel(4000);
+        assertEquals("the animation doesn't restart the ease", shown, line.shownLevel(now), 0.01f);
+        ShadowSystemClock.advanceBy(ReelTimeLabel.Pill.EASE_MAX_MS, TimeUnit.MILLISECONDS);
+        assertEquals(4000f, line.shownLevel(SystemClock.uptimeMillis()), 0.01f);
+        assertTrue("eased over the step's time", SystemClock.uptimeMillis() - step > 100);
+
+        // A real step back (a new reel) is drawn at once, and Android's animation from the old spot down
+        // to it doesn't pull the line back up.
+        bar.setProgress(0);
+        line.setLevel(4000);
+        line.setLevel(1500);
+        assertEquals(0f, line.shownLevel(SystemClock.uptimeMillis()), 0.01f);
+    }
+
+    /**
      * #10: Android puts the handle at Instagram's stepped level, where it covered the eased line's end
      * and still jumped. It draws back by as much as the line is behind, and where Android put it once
      * the line arrives.
