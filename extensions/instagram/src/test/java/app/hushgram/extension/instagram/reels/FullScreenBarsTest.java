@@ -61,6 +61,8 @@ public class FullScreenBarsTest {
         FullScreenBars.resetHeightsForTests(null);
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
+        Settings.GLASS_TAB_BAR.resetToDefault();
+        Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
         FullScreenBars.idForTests(FullScreenBars.VIEWER, VIEWER);
         FullScreenBars.idForTests(FullScreenBars.TAB_BAR, BAR);
         FullScreenBars.idForTests(FullScreenBars.REELS_TAB, REELS_TAB);
@@ -86,6 +88,8 @@ public class FullScreenBarsTest {
         controller.close();
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
+        Settings.GLASS_TAB_BAR.resetToDefault();
+        Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
     }
 
     private View tab(int id) {
@@ -348,6 +352,38 @@ public class FullScreenBarsTest {
             assertFalse(session.isHidden());
             heights(75, 135);
             assertEquals("the new tab hears the bars' heights", "messages 75 135", told.get(told.size() - 1));
+        } finally {
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
+    /**
+     * #209: with only Glass tab bar on and its pill floating, a reel's comments or a chat built while
+     * the pill had the navigation bar's height at 0 heard 0 and put its text box under the navigation
+     * bar. Its listener is kept and hears the real height when the insets go round again. A pill that
+     * doesn't float changes no height, so nothing is kept for it.
+     */
+    @Test public void aFloatingGlassPillKeepsListenersSoAScreenOverItHearsTheRealHeight() {
+        List<String> told = new ArrayList<>();
+        FullScreenBars.resetHeightsForTests((listener, status, nav) -> told.add(listener + " " + status + " " + nav));
+        FullScreenBars.registeredForTests(true);
+        try {
+            Settings.GLASS_TAB_BAR.save(true);
+            Settings.GLASS_TAB_BAR_FLOAT.save(false);
+            FullScreenBars.nowResumed(activity);
+            FullScreenBars.heightsAsked(activity, "comments");
+            assertTrue("a pill that doesn't float, nothing kept", FullScreenBars.askersForTests(activity).isEmpty());
+
+            Settings.GLASS_TAB_BAR_FLOAT.save(true);
+            FullScreenBars.heightsAsked(activity, "comments");
+            assertEquals("kept for the floating pill", 1, FullScreenBars.askersForTests(activity).size());
+            heights(75, 135);
+            assertEquals(Collections.singletonList("comments 75 135"), told);
+
+            Settings.GLASS_TAB_BAR.save(false);
+            heights(75, 0);
+            assertEquals("Glass tab bar off, nobody is told", 1, told.size());
         } finally {
             FullScreenBars.registeredForTests(false);
             FullScreenBars.resetHeightsForTests(null);

@@ -206,6 +206,16 @@ public final class FullScreenBars {
         return Settings.FULL_SCREEN_REELS.get() || Settings.FULL_SCREEN_HOME.get();
     }
 
+    /**
+     * Whether screens' bar heights listeners are kept and told each new pair: with either switch on,
+     * or with Glass tab bar's pill floating. The pill has the navigation bar's height answered 0 while
+     * it shows, so a screen built just then, like a reel's comments or a chat opened over it, heard 0
+     * and put its text box under the navigation bar, and Instagram never told it the real height (#209).
+     */
+    static boolean keepsListeners() {
+        return eitherOn() || (Settings.GLASS_TAB_BAR.get() && Settings.GLASS_TAB_BAR_FLOAT.get());
+    }
+
     /** Tests give the names ids of their own, since a test app has none of Instagram's. */
     static void idForTests(String name, int id) {
         synchronized (IDS) {
@@ -314,13 +324,13 @@ public final class FullScreenBars {
      * runs (#200). Instagram calls a listener once with the heights it keeps and then lets most of them
      * go, so a screen built before the bars were hidden, like the Reels viewer on a cold start into
      * Reels, kept the old heights as black strips until it resumed. While a full screen switch is on,
-     * the last {@link #ASKERS_KEPT} listeners of each activity are kept and told each new pair
-     * ({@link #heightsKept}). Off, nothing is kept.
+     * or the glass pill floats ({@link #keepsListeners}), the last {@link #ASKERS_KEPT} listeners of
+     * each activity are kept and told each new pair ({@link #heightsKept}). Otherwise nothing is kept.
      */
     public static void heightsAsked(Activity activity, Object listener) {
         try {
             if (activity == null || listener == null || !registered || !Utils.settingsReady()
-                    || HushgramPause.isPaused() || !eitherOn()) return;
+                    || HushgramPause.isPaused() || !keepsListeners()) return;
             ArrayList<Object> held = askers.get(activity);
             if (held == null) {
                 held = new ArrayList<>();
@@ -351,16 +361,16 @@ public final class FullScreenBars {
     }
 
     /**
-     * The pair of heights Instagram's listener just kept. When it changed and a full screen switch is
-     * on, the resumed activity's kept listeners are told it on the next turn of the main loop, once
-     * Instagram's pass is over, with whatever pair is kept by then.
+     * The pair of heights Instagram's listener just kept. When it changed and listeners are being kept
+     * ({@link #keepsListeners}), the resumed activity's kept listeners are told it on the next turn of
+     * the main loop, once Instagram's pass is over, with whatever pair is kept by then.
      */
     static void heightsKept(int status, int nav) {
         try {
             boolean changed = status != keptStatus || nav != keptNav;
             keptStatus = status;
             keptNav = nav;
-            if (!changed || !registered || !eitherOn()) return;
+            if (!changed || !registered || !keepsListeners()) return;
             Activity activity = resumed.get();
             ArrayList<Object> held = activity == null ? null : askers.get(activity);
             if (held == null || held.isEmpty()) return;
