@@ -28,8 +28,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -44,8 +47,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * sitting on the same pixels of an OLED screen for hours.
  *
  * <p>The dim: once the Reels screen has gone {@link #IDLE_AFTER_MS} without a touch, the reel's
- * overlay (its button column, author and caption), its seek bar, the Interested row under some reels,
- * the top bar and the tab bar are drawn at
+ * overlay (its button column, author and caption), its seek bar, the Interested row under some reels
+ * (the views without an id beside the button column), the top bar and the tab bar are drawn at
  * {@link #IDLE_LEVEL} of what Instagram draws them at, and the next finger brings them back. Only
  * their alpha changes, so a dimmed button still takes its tap. They're found by the ids Instagram
  * 450 gives them ({@link #DIMMED_IDS}), and a view inside one already dimmed is left alone, so
@@ -82,14 +85,20 @@ public final class BurnInGuard {
      * The ids of what dims, as Instagram 450 and 451 name them: a reel's overlay and its parts (the
      * button column, the author and caption), the Reels top bar and the tab bar, and outside the
      * overlay the reel's seek bar ({@code scrubber}, 451; HushGram's time label fades with it, see
-     * {@link ReelTimeLabel}) and the row of Not interested and Interested buttons under some reels
-     * (#162).
+     * {@link ReelTimeLabel}) (#162).
      */
     static final String[] DIMMED_IDS = {
             "clips_item_overlay_component", "clips_ufi_component", "clips_media_info_component",
             "clips_viewer_media_info_container", "clips_viewer_media_info", "clips_viewer_action_bar", "tab_bar",
-            "scrubber", "feedback_buttons_container", "user_feedback_buttons"
+            "scrubber"
     };
+
+    /**
+     * The reel's button column. On 451 the row of Not interested and Interested buttons under some
+     * reels sits beside it with no id of its own (#162), so the views beside the column that have no
+     * id dim with it.
+     */
+    static final String COLUMN_ID = "clips_ufi_component";
 
     /** Where the content goes, in steps: where Instagram put it, then once around it. */
     private static final int[][] PLACES = {
@@ -253,24 +262,41 @@ public final class BurnInGuard {
         }
     }
 
-    /** Dims each of {@link #DIMMED_IDS} shown in [root], the first one on each path down. */
+    /**
+     * Dims each of {@link #DIMMED_IDS} shown in [root], the first one on each path down, and the
+     * views without an id beside the button column ({@link #COLUMN_ID}).
+     */
     private static void dimAll(View root) {
         int[] ids = new int[DIMMED_IDS.length];
         for (int i = 0; i < ids.length; i++) ids[i] = id(root.getContext(), DIMMED_IDS[i]);
+        int column = id(root.getContext(), COLUMN_ID);
+        Set<View> beside = Collections.newSetFromMap(new IdentityHashMap<>());
         ArrayDeque<View> pending = new ArrayDeque<>();
         pending.add(root);
         int seen = 0;
         while (!pending.isEmpty() && seen++ < MAX_VIEWS) {
             View view = pending.poll();
-            if (view.getVisibility() != View.VISIBLE) continue;
+            if (view.getVisibility() != View.VISIBLE || beside.contains(view)) continue;
             if (dims(view, ids)) {
                 dim(view);
+                if (column != 0 && view.getId() == column) dimBeside(view, beside);
                 continue;
             }
             if (view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;
                 for (int i = 0; i < group.getChildCount(); i++) pending.add(group.getChildAt(i));
             }
+        }
+    }
+
+    /** Dims the shown views without an id beside [column], and adds them to [beside] so the search doesn't go into them. */
+    private static void dimBeside(View column, Set<View> beside) {
+        if (!(column.getParent() instanceof ViewGroup)) return;
+        ViewGroup parent = (ViewGroup) column.getParent();
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View view = parent.getChildAt(i);
+            if (view == column || view.getId() != View.NO_ID || view.getVisibility() != View.VISIBLE) continue;
+            if (beside.add(view)) dim(view);
         }
     }
 

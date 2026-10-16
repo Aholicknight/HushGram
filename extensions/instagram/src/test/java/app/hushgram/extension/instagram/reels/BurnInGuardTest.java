@@ -209,26 +209,50 @@ public class BurnInGuardTest {
         assertEquals(0f, root.getTranslationY(), 0f);
     }
 
-    /** The seek bar and the Interested row sit outside the overlay, and dim and come back with it (#162). */
+    /**
+     * The seek bar and the Interested row sit outside the overlay on 451, and dim and come back with
+     * it (#162). Laid out as the S22 showed it: a layer without an id holding the author and caption,
+     * the button column, the row (no id, two buttons) and a strip under it.
+     */
     @Test public void theSeekBarAndTheInterestRowDimToo() {
         BurnInGuard.idForTests("scrubber", 7304);
-        BurnInGuard.idForTests("user_feedback_buttons", 7305);
+        BurnInGuard.idForTests("clips_media_info_component", 7306);
         android.widget.SeekBar scrubber = new android.widget.SeekBar(activity);
         scrubber.setId(7304);
         viewer.addView(scrubber, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 28));
+        FrameLayout layer = new FrameLayout(activity);
+        View info = new View(activity);
+        info.setId(7306);
+        layer.addView(info, new FrameLayout.LayoutParams(200, 100));
+        View column = new View(activity);
+        column.setId(UFI);
+        layer.addView(column, new FrameLayout.LayoutParams(60, 300));
         LinearLayout interest = new LinearLayout(activity);
-        interest.setId(7305);
-        interest.addView(new View(activity), new LinearLayout.LayoutParams(200, 60));
-        viewer.addView(interest, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 60));
+        android.widget.Button notInterested = new android.widget.Button(activity);
+        interest.addView(notInterested, new LinearLayout.LayoutParams(200, 60));
+        interest.addView(new android.widget.Button(activity), new LinearLayout.LayoutParams(200, 60));
+        layer.addView(interest, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 60));
+        View named = new View(activity);
+        named.setId(7307);
+        layer.addView(named, new FrameLayout.LayoutParams(40, 40));
+        viewer.addView(layer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         layout();
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
         BurnInGuard.resumed(activity);
         after(BurnInGuard.IDLE_AFTER_MS + 100);
         assertDimmed("idle");
         assertEquals("the seek bar", BurnInGuard.IDLE_LEVEL, scrubber.getAlpha(), 0f);
-        assertEquals("the Interested row", BurnInGuard.IDLE_LEVEL, interest.getAlpha(), 0f);
+        assertEquals("the author and caption", BurnInGuard.IDLE_LEVEL, info.getAlpha(), 0f);
+        assertEquals("the button column", BurnInGuard.IDLE_LEVEL, column.getAlpha(), 0f);
+        assertEquals("the Interested row beside it", BurnInGuard.IDLE_LEVEL, interest.getAlpha(), 0f);
+        assertEquals("a button in the row isn't dimmed twice", 1f, notInterested.getAlpha(), 0f);
+        assertEquals("a view beside the column with an id of its own stays", 1f, named.getAlpha(), 0f);
+        assertEquals("the layer itself stays", 1f, layer.getAlpha(), 0f);
+        relayout();
+        assertEquals("a second look doesn't dim the row again", BurnInGuard.IDLE_LEVEL, interest.getAlpha(), 0f);
         tap();
         assertEquals("the seek bar back", 1f, scrubber.getAlpha(), 0f);
+        assertEquals("the button column back", 1f, column.getAlpha(), 0f);
         assertEquals("the Interested row back", 1f, interest.getAlpha(), 0f);
     }
 
