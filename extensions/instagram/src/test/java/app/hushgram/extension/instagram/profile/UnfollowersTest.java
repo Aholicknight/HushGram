@@ -162,16 +162,37 @@ public class UnfollowersTest {
         searched.count = 100;
         assertFalse(seen(users("ana", "bo", "cy"), searched));
 
+        // On a small account even one missing could be a search, so it's never guessed at.
+        FakeList small = new FakeList();
+        small.count = 3;
+        assertFalse(seen(users("ana", "bo"), small));
+
         FakeList noCount = new FakeList();
         assertFalse(seen(users("ana", "bo", "cy"), noCount));
         assertTrue(kept.isEmpty());
 
         assertTrue(Unfollowers.full(95, 100));
         assertFalse(Unfollowers.full(94, 100));
-        assertTrue(Unfollowers.full(8, 10));
-        assertFalse(Unfollowers.full(7, 10));
+        assertTrue(Unfollowers.full(19, 20));
+        assertFalse(Unfollowers.full(18, 20));
+        assertTrue(Unfollowers.full(10, 10));
+        assertFalse(Unfollowers.full(9, 10));
+        assertFalse(Unfollowers.full(1, 3));
+        assertFalse(Unfollowers.full(0, 2));
         assertTrue(Unfollowers.full(12, 10));
-        assertFalse(Unfollowers.full(0, 0));
+        assertFalse(Unfollowers.full(-1, 10));
+        assertFalse(Unfollowers.full(3, -1));
+    }
+
+    /** With no followers at all the empty list is whole, so the ones who were there before show as gone. */
+    @Test
+    public void noFollowersLeftIsAWholeList() {
+        FakeList none = new FakeList();
+        none.count = 0;
+        assertTrue(seen(users(), none));
+        assertEquals(1, kept.size());
+        assertTrue(kept.get(0).isEmpty());
+        assertTrue(Unfollowers.full(0, 0));
     }
 
     /** Instagram rebuilds the same rows many times; the same list is taken once, and a changed one again. */

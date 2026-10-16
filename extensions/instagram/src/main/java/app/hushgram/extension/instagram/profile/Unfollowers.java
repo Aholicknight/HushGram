@@ -247,12 +247,12 @@ public final class Unfollowers {
     /**
      * Whether [loaded] accounts are your whole Followers list by your profile's [count] of them. It
      * may lag behind a follow or an unfollow, and a few accounts can be counted that Instagram doesn't
-     * list, so up to one in twenty, and at least two, may be missing. A search in the list finds far
-     * fewer than that.
+     * list, so up to one in twenty may be missing. Under twenty followers none may: there a search or
+     * a short list would list real followers as gone. No followers at all is a whole list of none.
      */
     static boolean full(int loaded, int count) {
-        if (loaded <= 0 || count <= 0) return false;
-        return loaded >= count - Math.max(2, count / 20);
+        if (loaded < 0 || count < 0) return false;
+        return loaded >= count - count / 20;
     }
 
     /** Whether [followers] isn't the list last taken for [viewer] in this run, and marks it taken. */
