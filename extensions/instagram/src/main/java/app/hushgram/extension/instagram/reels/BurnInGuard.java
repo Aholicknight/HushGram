@@ -44,7 +44,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * sitting on the same pixels of an OLED screen for hours.
  *
  * <p>The dim: once the Reels screen has gone {@link #IDLE_AFTER_MS} without a touch, the reel's
- * overlay (its button column, author and caption), the top bar and the tab bar are drawn at
+ * overlay (its button column, author and caption), its seek bar, the Interested row under some reels,
+ * the top bar and the tab bar are drawn at
  * {@link #IDLE_LEVEL} of what Instagram draws them at, and the next finger brings them back. Only
  * their alpha changes, so a dimmed button still takes its tap. They're found by the ids Instagram
  * 450 gives them ({@link #DIMMED_IDS}), and a view inside one already dimmed is left alone, so
@@ -78,12 +79,16 @@ public final class BurnInGuard {
     static final int MAX_VIEWS = 4000;
 
     /**
-     * The ids of what dims, as Instagram 450 names them: a reel's overlay and its parts (the button
-     * column, the author and caption), the Reels top bar and the tab bar.
+     * The ids of what dims, as Instagram 450 and 451 name them: a reel's overlay and its parts (the
+     * button column, the author and caption), the Reels top bar and the tab bar, and outside the
+     * overlay the reel's seek bar ({@code scrubber}, 451; HushGram's time label fades with it, see
+     * {@link ReelTimeLabel}) and the row of Not interested and Interested buttons under some reels
+     * (#162).
      */
     static final String[] DIMMED_IDS = {
             "clips_item_overlay_component", "clips_ufi_component", "clips_media_info_component",
-            "clips_viewer_media_info_container", "clips_viewer_media_info", "clips_viewer_action_bar", "tab_bar"
+            "clips_viewer_media_info_container", "clips_viewer_media_info", "clips_viewer_action_bar", "tab_bar",
+            "scrubber", "feedback_buttons_container", "user_feedback_buttons"
     };
 
     /** Where the content goes, in steps: where Instagram put it, then once around it. */

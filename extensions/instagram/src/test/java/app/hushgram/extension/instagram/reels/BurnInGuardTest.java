@@ -209,6 +209,29 @@ public class BurnInGuardTest {
         assertEquals(0f, root.getTranslationY(), 0f);
     }
 
+    /** The seek bar and the Interested row sit outside the overlay, and dim and come back with it (#162). */
+    @Test public void theSeekBarAndTheInterestRowDimToo() {
+        BurnInGuard.idForTests("scrubber", 7304);
+        BurnInGuard.idForTests("user_feedback_buttons", 7305);
+        android.widget.SeekBar scrubber = new android.widget.SeekBar(activity);
+        scrubber.setId(7304);
+        viewer.addView(scrubber, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 28));
+        LinearLayout interest = new LinearLayout(activity);
+        interest.setId(7305);
+        interest.addView(new View(activity), new LinearLayout.LayoutParams(200, 60));
+        viewer.addView(interest, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 60));
+        layout();
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        after(BurnInGuard.IDLE_AFTER_MS + 100);
+        assertDimmed("idle");
+        assertEquals("the seek bar", BurnInGuard.IDLE_LEVEL, scrubber.getAlpha(), 0f);
+        assertEquals("the Interested row", BurnInGuard.IDLE_LEVEL, interest.getAlpha(), 0f);
+        tap();
+        assertEquals("the seek bar back", 1f, scrubber.getAlpha(), 0f);
+        assertEquals("the Interested row back", 1f, interest.getAlpha(), 0f);
+    }
+
     @Test public void aTouchBringsThemBackAndAHeldFingerKeepsThemUpUntilItLifts() {
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
         BurnInGuard.resumed(activity);
