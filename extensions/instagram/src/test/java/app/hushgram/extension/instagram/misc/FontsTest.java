@@ -28,6 +28,8 @@ import org.robolectric.shadows.ShadowToast;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 
@@ -235,6 +237,11 @@ public class FontsTest {
         Settings.FONT.save(FontChoice.FILE);
         Fonts.resetForTests();
         Fonts.loader = file -> Typeface.SERIF;
+        assertSame("a file without color emoji, which would draw them black", instagrams, Fonts.emojiTypeface(instagrams));
+
+        keep(font(false, "cmap", "CBDT", "glyf"));
+        Fonts.resetForTests();
+        Fonts.loader = file -> Typeface.SERIF;
         Typeface heart = Fonts.emojiTypeface(null);
         assertSame(Typeface.SERIF, heart);
         assertSame("the same one each time, whatever Instagram answered", heart, Fonts.emojiTypeface(instagrams));
@@ -244,8 +251,25 @@ public class FontsTest {
         assertSame("paused", instagrams, Fonts.emojiTypeface(instagrams));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        assertEquals(List.of(FamilyNames.FONT + ": invoked 6, 0 found, 0 missing. Counted: " + Fonts.EMOJI + " 2"),
+        assertEquals(List.of(FamilyNames.FONT + ": invoked 7, 0 found, 0 missing. Counted: " + Fonts.EMOJI + " 2"),
                 HookStatus.report());
+    }
+
+    /** Color emoji are a CBDT or COLR table, in a font or the first font of a collection. Anything else, or a short file, isn't. */
+    @Test
+    public void colorEmojiAreKnownByTheirTables() throws Exception {
+        File file = Fonts.kept(RuntimeEnvironment.getApplication());
+        for (Object[] each : new Object[][] {
+                {"Google's color bitmaps", font(false, "cmap", "CBDT", "CBLC"), true},
+                {"layered color glyphs", font(false, "COLR", "CPAL"), true},
+                {"a collection whose first font has them", font(true, "CBDT"), true},
+                {"a text font", font(false, "cmap", "glyf", "head"), false},
+                {"Apple's color bitmaps, which Android doesn't draw", font(false, "sbix"), false},
+                {"a file cut short", TRUE_TYPE, false},
+        }) {
+            keep((byte[]) each[1]);
+            assertEquals((String) each[0], each[2], Fonts.drawsInColor(file));
+        }
     }
 
     /**
@@ -264,9 +288,14 @@ public class FontsTest {
         assertEquals("the phone's font", sheet, Fonts.emojiName(sheet));
 
         keep(TRUE_TYPE);
+        Settings.FONT.save(FontChoice.FILE);
+        Fonts.resetForTests();
+        Fonts.loader = file -> Typeface.SERIF;
+        assertEquals("a file without color emoji leaves the pictures alone", single, Fonts.emojiName(single));
+
+        keep(font(false, "cmap", "CBDT"));
         File kept = Fonts.kept(RuntimeEnvironment.getApplication());
         assertTrue(kept.setLastModified(1_700_000_000_000L));
-        Settings.FONT.save(FontChoice.FILE);
         Fonts.resetForTests();
         Fonts.loader = file -> Typeface.SERIF;
         String mark = "-hg" + Long.toString(kept.length(), 36) + "x" + Long.toString(kept.lastModified(), 36);
@@ -276,7 +305,7 @@ public class FontsTest {
                 Fonts.emojiName(sheet));
         assertEquals("a name with no // takes it at the end", "v13" + mark, Fonts.emojiName("v13"));
 
-        keep(new byte[] {0, 1, 0, 0, 9, 9, 9});
+        keep(font(false, "COLR", "CPAL", "glyf"));
         assertTrue(kept.setLastModified(1_800_000_000_000L));
         assertEquals("the same for the life of the process, like the font", named, Fonts.emojiName(single));
         BaseSettings.PAUSED.save(true);
@@ -293,7 +322,7 @@ public class FontsTest {
         Fonts.loader = file -> null;
         assertEquals("a file that won't load", single, Fonts.emojiName(single));
         assertNull(Fonts.emojiName(null));
-        assertEquals(List.of(FamilyNames.FONT + ": invoked 10, 0 found, 0 missing. Counted: " + Fonts.EMOJI_NAMED + " 5"),
+        assertEquals(List.of(FamilyNames.FONT + ": invoked 11, 0 found, 0 missing. Counted: " + Fonts.EMOJI_NAMED + " 5"),
                 HookStatus.report());
     }
 
@@ -332,6 +361,15 @@ public class FontsTest {
         TextView view = new TextView(RuntimeEnvironment.getApplication());
         if (typeface != null) view.setTypeface(typeface);
         return view;
+    }
+
+    /** The start of a TrueType font, or of a collection holding one, listing [tags] as its tables. */
+    private static byte[] font(boolean collection, String... tags) {
+        ByteBuffer out = ByteBuffer.allocate((collection ? 16 : 0) + 12 + 16 * tags.length);
+        if (collection) out.putInt(0x74746366).putInt(0x00010000).putInt(1).putInt(16);
+        out.putInt(0x00010000).putShort((short) tags.length).putShort((short) 0).putShort((short) 0).putShort((short) 0);
+        for (String tag : tags) out.put(tag.getBytes(StandardCharsets.US_ASCII)).putInt(0).putInt(0).putInt(0);
+        return out.array();
     }
 
     private static void keep(byte[] bytes) {

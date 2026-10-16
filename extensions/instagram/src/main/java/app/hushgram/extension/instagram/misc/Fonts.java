@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
@@ -76,9 +77,17 @@ public final class Fonts {
     private static final Object UNREAD = new Object();
     private static volatile Object chosen = UNREAD;
 
-    /** The picked file's size and time when it was read for this process, null before or without one. */
+    /**
+     * The picked file's size and time when it was read for this process, null before, without one, or
+     * when the file has no color emoji (see {@link #drawsInColor}).
+     */
     @Nullable
     private static volatile String fileMark;
+
+    /** Color glyph tables Android draws: Google's bitmap emoji (CBDT) and layered color glyphs (COLR). */
+    private static final int CBDT = 0x43424454;
+    private static final int COLR = 0x434f4c52;
+    private static final int COLLECTION = 0x74746366;
 
     /** The Typefaces this class answered, so a view already in the chosen font is left alone. */
     private static final Set<Typeface> OURS = Collections.synchronizedSet(
@@ -137,9 +146,11 @@ public final class Fonts {
      * Injected after each call to Instagram's emoji lookup, with its answer [instagrams]: the Typeface
      * Instagram draws its own emoji pictures in, the row of emoji above the comment box (#166),
      * reactions and the rest it draws as images rather than text. Null there means the phone's emoji.
-     * Answers the picked font file, so an emoji font picked as the Font reaches them as it reaches
-     * text, or [instagrams] with any other choice. Emoji the file lacks still draw from the phone's.
-     * Always the same Typeface, since Instagram compares them. Never throws.
+     * Answers the picked font file when it has color emoji, so an emoji font picked as the Font
+     * reaches them as it reaches text, or [instagrams] otherwise. Instagram draws those pictures in
+     * black, so a file without colors (a text font with a few emoji, or a black and white emoji font)
+     * would leave them black, unseen on a dark screen. Emoji the file lacks still draw from the
+     * phone's. Always the same Typeface, since Instagram compares them. Never throws.
      */
     @Nullable
     public static Typeface emojiTypeface(@Nullable Typeface instagrams) {
@@ -147,7 +158,7 @@ public final class Fonts {
             HookStatus.invoked(FamilyNames.FONT);
             if (!Utils.settingsReady() || Settings.FONT.get() != FontChoice.FILE) return instagrams;
             Typeface picked = chosen();
-            if (picked == null) return instagrams;
+            if (picked == null || fileMark == null) return instagrams;
             HookStatus.counted(FamilyNames.FONT, EMOJI);
             return picked;
         } catch (Throwable failure) {
@@ -160,10 +171,10 @@ public final class Fonts {
      * Injected where Instagram names an emoji picture or a sheet of them, with the [name] it made:
      * {@code emoji:/<version>-api<sdk>//<emoji>} or {@code emoji-sprite-sheet:/<...>//<count>//<emoji,...>}.
      * Instagram keeps the pictures it draws, even across restarts, by the part of the name before the
-     * first "//", which says nothing of the font. With a font file picked, that part also carries the
-     * file's size and time, so emoji drawn before it was picked aren't shown in its place and picking
-     * another file draws them again. The rest, which Instagram reads to draw, stays. Answers [name] as
-     * it is with any other choice. Never throws.
+     * first "//", which says nothing of the font. With a font file that has color emoji picked, that
+     * part also carries the file's size and time, so emoji drawn before it was picked aren't shown in
+     * its place and picking another file draws them again. The rest, which Instagram reads to draw,
+     * stays. Answers [name] as it is with any other choice. Never throws.
      */
     public static String emojiName(String name) {
         try {
@@ -291,12 +302,38 @@ public final class Fonts {
         try {
             String mark = Long.toString(file.length(), 36) + "x" + Long.toString(file.lastModified(), 36);
             Typeface loaded = loader.load(file);
-            if (loaded != null) fileMark = mark;
+            if (loaded != null && drawsInColor(file)) fileMark = mark;
             return loaded;
         } catch (Exception failure) {
             Logger.printInfo(() -> "Font: the kept file didn't load", failure);
             return null;
         }
+    }
+
+    /**
+     * Whether a font file, or the first font of a collection, has a CBDT or COLR table: color emoji
+     * Android draws in their own colors. Reads only the table list at the start of the file.
+     */
+    static boolean drawsInColor(File file) {
+        try (RandomAccessFile in = new RandomAccessFile(file, "r")) {
+            long start = 0;
+            if (in.readInt() == COLLECTION) {
+                in.readInt();
+                if (in.readInt() < 1) return false;
+                start = in.readInt() & 0xffffffffL;
+                in.seek(start + 4);
+            }
+            int tables = in.readUnsignedShort();
+            in.seek(start + 12);
+            for (int i = 0; i < tables; i++) {
+                int tag = in.readInt();
+                if (tag == CBDT || tag == COLR) return true;
+                in.skipBytes(12);
+            }
+        } catch (IOException failure) {
+            Logger.printInfo(() -> "Font: couldn't read the kept file's tables", failure);
+        }
+        return false;
     }
 
     /** Where the picked font is kept. */
