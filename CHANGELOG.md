@@ -4,34 +4,69 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
-* **Instagram - Hide the Reels tab:** Always Home opens Home again in two cases that went back to Reels: with the tabs reordered in Tab order, and after you swipe Instagram away from recent apps (it keeps running in the background then). Coming back to Instagram while it's still open keeps you where you were. Start tab set to Search, Reels or Profile had the same trouble with the tabs reordered and opens on its tab now. The diagnostic report counts each start and why a start tab was skipped. Reported in #55.
+## 0.0.12 (2026-10-16)
+
+### Features
+
 * **Instagram - Download any story:** A video story you filmed gets Download as photo under Download now, so you can save one still picture from it at its largest size. Download still saves the video, and a photo with music keeps its Download as video and Download as photo. Asked for in #215.
+
 * **Instagram - Download any reel:** New switch under Download, Download audio, off by default. It adds Download audio to a reel's menu, which saves just the sound as an M4A file to Recordings (Music on Android 11 and older). Asked for in #216.
-* **Instagram - Keep a seek bar on Reels:** With Seek bar like DM videos or Bigger seek bar on reels, the played part of the bar and its handle slide along steadily. They used to move in small jumps, about ten a second, since that's how often Instagram updates it. Reported in #10.
-* **Instagram - Glass tab bar:** With Show content behind the tab bar on, a reel's comment box sat under the navigation bar until the keyboard came up, and other sheets that slide up over the pill could lose their bottom row the same way. While a sheet is open it gets its usual space above the navigation bar again, and the pill stays put under it. Reported in #209.
-* **Instagram - Clean up Reels:** Tapping a reel to pause or play it, double-tapping to like it, and tapping Save or Download no longer bring Burn-in guard's faded buttons back. Touching any other button, the caption, the top or bottom bar, or swiping to the next reel still does. A new Dim after choice under Burn-in guard sets how long it waits: at once, or after 2, 5 or 10 seconds (5 to start, as before). Asked for in #162.
-* **Instagram - Keep a seek bar on Reels:** A new reel's seek bar starts at the beginning right away. It used to show the last reel's spot for a moment and then jump back to the start, which was most of what you'd see when swiping quickly. Reported in #10.
-* **Instagram - Font:** A color emoji font picked as the Font now shows in the row of emoji above the comment box too, not only in the comment box. Instagram draws that row as little pictures and kept showing the ones it drew before the pick, even after a restart. A text font or a black and white emoji font leaves the row as it was, since those would draw it in black. Emoji the file doesn't have still look like your phone's. Reported in #166.
-* **Instagram - Font:** The bio under a profile's name takes the font you picked too. Instagram draws it with its newer text system, which loaded its own font and skipped the swap, and other text drawn that way follows now as well. Reported in #166.
-* **Instagram - Glass tab bar:** Once Hide the tab bar on Reels slides the pill away, the reel runs all the way down to the bottom of the screen. It used to stop where the pill had been and leave a black band under it. The reel makes room again as soon as the pill comes back. Reported in #170.
+
 * **Instagram - Hide the Reels tab:** New switch under Tab bar, Hide Messages on Home's header, off by default. It's for accounts that still have Instagram's Messages button at the top of Home and turned on Show the Messages tab, which leaves Messages in two places. Asked for in #210.
-* **Instagram - Clean up Reels:** Burn-in guard dims a reel's seek bar now, and the time HushGram shows next to it fades along with it. The Not interested and Interested buttons under some reels fade too. Reported in #162.
+
 * **Instagram - Show if a profile follows you:** New switch under Profiles, Recent unfollowers, off by default. Each time you open your own Followers list and scroll to the end, it's compared with the last time, and anyone who's gone shows under Who unfollowed you with the date. It only reads the list Instagram already loaded for you, so nothing extra is asked of Instagram. The list stays on your phone, kept apart for each of your accounts, and Clear unfollower list wipes it. Asked for in #208.
-* **Instagram - Hide suggested posts:** Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts now catch suggested posts on Home too. Instagram 451 sends each suggested post wrapped in a unit of its own, and those switches only looked for a post outside it, so every suggested post stayed. Found while working on #192.
+
 * **Instagram - Story ring size:** Ring color has Teal now, a blue-green that stays easy to see on white and black pages alike. Asked for in #206.
-* **Instagram - Hide the Reels tab:** The Search button on Home's header opens search again with Hide the Search tab on, on phones where you can swipe sideways between tabs. Before, it only showed a note asking you to turn the switch off. It opens the same search screen as Instagram's own search links, and Back brings you to Home. Reported in #204.
+
 * **Instagram - Hide reels by caption words:** New patch with a switch and a Blocked words list under Reels, off and empty by default. A reel in the Reels tab goes when its caption holds one of your words or phrases, hashtags included, whatever the case. Put a comma or a new line between them, so a list from Hushfeed pastes straight in. Reels you open from a profile, search or a chat still play. Turn on Also on Home under the list and posts on Home with those words in their caption go too (that part needs Hide suggested posts in your build). Asked for in #192.
+
 * **Instagram - HushGram settings:** HushGram's settings come in Italian when your phone is set to Italian. Like the other translations, it's a first draft that a native reader can still improve. Asked for in #194.
-* **Instagram - HushGram settings:** Searching for Download any video now also finds Download button on feed posts and the switch under it.
+
 * **Instagram - Download any video:** New switch under Downloads, Save every page without asking, off by default. With Download button on feed posts on, a tap on a carousel saves all of its pages at once instead of asking which. Asked for in #190.
-* **Instagram - Hide the Reels tab:** Listed under Interface in Morphe's patch list now, next to the glass tab bar, since most of its switches are about the tab bar. That keeps Reels short enough to scan with the new caption words patch in it.
+
 * **Instagram - Show a reel's exact time:** New switch under the reel's time, Show how long ago a reel was posted, off by default. It adds the days, hours and minutes since the reel went up on a line under the time, like 1d 2h 5m ago, in the same language as the rest of HushGram. Searching for the patch's name now finds both of its choices too. Asked for in #195.
-* **Instagram - Download any reel:** The Download button beside a reel now uses Instagram's own icon made for that column, the one Save's is drawn from, so it's the same size and line weight as the buttons above it instead of bigger and bolder. Reported in #198.
-* **Instagram - Glass tab bar:** Opening a chat with the floating glass bar on left its message box too low, so the keyboard covered half of it, and on phones with navigation buttons it sat behind them. Chats keep the right space at the bottom again, and leaving one no longer leaves a black strip under the pill in your messages. Reported in #196.
-* **Instagram - Full screen Reels and Home:** Opening Instagram straight onto Reels with full screen on, or coming back to Reels from the HushGram settings or a chat, could keep a black strip at the top and another at the bottom until you switched tabs. Screens built before the bars went away now get the new room too, so Reels fills the screen either way. Reported in #200. With Full screen Home on, the first tab you opened from Home, like Messages or your profile, slid up under the status bar until you switched again. That tab now gets the bar's height back as soon as it shows. Reported in #203.
-* **Instagram - Show if a profile follows you:** On a profile with no name, the Follows you or Doesn't follow you label sat on top of the post and follower counts. It takes the line where the name would be now. Reported in #157.
+
 * **Instagram - Hide the Reels tab:** Tab order under Tab bar opens a new list, Show and reorder tabs, like Piko's. Every tab has a box that puts it on the bar or takes it off, and a handle you drag to move it. Reset brings back Instagram's own tabs and order, and nothing changes until you tap OK. The hide and show switches still work as before. Asked for in #207.
+
+### Bug Fixes
+
+* **Instagram - Hide the Reels tab:** Always Home opens Home again in two cases that went back to Reels: with the tabs reordered in Tab order, and after you swipe Instagram away from recent apps (it keeps running in the background then). Coming back to Instagram while it's still open keeps you where you were. Start tab set to Search, Reels or Profile had the same trouble with the tabs reordered and opens on its tab now. The diagnostic report counts each start and why a start tab was skipped. Reported in #55.
+
+* **Instagram - Keep a seek bar on Reels:** With Seek bar like DM videos or Bigger seek bar on reels, the played part of the bar and its handle slide along steadily. They used to move in small jumps, about ten a second, since that's how often Instagram updates it. Reported in #10.
+
+* **Instagram - Glass tab bar:** With Show content behind the tab bar on, a reel's comment box sat under the navigation bar until the keyboard came up, and other sheets that slide up over the pill could lose their bottom row the same way. While a sheet is open it gets its usual space above the navigation bar again, and the pill stays put under it. Reported in #209.
+
+* **Instagram - Keep a seek bar on Reels:** A new reel's seek bar starts at the beginning right away. It used to show the last reel's spot for a moment and then jump back to the start, which was most of what you'd see when swiping quickly. Reported in #10.
+
+* **Instagram - Font:** A color emoji font picked as the Font now shows in the row of emoji above the comment box too, not only in the comment box. Instagram draws that row as little pictures and kept showing the ones it drew before the pick, even after a restart. A text font or a black and white emoji font leaves the row as it was, since those would draw it in black. Emoji the file doesn't have still look like your phone's. Reported in #166.
+
+* **Instagram - Font:** The bio under a profile's name takes the font you picked too. Instagram draws it with its newer text system, which loaded its own font and skipped the swap, and other text drawn that way follows now as well. Reported in #166.
+
+* **Instagram - Glass tab bar:** Once Hide the tab bar on Reels slides the pill away, the reel runs all the way down to the bottom of the screen. It used to stop where the pill had been and leave a black band under it. The reel makes room again as soon as the pill comes back. Reported in #170.
+
+* **Instagram - Hide suggested posts:** Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts now catch suggested posts on Home too. Instagram 451 sends each suggested post wrapped in a unit of its own, and those switches only looked for a post outside it, so every suggested post stayed. Found while working on #192.
+
+* **Instagram - Hide the Reels tab:** The Search button on Home's header opens search again with Hide the Search tab on, on phones where you can swipe sideways between tabs. Before, it only showed a note asking you to turn the switch off. It opens the same search screen as Instagram's own search links, and Back brings you to Home. Reported in #204.
+
+* **Instagram - Download any reel:** The Download button beside a reel now uses Instagram's own icon made for that column, the one Save's is drawn from, so it's the same size and line weight as the buttons above it instead of bigger and bolder. Reported in #198.
+
+* **Instagram - Glass tab bar:** Opening a chat with the floating glass bar on left its message box too low, so the keyboard covered half of it, and on phones with navigation buttons it sat behind them. Chats keep the right space at the bottom again, and leaving one no longer leaves a black strip under the pill in your messages. Reported in #196.
+
+* **Instagram - Full screen Reels and Home:** Opening Instagram straight onto Reels with full screen on, or coming back to Reels from the HushGram settings or a chat, could keep a black strip at the top and another at the bottom until you switched tabs. Screens built before the bars went away now get the new room too, so Reels fills the screen either way. Reported in #200. With Full screen Home on, the first tab you opened from Home, like Messages or your profile, slid up under the status bar until you switched again. That tab now gets the bar's height back as soon as it shows. Reported in #203.
+
+* **Instagram - Show if a profile follows you:** On a profile with no name, the Follows you or Doesn't follow you label sat on top of the post and follower counts. It takes the line where the name would be now. Reported in #157.
+
 * **Instagram - Full screen Reels and Home:** With full screen on, the keyboard covered the comment box on a reel, since the box sat one navigation bar too low once the keyboard brought that bar back. It sits right above the keyboard now, and the same goes for the glass tab bar's floating pill. Reported in #209.
+
+### Improvements
+
+* **Instagram - Clean up Reels:** Tapping a reel to pause or play it, double-tapping to like it, and tapping Save or Download no longer bring Burn-in guard's faded buttons back. Touching any other button, the caption, the top or bottom bar, or swiping to the next reel still does. A new Dim after choice under Burn-in guard sets how long it waits: at once, or after 2, 5 or 10 seconds (5 to start, as before). Asked for in #162.
+
+* **Instagram - Clean up Reels:** Burn-in guard dims a reel's seek bar now, and the time HushGram shows next to it fades along with it. The Not interested and Interested buttons under some reels fade too. Reported in #162.
+
+* **Instagram - HushGram settings:** Searching for Download any video now also finds Download button on feed posts and the switch under it.
+
+* **Instagram - Hide the Reels tab:** Listed under Interface in Morphe's patch list now, next to the glass tab bar, since most of its switches are about the tab bar. That keeps Reels short enough to scan with the new caption words patch in it.
 
 ## 0.0.11 (2026-10-15)
 
