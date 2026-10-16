@@ -52,6 +52,7 @@ public class TabStartTest {
     public void tearDown() {
         TabStart.forgetForTests();
         Settings.START_TAB.resetToDefault();
+        Settings.TAB_ORDER.resetToDefault();
         Settings.HIDE_REELS_TAB.resetToDefault();
         Settings.HIDE_SEARCH_TAB.resetToDefault();
         Settings.HIDE_PROFILE_TAB.resetToDefault();
@@ -177,6 +178,40 @@ public class TabStartTest {
         assertTrue(report, report.contains("Start tab skipped, not from the icon 1"));
         assertTrue(report, report.contains("Started from the icon 2"));
         assertTrue(report, report.contains("Started another way 1"));
+    }
+
+    /**
+     * With Tab order saved, the pager opens straight on the first tab asked for, which comes before
+     * the list (#55), so a Search, Reels or Profile choice answers it, unless a hide switch took that
+     * tab off. Messages, which not every bar has, still waits for the list, and so does every choice
+     * without an order saved, since a switch follows the list then.
+     */
+    @Test
+    public void aSavedTabOrderLetsTheChoiceAnswerBeforeTheList() {
+        Settings.TAB_ORDER.save("PROFILE,SEARCH,FEED,CLIPS");
+        Settings.START_TAB.save(StartTab.PROFILE);
+        TabStart.noteStart(launcher(), null);
+        assertSame(Tab.PROFILE, ReelsTab.tab(Tab.CLIPS));
+
+        TabStart.forgetForTests();
+        Settings.START_TAB.save(StartTab.SEARCH);
+        Settings.HIDE_SEARCH_TAB.save(true);
+        TabStart.noteStart(launcher(), null);
+        assertSame("a hidden Search sends Reels to Home", Tab.FEED, ReelsTab.tab(Tab.CLIPS));
+        Settings.HIDE_SEARCH_TAB.save(false);
+
+        TabStart.forgetForTests();
+        Settings.START_TAB.save(StartTab.MESSAGES);
+        TabStart.noteStart(launcher(), null);
+        assertSame("Messages waits for the list", Tab.FEED, ReelsTab.tab(Tab.FEED));
+
+        TabStart.forgetForTests();
+        Settings.TAB_ORDER.resetToDefault();
+        Settings.START_TAB.save(StartTab.PROFILE);
+        TabStart.noteStart(launcher(), null);
+        assertSame("no order saved", Tab.FEED, ReelsTab.tab(Tab.FEED));
+        ReelsTab.tabs(BAR);
+        assertSame(Tab.PROFILE, ReelsTab.tab(Tab.FEED));
     }
 
     @Test

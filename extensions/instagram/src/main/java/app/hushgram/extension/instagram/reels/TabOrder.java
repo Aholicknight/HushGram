@@ -80,6 +80,19 @@ public final class TabOrder {
     }
 
     /**
+     * Whether an order is saved, so the pager may open straight on the first tab Instagram asks for,
+     * with no switch after it. Never throws.
+     */
+    static boolean saved() {
+        try {
+            return Utils.settingsReady() && !HushgramPause.isPaused() && !parse(Settings.TAB_ORDER.get()).isEmpty();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REELS_TAB, "tab order", failure);
+            return false;
+        }
+    }
+
+    /**
      * A copy of [tabs] with the tabs [order] names first, in that order, then the others in the order
      * they came, or [tabs] itself when that is the order they're in already, [order] is empty, or the
      * list holds something that isn't a tab.

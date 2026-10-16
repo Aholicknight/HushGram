@@ -52,6 +52,9 @@ public final class TabStart {
     /** The names of the tabs Instagram lands on when nothing asks for another. */
     private static final Set<String> LANDING = new HashSet<>(Arrays.asList("FEED", "FEED_SWITCHER", "CLIPS"));
 
+    /** The tabs every account's bar has unless a hide switch takes them off, so a choice of one needs no list. */
+    private static final Set<String> ALWAYS_ON_THE_BAR = new HashSet<>(Arrays.asList("SEARCH", "CLIPS", "PROFILE"));
+
     /** How long after the first activity resumes a landing can still be swapped, in milliseconds. */
     static final long STARTUP_MS = 1500;
 
@@ -195,9 +198,11 @@ public final class TabStart {
     /**
      * The tab to open in place of [asked], or null to leave it. Only the first landing tab Instagram
      * asks about in a start is a candidate, and only once that start has built its tab list, so a
-     * home tab asked about ahead of the list waits for the switch that follows it. Always Home's
-     * Reels needs no list: the icon's first activity asks for it before the list is built, and with
-     * Tab order reordering the bar the pager opens straight on that answer, with no switch after (#55).
+     * home tab asked about ahead of the list waits for the switch that follows it. The icon's first
+     * activity asks before the list is built, though, and with Tab order saved the pager opens
+     * straight on that answer, with no switch after (#55). So Always Home answers a Reels ask then,
+     * since it needs no list, and with an order saved so do Search, Reels and Profile, which every
+     * bar has unless a hide switch took them off.
      */
     @Nullable
     static Object landing(Enum<?> asked) {
@@ -220,7 +225,7 @@ public final class TabStart {
         }
         Set<String> bar = onTheBar;
         boolean listed = bar != null && listSinceStart;
-        if (!listed && !(choice == StartTab.ALWAYS_HOME && ReelsTab.isReels(asked))) return null;
+        if (!listed && !answersBeforeTheList(choice, asked)) return null;
         decided = true;
         if (!LANDING.contains(asked.name())) {
             HookStatus.counted(FamilyNames.REELS_TAB, "Start tab skipped, first tab asked was " + asked.name());
@@ -238,7 +243,7 @@ public final class TabStart {
             return ReelsTab.homeOf(asked);
         }
         if (choice.tab.equals(asked.name())) return null;
-        if (ReelsTab.hiddenByName(choice.tab) || !bar.contains(choice.tab)) {
+        if (ReelsTab.hiddenByName(choice.tab) || (listed && !bar.contains(choice.tab))) {
             HookStatus.counted(FamilyNames.REELS_TAB, "Start tab not on the bar, opened Home");
             return ReelsTab.isReels(asked) ? ReelsTab.homeOf(asked) : null;
         }
@@ -246,6 +251,12 @@ public final class TabStart {
         HookStatus.counted(FamilyNames.REELS_TAB, "Start tab applied");
         Logger.printDebug(() -> "Reels tab: opened " + choice.tab + " in place of " + asked.name());
         return start;
+    }
+
+    /** Whether [choice] can answer [asked] before the start has built its tab list. */
+    private static boolean answersBeforeTheList(StartTab choice, Enum<?> asked) {
+        if (choice == StartTab.ALWAYS_HOME) return ReelsTab.isReels(asked);
+        return ALWAYS_ON_THE_BAR.contains(choice.tab) && TabOrder.saved();
     }
 
     /** Takes the process back to before its first start, for tests. */
