@@ -1199,7 +1199,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     profiles.addPreference(toggle(context, Settings.TRACK_UNFOLLOWERS, L10n.t("Recent unfollowers"),
                             L10n.t("Each time you scroll your own Followers list to the end, compares it with the last time "
                                     + "and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.")));
-                    profiles.addPreference(unfollowersRow(context));
+                    Preference unfollowersList = unfollowersRow(context);
+                    profiles.addPreference(unfollowersList);
                     Row clearUnfollowers = new Row(context);
                     clearUnfollowers.setKey(CLEAR_UNFOLLOWERS);
                     clearUnfollowers.setPersistent(false);
@@ -1208,7 +1209,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     clearUnfollowers.setSummary(L10n.t("Forgets the saved Followers lists and everyone listed above, "
                             + "for all your accounts."));
                     clearUnfollowers.setOnPreferenceClickListener(p -> {
-                        clearUnfollowers(p);
+                        clearUnfollowers(p, unfollowersList);
                         return true;
                     });
                     profiles.addPreference(mark(clearUnfollowers, SettingsIcons.DELETE));
@@ -4335,17 +4336,19 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return text.append(last).toString();
     }
 
-    /** Forgets every account's saved Followers list and unfollowers, off the main thread, and says so. */
-    private static void clearUnfollowers(Preference row) {
+    /**
+     * Forgets every account's saved Followers list and unfollowers, off the main thread, says so, and
+     * empties [list]. It's handed over rather than looked up, since a search that hides the list row
+     * takes it off the screen, and it came back still naming everyone (S22, 2026-10-15).
+     */
+    static void clearUnfollowers(Preference row, Preference list) {
         Context context = row.getContext();
         if (!Utils.runOnBackgroundThread(() -> {
             boolean cleared = Unfollowers.clear(context);
             Utils.runOnMainThread(() -> {
                 if (cleared) {
                     Utils.showToastShort(L10n.t("Unfollower list cleared."));
-                    Preference list = row.getPreferenceManager() == null ? null
-                            : row.getPreferenceManager().findPreference(UNFOLLOWERS_ROW);
-                    if (list != null) list.setSummary(unfollowersSummary(Unfollowers.Record.NONE));
+                    list.setSummary(unfollowersSummary(Unfollowers.Record.NONE));
                 } else {
                     Utils.showToastLong(L10n.t("Couldn't clear the unfollower list. Try again."));
                 }

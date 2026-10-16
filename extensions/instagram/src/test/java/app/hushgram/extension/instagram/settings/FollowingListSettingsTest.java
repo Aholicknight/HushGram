@@ -225,11 +225,19 @@ public class FollowingListSettingsTest {
         list = page.getPreferenceScreen().findPreference(HushgramPreferenceFragment.UNFOLLOWERS_ROW);
         org.robolectric.shadows.ShadowLooper.idleMainLooper();
         assertEquals(summary, String.valueOf(list.getSummary()));
+        // Cleared from a search that hides the list row, the row still empties (S22, 2026-10-15).
+        page.searchSettings("Clear unfollower");
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        assertNull("the search hides the list row", page.getPreferenceScreen().findPreference(HushgramPreferenceFragment.UNFOLLOWERS_ROW));
         page.getPreferenceScreen().findPreference(HushgramPreferenceFragment.CLEAR_UNFOLLOWERS).getOnPreferenceClickListener()
                 .onPreferenceClick(page.getPreferenceScreen().findPreference(HushgramPreferenceFragment.CLEAR_UNFOLLOWERS));
         Utils.awaitBackgroundTasksForTests();
         org.robolectric.shadows.ShadowLooper.idleMainLooper();
-        assertTrue(String.valueOf(list.getSummary()).startsWith("Nothing to compare yet."));
+        page.searchSettings("Who unfollowed");
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        assertEquals(list, page.getPreferenceScreen().findPreference(HushgramPreferenceFragment.UNFOLLOWERS_ROW));
+        assertTrue(String.valueOf(list.getSummary()), String.valueOf(list.getSummary()).startsWith("Nothing to compare yet."));
+        page.searchSettings("");
         assertEquals(0, app.hushgram.extension.instagram.profile.Unfollowers.shown(context).checked);
         Settings.TRACK_UNFOLLOWERS.resetToDefault();
     }
