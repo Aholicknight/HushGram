@@ -1160,3 +1160,5 @@ Clear unfollower list	Takipten çıkanlar listesini temizle
 Forgets the saved Followers lists and everyone listed above, for all your accounts.	Kayıtlı Takipçiler listelerini ve yukarıda listelenen herkesi tüm hesapların için unutur.
 Unfollower list cleared.	Takipten çıkanlar listesi temizlendi.
 Couldn't clear the unfollower list. Try again.	Takipten çıkanlar listesi temizlenemedi. Tekrar dene.
+Hide Messages on Home's header	Ana sayfa üstündeki Mesajlar'ı gizle
+Takes Instagram's Messages button off the top of Home, for when Messages is on your tab bar too. Restart Instagram to see the change.	Mesajlar sekme çubuğunda da varsa Instagram'ın Mesajlar düğmesini Ana sayfanın üstünden kaldırır. Değişikliği görmek için Instagram'ı yeniden başlat.

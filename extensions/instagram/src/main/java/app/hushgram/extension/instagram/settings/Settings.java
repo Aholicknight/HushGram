@@ -1447,6 +1447,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_messages_button_on_home", FALSE, true);
 
     /**
+     * Instagram's own Messages button is off Home's header, for accounts that still have it there and
+     * put Messages on the tab bar with Show the Messages tab (#210). Each header draw hides it, and
+     * no Messages button of HushGram's goes in ({@link app.hushgram.extension.instagram.reels.MessagesHeaderButton}).
+     * A change takes a restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_HOME_MESSAGES_BUTTON =
+            new BooleanSetting("hushgram_hide_home_messages_button", FALSE, true);
+
+    /**
      * Instagram's logo sits in the middle of Home's header, with the buttons on each side, as
      * Instagram's newer header has it ({@link app.hushgram.extension.instagram.reels.HomeLogo}). The
      * header centers it as it draws, so a change takes a restart. Off to start.

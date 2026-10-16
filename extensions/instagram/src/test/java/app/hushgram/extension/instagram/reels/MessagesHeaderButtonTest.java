@@ -98,6 +98,7 @@ public class MessagesHeaderButtonTest {
         HomeHeader.standInEndRowForTests(null);
         TabStart.forgetForTests();
         Settings.MESSAGES_BUTTON_ON_HOME.resetToDefault();
+        Settings.HIDE_HOME_MESSAGES_BUTTON.resetToDefault();
         Settings.SHOW_MESSAGES_TAB.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -159,6 +160,69 @@ public class MessagesHeaderButtonTest {
         MessagesHeaderButton.place(header);
         assertNull(MessagesHeaderButton.in(end));
         assertEquals(2, end.getChildCount());
+    }
+
+    /** #210: an account that still has Instagram's button on the header and Messages on the tab bar too. */
+    @Test public void hideMessagesHidesInstagramsOwnButtonAndAddsNoneUntilItIsOffOrPaused() {
+        ImageView own = new ImageView(header.getContext());
+        end.addView(own);
+        header.setDirectInbox(own);
+        assertEquals(Boolean.FALSE, Settings.HIDE_HOME_MESSAGES_BUTTON.defaultValue);
+        assertTrue(Settings.HIDE_HOME_MESSAGES_BUTTON.rebootApp);
+        MessagesHeaderButton.place(header);
+        assertEquals("off to start, Instagram's button stays", View.VISIBLE, own.getVisibility());
+
+        Settings.HIDE_HOME_MESSAGES_BUTTON.save(true);
+        Settings.MESSAGES_BUTTON_ON_HOME.save(true);
+        MessagesHeaderButton.place(header);
+        assertEquals("hidden", View.GONE, own.getVisibility());
+        assertSame("kept in its row, so the buttons beside it still find it", end, own.getParent());
+        assertNull("and none of HushGram's goes in", MessagesHeaderButton.in(end));
+        MessagesHeaderButton.place(header);
+        assertEquals(View.GONE, own.getVisibility());
+        assertTrue(report(), report().contains(MessagesHeaderButton.HIDDEN_OWN + " 1"));
+
+        // Instagram shows it again as it rebinds the header: the next draw hides it again.
+        own.setVisibility(View.VISIBLE);
+        MessagesHeaderButton.place(header);
+        assertEquals(View.GONE, own.getVisibility());
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        MessagesHeaderButton.place(header);
+        assertEquals("paused, it's back", View.VISIBLE, own.getVisibility());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        MessagesHeaderButton.place(header);
+        assertEquals(View.GONE, own.getVisibility());
+        Settings.HIDE_HOME_MESSAGES_BUTTON.save(false);
+        MessagesHeaderButton.place(header);
+        assertEquals("switched off, it's back", View.VISIBLE, own.getVisibility());
+        assertNull("Instagram's shows, so still no second one", MessagesHeaderButton.in(end));
+    }
+
+    @Test public void hideMessagesLeavesAButtonInstagramHidItselfAloneAndKeepsHushGramsOut() {
+        ImageView own = new ImageView(header.getContext());
+        own.setVisibility(View.GONE);
+        end.addView(own);
+        header.setDirectInbox(own);
+        Settings.HIDE_HOME_MESSAGES_BUTTON.save(true);
+        MessagesHeaderButton.place(header);
+        Settings.HIDE_HOME_MESSAGES_BUTTON.save(false);
+        MessagesHeaderButton.place(header);
+        assertEquals("Instagram hid it, so it stays hidden", View.GONE, own.getVisibility());
+
+        // No button of Instagram's at all: Hide Messages keeps HushGram's out too.
+        end.removeView(own);
+        header.setDirectInbox(null);
+        Settings.HIDE_HOME_MESSAGES_BUTTON.save(true);
+        Settings.MESSAGES_BUTTON_ON_HOME.save(true);
+        MessagesHeaderButton.place(header);
+        assertNull(MessagesHeaderButton.in(end));
+        Settings.HIDE_HOME_MESSAGES_BUTTON.save(false);
+        MessagesHeaderButton.place(header);
+        assertNotNull(MessagesHeaderButton.in(end));
     }
 
     @Test public void aMessagesButtonInstagramKeptButTookOffTheHeaderDoesNotCount() {

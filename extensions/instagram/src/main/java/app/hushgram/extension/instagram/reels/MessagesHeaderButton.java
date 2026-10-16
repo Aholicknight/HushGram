@@ -17,6 +17,8 @@ import android.widget.LinearLayout;
 
 import androidx.annotation.Nullable;
 
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.function.Function;
 
 import app.hushgram.extension.instagram.download.FeedDownloadButton;
@@ -50,6 +52,11 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  *
  * <p>With the switch off or HushGram paused, no button is added and one left from before is taken out
  * at the next draw. A tap while paused does nothing. Nothing in here throws.
+ *
+ * <p>The opposite switch, Hide Messages on Home's header (#210), is for accounts that still have
+ * Instagram's own button there and turned on Show the Messages tab, which leaves Messages in two
+ * places. Each draw hides Instagram's button and adds none, and it comes back at the next draw with
+ * the switch off or HushGram paused.
  */
 public final class MessagesHeaderButton {
     private MessagesHeaderButton() { }
@@ -63,6 +70,7 @@ public final class MessagesHeaderButton {
     static final String OPENED_OFF_BAR = "Home header Messages button opened Messages off the tab bar";
     static final String SWIPING = "Home header Messages button left Messages shut, it's off the swiping tabs";
     static final String NO_HOST = "Home header Messages button found no tab host";
+    static final String HIDDEN_OWN = "Home header Messages button of Instagram's hidden";
 
     /** The resource name of Instagram's Messages icon: its header button's, and its Messages tab's while not selected. */
     static final String ICON = "instagram_direct_outline_24";
@@ -87,7 +95,10 @@ public final class MessagesHeaderButton {
     public static void place(View header) {
         try {
             if (header == null) return;
-            boolean wanted = Utils.settingsReady() && !HushgramPause.isPaused() && Settings.MESSAGES_BUTTON_ON_HOME.get();
+            boolean ready = Utils.settingsReady() && !HushgramPause.isPaused();
+            boolean hide = ready && Settings.HIDE_HOME_MESSAGES_BUTTON.get();
+            hideOwn(header, hide);
+            boolean wanted = ready && !hide && Settings.MESSAGES_BUTTON_ON_HOME.get();
             LinearLayout end = HomeHeader.endRowOf(header);
             if (end == null) {
                 if (wanted && !instagramsOwnShows(header)) HookStatus.counted(ROUTE, NO_ROW);
@@ -125,6 +136,28 @@ public final class MessagesHeaderButton {
         }
         return null;
     }
+
+    /**
+     * Hides Instagram's own Messages button on the header when [hide] is set, for Hide Messages on
+     * Home's header (#210), and gives one it hid back its visibility when [hide] isn't. The header
+     * keeps the button in its row, so its getter and the buttons placed beside it still find it.
+     */
+    static void hideOwn(View header, boolean hide) {
+        View own = HomeHeader.inboxOf(header);
+        if (own == null || own instanceof Inbox) return;
+        if (hide) {
+            if (own.getVisibility() == View.GONE) return;
+            HIDDEN.put(own, own.getVisibility());
+            own.setVisibility(View.GONE);
+            HookStatus.counted(ROUTE, HIDDEN_OWN);
+            return;
+        }
+        Integer was = HIDDEN.remove(own);
+        if (was != null && own.getVisibility() == View.GONE) own.setVisibility(was);
+    }
+
+    /** Instagram's Messages buttons {@link #hideOwn} hid, with the visibility each had before. Main thread only. */
+    private static final Map<View, Integer> HIDDEN = new WeakHashMap<>();
 
     /** Whether the header shows Instagram's own Messages button: it has one and it sits in a row. */
     static boolean instagramsOwnShows(View header) {

@@ -145,6 +145,36 @@ public class HomeHeaderSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.MESSAGES_BUTTON_ON_HOME.key));
     }
 
+    /** Hide Messages on Home's header (#210) follows Messages button on Home's header, starts off and asks for a restart. */
+    @Test public void theHideMessagesSwitchFollowsTheMessagesButtonOneAndStartsOff() throws Exception {
+        open();
+        assertNull(row(Settings.HIDE_HOME_MESSAGES_BUTTON.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_HOME_MESSAGES_BUTTON.key));
+        controller.close();
+        controller = null;
+
+        open(PatchFamily.REELS_TAB);
+        SwitchPreference toggle = (SwitchPreference) row(Settings.HIDE_HOME_MESSAGES_BUTTON.key);
+        assertNotNull(toggle);
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), toggle);
+        assertEquals("Tab bar", String.valueOf(section.getTitle()));
+        int messages = -1;
+        int hide = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            String key = section.getPreference(i).getKey();
+            if (Settings.MESSAGES_BUTTON_ON_HOME.key.equals(key)) messages = i;
+            if (Settings.HIDE_HOME_MESSAGES_BUTTON.key.equals(key)) hide = i;
+        }
+        assertEquals("right after Messages button on Home's header", messages + 1, hide);
+        assertEquals("Hide Messages on Home's header", String.valueOf(toggle.getTitle()));
+        assertTrue(String.valueOf(toggle.getSummary()), String.valueOf(toggle.getSummary()).endsWith("Restart Instagram to see the change."));
+        assertFalse(toggle.isChecked());
+        assertEquals(Boolean.FALSE, Settings.HIDE_HOME_MESSAGES_BUTTON.defaultValue);
+        assertTrue(Settings.HIDE_HOME_MESSAGES_BUTTON.rebootApp);
+        assertTrue(PatchFamily.REELS_TAB.switches.contains(Settings.HIDE_HOME_MESSAGES_BUTTON));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_HOME_MESSAGES_BUTTON.key));
+    }
+
     @Test public void theCenteredLogoSwitchShowsUnderTabBarWithTheReelsTabPatchAndStartsOff() throws Exception {
         open();
         assertNull(row(Settings.CENTER_HOME_LOGO.key));
