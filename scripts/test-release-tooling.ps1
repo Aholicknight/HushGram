@@ -2334,8 +2334,9 @@ try {
             Edit = { param($text)
                 $dated = $text -replace ('(?ms)^## Unreleased\s+###\s+HushGram\s+v' + [regex]::Escape($versionHere) + '\s*$'),
                     "## $versionHere (2026-09-30)"
-                $at = $dated.IndexOf("## $versionHere (2026-09-30)")
-                ([regex]'(?m)^\* \*\*(?:Instagram|Tooling):\*\* ').Replace($dated, '* ', 1, [Math]::Max(0, $at)) } },
+                # The section may already be dated, and its bullets may all be scoped to a patch.
+                $at = $dated.IndexOf("## $versionHere (")
+                ([regex]'(?m)^\* \*\*(?:Instagram|Tooling)(?: - [^*\r\n]+)?:\*\* ').Replace($dated, '* ', 1, [Math]::Max(0, $at)) } },
         @{ File = $bugFormRelative; Case = 'a bug form naming another HushGram version'; Pattern = '*bug report form version placeholder*'
             Edit = { param($text) $text -replace '(placeholder:\s*HushGram )\S+', '${1}0.0.1' } },
         @{ File = $bugFormRelative; Case = 'a bug form naming another Instagram build'; Pattern = '*bug report form version placeholder*'
