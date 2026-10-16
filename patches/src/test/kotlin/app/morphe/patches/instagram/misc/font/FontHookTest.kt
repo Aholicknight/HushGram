@@ -50,11 +50,12 @@ class FontHookTest {
         assertTrue("$PRISM_TYPEFACE is not in the extension: $declared", PRISM_TYPEFACE in declared)
         assertTrue("$TEXT_VIEW is not in the extension: $declared", TEXT_VIEW in declared)
         assertTrue("$RESOURCE_FONT is not in the extension: $declared", RESOURCE_FONT in declared)
+        assertTrue("$EMOJI_TYPEFACE is not in the extension: $declared", EMOJI_TYPEFACE in declared)
     }
 
     @Test
     fun everyKeptTypefaceAndEveryTextViewGoThroughTheExtension() {
-        val context = PatchContexts.of(listOf(helper(), textView(), compat(), extension()))
+        val context = PatchContexts.of(listOf(helper(), textView(), compat(), emoji(), extension()))
         val found = context.findFontSites()
         assertEquals(6, found.writes.size)
         context.swapFonts()
@@ -62,23 +63,28 @@ class FontHookTest {
         assertWritesSwapped("stand-in", context.mutableClassDefBy(HELPER), 6)
         assertTextViewHandedOn("stand-in", context.mutableClassDefBy(IG_TEXT_VIEW).methods.toList())
         assertGetFontAsksFirst("stand-in", context.mutableClassDefBy(COMPAT).methods.single { it.name == "getFont" })
+        assertEmojiLookupAsksFirst("stand-in", context.mutableClassDefBy(EMOJI).methods.single { it.name == "CED" })
     }
 
     @Test
     fun anythingItCantFindExactlyFailsThePatch() {
         for ((case, classes) in listOf(
-            "no helper" to listOf(textView(), compat(), extension()),
-            "two helpers" to listOf(helper(), helper(type = "Lfixture/OtherPrism;"), textView(), compat(), extension()),
-            "two weights" to listOf(helper(fields = 2), textView(), compat(), extension()),
-            "a weight its getter never loads" to listOf(helper(getters = 2), textView(), compat(), extension()),
-            "a weight written a third time" to listOf(helper(extraWrite = true), textView(), compat(), extension()),
-            "no IgTextView" to listOf(helper(), compat(), extension()),
-            "an IgTextView set up twice" to listOf(helper(), textView(calls = 2), compat(), extension()),
-            "a jump past the set-up" to listOf(helper(), textView(jumpAfter = true), compat(), extension()),
-            "no ResourcesCompat" to listOf(helper(), textView(), extension()),
-            "two font getters" to listOf(helper(), textView(), compat(getters = 2), extension()),
-            "a font getter with no register free" to listOf(helper(), textView(), compat(registers = 2), extension()),
-            "no hook in the extension" to listOf(helper(), textView(), compat()),
+            "no helper" to listOf(textView(), compat(), emoji(), extension()),
+            "two helpers" to listOf(helper(), helper(type = "Lfixture/OtherPrism;"), textView(), compat(), emoji(), extension()),
+            "two weights" to listOf(helper(fields = 2), textView(), compat(), emoji(), extension()),
+            "a weight its getter never loads" to listOf(helper(getters = 2), textView(), compat(), emoji(), extension()),
+            "a weight written a third time" to listOf(helper(extraWrite = true), textView(), compat(), emoji(), extension()),
+            "no IgTextView" to listOf(helper(), compat(), emoji(), extension()),
+            "an IgTextView set up twice" to listOf(helper(), textView(calls = 2), compat(), emoji(), extension()),
+            "a jump past the set-up" to listOf(helper(), textView(jumpAfter = true), compat(), emoji(), extension()),
+            "no ResourcesCompat" to listOf(helper(), textView(), emoji(), extension()),
+            "two font getters" to listOf(helper(), textView(), compat(getters = 2), emoji(), extension()),
+            "a font getter with no register free" to listOf(helper(), textView(), compat(registers = 2), emoji(), extension()),
+            "no emoji renderer" to listOf(helper(), textView(), compat(), extension()),
+            "two emoji renderers" to listOf(helper(), textView(), compat(), emoji(), emoji(type = "Lfixture/OtherEmoji;"), extension()),
+            "two emoji lookups" to listOf(helper(), textView(), compat(), emoji(lookups = 2), extension()),
+            "an emoji lookup with no register free" to listOf(helper(), textView(), compat(), emoji(registers = 2), extension()),
+            "no hook in the extension" to listOf(helper(), textView(), compat(), emoji()),
         )) {
             val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).findFontSites() }
             assertTrue("$case: ${failure.message}", failure.message!!.startsWith("Font:"))
@@ -89,7 +95,7 @@ class FontHookTest {
     @Test
     fun aRefusalChangesNothing() {
         val stub = helper()
-        val context = PatchContexts.of(listOf(stub, textView(calls = 2), compat(), extension()))
+        val context = PatchContexts.of(listOf(stub, textView(calls = 2), compat(), emoji(), extension()))
         val before = stub.methods.associate { it.name to it.code().map { instruction -> instruction.opcode } }
         assertThrows(PatchException::class.java) { context.swapFonts() }
         assertEquals(before, context.classDefBy(HELPER).methods.associate { it.name to it.code().map { instruction -> instruction.opcode } })
@@ -132,7 +138,9 @@ class FontHookTest {
         assertEquals("$label: IgTextView", 1, views.size)
         val compats = FixtureDex.classesHolding(bundle, FONT_RESOURCE_MARKER)
         assertEquals("$label: classes holding the font resource marker", 1, compats.size)
-        val context = PatchContexts.of((holders + views + compats).distinctBy { it.type } + extension())
+        val renderers = FixtureDex.classesHolding(bundle, EMOJI_MARKER)
+        assertEquals("$label: classes holding the emoji marker", 1, renderers.size)
+        val context = PatchContexts.of((holders + views + compats + renderers).distinctBy { it.type } + extension())
 
         val found = context.findFontSites()
         assertEquals("$label: writes", 6, found.writes.size)
@@ -165,6 +173,31 @@ class FontHookTest {
         assertGetFontAsksFirst(label, context.mutableClassDefBy(getFont.definingClass).methods.single {
             it.name == getFont.name && it.parameterTypes.map(Any::toString) == listOf(CONTEXT, "I")
         })
+        val lookup = found.emojiLookup
+        assertEmojiLookupAsksFirst(label, context.mutableClassDefBy(lookup.definingClass).methods.single {
+            it.name == lookup.name && it.parameterTypes.map(Any::toString) == listOf(STRING) && it.returnType == TYPEFACE
+        })
+    }
+
+    /**
+     * Instagram's emoji lookup hands its emoji to the extension first, answers what comes back when it
+     * isn't null, and otherwise jumps to what it did before.
+     */
+    private fun assertEmojiLookupAsksFirst(what: String, lookup: MutableMethod) {
+        val code = lookup.code()
+        val emoji = lookup.implementation!!.registerCount - 1
+        val ask = code[0]
+        assertEquals("$what: the extension is asked first", Opcode.INVOKE_STATIC, ask.opcode)
+        assertEquals("$what: the hook", EMOJI_TYPEFACE, (ask as ReferenceInstruction).reference.toString())
+        assertEquals("$what: handed the emoji", emoji, (ask as FiveRegisterInstruction).registerC)
+        assertEquals("$what: the emoji alone", 1, ask.registerCount)
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT_OBJECT, code[1].opcode)
+        val answer = (code[1] as OneRegisterInstruction).registerA
+        assertEquals("$what: null goes on", Opcode.IF_EQZ, code[2].opcode)
+        assertEquals("$what: to what the lookup did before", 4, (code[2] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$what: a font is answered", Opcode.RETURN_OBJECT, code[3].opcode)
+        assertEquals("$what: the extension's", answer, (code[3] as OneRegisterInstruction).registerA)
+        assertTrue("$what: the answer's register is no parameter", answer < emoji - 1)
     }
 
     /**
@@ -248,8 +281,46 @@ class FontHookTest {
         val WEIGHTS = listOf("A00", "A01", "A02")
 
         const val COMPAT = "Lfixture/ResourcesCompat;"
+        const val EMOJI = "Lfixture/FacebookEmoji;"
+        const val STRING = "Ljava/lang/String;"
 
         fun extension(): ClassDef = ExtensionDex.classDef(FONTS)
+
+        /**
+         * A stand-in shaped like 451's emoji renderer: the marker in the span it builds, and [lookups]
+         * instance (String) Typeface lookups with [registers] registers, two of them this and the emoji.
+         */
+        fun emoji(type: String = EMOJI, lookups: Int = 1, registers: Int = 5): ClassDef {
+            val flags = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+            val methods = mutableListOf(
+                method(
+                    type, "A02", emptyList(), "Landroid/text/style/TypefaceSpan;", flags, 3,
+                    """
+                        new-instance v0, Landroid/text/style/TypefaceSpan;
+                        const-string v1, "$EMOJI_MARKER"
+                        invoke-direct { v0, v1 }, Landroid/text/style/TypefaceSpan;-><init>($STRING)V
+                        return-object v0
+                    """,
+                ),
+            )
+            repeat(lookups) { i ->
+                methods += method(
+                    type, if (i == 0) "CED" else "CED$i", listOf(STRING), TYPEFACE, flags, registers,
+                    if (registers > 2) {
+                        """
+                            const/4 v0, 0x0
+                            return-object v0
+                        """
+                    } else {
+                        """
+                            const/4 p0, 0x0
+                            return-object p0
+                        """
+                    },
+                )
+            }
+            return ImmutableClassDef(type, flags, "Ljava/lang/Object;", null, null, null, null, methods)
+        }
 
         /**
          * A stand-in for AndroidX's ResourcesCompat: the marker in its loader, and [getters] static

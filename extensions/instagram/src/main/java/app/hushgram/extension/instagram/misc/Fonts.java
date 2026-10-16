@@ -57,6 +57,9 @@ public final class Fonts {
     static final String PHONE = "Instagram's font swapped for the phone's";
     static final String PICKED = "Instagram's font swapped for the picked file";
 
+    /** What's counted for each emoji picture drawn in the picked file. */
+    static final String EMOJI = "Instagram's emoji pictures drawn in the picked file";
+
     /** The weight a TextView with no Typeface of its own draws in. */
     static final int REGULAR = 400;
 
@@ -121,6 +124,28 @@ public final class Fonts {
             return swapped;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FONT, "font resource", failure);
+            return null;
+        }
+    }
+
+    /**
+     * Injected first in Instagram's emoji lookup, which answers the Typeface Instagram draws its own
+     * emoji pictures in: the row of emoji above the comment box (#166), reactions and the rest it
+     * draws as images rather than text. Answers the picked font file, so an emoji font picked as the
+     * Font reaches them as it reaches text, or null with any other choice, and Instagram's own answer
+     * goes through. Emoji the file lacks still draw from the phone's. Always the same Typeface, since
+     * Instagram compares them. Never throws.
+     */
+    @Nullable
+    public static Typeface emojiTypeface(String emoji) {
+        try {
+            HookStatus.invoked(FamilyNames.FONT);
+            if (!Utils.settingsReady() || Settings.FONT.get() != FontChoice.FILE) return null;
+            Typeface picked = chosen();
+            if (picked != null) HookStatus.counted(FamilyNames.FONT, EMOJI);
+            return picked;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FONT, "emoji", failure);
             return null;
         }
     }

@@ -218,6 +218,35 @@ public class FontsTest {
                 HookStatus.report());
     }
 
+    /**
+     * #166: Instagram draws the emoji above the comment box as pictures, in the Typeface its emoji lookup
+     * answers. A picked file answers it, the same Typeface every time, so an emoji font picked as the Font
+     * reaches them. Instagram's font, the phone's font or Pause, and Instagram's own answer goes through.
+     */
+    @Test
+    public void emojiPicturesTakeAPickedFile() throws Exception {
+        assertNull("Instagram's font", Fonts.emojiTypeface("❤"));
+        Settings.FONT.save(FontChoice.SYSTEM);
+        assertNull("the phone's font leaves the phone's emoji", Fonts.emojiTypeface("❤"));
+
+        keep(TRUE_TYPE);
+        Fonts.loader = file -> Typeface.SERIF;
+        Settings.FONT.save(FontChoice.FILE);
+        Fonts.resetForTests();
+        Fonts.loader = file -> Typeface.SERIF;
+        Typeface heart = Fonts.emojiTypeface("❤");
+        assertSame(Typeface.SERIF, heart);
+        assertSame("the same one each time", heart, Fonts.emojiTypeface("🔥"));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertNull("paused", Fonts.emojiTypeface("❤"));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertEquals(List.of(FamilyNames.FONT + ": invoked 5, 0 found, 0 missing. Counted: " + Fonts.EMOJI + " 2"),
+                HookStatus.report());
+    }
+
     /** A font file is copied in once it loads, and anything else keeps the font kept before. */
     @Test
     public void onlyAFontThatLoadsIsKept() throws Exception {

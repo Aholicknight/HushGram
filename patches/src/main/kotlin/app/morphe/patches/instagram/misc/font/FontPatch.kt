@@ -38,6 +38,10 @@ internal const val FONTS = "$EXTENSION_PACKAGE/misc/Fonts;"
 internal const val PRISM_TYPEFACE = "$FONTS->prismTypeface(Landroid/graphics/Typeface;)Landroid/graphics/Typeface;"
 internal const val TEXT_VIEW = "$FONTS->textView(Landroid/widget/TextView;)V"
 internal const val RESOURCE_FONT = "$FONTS->resourceFont(Landroid/content/Context;I)Landroid/graphics/Typeface;"
+internal const val EMOJI_TYPEFACE = "$FONTS->emojiTypeface(Ljava/lang/String;)Landroid/graphics/Typeface;"
+
+/** The name Instagram's own emoji renderer gives the span it builds. No other class holds it. */
+internal const val EMOJI_MARKER = "FacebookEmoji"
 
 /** What AndroidX's ResourcesCompat says when a font resource won't load. No other class holds it. */
 internal const val FONT_RESOURCE_MARKER = "Font resource ID #0x"
@@ -52,6 +56,7 @@ internal const val INITIALIZE =
 
 private const val TYPEFACE = "Landroid/graphics/Typeface;"
 private const val CONTEXT = "Landroid/content/Context;"
+private const val STRING = "Ljava/lang/String;"
 
 /**
  * Instagram's text draws in the phone's font or a font file picked in HushGram settings. Included
@@ -68,6 +73,11 @@ private const val CONTEXT = "Landroid/content/Context;"
  * resources through AndroidX's ResourcesCompat.getFont(Context, int). The extension answers that
  * call first, with the chosen font for a Prism Sans resource and nothing for any other, which
  * then loads as before.
+ *
+ * Instagram draws some emoji as pictures rather than text: the row above the comment box, reactions
+ * and the like (#166). It draws each in the Typeface its own emoji lookup answers, null on current
+ * Android, which means the phone's emoji. The extension answers that lookup first, with a picked
+ * font file, so an emoji font picked as the Font reaches those too.
  */
 @Suppress("unused")
 val fontPatch = bytecodePatch(
@@ -99,6 +109,7 @@ internal class FontSites(
     val initializeAt: Int,
     val view: Int,
     val getFont: Method,
+    val emojiLookup: Method,
 )
 
 /**
@@ -115,6 +126,9 @@ internal class FontSites(
  *
  * ResourcesCompat is the one class holding [FONT_RESOURCE_MARKER], and getFont(Context, int) its one
  * static (Context, int) Typeface method. It needs a register of its own for the extension's answer.
+ *
+ * Instagram's emoji renderer is the one class holding [EMOJI_MARKER], and its emoji lookup the one
+ * instance (String) Typeface method there, also with a register of its own for the answer.
  */
 internal fun BytecodePatchContext.findFontSites(): FontSites {
     val helpers = classesHolding(PRISM_MARKER)
@@ -164,7 +178,19 @@ internal fun BytecodePatchContext.findFontSites(): FontSites {
         refuse("${compat.type}->${getFont.name} has no register free for the extension's answer")
     }
 
-    for (hook in listOf(PRISM_TYPEFACE, TEXT_VIEW, RESOURCE_FONT)) {
+    val renderers = classesHolding(EMOJI_MARKER)
+    val renderer = renderers.singleOrNull() ?: refuse("expected one class holding \"$EMOJI_MARKER\", found ${renderers.size}")
+    val lookups = renderer.methods.filter {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == TYPEFACE &&
+            it.parameterTypes.map(Any::toString) == listOf(STRING)
+    }
+    val emojiLookup = lookups.singleOrNull()
+        ?: refuse("expected one (String) Typeface in ${renderer.type}, found ${lookups.size}")
+    if (emojiLookup.code().isEmpty() || emojiLookup.localRegisterCount() < 1) {
+        refuse("${renderer.type}->${emojiLookup.name} has no register free for the extension's answer")
+    }
+
+    for (hook in listOf(PRISM_TYPEFACE, TEXT_VIEW, RESOURCE_FONT, EMOJI_TYPEFACE)) {
         if (classDefByOrNull(FONTS)?.methods?.any {
                 "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook &&
                     AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
@@ -173,7 +199,7 @@ internal fun BytecodePatchContext.findFontSites(): FontSites {
             refuse("the extension has no public static $hook")
         }
     }
-    return FontSites(writes, init, at, call.registerC, getFont)
+    return FontSites(writes, init, at, call.registerC, getFont, emojiLookup)
 }
 
 /**
@@ -182,7 +208,7 @@ internal fun BytecodePatchContext.findFontSites(): FontSites {
  * method goes in first, so the earlier ones keep their places. Then Fonts.textView gets each
  * IgTextView right after Instagram sets it up. The range form takes any register. Last,
  * ResourcesCompat.getFont answers the extension's Typeface when there is one, and loads the
- * resource as before when it answers null.
+ * resource as before when it answers null. Instagram's emoji lookup does the same with the emoji.
  */
 internal fun BytecodePatchContext.swapFonts() {
     val found = findFontSites()
@@ -212,6 +238,17 @@ internal fun BytecodePatchContext.swapFonts() {
             return-object v0
         """,
         ExternalLabel("resource", getFont.getInstruction(0)),
+    )
+    val lookup = mutable(found.emojiLookup)
+    lookup.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { p1 }, $EMOJI_TYPEFACE
+            move-result-object v0
+            if-eqz v0, :instagram
+            return-object v0
+        """,
+        ExternalLabel("instagram", lookup.getInstruction(0)),
     )
 }
 
