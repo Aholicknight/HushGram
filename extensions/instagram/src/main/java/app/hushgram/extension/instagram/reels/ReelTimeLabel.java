@@ -425,7 +425,7 @@ final class ReelTimeLabel {
                 state.originalThumb = bar.getThumb();
                 state.originalThumbOffset = bar.getThumbOffset();
             }
-            GradientDrawable thumb = new GradientDrawable();
+            GradientDrawable thumb = new Thumb();
             thumb.setShape(GradientDrawable.OVAL);
             thumb.setColor(Color.WHITE);
             // Instagram's DM thumb is a plain white circle; the others keep a thin outline for light videos.
@@ -640,6 +640,11 @@ final class ReelTimeLabel {
             return easeFrom + (easeTo - easeFrom) * ((now - easeStart) / (float) easeLength);
         }
 
+        /** How far the drawn line is behind the level at [now], as a share of the bar: 0 once it's there. */
+        float behind(long now) {
+            return (shownLevel(now) - easeTo) / 10000f;
+        }
+
         @Override
         protected boolean onLevelChange(int level) {
             if (!progress) return false;
@@ -673,6 +678,44 @@ final class ReelTimeLabel {
         @Override
         public int getOpacity() {
             return PixelFormat.TRANSLUCENT;
+        }
+    }
+
+    /**
+     * The handle, drawn where the eased progress line ends (#10). Android places it at Instagram's level,
+     * which comes in steps, so on the S22 it hid the line's end and still jumped about ten times a second.
+     * It draws itself back by as much as the line is behind, so the two slide along together. With
+     * Instagram's own track there's no {@link Pill} and it draws where Android put it.
+     */
+    static final class Thumb extends GradientDrawable {
+        @Override
+        public void draw(Canvas canvas) {
+            float shift = shift();
+            if (shift == 0f) {
+                super.draw(canvas);
+                return;
+            }
+            int saved = canvas.save();
+            canvas.translate(shift, 0f);
+            super.draw(canvas);
+            canvas.restoreToCount(saved);
+        }
+
+        /** Pixels from Android's place to the eased line's end: back toward the start, or 0. */
+        float shift() {
+            if (!(getCallback() instanceof SeekBar)) return 0f;
+            SeekBar bar = (SeekBar) getCallback();
+            Drawable track = bar.getProgressDrawable();
+            if (!(track instanceof LayerDrawable)) return 0f;
+            Drawable line = ((LayerDrawable) track).findDrawableByLayerId(android.R.id.progress);
+            if (!(line instanceof Pill)) return 0f;
+            float behind = ((Pill) line).behind(SystemClock.uptimeMillis());
+            if (behind == 0f) return 0f;
+            // AbsSeekBar moves the handle across the track less its width, plus the offset on each side.
+            int room = bar.getWidth() - bar.getPaddingLeft() - bar.getPaddingRight()
+                    - getIntrinsicWidth() + 2 * bar.getThumbOffset();
+            float shift = behind * room;
+            return bar.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL ? -shift : shift;
         }
     }
 
