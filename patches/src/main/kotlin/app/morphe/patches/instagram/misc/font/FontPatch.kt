@@ -5,15 +5,19 @@
 package app.morphe.patches.instagram.misc.font
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -33,6 +37,10 @@ private const val PATCH = "Font"
 internal const val FONTS = "$EXTENSION_PACKAGE/misc/Fonts;"
 internal const val PRISM_TYPEFACE = "$FONTS->prismTypeface(Landroid/graphics/Typeface;)Landroid/graphics/Typeface;"
 internal const val TEXT_VIEW = "$FONTS->textView(Landroid/widget/TextView;)V"
+internal const val RESOURCE_FONT = "$FONTS->resourceFont(Landroid/content/Context;I)Landroid/graphics/Typeface;"
+
+/** What AndroidX's ResourcesCompat says when a font resource won't load. No other class holds it. */
+internal const val FONT_RESOURCE_MARKER = "Font resource ID #0x"
 
 /** What Instagram's Prism font helper logs when a TextView won't take a text appearance. No other class holds it. */
 internal const val PRISM_MARKER = "IgdsPrismFontHelper_setTextAppearance_UnsupportedOperationException"
@@ -55,6 +63,11 @@ private const val CONTEXT = "Landroid/content/Context;"
  * before it's kept, and it answers the chosen font at the same weight and slant. Each IgTextView,
  * Instagram's own TextView, also goes to the extension right after Instagram sets it up, so text
  * outside Prism takes the chosen font too.
+ *
+ * Compose text, a profile's bio on 451 among it (#166), loads Prism Sans by itself, from the font
+ * resources through AndroidX's ResourcesCompat.getFont(Context, int). The extension answers that
+ * call first, with the chosen font for a Prism Sans resource and nothing for any other, which
+ * then loads as before.
  */
 @Suppress("unused")
 val fontPatch = bytecodePatch(
@@ -80,7 +93,13 @@ private fun refuse(why: String): Nothing = throw PatchException("$PATCH: $why")
 internal class PrismWrite(val method: Method, val at: Int, val register: Int)
 
 /** Every method the patch changes, found and checked before anything changes. */
-internal class FontSites(val writes: List<PrismWrite>, val textViewInit: Method, val initializeAt: Int, val view: Int)
+internal class FontSites(
+    val writes: List<PrismWrite>,
+    val textViewInit: Method,
+    val initializeAt: Int,
+    val view: Int,
+    val getFont: Method,
+)
 
 /**
  * Finds the helper and IgTextView's set-up and checks the extension.
@@ -93,6 +112,9 @@ internal class FontSites(val writes: List<PrismWrite>, val textViewInit: Method,
  * IgTextView's set-up is the one call in [IG_TEXT_VIEW] to [INITIALIZE], from an instance method,
  * with an instruction after it that nothing jumps to, so whatever runs next has the view in the
  * register the call was given.
+ *
+ * ResourcesCompat is the one class holding [FONT_RESOURCE_MARKER], and getFont(Context, int) its one
+ * static (Context, int) Typeface method. It needs a register of its own for the extension's answer.
  */
 internal fun BytecodePatchContext.findFontSites(): FontSites {
     val helpers = classesHolding(PRISM_MARKER)
@@ -130,7 +152,19 @@ internal fun BytecodePatchContext.findFontSites(): FontSites {
         refuse("$where has no instruction after $INITIALIZE that only it leads to")
     }
 
-    for (hook in listOf(PRISM_TYPEFACE, TEXT_VIEW)) {
+    val compats = classesHolding(FONT_RESOURCE_MARKER)
+    val compat = compats.singleOrNull() ?: refuse("expected one class holding \"$FONT_RESOURCE_MARKER\", found ${compats.size}")
+    val getters = compat.methods.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == TYPEFACE &&
+            it.parameterTypes.map(Any::toString) == listOf(CONTEXT, "I")
+    }
+    val getFont = getters.singleOrNull()
+        ?: refuse("expected one static (Context, int) Typeface in ${compat.type}, found ${getters.size}")
+    if (getFont.code().isEmpty() || getFont.localRegisterCount() < 1) {
+        refuse("${compat.type}->${getFont.name} has no register free for the extension's answer")
+    }
+
+    for (hook in listOf(PRISM_TYPEFACE, TEXT_VIEW, RESOURCE_FONT)) {
         if (classDefByOrNull(FONTS)?.methods?.any {
                 "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook &&
                     AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
@@ -139,14 +173,16 @@ internal fun BytecodePatchContext.findFontSites(): FontSites {
             refuse("the extension has no public static $hook")
         }
     }
-    return FontSites(writes, init, at, call.registerC)
+    return FontSites(writes, init, at, call.registerC, getFont)
 }
 
 /**
  * Each Typeface the helper keeps goes through Fonts.prismTypeface first, at the write's own label,
  * since the helper's empty path jumps straight to the write with null. The latest write in each
  * method goes in first, so the earlier ones keep their places. Then Fonts.textView gets each
- * IgTextView right after Instagram sets it up. The range form takes any register.
+ * IgTextView right after Instagram sets it up. The range form takes any register. Last,
+ * ResourcesCompat.getFont answers the extension's Typeface when there is one, and loads the
+ * resource as before when it answers null.
  */
 internal fun BytecodePatchContext.swapFonts() {
     val found = findFontSites()
@@ -165,6 +201,17 @@ internal fun BytecodePatchContext.swapFonts() {
     mutable(found.textViewInit).addInstructions(
         found.initializeAt + 1,
         "invoke-static/range { v${found.view} .. v${found.view} }, $TEXT_VIEW",
+    )
+    val getFont = mutable(found.getFont)
+    getFont.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { p0, p1 }, $RESOURCE_FONT
+            move-result-object v0
+            if-eqz v0, :resource
+            return-object v0
+        """,
+        ExternalLabel("resource", getFont.getInstruction(0)),
     )
 }
 

@@ -49,31 +49,36 @@ class FontHookTest {
             .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$PRISM_TYPEFACE is not in the extension: $declared", PRISM_TYPEFACE in declared)
         assertTrue("$TEXT_VIEW is not in the extension: $declared", TEXT_VIEW in declared)
+        assertTrue("$RESOURCE_FONT is not in the extension: $declared", RESOURCE_FONT in declared)
     }
 
     @Test
     fun everyKeptTypefaceAndEveryTextViewGoThroughTheExtension() {
-        val context = PatchContexts.of(listOf(helper(), textView(), extension()))
+        val context = PatchContexts.of(listOf(helper(), textView(), compat(), extension()))
         val found = context.findFontSites()
         assertEquals(6, found.writes.size)
         context.swapFonts()
 
         assertWritesSwapped("stand-in", context.mutableClassDefBy(HELPER), 6)
         assertTextViewHandedOn("stand-in", context.mutableClassDefBy(IG_TEXT_VIEW).methods.toList())
+        assertGetFontAsksFirst("stand-in", context.mutableClassDefBy(COMPAT).methods.single { it.name == "getFont" })
     }
 
     @Test
     fun anythingItCantFindExactlyFailsThePatch() {
         for ((case, classes) in listOf(
-            "no helper" to listOf(textView(), extension()),
-            "two helpers" to listOf(helper(), helper(type = "Lfixture/OtherPrism;"), textView(), extension()),
-            "two weights" to listOf(helper(fields = 2), textView(), extension()),
-            "a weight its getter never loads" to listOf(helper(getters = 2), textView(), extension()),
-            "a weight written a third time" to listOf(helper(extraWrite = true), textView(), extension()),
-            "no IgTextView" to listOf(helper(), extension()),
-            "an IgTextView set up twice" to listOf(helper(), textView(calls = 2), extension()),
-            "a jump past the set-up" to listOf(helper(), textView(jumpAfter = true), extension()),
-            "no hook in the extension" to listOf(helper(), textView()),
+            "no helper" to listOf(textView(), compat(), extension()),
+            "two helpers" to listOf(helper(), helper(type = "Lfixture/OtherPrism;"), textView(), compat(), extension()),
+            "two weights" to listOf(helper(fields = 2), textView(), compat(), extension()),
+            "a weight its getter never loads" to listOf(helper(getters = 2), textView(), compat(), extension()),
+            "a weight written a third time" to listOf(helper(extraWrite = true), textView(), compat(), extension()),
+            "no IgTextView" to listOf(helper(), compat(), extension()),
+            "an IgTextView set up twice" to listOf(helper(), textView(calls = 2), compat(), extension()),
+            "a jump past the set-up" to listOf(helper(), textView(jumpAfter = true), compat(), extension()),
+            "no ResourcesCompat" to listOf(helper(), textView(), extension()),
+            "two font getters" to listOf(helper(), textView(), compat(getters = 2), extension()),
+            "a font getter with no register free" to listOf(helper(), textView(), compat(registers = 2), extension()),
+            "no hook in the extension" to listOf(helper(), textView(), compat()),
         )) {
             val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).findFontSites() }
             assertTrue("$case: ${failure.message}", failure.message!!.startsWith("Font:"))
@@ -84,7 +89,7 @@ class FontHookTest {
     @Test
     fun aRefusalChangesNothing() {
         val stub = helper()
-        val context = PatchContexts.of(listOf(stub, textView(calls = 2), extension()))
+        val context = PatchContexts.of(listOf(stub, textView(calls = 2), compat(), extension()))
         val before = stub.methods.associate { it.name to it.code().map { instruction -> instruction.opcode } }
         assertThrows(PatchException::class.java) { context.swapFonts() }
         assertEquals(before, context.classDefBy(HELPER).methods.associate { it.name to it.code().map { instruction -> instruction.opcode } })
@@ -125,7 +130,9 @@ class FontHookTest {
         assertEquals("$label: classes holding the marker", 1, holders.size)
         val views = FixtureDex.classes(bundle, setOf(IG_TEXT_VIEW)).values
         assertEquals("$label: IgTextView", 1, views.size)
-        val context = PatchContexts.of((holders + views).distinctBy { it.type } + extension())
+        val compats = FixtureDex.classesHolding(bundle, FONT_RESOURCE_MARKER)
+        assertEquals("$label: classes holding the font resource marker", 1, compats.size)
+        val context = PatchContexts.of((holders + views + compats).distinctBy { it.type } + extension())
 
         val found = context.findFontSites()
         assertEquals("$label: writes", 6, found.writes.size)
@@ -154,6 +161,31 @@ class FontHookTest {
             }
         }
         assertTextViewHandedOn(label, context.mutableClassDefBy(IG_TEXT_VIEW).methods.toList())
+        val getFont = found.getFont
+        assertGetFontAsksFirst(label, context.mutableClassDefBy(getFont.definingClass).methods.single {
+            it.name == getFont.name && it.parameterTypes.map(Any::toString) == listOf(CONTEXT, "I")
+        })
+    }
+
+    /**
+     * ResourcesCompat.getFont hands its Context and resource id to the extension first, answers what
+     * comes back when it isn't null, and otherwise jumps to what it did before.
+     */
+    private fun assertGetFontAsksFirst(what: String, getFont: MutableMethod) {
+        val code = getFont.code()
+        val parameters = getFont.implementation!!.registerCount - 2
+        val ask = code[0]
+        assertEquals("$what: the extension is asked first", Opcode.INVOKE_STATIC, ask.opcode)
+        assertEquals("$what: the hook", RESOURCE_FONT, (ask as ReferenceInstruction).reference.toString())
+        assertEquals("$what: handed the Context", parameters, (ask as FiveRegisterInstruction).registerC)
+        assertEquals("$what: and the id", parameters + 1, ask.registerD)
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT_OBJECT, code[1].opcode)
+        val answer = (code[1] as OneRegisterInstruction).registerA
+        assertEquals("$what: null goes on", Opcode.IF_EQZ, code[2].opcode)
+        assertEquals("$what: to what getFont did before", 4, (code[2] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$what: a font is answered", Opcode.RETURN_OBJECT, code[3].opcode)
+        assertEquals("$what: the extension's", answer, (code[3] as OneRegisterInstruction).registerA)
+        assertTrue("$what: the answer's register is no parameter", answer < parameters)
     }
 
     /** [count] writes of a Typeface field that can change, each right after the hook on its own register, none jumped past. */
@@ -215,7 +247,44 @@ class FontHookTest {
         const val CONTEXT = "Landroid/content/Context;"
         val WEIGHTS = listOf("A00", "A01", "A02")
 
+        const val COMPAT = "Lfixture/ResourcesCompat;"
+
         fun extension(): ClassDef = ExtensionDex.classDef(FONTS)
+
+        /**
+         * A stand-in for AndroidX's ResourcesCompat: the marker in its loader, and [getters] static
+         * (Context, int) Typeface getters with [registers] registers, two of them the parameters.
+         */
+        fun compat(getters: Int = 1, registers: Int = 8): ClassDef {
+            val flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+            val methods = mutableListOf(
+                method(
+                    COMPAT, "loadFont", listOf(CONTEXT, "I"), "V", flags, 3,
+                    """
+                        const-string v0, "$FONT_RESOURCE_MARKER"
+                        return-void
+                    """,
+                ),
+            )
+            repeat(getters) { i ->
+                methods += method(
+                    COMPAT, if (i == 0) "getFont" else "getFont$i", listOf(CONTEXT, "I"), TYPEFACE, flags, registers,
+                    if (registers > 2) {
+                        """
+                            move-object v1, p0
+                            const/4 v0, 0x0
+                            return-object v0
+                        """
+                    } else {
+                        """
+                            const/4 p0, 0x0
+                            return-object p0
+                        """
+                    },
+                )
+            }
+            return ImmutableClassDef(COMPAT, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, methods)
+        }
 
         /**
          * A stand-in shaped like 451's helper: it holds the marker, keeps [fields] weights in

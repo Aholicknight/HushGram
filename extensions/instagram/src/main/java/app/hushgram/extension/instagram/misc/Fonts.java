@@ -17,8 +17,11 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -84,7 +87,7 @@ public final class Fonts {
     public static Typeface prismTypeface(Typeface loaded) {
         try {
             HookStatus.invoked(FamilyNames.FONT);
-            if (loaded == null || !Utils.settingsReady()) return loaded;
+            if (loaded == null || !Utils.settingsReady() || OURS.contains(loaded)) return loaded;
             Typeface base = chosen();
             if (base == null) return loaded;
             Typeface swapped = styled(base, loaded);
@@ -95,6 +98,76 @@ public final class Fonts {
             return loaded;
         }
     }
+
+    /**
+     * Injected first in AndroidX's ResourcesCompat.getFont(Context, int), which Compose text (a
+     * profile's bio on 451, #166) and Instagram's own font loader read Prism Sans through. Answers
+     * the chosen font at the weight of the Prism Sans resource [id] names, or null for any other
+     * font, with Instagram's font chosen, or before the settings are read, and the resource then
+     * loads as before. Never throws.
+     */
+    @Nullable
+    public static Typeface resourceFont(Context context, int id) {
+        try {
+            HookStatus.invoked(FamilyNames.FONT);
+            if (context == null || !Utils.settingsReady()) return null;
+            Typeface base = chosen();
+            if (base == null) return null;
+            int weight = prismWeight(context, id);
+            if (weight <= 0) return null;
+            Typeface swapped = Typeface.create(base, weight, false);
+            OURS.add(swapped);
+            HookStatus.counted(FamilyNames.FONT, counted());
+            return swapped;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FONT, "font resource", failure);
+            return null;
+        }
+    }
+
+    /** Each font resource looked at, by id: its Prism Sans weight, or 0 for a font that isn't Prism Sans. */
+    static final Map<Integer, Integer> WEIGHTS = new ConcurrentHashMap<>();
+
+    /** The weight of the Prism Sans file or family [id] names, or 0 when it names another font. */
+    static int prismWeight(Context context, int id) {
+        Integer known = WEIGHTS.get(id);
+        if (known != null) return known;
+        String name;
+        try {
+            name = context.getResources().getResourceEntryName(id);
+        } catch (Exception notFound) {
+            name = null;
+        }
+        int weight = prismWeight(name);
+        WEIGHTS.put(id, weight);
+        return weight;
+    }
+
+    /**
+     * The weight a font resource named [name] draws Prism Sans in: Instagram keeps its files as
+     * IGUIBetav9_Regular, _SemiBold and _Bold, and the three as the family prism_sans. 0 for any other.
+     */
+    static int prismWeight(@Nullable String name) {
+        if (name == null) return 0;
+        if (name.equals(PRISM_FAMILY)) return REGULAR;
+        if (!name.startsWith(PRISM_FILE)) return 0;
+        switch (name.substring(PRISM_FILE.length()).toLowerCase(Locale.ROOT)) {
+            case "thin": return 100;
+            case "extralight": return 200;
+            case "light": return 300;
+            case "regular": return REGULAR;
+            case "medium": return 500;
+            case "semibold": return 600;
+            case "bold": return 700;
+            case "extrabold": return 800;
+            case "black": return 900;
+            default: return 0;
+        }
+    }
+
+    /** The names Instagram gives Prism Sans' font files (with the weight after) and its family. */
+    static final String PRISM_FILE = "IGUIBetav9_";
+    static final String PRISM_FAMILY = "prism_sans";
 
     /**
      * Injected right after IgTextView's set-up. Sets [view]'s Typeface to the chosen font at the
@@ -220,6 +293,7 @@ public final class Fonts {
     static void resetForTests() {
         chosen = UNREAD;
         OURS.clear();
+        WEIGHTS.clear();
         loader = file -> new Typeface.Builder(file).build();
     }
 }

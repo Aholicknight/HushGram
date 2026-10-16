@@ -169,6 +169,55 @@ public class FontsTest {
         assertSame(Typeface.create(Typeface.DEFAULT, 700, false), Fonts.prismTypeface(bold));
     }
 
+    /** The weight each of Instagram's font resources draws Prism Sans in, and 0 for every font that isn't it. */
+    @Test
+    public void prismSansIsKnownByItsResourceNames() {
+        assertEquals(400, Fonts.prismWeight("IGUIBetav9_Regular"));
+        assertEquals(600, Fonts.prismWeight("IGUIBetav9_SemiBold"));
+        assertEquals(700, Fonts.prismWeight("IGUIBetav9_Bold"));
+        assertEquals("the family of the three", 400, Fonts.prismWeight("prism_sans"));
+        for (String other : new String[] {"Optimistic_Display_A_Bd", "bcn_icon_font", "ig_logo_font", "instagram_signature",
+                "roboto_medium_numbers", "IGUIBetav9_Condensed", "IGUIBetav9_", "prism_sans_mono", ""}) {
+            assertEquals(other, 0, Fonts.prismWeight(other));
+        }
+        assertEquals(0, Fonts.prismWeight((String) null));
+    }
+
+    /**
+     * #166: Compose text (a profile's bio on 451) loads Prism Sans from the font resources, so that
+     * load answers the chosen font at the resource's weight. Any other font resource, Instagram's
+     * font chosen, or Pause, and the resource loads as before.
+     */
+    @Test
+    public void prismSansFromTheFontResourcesTakesTheChosenFont() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        int bold = 0x7f090003;
+        Fonts.WEIGHTS.put(bold, 700);
+        assertNull("Instagram's font", Fonts.resourceFont(context, bold));
+
+        Settings.FONT.save(FontChoice.SYSTEM);
+        Fonts.resetForTests();
+        Fonts.WEIGHTS.put(bold, 700);
+        Typeface swapped = Fonts.resourceFont(context, bold);
+        assertSame(Typeface.create(Typeface.DEFAULT, 700, false), swapped);
+        assertSame("Instagram's own loader hands it on unchanged", swapped, Fonts.prismTypeface(swapped));
+        assertNull("not a font Instagram draws its text in", Fonts.resourceFont(context, android.R.string.ok));
+        assertEquals("looked up once", Integer.valueOf(0), Fonts.WEIGHTS.get(android.R.string.ok));
+        assertNull("no such resource", Fonts.resourceFont(context, 0x7f09ffff));
+
+        // Fonts are read once a process, so Pause shows from the next start.
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        Fonts.resetForTests();
+        Fonts.WEIGHTS.put(bold, 700);
+        assertNull("paused", Fonts.resourceFont(context, bold));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertNull(Fonts.resourceFont(null, bold));
+        assertEquals(List.of(FamilyNames.FONT + ": invoked 7, 0 found, 0 missing. Counted: " + Fonts.PHONE + " 1"),
+                HookStatus.report());
+    }
+
     /** A font file is copied in once it loads, and anything else keeps the font kept before. */
     @Test
     public void onlyAFontThatLoadsIsKept() throws Exception {

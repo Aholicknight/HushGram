@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram - Font:** The bio under a profile's name takes the font you picked too. Instagram draws it with its newer text system, which loaded its own font and skipped the swap, and other text drawn that way follows now as well. Reported in #166.
 * **Instagram - Glass tab bar:** Once Hide the tab bar on Reels slides the pill away, the reel runs all the way down to the bottom of the screen. It used to stop where the pill had been and leave a black band under it. The reel makes room again as soon as the pill comes back. Reported in #170.
 * **Instagram - Hide the Reels tab:** New switch under Tab bar, Hide Messages on Home's header, off by default. It's for accounts that still have Instagram's Messages button at the top of Home and turned on Show the Messages tab, which leaves Messages in two places. Asked for in #210.
 * **Instagram - Clean up Reels:** Burn-in guard dims a reel's seek bar now, and the time HushGram shows next to it fades along with it. The Not interested and Interested buttons under some reels fade too. Reported in #162.
