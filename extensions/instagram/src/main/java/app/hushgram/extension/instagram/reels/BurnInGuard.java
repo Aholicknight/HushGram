@@ -73,7 +73,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  *
  * <p>No layout listener runs for nothing: with the choice off an activity gets only a window focus
  * listener, which hears the choice turned on once the settings close. While it's on, a layout
- * (a new reel, another screen) asks for a look at most every {@link #LOOK_MS}.
+ * (a new reel, another screen) asks for a look at most every {@link #LOOK_MS}, and while the controls
+ * are dimmed a look comes every {@link #KEEP_MS} to dim what Instagram brought back on its own.
  */
 public final class BurnInGuard {
     /** The share of Instagram's own opacity the controls dim to. */
@@ -83,6 +84,12 @@ public final class BurnInGuard {
     static final float STEP_DP = 2f;
     /** The most often a layout asks for a look. */
     static final long LOOK_MS = 250L;
+    /**
+     * How often a pass looks again while the controls are dimmed: Instagram puts a control's alpha
+     * back on its own at times, with no layout to say so (the button column after a tap that pauses or
+     * mutes the reel, or as a reel starts over, seen on 451). A look that finds nothing changed writes nothing.
+     */
+    static final long KEEP_MS = 1_000L;
     /** The most views looked at in one search, so a strange tree can't make a long one. */
     static final int MAX_VIEWS = 4000;
 
@@ -283,7 +290,8 @@ public final class BurnInGuard {
             else undim();
             boolean shifting = on && mode == BurnInMode.DIM_AND_SHIFT;
             place(activity, shifting, now);
-            schedule(Math.min(on && !dim && !fingerDown ? touchedAt + wait : Long.MAX_VALUE,
+            long next = !on || fingerDown ? Long.MAX_VALUE : dim ? now + KEEP_MS : touchedAt + wait;
+            schedule(Math.min(next,
                     shifting ? (now / SHIFT_EVERY_MS + 1) * SHIFT_EVERY_MS : Long.MAX_VALUE));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard", failure);

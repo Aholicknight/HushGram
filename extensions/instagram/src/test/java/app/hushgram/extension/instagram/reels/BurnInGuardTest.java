@@ -555,6 +555,22 @@ public class BurnInGuardTest {
         assertDimmed("lifted");
     }
 
+    /**
+     * 451 puts the button column's alpha back by itself after a tap that pauses or mutes the reel,
+     * with no layout (#162, S22 2026-10-16): within a second it's dimmed again, from Instagram's alpha.
+     */
+    @Test public void whatInstagramBringsBackWhileDimmedIsDimmedAgain() {
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        after(IDLE + 100);
+        assertDimmed("idle");
+        overlay.setAlpha(1f);
+        after(BurnInGuard.KEEP_MS + 10);
+        assertDimmed("a second later");
+        tap();
+        assertUp("a touch still brings it back to Instagram's own");
+    }
+
     @Test public void tenSecondsWaitsTenSeconds() {
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
         Settings.BURN_IN_WAIT.save(BurnInWait.TEN_SECONDS);
