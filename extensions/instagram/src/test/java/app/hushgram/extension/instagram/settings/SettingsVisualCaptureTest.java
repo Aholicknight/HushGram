@@ -85,9 +85,9 @@ public class SettingsVisualCaptureTest {
     /** Deterministic development preview metadata. These fixtures never represent an installed build. */
     @Implements(value = Utils.class, isInAndroidSdk = false)
     public static class CaptureMetadata {
-        @Implementation public static String getPatchesReleaseVersion() { return "0.0.11"; }
-        @Implementation public static String getAppVersionName() { return "450.0.0.50.77"; }
-        @Implementation public static long getAppVersionCode() { return 385611438L; }
+        @Implementation public static String getPatchesReleaseVersion() { return "0.0.12"; }
+        @Implementation public static String getAppVersionName() { return "451.0.0.53.80"; }
+        @Implementation public static long getAppVersionCode() { return 385713073L; }
         @Implementation public static String getSourceBuildIdentity() { return "Development preview"; }
     }
 
