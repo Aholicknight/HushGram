@@ -110,6 +110,9 @@ public final class ReelDownload {
     static final String REEL_OPTION = "HUSHGRAM_DOWNLOAD_REEL";
     static final String COVER_OPTION = "HUSHGRAM_DOWNLOAD_COVER";
 
+    /** The name of Download audio's option, which a reel with a manifest gets with its switch on (#216). */
+    static final String AUDIO_OPTION = "HUSHGRAM_DOWNLOAD_AUDIO";
+
     /**
      * The name of the option Open in another player puts after Download on a reel with a video
      * file, made the same way as the two above.
@@ -121,11 +124,15 @@ public final class ReelDownload {
 
     /** Every row of ours, by name. */
     private static final List<String> OUR_ROWS = Arrays.asList(VIDEO_OPTION, PHOTO_OPTION, REEL_OPTION, COVER_OPTION,
-            PLAYER_OPTION);
+            AUDIO_OPTION, PLAYER_OPTION);
 
     /** What the menu found for a reel's cover, and what a tap on Download cover started. */
     static final String HAS_COVER = "has cover";
     static final String SAVED_COVER = "saved cover";
+
+    /** The same for a reel's sound and Download audio. */
+    static final String HAS_AUDIO = "has audio";
+    static final String SAVED_AUDIO = "saved audio";
 
     /**
      * The entry the patch calls, handed Instagram's answer as an int, non-zero for yes, so the hook
@@ -290,20 +297,23 @@ public final class ReelDownload {
     }
 
     /**
-     * Download, then Download cover and Open in another player, in Download's place for [media], a
-     * reel with a video, and whether they went in. Download cover needs its switch and a picture
-     * the reel lists, and Open in another player its switch and a video file a player can open. With
-     * neither, the reel keeps Instagram's one row. Once Download is in, the answer is yes even if a
+     * Download, then Download cover, Download audio and Open in another player, in Download's place
+     * for [media], a reel with a video, and whether they went in. Download cover needs its switch
+     * and a picture the reel lists, Download audio its switch and a manifest, whose sound is a track
+     * of its own, and Open in another player its switch and a video file a player can open. With
+     * none, the reel keeps Instagram's one row. Once Download is in, the answer is yes even if a
      * row after it isn't, so Instagram's own row doesn't come as a second Download.
      */
     private static boolean videoRows(Object menu, Object media, Object context, Object sheet, Object rowState) {
         boolean cover = coverOn() && !StoryDownload.pictures(media).isEmpty();
+        boolean audio = audioOn() && InstagramMedia.dashManifest(media) != null;
         boolean player = ExternalPlayer.offers(media);
-        if (!cover && !player) return false;
+        if (!cover && !audio && !player) return false;
         Object reel = InstagramMedia.reelOption(REEL_OPTION);
         Object coverRow = cover ? InstagramMedia.reelOption(COVER_OPTION) : null;
+        Object audioRow = audio ? InstagramMedia.reelOption(AUDIO_OPTION) : null;
         Object playerRow = player ? InstagramMedia.reelOption(PLAYER_OPTION) : null;
-        if (reel == null || coverRow == null && playerRow == null) return false;
+        if (reel == null || coverRow == null && audioRow == null && playerRow == null) return false;
         if (!InstagramMedia.addReelRow(menu, context, reel, sheet, rowState,
                 StoryDownload.label(StoryDownload.Choice.STORY))) {
             return false;
@@ -314,6 +324,14 @@ public final class ReelDownload {
                 InstagramMedia.addReelRow(menu, context, coverRow, sheet, rowState, L10n.t(Utils.getContext(), "Download cover"));
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu cover row", t);
+            }
+        }
+        if (audioRow != null) {
+            HookStatus.counted(FamilyNames.REEL_DOWNLOAD, HAS_AUDIO);
+            try {
+                InstagramMedia.addReelRow(menu, context, audioRow, sheet, rowState, L10n.t(Utils.getContext(), "Download audio"));
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu audio row", t);
             }
         }
         if (playerRow != null) playerRow(menu, context, playerRow, sheet, rowState);
@@ -392,6 +410,7 @@ public final class ReelDownload {
         boolean started = VIDEO_OPTION.equals(row) ? saveAsVideo(context, media)
             : PHOTO_OPTION.equals(row) ? savePhotos(context, media)
             : COVER_OPTION.equals(row) ? saveCover(context, media)
+            : AUDIO_OPTION.equals(row) ? saveAudio(context, media)
             : saveReel(context, media);
         if (!started) {
             Context application = context.getApplicationContext();
@@ -504,6 +523,22 @@ public final class ReelDownload {
     }
 
     /**
+     * Download audio on [media]: the best audio track its manifest lists, saved on its own as an
+     * audio file the way a voice message is (#216). A reel with no manifest, or one whose manifest
+     * has no audio track, a reel with no sound, saves nothing.
+     */
+    static boolean saveAudio(Context context, Object media) {
+        String manifest = InstagramMedia.dashManifest(media);
+        DashManifest.Track track = manifest == null ? null : DashManifest.bestAudio(DashManifest.parse(manifest));
+        Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "reel audio tapped: "
+                + (manifest == null ? "no manifest" : track == null ? "no audio track" : track.codecs + ", " + track.bandwidth + " b/s"));
+        if (track == null) return false;
+        boolean started = MediaSave.saveAudio(context, track.url, details(media));
+        if (started) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, SAVED_AUDIO);
+        return started;
+    }
+
+    /**
      * Download as video on a music carousel, [pages] of [media]: every page in order through the
      * batch Save all uses (#78). A page with a video of its own saves that file. A photo page is
      * built into a video with its own music, else the post's, the way a single photo with music is.
@@ -602,6 +637,15 @@ public final class ReelDownload {
             return Utils.settingsReady() && Settings.DOWNLOAD_REEL_COVER.get();
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel cover switch", t);
+            return false;
+        }
+    }
+
+    private static boolean audioOn() {
+        try {
+            return Utils.settingsReady() && Settings.DOWNLOAD_REEL_AUDIO.get();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel audio switch", t);
             return false;
         }
     }

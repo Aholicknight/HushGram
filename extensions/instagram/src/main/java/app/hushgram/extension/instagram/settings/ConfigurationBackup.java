@@ -114,6 +114,7 @@ public final class ConfigurationBackup {
         if (PatchFamily.FONT.inBuild()) settings.put(Settings.FONT.key, Settings.FONT);
         if (PatchFamily.REEL_DOWNLOAD.inBuild()) {
             settings.put(Settings.DOWNLOAD_REEL_COVER.key, Settings.DOWNLOAD_REEL_COVER);
+            settings.put(Settings.DOWNLOAD_REEL_AUDIO.key, Settings.DOWNLOAD_REEL_AUDIO);
             settings.put(Settings.REEL_DOWNLOAD_BUTTON.key, Settings.REEL_DOWNLOAD_BUTTON);
         }
         if (PatchFamily.REEL_POST_TIME.inBuild()) {

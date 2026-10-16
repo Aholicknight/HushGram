@@ -613,6 +613,7 @@ Turns the switches that keep what you do to yourself on or off in one go, like V
 View live anonymously	라이브 몰래보기
 Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.	한 번 보기나 다시 보기로 보낸 사진과 동영상이 채팅에 남아 다시 열 수 있습니다. 이미 불러온 항목을 갱신하려면 채팅을 다시 여세요.
 Adds Download cover under Download. It saves the still picture a reel shows before it plays, at its largest size.	다운로드 아래에 커버 다운로드를 추가합니다. 릴스가 재생되기 전에 보여 주는 정지 이미지를 가장 큰 크기로 저장합니다.
+Adds Download audio under Download. It saves the sound of the reel as an audio file.	다운로드 아래에 오디오 다운로드를 추가합니다. 릴스의 소리를 오디오 파일로 저장합니다.
 After 20 reels, swiping in Reels stops until Instagram has been in the background for 15 minutes. A reel you open from a message or a post still plays.	릴스 20개를 보면 Instagram이 15분 동안 백그라운드에 있을 때까지 릴스 스와이프가 멈춥니다. 메시지나 게시물에서 연 릴스는 계속 재생됩니다.
 Find the reel you came from	보던 릴스 찾기
 Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. Stop looking ends the search where it is.	릴스에서 크리에이터의 프로필을 연 다음 릴스 탭을 열면 그 릴스로 스크롤하고 잠깐 테두리를 표시합니다. 찾기 중지를 누르면 그 자리에서 찾기를 멈춥니다.
@@ -626,6 +627,7 @@ Clear the media cache	미디어 캐시 지우기
 Couldn't clear the saved copies. Try again.	저장된 사본을 삭제하지 못했습니다. 다시 시도하세요.
 Don't save recent searches	최근 검색 저장 안 함
 Download cover	커버 다운로드
+Download audio	오디오 다운로드
 Download on a reel, a feed post or a story opens the share sheet with its link, for a downloader app such as Seal. Save all and the other save rows still save here.	릴스, 피드 게시물, 스토리에서 다운로드를 누르면 링크와 함께 공유 시트가 열려 Seal 같은 다운로더 앱으로 보낼 수 있습니다. 모두 저장과 다른 저장 항목은 계속 여기에 저장합니다.
 Each save goes into a folder named for the account that posted it, inside the save folder. A save that doesn't know who posted stays in the save folder.	저장한 항목은 저장 폴더 안에서 게시한 계정 이름의 폴더로 들어갑니다. 게시자를 알 수 없는 항목은 저장 폴더에 그대로 있습니다.
 Folder per account	계정별 폴더

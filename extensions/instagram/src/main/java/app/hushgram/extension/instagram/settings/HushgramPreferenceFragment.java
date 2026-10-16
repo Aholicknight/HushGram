@@ -898,6 +898,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.DOWNLOAD_REEL_COVER, L10n.t("Download cover"),
                     L10n.t("Adds Download cover under Download. It saves the still picture a reel shows before it "
                             + "plays, at its largest size.")));
+            reels.add(toggle(context, Settings.DOWNLOAD_REEL_AUDIO, L10n.t("Download audio"),
+                    L10n.t("Adds Download audio under Download. It saves the sound of the reel as an audio file.")));
         }
         if (build.contains(PatchFamily.DOUBLE_TAP_LIKE)) {
             reels.add(toggle(context, Settings.TURN_OFF_DOUBLE_TAP_LIKE, L10n.t("Turn off double tap to like"),

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.net.Uri;
 import android.os.Looper;
 
 import java.net.InetAddress;
@@ -57,6 +58,7 @@ public class ReelDownloadTest {
         HookStatus.clear();
         Settings.DOWNLOAD_REELS.save(true);
         Settings.DOWNLOAD_REEL_COVER.resetToDefault();
+        Settings.DOWNLOAD_REEL_AUDIO.resetToDefault();
     }
 
     /** With the switch on, every reel gets the row, whatever Instagram and its flag say. */
@@ -204,7 +206,9 @@ public class ReelDownloadTest {
     }
 
     /** The two options a photo with music gets, by the names the extension gives them. */
-    private enum Ours { HUSHGRAM_DOWNLOAD_AS_VIDEO, HUSHGRAM_DOWNLOAD_AS_PHOTO, HUSHGRAM_DOWNLOAD_REEL, HUSHGRAM_DOWNLOAD_COVER }
+    private enum Ours {
+        HUSHGRAM_DOWNLOAD_AS_VIDEO, HUSHGRAM_DOWNLOAD_AS_PHOTO, HUSHGRAM_DOWNLOAD_REEL, HUSHGRAM_DOWNLOAD_COVER, HUSHGRAM_DOWNLOAD_AUDIO
+    }
 
     /** A photo the Reels viewer shows with music that has a track to fetch. */
     private static void photoWithMusic() {
@@ -315,6 +319,60 @@ public class ReelDownloadTest {
         Item.pictures = List.of(new MediaSave.Rendition(META + "1080.jpg", 1080, 1920, 0));
         assertFalse("the reel switch off", ReelDownload.rows(null, new Object(), null, null, null));
         assertTrue(Item.rows.isEmpty());
+    }
+
+    /** A reel's manifest with a picture track and a sound track, the way Instagram streams one. */
+    private static final String WITH_SOUND = "<MPD><Period><AdaptationSet mimeType=\"video/mp4\">"
+            + "<Representation codecs=\"avc1.64001f\" width=\"720\" height=\"1280\" bandwidth=\"900000\">"
+            + "<BaseURL>https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/video.mp4?oh=1&amp;oe=2</BaseURL></Representation>"
+            + "</AdaptationSet><AdaptationSet mimeType=\"audio/mp4\">"
+            + "<Representation codecs=\"mp4a.40.2\" bandwidth=\"128000\">"
+            + "<BaseURL>https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/sound.mp4?oh=1&amp;oe=2</BaseURL></Representation>"
+            + "</AdaptationSet></Period></MPD>";
+
+    /**
+     * With Download audio on, a reel with a manifest gets Download and Download audio in Download's
+     * place (#216). Off, or with video files and no manifest, there's no track of its own to save.
+     */
+    @Test
+    @Config(shadows = Item.class)
+    public void aReelWithAManifestGetsDownloadAudioWithItsSwitch() {
+        Item.manifest = WITH_SOUND;
+        assertFalse("Download audio starts off", Settings.DOWNLOAD_REEL_AUDIO.get());
+        assertFalse(ReelDownload.rows(null, new Object(), null, null, null));
+        assertTrue(Item.rows.isEmpty());
+
+        Settings.DOWNLOAD_REEL_AUDIO.save(true);
+        assertTrue(ReelDownload.rows(null, new Object(), null, null, null));
+        assertEquals(List.of("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_DOWNLOAD_AUDIO=Download audio"), Item.rows);
+        assertTrue(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("has audio 1"));
+
+        Item.rows.clear();
+        Item.manifest = null;
+        Item.videos = List.of(new MediaSave.Rendition(META + "720.mp4", 720, 1280, 0));
+        assertFalse("video files alone", ReelDownload.rows(null, new Object(), null, null, null));
+        assertTrue(Item.rows.isEmpty());
+    }
+
+    /** Download audio saves the manifest's sound track, and a manifest with no sound saves nothing and says so. */
+    @Test
+    @Config(shadows = Item.class)
+    public void downloadAudioSavesTheSoundTrack() {
+        Item.manifest = WITH_SOUND;
+        refuseEveryFetch();
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        HookStatus.clear();
+
+        assertTrue(ReelDownload.save(Ours.HUSHGRAM_DOWNLOAD_AUDIO, new Object(), activity));
+        assertTrue(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("saved audio 1"));
+        assertEquals("sound.mp4", Uri.parse(DashManifest.bestAudio(DashManifest.parse(WITH_SOUND)).url).getLastPathSegment());
+
+        ShadowToast.reset();
+        Item.manifest = WITH_SOUND.replaceAll("<AdaptationSet mimeType=\"audio/mp4\">.*?</AdaptationSet>", "");
+        assertTrue(ReelDownload.save(Ours.HUSHGRAM_DOWNLOAD_AUDIO, new Object(), activity));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Download failed", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        assertFalse(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("saved audio 2"));
     }
 
     /** Download cover saves the reel's picture, and our Download row saves its video. */

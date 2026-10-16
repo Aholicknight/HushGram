@@ -77,6 +77,7 @@ public class DownloadSettingsTest {
         Settings.POST_DETAILS.resetToDefault();
         Settings.DOWNLOAD_REELS.resetToDefault();
         Settings.DOWNLOAD_REEL_COVER.resetToDefault();
+        Settings.DOWNLOAD_REEL_AUDIO.resetToDefault();
         Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
@@ -155,6 +156,18 @@ public class DownloadSettingsTest {
             assertTrue(cover.isEnabled());
             assertEquals(java.util.Collections.singletonList(Settings.DOWNLOAD_REELS), PatchFamily.REEL_DOWNLOAD.switches);
             assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_REEL_COVER.key));
+
+            Preference audio = reels.findPreference(Settings.DOWNLOAD_REEL_AUDIO.key);
+            assertTrue("Download audio isn't in Reels", audio instanceof SwitchPreference);
+            assertEquals("Download audio", String.valueOf(audio.getTitle()));
+            assertFalse("Download audio starts off", ((SwitchPreference) audio).isChecked());
+            ((SwitchPreference) row).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse("Download audio waits for Download on reels", audio.isEnabled());
+            ((SwitchPreference) row).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(audio.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_REEL_AUDIO.key));
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);

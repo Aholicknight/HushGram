@@ -1310,6 +1310,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_reel_cover", FALSE, parent(DOWNLOAD_REELS));
 
     /**
+     * A reel that streams its sound as a track of its own gets Download audio under Download in
+     * its menu, saving that track as an audio file (#216). Starts off, so the menu stays as it was.
+     */
+    public static final BooleanSetting DOWNLOAD_REEL_AUDIO =
+            new BooleanSetting("hushgram_download_reel_audio", FALSE, parent(DOWNLOAD_REELS));
+
+    /**
      * A double tap on a post in the feed or on a reel doesn't like it, where the two switches under
      * it say so. Off to start. The posts and reels switches under it start on, so turning this one on
      * covers both until you pick.
