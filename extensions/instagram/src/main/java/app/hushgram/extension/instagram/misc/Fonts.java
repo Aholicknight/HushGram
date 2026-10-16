@@ -57,8 +57,9 @@ public final class Fonts {
     static final String PHONE = "Instagram's font swapped for the phone's";
     static final String PICKED = "Instagram's font swapped for the picked file";
 
-    /** What's counted for each emoji picture drawn in the picked file. */
+    /** What's counted for each emoji picture drawn in the picked file, and each one named for it. */
     static final String EMOJI = "Instagram's emoji pictures drawn in the picked file";
+    static final String EMOJI_NAMED = "Instagram's emoji pictures named for the picked file";
 
     /** The weight a TextView with no Typeface of its own draws in. */
     static final int REGULAR = 400;
@@ -74,6 +75,10 @@ public final class Fonts {
     /** The chosen font for this process, null for Instagram's own, or {@link #UNREAD} until read. */
     private static final Object UNREAD = new Object();
     private static volatile Object chosen = UNREAD;
+
+    /** The picked file's size and time when it was read for this process, null before or without one. */
+    @Nullable
+    private static volatile String fileMark;
 
     /** The Typefaces this class answered, so a view already in the chosen font is left alone. */
     private static final Set<Typeface> OURS = Collections.synchronizedSet(
@@ -148,6 +153,32 @@ public final class Fonts {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FONT, "emoji", failure);
             return instagrams;
+        }
+    }
+
+    /**
+     * Injected where Instagram names an emoji picture or a sheet of them, with the [name] it made:
+     * {@code emoji:/<version>-api<sdk>//<emoji>} or {@code emoji-sprite-sheet:/<...>//<count>//<emoji,...>}.
+     * Instagram keeps the pictures it draws, even across restarts, by the part of the name before the
+     * first "//", which says nothing of the font. With a font file picked, that part also carries the
+     * file's size and time, so emoji drawn before it was picked aren't shown in its place and picking
+     * another file draws them again. The rest, which Instagram reads to draw, stays. Answers [name] as
+     * it is with any other choice. Never throws.
+     */
+    public static String emojiName(String name) {
+        try {
+            HookStatus.invoked(FamilyNames.FONT);
+            if (name == null || !Utils.settingsReady() || Settings.FONT.get() != FontChoice.FILE) return name;
+            if (chosen() == null) return name;
+            String mark = fileMark;
+            if (mark == null) return name;
+            HookStatus.counted(FamilyNames.FONT, EMOJI_NAMED);
+            int end = name.indexOf("//");
+            if (end < 0) return name + "-hg" + mark;
+            return name.substring(0, end) + "-hg" + mark + name.substring(end);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FONT, "emoji name", failure);
+            return name;
         }
     }
 
@@ -258,7 +289,10 @@ public final class Fonts {
         File file = kept(context);
         if (!file.isFile()) return null;
         try {
-            return loader.load(file);
+            String mark = Long.toString(file.length(), 36) + "x" + Long.toString(file.lastModified(), 36);
+            Typeface loaded = loader.load(file);
+            if (loaded != null) fileMark = mark;
+            return loaded;
         } catch (Exception failure) {
             Logger.printInfo(() -> "Font: the kept file didn't load", failure);
             return null;
@@ -318,6 +352,7 @@ public final class Fonts {
     /** Takes back what this process read, for a test. */
     static void resetForTests() {
         chosen = UNREAD;
+        fileMark = null;
         OURS.clear();
         WEIGHTS.clear();
         loader = file -> new Typeface.Builder(file).build();

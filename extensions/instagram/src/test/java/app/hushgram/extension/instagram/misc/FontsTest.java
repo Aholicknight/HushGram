@@ -248,6 +248,55 @@ public class FontsTest {
                 HookStatus.report());
     }
 
+    /**
+     * #166: Instagram keeps each emoji picture it draws, across restarts, by the part of its name before
+     * the first "//". With a file picked, that part carries the file's size and time, so pictures drawn
+     * before it was picked, or in another file, aren't shown in its place, and the part Instagram reads to
+     * draw stays. Any other choice, a file that won't load, or Pause, and the name stays.
+     */
+    @Test
+    public void emojiNamesCarryThePickedFile() throws Exception {
+        String single = "emoji:/v13-api35//🔥";
+        String sheet = "emoji-sprite-sheet:/emoji-sprite-sheet-api35-1234-dpi-420//6//🙌,🔥";
+        assertEquals("Instagram's font", single, Fonts.emojiName(single));
+        Settings.FONT.save(FontChoice.SYSTEM);
+        Fonts.resetForTests();
+        assertEquals("the phone's font", sheet, Fonts.emojiName(sheet));
+
+        keep(TRUE_TYPE);
+        File kept = Fonts.kept(RuntimeEnvironment.getApplication());
+        assertTrue(kept.setLastModified(1_700_000_000_000L));
+        Settings.FONT.save(FontChoice.FILE);
+        Fonts.resetForTests();
+        Fonts.loader = file -> Typeface.SERIF;
+        String mark = "-hg" + Long.toString(kept.length(), 36) + "x" + Long.toString(kept.lastModified(), 36);
+        String named = Fonts.emojiName(single);
+        assertEquals("emoji:/v13-api35" + mark + "//🔥", named);
+        assertEquals("a sheet", "emoji-sprite-sheet:/emoji-sprite-sheet-api35-1234-dpi-420" + mark + "//6//🙌,🔥",
+                Fonts.emojiName(sheet));
+        assertEquals("a name with no // takes it at the end", "v13" + mark, Fonts.emojiName("v13"));
+
+        keep(new byte[] {0, 1, 0, 0, 9, 9, 9});
+        assertTrue(kept.setLastModified(1_800_000_000_000L));
+        assertEquals("the same for the life of the process, like the font", named, Fonts.emojiName(single));
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", single, Fonts.emojiName(single));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        Fonts.resetForTests();
+        Fonts.loader = file -> Typeface.SERIF;
+        String again = Fonts.emojiName(single);
+        assertTrue("another file after a restart: " + again, again.startsWith("emoji:/v13-api35-hg") && !again.equals(named));
+        Fonts.resetForTests();
+        Fonts.loader = file -> null;
+        assertEquals("a file that won't load", single, Fonts.emojiName(single));
+        assertNull(Fonts.emojiName(null));
+        assertEquals(List.of(FamilyNames.FONT + ": invoked 10, 0 found, 0 missing. Counted: " + Fonts.EMOJI_NAMED + " 5"),
+                HookStatus.report());
+    }
+
     /** A font file is copied in once it loads, and anything else keeps the font kept before. */
     @Test
     public void onlyAFontThatLoadsIsKept() throws Exception {
