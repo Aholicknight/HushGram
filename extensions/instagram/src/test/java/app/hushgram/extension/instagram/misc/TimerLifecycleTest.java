@@ -15,6 +15,7 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -247,15 +248,63 @@ public class TimerLifecycleTest {
     }
 
     /** Puts a Reels viewer over the list, down to the bar's top. */
-    private void showReels() {
+    private FrameLayout showReels() {
         Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
         synchronized (ids) {
             ids.put(GlassTabBar.REELS_ROOT, REELS_ID);
         }
         FrameLayout viewer = new FrameLayout(activity);
         viewer.setId(REELS_ID);
-        root.addView(viewer, 1, new FrameLayout.LayoutParams(1080, 1770));
+        root.addView(viewer, 1, new FrameLayout.LayoutParams(1080, ViewGroup.LayoutParams.MATCH_PARENT));
         layout();
+        return viewer;
+    }
+
+    private static int bottomMargin(View view) {
+        return ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).bottomMargin;
+    }
+
+    /**
+     * #170: a floating pill keeps the Reels viewer above it, and once the wait on Reels has slid it all the
+     * way off, the viewer runs down to the bottom again. Before, the viewer kept the pill's height as its
+     * margin and a black band sat where the pill had been. It stops above the pill again as soon as a
+     * touch brings it back.
+     */
+    @Test public void aPillTheWaitOnReelsSlidAwayGivesTheReelTheRoomBack() {
+        LinearLayout tabs = namedTabBar();
+        FrameLayout viewer = showReels();
+        Settings.GLASS_TAB_BAR.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_FLOAT.get());
+        Settings.GLASS_TAB_BAR_REELS_HIDE.save(GlassReelsHide.TWO_SECONDS);
+        GlassTabBar.apply(activity);
+        idle(500);
+        int pill = tabs.getLayoutParams().height;
+        assertTrue(pill > 0);
+        assertEquals("above the pill while it shows", pill, bottomMargin(viewer));
+        int[] at = new int[2];
+        tabs.getLocationOnScreen(at);
+        float x = at[0] + tabs.getWidth() / 2f, y = at[1] + tabs.getHeight() / 2f;
+
+        idle(2500);
+        assertTrue("the pill slid away", tabs.getTranslationY() > 50f);
+        idle(500);
+        assertEquals("the reel runs to the bottom", 0, bottomMargin(viewer));
+
+        // A tap where the pill sits brings it back.
+        long now = SystemClock.uptimeMillis();
+        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, x, y, 0);
+        MotionEvent up = MotionEvent.obtain(now, now + 40, MotionEvent.ACTION_UP, x, y, 0);
+        try {
+            activity.getWindow().getCallback().dispatchTouchEvent(down);
+            activity.getWindow().getCallback().dispatchTouchEvent(up);
+        } finally {
+            down.recycle();
+            up.recycle();
+        }
+        idle(500);
+        assertEquals("the pill is back", 0f, tabs.getTranslationY(), 0f);
+        assertEquals("and the reel stops above it again", pill, bottomMargin(viewer));
+        GlassTabBar.restoreAll();
     }
 
     /**

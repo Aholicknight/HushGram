@@ -166,12 +166,20 @@ public final class GlassTabBar {
      * Returns how many changed.
      */
     static int reelsAboveTheBar(View root, View bar, int id, int wanted, java.util.Map<View, Integer> given) {
-        return liftReels(root, bar, id, wanted, given, 0);
+        return liftReels(root, bar, id, wanted, given, null, 0);
     }
 
-    private static int liftReels(View view, View bar, int id, int wanted, java.util.Map<View, Integer> given, int depth) {
+    /** {@link #reelsAboveTheBar}, also putting every viewer it meets in [seen]. */
+    static int reelsAboveTheBar(View root, View bar, int id, int wanted, java.util.Map<View, Integer> given,
+            @Nullable java.util.Collection<View> seen) {
+        return liftReels(root, bar, id, wanted, given, seen, 0);
+    }
+
+    private static int liftReels(View view, View bar, int id, int wanted, java.util.Map<View, Integer> given,
+            @Nullable java.util.Collection<View> seen, int depth) {
         if (view == bar || depth > 60) return 0;
         if (view.getId() == id && id != 0) {
+            if (seen != null) seen.add(view);
             if (!(view.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return 0;
             ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
             Integer ours = given.get(view);
@@ -189,7 +197,7 @@ public final class GlassTabBar {
         if (!(view instanceof ViewGroup)) return 0;
         ViewGroup group = (ViewGroup) view;
         int changed = 0;
-        for (int i = 0; i < group.getChildCount(); i++) changed += liftReels(group.getChildAt(i), bar, id, wanted, given, depth + 1);
+        for (int i = 0; i < group.getChildCount(); i++) changed += liftReels(group.getChildAt(i), bar, id, wanted, given, seen, depth + 1);
         return changed;
     }
 
@@ -821,6 +829,10 @@ public final class GlassTabBar {
         /** Instagram's touch strip for the seek bar, found once: Instagram keeps one and moves it between reels. */
         @Nullable private WeakReference<View> stripRef;
         private long reelsLookedAt = Long.MIN_VALUE / 2;
+        /** The margin the last look gave the Reels viewers, or -1 before the first. */
+        private int reelsWanted = -1;
+        /** Reels viewers given their room back while the pill is away, so Instagram's touch strip still follows their seek bar. */
+        private final java.util.Set<View> lowered = java.util.Collections.newSetFromMap(new WeakHashMap<>());
         /** The stretch of the bar, in its own coordinates, under the Reels viewers kept above it, as of the last frame. */
         private int reelsLeft, reelsRight;
         private final Rect reelsRect = new Rect();
@@ -1238,21 +1250,35 @@ public final class GlassTabBar {
          * With the screens running behind a floating pill, each Reels viewer still stops at the bar's top, as
          * it does over Instagram's own bar ({@link #reelsAboveTheBar}), and the bar paints black under it, as
          * Instagram paints its bar on Reels. The views are walked for viewers at most every
-         * {@link #REELS_LOOK_MS}. While Instagram hides the bar, the viewers get the room back.
+         * {@link #REELS_LOOK_MS}. While Instagram hides the bar, or the pill has slid all the way off (Hide
+         * the tab bar on Reels, #170), the viewers get the room back, and they stop above it again as soon as
+         * it starts back. A change the wait held back is looked at once the wait is over, since a slide that
+         * has ended draws no more frames.
          */
         private void keepReelsAboveThePill(View holder, @Nullable ViewGroup.LayoutParams params, long now) {
-            if (params == null || params.height <= 0 || now - reelsLookedAt < REELS_LOOK_MS) return;
+            if (params == null || params.height <= 0) return;
+            boolean away = bar.getVisibility() != View.VISIBLE || (scrollHide != null && scrollHide.isOffScreen());
+            int wanted = away ? 0 : params.height;
+            if (now - reelsLookedAt < REELS_LOOK_MS) {
+                if (wanted != reelsWanted) bar.postInvalidateDelayed(REELS_LOOK_MS);
+                return;
+            }
             reelsLookedAt = now;
-            int wanted = bar.getVisibility() == View.VISIBLE ? params.height : 0;
-            if (reelsAboveTheBar(holder, bar, id(holder.getContext(), REELS_ROOT), wanted, lifted) > 0) {
+            reelsWanted = wanted;
+            lowered.clear();
+            if (reelsAboveTheBar(holder, bar, id(holder.getContext(), REELS_ROOT), wanted, lifted, away ? lowered : null) > 0) {
                 HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_REELS_LIFTED);
             }
             keepTheStripOnTheReel(holder);
         }
 
-        /** Keeps Instagram's touch strip on the seek bar of the reel above the pill ({@link #stripOnTheReel}). */
+        /**
+         * Keeps Instagram's touch strip on the seek bar of the reel above the pill ({@link #stripOnTheReel}),
+         * or of the reel given its room back while the pill is away.
+         */
         private void keepTheStripOnTheReel(View holder) {
-            if (lifted.isEmpty()) return;
+            java.util.Set<View> viewers = !lifted.isEmpty() ? lifted.keySet() : lowered;
+            if (viewers.isEmpty()) return;
             if (holder.isLayoutRequested()) {
                 // A margin changed this frame, so the reel and the strip are where they were. Look again after the layout.
                 bar.postInvalidateDelayed(REELS_LOOK_MS);
@@ -1263,7 +1289,7 @@ public final class GlassTabBar {
                 strip = find(holder, TOUCH_STRIP);
                 stripRef = strip == null ? null : new WeakReference<>(strip);
             }
-            if (strip != null && stripOnTheReel(strip, lifted.keySet(), id(holder.getContext(), SCRUBBER), reelsRect)) {
+            if (strip != null && stripOnTheReel(strip, viewers, id(holder.getContext(), SCRUBBER), reelsRect)) {
                 HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_STRIP_KEPT);
             }
         }
