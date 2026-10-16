@@ -316,6 +316,79 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * #209: a bottom sheet over a floating pill, such as a reel's comments, sits its comment field by
+     * the navigation bar's height Instagram keeps. While Instagram's sheet holder shows a sheet the real
+     * height goes through, and the insets go round again as a sheet comes up and goes. The pill keeps its
+     * room under the sheet, so it doesn't drop onto the navigation bar as the sheet slides away.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aBottomSheetOverTheFloatingPillGetsTheNavigationBarsHeight() {
+        GlassTabBar.resetForTests();
+        HookStatus.clear();
+        int holderId = 0x7f0b0122;
+        Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+        Integer previous;
+        synchronized (ids) { previous = ids.put(GlassTabBar.SHEET_HOLDER, holderId); }
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            int nav = host.dp(24);
+            AtomicInteger insets = new AtomicInteger();
+            host.activity.getWindow().getDecorView().setOnApplyWindowInsetsListener((view, given) -> {
+                insets.incrementAndGet();
+                return view.onApplyWindowInsets(given);
+            });
+            host.controller.pause().resume();
+            host.frame();
+            assertEquals("no sheet holder yet", 0, GlassTabBar.navBarHeight(nav));
+            host.frame();
+            int height = host.bar.getLayoutParams().height;
+
+            // Instagram's holder, laid over the screens and the bar, with no sheet in it yet.
+            FrameLayout holder = new FrameLayout(host.activity);
+            holder.setId(holderId);
+            host.root.addView(holder, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("an empty holder", 0, GlassTabBar.navBarHeight(nav));
+
+            int asked = insets.get();
+            View sheet = new View(host.activity);
+            holder.addView(sheet, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, host.dp(80), Gravity.BOTTOM));
+            host.frame();
+            host.frame();
+            assertTrue("a sheet came up, the insets went round again", insets.get() > asked);
+            assertEquals("under a sheet", nav, GlassTabBar.navBarHeight(nav));
+            host.frame();
+            assertEquals("the pill keeps its room under the sheet", height, host.bar.getLayoutParams().height);
+
+            asked = insets.get();
+            holder.removeView(sheet);
+            host.frame();
+            assertTrue("the sheet went, the insets went round again", insets.get() > asked);
+            assertEquals("the sheet went", 0, GlassTabBar.navBarHeight(nav));
+
+            holder.addView(sheet);
+            host.frame();
+            host.frame();
+            assertEquals("another sheet", nav, GlassTabBar.navBarHeight(nav));
+            sheet.setVisibility(View.GONE);
+            host.frame();
+            assertEquals("a sheet set to GONE", 0, GlassTabBar.navBarHeight(nav));
+            sheet.setVisibility(View.VISIBLE);
+            holder.setVisibility(View.GONE);
+            host.frame();
+            assertEquals("the holder set to GONE", 0, GlassTabBar.navBarHeight(nav));
+
+            String report = String.join("\n", HookStatus.report());
+            assertTrue(report, report.contains(GlassTabBar.COUNT_NAV_UNDER_SHEET));
+        } finally {
+            synchronized (ids) {
+                if (previous == null) ids.remove(GlassTabBar.SHEET_HOLDER);
+                else ids.put(GlassTabBar.SHEET_HOLDER, previous);
+            }
+        }
+    }
+
     /** A pill over Instagram's own place, not floating, leaves the navigation bar's height alone and never asks for insets. */
     @Test
     @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")

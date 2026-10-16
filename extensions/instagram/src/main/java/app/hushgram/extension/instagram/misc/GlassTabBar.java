@@ -119,6 +119,13 @@ public final class GlassTabBar {
     static final String SCRUBBER = "scrubber";
     /** The Search tab, a child of the bar, which the liquid look puts in a circle of its own (#65). */
     static final String SEARCH_TAB = "search_tab";
+    /**
+     * Where Instagram puts a bottom sheet (comments, share, a post's menu) over the screens and the bar.
+     * It has a child only while a sheet is up (#209).
+     */
+    static final String SHEET_HOLDER = "layout_container_bottom_sheet";
+    /** How often the sheet holder is looked for again while there isn't one. */
+    static final long SHEET_LOOK_MS = 250L;
 
     private static final java.util.HashMap<String, Integer> IDS = new java.util.HashMap<>();
 
@@ -390,6 +397,8 @@ public final class GlassTabBar {
     static final String COUNT_NAV_BEHIND = "Screens run behind the gesture handle";
     /** Counted each time the pill shows or hides and the window's insets are asked for again. */
     static final String COUNT_INSETS_AGAIN = "Insets asked again for the pill";
+    /** Counted each time the navigation bar's height goes through as it came because a bottom sheet covers the pill (#209). */
+    static final String COUNT_NAV_UNDER_SHEET = "Navigation bar's height given to a sheet over the pill";
     /** Counted once for each bar whose Search tab the liquid look puts in a circle of its own (#65). */
     static final String COUNT_SEARCH_APART = "Search put in its own circle";
 
@@ -406,7 +415,8 @@ public final class GlassTabBar {
     /**
      * The navigation bar's height Instagram would have padded its screens by when it was last answered
      * 0 for a floating pill, or 0 when it was given through. The pill makes this much room of its own
-     * under itself. Main thread, as Instagram's insets listener is.
+     * under itself, and keeps it while a bottom sheet over it has the height given through, so it stays
+     * where it was as the sheet slides away. Main thread, as Instagram's insets listener is.
      */
     private static int navTaken;
 
@@ -470,29 +480,41 @@ public final class GlassTabBar {
      * the front window the answer is 0, so the screens run to the bottom edge, and the pill keeps itself
      * above the handle by [height] ({@link #navRoom}). Screens without the bar showing (a chat's
      * composer, settings, the camera), another activity in front, the float switch off, Pause or
-     * settings not ready all get [height] as it came.
+     * settings not ready all get [height] as it came. So does a bottom sheet over the pill, such as a
+     * reel's comments, whose comment field sits by it (#209), while the pill keeps its room.
      */
     public static int navBarHeight(int height) {
-        if (height <= 0 || !floatingBarInFront()) {
+        Glass glass = height <= 0 ? null : floatingGlassInFront();
+        if (glass == null) {
             navTaken = 0;
             return height;
         }
         navTaken = height;
+        if (glass.underASheet()) {
+            HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_NAV_UNDER_SHEET);
+            return height;
+        }
         HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_NAV_BEHIND);
         return 0;
     }
 
     /** Whether the front activity shows a floating glass bar: restyled, floating, and shown. */
     static boolean floatingBarInFront() {
-        if (!Utils.settingsReady() || HushgramPause.isPaused()) return false;
+        return floatingGlassInFront() != null;
+    }
+
+    /** The floating glass bar the front activity shows, or null. */
+    @Nullable
+    private static Glass floatingGlassInFront() {
+        if (!Utils.settingsReady() || HushgramPause.isPaused()) return null;
         Activity activity = front.get();
-        if (activity == null) return false;
+        if (activity == null) return null;
         for (Map.Entry<View, WeakReference<Glass>> entry : applied.entrySet()) {
             WeakReference<Glass> held = entry.getValue();
             Glass glass = held == null ? null : held.get();
-            if (glass != null && glass.floatsShownIn(activity)) return true;
+            if (glass != null && glass.floatsShownIn(activity)) return glass;
         }
-        return false;
+        return null;
     }
 
     /** Whether [activity], resuming, has a floating glass pill set to show in it. */
@@ -792,6 +814,9 @@ public final class GlassTabBar {
          * window's insets go round, so a pill that shows or hides has them sent round again.
          */
         @Nullable private Boolean insetsShown;
+        /** Instagram's bottom sheet holder in the bar's window, as last found, and when it was last looked for. */
+        private WeakReference<View> sheetHolder = new WeakReference<>(null);
+        private long sheetLookedAt = -SHEET_LOOK_MS;
         /**
          * Hides the bar while a list scrolls down, with that switch on, and on Reels after the wait picked
          * for it (#170). Null with the switch off and the wait on Never.
@@ -1098,6 +1123,30 @@ public final class GlassTabBar {
         }
 
         /**
+         * Whether Instagram's bottom sheet holder in the bar's window shows a sheet. The sheet's own box
+         * (a reel's comment field) sits by the navigation bar's height Instagram was told, so it went
+         * under the navigation bar while a pill had that answered 0 (#209).
+         */
+        boolean underASheet() {
+            View root = bar.getRootView();
+            View holder = sheetHolder.get();
+            if (holder == null || holder.getRootView() != root) {
+                long now = SystemClock.uptimeMillis();
+                if (holder == null && now - sheetLookedAt < SHEET_LOOK_MS) return false;
+                sheetLookedAt = now;
+                holder = find(root, SHEET_HOLDER);
+                sheetHolder = new WeakReference<>(holder);
+            }
+            if (!(holder instanceof ViewGroup) || !holder.isShown()) return false;
+            ViewGroup sheets = (ViewGroup) holder;
+            for (int i = 0; i < sheets.getChildCount(); i++) {
+                View sheet = sheets.getChildAt(i);
+                if (sheet.getVisibility() == View.VISIBLE && sheet.getHeight() > 0) return true;
+            }
+            return false;
+        }
+
+        /**
          * Whether this is a floating pill set to show in [activity], whether or not its window shows yet:
          * a stopped activity's window is still hidden while it resumes.
          */
@@ -1106,13 +1155,14 @@ public final class GlassTabBar {
         }
 
         /**
-         * Sends the window's insets round again when this floating pill shows or hides in front, or its
-         * activity came back, so Instagram reads the navigation bar's height again ({@link #navBarHeight}).
+         * Sends the window's insets round again when this floating pill shows or hides in front, a bottom
+         * sheet comes up over it or goes, or its activity came back, so Instagram reads the navigation
+         * bar's height again ({@link #navBarHeight}).
          */
         private void askForInsetsWhenShownChanges() {
             if (!floating) return;
             Activity now = front.get();
-            boolean shown = now != null && !HushgramPause.isPaused() && floatsShownIn(now);
+            boolean shown = now != null && !HushgramPause.isPaused() && floatsShownIn(now) && !underASheet();
             if (insetsShown != null && insetsShown == shown) return;
             insetsShown = shown;
             View root = bar.getRootView();
