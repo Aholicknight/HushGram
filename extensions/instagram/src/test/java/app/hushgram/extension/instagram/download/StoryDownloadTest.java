@@ -98,17 +98,22 @@ public class StoryDownloadTest {
 
     /**
      * A photo story with music, which Instagram serves as a video, gets Download as video and
-     * Download as photo instead of Download, once, and any other story keeps its one Download.
+     * Download as photo instead of Download, once. A filmed video gets Download and Download as
+     * photo (#215), once, and a photo keeps its one Download.
      */
     @Test
     public void aPhotoWithMusicOffersBothSaves() {
         CharSequence[] menu = {"Report", "Mute"};
         assertArrayEquals(new CharSequence[] {"Report", "Mute", "Download as video", "Download as photo"},
-                StoryDownload.labels(menu, true));
-        assertArrayEquals(new CharSequence[] {"Report", "Mute", "Download"}, StoryDownload.labels(menu, false));
+                StoryDownload.labels(menu, StoryDownload.Rows.VIDEO_AND_PHOTO));
+        assertArrayEquals(new CharSequence[] {"Report", "Mute", "Download"}, StoryDownload.labels(menu, StoryDownload.Rows.DOWNLOAD));
+        assertArrayEquals(new CharSequence[] {"Report", "Mute", "Download", "Download as photo"},
+                StoryDownload.labels(menu, StoryDownload.Rows.DOWNLOAD_AND_PHOTO));
 
         CharSequence[] already = {"Report", new SpannableString("Download as video"), "Download as photo"};
-        assertSame(already, StoryDownload.labels(already, true));
+        assertSame(already, StoryDownload.labels(already, StoryDownload.Rows.VIDEO_AND_PHOTO));
+        CharSequence[] filmed = {"Report", "Download", "Download as photo"};
+        assertSame(filmed, StoryDownload.labels(filmed, StoryDownload.Rows.DOWNLOAD_AND_PHOTO));
     }
 
     /**
@@ -121,7 +126,7 @@ public class StoryDownloadTest {
         assertArrayEquals(new CharSequence[] {"Report", "Download"}, StoryDownload.labels(new CharSequence[] {"Report"}));
         StoryDownload.building(null);
         assertArrayEquals(new CharSequence[] {"Report", "Download"}, StoryDownload.labels(new CharSequence[] {"Report"}));
-        assertFalse(StoryDownload.photoWithMusic(null));
+        assertEquals(StoryDownload.Rows.DOWNLOAD, StoryDownload.rows(null));
     }
 
     /**
@@ -160,7 +165,8 @@ public class StoryDownloadTest {
 
     /**
      * The menu of a video posted as a photo gets Download as video and Download as photo, a filmed
-     * video's keeps its one Download, and the report counts what each story was.
+     * video's gets Download and Download as photo (#215), a photo's keeps its one Download, and the
+     * report counts what each story was.
      */
     @Test
     @Config(shadows = Story.class)
@@ -173,11 +179,20 @@ public class StoryDownloadTest {
                 StoryDownload.labels(new CharSequence[] {"Report"}));
 
         Story.posted = 2;
+        assertArrayEquals(new CharSequence[] {"Report", "Download", "Download as photo"},
+                StoryDownload.labels(new CharSequence[] {"Report"}));
+        Story.posted = null;
+        assertArrayEquals(new CharSequence[] {"Report", "Download", "Download as photo"},
+                StoryDownload.labels(new CharSequence[] {"Report"}));
+
+        Story.video = false;
         assertArrayEquals(new CharSequence[] {"Report", "Download"}, StoryDownload.labels(new CharSequence[] {"Report"}));
 
         String report = String.valueOf(HookStatus.report());
         assertTrue(report, report.contains("video posted as a photo 1"));
         assertTrue(report, report.contains("video posted as a video 1"));
+        assertTrue(report, report.contains("video with no posted type 1"));
+        assertTrue(report, report.contains("photo 1"));
     }
 
     /** A story's Media as the bridges read it: a video or not, its upload's flag and the type it was posted as. */
