@@ -96,6 +96,8 @@ public final class TabStart {
             application.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
                 @Override public void onActivityCreated(Activity activity, Bundle state) {
                     try {
+                        Logger.printDebug(() -> "Tab start: " + activity.getClass().getSimpleName() + " created, "
+                                + alive + " alive before it");
                         activityCreated(activity.getIntent(), state);
                     } catch (Throwable failure) {
                         HookStatus.threw(FamilyNames.REELS_TAB, "start", failure);
@@ -126,6 +128,7 @@ public final class TabStart {
     /** Records how a start's activity was started, which opens a new landing decision. */
     static void noteStart(@Nullable Intent intent, @Nullable Bundle savedState) {
         firstStart = fromLauncher(intent, savedState) ? LAUNCHER : OTHER;
+        HookStatus.counted(FamilyNames.REELS_TAB, firstStart == LAUNCHER ? "Started from the icon" : "Started another way");
         decided = false;
         resumedAt = -1;
         listSinceStart = false;
@@ -192,13 +195,18 @@ public final class TabStart {
     /**
      * The tab to open in place of [asked], or null to leave it. Only the first landing tab Instagram
      * asks about in a start is a candidate, and only once that start has built its tab list, so a
-     * home tab asked about ahead of the list waits for the switch that follows it.
+     * home tab asked about ahead of the list waits for the switch that follows it. Always Home's
+     * Reels needs no list: the icon's first activity asks for it before the list is built, and with
+     * Tab order reordering the bar the pager opens straight on that answer, with no switch after (#55).
      */
     @Nullable
     static Object landing(Enum<?> asked) {
         if (decided) return null;
+        Logger.printDebug(() -> "Tab start: asked for " + asked.name() + ", list built " + listSinceStart
+                + ", resumed " + (resumedAt < 0 ? "not yet" : (SystemClock.elapsedRealtime() - resumedAt) + " ms ago"));
         if (startupOver()) {
             decided = true;
+            HookStatus.counted(FamilyNames.REELS_TAB, "Start tab skipped, first tab asked after startup");
             return null;
         }
         if (!Utils.settingsReady()) {
@@ -211,9 +219,13 @@ public final class TabStart {
             return null;
         }
         Set<String> bar = onTheBar;
-        if (bar == null || !listSinceStart) return null;
+        boolean listed = bar != null && listSinceStart;
+        if (!listed && !(choice == StartTab.ALWAYS_HOME && ReelsTab.isReels(asked))) return null;
         decided = true;
-        if (!LANDING.contains(asked.name())) return null;
+        if (!LANDING.contains(asked.name())) {
+            HookStatus.counted(FamilyNames.REELS_TAB, "Start tab skipped, first tab asked was " + asked.name());
+            return null;
+        }
         if (firstStart != LAUNCHER) {
             HookStatus.counted(FamilyNames.REELS_TAB, "Start tab skipped, not from the icon");
             return null;

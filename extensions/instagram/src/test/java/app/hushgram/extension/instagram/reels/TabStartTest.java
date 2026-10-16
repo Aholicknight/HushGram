@@ -149,6 +149,36 @@ public class TabStartTest {
         assertSame("a start that restores its state", Tab.CLIPS, ReelsTab.tab(Tab.CLIPS));
     }
 
+    /**
+     * #55: the icon's first activity asks for Reels before the tab list is built, and with Tab order
+     * reordering the bar no switch follows it, so Always Home swaps that first ask. A Home asked that
+     * early still waits for the list, and a reel opened by a link stays.
+     */
+    @Test
+    public void alwaysHomeSwapsAReelsAskedBeforeTheList() {
+        Settings.START_TAB.save(StartTab.ALWAYS_HOME);
+        TabStart.noteStart(launcher(), null);
+        assertSame(Tab.FEED, ReelsTab.tab(Tab.CLIPS));
+        ReelsTab.tabs(BAR);
+        assertSame("the decision is spent", Tab.CLIPS, ReelsTab.tab(Tab.CLIPS));
+
+        TabStart.forgetForTests();
+        TabStart.noteStart(launcher(), null);
+        assertSame(Tab.FEED, ReelsTab.tab(Tab.FEED));
+        ReelsTab.tabs(BAR);
+        assertSame("a Reels switch once the list is built", Tab.FEED, ReelsTab.tab(Tab.CLIPS));
+
+        TabStart.forgetForTests();
+        TabStart.noteStart(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.instagram.com/reel/abc/")), null);
+        assertSame("a reel opened by a link", Tab.CLIPS, ReelsTab.tab(Tab.CLIPS));
+
+        String report = String.join(" | ", HookStatus.report());
+        assertTrue(report, report.contains("Start tab applied 2"));
+        assertTrue(report, report.contains("Start tab skipped, not from the icon 1"));
+        assertTrue(report, report.contains("Started from the icon 2"));
+        assertTrue(report, report.contains("Started another way 1"));
+    }
+
     @Test
     public void alwaysHomeLeavesAHomeLandingAsItCame() {
         Settings.START_TAB.save(StartTab.ALWAYS_HOME);
