@@ -1140,3 +1140,22 @@ No words yet	아직 단어 없음
 Show how long ago a reel was posted	릴스가 게시된 지 얼마나 됐는지 표시
 Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	게시된 뒤 지난 일, 시간, 분을 시각 아래 한 줄에 1일 2시간 5분 전처럼 보여 줍니다.
 %1$s ago	%1$s 전
+# context: Profiles > Recent unfollowers: the switch's title (#208).
+Recent unfollowers	최근 언팔로우
+Each time you scroll your own Followers list to the end, compares it with the last time and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.	내 팔로워 목록을 끝까지 스크롤할 때마다 지난번과 비교해서 떠난 사람을 보여줍니다. Instagram에 따로 요청하지 않으며 목록은 휴대폰에만 저장됩니다.
+# context: Profiles > Recent unfollowers: the row listing accounts that left your Followers list.
+Who unfollowed you	나를 언팔로우한 사람
+Reading the list…	목록을 읽는 중…
+Nothing to compare yet. With Recent unfollowers on, open your own Followers list and scroll to the end. The next time you do, anyone missing shows here.	아직 비교할 내용이 없습니다. 최근 언팔로우를 켠 상태에서 내 팔로워 목록을 열고 끝까지 스크롤하세요. 다음에 다시 하면 빠진 사람이 여기에 표시됩니다.
+# context: %1$s is a date, already in this language.
+Last seen in full on %1$s.	마지막으로 전체를 본 날짜: %1$s
+No one has left since then.	그 이후로 떠난 사람이 없습니다.
+# context: %1$s is an account's number, shown when it has no username.
+Account %1$s	계정 %1$s
+# context: %1$s is @username, %2$s a date already in this language: the day the account was first seen missing.
+%1$s, gone by %2$s	%1$s, %2$s까지 떠남
+Only the newest 50 are shown.	최신 50명만 표시됩니다.
+Clear unfollower list	언팔로우 목록 지우기
+Forgets the saved Followers lists and everyone listed above, for all your accounts.	저장된 팔로워 목록과 위에 표시된 모든 사람을 모든 계정에서 지웁니다.
+Unfollower list cleared.	언팔로우 목록을 지웠습니다.
+Couldn't clear the unfollower list. Try again.	언팔로우 목록을 지우지 못했습니다. 다시 시도하세요.

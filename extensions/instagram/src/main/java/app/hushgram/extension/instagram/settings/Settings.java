@@ -1018,6 +1018,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_following_not_back_first", FALSE);
 
     /**
+     * Recent unfollowers ({@link app.hushgram.extension.instagram.profile.Unfollowers}): your own
+     * Followers list compared each time it has loaded to the end. Off to start. Read each time
+     * Instagram rebuilds the rows of a follow list.
+     */
+    public static final BooleanSetting TRACK_UNFOLLOWERS =
+            new BooleanSetting("hushgram_track_unfollowers", FALSE);
+
+    /**
      * Suggested for you and the Discover people button on profiles
      * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions}). Read each time Instagram
      * builds or binds a profile's header, so off or paused, the suggestions are back on the next one.

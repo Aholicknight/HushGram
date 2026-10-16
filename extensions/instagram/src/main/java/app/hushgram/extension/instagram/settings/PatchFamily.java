@@ -126,7 +126,8 @@ public enum PatchFamily {
     HDR_BOOST(FamilyNames.HDR_BOOST, "hdrBoost", null, Settings.TURN_OFF_HDR_BOOSTS),
     MEDIA_CACHE(FamilyNames.MEDIA_CACHE, "mediaCache", null, Settings.CLEAR_MEDIA_CACHE),
     FRIENDSHIP_STATUS(FamilyNames.FRIENDSHIP_STATUS, "friendshipStatus", null, Settings.SHOW_FRIENDSHIP_STATUS,
-            Settings.MARK_FOLLOWING_LIST, Settings.FRIENDSHIP_STATUS_CHIP, Settings.FOLLOWING_NOT_BACK_FIRST),
+            Settings.MARK_FOLLOWING_LIST, Settings.FRIENDSHIP_STATUS_CHIP, Settings.FOLLOWING_NOT_BACK_FIRST,
+            Settings.TRACK_UNFOLLOWERS),
     PROFILE_SUGGESTIONS(FamilyNames.PROFILE_SUGGESTIONS, "profileSuggestions", null, Settings.HIDE_PROFILE_SUGGESTIONS,
             Settings.HIDE_FOLLOW_LIST_SUGGESTIONS, Settings.HIDE_PROFILE_COMPLETION, Settings.HIDE_FOLLOW_BACK_SUGGESTIONS,
             Settings.HIDE_NOTIFICATION_SUGGESTIONS),
@@ -239,6 +240,21 @@ public enum PatchFamily {
         Set<PatchFamily> families = inBuildForTests;
         if (families != null) return families.contains(FRIENDSHIP_STATUS);
         return FRIENDSHIP_STATUS.inBuild() && SettingsStatus.followingListMark();
+    }
+
+    /** Whether a test says this build keeps Recent unfollowers, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean unfollowersForTests;
+
+    /**
+     * Whether this build keeps Recent unfollowers. It goes in only with the Following list switches,
+     * and without them or when Instagram's follow list pager has moved, it isn't offered.
+     */
+    public static boolean unfollowersInBuild() {
+        Boolean forced = unfollowersForTests;
+        if (forced != null) return forced;
+        if (!followingListMarkInBuild()) return false;
+        return inBuildForTests != null || SettingsStatus.unfollowers();
     }
 
     /** Whether a test says this build copies a commenter's username, instead of asking {@link SettingsStatus}. */
@@ -364,6 +380,8 @@ public enum PatchFamily {
                 }
                 if (family == FRIENDSHIP_STATUS && !followingListMarkInBuild()) {
                     lines.add("  Mark who doesn't follow you back: not in this build (Instagram's follow list didn't match)");
+                } else if (family == FRIENDSHIP_STATUS && !unfollowersInBuild()) {
+                    lines.add("  Recent unfollowers: not in this build (Instagram's follow list pager didn't match)");
                 }
                 if (family == DEVELOPER_OPTIONS && !overrideExchangeInBuild()) {
                     lines.add("  Export, Validate and Import overrides: not in this build (Instagram's override reader didn't match)");

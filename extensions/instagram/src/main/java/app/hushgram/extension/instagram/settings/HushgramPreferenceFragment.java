@@ -119,6 +119,7 @@ import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.StartTab;
 import app.hushgram.extension.instagram.reels.TabOrder;
 import app.hushgram.extension.instagram.download.DownloadHistory;
+import app.hushgram.extension.instagram.profile.Unfollowers;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.HoldFingers;
 import app.hushgram.extension.instagram.download.HoldTime;
@@ -171,6 +172,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String SIGN_IN_NOTICE_KEY = "hushgram_sign_in_notice";
     static final String CLEAR_MEDIA_CACHE_NOW = "hushgram_clear_media_cache_now";
     static final String CLEAR_DOWNLOAD_HISTORY = "hushgram_clear_download_history";
+    /** The row listing who left your Followers list, and the row that forgets them. */
+    static final String UNFOLLOWERS_ROW = "hushgram_unfollowers_row";
+    static final String CLEAR_UNFOLLOWERS = "hushgram_clear_unfollowers";
     /** The row that lists the chats locked one at a time. */
     static final String LOCKED_CHATS_ROW = "hushgram_locked_chats_row";
     /** The row that lists the chats hidden one at a time. */
@@ -1190,6 +1194,24 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     profiles.addPreference(toggle(context, Settings.FOLLOWING_NOT_BACK_FIRST, L10n.t("Put accounts that don't follow you back first"),
                             L10n.t("On your own Following list, moves the accounts that don't follow you back to the top and "
                                     + "keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.")));
+                }
+                if (PatchFamily.unfollowersInBuild()) {
+                    profiles.addPreference(toggle(context, Settings.TRACK_UNFOLLOWERS, L10n.t("Recent unfollowers"),
+                            L10n.t("Each time you scroll your own Followers list to the end, compares it with the last time "
+                                    + "and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.")));
+                    profiles.addPreference(unfollowersRow(context));
+                    Row clearUnfollowers = new Row(context);
+                    clearUnfollowers.setKey(CLEAR_UNFOLLOWERS);
+                    clearUnfollowers.setPersistent(false);
+                    clearUnfollowers.actsAtOnce = true;
+                    clearUnfollowers.setTitle(L10n.t("Clear unfollower list"));
+                    clearUnfollowers.setSummary(L10n.t("Forgets the saved Followers lists and everyone listed above, "
+                            + "for all your accounts."));
+                    clearUnfollowers.setOnPreferenceClickListener(p -> {
+                        clearUnfollowers(p);
+                        return true;
+                    });
+                    profiles.addPreference(mark(clearUnfollowers, SettingsIcons.DELETE));
                 }
             }
             if (build.contains(PatchFamily.PROFILE_SUGGESTIONS)) {
@@ -4265,6 +4287,71 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             });
         })) {
             Utils.showToastLong(L10n.t("Couldn't clear the saved copies. Try again."));
+        }
+    }
+
+    /** How many of the newest unfollowers the list row shows. */
+    static final int UNFOLLOWERS_SHOWN = 50;
+
+    /**
+     * The row listing who left your Followers list, newest first with the day each was seen gone, and
+     * when the list was last seen in full. Read off the main thread, so it says so until it's read.
+     */
+    static Preference unfollowersRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(UNFOLLOWERS_ROW);
+        row.setPersistent(false);
+        row.setSelectable(false);
+        row.setTitle(L10n.t("Who unfollowed you"));
+        row.setSummary(L10n.t("Reading the list…"));
+        Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        if (!Utils.runOnBackgroundThread(() -> {
+            String summary = unfollowersSummary(Unfollowers.shown(application));
+            Utils.runOnMainThread(() -> row.setSummary(summary));
+        })) {
+            row.setSummary(unfollowersSummary(Unfollowers.shown(application)));
+        }
+        return mark(row, SettingsIcons.PERSON);
+    }
+
+    /** What the unfollowers row says for [record]. */
+    static String unfollowersSummary(Unfollowers.Record record) {
+        if (record.checked <= 0) {
+            return L10n.t("Nothing to compare yet. With Recent unfollowers on, open your own Followers list and "
+                    + "scroll to the end. The next time you do, anyone missing shows here.");
+        }
+        java.text.DateFormat day = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM);
+        String last = L10n.f("Last seen in full on %1$s.", day.format(new java.util.Date(record.checked)));
+        if (record.left.isEmpty()) return L10n.t("No one has left since then.") + "\n" + last;
+        StringBuilder text = new StringBuilder();
+        int shown = 0;
+        for (Unfollowers.Left left : record.left) {
+            if (shown == UNFOLLOWERS_SHOWN) break;
+            String who = left.username.isEmpty() ? L10n.f("Account %1$s", left.id) : "@" + left.username;
+            text.append(L10n.f("%1$s, gone by %2$s", who, day.format(new java.util.Date(left.when)))).append('\n');
+            shown++;
+        }
+        if (record.left.size() > UNFOLLOWERS_SHOWN) text.append(L10n.t("Only the newest 50 are shown.")).append('\n');
+        return text.append(last).toString();
+    }
+
+    /** Forgets every account's saved Followers list and unfollowers, off the main thread, and says so. */
+    private static void clearUnfollowers(Preference row) {
+        Context context = row.getContext();
+        if (!Utils.runOnBackgroundThread(() -> {
+            boolean cleared = Unfollowers.clear(context);
+            Utils.runOnMainThread(() -> {
+                if (cleared) {
+                    Utils.showToastShort(L10n.t("Unfollower list cleared."));
+                    Preference list = row.getPreferenceManager() == null ? null
+                            : row.getPreferenceManager().findPreference(UNFOLLOWERS_ROW);
+                    if (list != null) list.setSummary(unfollowersSummary(Unfollowers.Record.NONE));
+                } else {
+                    Utils.showToastLong(L10n.t("Couldn't clear the unfollower list. Try again."));
+                }
+            });
+        })) {
+            Utils.showToastLong(L10n.t("Couldn't clear the unfollower list. Try again."));
         }
     }
 

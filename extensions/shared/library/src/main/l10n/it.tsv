@@ -1141,3 +1141,22 @@ No words yet	Ancora nessuna parola
 Show how long ago a reel was posted	Mostra quanto tempo fa è stato pubblicato un reel
 Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	Mostra i giorni, le ore e i minuti da quando è stato pubblicato su una riga sotto l'orario, come 1g 2h 5min fa.
 %1$s ago	%1$s fa
+# context: Profiles > Recent unfollowers: the switch's title (#208).
+Recent unfollowers	Smesso di seguirti di recente
+Each time you scroll your own Followers list to the end, compares it with the last time and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.	Ogni volta che scorri fino in fondo la tua lista di follower, la confronta con l'ultima volta e mostra chi se n'è andato. A Instagram non viene chiesto nulla in più e la lista resta sul tuo telefono.
+# context: Profiles > Recent unfollowers: the row listing accounts that left your Followers list.
+Who unfollowed you	Chi ha smesso di seguirti
+Reading the list…	Lettura della lista…
+Nothing to compare yet. With Recent unfollowers on, open your own Followers list and scroll to the end. The next time you do, anyone missing shows here.	Ancora niente da confrontare. Con «Smesso di seguirti di recente» attivo, apri la tua lista di follower e scorri fino in fondo. La prossima volta, chi manca comparirà qui.
+# context: %1$s is a date, already in this language.
+Last seen in full on %1$s.	Vista per intero l'ultima volta il %1$s.
+No one has left since then.	Da allora nessuno se n'è andato.
+# context: %1$s is an account's number, shown when it has no username.
+Account %1$s	Account %1$s
+# context: %1$s is @username, %2$s a date already in this language: the day the account was first seen missing.
+%1$s, gone by %2$s	%1$s, andato via entro il %2$s
+Only the newest 50 are shown.	Vengono mostrati solo i 50 più recenti.
+Clear unfollower list	Cancella la lista di chi ha smesso di seguirti
+Forgets the saved Followers lists and everyone listed above, for all your accounts.	Dimentica le liste di follower salvate e tutti quelli elencati sopra, per tutti i tuoi account.
+Unfollower list cleared.	Lista cancellata.
+Couldn't clear the unfollower list. Try again.	Impossibile cancellare la lista. Riprova.

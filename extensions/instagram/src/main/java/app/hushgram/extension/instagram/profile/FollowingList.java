@@ -267,11 +267,13 @@ public final class FollowingList {
      * Injected where a follow list builds its rows, with the list of accounts loaded so far and the
      * list's state holder. Answers the list with the accounts that don't follow you back first, each
      * group in Instagram's order, when it's your own Following list and the switch is on, and the list
-     * itself otherwise. The answer is a copy and Instagram's list is never changed. Never throws.
+     * itself otherwise. The answer is a copy and Instagram's list is never changed. Recent unfollowers
+     * looks at the same list first ({@link Unfollowers#seen}). Never throws.
      */
     public static Object ordered(Object users, Object list) {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
+            Unfollowers.seen(users, list);
             if (!orderSwitchedOn()) return users;
             return ordered(users, list, orderBinder(list), PATCHED, FollowingList::orderSwitchedOn);
         } catch (Throwable failure) {

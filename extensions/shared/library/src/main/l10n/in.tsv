@@ -1141,3 +1141,22 @@ No words yet	Belum ada kata
 Show how long ago a reel was posted	Tampilkan sudah berapa lama reel diposting
 Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	Menampilkan hari, jam, dan menit sejak diposting di baris di bawah waktunya, seperti 1 hr, 2 j, 5 mnt yang lalu.
 %1$s ago	%1$s yang lalu
+# context: Profiles > Recent unfollowers: the switch's title (#208).
+Recent unfollowers	Berhenti mengikuti baru-baru ini
+Each time you scroll your own Followers list to the end, compares it with the last time and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.	Setiap kali kamu menggulir daftar Pengikut milikmu sampai akhir, daftar itu dibandingkan dengan terakhir kali dan menampilkan siapa yang pergi. Tidak ada permintaan tambahan ke Instagram, dan daftarnya tetap di ponselmu.
+# context: Profiles > Recent unfollowers: the row listing accounts that left your Followers list.
+Who unfollowed you	Siapa yang berhenti mengikutimu
+Reading the list…	Membaca daftar…
+Nothing to compare yet. With Recent unfollowers on, open your own Followers list and scroll to the end. The next time you do, anyone missing shows here.	Belum ada yang bisa dibandingkan. Dengan Berhenti mengikuti baru-baru ini aktif, buka daftar Pengikut milikmu dan gulir sampai akhir. Lain kali kamu melakukannya, siapa pun yang hilang muncul di sini.
+# context: %1$s is a date, already in this language.
+Last seen in full on %1$s.	Terakhir dilihat lengkap pada %1$s.
+No one has left since then.	Belum ada yang pergi sejak itu.
+# context: %1$s is an account's number, shown when it has no username.
+Account %1$s	Akun %1$s
+# context: %1$s is @username, %2$s a date already in this language: the day the account was first seen missing.
+%1$s, gone by %2$s	%1$s, pergi sebelum %2$s
+Only the newest 50 are shown.	Hanya 50 terbaru yang ditampilkan.
+Clear unfollower list	Hapus daftar berhenti mengikuti
+Forgets the saved Followers lists and everyone listed above, for all your accounts.	Melupakan daftar Pengikut yang tersimpan dan semua yang tercantum di atas, untuk semua akunmu.
+Unfollower list cleared.	Daftar berhenti mengikuti dihapus.
+Couldn't clear the unfollower list. Try again.	Tidak bisa menghapus daftar berhenti mengikuti. Coba lagi.

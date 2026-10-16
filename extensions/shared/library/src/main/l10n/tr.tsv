@@ -1141,3 +1141,22 @@ No words yet	Henüz kelime yok
 Show how long ago a reel was posted	Reel'in ne kadar önce paylaşıldığını göster
 Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	Paylaşıldığından beri geçen günleri, saatleri ve dakikaları zamanın altındaki bir satırda gösterir, 1g 2 sa 5d önce gibi.
 %1$s ago	%1$s önce
+# context: Profiles > Recent unfollowers: the switch's title (#208).
+Recent unfollowers	Son takipten çıkanlar
+Each time you scroll your own Followers list to the end, compares it with the last time and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.	Kendi Takipçiler listeni her sonuna kadar kaydırdığında, son seferle karşılaştırır ve kimin gittiğini gösterir. Instagram'dan fazladan bir şey istenmez ve liste telefonunda kalır.
+# context: Profiles > Recent unfollowers: the row listing accounts that left your Followers list.
+Who unfollowed you	Seni takipten çıkanlar
+Reading the list…	Liste okunuyor…
+Nothing to compare yet. With Recent unfollowers on, open your own Followers list and scroll to the end. The next time you do, anyone missing shows here.	Henüz karşılaştıracak bir şey yok. Son takipten çıkanlar açıkken kendi Takipçiler listeni aç ve sonuna kadar kaydır. Bir dahaki sefere eksik olan herkes burada görünür.
+# context: %1$s is a date, already in this language.
+Last seen in full on %1$s.	En son %1$s tarihinde tamamı görüldü.
+No one has left since then.	O zamandan beri kimse gitmedi.
+# context: %1$s is an account's number, shown when it has no username.
+Account %1$s	Hesap %1$s
+# context: %1$s is @username, %2$s a date already in this language: the day the account was first seen missing.
+%1$s, gone by %2$s	%1$s, %2$s tarihine kadar gitti
+Only the newest 50 are shown.	Yalnızca en yeni 50 kişi gösterilir.
+Clear unfollower list	Takipten çıkanlar listesini temizle
+Forgets the saved Followers lists and everyone listed above, for all your accounts.	Kayıtlı Takipçiler listelerini ve yukarıda listelenen herkesi tüm hesapların için unutur.
+Unfollower list cleared.	Takipten çıkanlar listesi temizlendi.
+Couldn't clear the unfollower list. Try again.	Takipten çıkanlar listesi temizlenemedi. Tekrar dene.

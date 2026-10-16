@@ -84,13 +84,15 @@ private const val BOOLEAN = "Ljava/lang/Boolean;"
  * Adds Follows you or Doesn't follow you beside the name on someone's profile, in the slot Instagram
  * keeps there for pronouns, or with Show it as a chip as a chip under the profile's counts, and with
  * a second switch marks the accounts on your own Following list that don't follow you back
- * ([findFollowRow]). Asked for in #1 and, for the chip, #24.
+ * ([findFollowRow]). Recent unfollowers compares your own Followers list each time it has loaded to
+ * the end ([findFollowersParts]). Asked for in #1, for the chip #24, and for unfollowers #208.
  */
 @Suppress("unused")
 val friendshipStatusPatch = bytecodePatch(
     name = "Show if a profile follows you",
     description = "Adds Follows you or Doesn't follow you beside the name on someone's profile. Other switches " +
-        "add a chip and mark accounts on your Following list that don't follow you back. The chip is blue for " +
+        "add a chip and mark accounts on your Following list that don't follow you back, and Recent unfollowers " +
+        "shows who left your Followers list. The chip is blue for " +
         "Follows you, green for Following each other and red for Doesn't follow you, and it can go small under " +
         "the profile picture. On by default. Turn it " +
         "off in HushGram settings > Profiles.",
@@ -102,12 +104,15 @@ val friendshipStatusPatch = bytecodePatch(
     execute {
         requireStatusMethod("friendshipStatus")
         requireStatusMethod(FOLLOWING_LIST_STATUS)
+        requireStatusMethod(UNFOLLOWERS_STATUS)
         // Everything is found before anything changes, so a build missing any part is left untouched.
         val found = findProfileName()
         val screen = screenAnswerOrWarn()
         val mark = followRowOrWarn()
+        val followers = mark?.let { followersPartsOrWarn(it.order) }
         val stubs = friendshipStubs()
         val rowStubs = followingStubs()
+        val followerStubs = followersStubs()
         labelProfileName(found)
         stubs.fill(found)
         if (screen != null) stubs.fillScreen(found, screen)
@@ -118,6 +123,10 @@ val friendshipStatusPatch = bytecodePatch(
             rowStubs.fill(mark.row, mark.answers)
             rowStubs.fillOrder(mark.order)
             enableStatus(FOLLOWING_LIST_STATUS)
+            if (followers != null) {
+                followerStubs.fill(followers)
+                enableStatus(UNFOLLOWERS_STATUS)
+            }
         }
         enableStatus("friendshipStatus")
     }

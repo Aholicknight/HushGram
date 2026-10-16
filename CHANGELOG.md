@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram - Show if a profile follows you:** New switch under Profiles, Recent unfollowers, off by default. Each time you open your own Followers list and scroll to the end, it's compared with the last time, and anyone who's gone shows under Who unfollowed you with the date. It only reads the list Instagram already loaded for you, so nothing extra is asked of Instagram. The list stays on your phone, kept apart for each of your accounts, and Clear unfollower list wipes it. Asked for in #208.
 * **Instagram - Hide suggested posts:** Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts now catch suggested posts on Home too. Instagram 451 sends each suggested post wrapped in a unit of its own, and those switches only looked for a post outside it, so every suggested post stayed. Found while working on #192.
 * **Instagram - Story ring size:** Ring color has Teal now, a blue-green that stays easy to see on white and black pages alike. Asked for in #206.
 * **Instagram - Hide the Reels tab:** The Search button on Home's header opens search again with Hide the Search tab on, on phones where you can swipe sideways between tabs. Before, it only showed a note asking you to turn the switch off. It opens the same search screen as Instagram's own search links, and Back brings you to Home. Reported in #204.

@@ -1141,3 +1141,22 @@ No words yet	Aún no hay palabras
 Show how long ago a reel was posted	Mostrar hace cuánto se publicó un reel
 Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	Muestra los días, horas y minutos desde que se publicó en una línea bajo la hora, como hace 1d 2h 5min.
 %1$s ago	hace %1$s
+# context: Profiles > Recent unfollowers: the switch's title (#208).
+Recent unfollowers	Dejaron de seguirte
+Each time you scroll your own Followers list to the end, compares it with the last time and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.	Cada vez que desplazas tu propia lista de seguidores hasta el final, la compara con la última vez y muestra quién se fue. No se le pide nada más a Instagram y la lista se queda en tu teléfono.
+# context: Profiles > Recent unfollowers: the row listing accounts that left your Followers list.
+Who unfollowed you	Quién dejó de seguirte
+Reading the list…	Leyendo la lista…
+Nothing to compare yet. With Recent unfollowers on, open your own Followers list and scroll to the end. The next time you do, anyone missing shows here.	Todavía no hay nada que comparar. Con «Dejaron de seguirte» activado, abre tu propia lista de seguidores y desplázate hasta el final. La próxima vez que lo hagas, aquí aparecerá quien falte.
+# context: %1$s is a date, already in this language.
+Last seen in full on %1$s.	Vista completa por última vez el %1$s.
+No one has left since then.	Nadie se ha ido desde entonces.
+# context: %1$s is an account's number, shown when it has no username.
+Account %1$s	Cuenta %1$s
+# context: %1$s is @username, %2$s a date already in this language: the day the account was first seen missing.
+%1$s, gone by %2$s	%1$s, se fue antes del %2$s
+Only the newest 50 are shown.	Solo se muestran las 50 más recientes.
+Clear unfollower list	Borrar la lista de quienes dejaron de seguirte
+Forgets the saved Followers lists and everyone listed above, for all your accounts.	Olvida las listas de seguidores guardadas y a todos los de arriba, en todas tus cuentas.
+Unfollower list cleared.	Lista borrada.
+Couldn't clear the unfollower list. Try again.	No se pudo borrar la lista. Vuelve a intentarlo.
