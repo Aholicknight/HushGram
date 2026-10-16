@@ -1022,8 +1022,11 @@ Hide the Save button on reels	Nascondi il pulsante Salva sui reel
 Burn-in guard	Protezione burn-in
 Dim when idle	Attenua quando inattivo
 Dim when idle and shift	Attenua e sposta quando inattivo
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch. A touch brings them back.	Nella schermata dei reel, i pulsanti, la didascalia e le barre sfumano dopo 5 secondi senza un tocco. Un tocco li riporta.
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch, and the screen moves a step every 2 minutes. A touch brings them back.	Nella schermata dei reel, i pulsanti, la didascalia e le barre sfumano dopo 5 secondi senza un tocco, e lo schermo si sposta di un passo ogni 2 minuti. Un tocco li riporta.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone. Touching one of them brings them back.	Nella schermata dei reel, i pulsanti, la didascalia e le barre sfumano quando non li tocchi. Toccarne uno li riporta.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone, and the screen moves a step every 2 minutes. Touching one of them brings them back.	Nella schermata dei reel, i pulsanti, la didascalia e le barre sfumano quando non li tocchi, e lo schermo si sposta di un passo ogni 2 minuti. Toccarne uno li riporta.
+Dim after	Attenua dopo
+At once	Subito
+Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	Toccare il video, toccarlo due volte per mettere mi piace, Salva e Scarica non contano come un tocco, quindi i pulsanti restano sfumati.
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Off. Può far sfumare i pulsanti di un reel mentre lo schermo non viene toccato, così non si imprimono su uno schermo OLED.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Toglie il pulsante Salva dalla colonna di pulsanti accanto a un reel, e il conteggio sotto. I post nel tuo feed mantengono il loro.
 Keep clear mode on	Mantieni attiva la modalità pulita

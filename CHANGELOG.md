@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram - Clean up Reels:** Tapping a reel to pause or play it, double-tapping to like it, and tapping Save or Download no longer bring Burn-in guard's faded buttons back. Touching any other button, the caption, the top or bottom bar, or swiping to the next reel still does. A new Dim after choice under Burn-in guard sets how long it waits: at once, or after 2, 5 or 10 seconds (5 to start, as before). Asked for in #162.
 * **Instagram - Keep a seek bar on Reels:** A new reel's seek bar starts at the beginning right away. It used to show the last reel's spot for a moment and then jump back to the start, which was most of what you'd see when swiping quickly. Reported in #10.
 * **Instagram - Font:** The bio under a profile's name takes the font you picked too. Instagram draws it with its newer text system, which loaded its own font and skipped the swap, and other text drawn that way follows now as well. Reported in #166.
 * **Instagram - Glass tab bar:** Once Hide the tab bar on Reels slides the pill away, the reel runs all the way down to the bottom of the screen. It used to stop where the pill had been and leave a black band under it. The reel makes room again as soon as the pill comes back. Reported in #170.

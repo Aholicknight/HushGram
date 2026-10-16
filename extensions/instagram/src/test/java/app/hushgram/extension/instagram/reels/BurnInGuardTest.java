@@ -52,6 +52,9 @@ public class BurnInGuardTest {
 
     private static final int VIEWER = 7201, BAR = 7202, REELS_TAB = 7203, HOME_TAB = 7204;
     private static final int OVERLAY = 7301, UFI = 7302, TOP_BAR = 7303;
+    private static final int INFO = 7306, SAVE = 7401;
+    /** The Dim after choice to start with. */
+    private static final long IDLE = BurnInWait.FIVE_SECONDS.millis;
 
     private int W, H;
     private ActivityController<Activity> controller;
@@ -64,9 +67,12 @@ public class BurnInGuardTest {
     private View topBar;
     private LinearLayout bar;
     private View reelsTab, homeTab;
+    /** What {@link #layOutTheReelsButtons} adds: the column's Like, Save and Download, and the caption. */
+    private View like, save, download, caption;
 
     @Before public void prepare() {
         Settings.BURN_IN_GUARD.resetToDefault();
+        Settings.BURN_IN_WAIT.resetToDefault();
         PauseForTests.resume();
         BurnInGuard.resetForTests();
         FullScreenBars.idForTests(FullScreenBars.VIEWER, VIEWER);
@@ -74,6 +80,10 @@ public class BurnInGuardTest {
         FullScreenBars.idForTests(FullScreenBars.REELS_TAB, REELS_TAB);
         FullScreenBars.idForTests(FullScreenBars.HOME_TAB, HOME_TAB);
         for (String name : BurnInGuard.DIMMED_IDS) BurnInGuard.idForTests(name, 0);
+        for (String name : BurnInGuard.WAKING_IDS) BurnInGuard.idForTests(name, 0);
+        for (String name : BurnInGuard.QUIET_IDS) BurnInGuard.idForTests(name, 0);
+        // No reels' pager to start with, so every finger is a touch, as it was before the quiet taps.
+        BurnInGuard.idForTests(BurnInGuard.REEL_ID, 0);
         BurnInGuard.idForTests("clips_item_overlay_component", OVERLAY);
         BurnInGuard.idForTests("clips_ufi_component", UFI);
         BurnInGuard.idForTests("clips_viewer_action_bar", TOP_BAR);
@@ -113,6 +123,7 @@ public class BurnInGuardTest {
         BurnInGuard.resetForTests();
         controller.close();
         Settings.BURN_IN_GUARD.resetToDefault();
+        Settings.BURN_IN_WAIT.resetToDefault();
         PauseForTests.resume();
     }
 
@@ -189,7 +200,7 @@ public class BurnInGuardTest {
         assertEquals(BurnInMode.OFF, Settings.BURN_IN_GUARD.get());
         Object before = activity.getWindow().getCallback();
         BurnInGuard.resumed(activity);
-        after(BurnInGuard.IDLE_AFTER_MS * 3);
+        after(IDLE * 3);
         assertUp("off");
         assertFalse("no layout listener while off", BurnInGuard.watchingLayoutsForTests());
         assertSame("no touch watcher while off", before, activity.getWindow().getCallback());
@@ -201,7 +212,7 @@ public class BurnInGuardTest {
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
         BurnInGuard.resumed(activity);
         assertTrue(BurnInGuard.watchingLayoutsForTests());
-        after(BurnInGuard.IDLE_AFTER_MS - 100);
+        after(IDLE - 100);
         assertUp("before five seconds");
         after(200);
         assertDimmed("after five seconds");
@@ -239,7 +250,7 @@ public class BurnInGuardTest {
         layout();
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
         BurnInGuard.resumed(activity);
-        after(BurnInGuard.IDLE_AFTER_MS + 100);
+        after(IDLE + 100);
         assertDimmed("idle");
         assertEquals("the seek bar", BurnInGuard.IDLE_LEVEL, scrubber.getAlpha(), 0f);
         assertEquals("the author and caption", BurnInGuard.IDLE_LEVEL, info.getAlpha(), 0f);
@@ -259,16 +270,16 @@ public class BurnInGuardTest {
     @Test public void aTouchBringsThemBackAndAHeldFingerKeepsThemUpUntilItLifts() {
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
         BurnInGuard.resumed(activity);
-        after(BurnInGuard.IDLE_AFTER_MS + 100);
+        after(IDLE + 100);
         assertDimmed("idle");
 
         send(MotionEvent.ACTION_DOWN);
         assertUp("the finger went down");
-        after(BurnInGuard.IDLE_AFTER_MS * 3);
+        after(IDLE * 3);
         assertUp("a held finger is a touch");
 
         send(MotionEvent.ACTION_UP);
-        after(BurnInGuard.IDLE_AFTER_MS - 100);
+        after(IDLE - 100);
         assertUp("the wait starts at the lift");
         after(200);
         assertDimmed("five seconds after the lift");
@@ -278,12 +289,12 @@ public class BurnInGuardTest {
         overlay.setAlpha(0.8f);
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
         BurnInGuard.resumed(activity);
-        after(BurnInGuard.IDLE_AFTER_MS + 100);
+        after(IDLE + 100);
         assertEquals(0.8f * BurnInGuard.IDLE_LEVEL, overlay.getAlpha(), 0f);
         tap();
         assertEquals("back to Instagram's own", 0.8f, overlay.getAlpha(), 0f);
 
-        after(BurnInGuard.IDLE_AFTER_MS + 100);
+        after(IDLE + 100);
         overlay.setAlpha(0.5f);
         tap();
         assertEquals("Instagram's change while dimmed stays", 0.5f, overlay.getAlpha(), 0f);
@@ -292,7 +303,7 @@ public class BurnInGuardTest {
     @Test public void onlyTheReelsScreenDimsAndLeavingItBringsTheControlsBack() {
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
         BurnInGuard.resumed(activity);
-        after(BurnInGuard.IDLE_AFTER_MS + 100);
+        after(IDLE + 100);
         assertDimmed("on Reels");
 
         // Home: the viewer goes and Home's tab is selected, with no touch reaching this window.
@@ -302,7 +313,7 @@ public class BurnInGuardTest {
         relayout();
         assertEquals("the tab bar comes back off Reels", 1f, bar.getAlpha(), 0f);
         assertEquals(1f, overlay.getAlpha(), 0f);
-        after(BurnInGuard.IDLE_AFTER_MS * 3);
+        after(IDLE * 3);
         assertEquals("Home never dims", 1f, bar.getAlpha(), 0f);
     }
 
@@ -366,7 +377,7 @@ public class BurnInGuardTest {
         focusBack();
         assertTrue(BurnInGuard.watchingLayoutsForTests());
         assertNotSame("touches are watched now", activity, activity.getWindow().getCallback());
-        after(BurnInGuard.IDLE_AFTER_MS + 100);
+        after(IDLE + 100);
         assertDimmed("on after the settings closed");
 
         Settings.BURN_IN_GUARD.save(BurnInMode.OFF);
@@ -401,6 +412,157 @@ public class BurnInGuardTest {
         send(MotionEvent.ACTION_UP);
         assertTrue("no pass posted for a lift", Shadows.shadowOf(Looper.getMainLooper()).isIdle());
         assertEquals(-1L, BurnInGuard.nextPassAtForTests());
+    }
+
+    /** A finger event at [x, y] in the window, delivered as {@link #send} delivers one. */
+    private void sendAt(int action, float x, float y) {
+        long now = SystemClock.uptimeMillis();
+        MotionEvent event = MotionEvent.obtain(now, now, action, x, y, 0);
+        try {
+            activity.getWindow().getDecorView().dispatchTouchEvent(event);
+        } finally {
+            event.recycle();
+        }
+    }
+
+    private float[] middleOf(View view) {
+        int[] at = new int[2];
+        view.getLocationInWindow(at);
+        return new float[]{at[0] + view.getWidth() / 2f, at[1] + view.getHeight() / 2f};
+    }
+
+    private void tapOn(View view) {
+        float[] at = middleOf(view);
+        sendAt(MotionEvent.ACTION_DOWN, at[0], at[1]);
+        sendAt(MotionEvent.ACTION_UP, at[0], at[1]);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+    }
+
+    /**
+     * The reel laid out as 451 has it (#162): the viewer is the reels' pager, and a layer over the
+     * overlay holds the author and caption at the bottom left and the button column at the right,
+     * with Like, Save and HushGram's Download in it, each taking taps. The middle of the screen is
+     * the reel itself.
+     */
+    private void layOutTheReelsButtons() {
+        BurnInGuard.idForTests(BurnInGuard.REEL_ID, VIEWER);
+        BurnInGuard.idForTests("clips_media_info_component", INFO);
+        BurnInGuard.idForTests("save_button", SAVE);
+        FrameLayout layer = new FrameLayout(activity);
+        FrameLayout info = new FrameLayout(activity);
+        info.setId(INFO);
+        caption = new View(activity);
+        caption.setOnClickListener(view -> { });
+        info.addView(caption, new FrameLayout.LayoutParams(100, 40));
+        FrameLayout.LayoutParams infoAt = new FrameLayout.LayoutParams(100, 40);
+        infoAt.topMargin = H - 60;
+        layer.addView(info, infoAt);
+        FrameLayout column = new FrameLayout(activity);
+        column.setId(UFI);
+        like = button(column, 0);
+        save = button(column, 40);
+        save.setId(SAVE);
+        download = button(column, 80);
+        download.setContentDescription("Download");
+        FrameLayout.LayoutParams columnAt = new FrameLayout.LayoutParams(40, 120);
+        columnAt.leftMargin = W - 40;
+        columnAt.topMargin = H / 2 + 40;
+        layer.addView(column, columnAt);
+        viewer.addView(layer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        layout();
+    }
+
+    private View button(FrameLayout column, int top) {
+        View button = new View(activity);
+        button.setOnClickListener(view -> { });
+        FrameLayout.LayoutParams at = new FrameLayout.LayoutParams(40, 40);
+        at.topMargin = top;
+        column.addView(button, at);
+        return button;
+    }
+
+    @Test public void aTapOnTheReelOrOnSaveOrDownloadLeavesThemDimmedAndATapOnAButtonBringsThemBack() {
+        layOutTheReelsButtons();
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        after(IDLE + 100);
+        assertDimmed("idle");
+
+        tap();
+        assertDimmed("a tap on the reel to pause it");
+        tap();
+        tap();
+        assertDimmed("a double tap on the reel to like it");
+        tapOn(save);
+        assertDimmed("Save");
+        tapOn(download);
+        assertDimmed("HushGram's Download");
+
+        tapOn(like);
+        assertUp("Like");
+        after(IDLE + 100);
+        assertDimmed("idle again");
+        tapOn(caption);
+        assertUp("the caption");
+    }
+
+    @Test public void aTapOnTheReelDoesntStartTheWaitOver() {
+        layOutTheReelsButtons();
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        after(IDLE - 1_000);
+        tap();
+        assertUp("still waiting");
+        after(1_100);
+        assertDimmed("the wait the tap didn't start over ran out");
+    }
+
+    /** A swipe to the next reel counts from the moment it moves farther than a tap does. */
+    @Test public void aSwipeOnTheReelBringsThemBack() {
+        layOutTheReelsButtons();
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        after(IDLE + 100);
+        float[] at = middleOf(root);
+        sendAt(MotionEvent.ACTION_DOWN, at[0], at[1]);
+        sendAt(MotionEvent.ACTION_MOVE, at[0], at[1] + 1);
+        assertDimmed("a finger that hasn't moved past a tap");
+        sendAt(MotionEvent.ACTION_MOVE, at[0], at[1] - 150);
+        assertUp("a swipe");
+        after(IDLE * 2);
+        assertUp("a held swipe is a touch");
+        sendAt(MotionEvent.ACTION_UP, at[0], at[1] - 150);
+        after(IDLE - 100);
+        assertUp("the wait starts at the lift");
+        after(200);
+        assertDimmed("the wait after the swipe ran out");
+    }
+
+    @Test public void atOnceDimsThemAsSoonAsTheFingerLifts() {
+        layOutTheReelsButtons();
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        Settings.BURN_IN_WAIT.save(BurnInWait.AT_ONCE);
+        BurnInGuard.resumed(activity);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertDimmed("at once");
+        float[] at = middleOf(like);
+        sendAt(MotionEvent.ACTION_DOWN, at[0], at[1]);
+        assertUp("a finger on Like");
+        after(IDLE);
+        assertUp("held");
+        sendAt(MotionEvent.ACTION_UP, at[0], at[1]);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertDimmed("lifted");
+    }
+
+    @Test public void tenSecondsWaitsTenSeconds() {
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        Settings.BURN_IN_WAIT.save(BurnInWait.TEN_SECONDS);
+        BurnInGuard.resumed(activity);
+        after(BurnInWait.TEN_SECONDS.millis - 100);
+        assertUp("before ten seconds");
+        after(200);
+        assertDimmed("after ten seconds");
     }
 
     @Test public void theWatcherPassesTouchesOnToTheActivity() {

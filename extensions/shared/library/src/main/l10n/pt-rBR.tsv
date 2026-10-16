@@ -1022,8 +1022,11 @@ Hide the Save button on reels	Ocultar o botão Salvar nos reels
 Burn-in guard	Proteção contra burn-in
 Dim when idle	Escurecer quando parado
 Dim when idle and shift	Escurecer quando parado e mover
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch. A touch brings them back.	Na tela de Reels, os botões, a legenda e as barras ficam mais fracos após 5 segundos sem toque. Um toque os traz de volta.
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch, and the screen moves a step every 2 minutes. A touch brings them back.	Na tela de Reels, os botões, a legenda e as barras ficam mais fracos após 5 segundos sem toque, e a tela se move um pouco a cada 2 minutos. Um toque os traz de volta.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone. Touching one of them brings them back.	Na tela de Reels, os botões, a legenda e as barras ficam mais fracos quando você não mexe neles. Tocar em um deles os traz de volta.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone, and the screen moves a step every 2 minutes. Touching one of them brings them back.	Na tela de Reels, os botões, a legenda e as barras ficam mais fracos quando você não mexe neles, e a tela se move um pouco a cada 2 minutos. Tocar em um deles os traz de volta.
+Dim after	Escurecer após
+At once	Na hora
+Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	Tocar no vídeo, tocar duas vezes para curtir, Salvar e Baixar não contam como toque, então os botões continuam fracos.
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Desativado. Pode deixar os botões de um reel mais fracos enquanto a tela fica sem toque, para que não marquem uma tela OLED.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Tira o botão Salvar da coluna de botões ao lado de um reel, junto com o número embaixo dele. As publicações do seu feed continuam com o delas.
 Keep clear mode on	Manter o modo limpo ativado

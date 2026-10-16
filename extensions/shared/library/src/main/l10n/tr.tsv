@@ -1022,8 +1022,11 @@ Hide the Save button on reels	Reels'te Kaydet düğmesini gizle
 Burn-in guard	Ekran yanığı koruması
 Dim when idle	Boştayken karart
 Dim when idle and shift	Boştayken karart ve kaydır
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch. A touch brings them back.	Reels ekranında düğmeler, açıklama ve çubuklar 5 saniye dokunulmadığında soluklaşır. Bir dokunuş onları geri getirir.
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch, and the screen moves a step every 2 minutes. A touch brings them back.	Reels ekranında düğmeler, açıklama ve çubuklar 5 saniye dokunulmadığında soluklaşır ve ekran her 2 dakikada bir biraz kayar. Bir dokunuş onları geri getirir.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone. Touching one of them brings them back.	Reels ekranında düğmeler, açıklama ve çubuklar onlara dokunmadığınızda soluklaşır. Birine dokunmak onları geri getirir.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone, and the screen moves a step every 2 minutes. Touching one of them brings them back.	Reels ekranında düğmeler, açıklama ve çubuklar onlara dokunmadığınızda soluklaşır ve ekran her 2 dakikada bir biraz kayar. Birine dokunmak onları geri getirir.
+Dim after	Soluklaştırma süresi
+At once	Hemen
+Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	Videoya dokunmak, beğenmek için iki kez dokunmak, Kaydet ve İndir dokunuş sayılmaz, bu yüzden düğmeler soluk kalır.
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Kapalı. Ekrana dokunulmadığı sürece bir reel'in düğmelerini soluklaştırabilir, böylece OLED ekranda iz bırakmazlar.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Kaydet düğmesini reel'in yanındaki düğme sütunundan ve altındaki sayıyı kaldırır. Akışındaki gönderiler kendi düğmesini korur.
 Keep clear mode on	Temiz mod açık kalsın

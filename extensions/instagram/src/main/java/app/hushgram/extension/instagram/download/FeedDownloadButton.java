@@ -332,9 +332,10 @@ public final class FeedDownloadButton {
 
     /**
      * "Download" in Instagram's language, written again only when the languages change. L10n reads
-     * them from the application's configuration, so the same list is the key here.
+     * them from the application's configuration, so the same list is the key here. Burn-in guard
+     * knows the reel's Download button by it.
      */
-    static String description(Context context) {
+    public static String description(Context context) {
         Context application = context.getApplicationContext();
         LocaleList locales = (application != null ? application : context).getResources().getConfiguration().getLocales();
         Label known = label;

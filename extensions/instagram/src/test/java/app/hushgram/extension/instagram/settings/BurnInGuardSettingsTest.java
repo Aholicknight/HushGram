@@ -25,6 +25,7 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
 import app.hushgram.extension.instagram.reels.BurnInMode;
+import app.hushgram.extension.instagram.reels.BurnInWait;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -42,6 +43,7 @@ public class BurnInGuardSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.BURN_IN_GUARD.resetToDefault();
+        Settings.BURN_IN_WAIT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -52,6 +54,7 @@ public class BurnInGuardSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.BURN_IN_GUARD.resetToDefault();
+        Settings.BURN_IN_WAIT.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(EnumSet<PatchFamily> build) throws Exception {
@@ -91,13 +94,47 @@ public class BurnInGuardSettingsTest {
         assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("every 2 minutes"));
         row.setValue("DIM");
         assertFalse(row.getSummary().toString(), row.getSummary().toString().contains("every 2 minutes"));
-        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("5 seconds"));
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("leave them alone"));
 
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.BURN_IN_GUARD.key));
+    }
+    /** Dim after (#162) follows Burn-in guard, starts at the 5 seconds it always waited and says what doesn't count as a touch. */
+    @Test public void dimAfterFollowsBurnInGuardAndStartsAtFiveSeconds() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference found = page.getPreferenceScreen().findPreference(Settings.BURN_IN_WAIT.key);
+        assertTrue(found instanceof HushgramPreferenceFragment.BurnInWaitRow);
+        ListPreference row = (ListPreference) found;
+        assertEquals("Dim after", row.getTitle().toString());
+        PreferenceGroup reels = (PreferenceGroup) row.getParent();
+        int guard = -1;
+        int wait = -1;
+        for (int i = 0; i < reels.getPreferenceCount(); i++) {
+            String key = reels.getPreference(i).getKey();
+            if (Settings.BURN_IN_GUARD.key.equals(key)) guard = i;
+            if (Settings.BURN_IN_WAIT.key.equals(key)) wait = i;
+        }
+        assertEquals("right after Burn-in guard", guard + 1, wait);
+
+        List<String> entries = new ArrayList<>();
+        for (CharSequence entry : row.getEntries()) entries.add(entry.toString());
+        assertEquals(Arrays.asList("At once", "After 2 seconds", "After 5 seconds", "After 10 seconds"), entries);
+        assertEquals(BurnInWait.FIVE_SECONDS, Settings.BURN_IN_WAIT.get());
+        String summary = row.getSummary().toString();
+        assertTrue(summary, summary.startsWith("After 5 seconds. Tapping the video"));
+        assertTrue(summary, summary.contains("Save and Download"));
+
+        row.setValue("AT_ONCE");
+        ShadowLooper.idleMainLooper();
+        assertEquals(BurnInWait.AT_ONCE, Settings.BURN_IN_WAIT.savedValue());
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().startsWith("At once. "));
+
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.BURN_IN_WAIT.key));
     }
     @Test public void withoutCleanUpReelsThereIsNoRowAndNothingToBackUp() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.BURN_IN_GUARD.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.BURN_IN_WAIT.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.BURN_IN_GUARD.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.BURN_IN_WAIT.key));
     }
 }

@@ -1022,8 +1022,11 @@ Hide the Save button on reels	Speichern-Button bei Reels ausblenden
 Burn-in guard	Einbrennschutz
 Dim when idle	Abdunkeln bei Inaktivität
 Dim when idle and shift	Abdunkeln bei Inaktivität und verschieben
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch. A touch brings them back.	Auf dem Reels-Bildschirm werden Schaltflächen, Beschreibung und Leisten nach 5 Sekunden ohne Berührung blasser. Eine Berührung holt sie zurück.
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch, and the screen moves a step every 2 minutes. A touch brings them back.	Auf dem Reels-Bildschirm werden Schaltflächen, Beschreibung und Leisten nach 5 Sekunden ohne Berührung blasser, und der Bildschirm rückt alle 2 Minuten ein Stück weiter. Eine Berührung holt sie zurück.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone. Touching one of them brings them back.	Auf dem Reels-Bildschirm werden Schaltflächen, Beschreibung und Leisten blasser, wenn du sie in Ruhe lässt. Eine Berührung auf einem davon holt sie zurück.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone, and the screen moves a step every 2 minutes. Touching one of them brings them back.	Auf dem Reels-Bildschirm werden Schaltflächen, Beschreibung und Leisten blasser, wenn du sie in Ruhe lässt, und der Bildschirm rückt alle 2 Minuten ein Stück weiter. Eine Berührung auf einem davon holt sie zurück.
+Dim after	Abdunkeln nach
+At once	Sofort
+Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	Tippen aufs Video, Doppeltippen zum Liken sowie Speichern und Herunterladen zählen nicht als Berührung, die Schaltflächen bleiben also blass.
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Aus. Kann die Schaltflächen eines Reels blasser machen, solange niemand den Bildschirm berührt, damit sie sich nicht in einen OLED-Bildschirm einbrennen.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Nimmt den Speichern-Button aus der Button-Spalte neben einem Reel, dazu die Zahl darunter. Beiträge in deinem Feed behalten ihren.
 Keep clear mode on	Klaren Modus anlassen

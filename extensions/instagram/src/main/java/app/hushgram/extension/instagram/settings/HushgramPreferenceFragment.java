@@ -114,6 +114,7 @@ import app.hushgram.extension.instagram.misc.Fonts;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.reels.BurnInMode;
+import app.hushgram.extension.instagram.reels.BurnInWait;
 import app.hushgram.extension.instagram.reels.CaptionWordReels;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.StartTab;
@@ -880,6 +881,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Takes the Save button out of the column of buttons beside a reel, and the count under it. "
                             + "Posts in your feed keep theirs.")));
             reels.add(burnInGuardRow(context));
+            reels.add(burnInWaitRow(context));
             reels.add(toggle(context, Settings.KEEP_REEL_CLEAR_MODE, L10n.t("Keep clear mode on"),
                     L10n.t("Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear "
                             + "mode yourself and the next reels show their buttons again.")));
@@ -1835,7 +1837,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.STORY_RING_COLOR.key.equals(key));
                     belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
-                    belongs |= family == PatchFamily.REEL_DECLUTTER && Settings.BURN_IN_GUARD.key.equals(key);
+                    belongs |= family == PatchFamily.REEL_DECLUTTER && (Settings.BURN_IN_GUARD.key.equals(key)
+                            || Settings.BURN_IN_WAIT.key.equals(key));
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
@@ -4454,15 +4457,46 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static String burnInSummary(BurnInMode mode) {
         switch (mode) {
             case DIM:
-                return L10n.t("On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch. "
-                        + "A touch brings them back.");
+                return L10n.t("On the Reels screen, the buttons, caption and bars fade when you leave them alone. "
+                        + "Touching one of them brings them back.");
             case DIM_AND_SHIFT:
-                return L10n.t("On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch, "
-                        + "and the screen moves a step every 2 minutes. A touch brings them back.");
+                return L10n.t("On the Reels screen, the buttons, caption and bars fade when you leave them alone, "
+                        + "and the screen moves a step every 2 minutes. Touching one of them brings them back.");
             default:
                 return L10n.t("Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into "
                         + "an OLED screen.");
         }
+    }
+
+    /** How long Burn-in guard waits before it dims (#162). Its summary says the choice and what counts as a touch. */
+    static BurnInWaitRow burnInWaitRow(Context context) {
+        BurnInWaitRow row = new BurnInWaitRow(context);
+        row.setKey(Settings.BURN_IN_WAIT.key);
+        row.setTitle(L10n.t("Dim after"));
+        row.setDialogTitle(L10n.t("Dim after"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        BurnInWait[] waits = BurnInWait.values();
+        CharSequence[] entries = new CharSequence[waits.length];
+        CharSequence[] values = new CharSequence[waits.length];
+        for (int i = 0; i < waits.length; i++) {
+            entries[i] = burnInWaitLabel(waits[i]);
+            values[i] = waits[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.BURN_IN_WAIT.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [wait]. */
+    static String burnInWaitLabel(BurnInWait wait) {
+        return wait == BurnInWait.AT_ONCE ? L10n.t("At once") : L10n.f("After %1$d seconds", wait.millis / 1000);
+    }
+
+    /** [wait], then what doesn't count as a touch, for the row's summary. */
+    static String burnInWaitSummary(BurnInWait wait) {
+        return burnInWaitLabel(wait) + ". " + L10n.t("Tapping the video, double-tapping it to like, and Save and "
+                + "Download don't count as a touch, so the buttons stay faded.");
     }
 
     /** What a single tap on a reel does. Its summary says what the choice does. */
@@ -5185,6 +5219,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((ReelTapChoiceRow) preference).showSummary();
         } else if (preference instanceof BurnInGuardRow) {
             ((BurnInGuardRow) preference).showSummary();
+        } else if (preference instanceof BurnInWaitRow) {
+            ((BurnInWaitRow) preference).showSummary();
         } else if (preference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) preference).showSummary();
         } else if (preference instanceof FollowLabelPlaceRow) {
@@ -6282,6 +6318,42 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(getValue())) mode = candidate;
             }
             setSummary(burnInSummary(mode));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /** The Burn-in guard wait (#162). Its summary says the choice, as the Burn-in guard row's does. */
+    static final class BurnInWaitRow extends ListPreference {
+        BurnInWaitRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            BurnInWait wait = BurnInWait.FIVE_SECONDS;
+            for (BurnInWait candidate : BurnInWait.values()) {
+                if (candidate.name().equals(getValue())) wait = candidate;
+            }
+            setSummary(burnInWaitSummary(wait));
         }
 
         @Override

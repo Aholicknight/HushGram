@@ -1291,6 +1291,10 @@ public class Settings extends BaseSettings {
     public static final EnumSetting<app.hushgram.extension.instagram.reels.BurnInMode> BURN_IN_GUARD =
             new EnumSetting<>("hushgram_burn_in_guard", app.hushgram.extension.instagram.reels.BurnInMode.OFF);
 
+    /** How long Burn-in guard waits before it dims (#162). 5 seconds to start, as before the choice. */
+    public static final EnumSetting<app.hushgram.extension.instagram.reels.BurnInWait> BURN_IN_WAIT =
+            new EnumSetting<>("hushgram_burn_in_wait", app.hushgram.extension.instagram.reels.BurnInWait.FIVE_SECONDS);
+
     /**
      * Download in every reel's more menu, saving the reel through the save pipeline below instead
      * of Instagram's own save, which only some reels offer and which stamps a watermark on.

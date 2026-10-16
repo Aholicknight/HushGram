@@ -1021,8 +1021,11 @@ Hide the Save button on reels	릴스의 저장 버튼 숨기기
 Burn-in guard	번인 방지
 Dim when idle	사용하지 않을 때 어둡게
 Dim when idle and shift	사용하지 않을 때 어둡게 하고 이동
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch. A touch brings them back.	릴스 화면에서 5초 동안 터치가 없으면 버튼, 설명, 바가 흐려집니다. 터치하면 다시 보입니다.
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch, and the screen moves a step every 2 minutes. A touch brings them back.	릴스 화면에서 5초 동안 터치가 없으면 버튼, 설명, 바가 흐려지고, 화면이 2분마다 조금씩 이동합니다. 터치하면 다시 보입니다.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone. Touching one of them brings them back.	릴스 화면에서 버튼, 설명, 바를 그대로 두면 흐려집니다. 그중 하나를 터치하면 다시 보입니다.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone, and the screen moves a step every 2 minutes. Touching one of them brings them back.	릴스 화면에서 버튼, 설명, 바를 그대로 두면 흐려지고, 화면이 2분마다 조금씩 이동합니다. 그중 하나를 터치하면 다시 보입니다.
+Dim after	흐려지기까지
+At once	바로
+Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	동영상 탭, 두 번 탭해서 좋아요, 저장과 다운로드는 터치로 치지 않으므로 버튼이 흐린 채로 있습니다.
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	사용 안함. 화면을 터치하지 않는 동안 릴스 버튼을 흐리게 해서 OLED 화면에 번인이 생기지 않게 할 수 있습니다.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	릴스 옆 버튼 열에서 저장 버튼과 그 아래 숫자를 없앱니다. 피드 게시물의 저장 버튼은 그대로 남습니다.
 Keep clear mode on	클리어 모드 유지
