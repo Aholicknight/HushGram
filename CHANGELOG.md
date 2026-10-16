@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram - Hide the Reels tab:** Always Home works after you swipe Instagram away from recent apps too. Instagram keeps running in the background then, so opening it from the icon went back to Reels. Coming back to Instagram while it's still open keeps you where you were. Reported in #55.
 * **Instagram - Download any story:** A video story you filmed gets Download as photo under Download now, so you can save one still picture from it at its largest size. Download still saves the video, and a photo with music keeps its Download as video and Download as photo. Asked for in #215.
 * **Instagram - Download any reel:** New switch under Download, Download audio, off by default. It adds Download audio to a reel's menu, which saves just the sound as an M4A file to Recordings (Music on Android 11 and older). Asked for in #216.
 * **Instagram - Keep a seek bar on Reels:** With Seek bar like DM videos or Bigger seek bar on reels, the played part of the bar and its handle slide along steadily. They used to move in small jumps, about ten a second, since that's how often Instagram updates it. Reported in #10.

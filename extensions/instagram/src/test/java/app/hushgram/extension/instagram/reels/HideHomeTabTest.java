@@ -111,13 +111,13 @@ public class HideHomeTabTest {
     @Test
     public void aColdStartFromTheIconOrALinkLandsOnTheStartTab() {
         hideHomeFor(StartTab.PROFILE);
-        TabStart.noteFirstStart(launcher(), null);
+        TabStart.noteStart(launcher(), null);
         ReelsTab.tabs(BAR);
         assertSame("from the icon", Tab.PROFILE, ReelsTab.tab(Tab.FEED));
         assertSame("later, Back to Home", Tab.PROFILE, ReelsTab.tab(Tab.FEED));
 
         TabStart.forgetForTests();
-        TabStart.noteFirstStart(link(), null);
+        TabStart.noteStart(link(), null);
         ReelsTab.tabs(BAR);
         assertSame("from a link", Tab.PROFILE, ReelsTab.tab(Tab.FEED));
         assertSame("a saved back stack's Home", Tab.PROFILE, ReelsTab.root(Tab.FEED));
