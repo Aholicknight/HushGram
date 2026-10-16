@@ -141,6 +141,8 @@ final class ReelTimeLabel {
         final WeakReference<SeekBar> bar;
         /** The reel tag and the length the label was laid out for; a change of either starts it over. */
         String reel;
+        /** The reel tag the bar's container was last bound to, or null before a bind with one. */
+        String bound;
         int max = -1;
         /** The label's width, enough for the longest time this length can show. */
         int width;
@@ -317,6 +319,7 @@ final class ReelTimeLabel {
                     State state = (State) tracker.label.getTag();
                     if (ad) updateThumb(bar, state, false);
                     if (!stillOrdinary || !Objects.equals(state.reel, reelOf(bar))) hide(bar, tracker.label);
+                    if (!ad && (on.getAsBoolean() || ReelSeekBar.thumbOn())) startOver(bar, state);
                     tracker.queue(bar);
                 } else if (!ad && (on.getAsBoolean() || ReelSeekBar.thumbOn())) {
                     MAIN.post(() -> update(bar, bar.getProgress(), on));
@@ -326,6 +329,26 @@ final class ReelTimeLabel {
             HookStatus.threw(FamilyNames.REEL_SEEK_BAR, "seek bar reel", failure);
         }
     }
+
+    /**
+     * A bar Instagram moves on to another reel keeps the last reel's position until the new reel's
+     * player first moves it, so its thumb and played part showed a few percent in and then jumped back
+     * to the start (#10). Bound to a reel tag other than the one before, the bar starts at 0, as
+     * the player's own first update would set it. Bound again to the same reel, or with no tag to
+     * tell, it's left where it is.
+     */
+    private static void startOver(SeekBar bar, State state) {
+        String reel = reelOf(bar);
+        if (reel == null || reel.equals(state.bound)) return;
+        state.bound = reel;
+        if (bar.getProgress() != 0 && !bar.isPressed()) {
+            bar.setProgress(0);
+            HookStatus.counted(FamilyNames.REEL_SEEK_BAR, COUNT_STARTED_OVER);
+        }
+    }
+
+    /** What's counted each time a bar moved on to another reel goes back to its start. */
+    static final String COUNT_STARTED_OVER = "Seek bar back to the start for a new reel";
 
     /**
      * Shows [bar]'s position and length in its label while the switch is on, and hides the label
@@ -351,7 +374,10 @@ final class ReelTimeLabel {
             if (tracker == null && thumbOn) tracker = track(bar, on);
             if (tracker != null) {
                 label = tracker.label;
-                updateThumb(bar, (State) label.getTag(), thumbOn);
+                State state = (State) label.getTag();
+                // A bar first seen playing learns its reel here, so binding that reel again doesn't start it over.
+                if (state.bound == null) state.bound = reelOf(bar);
+                updateThumb(bar, state, thumbOn);
             }
             if (!labelOn || max <= 0) {
                 if (label != null) hide(bar, label);
@@ -693,6 +719,7 @@ final class ReelTimeLabel {
     /** Makes the bar's one label and listener, and has the bar keep them. */
     private static Tracker track(SeekBar bar, BooleanSupplier on) {
         Tracker tracker = new Tracker(create(bar), on);
+        ((State) tracker.label.getTag()).bound = reelOf(bar);
         synchronized (TRACKERS) {
             TRACKERS.put(bar, new WeakReference<>(tracker));
         }
