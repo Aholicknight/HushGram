@@ -20,6 +20,7 @@ import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -581,13 +582,26 @@ final class ReelTimeLabel {
      * A rounded bar of a fixed thickness, as wide as its bounds, or as far across them as its level says
      * when it's the progress, from the start side. It's centered on the handle's middle once that's known,
      * which can be above the track's own bounds, and on the middle of its bounds until then.
+     *
+     * <p>Instagram moves a reel's bar about ten times a second, so the progress jumped along in steps
+     * (#10). It eases from where it's drawn to each new level over the time since the level before, so it
+     * moves steadily and arrives as the next one comes. A level that goes back (a new reel, a seek back)
+     * or comes more than {@link #EASE_MAX_MS} after the last one (a reel that was paused) is drawn at once.
      */
     static final class Pill extends Drawable {
+        /** The longest gap between levels that's eased over; a longer one draws the new level at once. */
+        static final long EASE_MAX_MS = 250L;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF rect = new RectF();
         private final float thickness;
         private final boolean progress;
         private float center = Float.NaN;
+        /** The progress eases from [easeFrom] to [easeTo] (levels) over [easeLength] from [easeStart]. */
+        private float easeFrom;
+        private int easeTo;
+        private long easeStart;
+        private long easeLength;
+        private long lastLevelAt = -1L;
 
         Pill(int color, float thickness, boolean progress) {
             this.paint.setColor(color);
@@ -608,7 +622,10 @@ final class ReelTimeLabel {
             float left = bounds.left;
             float right = bounds.right;
             if (progress) {
-                float across = bounds.width() * (getLevel() / 10000f);
+                long now = SystemClock.uptimeMillis();
+                float across = bounds.width() * (shownLevel(now) / 10000f);
+                // Still on its way to the level: draw again next frame.
+                if (now < easeStart + easeLength) invalidateSelf();
                 if (across <= 0f) return;
                 if (getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) left = right - across;
                 else right = left + across;
@@ -617,9 +634,28 @@ final class ReelTimeLabel {
             canvas.drawRoundRect(rect, thickness / 2f, thickness / 2f, paint);
         }
 
+        /** The level drawn at [now], on its way from the one drawn when the level last changed to the new one. */
+        float shownLevel(long now) {
+            if (easeLength <= 0L || now >= easeStart + easeLength) return easeTo;
+            return easeFrom + (easeTo - easeFrom) * ((now - easeStart) / (float) easeLength);
+        }
+
         @Override
         protected boolean onLevelChange(int level) {
             if (!progress) return false;
+            long now = SystemClock.uptimeMillis();
+            float shown = shownLevel(now);
+            long since = lastLevelAt < 0L ? Long.MAX_VALUE : now - lastLevelAt;
+            lastLevelAt = now;
+            easeStart = now;
+            easeTo = level;
+            if (level < shown || since > EASE_MAX_MS) {
+                easeFrom = level;
+                easeLength = 0L;
+            } else {
+                easeFrom = shown;
+                easeLength = since;
+            }
             invalidateSelf();
             return true;
         }

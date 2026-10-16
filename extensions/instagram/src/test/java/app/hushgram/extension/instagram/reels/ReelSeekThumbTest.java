@@ -15,6 +15,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
@@ -31,6 +32,10 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.shadows.ShadowSystemClock;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -272,6 +277,57 @@ public class ReelSeekThumbTest {
         refresh();
         assertSame(styled, bar.getProgressDrawable());
         assertSame(backdrop, bar.getBackground());
+    }
+
+    /**
+     * #10: Instagram moves the bar about ten times a second, so the restyled progress eases to each new
+     * level over the time since the one before, rather than jumping. Going back, or a level after a
+     * pause longer than the easing allows, is drawn at once.
+     */
+    @Test public void theRestyledProgressEasesBetweenInstagramsSteps() {
+        ReelTimeLabel.Pill pill = new ReelTimeLabel.Pill(Color.WHITE, 8f, true);
+        pill.setBounds(0, 0, 1000, 20);
+        pill.setLevel(1000);
+        assertEquals("the first level is drawn at once", 1000f, pill.shownLevel(SystemClock.uptimeMillis()), 0.01f);
+
+        ShadowSystemClock.advanceBy(100, TimeUnit.MILLISECONDS);
+        long step = SystemClock.uptimeMillis();
+        pill.setLevel(2000);
+        assertEquals("starts where it was", 1000f, pill.shownLevel(step), 0.01f);
+        assertEquals("halfway after half the step", 1500f, pill.shownLevel(step + 50), 0.01f);
+        assertEquals("there as the next step comes", 2000f, pill.shownLevel(step + 100), 0.01f);
+
+        ShadowSystemClock.advanceBy(50, TimeUnit.MILLISECONDS);
+        long early = SystemClock.uptimeMillis();
+        pill.setLevel(2500);
+        assertEquals("a step that comes early starts from where the line is", 1500f, pill.shownLevel(early), 0.01f);
+        assertEquals(2500f, pill.shownLevel(early + 50), 0.01f);
+
+        ShadowSystemClock.advanceBy(10, TimeUnit.MILLISECONDS);
+        pill.setLevel(0);
+        assertEquals("a new reel starts at 0 at once", 0f, pill.shownLevel(SystemClock.uptimeMillis()), 0.01f);
+
+        ShadowSystemClock.advanceBy(ReelTimeLabel.Pill.EASE_MAX_MS + 1, TimeUnit.MILLISECONDS);
+        pill.setLevel(400);
+        assertEquals("after a pause the level is drawn at once", 400f, pill.shownLevel(SystemClock.uptimeMillis()), 0.01f);
+
+        // While it eases, a frame asks for the next one.
+        AtomicInteger asked = new AtomicInteger();
+        pill.setCallback(new Drawable.Callback() {
+            @Override public void invalidateDrawable(Drawable who) { asked.incrementAndGet(); }
+            @Override public void scheduleDrawable(Drawable who, Runnable what, long when) { }
+            @Override public void unscheduleDrawable(Drawable who, Runnable what) { }
+        });
+        ShadowSystemClock.advanceBy(100, TimeUnit.MILLISECONDS);
+        pill.setLevel(900);
+        Bitmap pixels = Bitmap.createBitmap(1000, 20, Bitmap.Config.ARGB_8888);
+        asked.set(0);
+        pill.draw(new Canvas(pixels));
+        assertEquals("easing, the next frame is asked for", 1, asked.get());
+        ShadowSystemClock.advanceBy(100, TimeUnit.MILLISECONDS);
+        asked.set(0);
+        pill.draw(new Canvas(pixels));
+        assertEquals("arrived, no more frames", 0, asked.get());
     }
 
     /**

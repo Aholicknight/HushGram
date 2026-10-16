@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram - Keep a seek bar on Reels:** With Seek bar like DM videos or Bigger seek bar on reels, the played part of the bar slides along steadily. It used to move in small jumps, about ten a second, since that's how often Instagram updates it. Reported in #10.
 * **Instagram - Glass tab bar:** With Show content behind the tab bar on, a reel's comment box sat under the navigation bar until the keyboard came up, and other sheets that slide up over the pill could lose their bottom row the same way. While a sheet is open it gets its usual space above the navigation bar again, and the pill stays put under it. Reported in #209.
 * **Instagram - Clean up Reels:** Tapping a reel to pause or play it, double-tapping to like it, and tapping Save or Download no longer bring Burn-in guard's faded buttons back. Touching any other button, the caption, the top or bottom bar, or swiping to the next reel still does. A new Dim after choice under Burn-in guard sets how long it waits: at once, or after 2, 5 or 10 seconds (5 to start, as before). Asked for in #162.
 * **Instagram - Keep a seek bar on Reels:** A new reel's seek bar starts at the beginning right away. It used to show the last reel's spot for a moment and then jump back to the start, which was most of what you'd see when swiping quickly. Reported in #10.
