@@ -19,6 +19,7 @@ import app.hushgram.extension.shared.settings.FailingStore;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 import app.hushgram.extension.shared.settings.Setting;
+import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
 import app.hushgram.extension.shared.settings.preference.SharedPrefCategory;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -62,6 +63,7 @@ public class PauseRecoveryTest {
         PauseForTests.resume();
         BaseSettings.PAUSED.resetToDefault();
         BaseSettings.SAFE_MODE.resetToDefault();
+        AbstractPreferenceFragment.restartPending.clear();
         SettingsEntry.onClosedByUser();
         ScreenColors.shown = null;
         PatchFamily.inBuildForTests = null;
@@ -112,6 +114,36 @@ public class PauseRecoveryTest {
                 assertEquals("HushGram turns back on when Instagram restarts.", status.getSummary());
                 assertTrue("recovery cannot change this process's frozen pause", HushgramPause.isPaused());
             }
+        }
+    }
+
+    /** Turning HushGram back on from the card offers Restart now, since that's what applies it (#146). */
+    @Test public void turningBackOnOffersRestartNow() throws Exception {
+        try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(host);
+            assertFalse("still paused at the next start, a restart applies nothing", page.restartActionAvailable());
+            tap(statusCard(page));
+            finish();
+            assertFalse(BaseSettings.PAUSED.savedValue());
+            assertTrue(page.restartActionAvailable());
+        }
+    }
+
+    /** Flipping Pause on offers Restart now right away; flipping it back off owes nothing again (#146). */
+    @Test public void flippingPauseOffersRestartNow() throws Exception {
+        PauseForTests.resume();
+        BaseSettings.PAUSED.save(false);
+        try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(host);
+            SwitchPreference pause = (SwitchPreference) page.findPreference(BaseSettings.PAUSED.key);
+            assertFalse("nothing owed yet", page.restartActionAvailable());
+            pause.setChecked(true);
+            finish();
+            assertTrue(BaseSettings.PAUSED.savedValue());
+            assertTrue("the next start pauses, so the screen offers the restart", page.restartActionAvailable());
+            pause.setChecked(false);
+            finish();
+            assertFalse("back where it started, nothing is owed", page.restartActionAvailable());
         }
     }
 

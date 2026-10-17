@@ -3574,6 +3574,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             Utils.showToastLong(L10n.t("Couldn't turn HushGram back on. Try again."));
         }
         showStatus(statusCard, context);
+        showRestart();
     }
 
     /**
@@ -3624,8 +3625,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /**
      * The shared fragment's "restart to apply" feedback while this page is up. When the screen shows
      * its Restart now bar (#146), the bar is what to tap, so a screen reader hears the message and
-     * no toast covers the page. Otherwise (HushGram paused, or pausing at the next start: that
-     * restart would come up paused) the toast still says it, since nothing on the screen does.
+     * no toast covers the page. Otherwise (HushGram paused now and at the next start too, so a
+     * restart would apply nothing) the toast still says it, since nothing on the screen does.
      */
     private final AbstractPreferenceFragment.RestartFeedbackPresenter restartFeedback = (shown, message) -> {
         ListView list = listView();
@@ -3644,11 +3645,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         showRestart();
     }
 
-    /** Whether Restart now is offered: a change waits on a restart, and no pause is on or coming. */
+    /**
+     * Whether Restart now is offered. Pausing HushGram or turning it back on changes what the next
+     * start runs, so that alone offers it (#146: flipping Pause offered nothing to tap). While the
+     * pause holds through the next start too, a restart applies nothing and the bar stays off.
+     */
     boolean restartActionAvailable() {
         Context context = getContext();
-        return context != null && !HushgramPause.isPaused()
-                && !HushgramPause.pausesNextStart(context) && RestartNow.owed();
+        if (context == null) return false;
+        boolean pausedNext = HushgramPause.pausesNextStart(context);
+        if (pausedNext != HushgramPause.isPaused()) return true;
+        return !pausedNext && RestartNow.owed();
     }
 
     /**
