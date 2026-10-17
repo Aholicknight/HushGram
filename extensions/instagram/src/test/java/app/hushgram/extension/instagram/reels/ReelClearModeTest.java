@@ -303,10 +303,62 @@ public class ReelClearModeTest {
 
         swipe(first, card);
         assertEquals("Instagram was asked, and found nothing to turn on", 1, viewer.asked);
+        assertTrue("its button may still be coming", ReelClearMode.waiting());
+
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals("one more try, and the card still has no button", 2, viewer.asked);
         assertEquals(Collections.singletonList("first OVERFLOW_MENU"), viewer.turnedOn);
         assertFalse(ReelClearMode.wanted());
+        assertFalse(ReelClearMode.waiting());
 
         swipe(card, after);
+        assertEquals(2, viewer.asked);
+        assertEquals(1, viewer.turnedOn.size());
+    }
+
+    /**
+     * The next reel's exit button can be built after its swipe lands and the old button leaves. The
+     * turn-on is held back and given to the reel once its button is built (#233).
+     */
+    @Test
+    public void aReelWhoseExitButtonComesLateStillGetsClearMode() {
+        Reel first = reel("first");
+        Reel late = new Reel("late");
+        viewer.page = first;
+        tapClearMode();
+
+        swipe(first, late);
+        assertEquals(1, viewer.asked);
+        assertTrue(ReelClearMode.wanted());
+        assertTrue(ReelClearMode.waiting());
+
+        viewer.now += 200;
+        ReelClearMode.built(late);
+        assertEquals("not before Instagram is done with the button", 1, viewer.asked);
+        ReelClearMode.built(new Reel("another"));
+        assertEquals("one try", 1, viewer.posted.size());
+        viewer.runPosted();
+
+        assertEquals(Arrays.asList("first OVERFLOW_MENU", "late OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(ReelClearMode.wanted());
+        assertFalse(ReelClearMode.waiting());
+        assertTrue(HookStatus.report().toString(), counted(1));
+    }
+
+    /** A button built after the wait is over is no reason to turn clear mode on for that page. */
+    @Test
+    public void aButtonBuiltAfterTheWaitIsOverAsksForNothing() {
+        Reel first = reel("first");
+        Reel late = new Reel("late");
+        viewer.page = first;
+        tapClearMode();
+        swipe(first, late);
+
+        viewer.now += ReelClearMode.RETRY_WINDOW_MS + 1;
+        ReelClearMode.built(late);
+        viewer.runPosted();
+
         assertEquals(1, viewer.asked);
         assertEquals(1, viewer.turnedOn.size());
     }

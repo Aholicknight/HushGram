@@ -39,9 +39,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Instagram's turn-on acts on whatever reel the pager is on, so {@link #current} looks at that
  * reel first and holds the turn-on back when it would be the wrong one: the reel that just left
  * clear mode, which is what the pager still names when the viewer is closing or the swipe hasn't
- * landed, or a page that never built an exit button, which could never leave clear mode again. A
- * swipe that hasn't landed gets one more try when the pager reports its next page, within
- * {@link #RETRY_WINDOW_MS}. Anything else ends the carrying until you turn clear mode on again.
+ * landed, or a page with no exit button yet, which could never leave clear mode again. A swipe
+ * that hasn't landed, or a page whose button isn't built yet, gets one more try when the pager
+ * reports its next page or the button is built, within {@link #RETRY_WINDOW_MS} (#233). Anything else ends the carrying until you turn clear mode on again.
  *
  * <p>Leaving clear mode yourself, by its exit button or the menu, forgets it, and the next reels
  * show their buttons. What is kept is small and holds no view: whether clear mode is wanted, the
@@ -73,6 +73,8 @@ public final class ReelClearMode {
     private static final int SAME_REEL = 1;
     private static final int NO_BUTTON = 2;
     private static final int REACHED = 3;
+    /** A reel Instagram hasn't built an exit button for yet: its button may still come (#233). */
+    private static final int NOT_BUILT = 4;
 
     /** What this class does to Instagram and reads from it. {@link #PATCHED} is the patch's; tests stand in. */
     interface Viewer {
@@ -259,7 +261,7 @@ public final class ReelClearMode {
                 return null;
             }
             if (!hasButton(id)) {
-                outcome = NO_BUTTON;
+                outcome = NOT_BUILT;
                 return null;
             }
             outcome = REACHED;
@@ -316,12 +318,24 @@ public final class ReelClearMode {
                 }
                 lastBuilt = id;
             }
+            wakeIfWaiting();
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "clear mode exit button", failure);
         }
     }
 
     // ------------------------------------------------------------------ the rule
+
+    /**
+     * A reel that was waiting for its exit button may have it now: the one more try runs once Instagram
+     * is done with the button. Built can run off the main thread, so the try is posted (#233).
+     */
+    private static void wakeIfWaiting() {
+        long until = retryUntil;
+        if (until == 0 || retryPosted || access.now() > until) return;
+        retryPosted = true;
+        access.post(ReelClearMode::retry);
+    }
 
     /** The pager's next page, once Instagram has handled it: the one more try. */
     private static void retry() {
@@ -373,7 +387,7 @@ public final class ReelClearMode {
             shown = id;
             HookStatus.counted(FAMILY, CARRIED);
             Logger.printDebug(() -> "Clear mode: carried to the next reel");
-        } else if (found == SAME_REEL && !lastTry) {
+        } else if ((found == SAME_REEL || found == NOT_BUILT) && !lastTry) {
             waiting = new WeakReference<>(handler);
             retryUntil = access.now() + RETRY_WINDOW_MS;
         } else {
