@@ -20,7 +20,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Clean up Reels:** Keep clear mode on missed some reels and left their buttons up when the next reel's controls showed up late. It waits for them now. Reported in #233.
 
-* **Instagram - Find the reel you came from:** The search keeps going much further down a profile's reels before it says it couldn't find one, so an older reel many pages down is still found. Reported in #225.
+* **Instagram - Find the reel you came from:** The search keeps going much further down a profile's reels before it says it couldn't find one, so an older reel many pages down is still found. It also waits out a slow page while Instagram's spinner shows, instead of taking it for the end of the profile. Reported in #225.
 
 * **Instagram - Hide suggested posts:** With `Hide videos` or another Home switch on, a page that came back with a post or two, or none at all, left Home on an endless spinner or the Welcome card. Home asks for the next page by itself now. Reported in #28.
 

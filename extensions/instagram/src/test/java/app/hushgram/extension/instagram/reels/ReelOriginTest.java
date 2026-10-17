@@ -379,6 +379,59 @@ public class ReelOriginTest {
     }
 
     /**
+     * Deep in a big profile a page can take longer than the end's wait, Instagram's spinner showing
+     * below the last row all the while. The search took that for the end and gave up (#225, S22
+     * 2026-10-17): it waits while the spinner shows, and finds the reel three slow pages down.
+     */
+    @Test
+    public void aSlowPageWithItsSpinnerShowingIsWaitedFor() {
+        List<List<String>> pages = new ArrayList<>();
+        for (int page = 0; page < 4; page++) pages.add(reels(12, 9000 - page * 100));
+        pages.get(3).set(5, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(new ArrayList<>(pages.get(0)), null);
+        Handler main = new Handler(Looper.getMainLooper());
+        int[] loaded = {1};
+        long slow = ReelOrigin.END_WAIT_MS + 3000;
+        grid.atEnd = () -> {
+            if (grid.loading || loaded[0] >= pages.size()) return;
+            grid.loading = true;
+            grid.bind();
+            main.postDelayed(() -> {
+                grid.reels.addAll(pages.get(loaded[0]++));
+                grid.loading = false;
+                grid.bind();
+            }, slow);
+        };
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(40);
+        assertEquals(HookStatus.report() + " drags " + grid.drags.size() + " pages " + loaded[0], List.of(REEL), shown);
+        assertNull(ShadowToast.getTextOfLatestToast());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.FOUND + " 1"));
+        assertFalse(report, report.contains(ReelOrigin.NOT_FOUND));
+    }
+
+    /** A spinner that never stops doesn't keep the search going: it gives up after the longer wait. */
+    @Test
+    public void aSpinnerThatNeverStopsGivesUpAfterTheLongerWait() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(reels(5, 9000), null);
+        grid.loading = true;
+        grid.bind();
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(ReelOrigin.END_WAIT_MS / 1000 + 3);
+        assertNull("still waiting while it spins", ShadowToast.getTextOfLatestToast());
+        assertEquals(REEL, ReelOrigin.heldForTests());
+        idleSeconds(ReelOrigin.LOAD_WAIT_MS / 1000);
+        assertEquals("Couldn't find the reel you came from", ShadowToast.getTextOfLatestToast());
+        assertNull(ReelOrigin.heldForTests());
+        String report = HookStatus.report().toString();
+        assertTrue("and why", report.contains(ReelOrigin.ENDED + " 1"));
+    }
+
+    /**
      * A profile opened straight on its Reels tab, as 451 does for some reels (#30): the tab resumes
      * before its first page, over the grey placeholders Instagram puts up, which fill the screen and
      * carry no name. They aren't taken for the grid's end: nothing is dragged and no button goes up

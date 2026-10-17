@@ -23,6 +23,7 @@ import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.lang.ref.WeakReference;
@@ -127,6 +128,12 @@ public final class ReelOrigin {
     static final long FIRST_PAGE_MS = 15000;
     /** How long the end of the grid may stay the end before no more is coming. */
     static final long END_WAIT_MS = 4000;
+    /**
+     * How long instead while Instagram's spinner shows under the last row, the next page still on its
+     * way: deep in a big profile a page can take longer than END_WAIT_MS, and the search took that
+     * for the end (#225, S22 2026-10-17).
+     */
+    static final long LOAD_WAIT_MS = 20000;
     /** How often the grid is dragged again while it sits at its loaded end. */
     static final long NUDGE_MS = 1000;
     /** How many moves a drag takes, how far apart in time, and how long it holds still before letting go. */
@@ -399,7 +406,7 @@ public final class ReelOrigin {
                         endSince = now;
                         endNamed = named;
                         stuck = false;
-                    } else if (now - endSince >= END_WAIT_MS) {
+                    } else if (now - endSince >= (loading(list) ? LOAD_WAIT_MS : END_WAIT_MS)) {
                         giveUp(list, ENDED);
                         return;
                     }
@@ -565,6 +572,27 @@ public final class ReelOrigin {
         ViewGroup group = (ViewGroup) view;
         for (int i = 0; i < group.getChildCount(); i++) found += named(group.getChildAt(i));
         return found;
+    }
+
+    /**
+     * Whether Instagram's spinner shows in [list]'s last row, as it does below the loaded end while
+     * the next page loads: 451 puts a SpinnerImageView there, a ProgressBar covers a build that
+     * doesn't.
+     */
+    static boolean loading(ViewGroup list) {
+        int count = list.getChildCount();
+        return count > 0 && spinner(list.getChildAt(count - 1));
+    }
+
+    private static boolean spinner(View view) {
+        if (!view.isShown()) return false;
+        if (view instanceof ProgressBar || view.getClass().getName().endsWith(".SpinnerImageView")) return true;
+        if (!(view instanceof ViewGroup)) return false;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            if (spinner(group.getChildAt(i))) return true;
+        }
+        return false;
     }
 
     /**

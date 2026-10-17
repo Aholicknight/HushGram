@@ -7,7 +7,10 @@ package androidx.recyclerview.widget;
 import android.content.Context;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+
+import com.instagram.ui.widget.spinner.SpinnerImageView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +46,11 @@ public class RecyclerView extends LinearLayout {
      * its scroll range is an estimate (451, #30): a drag there moves nothing.
      */
     public int slack;
+    /**
+     * Whether the next page is loading, shown as 451 shows it: a row holding Instagram's spinner
+     * below the last loaded row (#225).
+     */
+    public boolean loading;
     /** Makes the view of a tile for a reel. */
     public Function<String, View> tiles;
     private int offset;
@@ -61,14 +69,22 @@ public class RecyclerView extends LinearLayout {
 
     /**
      * Binds the rows on screen, a tile named by its reel for each, as Instagram's binder does, or
-     * the placeholders while no reel is loaded.
+     * the placeholders while no reel is loaded, then the spinner's row while a page loads.
      */
     public void bind() {
         removeAllViews();
         int count = count();
         int last = (offset + SHOWN_ROWS * ROW - 1) / ROW;
-        for (int row = firstRow(); row <= last; row++) {
-            if (row * PER_ROW >= count) break;
+        for (int row = firstRow(); row <= last + 1; row++) {
+            if (row * PER_ROW >= count) {
+                if (loading) {
+                    FrameLayout footer = new FrameLayout(getContext());
+                    footer.addView(new SpinnerImageView(getContext()), new FrameLayout.LayoutParams(996, 135));
+                    addView(footer, new LinearLayout.LayoutParams(1080, 219));
+                }
+                break;
+            }
+            if (row > last) break;
             LinearLayout line = new LinearLayout(getContext());
             for (int at = row * PER_ROW; at < Math.min(count, (row + 1) * PER_ROW); at++) {
                 View tile;
