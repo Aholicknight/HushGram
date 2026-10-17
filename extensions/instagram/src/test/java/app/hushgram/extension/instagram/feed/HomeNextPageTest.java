@@ -28,13 +28,14 @@ import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
- * Home asks for For you's next page right away after a page Hide suggested posts left short (#52),
- * a few times in a row at most, and never while a page loads, after the end, for an empty Home or
- * for Following and Favorites.
+ * Home asks for For you's next page right away after a page Hide suggested posts or another Home
+ * switch left short (#52, #28), a few times in a row at most, and never while a page loads, after
+ * the end, for an empty Home or for Following and Favorites.
  */
 @RunWith(RobolectricTestRunner.class)
 public class HomeNextPageTest {
@@ -65,6 +66,8 @@ public class HomeNextPageTest {
         counters = FeedFilterCounters.snapshotAndClear();
         PauseForTests.resume();
         Settings.HIDE_SUGGESTED_POSTS.save(true);
+        // The stand-in pages lost their suggestions to Hide suggested posts.
+        FeedSuggestions.tookOut = true;
         clear();
         source = null;
         loading = 0;
@@ -104,13 +107,22 @@ public class HomeNextPageTest {
         FeedSuggestions.homePageEndCounted = false;
         FeedSuggestions.verdictFeed = null;
         FeedSuggestions.tookOut = false;
+        FeedSuggestions.typesTookOut = false;
+        FeedSuggestions.adsTookOut = false;
         FeedSuggestions.pageLostEverything = false;
         FeedSuggestions.pageLostEverythingAt = 0;
         FeedSuggestions.olderEndCounted = false;
         PauseForTests.resume();
-        Settings.HIDE_SUGGESTED_POSTS.resetToDefault();
+        for (BooleanSetting setting : suggestionSwitches()) setting.resetToDefault();
+        Settings.HIDE_FEED_VIDEOS.resetToDefault();
         FeedFilterCounters.restore(counters);
         HookStatus.restore(saved);
+    }
+
+    /** Every switch FeedSuggestions.filter takes items out for. Settings load only once the test's context is in place. */
+    private static BooleanSetting[] suggestionSwitches() {
+        return new BooleanSetting[] {Settings.HIDE_SUGGESTED_POSTS, Settings.HIDE_SUGGESTED_ACCOUNTS,
+                Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS, Settings.HIDE_FEED_SHOPPING};
     }
 
     private static void clear() {
@@ -294,12 +306,62 @@ public class HomeNextPageTest {
         assertFalse(HomeNextPage.forYou("homecoming_following"));
     }
 
+    /**
+     * #28: with Hide suggested posts off, Hide videos took four of a page's five posts and the
+     * loading row under the one left never moved. The next page is asked for all the same, and once
+     * Hide videos is off too, Home pages as Instagram has it.
+     */
     @Test
-    public void anOffSwitchPauseOrUnreadySettingsLeaveInstagramsPaging() {
+    public void aPageHideVideosLeftShortAsksWithHideSuggestedPostsOff() {
         Settings.HIDE_SUGGESTED_POSTS.save(false);
+        Settings.HIDE_FEED_VIDEOS.save(true);
+        FeedSuggestions.tookOut = false;
+        FeedSuggestions.homePageStarts();
+        for (int post = 0; post < 4; post++) {
+            assertNull(FeedSuggestions.homeItem(new Object(), item -> FeedSuggestions.VIDEO));
+        }
+        Object photo = new Object();
+        assertSame(photo, FeedSuggestions.homeItem(photo, item -> FeedSuggestions.PHOTO));
+        FeedSuggestions.homePageParsed();
+        assertEquals("the page is waiting", 1, HomeNextPage.shortPage);
+
+        build();
+        assertEquals(1, asks.size());
+
+        Settings.HIDE_FEED_VIDEOS.save(false);
         shortPage();
         build();
-        assertTrue("off", asks.isEmpty());
+        assertEquals("every switch that took something out is off", 1, asks.size());
+    }
+
+    /**
+     * Suggested posts past the ones from accounts you follow page from a source of their own. With
+     * Hide suggested posts on every post on them goes, so a short page of them asks for nothing
+     * (#104's log). With it off they show, and a page Hide videos left short asks (#28).
+     */
+    @Test
+    public void suggestedPostPagesAskOnlyWhileTheyShow() {
+        source = HomeNextPage.SUGGESTED;
+        shortPage();
+        build();
+        assertTrue("Hide suggested posts on", asks.isEmpty());
+
+        Settings.HIDE_SUGGESTED_POSTS.save(false);
+        Settings.HIDE_FEED_VIDEOS.save(true);
+        FeedSuggestions.typesTookOut = true;
+        build();
+        assertEquals("Hide suggested posts off", 1, asks.size());
+        assertTrue(HomeNextPage.asksFor(HomeNextPage.SUGGESTED));
+        assertTrue(HomeNextPage.asksFor(HomeNextPage.FOR_YOU));
+        assertFalse(HomeNextPage.asksFor("homecoming_following"));
+    }
+
+    @Test
+    public void anOffSwitchPauseOrUnreadySettingsLeaveInstagramsPaging() {
+        for (BooleanSetting setting : suggestionSwitches()) setting.save(false);
+        shortPage();
+        build();
+        assertTrue("the switches that took the items out are off", asks.isEmpty());
 
         Settings.HIDE_SUGGESTED_POSTS.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);

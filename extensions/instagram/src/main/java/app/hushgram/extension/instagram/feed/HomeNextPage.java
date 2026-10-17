@@ -21,7 +21,8 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
- * Asks Home for its next page right away when Hide suggested posts leaves a page of For you short (#52).
+ * Asks Home for its next page right away when Hide suggested posts, or any other switch that takes
+ * things out of Home, leaves a page of For you short (#52, #28).
  *
  * <p>On an account whose For you pages each carry about one followed post and four suggested ones,
  * Hide suggested posts leaves a page holding one post, and Instagram's loading row sits right under
@@ -36,10 +37,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>It never asks while a page is loading, once the feed has no next page, for a Home that's empty
  * (the end card logic in {@link FeedSuggestions#feedEnded} has that one), or for a feed that isn't
- * For you, so Following and Favorites page as they did. The Older Posts page has builders of its own
- * and is left alone. It fails open: with Hide suggested posts off, HushGram paused, the settings not
- * read yet, a stub the patch couldn't fill or anything thrown, Home waits for the scroll as Instagram
- * has it.
+ * For you, so Following and Favorites page as they did. For you's suggested posts past the ones from
+ * accounts you follow page from a source of their own, which it asks for only while Hide suggested
+ * posts is off ({@link #asksFor}). Hide videos took a page of them down to a post or two and the
+ * loading row under them never moved, since Instagram asks only on a scroll (#28). The Older Posts
+ * page has builders of its own and is left alone. It fails open: with every switch that took
+ * something out of Home off ({@link FeedSuggestions#switchesTookOut}), HushGram paused, the settings
+ * not read yet, a stub the patch couldn't fill or anything thrown, Home waits for the scroll as
+ * Instagram has it.
  */
 public final class HomeNextPage {
     /** A page of Home's response is short when it keeps fewer items than this. */
@@ -53,6 +58,9 @@ public final class HomeNextPage {
 
     /** For you's paging source, as Instagram names the feed Home's switcher calls ALL. */
     static final String FOR_YOU = "homecoming_all";
+
+    /** The paging source of the suggested posts For you pages in once the posts from accounts you follow run out. */
+    static final String SUGGESTED = "feed_recs";
 
     /** The report's count of next pages asked for. */
     static final String ASKED = "asked for the next page after a short page";
@@ -228,7 +236,7 @@ public final class HomeNextPage {
         long page = shortPage;
         if (page == 0 || page == decided) return;
         try {
-            if (!Utils.settingsReady() || !Settings.HIDE_SUGGESTED_POSTS.get()) {
+            if (!Utils.settingsReady() || !FeedSuggestions.switchesTookOut()) {
                 decided = page;
                 return;
             }
@@ -240,7 +248,7 @@ public final class HomeNextPage {
             Object feed = build.feed;
             if (feed == null) return;
             String source = sources.apply(feed);
-            if (!forYou(source)) {
+            if (!asksFor(source)) {
                 Logger.printDebug(() -> "Home next page: a list paging " + source + ", which isn't For you, doesn't ask");
                 return;
             }
@@ -280,6 +288,18 @@ public final class HomeNextPage {
     /** Whether [source], a feed's paging source, is For you's. For you's first pages may name none. */
     static boolean forYou(@Nullable String source) {
         return source == null || source.isEmpty() || FOR_YOU.equals(source);
+    }
+
+    /**
+     * Whether a short page of a list paging [source] gets its next page asked for: For you's always,
+     * and the suggested posts For you pages in past the posts from accounts you follow
+     * ({@link #SUGGESTED}) while Hide suggested posts is off, so they show and a post switch left
+     * the page short (#28). With it on, every post on those pages goes, so asking brings nothing.
+     * Callers check {@link Utils#settingsReady} first.
+     */
+    static boolean asksFor(@Nullable String source) {
+        if (forYou(source)) return true;
+        return SUGGESTED.equals(source) && !Settings.HIDE_SUGGESTED_POSTS.get();
     }
 
     /**

@@ -274,14 +274,21 @@ public final class FeedSuggestions {
         if (!tookOut && !typesTookOut && !adsTookOut) return noMorePages;
         try {
             if (!Utils.settingsReady()) return noMorePages;
-            boolean suggestions = tookOut && suggestionSwitchOn();
-            boolean posts = typesTookOut && postSwitchOn();
-            boolean ads = adsTookOut && Settings.HIDE_ADS.get();
-            return (suggestions || posts || ads) && suggestionsEmptiedHome(feed) ? 1 : noMorePages;
+            return switchesTookOut() && suggestionsEmptiedHome(feed) ? 1 : noMorePages;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "empty feed", failure);
             return noMorePages;
         }
+    }
+
+    /**
+     * Whether a switch that took something out of Home in this run is still on: a suggestion switch
+     * after {@link #filter} took an item out, a post switch after {@link #homeItem} took a post out,
+     * or Hide ads after it took an ad out of a page. Callers check {@link Utils#settingsReady} first.
+     */
+    static boolean switchesTookOut() {
+        return (tookOut && suggestionSwitchOn()) || (typesTookOut && postSwitchOn())
+                || (adsTookOut && Settings.HIDE_ADS.get());
     }
 
     /** Whether any switch {@link #homeItem} takes posts out for is on, a name on Hidden accounts included. */
@@ -487,11 +494,7 @@ public final class FeedSuggestions {
         try {
             long seqAtOpen = seqAtOpen(policy);
             if (!pageLostEverything || pageSeq <= seqAtOpen) return loading;
-            if (!Utils.settingsReady()) return loading;
-            boolean suggestions = tookOut && suggestionSwitchOn();
-            boolean posts = typesTookOut && postSwitchOn();
-            boolean ads = adsTookOut && Settings.HIDE_ADS.get();
-            if (!suggestions && !posts && !ads) return loading;
+            if (!Utils.settingsReady() || !switchesTookOut()) return loading;
             long age = clock.getAsLong() - pageLostEverythingAt;
             if (age < 0 || age > OLDER_WINDOW_NANOS) return loading;
             if (!olderEndCounted) {
