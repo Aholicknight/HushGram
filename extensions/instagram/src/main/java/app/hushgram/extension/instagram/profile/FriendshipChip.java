@@ -511,8 +511,12 @@ final class FriendshipChip {
             view.setPaddingRelative(view.getPaddingStart(), view.getPaddingTop(), view.getPaddingEnd(), bottom + room);
         }
 
-        /** Whether [child] is to [column]'s side and within its height. */
+        /**
+         * Whether [child] is to [column]'s side and within its height. An empty view isn't: 451
+         * keeps an empty badges row shown at the corner under the picture.
+         */
         private static boolean beside(View child, View column) {
+            if (child.getWidth() == 0 || child.getHeight() == 0) return false;
             boolean aside = child.getLeft() >= column.getRight() || child.getRight() <= column.getLeft();
             return aside && child.getTop() >= column.getTop() && child.getBottom() <= column.getBottom();
         }

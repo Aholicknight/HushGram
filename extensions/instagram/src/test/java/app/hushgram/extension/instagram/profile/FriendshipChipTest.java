@@ -383,6 +383,8 @@ public class FriendshipChipTest {
         bio = new TextView(activity);
         bio.setText("A bio");
         row451.addView(bio, wrapped(0, 0));
+        // 451's internal_only_badges: shown, empty, at the corner under the picture.
+        row451.addView(new LinearLayout(activity), wrapped(0, 0));
         header = new LinearLayout(activity);
         header.addView(row451);
         activity.setContentView(header);
@@ -425,7 +427,7 @@ public class FriendshipChipTest {
     /**
      * 451's profile header the way its ConstraintLayout places it: the picture's column at the top
      * start, the next two children a chain beside it centered on its height (outer margins
-     * counted), and the last one under whichever ends lower.
+     * counted), the fourth under whichever ends lower, and any more at the corner under the column.
      */
     static final class CenteredBeside extends ViewGroup {
         private static final int START = 45;
@@ -445,6 +447,7 @@ public class FriendshipChipTest {
             getChildAt(1).measure(beside, any);
             getChildAt(2).measure(beside, any);
             getChildAt(3).measure(MeasureSpec.makeMeasureSpec(width - 2 * START, MeasureSpec.EXACTLY), any);
+            for (int i = 4; i < getChildCount(); i++) getChildAt(i).measure(any, any);
             setMeasuredDimension(width, arrange(false));
         }
 
@@ -472,6 +475,10 @@ public class FriendshipChipTest {
                 first.layout(left, firstTop, left + first.getMeasuredWidth(), secondTop);
                 second.layout(left, secondTop, left + second.getMeasuredWidth(), secondTop + second.getMeasuredHeight());
                 under.layout(START, underTop, START + under.getMeasuredWidth(), underTop + under.getMeasuredHeight());
+                for (int i = 4; i < getChildCount(); i++) {
+                    View corner = getChildAt(i);
+                    corner.layout(START, columnBottom, START + corner.getMeasuredWidth(), columnBottom + corner.getMeasuredHeight());
+                }
             }
             return underTop + under.getMeasuredHeight();
         }
