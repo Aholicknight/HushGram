@@ -122,6 +122,9 @@ public final class HomeNextPage {
     @Nullable
     static volatile Build home;
 
+    /** Set once the debug log has named the class of Home's list, so a phone run shows what {@link #atEnd} reads. */
+    private static volatile boolean listNamed;
+
     /** The build of Home's list running on this thread, until it hands over its feed in {@link #feedRead}. */
     private static final ThreadLocal<Build> BUILDING = new ThreadLocal<>();
 
@@ -251,8 +254,9 @@ public final class HomeNextPage {
 
     /**
      * Called by {@link FeedSuggestions#homeFeedRead} with the feed the adapter reads its "no next
-     * page" flag from, so the build on this thread knows its feed and becomes {@link #home}. Never
-     * throws.
+     * page" flag from, so the build on this thread knows its feed and, when that's For you's,
+     * becomes {@link #home}. Following's and Favorites' lists keep adapters of the same class, so a
+     * build of theirs never does. Never throws.
      */
     static void feedRead(@Nullable Object feed) {
         try {
@@ -260,7 +264,7 @@ public final class HomeNextPage {
             if (build == null) return;
             BUILDING.remove();
             build.read(feed);
-            if (feed != null) home = build;
+            if (feed != null && homeFeed(sources.apply(feed))) home = build;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home next page feed", failure);
         }
@@ -278,13 +282,19 @@ public final class HomeNextPage {
      * Posted {@link #SETTLE_MS} after short page [page] was parsed, for a page no build of Home's
      * list decided: one the switches emptied changes nothing Home draws, so Instagram may not build
      * again, and a build that ran while the page was still loading left it waiting. Asks with
-     * {@link #home}, the latest build that read its feed, and checks again while the page waits,
-     * within {@link #WINDOW_NANOS}. Never throws.
+     * {@link #home}, the latest build of For you's list that read its feed, and checks again while
+     * the page waits, within {@link #WINDOW_NANOS}. A home whose list is gone (Home was rebuilt) is
+     * dropped, and the new list's build decides. Never throws.
      */
     static void settle(long page) {
         if (shortPage != page || decided == page) return;
         try {
             Build build = home;
+            if (build != null && build.adapter.get() == null) {
+                if (home == build) home = null;
+                build = null;
+                Logger.printDebug(() -> "Home next page: the last build's list is gone, so the short page waits");
+            }
             if (build != null && !posted) askIfShort(build);
             if (shortPage != page || decided == page) return;
             long age = clock.getAsLong() - shortPageAt;
@@ -376,6 +386,11 @@ public final class HomeNextPage {
         return source == null || source.isEmpty() || FOR_YOU.equals(source);
     }
 
+    /** Whether a list paging [source] is For you's: its own source, or the suggested posts it pages in. */
+    static boolean homeFeed(@Nullable String source) {
+        return forYou(source) || SUGGESTED.equals(source);
+    }
+
     /**
      * Whether a short page of a list paging [source] gets its next page asked for: For you's always,
      * and the suggested posts For you pages in past the posts from accounts you follow
@@ -395,7 +410,14 @@ public final class HomeNextPage {
      */
     static int atEnd(Object adapter) {
         try {
-            return endOf(listOf(adapter));
+            Object list = listOf(adapter);
+            int answer = endOf(list);
+            if (!listNamed && list != null) {
+                listNamed = true;
+                String kind = list.getClass().getName();
+                Logger.printDebug(() -> "Home next page: Home's list is a " + kind + ", at its end: " + answer);
+            }
+            return answer;
         } catch (Throwable failure) {
             // Instagram's own read of the list throws once Home's fragment is gone.
             Logger.printDebug(() -> "Home next page: Home's list can't be read: " + failure);

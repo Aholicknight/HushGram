@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
 import android.view.View;
 
 import org.junit.After;
@@ -17,8 +18,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.android.controller.ActivityController;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -565,6 +568,12 @@ public class HomeNextPageTest {
         assertEquals(-1, HomeNextPage.endOf(null));
         assertEquals(-1, HomeNextPage.endOf("not a view"));
         assertEquals(0, HomeNextPage.endOf(new View(RuntimeEnvironment.getApplication())));
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            View shown = new View(controller.get());
+            controller.get().setContentView(shown);
+            assertTrue(shown.isShown());
+            assertEquals("a list on screen with nothing below", 1, HomeNextPage.endOf(shown));
+        }
     }
 
     /**
@@ -733,6 +742,57 @@ public class HomeNextPageTest {
         HomeNextPage.askIfShort(build);
         assertTrue(asks.isEmpty());
         assertEquals(HomeNextPage.shortPage, HomeNextPage.decided);
+    }
+
+    /** The later check drops a build whose list is gone (Home was rebuilt) and leaves the page to the new list's build. */
+    @Test
+    public void theLaterCheckDropsABuildWhoseListIsGone() {
+        HomeNextPage.Build gone = new HomeNextPage.Build(new Object());
+        gone.read(feed);
+        gone.adapter.clear();
+        HomeNextPage.home = gone;
+        shortPage();
+        runSettles();
+        assertNull(HomeNextPage.home);
+        assertTrue(asks.isEmpty());
+        assertEquals("still waits", 1, settles.size());
+        build();
+        assertEquals("the new list's build asks", 1, asks.size());
+    }
+
+    /**
+     * Following's and Favorites' lists keep adapters of Home's class, so their builds never become the
+     * build the later check asks with, and with none of For you's the check stops after the window.
+     */
+    @Test
+    public void onlyForYousBuildIsTheOneTheLaterCheckAsksWith() {
+        Object following = new Object();
+        HomeNextPage.sources = read -> read == following ? "homecoming_following" : source;
+        build();
+        HomeNextPage.Build forYou = HomeNextPage.home;
+        assertTrue(forYou != null);
+        HomeNextPage.buildStarts(adapter);
+        HomeNextPage.feedRead(following);
+        runPosted();
+        assertSame("Following's build leaves For you's", forYou, HomeNextPage.home);
+
+        clear();
+        HomeNextPage.buildStarts(adapter);
+        HomeNextPage.feedRead(following);
+        runPosted();
+        assertNull(HomeNextPage.home);
+        shortPage();
+        runSettles();
+        assertTrue(asks.isEmpty());
+        assertEquals("waits for For you's build", 1, settles.size());
+        now[0] += HomeNextPage.WINDOW_NANOS + 1;
+        runSettles();
+        assertTrue("past the window, no more checks", settles.isEmpty());
+        assertTrue(asks.isEmpty());
+
+        assertTrue(HomeNextPage.homeFeed(null));
+        assertTrue(HomeNextPage.homeFeed(HomeNextPage.SUGGESTED));
+        assertFalse(HomeNextPage.homeFeed("homecoming_favorites"));
     }
 
     /** A page of Home's response holding items of [kinds], read through the filter and homeItem as Home's parser does. */
