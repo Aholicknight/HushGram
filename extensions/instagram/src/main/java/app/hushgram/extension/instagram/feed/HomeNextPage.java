@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.view.View;
+
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -35,6 +37,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * It keeps asking while pages come back short, {@link #CHAIN_CAP} times in a row at most, and a
  * page that keeps enough starts the count over.
  *
+ * <p>Past that cap it goes on asking, up to {@link #END_CAP} in a row, while Home's list sits at its
+ * end ({@link #atEnd}): nothing else would ask there, since Instagram asks on a scroll and as its
+ * loading row comes into view, and a list that can't scroll further shows a row that's been in view
+ * all along (#28). A short page no build of Home's list follows, one the switches emptied that
+ * changes nothing Home draws, or one whose build ran while it was still loading, is decided by a
+ * check {@link #SETTLE_MS} later ({@link #settle}) with the latest build that read its feed.
+ *
  * <p>A page the switches emptied leaves Home empty, and {@link FeedSuggestions#feedEnded} ends it so
  * Instagram draws its empty feed card rather than a loading placeholder nothing would ever fill. It
  * still asks for For you's next page then, within the same cap: the card shows until that page comes,
@@ -60,8 +69,14 @@ public final class HomeNextPage {
     /** The most next pages asked for in a row while pages keep coming back short. */
     static final int CHAIN_CAP = 3;
 
+    /** The most next pages asked for in a row while Home's list sits at its end, where no scroll would ask (#28). */
+    static final int END_CAP = 10;
+
     /** How long after a short page was parsed a build of Home may still ask for the next one, in nanoseconds. */
     static final long WINDOW_NANOS = 10_000_000_000L;
+
+    /** How long after a short page {@link #settle} checks whether a build decided it, in milliseconds. */
+    static final long SETTLE_MS = 1_500L;
 
     /** For you's paging source, as Instagram names the feed Home's switcher calls ALL. */
     static final String FOR_YOU = "homecoming_all";
@@ -72,7 +87,7 @@ public final class HomeNextPage {
     /** The report's count of next pages asked for. */
     static final String ASKED = "asked for the next page after a short page";
 
-    /** The report's count of chains that reached {@link #CHAIN_CAP} with pages still short. */
+    /** The report's count of chains that reached their cap with pages still short. */
     static final String CAPPED = "chain stopped at its cap";
 
     /** How many pages of Home's response that held items have been parsed. Tests clear it. */
@@ -103,20 +118,36 @@ public final class HomeNextPage {
     @Nullable
     static volatile Build latest;
 
+    /** The latest build of Home's list that read its feed, which {@link #settle} asks with. Tests clear it. */
+    @Nullable
+    static volatile Build home;
+
     /** The build of Home's list running on this thread, until it hands over its feed in {@link #feedRead}. */
     private static final ThreadLocal<Build> BUILDING = new ThreadLocal<>();
 
     /**
-     * One build of Home's list: its adapter, and the feed it reads its "no next page" flag from. The
-     * adapter is held weakly: a build that never reaches its feed stays on its thread until the next
-     * one, and mustn't keep Home's fragment alive meanwhile.
+     * One build of Home's list: its adapter, and the feed it reads its "no next page" flag from. Both
+     * are held weakly: a build that never reaches its feed stays on its thread until the next one,
+     * {@link #home} keeps the latest that did, and neither may keep Home's fragment or feed alive.
      */
     static final class Build {
         final WeakReference<Object> adapter;
-        @Nullable volatile Object feed;
+        @Nullable private volatile WeakReference<Object> feed;
 
         Build(Object adapter) {
             this.adapter = new WeakReference<>(adapter);
+        }
+
+        /** Notes the feed this build read its flag from. */
+        void read(@Nullable Object feed) {
+            this.feed = feed == null ? null : new WeakReference<>(feed);
+        }
+
+        /** The feed this build read its flag from, or null when it read none or the feed is gone. */
+        @Nullable
+        Object feed() {
+            WeakReference<Object> read = feed;
+            return read == null ? null : read.get();
         }
     }
 
@@ -141,6 +172,12 @@ public final class HomeNextPage {
     /** Asks a policy for the next page, as {@link #askNextPage} does. Tests stand in. */
     static volatile BiConsumer<Object, Object> asker = HomeNextPage::askNextPage;
 
+    /** Tells whether an adapter's list sits at its end, as {@link #atEnd} does. Tests stand in. */
+    static volatile ToIntFunction<Object> ends = HomeNextPage::atEnd;
+
+    /** Posts {@link #settle} to the main thread {@link #SETTLE_MS} later. Tests stand in. */
+    static volatile Consumer<Runnable> later = HomeNextPage::settleLater;
+
     private HomeNextPage() {
     }
 
@@ -148,8 +185,9 @@ public final class HomeNextPage {
      * Called by {@link FeedSuggestions#homePageParsed} for each page of Home's response that held
      * items: [read] of them, [lost] to the switches. A page that keeps {@link #SHORT_PAGE} or more
      * ends the chain. A shorter one the switches took items out of becomes the page the next build
-     * decides about, and starts a new chain unless it answers a request made here. A short page the
-     * switches took nothing out of is Instagram's own and is left to it. Never throws.
+     * decides about, and starts a new chain unless it answers a request made here, and
+     * {@link #settle} checks on it later. A short page the switches took nothing out of is
+     * Instagram's own and is left to it. Never throws.
      */
     static void pageParsed(int read, int lost) {
         try {
@@ -173,6 +211,7 @@ public final class HomeNextPage {
             shortPageAt = clock.getAsLong();
             shortPage = number;
             Logger.printDebug(() -> "Home next page: a page kept " + (read - lost) + " of its " + read + " items");
+            later.accept(() -> settle(number));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home short page", failure);
         }
@@ -189,16 +228,17 @@ public final class HomeNextPage {
 
     /**
      * Injected first thing in Home's list builder (MainfeedAdapter.buildModels), with the adapter.
-     * While a short page waits for a decision, it notes this build and posts {@link #run} to the main
-     * thread, once, so the request is made after the build. Otherwise it reads two fields and returns.
+     * Notes this build on its thread for {@link #feedRead}. While a short page waits for a decision,
+     * it also posts {@link #run} to the main thread, once, so the request is made after the build.
      * Never throws.
      */
     public static void buildStarts(Object adapter) {
-        long page = shortPage;
-        if (page == 0 || page == decided || adapter == null) return;
+        if (adapter == null) return;
         try {
             Build build = new Build(adapter);
             BUILDING.set(build);
+            long page = shortPage;
+            if (page == 0 || page == decided) return;
             latest = build;
             if (posted) return;
             posted = true;
@@ -211,14 +251,16 @@ public final class HomeNextPage {
 
     /**
      * Called by {@link FeedSuggestions#homeFeedRead} with the feed the adapter reads its "no next
-     * page" flag from, so the build on this thread knows its feed. Never throws.
+     * page" flag from, so the build on this thread knows its feed and becomes {@link #home}. Never
+     * throws.
      */
     static void feedRead(@Nullable Object feed) {
         try {
             Build build = BUILDING.get();
             if (build == null) return;
             BUILDING.remove();
-            build.feed = feed;
+            build.read(feed);
+            if (feed != null) home = build;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home next page feed", failure);
         }
@@ -230,6 +272,31 @@ public final class HomeNextPage {
         Build build = latest;
         latest = null;
         if (build != null) askIfShort(build);
+    }
+
+    /**
+     * Posted {@link #SETTLE_MS} after short page [page] was parsed, for a page no build of Home's
+     * list decided: one the switches emptied changes nothing Home draws, so Instagram may not build
+     * again, and a build that ran while the page was still loading left it waiting. Asks with
+     * {@link #home}, the latest build that read its feed, and checks again while the page waits,
+     * within {@link #WINDOW_NANOS}. Never throws.
+     */
+    static void settle(long page) {
+        if (shortPage != page || decided == page) return;
+        try {
+            Build build = home;
+            if (build != null && !posted) askIfShort(build);
+            if (shortPage != page || decided == page) return;
+            long age = clock.getAsLong() - shortPageAt;
+            if (age >= 0 && age <= WINDOW_NANOS) later.accept(() -> settle(page));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home next page settle", failure);
+        }
+    }
+
+    /** Posts [check] to the main thread {@link #SETTLE_MS} from now. */
+    static void settleLater(Runnable check) {
+        Utils.runOnMainThreadDelayed(check, SETTLE_MS);
     }
 
     /**
@@ -252,8 +319,11 @@ public final class HomeNextPage {
                 decided = page;
                 return;
             }
-            Object feed = build.feed;
-            if (feed == null) return;
+            Object feed = build.feed();
+            if (feed == null) {
+                Logger.printDebug(() -> "Home next page: the build never read its feed, so the short page waits");
+                return;
+            }
             String source = sources.apply(feed);
             if (!asksFor(source)) {
                 Logger.printDebug(() -> "Home next page: a list paging " + source + ", which isn't For you, doesn't ask");
@@ -263,20 +333,28 @@ public final class HomeNextPage {
             Object policy = adapter == null ? null : policies.apply(adapter);
             if (policy == null) {
                 decided = page;
+                Logger.printDebug(() -> "Home next page: no load more policy to ask");
                 return;
             }
             int busy = loading.applyAsInt(policy);
-            if (busy == 1) return;
-            if (busy != 0 || more.applyAsInt(policy) != 1) {
+            if (busy == 1) {
+                Logger.printDebug(() -> "Home next page: a page is loading, so the short page waits");
+                return;
+            }
+            int left = busy == 0 ? more.applyAsInt(policy) : -1;
+            if (left != 1) {
                 decided = page;
+                Logger.printDebug(() -> "Home next page: " + (left == 0 ? "Home has no next page" : "can't tell whether Home can load a page"));
                 return;
             }
             decided = page;
-            if (chain >= CHAIN_CAP) {
+            boolean atEnd = chain >= CHAIN_CAP && chain < END_CAP && ends.applyAsInt(adapter) == 1;
+            if (chain >= CHAIN_CAP && !atEnd) {
                 if (!capCounted) {
                     capCounted = true;
                     HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAPPED);
-                    Logger.printDebug(() -> "Home next page: " + CHAIN_CAP + " short pages in a row, so Home waits for the scroll");
+                    int asked = chain;
+                    Logger.printDebug(() -> "Home next page: " + asked + " short pages in a row, so Home waits for the scroll");
                 }
                 return;
             }
@@ -284,7 +362,8 @@ public final class HomeNextPage {
             waitingForOurs = true;
             asker.accept(policy, new HashMap<String, String>());
             HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, ASKED);
-            Logger.printDebug(() -> "Home next page: asked for the next page after a short one (" + chain + " in a row)");
+            Logger.printDebug(() -> "Home next page: asked for the next page after a short one (" + chain + " in a row"
+                    + (atEnd ? ", Home's list at its end)" : ")"));
         } catch (Throwable failure) {
             decided = page;
             waitingForOurs = false;
@@ -307,6 +386,37 @@ public final class HomeNextPage {
     static boolean asksFor(@Nullable String source) {
         if (forYou(source)) return true;
         return SUGGESTED.equals(source) && !Settings.HIDE_SUGGESTED_POSTS.get();
+    }
+
+    /**
+     * Whether [adapter]'s list sits at its end: 1 when it's on screen and can't scroll further down,
+     * 0 when it can or isn't on screen, and -1 when it can't be told. Runs on the main thread, from
+     * {@link #run} and {@link #settle}.
+     */
+    static int atEnd(Object adapter) {
+        try {
+            return endOf(listOf(adapter));
+        } catch (Throwable failure) {
+            // Instagram's own read of the list throws once Home's fragment is gone.
+            Logger.printDebug(() -> "Home next page: Home's list can't be read: " + failure);
+            return -1;
+        }
+    }
+
+    /** {@link #atEnd}'s answer for [list], the view {@link #listOf} read. */
+    static int endOf(@Nullable Object list) {
+        if (!(list instanceof View)) return -1;
+        View view = (View) list;
+        if (!view.isShown()) return 0;
+        return view.canScrollVertically(1) ? 0 : 1;
+    }
+
+    /**
+     * Home's list, the view the adapter draws into, read through the adapter's host the way
+     * Instagram reads it for its most visible post. The patch writes the body. Null as built.
+     */
+    public static Object listOf(Object adapter) {
+        return null;
     }
 
     /**

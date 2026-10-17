@@ -47,6 +47,8 @@ class HomeNextPageTest {
     private val policy = "Lfixture/FeedState;"
     private val lazy = "Lfixture/Lazy;"
     private val spinner = "Lfixture/Spinner;"
+    private val host = "Lfixture/ListHost;"
+    private val feedList = "Lfixture/FeedList;"
     private val getValue = "$lazy->getValue()Ljava/lang/Object;"
 
     @Test
@@ -56,7 +58,7 @@ class HomeNextPageTest {
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         for (hook in listOf(HOME_BUILD_STARTS.substringAfter("->"), "policyOf(Ljava/lang/Object;)Ljava/lang/Object;",
             "sourceOf(Ljava/lang/Object;)Ljava/lang/String;", "loadingNow(Ljava/lang/Object;)I", "moreLeft(Ljava/lang/Object;)I",
-            "askNextPage(Ljava/lang/Object;Ljava/lang/Object;)V")) {
+            "askNextPage(Ljava/lang/Object;Ljava/lang/Object;)V", "listOf(Ljava/lang/Object;)Ljava/lang/Object;")) {
             assertTrue("$hook is not in the extension: $declared", hook in declared)
         }
     }
@@ -117,6 +119,35 @@ class HomeNextPageTest {
         val call = ask[2] as FiveRegisterInstruction
         assertEquals("the policy, then the map", listOf((ask[0] as OneRegisterInstruction).registerA, (ask[1] as OneRegisterInstruction).registerA),
             listOf(call.registerC, call.registerD))
+
+        val listStub = stubBody(context, "listOf", 9)
+        assertEquals(listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_NEZ,
+            Opcode.RETURN_OBJECT, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT), listStub.map { it.opcode })
+        assertEquals(adapter, listStub[0].type())
+        assertTrue(listStub[1].reads("$adapter->host:$host"))
+        assertTrue(listStub[2].calls("$host->list()$feedList"))
+        assertTrue(listStub[6].calls("$feedList->view()Landroid/view/ViewGroup;"))
+    }
+
+    /**
+     * Home's list view is the one part a build can do without: one that doesn't show a single way
+     * to it warns, leaves listOf answering null, and still writes the rest.
+     */
+    @Test
+    fun aBuildWithoutOneWayToHomesListKeepsTheRest() {
+        for ((what, classes) in listOf(
+            "no most visible post read" to world(listPath = false),
+            "two list views" to world(listViews = 2),
+            "a private host" to world(publicHost = false),
+        )) {
+            val context = PatchContexts.of(classes)
+            val targets = context.findHomeNextPage()
+            assertNull(what, targets.list)
+            val before = stubs(context).getValue("listOf")
+            targets.write(context)
+            assertEquals("$what: listOf is left", before, stubs(context).getValue("listOf"))
+            assertTrue("$what: the rest is written", stubBody(context, "askNextPage", 4)[2].calls("$policy->ask(Ljava/util/Map;)V"))
+        }
     }
 
     /**
@@ -203,7 +234,11 @@ class HomeNextPageTest {
                 .filter { it.opcode == Opcode.IGET_BOOLEAN }.map { ((it as ReferenceInstruction).reference as FieldReference).definingClass }
             val reached = (adapterClass.fields.map { it.type }.filter { it.startsWith("L") } + flagOwners).toSet()
             val reachedClasses = FixtureDex.classes(bundle, reached).values.map { ImmutableClassDef.of(it) }
-            val sliced = (holders + callers + reachedClasses).distinctBy { it.type }
+            // What the adapter's interfaces hand back, Home's list among them.
+            val handed = reachedClasses.filter { AccessFlags.INTERFACE.isSet(it.accessFlags) }.flatMap { it.methods }
+                .filter { it.parameterTypes.isEmpty() && it.returnType.startsWith("L") }.map { it.returnType }.toSet() - reached
+            val handedClasses = FixtureDex.classes(bundle, handed).values.map { ImmutableClassDef.of(it) }
+            val sliced = (holders + callers + reachedClasses + handedClasses).distinctBy { it.type }
             val context = PatchContexts.of((FixtureDex.withStringPools(bundle, sliced) + ExtensionDex.classDef(HOME_NEXT_PAGE)).distinctBy { it.type })
 
             val targets = context.findHomeNextPage()
@@ -217,6 +252,10 @@ class HomeNextPageTest {
             assertEquals("$where: read through the lazy", "getValue", targets.lazyValue.name)
             assertEquals("$where: the source", "Ljava/lang/String;", targets.source.type)
             assertTrue("$where: the source is the flag's feed's", targets.source.definingClass in flagOwners)
+            val list = targets.list
+            assertTrue("$where: a way to Home's list", list != null)
+            assertEquals("$where: from the adapter's host", targets.adapter, list!!.host.definingClass)
+            assertEquals("$where: the list's view", "Landroid/view/ViewGroup;", list.view.returnType)
 
             targets.write(context)
 
@@ -233,6 +272,10 @@ class HomeNextPageTest {
             assertEquals("$where: once", 1, code.count { it.calls(HOME_BUILD_STARTS) })
             assertTrue("$where: the stub asks ${targets.ask}", stubBody(context, "askNextPage", 4)[2].calls(targets.ask.toString()))
             assertTrue("$where: the stub reads ${targets.policyField}", stubBody(context, "policyOf", 5)[1].reads(targets.policyField.toString()))
+            val listStub = stubBody(context, "listOf", 9)
+            assertTrue("$where: the stub reads ${list.host}", listStub[1].reads(list.host.toString()))
+            assertTrue("$where: the stub asks ${list.list}", listStub[2].calls(list.list.toString()))
+            assertTrue("$where: the stub asks ${list.view}", listStub[6].calls(list.view.toString()))
             checked++
         }
         assertEquals("every build was checked", bundles.size + others.size, checked)
@@ -255,13 +298,15 @@ class HomeNextPageTest {
     }
 
     private fun stubs(context: BytecodePatchContext): Map<String, List<Opcode>> =
-        context.classDefBy(HOME_NEXT_PAGE).methods.filter { it.name in setOf("policyOf", "sourceOf", "loadingNow", "moreLeft", "askNextPage") }
+        context.classDefBy(HOME_NEXT_PAGE).methods.filter { it.name in setOf("policyOf", "sourceOf", "loadingNow", "moreLeft", "askNextPage", "listOf") }
             .associate { method -> method.name to method.implementation!!.instructions.map { it.opcode } }
 
     /**
      * Home's adapter, its feed, the load more policy, the lazy holding it and the class that asks
-     * it for the next page as the loading row comes into view, plus the extension. [asks] are the
-     * policy's (Map)V calls that class makes, [fields] the adapter's fields it reads the policy from.
+     * it for the next page as the loading row comes into view, the adapter's list host and the
+     * list, plus the extension. [asks] are the policy's (Map)V calls that class makes, [fields] the
+     * adapter's fields it reads the policy from. With [listPath] the adapter reads its list for its
+     * most visible post, and the list declares [listViews] methods answering a ViewGroup.
      */
     private fun world(
         asks: List<String> = listOf("ask"),
@@ -269,6 +314,9 @@ class HomeNextPageTest {
         publicSource: Boolean = true,
         spinnerString: String = VISIBLE_SPINNER,
         staticBuilder: Boolean = false,
+        listPath: Boolean = true,
+        listViews: Int = 1,
+        publicHost: Boolean = true,
     ): List<ClassDef> = listOf(
         classDef(adapter, listOf(
             // 451's builder is static and takes the adapter second, after the feed's state.
@@ -282,7 +330,18 @@ class HomeNextPageTest {
                 :done
                 return-void
             """),
-        ), fields = (listOf("feed" to feed) + fields.map { it to lazy }).map { (name, type) -> field(adapter, name, type) }),
+            method(adapter, "mostVisible", "I", registers = 3, body = """
+                iget-object v0, v2, $adapter->host:$host
+                invoke-interface { v0 }, $host->list()$feedList
+                move-result-object v0
+                const-string v1, "${if (listPath) MOST_VISIBLE_GONE else "getMostVisibleMediaIndex"}"
+                const/4 v1, 0x0
+                return v1
+            """),
+        ), fields = (listOf("feed" to feed) + fields.map { it to lazy }).map { (name, type) -> field(adapter, name, type) } +
+            field(adapter, "host", host, public = publicHost)),
+        anInterface(host, "list" to feedList),
+        anInterface(feedList, *(listOf("first" to "I") + (1..listViews).map { "view${if (it == 1) "" else "$it"}" to "Landroid/view/ViewGroup;" }).toTypedArray()),
         classDef(feed, emptyList(), fields = listOf(field(feed, "ended", "Z"), field(feed, "source", "Ljava/lang/String;", public = publicSource))),
         classDef(policy, listOf(
             method(policy, "shows", "Z", registers = 3, body = """
@@ -383,4 +442,13 @@ class HomeNextPageTest {
 
     private fun classDef(type: String, methods: List<Method>, interfaces: List<String>? = null, fields: List<ImmutableField> = emptyList()): ClassDef =
         ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", interfaces, null, null, fields, methods)
+
+    /** A public interface [type] declaring an abstract method taking nothing for each name to return type of [methods]. */
+    private fun anInterface(type: String, vararg methods: Pair<String, String>): ClassDef = ImmutableClassDef(
+        type, AccessFlags.PUBLIC.value or AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value, "Ljava/lang/Object;",
+        null, null, null, emptyList(),
+        methods.map { (name, returns) ->
+            ImmutableMethod(type, name, emptyList<ImmutableMethodParameter>(), returns, AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, null, null, null)
+        },
+    )
 }

@@ -10,12 +10,15 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.view.View;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +37,8 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * Home asks for For you's next page right away after a page Hide suggested posts or another Home
- * switch left short or empty (#52, #28), a few times in a row at most, and never while a page loads,
+ * switch left short or empty (#52, #28), a few times in a row at most and a few more while Home's
+ * list sits at its end, with a later check for a page no build follows, and never while a page loads,
  * after the end, for suggested posts while they're hidden (#105) or for Following and Favorites.
  */
 @RunWith(RobolectricTestRunner.class)
@@ -52,11 +56,15 @@ public class HomeNextPageTest {
     /** The parameters of each request for the next page, in order. */
     private final List<Object> asks = new ArrayList<>();
 
+    /** The settle checks posted for later and not run yet. */
+    private final List<Runnable> settles = new ArrayList<>();
+
     private final long[] now = {1_000_000_000L};
     private String source;
     private int loading;
     private int more;
     private int empty;
+    private int end;
     private HookStatus.Snapshot saved;
     private FeedFilterCounters.Snapshot counters;
 
@@ -73,6 +81,9 @@ public class HomeNextPageTest {
         loading = 0;
         more = 1;
         empty = 0;
+        end = 0;
+        HomeNextPage.ends = adapter -> adapter == this.adapter ? end : -1;
+        HomeNextPage.later = settles::add;
         HomeNextPage.clock = () -> now[0];
         HomeNextPage.poster = posted::add;
         HomeNextPage.policies = adapter -> adapter == this.adapter ? policy : null;
@@ -101,6 +112,8 @@ public class HomeNextPageTest {
         FeedSuggestions.feedEnded(0);
         HomeNextPage.feedRead(null);
         clear();
+        HomeNextPage.ends = HomeNextPage::atEnd;
+        HomeNextPage.later = HomeNextPage::settleLater;
         FeedSuggestions.emptiness = FeedSuggestions::feedEmpty;
         FeedSuggestions.homeReadsForTests = null;
         FeedSuggestions.homePageLost = false;
@@ -135,6 +148,7 @@ public class HomeNextPageTest {
         HomeNextPage.capCounted = false;
         HomeNextPage.posted = false;
         HomeNextPage.latest = null;
+        HomeNextPage.home = null;
     }
 
     /** One build of Home's list: the builder starts, reads its flag off the feed, and the posted request runs. */
@@ -148,6 +162,13 @@ public class HomeNextPageTest {
         List<Runnable> due = new ArrayList<>(posted);
         posted.clear();
         for (Runnable request : due) request.run();
+    }
+
+    /** Runs the settle checks due now, as the main thread does {@link HomeNextPage#SETTLE_MS} after each was posted. */
+    private void runSettles() {
+        List<Runnable> due = new ArrayList<>(settles);
+        settles.clear();
+        for (Runnable check : due) check.run();
     }
 
     /** A page of Home's response like the reporter's: one followed post kept, four suggestions taken out. */
@@ -534,6 +555,128 @@ public class HomeNextPageTest {
         assertEquals(-1, HomeNextPage.loadingNow(policy));
         assertEquals(-1, HomeNextPage.moreLeft(policy));
         HomeNextPage.askNextPage(policy, null);
+        assertNull(HomeNextPage.listOf(adapter));
+        assertEquals("a list that can't be read can't be at its end", -1, HomeNextPage.atEnd(adapter));
+    }
+
+    /** A list off screen isn't at its end, and anything but a view can't be told. */
+    @Test
+    public void onlyAListOnScreenCanBeAtItsEnd() {
+        assertEquals(-1, HomeNextPage.endOf(null));
+        assertEquals(-1, HomeNextPage.endOf("not a view"));
+        assertEquals(0, HomeNextPage.endOf(new View(RuntimeEnvironment.getApplication())));
+    }
+
+    /**
+     * #28: Hide videos takes most of each suggested post page and Home's list sits at its end, so no
+     * scroll would ever ask. Past {@link HomeNextPage#CHAIN_CAP} it keeps asking while the list
+     * can't scroll further, up to {@link HomeNextPage#END_CAP} in a row.
+     */
+    @Test
+    public void atTheEndOfHomesListItAsksPastTheCapUpToItsOwn() {
+        end = 1;
+        for (int page = 1; page <= HomeNextPage.END_CAP + 1; page++) {
+            shortPage();
+            build();
+            assertEquals("page " + page, Math.min(page, HomeNextPage.END_CAP), asks.size());
+        }
+        assertEquals(1, counted(HomeNextPage.CAPPED));
+        assertEquals(HomeNextPage.END_CAP, counted(HomeNextPage.ASKED));
+    }
+
+    /** Past the cap, a list that still scrolls, or one that can't say, waits for the scroll as before. */
+    @Test
+    public void pastTheCapAListThatScrollsOrCantSayWaitsForTheScroll() {
+        for (int answer : new int[] {0, -1}) {
+            clear();
+            asks.clear();
+            end = answer;
+            for (int page = 1; page <= HomeNextPage.CHAIN_CAP + 1; page++) {
+                shortPage();
+                build();
+            }
+            assertEquals("end " + answer, HomeNextPage.CHAIN_CAP, asks.size());
+        }
+
+        // A list at its end until the asked-for pages fill it stops there.
+        clear();
+        asks.clear();
+        end = 1;
+        for (int page = 1; page <= HomeNextPage.CHAIN_CAP + 1; page++) {
+            shortPage();
+            build();
+        }
+        end = 0;
+        shortPage();
+        build();
+        assertEquals(HomeNextPage.CHAIN_CAP + 1, asks.size());
+    }
+
+    /**
+     * #28: a page the switches emptied changes nothing Home draws, so no build of Home's list may
+     * follow it. The check after it asks with the latest build that read its feed, and stops once
+     * the page is decided.
+     */
+    @Test
+    public void aShortPageNoBuildFollowsIsDecidedByTheLaterCheck() {
+        build();
+        assertTrue("nothing short, nothing to check", settles.isEmpty());
+
+        HomeNextPage.pageParsed(4, 4);
+        assertEquals("checked on later", 1, settles.size());
+        runSettles();
+        assertEquals(1, asks.size());
+        assertTrue("decided, so no more checks", settles.isEmpty());
+    }
+
+    /** The check waits while a page loads, like a build does, and lets the page go after the window. */
+    @Test
+    public void theLaterCheckWaitsWhileAPageLoadsAndStopsAfterTheWindow() {
+        build();
+        shortPage();
+        loading = 1;
+        runSettles();
+        assertTrue(asks.isEmpty());
+        assertEquals("checks again", 1, settles.size());
+        loading = 0;
+        runSettles();
+        assertEquals(1, asks.size());
+        assertTrue(settles.isEmpty());
+
+        shortPage();
+        loading = 1;
+        runSettles();
+        assertEquals(1, settles.size());
+        now[0] += HomeNextPage.WINDOW_NANOS + 1;
+        runSettles();
+        assertTrue("past the window, no more checks", settles.isEmpty());
+        assertEquals(1, asks.size());
+    }
+
+    /** With no build that read its feed yet the check waits, and a build that decides first leaves it nothing. */
+    @Test
+    public void theLaterCheckLeavesABuildsDecisionAlone() {
+        shortPage();
+        runSettles();
+        assertTrue(asks.isEmpty());
+        assertEquals("no build read its feed yet", 1, settles.size());
+        build();
+        assertEquals(1, asks.size());
+        runSettles();
+        assertTrue(settles.isEmpty());
+        assertEquals("one request a page", 1, asks.size());
+
+        // A request a build posted runs first: the check doesn't ask ahead of it.
+        shortPage();
+        HomeNextPage.buildStarts(adapter);
+        HomeNextPage.feedRead(feed);
+        runSettles();
+        assertEquals(1, asks.size());
+        runPosted();
+        assertEquals(2, asks.size());
+        runSettles();
+        assertTrue(settles.isEmpty());
+        assertEquals(2, asks.size());
     }
 
     /**
@@ -585,7 +728,7 @@ public class HomeNextPageTest {
     public void aBuildWhoseAdapterIsGoneAsksNothing() {
         shortPage();
         HomeNextPage.Build build = new HomeNextPage.Build(new Object());
-        build.feed = feed;
+        build.read(feed);
         build.adapter.clear();
         HomeNextPage.askIfShort(build);
         assertTrue(asks.isEmpty());
