@@ -358,6 +358,7 @@ public class GlassTabBarTest {
             host.frame();
             assertTrue("a sheet came up, the insets went round again", insets.get() > asked);
             assertEquals("under a sheet", nav, GlassTabBar.navBarHeight(nav));
+            assertTrue("and the answer says a sheet gave it", GlassTabBar.answeredForASheet());
             host.frame();
             assertEquals("the pill keeps its room under the sheet", height, host.bar.getLayoutParams().height);
 
@@ -366,6 +367,7 @@ public class GlassTabBarTest {
             host.frame();
             assertTrue("the sheet went, the insets went round again", insets.get() > asked);
             assertEquals("the sheet went", 0, GlassTabBar.navBarHeight(nav));
+            assertFalse("no sheet gave that one", GlassTabBar.answeredForASheet());
 
             holder.addView(sheet);
             host.frame();

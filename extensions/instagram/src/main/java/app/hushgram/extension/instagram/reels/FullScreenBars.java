@@ -26,6 +26,7 @@ import androidx.annotation.RequiresApi;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.WeakHashMap;
 
@@ -108,6 +109,13 @@ public final class FullScreenBars {
     /** The activity last resumed, whose window Instagram's listener passes are for. */
     private static WeakReference<Activity> resumed = new WeakReference<>(null);
     private static Teller teller = FullScreenBars::tellHeights;
+    /** How long a screen counts as built since a bottom sheet came over the glass pill (#222, #232). */
+    static final long RECENT_MS = 3_000L;
+    /** When each kept listener was registered. Weak: the activity's list holds the listener. Main thread only. */
+    private static final WeakHashMap<Object, Long> askedAt = new WeakHashMap<>();
+    /** Whether the last navigation bar answer was a bottom sheet's over the glass pill. */
+    private static boolean sheetAnswered;
+    private static java.util.function.LongSupplier clock = SystemClock::uptimeMillis;
     static final String COUNT_KEYBOARD = "kept the navigation bar's space for the keyboard";
     private static Keyboard keyboard = FullScreenBars::keyboardInFront;
 
@@ -274,17 +282,21 @@ public final class FullScreenBars {
      */
     public static int navBarHeight(int height) {
         int kept = height;
+        boolean sheet = false;
         if (height <= 0 || !keyboardUp()) {
             kept = hiddenBarHeight(height);
             try {
                 kept = GlassTabBar.navBarHeight(kept);
+                sheet = GlassTabBar.answeredForASheet();
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height", failure);
             }
         }
         if (height > 0) navOffered = height;
         navTaken = taken(height, kept, navTaken);
-        heightsKept(statusAnswer, kept);
+        boolean sheetChanged = sheet || sheetAnswered;
+        sheetAnswered = sheet;
+        heightsKept(statusAnswer, kept, sheetChanged);
         return kept;
     }
 
@@ -338,6 +350,7 @@ public final class FullScreenBars {
             }
             forgetListener(held, listener);
             held.add(listener);
+            askedAt.put(listener, clock.getAsLong());
             while (held.size() > ASKERS_KEPT) held.remove(0);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights listener", failure);
@@ -366,6 +379,16 @@ public final class FullScreenBars {
      * the main loop, once Instagram's pass is over, with whatever pair is kept by then.
      */
     static void heightsKept(int status, int nav) {
+        heightsKept(status, nav, false);
+    }
+
+    /**
+     * {@link #heightsKept}. With [bySheet], only a bottom sheet over the glass pill coming or going moved
+     * the pair, and only the screens built since the sheet came ({@link #RECENT_MS}) are told: the sheet's
+     * own comment box needs the real height (#209), but the Reels viewer under it was told too, and
+     * its video stopped drawing frames while the audio played (#222, #232).
+     */
+    static void heightsKept(int status, int nav, boolean bySheet) {
         try {
             boolean changed = status != keptStatus || nav != keptNav;
             keptStatus = status;
@@ -375,6 +398,14 @@ public final class FullScreenBars {
             ArrayList<Object> held = activity == null ? null : askers.get(activity);
             if (held == null || held.isEmpty()) return;
             List<Object> listeners = new ArrayList<>(held);
+            if (bySheet) {
+                long now = clock.getAsLong();
+                for (Iterator<Object> each = listeners.iterator(); each.hasNext(); ) {
+                    Long at = askedAt.get(each.next());
+                    if (at == null || now - at > RECENT_MS) each.remove();
+                }
+                if (listeners.isEmpty()) return;
+            }
             new Handler(Looper.getMainLooper()).post(() -> tellAll(listeners));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights kept", failure);
@@ -489,8 +520,16 @@ public final class FullScreenBars {
         keptStatus = -1;
         keptNav = -1;
         askers.clear();
+        askedAt.clear();
+        sheetAnswered = false;
+        clock = SystemClock::uptimeMillis;
         teller = tells == null ? FullScreenBars::tellHeights : tells;
         keyboard = FullScreenBars::keyboardInFront;
+    }
+
+    /** Tests give the clock the listeners' ages are read from. */
+    static void clockForTests(java.util.function.LongSupplier now) {
+        clock = now;
     }
 
     /** Tests say whether the keyboard shows. */

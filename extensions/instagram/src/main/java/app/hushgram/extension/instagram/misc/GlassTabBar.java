@@ -484,6 +484,7 @@ public final class GlassTabBar {
      * reel's comments, whose comment field sits by it (#209), while the pill keeps its room.
      */
     public static int navBarHeight(int height) {
+        answeredForASheet = false;
         Glass glass = height <= 0 ? null : floatingGlassInFront();
         if (glass == null) {
             navTaken = 0;
@@ -491,11 +492,20 @@ public final class GlassTabBar {
         }
         navTaken = height;
         if (glass.underASheet()) {
+            answeredForASheet = true;
             HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_NAV_UNDER_SHEET);
             return height;
         }
         HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_NAV_BEHIND);
         return 0;
+    }
+
+    /** Whether the last {@link #navBarHeight} answer went through as it came because a bottom sheet covers the pill. Main thread. */
+    private static boolean answeredForASheet;
+
+    /** Whether the last {@link #navBarHeight} answer was the sheet's (#222, #232). */
+    public static boolean answeredForASheet() {
+        return answeredForASheet;
     }
 
     /** Whether the front activity shows a floating glass bar: restyled, floating, and shown. */
