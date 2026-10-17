@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.settings;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.Process;
 
 import app.hushgram.extension.instagram.download.SaveControl;
 import app.hushgram.extension.shared.Logger;
@@ -69,7 +70,10 @@ final class RestartNow {
         }
         Runnable end = endProcessForTests;
         if (end != null) end.run();
-        else System.exit(0);
+        // Not System.exit: Instagram's crash reporter forks a child on the way out and waits for it,
+        // and with HushGram paused that child never finished, so the restart hung on "isn't
+        // responding" (#146). Every setting is committed already, so nothing waits on exit handlers.
+        else Process.killProcess(Process.myPid());
         return Outcome.RESTARTING;
     }
 

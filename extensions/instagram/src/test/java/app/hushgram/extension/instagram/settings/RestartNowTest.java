@@ -14,6 +14,7 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Process;
 import android.preference.Preference;
 import android.preference.TwoStatePreference;
 import android.view.View;
@@ -35,6 +36,7 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowPackageManager;
+import org.robolectric.shadows.ShadowProcess;
 import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -141,6 +143,24 @@ public class RestartNowTest {
             assertEquals("A save or an export is still running. Restart once it's done.", ShadowToast.getTextOfLatestToast());
         } finally {
             ExportStatus.CONFIGURATION.finish(token, "done");
+        }
+    }
+
+    /**
+     * #146: System.exit ran Instagram's crash reporter on the way out, which hung with HushGram
+     * paused. The process is killed instead (Robolectric records the kill; System.exit would end
+     * this test run).
+     */
+    @Test
+    public void theRestartKillsTheProcessRatherThanRunningExitHandlers() {
+        RestartNow.endProcessForTests = null;
+        ShadowProcess.clearKilledProcesses();
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(RestartNow.Outcome.RESTARTING, RestartNow.restart(controller.get()));
+            assertNotNull(Shadows.shadowOf(controller.get()).getNextStartedActivity());
+            assertTrue("the process wasn't killed", ShadowProcess.wasKilled(Process.myPid()));
+        } finally {
+            ShadowProcess.clearKilledProcesses();
         }
     }
 }
