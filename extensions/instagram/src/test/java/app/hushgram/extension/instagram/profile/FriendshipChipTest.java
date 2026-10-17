@@ -19,6 +19,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.RippleDrawable;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
@@ -205,6 +206,7 @@ public class FriendshipChipTest {
         assertTrue("under the picture", pill.top >= picture.bottom);
         assertEquals(column.getBottom() - ownBottom, pill.bottom);
         assertFalse("never on the name or the counts", Rect.intersects(pill, inRow(right)));
+        assertEquals("a block at the row's top, shorter than it, is left alone", 0, right.getPaddingBottom());
         assertTrue(String.join("\n", HookStatus.report()),
                 String.join("\n", HookStatus.report()).contains(FriendshipChip.UNDER_PICTURE + " 1"));
 
@@ -293,6 +295,59 @@ public class FriendshipChipTest {
         assertTrue("into the stretched block's rectangle", pill.bottom <= inRow(right).bottom);
         String report = String.join("\n", HookStatus.report());
         assertFalse(report, report.contains(FriendshipChip.NO_PICTURE_ROOM));
+    }
+
+    /**
+     * 0.0.12 on a phone (#157): the name and counts sit centered in a block stretched to the
+     * picture column's height, so the room under the picture moved them down by half of it. The
+     * block gets the same room at its bottom and they stay where Instagram put them, and taking the
+     * chip away gives the block its own padding back.
+     */
+    @Test
+    public void theNameAndCountsCenteredBesideThePictureStayPut() {
+        pictured(260, 260, 0);
+        right.getLayoutParams().height = LinearLayout.LayoutParams.MATCH_PARENT;
+        right.setGravity(Gravity.CENTER_VERTICAL);
+        right.setPadding(0, 0, 0, 3);
+        int bioTop = layOut();
+        int countsTop = inRow(counts).top;
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        layOut();
+        ShadowLooper.idleMainLooper();
+        int movedBioTop = layOut();
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        assertTrue(chip.underPicture);
+        assertFalse(chip.pill.getBounds().isEmpty());
+        assertEquals("the bio moves down by the chip's room", bioTop + chip.room, movedBioTop);
+        assertEquals("the counts stay where they were", countsTop, inRow(counts).top);
+        assertEquals(3 + chip.room, right.getPaddingBottom());
+
+        FriendshipStatus.besidePronouns(pronouns, new Profile(false, null));
+        layOut();
+        assertEquals("binding again adds no more room", 3 + chip.room, right.getPaddingBottom());
+
+        FriendshipChip.clear(counts);
+        assertEquals(3, right.getPaddingBottom());
+        assertEquals(bioTop, layOut());
+        assertEquals(countsTop, inRow(counts).top);
+    }
+
+    /** A block as tall as its words, centered in the row beside the picture, stays put the same way. */
+    @Test
+    public void aBlockCenteredInTheRowStaysPutToo() {
+        pictured(260, 260, 0);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        layOut();
+        int countsTop = inRow(counts).top;
+        assertTrue("centered below the row's top", inRow(right).top > 0);
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        layOut();
+        ShadowLooper.idleMainLooper();
+        layOut();
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        assertTrue(chip.underPicture);
+        assertEquals(countsTop, inRow(counts).top);
+        assertEquals(chip.room, right.getPaddingBottom());
     }
 
     /** A neighbor whose own color fills the room the pill would take is in the way, and the report names it. */

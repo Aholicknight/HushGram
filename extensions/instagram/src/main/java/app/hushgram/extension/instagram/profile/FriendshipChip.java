@@ -321,6 +321,8 @@ final class FriendshipChip {
         int ownBottom;
         final int room;
         private final int countsRoom;
+        /** The column's neighbors given the room too ({@link #keepNeighborsInPlace}), with their own bottom padding. */
+        private final Map<View, Integer> lifted = new WeakHashMap<>();
 
         Chip(View block, boolean small, @Nullable View column) {
             this.block = new WeakReference<>(block);
@@ -388,6 +390,14 @@ final class FriendshipChip {
             if (host != null && host.getPaddingBottom() == ownBottom + roomNow()) {
                 host.setPaddingRelative(host.getPaddingStart(), host.getPaddingTop(), host.getPaddingEnd(), ownBottom);
             }
+            for (Map.Entry<View, Integer> entry : lifted.entrySet()) {
+                View neighbor = entry.getKey();
+                int own = entry.getValue();
+                if (neighbor != null && neighbor.getPaddingBottom() == own + room) {
+                    neighbor.setPaddingRelative(neighbor.getPaddingStart(), neighbor.getPaddingTop(), neighbor.getPaddingEnd(), own);
+                }
+            }
+            lifted.clear();
         }
 
         @Override
@@ -444,10 +454,50 @@ final class FriendshipChip {
                 return;
             }
             pill.setBounds(bounds);
+            keepNeighborsInPlace(row, column);
             if (!counted) {
                 counted = true;
                 HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, UNDER_PICTURE);
             }
+        }
+
+        /**
+         * Gives the same room at their bottom to [column]'s neighbors in [row] that are placed by the
+         * row's height: stretched to it, or centered in it. The room made the row taller, and 451's
+         * name and counts beside the picture went down by half of it (#157, 0.0.12). With the room
+         * at its bottom too, what such a neighbor holds is back where Instagram put it. A neighbor
+         * that starts at the row's top and is shorter than it doesn't move, so it's left alone, and
+         * with the column short of the row's bottom the room didn't make the row taller at all.
+         */
+        private void keepNeighborsInPlace(ViewGroup row, View column) {
+            boolean grew = column.getBottom() >= rowBottom(row, column);
+            for (int i = 0; i < row.getChildCount(); i++) {
+                View child = row.getChildAt(i);
+                if (child == column || child.getVisibility() != View.VISIBLE) continue;
+                int bottom = child.getPaddingBottom();
+                Integer own = lifted.get(child);
+                if (own != null ? bottom == own + room : !grew || !placedByHeight(row, child)) continue;
+                lifted.put(child, bottom);
+                child.setPaddingRelative(child.getPaddingStart(), child.getPaddingTop(), child.getPaddingEnd(), bottom + room);
+            }
+        }
+
+        /** Whether [child]'s place in [row] follows the row's height: it reaches the row's bottom, or it's centered and below its top. */
+        private static boolean placedByHeight(ViewGroup row, View child) {
+            int bottom = rowBottom(row, child);
+            if (child.getBottom() >= bottom) return true;
+            ViewGroup.LayoutParams params = child.getLayoutParams();
+            int top = row.getPaddingTop()
+                    + (params instanceof ViewGroup.MarginLayoutParams ? ((ViewGroup.MarginLayoutParams) params).topMargin : 0);
+            int above = child.getTop() - top;
+            return above > 0 && Math.abs(above - (bottom - child.getBottom())) <= 1;
+        }
+
+        /** The lowest [child]'s bottom edge can be in [row]: the row's bottom, less its padding and the child's margin. */
+        private static int rowBottom(ViewGroup row, View child) {
+            ViewGroup.LayoutParams params = child.getLayoutParams();
+            return row.getHeight() - row.getPaddingBottom()
+                    - (params instanceof ViewGroup.MarginLayoutParams ? ((ViewGroup.MarginLayoutParams) params).bottomMargin : 0);
         }
 
         /** The view under [row]'s children but [column] that shows something [bounds] touch, or null. */
