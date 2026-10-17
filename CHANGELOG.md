@@ -4,7 +4,13 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
-* Profile button spacing is reapplied when Instagram resets the row during a refresh. Turning Hide suggested people off or pausing preserves Instagram's own button weights. #220.
+### Bug Fixes
+
+* **Instagram - Hide suggested people on profiles:** A profile's buttons keep their spacing when Instagram redraws the row during a refresh. With the switch off or HushGram paused, Instagram's own button sizes stay. Reported in #220.
+
+* **Instagram - HushGram settings:** Flipping Pause HushGram, or turning HushGram back on from the card at the top, shows Restart now right away. It used to show nothing to tap. Reported in #146.
+
+* **Instagram - HushGram settings:** The Brazilian Portuguese settings read more naturally, reworded by votsz. From #230.
 
 ## 0.0.12 (2026-10-16)
 
