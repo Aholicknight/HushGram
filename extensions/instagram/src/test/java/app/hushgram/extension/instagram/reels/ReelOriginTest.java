@@ -267,12 +267,13 @@ public class ReelOriginTest {
     @Test
     public void givesUpAfterItsStepsAndPutsTheGridBack() {
         ReelOrigin.opening(new Reel(REEL), ON);
-        openProfile(reels(12, 9000), null);
+        // Every page sits far above the reel, so even MAX_STEPS pages never reach it.
+        openProfile(reels(12, 90000), null);
         int[] page = {0};
-        grid.atEnd = () -> grid.reels.addAll(reels(12, 8000 - 100 * page[0]++));
+        grid.atEnd = () -> grid.reels.addAll(reels(12, 80000 - 100 * page[0]++));
 
         ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
-        idleSeconds(20);
+        idleSeconds((int) (ReelOrigin.GIVE_UP_MS / 1000) + 5);
         assertTrue(shown.isEmpty());
         assertEquals("the steps", ReelOrigin.MAX_STEPS, grid.drags.size());
         assertEquals("then one scroll back", 1, grid.scrolls.size());
@@ -340,6 +341,38 @@ public class ReelOriginTest {
         ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
         idleSeconds(14);
         assertEquals(HookStatus.report() + " drags " + grid.drags + " pages " + loaded[0], List.of(REEL), shown);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.FOUND + " 1"));
+        assertFalse(report, report.contains(ReelOrigin.RAN_OUT));
+    }
+
+    /**
+     * A reel from months back sits dozens of pages down, each page a second and a half behind the
+     * last. The search kept going only 15 seconds and said it couldn't find it (#225); it goes on
+     * until the reel shows.
+     */
+    @Test
+    public void aReelDozensOfPagesDownIsStillFound() {
+        List<List<String>> pages = new ArrayList<>();
+        for (int page = 0; page < 30; page++) pages.add(reels(12, 9000 - page * 100));
+        pages.get(29).set(6, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(new ArrayList<>(pages.get(0)), null);
+        Handler main = new Handler(Looper.getMainLooper());
+        int[] loaded = {1};
+        boolean[] loading = {false};
+        grid.atEnd = () -> {
+            if (loading[0] || loaded[0] >= pages.size()) return;
+            loading[0] = true;
+            main.postDelayed(() -> {
+                grid.reels.addAll(pages.get(loaded[0]++));
+                loading[0] = false;
+            }, 1500);
+        };
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        idleSeconds(80);
+        assertEquals(HookStatus.report() + " drags " + grid.drags.size() + " pages " + loaded[0], List.of(REEL), shown);
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(ReelOrigin.FOUND + " 1"));
         assertFalse(report, report.contains(ReelOrigin.RAN_OUT));

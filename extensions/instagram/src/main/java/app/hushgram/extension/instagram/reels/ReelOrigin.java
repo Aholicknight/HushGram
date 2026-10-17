@@ -115,9 +115,16 @@ public final class ReelOrigin {
     static final long WAIT_MS = 300;
     /** How often the grid is looked at while Find the reel waits for its tap, for the tab being left or the reel scrolled to by hand. */
     static final long TAP_WAIT_MS = 500;
-    /** How many times the grid is dragged on at most, and how long the search runs at most once the grid shows. */
-    static final int MAX_STEPS = 20;
-    static final long GIVE_UP_MS = 15000;
+    /**
+     * How many times the grid is dragged on at most, and how long the search runs at most once the grid
+     * shows. Instagram loads a dozen or so reels a page, a second or two apart, so a reel from months
+     * back is dozens of pages down: 20 drags and 15 seconds gave up long before it (#225). Stop
+     * looking ends a search sooner.
+     */
+    static final int MAX_STEPS = 150;
+    static final long GIVE_UP_MS = 90000;
+    /** How long the grid may show only placeholders before the search gives up. */
+    static final long FIRST_PAGE_MS = 15000;
     /** How long the end of the grid may stay the end before no more is coming. */
     static final long END_WAIT_MS = 4000;
     /** How often the grid is dragged again while it sits at its loaded end. */
@@ -343,7 +350,7 @@ public final class ReelOrigin {
                         if (unnamedSince == 0) {
                             unnamedSince = now;
                             HookStatus.counted(FamilyNames.REEL_ORIGIN, WAITED);
-                        } else if (now - unnamedSince >= GIVE_UP_MS) {
+                        } else if (now - unnamedSince >= FIRST_PAGE_MS) {
                             giveUp(list, NO_TILES);
                             return;
                         }

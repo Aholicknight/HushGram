@@ -20,6 +20,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Clean up Reels:** Keep clear mode on missed some reels and left their buttons up when the next reel's controls showed up late. It waits for them now. Reported in #233.
 
+* **Instagram - Find the reel you came from:** The search keeps going much further down a profile's reels before it says it couldn't find one, so an older reel many pages down is still found. Reported in #225.
+
 ## 0.0.12 (2026-10-16)
 
 ### Features
