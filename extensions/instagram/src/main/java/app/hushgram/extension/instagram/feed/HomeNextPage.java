@@ -35,8 +35,15 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * It keeps asking while pages come back short, {@link #CHAIN_CAP} times in a row at most, and a
  * page that keeps enough starts the count over.
  *
- * <p>It never asks while a page is loading, once the feed has no next page, for a Home that's empty
- * (the end card logic in {@link FeedSuggestions#feedEnded} has that one), or for a feed that isn't
+ * <p>A page the switches emptied leaves Home empty, and {@link FeedSuggestions#feedEnded} ends it so
+ * Instagram draws its empty feed card rather than a loading placeholder nothing would ever fill. It
+ * still asks for For you's next page then, within the same cap: the card shows until that page comes,
+ * and the posts it brings take its place. Before, nothing asked, and the card stayed until something
+ * else loaded Home (#28). An account that follows nobody reaches suggested posts
+ * only, which it doesn't ask for while Hide suggested posts is on, so its Home stays on the card
+ * (#105).
+ *
+ * <p>It never asks while a page is loading, once the feed has no next page, or for a feed that isn't
  * For you, so Following and Favorites page as they did. For you's suggested posts past the ones from
  * accounts you follow page from a source of their own, which it asks for only while Hide suggested
  * posts is off ({@link #asksFor}). Hide videos took a page of them down to a post or two and the
@@ -260,7 +267,7 @@ public final class HomeNextPage {
             }
             int busy = loading.applyAsInt(policy);
             if (busy == 1) return;
-            if (busy != 0 || more.applyAsInt(policy) != 1 || FeedSuggestions.feedIsEmpty(feed) != 0) {
+            if (busy != 0 || more.applyAsInt(policy) != 1) {
                 decided = page;
                 return;
             }

@@ -34,8 +34,8 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * Home asks for For you's next page right away after a page Hide suggested posts or another Home
- * switch left short (#52, #28), a few times in a row at most, and never while a page loads, after
- * the end, for an empty Home or for Following and Favorites.
+ * switch left short or empty (#52, #28), a few times in a row at most, and never while a page loads,
+ * after the end, for suggested posts while they're hidden (#105) or for Following and Favorites.
  */
 @RunWith(RobolectricTestRunner.class)
 public class HomeNextPageTest {
@@ -268,15 +268,79 @@ public class HomeNextPageTest {
         }
     }
 
+    /** An empty Home, or one that can't say, still gets For you's next page asked for, within the cap (#28). */
     @Test
-    public void anEmptyHomeIsLeftToItsEndCard() {
+    public void anEmptyHomeAsksWithinTheCap() {
         for (int answer : new int[] {1, -1}) {
             clear();
+            asks.clear();
             empty = answer;
-            shortPage();
-            build();
-            assertTrue("emptiness " + answer, asks.isEmpty());
+            for (int page = 1; page <= HomeNextPage.CHAIN_CAP + 1; page++) {
+                shortPage();
+                build();
+                assertEquals("emptiness " + answer + ", page " + page, Math.min(page, HomeNextPage.CHAIN_CAP), asks.size());
+            }
         }
+    }
+
+    /**
+     * #28: Hide suggested posts is off and Hide videos took every post of For you's page. Home is
+     * empty, so it ends and Instagram
+     * draws its empty feed card, but For you has more, and that page is asked for. Before, nothing
+     * asked and the card stayed. A next page that keeps posts fills Home and keeps Instagram's answer.
+     */
+    @Test
+    public void aHomeHideVideosEmptiedEndsAndAsksForItsNextPage() {
+        FeedSuggestions.homeReadsForTests = true;
+        Settings.HIDE_SUGGESTED_POSTS.save(false);
+        FeedSuggestions.tookOut = false;
+        Settings.HIDE_FEED_VIDEOS.save(true);
+        empty = 1;
+        FeedSuggestions.homePageStarts();
+        for (int post = 0; post < 6; post++) {
+            assertNull(FeedSuggestions.homeItem(new Object(), item -> FeedSuggestions.VIDEO));
+        }
+        FeedSuggestions.homePageParsed();
+
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals("the card shows while the next page comes", 1, FeedSuggestions.feedEnded(0));
+        runPosted();
+        assertEquals(1, asks.size());
+
+        FeedSuggestions.homePageStarts();
+        for (int post = 0; post < 6; post++) {
+            assertTrue(FeedSuggestions.homeItem(new Object(), item -> FeedSuggestions.PHOTO) != null);
+        }
+        FeedSuggestions.homePageParsed();
+        empty = 0;
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals("posts replace the card", 0, FeedSuggestions.feedEnded(0));
+        runPosted();
+        assertEquals("a full page asks nothing", 1, asks.size());
+    }
+
+    /**
+     * #105: an account that follows nobody gets suggested posts only. With Hide suggested posts on,
+     * a page of them from feed_recs empties Home, Home keeps Instagram's empty feed card and nothing
+     * asks for more of them.
+     */
+    @Test
+    public void aHomeThatFollowsNobodyStaysOnItsEndCard() {
+        FeedSuggestions.homeReadsForTests = true;
+        empty = 1;
+        source = HomeNextPage.SUGGESTED;
+        homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY, FeedSuggestionsTest.Kind.EXPLORE_STORY,
+                FeedSuggestionsTest.Kind.EXPLORE_STORY, FeedSuggestionsTest.Kind.SUGGESTED_USERS);
+
+        for (int read = 0; read < 3; read++) {
+            HomeNextPage.buildStarts(adapter);
+            FeedSuggestions.homeFeedRead(feed);
+            assertEquals("the empty feed card", 1, FeedSuggestions.feedEnded(0));
+            runPosted();
+        }
+        assertTrue(asks.isEmpty());
     }
 
     @Test

@@ -263,8 +263,9 @@ public final class FeedSuggestions {
      * <p>Instagram reads that flag only beside its own checks that the feed is empty and no page is
      * loading. With both true and a next page left it draws its loading placeholder, and nothing asks
      * for that page while the feed is empty, so a Home emptied of suggestions kept the placeholder for
-     * good. Saying there's no next page gets Instagram's own empty feed card instead. A feed with posts
-     * left, or one waiting on a page, draws what it did.
+     * good. Saying there's no next page gets Instagram's own empty feed card instead, and
+     * {@link HomeNextPage} still asks for For you's next page (#28), so posts it brings replace the
+     * card. A feed with posts left, or one waiting on a page, draws what it did.
      */
     public static int feedEnded(int noMorePages) {
         Object feed = READING.get();
