@@ -24,6 +24,10 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide suggested posts:** With `Hide videos` or another Home switch on, a page that came back with a post or two, or none at all, left Home on an endless spinner or the Welcome card. Home asks for the next page by itself now. Reported in #28.
 
+### Improvements
+
+* **Instagram - Diagnostics:** The report now lists every card type the stories viewer checks, ads included, and how often Instagram asked whether to show the Music for you card. A report from someone who still sees those cards shows which way they came in. From #111 and #154.
+
 ## 0.0.12 (2026-10-16)
 
 ### Features

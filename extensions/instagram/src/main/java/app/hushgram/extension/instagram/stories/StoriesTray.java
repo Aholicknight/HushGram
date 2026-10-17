@@ -96,12 +96,22 @@ public final class StoriesTray {
 
     /** The diagnostic counter route for Music for you card checks answered no, one for each time Instagram asked. */
     static final String MUSIC_CARD_ROUTE = "Music for you card";
+    static final String MUSIC_FLAG_ON = "Instagram said yes";
+    static final String MUSIC_FLAG_OFF = "Instagram said no";
 
     /**
      * Every reel type the tray's parser reads, counted by name, so a report from an account that's
      * shown a card no switch covers yet (#111's Music for you) says which type it is.
      */
     static final String KINDS_ROUTE = "Stories tray reel types";
+
+    /**
+     * Every ad and netego the stories viewer checks, counted by netego type (an ad as {@link #AD}),
+     * so a report from an account that still sees cards between stories (#154) shows whether they
+     * reach the check at all, and under which type.
+     */
+    static final String UNITS_ROUTE = "Stories viewer units";
+    static final String AD = "ad";
 
     /** A constant only the reel type enum has among the tray item's enum fields. */
     private static final String REEL_TYPE_MARKER = "USER_REEL";
@@ -185,8 +195,9 @@ public final class StoriesTray {
      * anything goes wrong. Never throws, and never waits for the settings.
      */
     public static boolean netego(String type) {
-        if (type == null) return false;
         try {
+            FeedFilterCounters.sawKind(UNITS_ROUTE, type == null ? AD : type);
+            if (type == null) return false;
             HookStatus.invoked(FamilyNames.STORIES_TRAY);
             if (!SUGGESTED_NETEGOS.contains(type)) return false;
             FeedFilterCounters.sawKind(SUGGESTION_ROUTE, type);
@@ -210,6 +221,9 @@ public final class StoriesTray {
         boolean instagram = enabled != 0;
         try {
             HookStatus.invoked(FamilyNames.STORIES_TRAY);
+            // Every ask is counted by Instagram's answer, so a report from an account that still sees
+            // the card (#111) shows whether the card came through this flag at all.
+            FeedFilterCounters.sawKind(MUSIC_CARD_ROUTE, instagram ? MUSIC_FLAG_ON : MUSIC_FLAG_OFF);
             if (!instagram || !Utils.settingsReady() || !Settings.HIDE_MUSIC_CARD.get()) return instagram;
             FeedFilterCounters.removed(MUSIC_CARD_ROUTE, 1, "card left out");
             return false;
