@@ -74,7 +74,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * <p>No layout listener runs for nothing: with the choice off an activity gets only a window focus
  * listener, which hears the choice turned on once the settings close. While it's on, a layout
  * (a new reel, another screen) asks for a look at most every {@link #LOOK_MS}, and while the controls
- * are dimmed a look comes every {@link #KEEP_MS} to dim what Instagram brought back on its own.
+ * are dimmed a look comes every {@link #KEEP_MS} to dim what Instagram brought back on its own. A draw
+ * listener dims a dimmed view again before the frame that would show Instagram's alpha ({@link #redim}).
  */
 public final class BurnInGuard {
     /** The share of Instagram's own opacity the controls dim to. */
@@ -147,6 +148,7 @@ public final class BurnInGuard {
     private static final Runnable TICK = BurnInGuard::tick;
     private static final Focus FOCUS = new Focus();
     private static final Layout LAYOUT = new Layout();
+    private static final Draw DRAW = new Draw();
 
     private static Handler handler;
     /** The activity in front, the one every pass looks at. */
@@ -560,15 +562,35 @@ public final class BurnInGuard {
         return ids;
     }
 
-    /** Adds or takes off the layout listener on the window in front. */
+    /** Adds or takes off the layout and draw listeners on the window in front. */
     private static void watchLayouts(boolean on) {
         if (on == layoutWatched) return;
         View decor = observed.get();
         if (on && decor == null) return;
         layoutWatched = on;
         if (decor == null || !decor.getViewTreeObserver().isAlive()) return;
-        if (on) decor.getViewTreeObserver().addOnGlobalLayoutListener(LAYOUT);
-        else decor.getViewTreeObserver().removeOnGlobalLayoutListener(LAYOUT);
+        ViewTreeObserver observer = decor.getViewTreeObserver();
+        if (on) {
+            observer.addOnGlobalLayoutListener(LAYOUT);
+            observer.addOnPreDrawListener(DRAW);
+        } else {
+            observer.removeOnGlobalLayoutListener(LAYOUT);
+            observer.removeOnPreDrawListener(DRAW);
+        }
+    }
+
+    /**
+     * Dims again each dimmed view whose alpha Instagram changed since, from Instagram's new alpha. 451
+     * writes the button column's alpha back on a tap that pauses or plays the reel, and a write is drawn
+     * on the next frame, so waiting for the {@link #KEEP_MS} look let the buttons flash bright for up to
+     * a second on every such tap (#162). Done before the frame is drawn, the flash never shows.
+     */
+    private static void redim() {
+        if (DIMMED.isEmpty()) return;
+        for (Map.Entry<View, float[]> entry : DIMMED.entrySet()) {
+            View view = entry.getKey();
+            if (view != null && view.getAlpha() != entry.getValue()[1]) dim(view);
+        }
     }
 
     private static Handler handler() {
@@ -630,6 +652,18 @@ public final class BurnInGuard {
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard focus", failure);
             }
+        }
+    }
+
+    /** A frame about to be drawn: what Instagram brought back while dimmed is dimmed again first. */
+    private static final class Draw implements ViewTreeObserver.OnPreDrawListener {
+        @Override public boolean onPreDraw() {
+            try {
+                redim();
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard redim", failure);
+            }
+            return true;
         }
     }
 

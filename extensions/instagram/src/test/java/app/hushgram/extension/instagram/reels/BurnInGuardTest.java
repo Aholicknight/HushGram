@@ -571,6 +571,28 @@ public class BurnInGuardTest {
         assertUp("a touch still brings it back to Instagram's own");
     }
 
+    /**
+     * The video in #162 (0.0.12): each tap that paused or played the reel flashed the buttons bright
+     * for about a second. Dimmed again before the next frame is drawn, Instagram's write never shows.
+     */
+    @Test public void whatInstagramBringsBackIsDimmedBeforeTheNextFrame() {
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        after(IDLE + 100);
+        assertDimmed("idle");
+        overlay.setAlpha(1f);
+        assertFalse("the frame is still drawn",
+                activity.getWindow().getDecorView().getViewTreeObserver().dispatchOnPreDraw());
+        assertDimmed("the frame Instagram's alpha would show in");
+        tap();
+        assertUp("a touch still brings it back to Instagram's own");
+        Settings.BURN_IN_GUARD.save(BurnInMode.OFF);
+        BurnInGuard.pass();
+        overlay.setAlpha(0.6f);
+        activity.getWindow().getDecorView().getViewTreeObserver().dispatchOnPreDraw();
+        assertEquals("off, a frame leaves Instagram's alpha alone", 0.6f, overlay.getAlpha(), 0f);
+    }
+
     @Test public void tenSecondsWaitsTenSeconds() {
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
         Settings.BURN_IN_WAIT.save(BurnInWait.TEN_SECONDS);
