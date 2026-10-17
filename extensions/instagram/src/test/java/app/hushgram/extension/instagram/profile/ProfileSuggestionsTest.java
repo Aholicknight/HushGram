@@ -232,6 +232,71 @@ public class ProfileSuggestionsTest {
         assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ProfileSuggestions.ROW_PUT_BACK + " 1"));
     }
 
+    /** A recycled button needs its share again after Instagram resets or replaces its layout params. */
+    @Test
+    public void refreshedActionButtonsKeepSharingTheHiddenSpace() {
+        LinearLayout row = row();
+        View edit = add(row, "generic", 400);
+        View share = add(row, "generic", 400);
+        View button = add(row, "chaining_icon", 150);
+
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+        assertEquals(List.of(500, 500), measure(row, edit, share));
+
+        ((LinearLayout.LayoutParams) edit.getLayoutParams()).weight = 0;
+        share.setLayoutParams(new LinearLayout.LayoutParams(400, 100));
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+        assertEquals("both forms of native rebind keep filling the row", List.of(500, 500), measure(row, edit, share));
+
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+        assertEquals(List.of(400, 400, 150), measure(row, edit, share, button));
+    }
+
+    /** Replacement native weights belong to Instagram even if they equal the weight we used before. */
+    @Test
+    public void refreshedNativeWeightsAreNotTakenBackOnSwitchOff() {
+        LinearLayout row = row();
+        View edit = add(row, "generic", 400);
+        View share = add(row, "generic", 400);
+        View button = add(row, "chaining_icon", 150);
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+
+        edit.setLayoutParams(new LinearLayout.LayoutParams(300, 100, 1));
+        ((LinearLayout.LayoutParams) share.getLayoutParams()).weight = 2;
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+
+        assertEquals(1f, ((LinearLayout.LayoutParams) edit.getLayoutParams()).weight, 0f);
+        assertEquals(2f, ((LinearLayout.LayoutParams) share.getLayoutParams()).weight, 0f);
+        assertEquals(View.VISIBLE, button.getVisibility());
+    }
+
+    /** Instagram may replace params and turn the switch off before another hidden-row bind. */
+    @Test
+    public void refreshedNativeWeightsAreNotTakenBackOnPauseBeforeRebind() {
+        LinearLayout row = row();
+        View edit = add(row, "generic", 400);
+        View button = add(row, "chaining_icon", 150);
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+
+        edit.setLayoutParams(new LinearLayout.LayoutParams(400, 100, 1));
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.fitRow(button);
+
+        assertEquals(1f, ((LinearLayout.LayoutParams) edit.getLayoutParams()).weight, 0f);
+        assertEquals(View.VISIBLE, button.getVisibility());
+    }
+
     /**
      * An icon button Instagram keeps at its own width (Saved, the overflow menu) stays that width,
      * and a button Instagram weighted itself keeps its weight when the row is put back.

@@ -128,8 +128,8 @@ public final class ProfileSuggestions {
     static final String ROW_SPREAD = "action buttons spread over the hidden button's space";
     static final String ROW_PUT_BACK = "action buttons put back to Instagram's widths";
 
-    /** The text buttons this class gave a weight, so only those lose it again. Weak, as {@link #hidden} is. */
-    private static final Map<View, Boolean> spread = new WeakHashMap<>();
+    /** The params this class weighted, so replacement native weights aren't taken back. Weak, as {@link #hidden} is. */
+    private static final Map<View, LinearLayout.LayoutParams> spread = new WeakHashMap<>();
 
     private ProfileSuggestions() {
     }
@@ -225,13 +225,17 @@ public final class ProfileSuggestions {
                     if (child == button || child == null || isIcon(child)) continue;
                     if (!(child.getLayoutParams() instanceof LinearLayout.LayoutParams)) continue;
                     LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) child.getLayoutParams();
-                    if (gone && child.getVisibility() != View.GONE && params.weight == 0 && !spread.containsKey(child)) {
+                    LinearLayout.LayoutParams owned = spread.get(child);
+                    if (owned != null && (owned != params || params.weight != 1)) {
+                        // A native rebind replaced the params or changed their weight.
+                        spread.remove(child);
+                    }
+                    if (gone && child.getVisibility() != View.GONE && params.weight == 0) {
                         params.weight = 1;
-                        spread.put(child, Boolean.TRUE);
+                        spread.put(child, params);
                         moved++;
-                    } else if (!gone && spread.remove(child) != null) {
-                        // Only a weight this gave goes back, and only while it's still that weight.
-                        if (params.weight == 1) params.weight = 0;
+                    } else if (!gone && spread.remove(child) == params) {
+                        params.weight = 0;
                         moved++;
                     }
                 }

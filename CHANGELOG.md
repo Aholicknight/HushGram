@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* Profile button spacing is reapplied when Instagram resets the row during a refresh. Turning Hide suggested people off or pausing preserves Instagram's own button weights. #220.
+
 ## 0.0.12 (2026-10-16)
 
 ### Features
