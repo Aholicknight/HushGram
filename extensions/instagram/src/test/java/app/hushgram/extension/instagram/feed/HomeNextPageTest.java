@@ -420,6 +420,44 @@ public class HomeNextPageTest {
         assertFalse(HomeNextPage.asksFor("homecoming_following"));
     }
 
+    /**
+     * #28 as reported on 2026-10-17: Hide suggested posts off, Hide videos on, and For you's
+     * suggested posts page from feed_recs. Hide videos alone takes a page of them down to two posts
+     * under a loading row that never moved, or to none, leaving the Welcome card. Either way the
+     * next page is asked for.
+     */
+    @Test
+    public void hideVideosAloneAsksAfterASuggestedPostPageItShortenedOrEmptied() {
+        FeedSuggestions.homeReadsForTests = true;
+        Settings.HIDE_SUGGESTED_POSTS.save(false);
+        Settings.HIDE_FEED_VIDEOS.save(true);
+        source = HomeNextPage.SUGGESTED;
+        for (int kept : new int[] {2, 0}) {
+            clear();
+            asks.clear();
+            FeedSuggestions.tookOut = false;
+            FeedSuggestions.typesTookOut = false;
+            empty = kept == 0 ? 1 : 0;
+            FeedSuggestions.homePageStarts();
+            for (int post = 0; post < 5; post++) {
+                assertNull(FeedSuggestions.homeItem(new Object(), item -> FeedSuggestions.VIDEO));
+            }
+            for (int post = 0; post < kept; post++) {
+                Object photo = new Object();
+                assertSame(photo, FeedSuggestions.homeItem(photo, item -> FeedSuggestions.PHOTO));
+            }
+            FeedSuggestions.homePageParsed();
+            assertTrue("Hide videos took them out", FeedSuggestions.typesTookOut);
+            assertEquals("kept " + kept + ", the page is waiting", HomeNextPage.pages, HomeNextPage.shortPage);
+
+            HomeNextPage.buildStarts(adapter);
+            FeedSuggestions.homeFeedRead(feed);
+            assertEquals("kept " + kept, kept == 0 ? 1 : 0, FeedSuggestions.feedEnded(0));
+            runPosted();
+            assertEquals("kept " + kept, 1, asks.size());
+        }
+    }
+
     @Test
     public void anOffSwitchPauseOrUnreadySettingsLeaveInstagramsPaging() {
         for (BooleanSetting setting : suggestionSwitches()) setting.save(false);
