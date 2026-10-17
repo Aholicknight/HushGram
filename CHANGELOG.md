@@ -12,6 +12,14 @@ Every HushGram release, newest first.
 
 * **Instagram - HushGram settings:** The Brazilian Portuguese settings read more naturally, reworded by votsz. From #230.
 
+* **Instagram - Clean up Reels:** With Burn-in guard faded, a tap that paused or played a reel lit the buttons up for up to a second before they dimmed again. They stay dim through the tap now. Reported in #162.
+
+* **Instagram - Show if a profile follows you:** With the small label under the picture, the name and counts beside it slid down on some profiles. They stay where Instagram puts them now. Reported in #157.
+
+* **Instagram - Glass tab bar:** With the glass bar on, opening a reel's comments, Share or More could leave the video stuck on its cover, or frozen while the sound played on. The reel underneath is left alone when a sheet opens now. Reported in #222 and #232.
+
+* **Instagram - Clean up Reels:** Keep clear mode on missed some reels and left their buttons up when the next reel's controls showed up late. It waits for them now. Reported in #233.
+
 ## 0.0.12 (2026-10-16)
 
 ### Features
