@@ -22,6 +22,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Find the reel you came from:** The search keeps going much further down a profile's reels before it says it couldn't find one, so an older reel many pages down is still found. Reported in #225.
 
+* **Instagram - Hide suggested posts:** With `Hide videos` or another Home switch on, a page that came back with a post or two, or none at all, left Home on an endless spinner or the Welcome card. Home asks for the next page by itself now. Reported in #28.
+
 ## 0.0.12 (2026-10-16)
 
 ### Features
