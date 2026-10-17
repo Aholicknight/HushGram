@@ -21,6 +21,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.RippleDrawable;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -348,6 +349,132 @@ public class FriendshipChipTest {
         assertTrue(chip.underPicture);
         assertEquals(countsTop, inRow(counts).top);
         assertEquals(chip.room, right.getPaddingBottom());
+    }
+
+    /**
+     * 0.0.12 on the S22 (#157, 2026-10-17): 451's header is one ConstraintLayout, with the name
+     * and counts a chain centered on the picture's column and the bio in the same row under it.
+     * The column never reaches that row's bottom, so the name and counts still went down by half
+     * the room. Now they stay put, and the bio still moves down to make the room.
+     */
+    @Test
+    public void theNameAndCountsCenteredOnThePictureInOneLayoutStayPut() {
+        Activity activity = controller.get();
+        CenteredBeside row451 = new CenteredBeside(activity);
+        FrameLayout column451 = new FrameLayout(activity);
+        View frame451 = new View(activity);
+        frame451.setId(View.generateViewId());
+        column451.addView(frame451, new FrameLayout.LayoutParams(248, 248));
+        row451.addView(column451, wrapped(0, 0));
+        LinearLayout name = new LinearLayout(activity);
+        TextView fullName = new TextView(activity);
+        fullName.setText("National Geographic");
+        name.addView(fullName);
+        pronouns = new TextView(activity);
+        name.addView(pronouns);
+        row451.addView(name, wrapped(23, 0));
+        counts = new LinearLayout(activity);
+        TextView followers = new TextView(activity);
+        followersId = View.generateViewId();
+        followers.setId(followersId);
+        followers.setText("268M");
+        counts.addView(followers);
+        row451.addView(counts, wrapped(0, 4));
+        bio = new TextView(activity);
+        bio.setText("A bio");
+        row451.addView(bio, wrapped(0, 0));
+        header = new LinearLayout(activity);
+        header.addView(row451);
+        activity.setContentView(header);
+        FriendshipChip.followersCountIdForTests = followersId;
+        FriendshipChip.pictureFrameIdForTests = frame451.getId();
+        Settings.FOLLOW_LABEL_PLACE.save(FollowLabelPlace.UNDER_PICTURE);
+        HookStatus.clear();
+
+        int bioTop = layOut();
+        int nameTop = name.getTop();
+        int countsTop = counts.getTop();
+        assertTrue("centered below the column's top", nameTop > 23);
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        layOut();
+        ShadowLooper.idleMainLooper();
+        int movedBioTop = layOut();
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        assertTrue(chip.underPicture);
+        assertFalse(chip.pill.getBounds().isEmpty());
+        assertEquals("the bio moves down by the chip's room", bioTop + chip.room, movedBioTop);
+        assertEquals("the name stays where it was", nameTop, name.getTop());
+        assertEquals("the counts stay where they were", countsTop, counts.getTop());
+        assertEquals("only the chain's lowest view takes the room", chip.room, counts.getPaddingBottom());
+        assertEquals(0, name.getPaddingBottom());
+
+        FriendshipChip.clear(counts);
+        assertEquals(0, counts.getPaddingBottom());
+        assertEquals(bioTop, layOut());
+        assertEquals(nameTop, name.getTop());
+    }
+
+    private static ViewGroup.MarginLayoutParams wrapped(int topMargin, int bottomMargin) {
+        ViewGroup.MarginLayoutParams params = new ViewGroup.MarginLayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = topMargin;
+        params.bottomMargin = bottomMargin;
+        return params;
+    }
+
+    /**
+     * 451's profile header the way its ConstraintLayout places it: the picture's column at the top
+     * start, the next two children a chain beside it centered on its height (outer margins
+     * counted), and the last one under whichever ends lower.
+     */
+    static final class CenteredBeside extends ViewGroup {
+        private static final int START = 45;
+        private static final int GAP = 45;
+
+        CenteredBeside(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected void onMeasure(int widthSpec, int heightSpec) {
+            int width = MeasureSpec.getSize(widthSpec);
+            int any = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+            View column = getChildAt(0);
+            column.measure(any, any);
+            int beside = MeasureSpec.makeMeasureSpec(width - 2 * START - column.getMeasuredWidth() - GAP, MeasureSpec.AT_MOST);
+            getChildAt(1).measure(beside, any);
+            getChildAt(2).measure(beside, any);
+            getChildAt(3).measure(MeasureSpec.makeMeasureSpec(width - 2 * START, MeasureSpec.EXACTLY), any);
+            setMeasuredDimension(width, arrange(false));
+        }
+
+        @Override
+        protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            arrange(true);
+        }
+
+        /** Places the children when [apply], and answers the height they take. */
+        private int arrange(boolean apply) {
+            View column = getChildAt(0);
+            View first = getChildAt(1);
+            View second = getChildAt(2);
+            View under = getChildAt(3);
+            int columnBottom = column.getMeasuredHeight();
+            int topMargin = ((MarginLayoutParams) first.getLayoutParams()).topMargin;
+            int bottomMargin = ((MarginLayoutParams) second.getLayoutParams()).bottomMargin;
+            int chain = topMargin + first.getMeasuredHeight() + second.getMeasuredHeight() + bottomMargin;
+            int firstTop = (columnBottom - chain) / 2 + topMargin;
+            int secondTop = firstTop + first.getMeasuredHeight();
+            int underTop = Math.max(columnBottom, secondTop + second.getMeasuredHeight() + bottomMargin);
+            if (apply) {
+                int left = START + column.getMeasuredWidth() + GAP;
+                column.layout(START, 0, START + column.getMeasuredWidth(), columnBottom);
+                first.layout(left, firstTop, left + first.getMeasuredWidth(), secondTop);
+                second.layout(left, secondTop, left + second.getMeasuredWidth(), secondTop + second.getMeasuredHeight());
+                under.layout(START, underTop, START + under.getMeasuredWidth(), underTop + under.getMeasuredHeight());
+            }
+            return underTop + under.getMeasuredHeight();
+        }
     }
 
     /** A neighbor whose own color fills the room the pill would take is in the way, and the report names it. */

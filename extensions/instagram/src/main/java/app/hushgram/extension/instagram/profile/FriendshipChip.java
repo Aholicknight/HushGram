@@ -468,6 +468,8 @@ final class FriendshipChip {
          * at its bottom too, what such a neighbor holds is back where Instagram put it. A neighbor
          * that starts at the row's top and is shorter than it doesn't move, so it's left alone, and
          * with the column short of the row's bottom the room didn't make the row taller at all.
+         * When none of that applies, the views beside the column may be centered on it instead
+         * ({@link #keepChainInPlace}).
          */
         private void keepNeighborsInPlace(ViewGroup row, View column) {
             boolean grew = column.getBottom() >= rowBottom(row, column);
@@ -477,9 +479,57 @@ final class FriendshipChip {
                 int bottom = child.getPaddingBottom();
                 Integer own = lifted.get(child);
                 if (own != null ? bottom == own + room : !grew || !placedByHeight(row, child)) continue;
-                lifted.put(child, bottom);
-                child.setPaddingRelative(child.getPaddingStart(), child.getPaddingTop(), child.getPaddingEnd(), bottom + room);
+                lift(child);
             }
+            if (lifted.isEmpty()) keepChainInPlace(row, column);
+        }
+
+        /**
+         * 451's header on a phone is one ConstraintLayout (#157, S22 2026-10-17): the bio sits in
+         * the same row under the picture's column, and the name and counts beside the column are a
+         * chain centered on its height. The room made the column taller and moved the chain down by
+         * half of it. The same room at the bottom of the chain's lowest view makes the chain that
+         * much taller, which puts it back where Instagram put it. Views beside the column that
+         * aren't centered on it are left alone.
+         */
+        private void keepChainInPlace(ViewGroup row, View column) {
+            View highest = null;
+            View lowest = null;
+            for (int i = 0; i < row.getChildCount(); i++) {
+                View child = row.getChildAt(i);
+                if (child == column || child.getVisibility() != View.VISIBLE || !beside(child, column)) continue;
+                if (highest == null || child.getTop() < highest.getTop()) highest = child;
+                if (lowest == null || child.getBottom() > lowest.getBottom()) lowest = child;
+            }
+            if (lowest != null && centeredOn(column, highest, lowest)) lift(lowest);
+        }
+
+        /** Gives [view] the room at its bottom, remembering its own padding for {@link #remove}. */
+        private void lift(View view) {
+            int bottom = view.getPaddingBottom();
+            lifted.put(view, bottom);
+            view.setPaddingRelative(view.getPaddingStart(), view.getPaddingTop(), view.getPaddingEnd(), bottom + room);
+        }
+
+        /** Whether [child] is to [column]'s side and within its height. */
+        private static boolean beside(View child, View column) {
+            boolean aside = child.getLeft() >= column.getRight() || child.getRight() <= column.getLeft();
+            return aside && child.getTop() >= column.getTop() && child.getBottom() <= column.getBottom();
+        }
+
+        /**
+         * Whether the views from [highest]'s top to [lowest]'s bottom are centered on [column]'s
+         * height, the way ConstraintLayout centers a chain: their outer margins count, and an odd
+         * pixel goes to either side.
+         */
+        private static boolean centeredOn(View column, View highest, View lowest) {
+            ViewGroup.LayoutParams top = highest.getLayoutParams();
+            ViewGroup.LayoutParams bottom = lowest.getLayoutParams();
+            int above = highest.getTop() - column.getTop()
+                    - (top instanceof ViewGroup.MarginLayoutParams ? ((ViewGroup.MarginLayoutParams) top).topMargin : 0);
+            int below = column.getBottom() - lowest.getBottom()
+                    - (bottom instanceof ViewGroup.MarginLayoutParams ? ((ViewGroup.MarginLayoutParams) bottom).bottomMargin : 0);
+            return above > 0 && Math.abs(above - below) <= 1;
         }
 
         /** Whether [child]'s place in [row] follows the row's height: it reaches the row's bottom, or it's centered and below its top. */
