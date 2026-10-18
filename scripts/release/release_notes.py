@@ -16,7 +16,7 @@ bullet, an unknown scope or patch, a missing section, a bullet count that doesn'
 the project's writing rules keep out of public text and a bullet that runs over 40 words (its
 closing credit, like Asked for in #12 or Thanks to @name, doesn't count).
 
-    py -3.13 -I scripts/release/release_notes.py --version 0.0.12 --validation validation.md
+    py -3.13 -I scripts/release/release_notes.py --version 0.0.13 --validation validation.md
         --out notes.md --description-out description.json
 
 (one command, split here to fit). --out is the GitHub release body. --description-out is the same

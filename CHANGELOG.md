@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+## 0.0.13 (2026-10-18)
+
 ### Features
 
 * **Instagram - Hide Follow on feed posts:** New patch. Feed posts show a Follow or Subscribe button next to the author's name, and this takes it off. The name, time and menu stay. The switch is under Feed and starts off. Asked for in #248.
