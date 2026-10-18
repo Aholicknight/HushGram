@@ -11720,11 +11720,11 @@ public final class L10nTranslations {
         table.put("A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.",
                 "Um chip menor, centralizado abaixo da foto do perfil. Um perfil sem espa\u00e7o ali mostra o chip pequeno abaixo dos n\u00fameros.");
         table.put("A story plays again from the start when it ends, until you tap or swipe to move on. Ads still move on. With Stop Story auto-advance on too, stories loop.",
-                "Um story recome\u00e7a do in\u00edcio quando termina, at\u00e9 voc\u00ea tocar ou deslizar para seguir. An\u00fancios continuam passando. Com Parar o avan\u00e7o autom\u00e1tico dos stories ligado tamb\u00e9m, os stories se repetem.");
+                "Quando um story termina, ele recome\u00e7a automaticamente at\u00e9 voc\u00ea tocar na tela ou deslizar para avan\u00e7ar. Os an\u00fancios continuam avan\u00e7ando normalmente. Se Parar o avan\u00e7o autom\u00e1tico dos stories tamb\u00e9m estiver ativado, os stories ficar\u00e3o em repeti\u00e7\u00e3o.");
         table.put("A story's header says how many accounts it mentions, even when the mention is hidden. Tap that for the list, and tap someone to open their profile.",
                 "O topo de um story mostra quantas contas ele menciona, mesmo quando a men\u00e7\u00e3o est\u00e1 escondida. Toque para ver a lista e toque em algu\u00e9m para abrir o perfil.");
         table.put("A story's header shows its time the way the choice below says, instead of how long ago. It follows your phone's language and 12 or 24-hour setting.",
-                "O cabe\u00e7alho de um story mostra o hor\u00e1rio do jeito que a op\u00e7\u00e3o abaixo indica, em vez de h\u00e1 quanto tempo. Segue o idioma do seu celular e a configura\u00e7\u00e3o de 12 ou 24 horas.");
+                "O cabe\u00e7alho do story mostra o hor\u00e1rio conforme a op\u00e7\u00e3o selecionada abaixo, em vez de indicar h\u00e1 quanto tempo foi publicado. O formato segue o idioma do celular e a configura\u00e7\u00e3o de 12 ou 24 horas.");
         table.put("A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.",
                 "Deslizar no Reels n\u00e3o passa mais para o pr\u00f3ximo reel, e puxar para baixo n\u00e3o carrega novos. O reel que voc\u00ea abriu continua tocando. Reinicie o Instagram para ver a mudan\u00e7a.");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
@@ -11799,7 +11799,7 @@ public final class L10nTranslations {
         table.put("Adds a row next to Download on a reel and a feed video that plays it in an app you pick, such as VLC. The player streams it from Instagram's servers.",
                 "Adiciona uma linha ao lado de Baixar em um reel e em um v\u00eddeo do feed que o reproduz no app que voc\u00ea escolher, como o VLC. O player transmite direto dos servidores do Instagram.");
         table.put("Adds a shortcut to your saved posts in the Explore tab.",
-                "Adiciona um atalho para suas publica\u00e7\u00f5es salvas na aba Explorar.");
+                "Adiciona um atalho para acessar suas publica\u00e7\u00f5es salvas na aba Explorar.");
         table.put("Adds a speed choice to the menu on a reel.",
                 "Adiciona uma op\u00e7\u00e3o de velocidade ao menu de um reel.");
         table.put("Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.",
@@ -11807,7 +11807,7 @@ public final class L10nTranslations {
         table.put("Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.",
                 "Adiciona um bot\u00e3o de olho no topo de cada Story enquanto voc\u00ea assiste anonimamente. Toque nele para aparecer na lista de quem viu aquele Story. Os outros Stories continuam ocultos.");
         table.put("Adds the option to put a new story in a Highlight as you post it.",
-                "Adiciona a op\u00e7\u00e3o de colocar um story novo em um destaque ao public\u00e1-lo.");
+                "Permite adicionar um story aos destaques no momento da publica\u00e7\u00e3o.");
         table.put("Adds the seconds to a reel's time, like Oct 2, 3:45:30 PM.",
                 "Adiciona os segundos ao hor\u00e1rio de um reel, como 2 de out., 15:45:30.");
         table.put("Ads and privacy",
@@ -11858,7 +11858,7 @@ public final class L10nTranslations {
         table.put("Ask for larger photos",
                 "Pedir fotos maiores");
         table.put("Asks Instagram to keep more detail when it prepares a story. Instagram's servers still compress what they receive.",
-                "Pede ao Instagram que mantenha mais detalhes ao preparar um story. Os servidores do Instagram ainda comprimem o que recebem.");
+                "Solicita ao Instagram que preserve mais detalhes ao processar um story. Ainda assim, os servidores do Instagram comprimem o conte\u00fado recebido.");
         table.put("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.",
                 "Pergunta antes de puxar para baixo atualizar o In\u00edcio, o Reels ou outra lista. Cancelar mant\u00e9m o que est\u00e1 na tela.");
         table.put("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
@@ -11944,13 +11944,13 @@ public final class L10nTranslations {
         table.put("Checks a saved file against this Instagram version. Nothing is applied.",
                 "Confere um arquivo salvo com esta vers\u00e3o do Instagram. Nada \u00e9 aplicado.");
         table.put("Choose Off to hide the suggested accounts that show before you type a search.",
-                "Escolha Desativado para ocultar as contas sugeridas que aparecem antes de voc\u00ea digitar uma busca.");
+                "Selecione Desativado para ocultar as contas sugeridas que aparecem antes de voc\u00ea come\u00e7ar a pesquisar.");
         table.put("Choose Off to remove the brightness boost on reels and videos on HDR screens.",
-                "Escolha Desativado para remover o aumento de brilho em reels e v\u00eddeos em telas HDR.");
+                "Selecione Desativado para remover o brilho extra dos reels e v\u00eddeos em telas HDR.");
         table.put("Choose Off to show your recent searches instead of AI suggestions.",
-                "Escolha Desativado para mostrar suas buscas recentes em vez de sugest\u00f5es de IA.");
+                "Selecione Desativado para mostrar suas pesquisas recentes em vez das sugest\u00f5es de IA.");
         table.put("Choose Off to stop photos from being shown at full HDR brightness.",
-                "Escolha Desativado para que as fotos n\u00e3o sejam exibidas com todo o brilho HDR.");
+                "Selecione Desativado para impedir que as fotos sejam exibidas com o brilho HDR m\u00e1ximo.");
         table.put("Choose a file for the settings export.",
                 "Escolha um arquivo para exportar as configura\u00e7\u00f5es.");
         table.put("Choose a file for your installed patches' settings. Accounts and history stay on this device.",
@@ -12009,7 +12009,7 @@ public final class L10nTranslations {
         table.put("Continue",
                 "Continuar");
         table.put("Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.",
-                "Copie um relat\u00f3rio r\u00e1pido ou salve o completo em %1$s. Links, IDs, cookies e dados de login ficam de fora. Confira se h\u00e1 outro texto privado antes de compartilhar.");
+                "Copie um relat\u00f3rio r\u00e1pido ou salve o completo em %1$s. Links, IDs, cookies e dados de acesso ficam de fora. Confira se h\u00e1 outro texto privado antes de compartilhar.");
         table.put("Copy a short report to the clipboard.",
                 "Copie um relat\u00f3rio curto para a \u00e1rea de transfer\u00eancia.");
         table.put("Copy bio",
@@ -12039,7 +12039,7 @@ public final class L10nTranslations {
         table.put("Couldn't change every Ghost mode switch. Open HushGram settings to check them.",
                 "N\u00e3o deu para mudar todas as chaves do modo fantasma. Confira nas configura\u00e7\u00f5es do HushGram.");
         table.put("Couldn't change that setting. Open settings from Home while signed in. Nothing changed.",
-                "N\u00e3o foi poss\u00edvel alterar essa configura\u00e7\u00e3o. Abra as configura\u00e7\u00f5es pelo In\u00edcio com a conta conectada. Nada foi alterado.");
+                "N\u00e3o foi poss\u00edvel alterar essa configura\u00e7\u00e3o. Abra as configura\u00e7\u00f5es pela tela inicial enquanto estiver conectado \u00e0 sua conta. Nenhuma altera\u00e7\u00e3o foi feita.");
         table.put("Couldn't clear the download history. Try again.",
                 "N\u00e3o foi poss\u00edvel apagar o hist\u00f3rico de downloads. Tente de novo.");
         table.put("Couldn't clear the saved copies. Try again.",
@@ -12081,7 +12081,7 @@ public final class L10nTranslations {
         table.put("Couldn't put back the diagnostic data. Try again.",
                 "N\u00e3o foi poss\u00edvel restaurar os dados de diagn\u00f3stico. Tente de novo.");
         table.put("Couldn't read Instagram's overrides. Open settings from Home while signed in.",
-                "N\u00e3o foi poss\u00edvel ler os valores personalizados do Instagram. Abra as configura\u00e7\u00f5es pelo In\u00edcio com a conta conectada.");
+                "N\u00e3o foi poss\u00edvel ler as substitui\u00e7\u00f5es do Instagram. Abra as configura\u00e7\u00f5es pela tela inicial enquanto estiver conectado \u00e0 sua conta.");
         table.put("Couldn't read setting names from that file. Nothing changed.",
                 "N\u00e3o foi poss\u00edvel ler os nomes de configura\u00e7\u00f5es desse arquivo. Nada mudou.");
         table.put("Couldn't remove the setting names. Try again.",
@@ -12245,7 +12245,7 @@ public final class L10nTranslations {
         table.put("Empties Home on purpose, so you see the stories row and nothing under it. Profiles, Explore and Reels still show posts. Pull down on Home to refresh after changing it.",
                 "Esvazia o In\u00edcio de prop\u00f3sito, ent\u00e3o voc\u00ea v\u00ea a fileira de stories e nada abaixo dela. Perfis, Explorar e Reels continuam mostrando posts. Puxe o In\u00edcio para baixo para atualizar depois de mudar.");
         table.put("Empties the activity log that a diagnostic report would include.",
-                "Esvazia o registro de atividade que um relat\u00f3rio de diagn\u00f3stico incluiria.");
+                "Limpa o registro de atividades que seria inclu\u00eddo no relat\u00f3rio de diagn\u00f3stico.");
         table.put("Enlarge profile photos",
                 "Ampliar fotos de perfil");
         table.put("Enter your PIN",
@@ -12253,7 +12253,7 @@ public final class L10nTranslations {
         table.put("Entries left out because they repeat or don't fit: %1$d.",
                 "Entradas deixadas de fora porque se repetem ou n\u00e3o se encaixam: %1$d.");
         table.put("Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.",
-                "Todas as op\u00e7\u00f5es, exceto Registro de depura\u00e7\u00e3o, funcionam como se estivessem desativadas, e o que foi definido ao aplicar os patches permanece ativo. Suas configura\u00e7\u00f5es n\u00e3o s\u00e3o alteradas.");
+                "Todas as op\u00e7\u00f5es, exceto Registro de depura\u00e7\u00e3o, passam a funcionar como se estivessem desativadas. As altera\u00e7\u00f5es aplicadas durante a instala\u00e7\u00e3o dos patches continuam em vigor, e suas configura\u00e7\u00f5es s\u00e3o preservadas.");
         table.put("Everywhere",
                 "Em todo lugar");
         table.put("Everywhere but Reels",
@@ -12283,7 +12283,7 @@ public final class L10nTranslations {
         table.put("File name set to %1$s.",
                 "Nome do arquivo definido como %1$s.");
         table.put("Fills the space behind a reposted reel, post or story with a blur.",
-                "Preenche o espa\u00e7o atr\u00e1s de um reel, publica\u00e7\u00e3o ou story repostado com desfoque.");
+                "Preenche com um fundo desfocado o espa\u00e7o ao redor de um reel, publica\u00e7\u00e3o ou story compartilhado novamente.");
         table.put("Find the reel",
                 "Encontrar o reel");
         table.put("Find the reel you came from",
@@ -12323,7 +12323,7 @@ public final class L10nTranslations {
         table.put("Freed %1$s. The videos go the next time Instagram starts.",
                 "%1$s liberados. Os v\u00eddeos saem na pr\u00f3xima vez que o Instagram abrir.");
         table.put("From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.",
-                "A partir da pr\u00f3xima abertura, todas as op\u00e7\u00f5es, menos o Registro de depura\u00e7\u00e3o, funcionam como se estivessem desligadas. O que foi definido ao aplicar os patches continua ativo, e suas escolhas ficam salvas.");
+                "Na pr\u00f3xima inicializa\u00e7\u00e3o, todas as op\u00e7\u00f5es, exceto Registro de depura\u00e7\u00e3o, funcionar\u00e3o como se estivessem desativadas. As altera\u00e7\u00f5es feitas ao aplicar os patches continuar\u00e3o em vigor, e suas escolhas permanecer\u00e3o salvas.");
         table.put("Frosted",
                 "Fosco");
         table.put("Full report saved to %1$s",
@@ -12571,7 +12571,7 @@ public final class L10nTranslations {
         table.put("Hold to download",
                 "Segurar para baixar");
         table.put("Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.",
-                "Segure dois dedos parados sobre a foto ou o v\u00eddeo de uma publica\u00e7\u00e3o do feed, ou sobre um reel, e o que est\u00e1 embaixo deles \u00e9 salvo, igual a Baixar no menu. O toque longo de um dedo do Instagram continua como era. Precisa de Baixar v\u00eddeos do feed ou Baixar fotos do feed, e de Baixar nos reels para reels.");
+                "Segure dois dedos parados sobre a foto ou o v\u00eddeo de uma publica\u00e7\u00e3o do feed, ou sobre um reel, e o que est\u00e1 embaixo deles \u00e9 salvo, igual a Baixar no menu. O toque e segure de um dedo do Instagram continua como era. Precisa de Baixar v\u00eddeos do feed ou Baixar fotos do feed, e de Baixar nos reels para reels.");
         table.put("Home",
                 "In\u00edcio");
         table.put("Home and the other tabs run down behind the pill, so the glass has real content to blur. Reels still stops above it.",
@@ -12581,7 +12581,7 @@ public final class L10nTranslations {
         table.put("How far a photo or video you're saving has got, with a button to cancel it",
                 "Indica o progresso do salvamento de uma foto ou v\u00eddeo, com um bot\u00e3o para cancel\u00e1-lo");
         table.put("How long until the story expires, like 18h 14m left. Older stories show the date and time.",
-                "Quanto falta para o story expirar, como faltam 18 h 14 min. Stories mais antigos mostram a data e o hor\u00e1rio.");
+                "Mostra quanto tempo falta para o story expirar, por exemplo, \u201c18 h 14 min\u201d. Para stories mais antigos, mostra a data e o hor\u00e1rio da publica\u00e7\u00e3o.");
         table.put("How the time shows",
                 "Como o hor\u00e1rio aparece");
         table.put("How you open HushGram, and how this screen is laid out.",
@@ -12664,9 +12664,9 @@ public final class L10nTranslations {
         table.put("Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app, or nowhere with Disable analytics.",
                 "O Instagram define um alarme para acordar seu telefone e enviar os dados de uso cinco minutos depois. Isso para esse alarme. Os dados v\u00e3o na pr\u00f3xima vez que voc\u00ea usar o app, ou para lugar nenhum com Desativar an\u00e1lises.");
         table.put("Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.",
-                "O Instagram para de mostrar a tela que diz que esta vers\u00e3o \u00e9 antiga demais. Uma vers\u00e3o com patches n\u00e3o se atualiza sozinha, ent\u00e3o isso a mant\u00e9m utiliz\u00e1vel.");
+                "Impede que o Instagram mostre o aviso de que a vers\u00e3o est\u00e1 desatualizada. Como uma vers\u00e3o modificada n\u00e3o recebe atualiza\u00e7\u00f5es automaticamente, isso ajuda a continuar usando-a.");
         table.put("Instagram turns auto scroll off each time it starts. On keeps it the way you left it.",
-                "O Instagram desliga a rolagem autom\u00e1tica toda vez que inicia. Ativado mant\u00e9m do jeito que voc\u00ea deixou.");
+                "O Instagram desativa a rolagem autom\u00e1tica sempre que \u00e9 iniciado. Ative esta op\u00e7\u00e3o para manter a configura\u00e7\u00e3o escolhida.");
         table.put("Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.",
                 "O Instagram acorda seu telefone a cada minuto ou dois, inclusive com a tela apagada, s\u00f3 para anotar que ainda est\u00e1 em execu\u00e7\u00e3o. Isso para essa atividade. Mensagens, notifica\u00e7\u00f5es e tudo o que voc\u00ea v\u00ea n\u00e3o mudam.");
         table.put("Instagram's colors",
@@ -12684,7 +12684,7 @@ public final class L10nTranslations {
         table.put("Instagram's own",
                 "Padr\u00e3o do Instagram");
         table.put("Instagram's own checks of who signed the app keep passing on this patched build.",
-                "As verifica\u00e7\u00f5es do pr\u00f3prio Instagram sobre quem assinou o app continuam passando nesta vers\u00e3o com patch.");
+                "Esta vers\u00e3o modificada continua passando pelas verifica\u00e7\u00f5es do Instagram sobre a assinatura do aplicativo.");
         table.put("Instagram's own font. You can also pick your phone's font or a .ttf or .otf file. Restart Instagram to see a change.",
                 "A fonte do pr\u00f3prio Instagram. Voc\u00ea tamb\u00e9m pode escolher a fonte do seu celular ou um arquivo .ttf ou .otf. Reinicie o Instagram para ver uma mudan\u00e7a.");
         table.put("Instagram's own testing tools. Change them only if you know what they do.",
@@ -12856,7 +12856,7 @@ public final class L10nTranslations {
         table.put("Name saves by account and post time",
                 "Nomear o que \u00e9 salvo por conta e hora do post");
         table.put("Named switches for some of Instagram's hidden settings, such as the new story style. Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore.",
-                "Chaves com nome para algumas configura\u00e7\u00f5es ocultas do Instagram, como o novo estilo de stories. Cada uma pode ficar no padr\u00e3o do Instagram, Ativada ou Desativada. Seus valores personalizados atuais s\u00e3o salvos antes para a restaura\u00e7\u00e3o.");
+                "Op\u00e7\u00f5es identificadas por nome para algumas configura\u00e7\u00f5es ocultas do Instagram, como o novo estilo dos stories. Cada op\u00e7\u00e3o pode usar o padr\u00e3o do Instagram ou ficar ativada ou desativada. As substitui\u00e7\u00f5es atuais s\u00e3o salvas antes para que possam ser restauradas.");
         table.put("Names each photo and video for the account that posted it and when, like username_20261005_143012, so an account's saves sort by date. A carousel page gets its number on the end. Takes the place of the video file name. A save that doesn't know who posted or when keeps its usual name.",
                 "D\u00e1 a cada foto e v\u00eddeo o nome da conta que postou e de quando, como username_20261005_143012, para que o que voc\u00ea salva de uma conta fique em ordem de data. Uma p\u00e1gina de carrossel recebe o n\u00famero no final. Substitui o nome do arquivo de v\u00eddeo. O que for salvo sem saber quem postou ou quando mant\u00e9m o nome de sempre.");
         table.put("Never",
@@ -12894,7 +12894,7 @@ public final class L10nTranslations {
         table.put("No words yet",
                 "Nenhuma palavra ainda");
         table.put("Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.",
-                "Ningu\u00e9m fora da Meta sabe o que faz uma conta ser suspensa. Um Instagram com patch n\u00e3o passa na verifica\u00e7\u00e3o do Google de que veio da Play Store, e nenhum patch muda isso. Se voc\u00ea prefere n\u00e3o arriscar sua conta, teste primeiro com uma reserva. Instalar atualiza\u00e7\u00f5es por cima com a mesma chave de assinatura mant\u00e9m os dados do Instagram e o seu login. Em um celular com root, uma instala\u00e7\u00e3o Root Mount mant\u00e9m o login que voc\u00ea j\u00e1 tem.");
+                "Ningu\u00e9m fora da Meta sabe exatamente quais fatores levam \u00e0 suspens\u00e3o de uma conta. Uma vers\u00e3o modificada do Instagram n\u00e3o passa na verifica\u00e7\u00e3o do Google que confirma se o app veio da Play Store, e nenhum patch altera isso. Se n\u00e3o quiser arriscar sua conta principal, teste primeiro com uma conta secund\u00e1ria. Instalar uma atualiza\u00e7\u00e3o por cima usando a mesma chave de assinatura preserva os dados do Instagram e sua sess\u00e3o. Em um celular com root, a instala\u00e7\u00e3o pelo Root Mount tamb\u00e9m preserva a sess\u00e3o atual.");
         table.put("None of this file's overrides fit this Instagram version. Nothing changed.",
                 "Nenhum dos overrides deste arquivo serve para esta vers\u00e3o do Instagram. Nada mudou.");
         table.put("Not saved: %1$d posts are already waiting",
@@ -12956,7 +12956,7 @@ public final class L10nTranslations {
         table.put("Only the newest 50 are shown.",
                 "S\u00f3 as 50 mais recentes aparecem.");
         table.put("Only the time the story was posted, like 3:45 PM. Stories posted before today show the date and time.",
-                "S\u00f3 o hor\u00e1rio em que o story foi postado, como 15:45. Stories postados antes de hoje mostram a data e o hor\u00e1rio.");
+                "Mostra apenas o hor\u00e1rio da publica\u00e7\u00e3o, por exemplo, 15:45. Para stories publicados antes de hoje, mostra a data e o hor\u00e1rio.");
         table.put("Open MetaConfig overrides",
                 "Abrir substitui\u00e7\u00f5es do MetaConfig");
     }
@@ -13023,7 +13023,7 @@ public final class L10nTranslations {
         table.put("Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.",
                 "Fotos e v\u00eddeos enviados como visualiza\u00e7\u00e3o \u00fanica ou reproduz\u00edveis ficam na conversa para voc\u00ea abrir de novo. Abra a conversa outra vez para atualizar os que j\u00e1 carregaram.");
         table.put("Pick Instagram's own setting, On or Off. Restart Instagram after a change.",
-                "Escolha o padr\u00e3o do Instagram, Ativado ou Desativado. Reinicie o Instagram depois de uma mudan\u00e7a.");
+                "Escolha entre o padr\u00e3o do Instagram, Ativado e Desativado. Reinicie o Instagram depois de alterar a op\u00e7\u00e3o.");
         table.put("Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.",
                 "Escolha uma lista de nomes do MetaConfig, como um arquivo id_name_mapping.json, e o MetaConfig mostra esses nomes no lugar dos n\u00fameros. A busca por n\u00famero continua funcionando.");
         table.put("Pick an animation. Until you do, the heart stays Instagram's.",
@@ -13057,15 +13057,15 @@ public final class L10nTranslations {
         table.put("Preparing diagnostic report...",
                 "Preparando relat\u00f3rio de diagn\u00f3stico...");
         table.put("Press and hold a photo in a feed to see it twice as big around your finger, and slide to look around. Let go to close it. While this is on, it takes the place of Instagram's own long press on a photo.",
-                "Toque e segure uma foto em um feed para v\u00ea-la duas vezes maior em volta do seu dedo, e deslize para explorar. Solte para fechar. Enquanto isso estiver ativado, substitui o toque longo do pr\u00f3prio Instagram em uma foto.");
+                "Toque e segure uma foto em um feed para v\u00ea-la duas vezes maior em volta do seu dedo, e deslize para explorar. Solte para fechar. Enquanto isso estiver ativado, substitui o toque e segure do pr\u00f3prio Instagram em uma foto.");
         table.put("Press and hold a reel to open a menu with playback speed.",
-                "Pressione e segure um reel para abrir um menu com a velocidade de reprodu\u00e7\u00e3o.");
+                "Mantenha um reel pressionado para abrir o menu de velocidade de reprodu\u00e7\u00e3o.");
         table.put("Press and hold the edge of a video in your feed to watch it at double speed.",
-                "Pressione e segure a borda de um v\u00eddeo do feed para assisti-lo em velocidade dobrada.");
+                "Mantenha pressionada a borda de um v\u00eddeo no feed para assisti-lo em velocidade 2x.");
         table.put("Press and hold the like button on a story to pick an emoji reaction.",
-                "Pressione e segure o bot\u00e3o de curtir em um story para escolher uma rea\u00e7\u00e3o com emoji.");
+                "Mantenha o bot\u00e3o Curtir de um story pressionado para escolher uma rea\u00e7\u00e3o com emoji.");
         table.put("Press and hold the paper plane on a story to send it.",
-                "Pressione e segure o avi\u00e3o de papel em um story para envi\u00e1-lo.");
+                "Mantenha pressionado o \u00edcone de avi\u00e3o de papel em um story para envi\u00e1-lo.");
         table.put("Preview of disappearing photos in Messages",
                 "Pr\u00e9via de fotos tempor\u00e1rias nas Mensagens");
         table.put("Previous overrides restored. Restart Instagram to apply them.",
@@ -13136,7 +13136,7 @@ public final class L10nTranslations {
         table.put("Recommended flags",
                 "Flags recomendados");
         table.put("Record patch activity and show errors for a bug report. Leave off during normal use.",
-                "Registra a atividade dos patches e mostra os erros para um relat\u00f3rio de problema. Mantenha desativado durante o uso normal.");
+                "Registra a atividade dos patches e mostra os erros para um relat\u00f3rio de erro. Mantenha desativado durante o uso normal.");
         table.put("Recovery cleanup didn't finish. Use Restore previous overrides or Discard saved overrides.",
                 "A limpeza da recupera\u00e7\u00e3o n\u00e3o terminou. Use Restaurar valores anteriores ou Descartar valores salvos.");
         table.put("Red",
@@ -13194,7 +13194,7 @@ public final class L10nTranslations {
         table.put("Removes the summary, Sources and Ask Meta AI box from a reel's more menu. In your feed the audio row goes too. Other options stay.",
                 "Tira o resumo, as Fontes e a caixa Perguntar ao Meta AI do menu de mais op\u00e7\u00f5es de um reel. No feed, a linha de \u00e1udio tamb\u00e9m some. As outras op\u00e7\u00f5es continuam.");
         table.put("Removes tracking tags from links you copy or share, and opens bio links without Instagram's click tracker. The link still opens the same post, reel or profile.",
-                "Tira as marca\u00e7\u00f5es de rastreamento dos links que voc\u00ea copia ou compartilha e abre links da bio sem o rastreador de cliques do Instagram. O link continua abrindo o mesmo post, reel ou perfil.");
+                "Remove os par\u00e2metros de rastreamento dos links que voc\u00ea copia ou compartilha e abre links da bio sem o rastreador de cliques do Instagram. O destino continua sendo a mesma publica\u00e7\u00e3o, reel ou perfil.");
         table.put("Reopen the media and save again.",
                 "Abra a m\u00eddia novamente e salve outra vez.");
         table.put("Report a problem",
@@ -13321,7 +13321,7 @@ public final class L10nTranslations {
         table.put("Send downloads to another app",
                 "Enviar downloads para outro app");
         table.put("Send stories with a long press",
-                "Enviar stories com um toque longo");
+                "Enviar stories com um toque e segure");
         table.put("Send to",
                 "Enviar para");
         table.put("Set a PIN",
@@ -13487,7 +13487,7 @@ public final class L10nTranslations {
         table.put("Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.",
                 "Impede que as pessoas vejam que voc\u00ea abriu as fotos e v\u00eddeos de visualiza\u00e7\u00e3o \u00fanica delas. Eles continuam sumindo depois que voc\u00ea v\u00ea. \u00c9 um recurso de teste e come\u00e7a desligado.");
         table.put("Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.",
-                "O Instagram deixa de saber quais reels voc\u00ea assistiu e at\u00e9 onde foi. Ele usa isso para escolher seus Reels. Reels j\u00e1 assistidos podem voltar.");
+                "Impede que o Instagram registre quais reels voc\u00ea assistiu e at\u00e9 que ponto. Esses dados s\u00e3o usados para recomendar conte\u00fado no Reels, ent\u00e3o v\u00eddeos j\u00e1 vistos podem voltar a aparecer.");
         table.put("Storage",
                 "Armazenamento");
         table.put("Stories",
@@ -13650,13 +13650,13 @@ public final class L10nTranslations {
         table.put("The newer animations when you like a post, and the emoji ones on stories.",
                 "As anima\u00e7\u00f5es novas ao curtir uma publica\u00e7\u00e3o e as de emoji nos stories.");
         table.put("The newer layout of the Explore tab.",
-                "O layout mais novo da aba Explorar.");
+                "O novo layout da aba Explorar.");
         table.put("The newer layout of the notification settings.",
-                "O layout mais novo das configura\u00e7\u00f5es de notifica\u00e7\u00e3o.");
+                "O novo layout das configura\u00e7\u00f5es de notifica\u00e7\u00f5es.");
         table.put("The newer list of who viewed and replied to your story.",
-                "A lista mais nova de quem viu e respondeu ao seu story.");
+                "A nova lista de pessoas que visualizaram e responderam ao seu story.");
         table.put("The newer look for the \"posted ... ago\" label on stories.",
-                "O visual mais novo do r\u00f3tulo \"publicado h\u00e1 ...\" nos stories.");
+                "O novo estilo do indicador de tempo de publica\u00e7\u00e3o nos stories.");
         table.put("The newer text fonts, animations and effects in the story editor.",
                 "As fontes, anima\u00e7\u00f5es e efeitos de texto mais novos no editor de stories.");
         table.put("The rings are %1$s of the size Instagram picks for your screen.",
@@ -13684,7 +13684,7 @@ public final class L10nTranslations {
         table.put("There's no saved copy to discard. Nothing changed.",
                 "N\u00e3o h\u00e1 c\u00f3pia salva para descartar. Nada mudou.");
         table.put("This Instagram version has none of these switches.",
-                "Esta vers\u00e3o do Instagram n\u00e3o tem nenhuma destas chaves.");
+                "Esta vers\u00e3o do Instagram n\u00e3o oferece nenhuma dessas op\u00e7\u00f5es.");
         table.put("This chat is locked",
                 "Esta conversa est\u00e1 bloqueada");
         table.put("This file matches the current overrides. Nothing changed.",
@@ -13721,7 +13721,7 @@ public final class L10nTranslations {
         table.put("Turn off double tap to like",
                 "Desativar toque duplo para curtir");
         table.put("Turn on Allow importing overrides first. These switches use the same path.",
-                "Ative primeiro Permitir importar valores personalizados. Estas chaves usam o mesmo caminho.");
+                "Ative primeiro a op\u00e7\u00e3o Permitir importar substitui\u00e7\u00f5es. Essas op\u00e7\u00f5es usam o mesmo caminho.");
         table.put("Turn on Change the like animation to use this choice.",
                 "Ative Mudar a anima\u00e7\u00e3o de curtida para usar esta escolha.");
         table.put("Turn on Default playback quality to use this choice.",
@@ -13852,7 +13852,7 @@ public final class L10nTranslations {
         table.put("While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.",
                 "Enquanto manter uma aba ou o menu do seu perfil pressionado abrir o HushGram, a tela Configura\u00e7\u00f5es e atividade do Instagram n\u00e3o mostra a linha do HushGram. Desative esses toques longos e a linha volta.");
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
-                "Enquanto voc\u00ea assiste anonimamente, um Story que voc\u00ea j\u00e1 viu fica cinza e vai para o fim da fila, s\u00f3 neste celular. O Instagram continua sem saber que voc\u00ea viu.");
+                "Enquanto voc\u00ea visualiza stories anonimamente, os que j\u00e1 foram vistos ficam acinzentados e v\u00e3o para o fim da lista, somente neste celular. O Instagram n\u00e3o recebe a informa\u00e7\u00e3o de que voc\u00ea os visualizou.");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "As configura\u00e7\u00f5es de Whitehat n\u00e3o est\u00e3o dispon\u00edveis nesta tela. Abra as configura\u00e7\u00f5es do HushGram pela p\u00e1gina inicial com a sess\u00e3o iniciada.");
         table.put("Who unfollowed you",
