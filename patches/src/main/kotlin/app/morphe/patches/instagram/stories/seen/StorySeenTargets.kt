@@ -738,8 +738,12 @@ private fun BytecodePatchContext.requireUserId() {
     } ?: refuse("$USER_SESSION has no public $USER_ID()")
 }
 
-/** The public View field of the view holder base that its constructor stores its one parameter in. */
-private fun BytecodePatchContext.itemViewField(constructor: Method): FieldReference {
+/**
+ * The public View field of the view holder base that its constructor stores its one parameter in.
+ * Hide Follow on stories reads the same field, so [patch] names whichever patch is asking.
+ */
+internal fun BytecodePatchContext.itemViewField(constructor: Method, patch: String = PATCH): FieldReference {
+    fun refuse(detail: String): Nothing = throw PatchException("$patch: $detail")
     val base = constructor.definingClass
     val code = constructor.code()
     val view = constructor.parameterRegisterNumber(0)
@@ -751,8 +755,8 @@ private fun BytecodePatchContext.itemViewField(constructor: Method): FieldRefere
     }
     val fields = stores.map { code[it].fieldReference()!! }.distinctBy { it.toString() }
     val field = fields.singleOrNull() ?: refuse("expected $base's constructor to keep its item view in one field, found ${fields.size}")
-    constructor.requireParameterIntact(PATCH, 0, stores)
-    constructor.requireThisIntact(PATCH, stores)
+    constructor.requireParameterIntact(patch, 0, stores)
+    constructor.requireThisIntact(patch, stores)
     val declared = classDefByOrNull(base)?.fields?.singleOrNull { it.name == field.name && it.type == VIEW }
     if (declared == null || !AccessFlags.PUBLIC.isSet(declared.accessFlags) || AccessFlags.STATIC.isSet(declared.accessFlags)) {
         refuse("$base->${field.name}, the item view, isn't a public field the extension can read")

@@ -1192,3 +1192,6 @@ Not saved: the screen closed	Não salvo: a tela foi fechada
 Not saved: the account changed	Não salvo: a conta mudou
 Wait after auto scroll	Esperar após a rolagem automática
 A reel Instagram's auto scroll moves to waits for your tap too. Off, auto scroll plays reel after reel.	Um reel para o qual a rolagem automática do Instagram passa também espera seu toque. Desligado, a rolagem automática toca um reel após o outro.
+# context: Stories: the switch that hides the Follow button in a story's header (#237). Follow is Instagram's own button label, as in Hide the Follow button.
+Hide Follow on stories	Ocultar Seguir nos Stories
+Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay.	Tira o botão Seguir do topo dos Stories de contas que você não segue. O nome, a hora e o menu continuam.

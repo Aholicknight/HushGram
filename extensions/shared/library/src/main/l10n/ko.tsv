@@ -1191,3 +1191,6 @@ Not saved: the screen closed	저장되지 않음: 화면이 닫혔습니다
 Not saved: the account changed	저장되지 않음: 계정이 바뀌었습니다
 Wait after auto scroll	자동 스크롤 후 대기
 A reel Instagram's auto scroll moves to waits for your tap too. Off, auto scroll plays reel after reel.	Instagram 자동 스크롤로 넘어간 릴스도 탭할 때까지 기다립니다. 끄면 자동 스크롤이 릴스를 차례로 재생합니다.
+# context: Stories: the switch that hides the Follow button in a story's header (#237). Follow is Instagram's own button label, as in Hide the Follow button.
+Hide Follow on stories	스토리에서 팔로우 숨기기
+Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay.	팔로우하지 않는 계정의 스토리 상단에서 팔로우 버튼을 없앱니다. 이름, 시간, 메뉴는 그대로 표시됩니다

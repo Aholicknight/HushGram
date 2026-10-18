@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Features
+
+* **Instagram - Hide Follow on stories:** New patch. Stories from accounts you don't follow show a Follow button at the top again, and this takes it off. The name, time and menu stay. The switch is under Stories and starts off. Asked for in #237.
+
 ### Bug Fixes
 
 * **Instagram - Download any reel:** Download cover saved a small copy, 360 pixels wide, since Instagram stopped sending larger ones. When the cover is the reel's first frame, it's taken from the video now, at the video's full size. Reported in #214.

@@ -27,6 +27,7 @@ public final class FamilyNames {
     public static final String STORY_AUTO_ADVANCE = "Stop Story auto-advance";
     public static final String STORY_TIME = "Show a story's exact time";
     public static final String STORY_MENTIONS = "See who a story mentions";
+    public static final String STORY_FOLLOW = "Hide Follow on stories";
     public static final String POST_TIME = "Show a post's exact time";
     public static final String HIDDEN_LIKE_COUNTS = "Show hidden like counts";
     public static final String BACK_LEAVES_HOME = "Back leaves Home";

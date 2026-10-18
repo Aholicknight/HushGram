@@ -1130,6 +1130,12 @@ retry-call Lapp/hushgram/extension/instagram/stories/StorySeen;->toRetry(Ljava/l
 # story gets a Mark as seen button; twice or elsewhere, it isn't the hook the patch wrote.
 start-call Lapp/hushgram/extension/instagram/stories/StorySeenButton;->bind(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindToolbarViews
 once-call Lapp/hushgram/extension/instagram/stories/StorySeenButton;->bind(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindToolbarViews
+# Hide Follow on stories (#237) hands the same view holder to StoryFollowButton in that toolbar bind,
+# right after View stories anonymously's hook when that's there and first when it isn't, through one
+# move into a borrowed local. No start-call: with both patches in, the other hook holds the start.
+# Left out, the Follow button is never kept off a story's header; twice or elsewhere, it isn't the
+# hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/stories/StoryFollowButton;->bind(Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindToolbarViews
 # It also hands StorySeenRings the story viewer's write of a reel's seen time into the store that greys
 # its ring (0202.A0A on 450, the viewer logger's per-story method, which takes the story and holds
 # nux_story), in the write's own place, with the story whose time it is. The extension skips it while

@@ -1068,6 +1068,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("A story's header says how many accounts it mentions, even when the mention is hidden. "
                             + "Tap that for the list, and tap someone to open their profile.")));
         }
+        if (build.contains(PatchFamily.STORY_FOLLOW)) {
+            stories.add(toggle(context, Settings.HIDE_STORY_FOLLOW, L10n.t("Hide Follow on stories"),
+                    L10n.t("Takes the Follow button off the top of stories from accounts you don't follow. "
+                            + "The name, time and menu stay.")));
+        }
         if (build.contains(PatchFamily.STORY_SEEN)) {
             stories.add(toggle(context, Settings.VIEW_STORIES_ANONYMOUSLY, L10n.t("View stories anonymously"),
                     L10n.t("Instagram isn't told which stories you watch, so you stay off their viewer lists. "

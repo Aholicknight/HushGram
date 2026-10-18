@@ -188,6 +188,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_show_story_mentions", FALSE);
 
     /**
+     * A story's header leaves out the Follow button Instagram shows for an account you don't follow
+     * ({@link app.hushgram.extension.instagram.stories.StoryFollowButton}). Read before each frame
+     * of a story header. Off to start.
+     */
+    public static final BooleanSetting HIDE_STORY_FOLLOW =
+            new BooleanSetting("hushgram_hide_story_follow", FALSE);
+
+    /**
      * A feed post's footer and each comment show the date and time they went up instead of how
      * long ago ({@link app.hushgram.extension.instagram.feed.PostTime}), the way a story's exact
      * time writes it. Read as each time is written, so a change shows on posts and comments loaded

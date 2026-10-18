@@ -1192,3 +1192,6 @@ Not saved: the screen closed	Kaydedilmedi: ekran kapandı
 Not saved: the account changed	Kaydedilmedi: hesap değişti
 Wait after auto scroll	Otomatik kaydırmadan sonra bekle
 A reel Instagram's auto scroll moves to waits for your tap too. Off, auto scroll plays reel after reel.	Instagram'ın otomatik kaydırmasının geçtiği reel de dokunmanı bekler. Kapalıyken otomatik kaydırma reelleri art arda oynatır.
+# context: Stories: the switch that hides the Follow button in a story's header (#237). Follow is Instagram's own button label, as in Hide the Follow button.
+Hide Follow on stories	Hikayelerde Takip Et'i gizle
+Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay.	Takip etmediğin hesapların hikayelerinin üstündeki Takip Et düğmesini kaldırır. Ad, saat ve menü kalır.

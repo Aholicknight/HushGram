@@ -866,6 +866,17 @@ tasks.register("verifyAndroidBoundaries") {
                 "aMarkOnOneAccountIsNeverSentForAnother[28]", "aMarkOnOneAccountIsNeverSentForAnother[37]",
                 "withoutTheAccountThereIsNoButton[28]", "withoutTheAccountThereIsNoButton[37]",
                 "aHiddenButtonForgetsItsStory[28]", "aHiddenButtonForgetsItsStory[37]"),
+            "app.hushgram.extension.instagram.stories.StoryFollowButtonTest" to listOf(
+                "onHidesOnlyTheFollowButton", "theFrameThatWouldShowItIsCanceled",
+                "aLaterShowIsUndoneAtTheNextFrame", "eachHeaderGetsOneKeeper",
+                "eachBindPutsItBackForInstagramToDecide", "offPutsItBackAtTheNextBind",
+                "whatsPutBackIsWhatInstagramHad", "aViewStubIsLeftAlone", "aSwitchNeverOnCostsNothing",
+                "pausedReadsAsOff", "aDetachedRowStopsListening", "aRowBoundBeforeItsShownListensOnceAttached",
+                "aBuildWithoutTheRowOrTheIdSaysSo", "nothingThrowsIntoInstagram"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.StoryFollowSettingsTest" to listOf(
+                "missingPatchHasNoSwitch", "aloneItStillGetsStories", "switchStartsOffUnderStoriesAndHonorsPause"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.reels.ReelsSuggestionsTest" to listOf(
                 "offPausedAndUnreadyKeepEveryItem[28]", "offPausedAndUnreadyKeepEveryItem[37]",
                 "aThrowingReaderOrSwitchKeepsTheItemAndIsReported[28]", "aThrowingReaderOrSwitchKeepsTheItemAndIsReported[37]"),

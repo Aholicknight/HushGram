@@ -76,6 +76,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storyFollow() {
+        return false;
+    }
+
     public static boolean storyLoop() {
         return false;
     }

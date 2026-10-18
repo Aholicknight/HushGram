@@ -1192,3 +1192,6 @@ Not saved: the screen closed	Tidak disimpan: layar sudah ditutup
 Not saved: the account changed	Tidak disimpan: akun sudah berganti
 Wait after auto scroll	Tunggu setelah gulir otomatis
 A reel Instagram's auto scroll moves to waits for your tap too. Off, auto scroll plays reel after reel.	Reel yang dituju gulir otomatis Instagram juga menunggu ketukanmu. Jika mati, gulir otomatis memutar reel satu demi satu.
+# context: Stories: the switch that hides the Follow button in a story's header (#237). Follow is Instagram's own button label, as in Hide the Follow button.
+Hide Follow on stories	Sembunyikan Ikuti di cerita
+Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay.	Menghapus tombol Ikuti dari bagian atas cerita akun yang tidak kamu ikuti. Nama, waktu, dan menu tetap ada.
