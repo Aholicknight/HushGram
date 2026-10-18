@@ -170,12 +170,12 @@ public class AnalyticsTest {
     }
 
     /**
-     * Each address and outcome is logged once. Logcat on a debugging phone gets the address without
-     * the query that could carry a token; the exported report keeps the outcome and the process and
-     * leaves the address out, as it does every link.
+     * Each address and outcome is logged once. Logcat on a debugging phone and the exported report
+     * both keep the outcome and the process and leave the address out, as they do every link, so
+     * neither its query nor its fragment can carry a token there.
      */
     @Test
-    public void theLogNamesEachAddressOnceWithoutItsQuery() {
+    public void theLogNamesEachOutcomeOnceWithoutTheAddress() {
         Settings.DISABLE_ANALYTICS.save(true);
         Analytics.endpoint(EVENTS);
         Analytics.endpoint(EVENTS);
@@ -185,8 +185,9 @@ public class AnalyticsTest {
         StringBuilder logcat = new StringBuilder();
         for (ShadowLog.LogItem item : ShadowLog.getLogs()) logcat.append(item.msg).append(' ');
         String raw = logcat.toString();
-        assertEquals(raw, 1, count(raw, "https://graph.instagram.com/logging_client_events refused ("));
-        assertEquals(raw, 1, count(raw, "https://graph.instagram.com/logging_client_events went out as it came, the switch is off ("));
+        assertEquals(raw, 1, count(raw, "Disable analytics: [url omitted] refused ("));
+        assertEquals(raw, 1, count(raw, "Disable analytics: [url omitted] went out as it came, the switch is off ("));
+        assertFalse(raw, raw.contains("graph.instagram.com"));
         assertFalse(raw, raw.contains("secret"));
         assertFalse(raw, raw.contains("frag"));
 
