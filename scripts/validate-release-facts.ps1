@@ -505,7 +505,9 @@ if (-not $hasIndex) {
     $githubFacts = Get-DescriptionFacts -Text $description -Source "The GitHub description of $slug"
     $missing = @()
     if ($description -notmatch "\b$([regex]::Escape($descriptionVersion))\b") { $missing += $descriptionVersion }
-    if ($githubFacts.PatchCount -ne $descriptionPatchCount) { $missing += "$descriptionPatchCount patches" }
+    # Held at the published version, it may still count that release's patches, as the README may.
+    $describedCounts = @(@($descriptionPatchCount, $heldPatchCount) | Where-Object { $null -ne $_ })
+    if ($describedCounts -notcontains $githubFacts.PatchCount) { $missing += "$descriptionPatchCount patches" }
     if ($githubFacts.TargetVersion -ne $descriptionTargetVersion) { $missing += "Instagram $descriptionTargetVersion" }
     if ($missing.Count -gt 0) {
         throw ("The GitHub description of $slug does not say " + ($missing -join ', ') + '. It reads: ' +
@@ -514,7 +516,7 @@ if (-not $hasIndex) {
             ': ... ' + $descriptionPatchCount + ' patches for Instagram ' + $descriptionTargetVersion + '."')
     }
     Write-Host ("[release] the GitHub description of " + $slug + " names " + $descriptionVersion +
-        ", " + $descriptionPatchCount + " patches and Instagram " + $descriptionTargetVersion)
+        ", " + $githubFacts.PatchCount + " patches and Instagram " + $descriptionTargetVersion)
 }
 
 $testRoot = if ($gateRun) { Join-Path $gateRun.Directory 'test-results/testDebugUnitTest' } else {

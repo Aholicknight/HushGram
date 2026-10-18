@@ -2758,6 +2758,19 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
         $said = Invoke-Facts
         Assert-True ($said -like "*v$versionHere's catalog at its tag lists $releasedCount patches; the source held at that version lists $countHere*") `
             "The check didn't read the held release's count from its tag: $said"
+        # The GitHub description says the same of the held release, read through stand-ins for the
+        # network and gh, and a count neither side has is refused there too.
+        & {
+            function Invoke-WebRequest { [pscustomobject]@{ StatusCode = 200; Content = [byte[]]@() } }
+            $heldDescription = "HushGram v$versionHere`: $releasedCount patches for Instagram $buildHere."
+            function gh { $global:LASTEXITCODE = 0; $heldDescription }
+            $said = Invoke-Facts -WithUrls
+            Assert-True ($said -like "*the GitHub description of $slugHere names v$versionHere, $releasedCount patches and Instagram $buildHere*") `
+                "The check refused a GitHub description counting the held release's patches: $said"
+            $heldDescription = "HushGram v$versionHere`: 13 patches for Instagram $buildHere."
+            Assert-Throws { Invoke-Facts -WithUrls } "*The GitHub description of $slugHere does not say $countHere patches*" `
+                'The check took a GitHub description count that neither the source nor the tag has.'
+        }
         Set-FactsFile 'README.md' { param($text) $text.Replace("with $releasedCount patches. Add", "with 13 patches. Add") }
         Assert-Throws { Invoke-Facts } "*latest release has 13 patches, but it has $countHere or $releasedCount*" `
             'The check took a held release count that neither the source nor the tag has.'
