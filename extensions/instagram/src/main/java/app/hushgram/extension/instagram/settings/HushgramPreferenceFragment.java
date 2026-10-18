@@ -966,7 +966,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (build.contains(PatchFamily.REEL_BLUR_BARS)) {
             reels.add(toggle(context, Settings.BLUR_REEL_BARS, L10n.t("Blur the bars around a reel"),
                     L10n.t("A reel that doesn't fill the screen shows a blurred copy of itself above and below it "
-                            + "instead of black bars. Open Reels again after a change.")));
+                            + "instead of black bars, and the strip under the tab bar shows the reel blurred too. "
+                            + "Open Reels again after a change.")));
         }
         if (build.contains(PatchFamily.REEL_AUTO_SCROLL)) {
             reels.add(toggle(context, Settings.KEEP_REEL_AUTO_SCROLL, L10n.t("Keep auto scroll on"),

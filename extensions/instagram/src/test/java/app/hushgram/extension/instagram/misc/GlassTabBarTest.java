@@ -216,6 +216,27 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #197: Blur the bars around a reel asks which bar wears the glass, so it leaves the pill's background
+     * alone, and whether the pill floats, since only then does the strip under a reel show round it.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aBarSaysWhetherItWearsTheGlassAndWhetherTheGlassFloats() throws Exception {
+        for (boolean floating : new boolean[]{true, false}) {
+            try (GlassHost host = new GlassHost(Color.BLACK, floating, GlassHeight.STANDARD, false, false)) {
+                assertFalse("not restyled yet", GlassTabBar.wearsGlass(host.bar));
+                assertFalse(GlassTabBar.floatsGlass(host.bar));
+                GlassTabBar.apply(host.activity);
+                assertTrue(GlassTabBar.wearsGlass(host.bar));
+                assertEquals(floating, GlassTabBar.floatsGlass(host.bar));
+            }
+        }
+        assertFalse(GlassTabBar.wearsGlass(null));
+        assertFalse(GlassTabBar.floatsGlass(null));
+    }
+
+    /**
      * #144: while a floating pill shows in the front window, the navigation bar's height Instagram pads
      * its screens by is answered 0, so no strip of Instagram's color is left under the pill, and the
      * pill makes that much more room under itself to stay above the gesture handle. When the pill shows

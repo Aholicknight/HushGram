@@ -1573,7 +1573,8 @@ public class Settings extends BaseSettings {
 
     /**
      * A reel that doesn't fill the screen shows a blurred copy of itself in the bars above and below
-     * it, or beside it, instead of black ({@link app.hushgram.extension.instagram.reels.ReelBlurBars}).
+     * it, or beside it, instead of black ({@link app.hushgram.extension.instagram.reels.ReelBlurBars}),
+     * and the strip under the tab bar below any reel shows the reel blurred too (#197).
      * Looked at when the Reels viewer opens and then as pages settle, so a change shows the next time
      * Reels is opened; turning it off puts the black back within a second. Off to start.
      */

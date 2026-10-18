@@ -54,6 +54,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.reels.FullScreenBars;
+import app.hushgram.extension.instagram.reels.ReelBlurBars;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -536,6 +537,23 @@ public final class GlassTabBar {
             if (glass != null && glass.floatsIn(activity)) return true;
         }
         return false;
+    }
+
+    /**
+     * Whether [bar] wears the glass, whose pill is its background. Blur the bars around a reel then
+     * leaves the bar's background alone: a floating pill paints the strip under a reel itself
+     * ({@link ReelBlurBars#drawStrip}), and one that doesn't float fills the bar with its own colour (#197).
+     */
+    public static boolean wearsGlass(@Nullable View bar) {
+        WeakReference<Glass> held = bar == null ? null : applied.get(bar);
+        return held != null && held.get() != null;
+    }
+
+    /** Whether [bar] wears the glass and its pill floats. */
+    public static boolean floatsGlass(@Nullable View bar) {
+        WeakReference<Glass> held = bar == null ? null : applied.get(bar);
+        Glass glass = held == null ? null : held.get();
+        return glass != null && glass.floating;
     }
 
     /** The room a floating pill makes under itself for the navigation bar: the height Instagram was answered 0 for. */
@@ -1604,14 +1622,16 @@ public final class GlassTabBar {
                 }
             }
 
-            /** What shows round the pill: the bar's own colour over Instagram's bar, and black under a Reels viewer. */
+            /** What shows round the pill: the bar's own colour over Instagram's bar, and black or the blurred reel under a Reels viewer. */
             private void underlay(@NonNull Canvas canvas) {
                 // The content stops above the bar, so the bar's own colour fills round the pill.
                 if (!floating) {
                     fill.setColor(base);
                     canvas.drawRect(0, 0, bar.getWidth(), bar.getHeight(), fill);
-                } else if (reelsRight > reelsLeft) {
-                    // A Reels viewer stops above the bar, and Reels is black whatever the theme.
+                } else if (reelsRight > reelsLeft
+                        && !ReelBlurBars.drawStrip(canvas, reelsLeft, 0, reelsRight, bar.getHeight())) {
+                    // A Reels viewer stops above the bar, and Reels is black whatever the theme, unless Blur
+                    // the bars around a reel has the reel to run on into the strip (#197).
                     fill.setColor(Color.BLACK);
                     canvas.drawRect(reelsLeft, 0, reelsRight, bar.getHeight(), fill);
                 }

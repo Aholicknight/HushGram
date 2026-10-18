@@ -18,6 +18,7 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.view.Gravity;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,6 +33,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 
 import java.util.ArrayList;
@@ -166,6 +168,32 @@ public class ReelBlurBarsTest {
         return page.getBackground() instanceof ReelBlurBars.BackdropDrawable;
     }
 
+    private static final int BAR = 0x7f0b0197;
+    private final ColorDrawable barBlack = new ColorDrawable(Color.BLACK);
+
+    /** Instagram's own tab bar under the viewer, as on Reels with the glass off, black as Reels makes it. */
+    private View tabBar() {
+        ReelBlurBars.tabBarId = BAR;
+        View bar = new View(activity);
+        bar.setId(BAR);
+        bar.setBackground(barBlack);
+        ((ViewGroup) pager.getParent()).addView(bar, new FrameLayout.LayoutParams(WIDTH, 150, Gravity.BOTTOM));
+        layout();
+        return bar;
+    }
+
+    private static android.graphics.Canvas canvas() {
+        return new android.graphics.Canvas(Bitmap.createBitmap(WIDTH, 150, Bitmap.Config.ARGB_8888));
+    }
+
+    /** Swaps the page for one whose video fills it, as most reels do. */
+    private void fullScreenPage() {
+        list.removeView(page);
+        page = pageWith(HEIGHT);
+        list.addView(page, new FrameLayout.LayoutParams(WIDTH, HEIGHT));
+        layout();
+    }
+
 
     @Test
     public void aReelWithBarsGetsABlurredBackdropBehindIt() {
@@ -180,6 +208,157 @@ public class ReelBlurBarsTest {
         assertNotNull(((ReelBlurBars.BackdropDrawable) page.getBackground()).bitmap());
         assertTrue(report(), report().contains(ReelBlurBars.DRAWN));
         assertTrue(HookStatus.missing(FamilyNames.REEL_BLUR_BARS).toString(), HookStatus.missing(FamilyNames.REEL_BLUR_BARS).isEmpty());
+    }
+
+    /**
+     * #197: the viewer stops above the tab bar, so most reels, which fill their page, still had a black
+     * strip under them. The bar's background becomes the reel running on: the frame mirrored, so the
+     * strip's top edge shows the reel's bottom (red here) and not its top (blue).
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aFullScreenReelRunsOnBlurredIntoTheStripUnderInstagramsTabBar() {
+        ReelBlurBars.source = (view, reuse, width, height) -> {
+            asked++;
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            bitmap.eraseColor(Color.BLUE);
+            for (int y = height / 2; y < height; y++) for (int x = 0; x < width; x++) bitmap.setPixel(x, y, Color.RED);
+            return bitmap;
+        };
+        fullScreenPage();
+        View bar = tabBar();
+
+        ReelBlurBars.pager(pager);
+        advance(400);
+
+        assertTrue(String.valueOf(bar.getBackground()), bar.getBackground() instanceof ReelBlurBars.StripDrawable);
+        assertSame("the page has no bars of its own to fill", black, page.getBackground());
+        assertEquals("one copy for the strip", 1, asked);
+        assertTrue(report(), report().contains(ReelBlurBars.STRIP));
+        Bitmap drawn = Bitmap.createBitmap(WIDTH, 150, Bitmap.Config.ARGB_8888);
+        Drawable background = bar.getBackground();
+        background.setBounds(0, 0, WIDTH, 150);
+        background.draw(new android.graphics.Canvas(drawn));
+        int top = drawn.getPixel(WIDTH / 2, 0);
+        assertTrue("the reel's bottom meets the strip's top: " + Integer.toHexString(top),
+                Color.red(top) > 60 && Color.blue(top) < 20);
+        assertTrue("dimmed like the bars: " + Integer.toHexString(top), Color.red(top) < 200);
+    }
+
+    /** The strip answers for the bar's layout as the background it covers did, so the bar never moves. */
+    @Test
+    public void theStripKeepsThePaddingAndLeastSizeOfTheBackgroundItCovers() {
+        fullScreenPage();
+        View bar = tabBar();
+        bar.setBackground(new ColorDrawable(Color.BLACK) {
+            @Override
+            public boolean getPadding(Rect padding) {
+                padding.set(4, 8, 12, 16);
+                return true;
+            }
+
+            @Override
+            public int getMinimumWidth() {
+                return 70;
+            }
+
+            @Override
+            public int getMinimumHeight() {
+                return 90;
+            }
+        });
+
+        ReelBlurBars.pager(pager);
+        advance(400);
+
+        Drawable strip = bar.getBackground();
+        assertTrue(String.valueOf(strip), strip instanceof ReelBlurBars.StripDrawable);
+        Rect padding = new Rect();
+        assertTrue(strip.getPadding(padding));
+        assertEquals(new Rect(4, 8, 12, 16), padding);
+        assertEquals(70, strip.getMinimumWidth());
+        assertEquals(90, strip.getMinimumHeight());
+    }
+
+    @Test
+    public void aReelWithBarsLendsTheStripItsOwnCopy() {
+        View bar = tabBar();
+
+        ReelBlurBars.pager(pager);
+        advance(400);
+
+        assertTrue(backdropShows());
+        assertTrue(bar.getBackground() instanceof ReelBlurBars.StripDrawable);
+        assertSame(((ReelBlurBars.BackdropDrawable) page.getBackground()).bitmap(), ReelBlurBars.stripFrame());
+        assertEquals("no second copy", 1, asked);
+    }
+
+    @Test
+    public void theTabBarGetsItsBlackBackWhenTheSwitchGoesOffOrHushGramPauses() {
+        fullScreenPage();
+        View bar = tabBar();
+        ReelBlurBars.pager(pager);
+        advance(400);
+        Bitmap copy = ReelBlurBars.stripFrame();
+        assertNotNull(copy);
+
+        Settings.BLUR_REEL_BARS.save(false);
+        assertFalse("off shows nothing from the next frame", ReelBlurBars.drawStrip(canvas(), 0, 0, WIDTH, 150));
+        advance(1100);
+
+        assertSame(barBlack, bar.getBackground());
+        assertNull(ReelBlurBars.stripFrame());
+        assertTrue(copy.isRecycled());
+
+        Settings.BLUR_REEL_BARS.save(true);
+        ReelBlurBars.reset();
+        ReelBlurBars.source = (view, reuse, width, height) -> {
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            bitmap.eraseColor(Color.rgb(200, 80, 40));
+            return bitmap;
+        };
+        ReelBlurBars.tabBarId = BAR;
+        ReelBlurBars.pager(pager);
+        advance(400);
+        assertTrue(bar.getBackground() instanceof ReelBlurBars.StripDrawable);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        advance(1100);
+
+        assertSame(barBlack, bar.getBackground());
+        assertNull(ReelBlurBars.stripFrame());
+    }
+
+    /** Tapping another tab hides the viewer: the strip stops at once and the bar's black is back by the next look. */
+    @Test
+    public void anotherTabInFrontGetsTheBarsOwnBackground() {
+        fullScreenPage();
+        View bar = tabBar();
+        ReelBlurBars.pager(pager);
+        advance(400);
+        assertTrue(ReelBlurBars.drawStrip(canvas(), 0, 0, WIDTH, 150));
+
+        pager.setVisibility(View.GONE);
+
+        assertFalse("not even until the next look", ReelBlurBars.drawStrip(canvas(), 0, 0, WIDTH, 150));
+        advance(1100);
+        assertSame(barBlack, bar.getBackground());
+        assertNull(ReelBlurBars.stripFrame());
+    }
+
+    @Test
+    public void aHiddenTabBarCostsAFullScreenReelNothing() {
+        fullScreenPage();
+        View bar = tabBar();
+        bar.setVisibility(View.GONE);
+
+        ReelBlurBars.pager(pager);
+        advance(1500);
+
+        assertEquals(0, asked);
+        assertSame(barBlack, bar.getBackground());
+        assertNull(ReelBlurBars.stripFrame());
     }
 
     @Test

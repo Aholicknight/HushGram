@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.BooleanSupplier;
 
+import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -55,6 +57,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * full screen, or finds the switch off or HushGram paused gets its own background back and its
  * bitmaps recycled. The pager and the pages are held weakly, so nothing outlives the viewer. Every
  * failure leaves Instagram's own black.
+ *
+ * <p>The viewer stops above the tab bar, which leaves a black strip under the reel: Instagram's own
+ * bar, or the stretch round a floating glass pill (#197). While that bar shows, the reel on screen is
+ * copied the same way whether it has bars or not, and the strip shows it mirrored and blurred, so it
+ * reads as the reel running on ({@link #drawStrip}).
  */
 public final class ReelBlurBars {
     /** The steps a failure is reported under. */
@@ -69,6 +76,15 @@ public final class ReelBlurBars {
     static final String NO_FRAME = "no frame to copy yet";
     /** Counted each time a video had no container around it that spans the page. */
     static final String NO_CONTAINER = "found no container for the video";
+    /** Counted each time the strip under the tab bar got a frame of the reel on screen. */
+    static final String STRIP = "showed the reel under the tab bar";
+    /** The step a failure painting that strip is reported under. */
+    static final String DRAW_STRIP = "draw the strip under the tab bar";
+
+    /** Instagram's tab bar, whose strip under a reel {@link #drawStrip} fills. */
+    static final String TAB_BAR = "tab_bar";
+    /** The tab bar's id, looked up once, or -1 before that. Tests set their own, since a test app has none of Instagram's. */
+    static volatile int tabBarId = -1;
 
     /** How long after the last scroll movement the page is looked at. */
     static final long SETTLE_MILLIS = 250;
@@ -112,7 +128,67 @@ public final class ReelBlurBars {
 
     private static volatile boolean logged;
 
+    /**
+     * The controller whose reel the strip under the tab bar shows, and the blurred frame it shows, or
+     * null while there is none. Only touched on the main thread.
+     */
+    @Nullable private static Controller stripOwner;
+    @Nullable private static Bitmap stripFrame;
+    private static final Paint STRIP_PAINT = new Paint(Paint.FILTER_BITMAP_FLAG);
+    private static final Paint STRIP_DIM = new Paint();
+
+    static {
+        STRIP_DIM.setColor(0xFF000000);
+        STRIP_DIM.setAlpha(DIM_ALPHA);
+    }
+
     private ReelBlurBars() {
+    }
+
+    /**
+     * Paints the strip under the tab bar, [left] to [right] and [top] to [bottom] in [canvas]'s
+     * coordinates, as the reel on screen running on: its frame mirrored so the bottom row meets the
+     * strip's top edge, blurred, with the same black over it as the bars get (#197). The glass pill calls
+     * this for the stretch under a Reels viewer, and Instagram's own bar draws it through its background
+     * ({@link StripDrawable}). Paints nothing and says false with the switch off, HushGram paused, no
+     * reel in front or no frame yet, so the caller paints what it would have. Never throws.
+     */
+    public static boolean drawStrip(Canvas canvas, float left, float top, float right, float bottom) {
+        try {
+            Controller owner = stripOwner;
+            Bitmap shown = stripFrame;
+            if (owner == null || shown == null || shown.isRecycled() || right <= left || bottom <= top
+                    || !owner.inFrontNow() || !owner.on.getAsBoolean()) {
+                return false;
+            }
+            float scale = (right - left) / shown.getWidth();
+            int saved = canvas.save();
+            canvas.clipRect(left, top, right, bottom);
+            canvas.translate(left, top + shown.getHeight() * scale);
+            canvas.scale(scale, -scale);
+            canvas.drawBitmap(shown, 0, 0, STRIP_PAINT);
+            canvas.restoreToCount(saved);
+            canvas.drawRect(left, top, right, bottom, STRIP_DIM);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_BLUR_BARS, DRAW_STRIP, failure);
+            return false;
+        }
+    }
+
+    /** The frame the strip under the tab bar shows, for tests. */
+    @Nullable
+    static Bitmap stripFrame() {
+        return stripFrame;
+    }
+
+    private static int tabBarId(Context context) {
+        int id = tabBarId;
+        if (id == -1) {
+            id = context.getResources().getIdentifier(TAB_BAR, "id", context.getPackageName());
+            tabBarId = id;
+        }
+        return id;
     }
 
     /**
@@ -153,6 +229,9 @@ public final class ReelBlurBars {
         source = TEXTURE;
         rounds = 0;
         logged = false;
+        stripOwner = null;
+        stripFrame = null;
+        tabBarId = -1;
     }
 
     /**
@@ -203,6 +282,12 @@ public final class ReelBlurBars {
         /** Whether the loop stopped because the pager wasn't in front. A layout, scroll, draw or window focus change wakes it. */
         private boolean asleep;
         final Map<View, Backdrop> backdrops = new WeakHashMap<>();
+        /** The tab bar, found once, and a full-screen reel's frame kept for the strip under it. */
+        @Nullable private WeakReference<View> barRef;
+        @Nullable private Bitmap stripRaw;
+        @Nullable private Bitmap stripBlurred;
+        /** What this put on Instagram's own tab bar as its background, made the first time it's needed. */
+        @Nullable private StripDrawable barBackground;
 
         Controller(ViewGroup pager, BooleanSupplier on) {
             this.pager = new WeakReference<>(pager);
@@ -257,6 +342,12 @@ public final class ReelBlurBars {
 
         private static boolean inFront(View view) {
             return ReelBlurBars.inFront(view.isAttachedToWindow(), view.isShown(), view.getWindowVisibility());
+        }
+
+        /** Whether the pager is in front right now, asked as the strip is drawn, so another tab never shows a reel. */
+        boolean inFrontNow() {
+            ViewGroup group = pager.get();
+            return group != null && inFront(group);
         }
 
         /**
@@ -344,6 +435,7 @@ public final class ReelBlurBars {
                 if (!inFront(group)) {
                     asleep = true;
                     watchDraws(group, true);
+                    dropStrip();
                     return;
                 }
                 asleep = false;
@@ -358,6 +450,8 @@ public final class ReelBlurBars {
 
         private void scan(ViewGroup group) {
             List<View> kept = new ArrayList<>();
+            View bar = stripBar(group);
+            Bitmap strip = null;
             for (TextureView video : videos(group)) {
                 if (video.getWidth() <= 0 || video.getHeight() <= 0) continue;
                 ViewGroup container = containerOf(video, group);
@@ -369,13 +463,91 @@ public final class ReelBlurBars {
                 Rect picture = pictureIn(video, container);
                 if (picture == null || !hasBars(picture, container)) {
                     HookStatus.counted(FamilyNames.REEL_BLUR_BARS, FULL_SCREEN);
+                    if (bar != null && strip == null) strip = stripCopy(video);
                     continue;
                 }
-                if (paint(video, container)) kept.add(container);
+                if (paint(video, container)) {
+                    kept.add(container);
+                    Backdrop backdrop = backdrops.get(container);
+                    if (strip == null && backdrop != null) strip = backdrop.blurred;
+                }
             }
             for (View container : new ArrayList<>(backdrops.keySet())) {
                 if (!kept.contains(container)) release(container);
             }
+            showStrip(bar, strip);
+        }
+
+        /**
+         * Instagram's tab bar when the strip under the reel is this class's to fill: shown, and either
+         * Instagram's own or a floating glass pill. Null otherwise, as under glass that doesn't float,
+         * which fills the bar with its own colour.
+         */
+        @Nullable
+        private View stripBar(ViewGroup group) {
+            View bar = barRef == null ? null : barRef.get();
+            if (bar == null || !bar.isAttachedToWindow()) {
+                int id = tabBarId(group.getContext());
+                bar = id == 0 ? null : group.getRootView().findViewById(id);
+                barRef = bar == null ? null : new WeakReference<>(bar);
+            }
+            if (bar == null || !bar.isShown()) return null;
+            if (GlassTabBar.wearsGlass(bar) && !GlassTabBar.floatsGlass(bar)) return null;
+            return bar;
+        }
+
+        /** A blurred copy of a full-screen reel for the strip, in the bitmaps kept for it, or null with no frame yet. */
+        @Nullable
+        private Bitmap stripCopy(TextureView video) {
+            int width = Math.max(2, video.getWidth() / SCALE);
+            int height = Math.max(2, video.getHeight() / SCALE);
+            Bitmap raw = source.frame(video, stripRaw, width, height);
+            if (raw == null) return null;
+            if (stripRaw != null && stripRaw != raw) stripRaw.recycle();
+            stripRaw = raw;
+            Bitmap blurred = blur(raw, stripBlurred);
+            if (blurred != null) stripBlurred = blurred;
+            return blurred;
+        }
+
+        /** Shows [frame] in the strip under [bar], or takes this controller's strip away when either is null. */
+        private void showStrip(@Nullable View bar, @Nullable Bitmap frame) {
+            if (bar == null || frame == null) {
+                dropStrip();
+                return;
+            }
+            stripOwner = this;
+            stripFrame = frame;
+            if (!GlassTabBar.wearsGlass(bar)) {
+                if (barBackground == null) barBackground = new StripDrawable();
+                if (bar.getBackground() != barBackground) {
+                    barBackground.original = bar.getBackground();
+                    bar.setBackground(barBackground);
+                }
+            }
+            bar.invalidate();
+            HookStatus.counted(FamilyNames.REEL_BLUR_BARS, STRIP);
+        }
+
+        /**
+         * Takes this controller's strip away and recycles its copy: Instagram's own bar gets back the
+         * background it had, and a glass pill paints its black again.
+         */
+        void dropStrip() {
+            View bar = barRef == null ? null : barRef.get();
+            if (stripOwner == this) {
+                stripOwner = null;
+                stripFrame = null;
+                if (bar != null) bar.invalidate();
+            }
+            if (bar != null && barBackground != null && bar.getBackground() == barBackground) {
+                bar.setBackground(barBackground.original);
+            }
+            if (barBackground != null) barBackground.original = null;
+            if (stripRaw != null) stripRaw.recycle();
+            if (stripBlurred != null && stripBlurred != stripRaw) stripBlurred.recycle();
+            stripRaw = null;
+            stripBlurred = null;
         }
 
         /** Every visible TextureView under the pager. */
@@ -485,6 +657,7 @@ public final class ReelBlurBars {
 
         void releaseAll() {
             for (View container : new ArrayList<>(backdrops.keySet())) release(container);
+            dropStrip();
         }
     }
 
@@ -573,6 +746,60 @@ public final class ReelBlurBars {
         @SuppressWarnings("deprecation")
         public int getOpacity() {
             return PixelFormat.OPAQUE;
+        }
+    }
+
+    /**
+     * Instagram's own tab bar's background while a reel shows above it: the strip ({@link #drawStrip}),
+     * or the background it covered whenever the strip has nothing to show, so a tab switch never waits
+     * for the next look to get the bar's colour back.
+     */
+    static final class StripDrawable extends Drawable {
+        @Nullable Drawable original;
+
+        @Override
+        public void draw(@NonNull Canvas canvas) {
+            Rect bounds = getBounds();
+            if (drawStrip(canvas, bounds.left, bounds.top, bounds.right, bounds.bottom)) return;
+            Drawable covered = original;
+            if (covered != null) {
+                covered.setBounds(bounds);
+                covered.draw(canvas);
+            }
+        }
+
+        // The bar keeps the padding and least size the background it covered gave it.
+        @Override
+        public boolean getPadding(@NonNull Rect padding) {
+            Drawable covered = original;
+            if (covered != null) return covered.getPadding(padding);
+            return super.getPadding(padding);
+        }
+
+        @Override
+        public int getMinimumWidth() {
+            Drawable covered = original;
+            return covered == null ? 0 : covered.getMinimumWidth();
+        }
+
+        @Override
+        public int getMinimumHeight() {
+            Drawable covered = original;
+            return covered == null ? 0 : covered.getMinimumHeight();
+        }
+
+        @Override
+        public void setAlpha(int alpha) {
+        }
+
+        @Override
+        public void setColorFilter(@Nullable ColorFilter colorFilter) {
+        }
+
+        @Override
+        @SuppressWarnings("deprecation")
+        public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
         }
     }
 
