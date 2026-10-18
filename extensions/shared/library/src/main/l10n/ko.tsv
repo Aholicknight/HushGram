@@ -1177,3 +1177,12 @@ Full screen Reels and Home hide the status bar and the navigation bar.	릴스 �
 Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.	릴스 전체 화면과 홈 전체 화면이 위쪽 상태 표시줄만 숨깁니다. 탐색 막대는 그대로 있습니다.
 Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.	릴스 전체 화면과 홈 전체 화면이 아래쪽 탐색 막대만 숨깁니다. 상태 표시줄은 그대로 있습니다.
 Turn on Full screen Reels or Full screen Home to use this choice.	이 옵션을 사용하려면 ‘릴스 전체 화면’ 또는 ‘홈 전체 화면’을 켜세요
+Choose carousel pages	캐러셀 페이지 선택
+Adds Choose pages to a carousel's menu, after Save all, and to the download icon. Tick the pages you want and only those save, in order.	캐러셀 메뉴의 모두 저장 다음과 다운로드 아이콘에 페이지 선택을 추가합니다. 원하는 페이지를 체크하면 그 페이지만 순서대로 저장됩니다.
+Choose pages	페이지 선택
+Page %1$d, video	%1$d페이지, 동영상
+Page %1$d, photo	%1$d페이지, 사진
+Left out by your download switches	다운로드 스위치 설정으로 제외됨
+No pages chosen	선택한 페이지가 없습니다
+Not saved: the screen closed	저장되지 않음: 화면이 닫혔습니다
+Not saved: the account changed	저장되지 않음: 계정이 바뀌었습니다

@@ -8,21 +8,35 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.ContentValues;
+import android.content.pm.ApplicationInfo;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Environment;
 import android.os.Looper;
 import android.provider.MediaStore;
+import android.util.TypedValue;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.ImageView;
 
 import org.junit.After;
 import org.junit.Before;
@@ -37,6 +51,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
 import org.robolectric.shadow.api.Shadow;
+import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowToast;
 import org.robolectric.util.ReflectionHelpers.ClassParameter;
 
@@ -57,6 +72,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -73,6 +89,8 @@ public class CarouselSaveTest {
     private MediaSaveTest.Gallery gallery;
     private final CountDownLatch release = new CountDownLatch(1);
     private final List<ByteArrayOutputStream> files = new ArrayList<>();
+    private final CarouselPages.Previews previews = CarouselPages.previews;
+    private final Supplier<String> accounts = DownloadHistory.accounts;
 
     @Before public void setUp() throws Exception {
         context = RuntimeEnvironment.getApplication();
@@ -120,6 +138,9 @@ public class CarouselSaveTest {
         MediaBridge.frames = null;
         CoverFrame.firstFrameForTests = null;
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();
+        Settings.DOWNLOAD_CHOOSE_PAGES.resetToDefault();
+        CarouselPages.previews = previews;
+        DownloadHistory.accounts = accounts;
         Settings.SAVE_NAME_BY_POST.resetToDefault();
         LogBufferManager.clearLogBuffer();
     }
@@ -806,6 +827,225 @@ public class CarouselSaveTest {
         assertEquals("nothing was fetched to decide", 0, fetched);
     }
 
+    /** With Choose carousel pages on, Choose pages follows Save all in the long menu and in the short one. Off, it's in neither. */
+    @Test public void choosePagesFollowsSaveAllInBothMenus() {
+        MediaBridge.post = Arrays.asList(page(false, "/first.jpg", "1"), page(true, "/middle.mp4", "2"));
+        Object report = new Object();
+        List<Object> nativeOptions = Collections.unmodifiableList(Arrays.asList(MediaBridge.DOWNLOAD, report));
+        ArrayList<Object> rows = new ArrayList<>();
+        VideoDownload.offerAll(new Object(), rows);
+        assertEquals(Collections.singletonList(MediaBridge.ALL), rows);
+        assertEquals(Arrays.asList(MediaBridge.DOWNLOAD, MediaBridge.ALL, report), VideoDownload.allow(nativeOptions, MediaBridge.DOWNLOAD));
+
+        Settings.DOWNLOAD_CHOOSE_PAGES.save(true);
+        rows.clear();
+        VideoDownload.offerAll(new Object(), rows);
+        Object choose = VideoDownload.chooseOption();
+        assertNotNull(choose);
+        assertEquals(Arrays.asList(MediaBridge.ALL, choose), rows);
+        assertEquals("Choose pages", MediaBridge.label.toString());
+        List<?> allowed = VideoDownload.allow(nativeOptions, MediaBridge.DOWNLOAD);
+        assertEquals(Arrays.asList(MediaBridge.DOWNLOAD, MediaBridge.ALL, choose, report), allowed);
+        assertSame(allowed, VideoDownload.allow(allowed, MediaBridge.DOWNLOAD));
+        Settings.DOWNLOAD_VIDEOS.save(false); Settings.DOWNLOAD_PHOTOS.save(false);
+        assertSame(nativeOptions, VideoDownload.allow(nativeOptions, MediaBridge.DOWNLOAD));
+    }
+
+    /**
+     * Choose pages lists the carousel's pages as numbered rows, keeps Save off until a box is
+     * ticked, and saves only the ticked pages, in order, through Save all's batch. The pages are
+     * read on the tap, so the post changing after doesn't change what saves, and each row's
+     * picture is fetched off the main thread and fitted to the row.
+     */
+    @Test public void choosePagesSavesOnlyTheTickedPagesInOrder() throws Exception {
+        Settings.DOWNLOAD_CHOOSE_PAGES.save(true);
+        List<MediaSave.Item> pages = new ArrayList<>(Arrays.asList(page(false, "/first.jpg", "1"),
+                page(true, "/middle.mp4", "2"), page(false, "/last.jpg", "3")));
+        MediaBridge.post = pages;
+        List<String> fetched = Collections.synchronizedList(new ArrayList<>());
+        CarouselPages.previews = (application, url, size) -> {
+            boolean main = Thread.currentThread() == Looper.getMainLooper().getThread();
+            fetched.add(url.substring(server.origin().length()) + (main ? " on the main thread" : ""));
+            return Bitmap.createBitmap(4 * size, 2 * size, Bitmap.Config.ARGB_8888);
+        };
+        List<String> order = Collections.synchronizedList(new ArrayList<>());
+        MediaSave.detailsForTests = details -> order.add(details.videoId);
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+
+        VideoDownload.choosePages(MediaBridge.post, activity);
+        AlertDialog list = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(list);
+        List<CheckBox> boxes = boxes(list);
+        assertEquals(Arrays.asList("Page 1, photo", "Page 2, video", "Page 3, photo"), texts(boxes));
+        Button save = list.getButton(DialogInterface.BUTTON_POSITIVE);
+        assertFalse("Save is off with no box ticked", save.isEnabled());
+        save.performClick();
+        assertTrue("nothing ticked, so nothing saved", list.isShowing());
+
+        int size = CarouselPages.previewSize();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (!(picture(boxes.get(0)).getDrawable() instanceof BitmapDrawable
+                && picture(boxes.get(2)).getDrawable() instanceof BitmapDrawable)) {
+            assertTrue("the pictures never showed", System.nanoTime() < deadline);
+            Thread.sleep(10);
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+        }
+        List<String> sorted = new ArrayList<>(fetched);
+        Collections.sort(sorted);
+        assertEquals(Arrays.asList("/first.jpg", "/last.jpg"), sorted);
+        assertEquals(size, ((BitmapDrawable) picture(boxes.get(0)).getDrawable()).getBitmap().getHeight());
+        assertEquals(2 * size, ((BitmapDrawable) picture(boxes.get(2)).getDrawable()).getBitmap().getWidth());
+        assertTrue("a video with no cover keeps its blank square", picture(boxes.get(1)).getDrawable() instanceof GradientDrawable);
+
+        picture(boxes.get(0)).performClick();
+        assertTrue("a tap on the picture ticks its box", boxes.get(0).isChecked());
+        assertTrue(save.isEnabled());
+        boxes.get(1).setChecked(true);
+        boxes.get(2).setChecked(true);
+        boxes.get(1).setChecked(false);
+        pages.clear();
+        MediaBridge.post = null;
+        save.performClick();
+        assertFalse(list.isShowing());
+        waitForSaves();
+        assertEquals(Arrays.asList("1", "3"), order);
+        assertEquals(1, server.hits("/first.jpg")); assertEquals(0, server.hits("/middle.mp4")); assertEquals(1, server.hits("/last.jpg"));
+        assertEquals("Saved 2. Failed 0. Skipped 0.", ShadowToast.getTextOfLatestToast());
+        assertClean();
+    }
+
+    /**
+     * A page the photo switch leaves out is listed but can't be ticked, rows work with no picture,
+     * and Save says why and saves nothing when the account changed, the screen closed or nothing is
+     * chosen.
+     */
+    @Test public void choosePagesSaysWhyItSavesNothing() throws Exception {
+        Settings.DOWNLOAD_CHOOSE_PAGES.save(true);
+        Settings.DOWNLOAD_PHOTOS.save(false);
+        CarouselPages.previews = (application, url, size) -> null;
+        MediaBridge.post = Arrays.asList(page(false, "/first.jpg", "1"), page(true, "/middle.mp4", "2"), page(true, "/last.mp4", "3"));
+        DownloadHistory.accounts = () -> "first account";
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+
+        VideoDownload.choosePages(MediaBridge.post, activity);
+        AlertDialog list = ShadowAlertDialog.getLatestAlertDialog();
+        List<CheckBox> boxes = boxes(list);
+        assertEquals("Page 1, photo\nLeft out by your download switches", boxes.get(0).getText().toString());
+        assertFalse(boxes.get(0).isEnabled());
+        picture(boxes.get(0)).performClick();
+        assertFalse("a page that saves nothing can't be ticked", boxes.get(0).isChecked());
+        assertTrue(boxes.get(1).isEnabled());
+        boxes.get(1).setChecked(true);
+        DownloadHistory.accounts = () -> "second account";
+        list.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertFalse(list.isShowing());
+        assertEquals("Not saved: the account changed", ShadowToast.getTextOfLatestToast());
+
+        VideoDownload.choosePages(MediaBridge.post, activity);
+        AlertDialog again = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotSame(list, again);
+        boxes(again).get(2).setChecked(true);
+        activity.finish();
+        again.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Not saved: the screen closed", ShadowToast.getTextOfLatestToast());
+
+        int toasts = ShadowToast.shownToastCount();
+        VideoDownload.choosePages(MediaBridge.post, activity);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertSame("no list opens over a closing screen", again, ShadowAlertDialog.getLatestAlertDialog());
+        assertEquals(toasts + 1, ShadowToast.shownToastCount());
+        assertEquals("Not saved: the screen closed", ShadowToast.getTextOfLatestToast());
+
+        Activity open = Robolectric.buildActivity(Activity.class).setup().get();
+        assertFalse(CarouselPages.save(open, Collections.emptyList(), DownloadHistory.owner()));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("No pages chosen", ShadowToast.getTextOfLatestToast());
+        waitForSaves();
+        for (String path : Arrays.asList("/first.jpg", "/middle.mp4", "/last.mp4")) assertEquals(path, 0, server.hits(path));
+        assertClean();
+    }
+
+    /** Choose pages keeps Save all's page limit, and with its switch off it opens nothing. */
+    @Test public void choosePagesKeepsTheBatchLimit() {
+        Settings.DOWNLOAD_CHOOSE_PAGES.save(true);
+        CarouselPages.previews = (application, url, size) -> null;
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        MediaSave.Item one = page(false, "/one.jpg", "1");
+        MediaBridge.post = new ArrayList<>(Collections.nCopies(MediaSave.MAX_BATCH_PAGES + 1, one));
+        VideoDownload.choosePages(MediaBridge.post, activity);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertNull(ShadowAlertDialog.getLatestAlertDialog());
+        assertEquals("Not saved: a carousel can have at most 32 pages", ShadowToast.getTextOfLatestToast());
+
+        MediaBridge.post = new ArrayList<>(Collections.nCopies(MediaSave.MAX_BATCH_PAGES, one));
+        VideoDownload.choosePages(MediaBridge.post, activity);
+        AlertDialog list = ShadowAlertDialog.getLatestAlertDialog();
+        List<CheckBox> boxes = boxes(list);
+        assertEquals(MediaSave.MAX_BATCH_PAGES, boxes.size());
+        assertEquals("Page 32, photo", boxes.get(31).getText().toString());
+        list.dismiss();
+
+        Settings.DOWNLOAD_CHOOSE_PAGES.save(false);
+        VideoDownload.choosePages(MediaBridge.post, activity);
+        assertSame("off, no list opens", list, ShadowAlertDialog.getLatestAlertDialog());
+    }
+
+    /** Right to left and at twice the text size, a row starts at the right with its picture and its label grows. */
+    @Test public void choosePagesRowsFollowRightToLeftAndLargeText() {
+        int flags = context.getApplicationInfo().flags;
+        context.getApplicationInfo().flags |= ApplicationInfo.FLAG_SUPPORTS_RTL;
+        RuntimeEnvironment.setFontScale(2f);
+        try {
+            Settings.DOWNLOAD_CHOOSE_PAGES.save(true);
+            CarouselPages.previews = (application, url, size) -> null;
+            MediaBridge.post = Arrays.asList(page(false, "/first.jpg", "1"), page(true, "/middle.mp4", "2"));
+            Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+            VideoDownload.choosePages(MediaBridge.post, activity);
+            AlertDialog list = ShadowAlertDialog.getLatestAlertDialog();
+            View screen = list.getWindow().getDecorView();
+            screen.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            screen.measure(View.MeasureSpec.makeMeasureSpec(720, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(1280, View.MeasureSpec.AT_MOST));
+            screen.layout(0, 0, screen.getMeasuredWidth(), screen.getMeasuredHeight());
+            CheckBox first = boxes(list).get(0);
+            assertEquals(View.LAYOUT_DIRECTION_RTL, first.getLayoutDirection());
+            assertTrue("the picture isn't at the row's start", picture(first).getLeft() > first.getLeft());
+            float scaled = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16, first.getResources().getDisplayMetrics());
+            assertTrue("the text didn't grow", scaled > 16 * first.getResources().getDisplayMetrics().density);
+            assertEquals(scaled, first.getTextSize(), 0.01f);
+            assertEquals("Page 1, photo", first.getText().toString());
+            list.dismiss();
+        } finally {
+            RuntimeEnvironment.setFontScale(1f);
+            context.getApplicationInfo().flags = flags;
+        }
+    }
+
+    private static List<CheckBox> boxes(AlertDialog list) {
+        List<CheckBox> boxes = new ArrayList<>();
+        collect(list.getWindow().getDecorView(), boxes);
+        return boxes;
+    }
+
+    private static void collect(View view, List<CheckBox> boxes) {
+        if (view instanceof CheckBox) boxes.add((CheckBox) view);
+        if (!(view instanceof ViewGroup)) return;
+        for (int index = 0; index < ((ViewGroup) view).getChildCount(); index++) collect(((ViewGroup) view).getChildAt(index), boxes);
+    }
+
+    private static List<String> texts(List<CheckBox> boxes) {
+        List<String> texts = new ArrayList<>();
+        for (CheckBox box : boxes) texts.add(box.getText().toString());
+        return texts;
+    }
+
+    /** The picture in [box]'s row. */
+    private static ImageView picture(CheckBox box) {
+        return (ImageView) ((ViewGroup) box.getParent()).getChildAt(0);
+    }
+
     @Test public void exhaustedPreferenceRetirementDoesNotTurnTheBatchIntoAnInterruption() throws Exception {
         Context wrapped = withRetirementFailure();
         CompletableFuture<MediaSave.BatchResult> ended = new CompletableFuture<>();
@@ -966,6 +1206,7 @@ public class CarouselSaveTest {
         static final Object ALL = new Object(), DOWNLOAD = new Object();
         static CharSequence label;
         @Implementation protected static Object saveAllOption() { return ALL; }
+        @Implementation protected static Object feedOption(String name) { return name; }
         @Implementation protected static Object feedMenuMedia(Object menu) { return post; }
         @Implementation protected static Object feedMenuItemState(Object menu) { return 1; }
         @Implementation protected static void addSaveAllRow(Object menu, ArrayList<Object> rows, Object option, CharSequence title) {

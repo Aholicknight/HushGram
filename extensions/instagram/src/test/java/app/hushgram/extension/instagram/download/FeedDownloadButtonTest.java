@@ -24,6 +24,7 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.RelativeLayout;
 
 import java.util.ArrayList;
@@ -40,7 +41,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowPopupMenu;
 
 import kotlin.jvm.functions.Function1;
 
@@ -83,6 +86,7 @@ public class FeedDownloadButtonTest {
         Settings.FEED_DOWNLOAD_BUTTON.resetToDefault();
         Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
+        Settings.DOWNLOAD_CHOOSE_PAGES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -96,6 +100,7 @@ public class FeedDownloadButtonTest {
         boolean saves = true;
         Runnable page;
         Runnable all;
+        Runnable some;
 
         @Override public boolean saves(Object post) {
             return !switchedOff.contains(post);
@@ -115,9 +120,18 @@ public class FeedDownloadButtonTest {
         }
 
         @Override public void choose(View anchor, Runnable page, Runnable all) {
+            choose(anchor, page, all, null);
+        }
+
+        @Override public void choose(View anchor, Runnable page, Runnable all, Runnable some) {
             calls.add("choose");
             this.page = page;
             this.all = all;
+            this.some = some;
+        }
+
+        @Override public void choosePages(Object post, Activity activity) {
+            calls.add("choosePages " + post + " " + activity);
         }
 
         @Override public void nothing(Context context) {
@@ -322,6 +336,52 @@ public class FeedDownloadButtonTest {
         assertEquals(Arrays.asList("choose", "save post state"), recorder.calls);
         recorder.all.run();
         assertEquals(Arrays.asList("choose", "save post state", "saveAll post"), recorder.calls);
+        assertNull("Choose carousel pages is off, so there's no third answer", recorder.some);
+    }
+
+    /** With Choose carousel pages on, the question has a third answer, which opens the list of the post's pages over its screen. */
+    @Test
+    public void chooseCarouselPagesAddsAThirdAnswerThatOpensTheList() {
+        Settings.DOWNLOAD_CHOOSE_PAGES.save(true);
+        recorder.pages = Arrays.asList("one", "two", "three");
+        ImageView save = save(activity);
+        LinearLayout row = linearRow(save);
+        FeedDownloadButton.bind(save, "post", "state", activity);
+        buttonOf(row).performClick();
+        assertEquals(Collections.singletonList("choose"), recorder.calls);
+        assertNotNull(recorder.some);
+        recorder.some.run();
+        assertEquals(Arrays.asList("choose", "choosePages post " + activity), recorder.calls);
+
+        recorder.calls.clear();
+        recorder.some = null;
+        Settings.DOWNLOAD_VIDEOS.save(false);
+        Settings.DOWNLOAD_PHOTOS.save(true);
+        buttonOf(row).performClick();
+        assertEquals(Collections.singletonList("choose"), recorder.calls);
+        assertNotNull("the photo switch alone is enough", recorder.some);
+    }
+
+    /** The real question: Download and Save all, and Choose pages third only when there's an answer for it. */
+    @Test
+    public void theQuestionListsChoosePagesOnlyWithItsAnswer() {
+        List<String> ran = new ArrayList<>();
+        View anchor = new View(activity);
+        activity.setContentView(anchor);
+        original.choose(anchor, () -> ran.add("page"), () -> ran.add("all"));
+        PopupMenu two = ShadowPopupMenu.getLatestPopupMenu();
+        assertEquals(2, two.getMenu().size());
+        Shadows.shadowOf(two).getOnMenuItemClickListener().onMenuItemClick(two.getMenu().getItem(1));
+
+        original.choose(anchor, () -> ran.add("page"), () -> ran.add("all"), () -> ran.add("some"));
+        PopupMenu three = ShadowPopupMenu.getLatestPopupMenu();
+        assertEquals(3, three.getMenu().size());
+        assertEquals("Choose pages", three.getMenu().getItem(2).getTitle().toString());
+        PopupMenu.OnMenuItemClickListener clicks = Shadows.shadowOf(three).getOnMenuItemClickListener();
+        clicks.onMenuItemClick(three.getMenu().getItem(2));
+        clicks.onMenuItemClick(three.getMenu().getItem(0));
+        clicks.onMenuItemClick(three.getMenu().getItem(1));
+        assertEquals(Arrays.asList("all", "some", "page", "all"), ran);
     }
 
     /** Save every page without asking saves a carousel's pages on the tap, and leaves a single post as it was (#190). */

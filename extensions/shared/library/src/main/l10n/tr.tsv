@@ -1178,3 +1178,12 @@ Full screen Reels and Home hide the status bar and the navigation bar.	Tam ekran
 Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.	Tam ekran Reels ve Tam ekran Ana sayfa yalnızca üstteki durum çubuğunu gizler. Gezinme çubuğu kalır.
 Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.	Tam ekran Reels ve Tam ekran Ana sayfa yalnızca alttaki gezinme çubuğunu gizler. Durum çubuğu kalır.
 Turn on Full screen Reels or Full screen Home to use this choice.	Bu seçimi kullanmak için Tam ekran Reels veya Tam ekran Ana sayfa seçeneğini açın.
+Choose carousel pages	Çoklu gönderi sayfalarını seç
+Adds Choose pages to a carousel's menu, after Save all, and to the download icon. Tick the pages you want and only those save, in order.	Çoklu gönderinin menüsüne, Tümünü kaydet'in ardından, ve indirme simgesine Sayfaları seç ekler. İstediğin sayfaları işaretle, yalnızca onlar sırayla kaydedilir.
+Choose pages	Sayfaları seç
+Page %1$d, video	Sayfa %1$d, video
+Page %1$d, photo	Sayfa %1$d, fotoğraf
+Left out by your download switches	İndirme anahtarların nedeniyle dışarıda kaldı
+No pages chosen	Hiç sayfa seçilmedi
+Not saved: the screen closed	Kaydedilmedi: ekran kapandı
+Not saved: the account changed	Kaydedilmedi: hesap değişti

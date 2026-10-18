@@ -1178,3 +1178,12 @@ Full screen Reels and Home hide the status bar and the navigation bar.	Vollbild-
 Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.	Vollbild-Reels und Vollbild-Startseite blenden nur die Statusleiste oben aus. Die Navigationsleiste bleibt.
 Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.	Vollbild-Reels und Vollbild-Startseite blenden nur die Navigationsleiste unten aus. Die Statusleiste bleibt.
 Turn on Full screen Reels or Full screen Home to use this choice.	Aktiviere „Vollbild-Reels“ oder „Vollbild-Startseite“, um diese Auswahl zu nutzen.
+Choose carousel pages	Karussellseiten auswählen
+Adds Choose pages to a carousel's menu, after Save all, and to the download icon. Tick the pages you want and only those save, in order.	Fügt dem Menü eines Karussells nach Alle speichern und dem Download-Symbol Seiten auswählen hinzu. Hake die gewünschten Seiten an, dann werden nur diese der Reihe nach gespeichert.
+Choose pages	Seiten auswählen
+Page %1$d, video	Seite %1$d, Video
+Page %1$d, photo	Seite %1$d, Foto
+Left out by your download switches	Durch deine Download-Schalter ausgelassen
+No pages chosen	Keine Seiten ausgewählt
+Not saved: the screen closed	Nicht gespeichert: Der Bildschirm wurde geschlossen
+Not saved: the account changed	Nicht gespeichert: Das Konto wurde gewechselt

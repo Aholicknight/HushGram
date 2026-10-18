@@ -1447,6 +1447,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("Adds Details to a feed post's menu. It shows when the post went up, who posted it, "
                                 + "its media ID and the size Download saves, with buttons to copy the file link, "
                                 + "username and caption.")));
+                downloads.addPreference(toggle(context, Settings.DOWNLOAD_CHOOSE_PAGES, L10n.t("Choose carousel pages"),
+                        L10n.t("Adds Choose pages to a carousel's menu, after Save all, and to the download icon. "
+                                + "Tick the pages you want and only those save, in order.")));
                 downloads.addPreference(toggle(context, Settings.FEED_DOWNLOAD_BUTTON, L10n.t("Download button on feed posts"),
                         L10n.t("Puts a download icon in the row under a post, left of Save, so one tap saves it without "
                                 + "opening the menu. On a carousel it asks for this page or all of them.")));
@@ -1865,7 +1868,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key));
                     belongs |= family == PatchFamily.VIDEO_DOWNLOAD && (Settings.HOLD_TO_DOWNLOAD.key.equals(key)
                             || Settings.HOLD_FINGERS.key.equals(key) || Settings.HOLD_TIME.key.equals(key)
-                            || Settings.FEED_DOWNLOAD_BUTTON.key.equals(key) || Settings.FEED_DOWNLOAD_ALL_PAGES.key.equals(key));
+                            || Settings.FEED_DOWNLOAD_BUTTON.key.equals(key) || Settings.FEED_DOWNLOAD_ALL_PAGES.key.equals(key)
+                            || Settings.DOWNLOAD_CHOOSE_PAGES.key.equals(key));
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_DOWNLOAD_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);

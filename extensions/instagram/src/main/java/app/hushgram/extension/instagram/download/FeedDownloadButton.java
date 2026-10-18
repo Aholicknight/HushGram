@@ -63,8 +63,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>A tap saves through {@link VideoDownload#save}, so the file name, the account folder, the
  * quality and the Send downloads to another app switch are the ones the post's menu uses. A carousel
  * asks first: Download saves the page on screen, as its menu row does, and Save all saves every
- * page, as its other row does. With Save every page without asking on, a carousel skips the question
- * and saves every page (#190).
+ * page, as its other row does. With Choose carousel pages on, it also offers Choose pages, the
+ * menu's list of pages to tick ({@link CarouselPages}). With Save every page without asking on, a
+ * carousel skips the question and saves every page (#190).
  *
  * <p>Most of Home draws the same row as components instead: a Litho host that only Instagram's
  * own mounting may add children to (addView on it throws), whose Save button is a component spec
@@ -134,6 +135,16 @@ public final class FeedDownloadButton {
 
         void choose(View anchor, Runnable page, Runnable all);
 
+        /** The same question with a third answer, Choose pages, when [some] isn't null. */
+        default void choose(View anchor, Runnable page, Runnable all, @Nullable Runnable some) {
+            choose(anchor, page, all);
+        }
+
+        /** Opens the list of [post]'s carousel pages over [activity]. */
+        default void choosePages(Object post, @Nullable Activity activity) {
+            VideoDownload.choosePages(post, activity);
+        }
+
         void nothing(Context context);
     }
 
@@ -155,11 +166,17 @@ public final class FeedDownloadButton {
         }
 
         @Override public void choose(View anchor, Runnable page, Runnable all) {
+            choose(anchor, page, all, null);
+        }
+
+        @Override public void choose(View anchor, Runnable page, Runnable all, @Nullable Runnable some) {
             PopupMenu menu = new PopupMenu(anchor.getContext(), anchor);
             menu.getMenu().add(0, 0, 0, L10n.t("Download"));
             menu.getMenu().add(0, 1, 1, L10n.t("Save all"));
+            if (some != null) menu.getMenu().add(0, 2, 2, L10n.t("Choose pages"));
             menu.setOnMenuItemClickListener(item -> {
-                (item.getItemId() == 0 ? page : all).run();
+                int id = item.getItemId();
+                (id == 0 ? page : id == 1 || some == null ? all : some).run();
                 return true;
             });
             menu.show();
@@ -658,7 +675,8 @@ public final class FeedDownloadButton {
                     saveEvery(anchor, post, activity);
                     return;
                 }
-                actions.choose(anchor, () -> saveOne(anchor, post, itemState, activity), () -> saveEvery(anchor, post, activity));
+                Runnable some = VideoDownload.chooses() ? () -> pickPages(anchor, post, activity) : null;
+                actions.choose(anchor, () -> saveOne(anchor, post, itemState, activity), () -> saveEvery(anchor, post, activity), some);
                 return;
             }
             saveOne(anchor, post, itemState, activity);
@@ -677,6 +695,15 @@ public final class FeedDownloadButton {
             return;
         }
         actions.saveAll(post, activity);
+    }
+
+    /** Choose pages from the icon's question: the list opens over [activity], or the anchor's own. */
+    private static void pickPages(View anchor, Object post, @Nullable Activity activity) {
+        if (post == null) {
+            actions.nothing(contextOf(anchor, activity));
+            return;
+        }
+        actions.choosePages(post, activity != null ? activity : activityOf(anchor));
     }
 
     private static Context contextOf(View anchor, @Nullable Activity activity) {

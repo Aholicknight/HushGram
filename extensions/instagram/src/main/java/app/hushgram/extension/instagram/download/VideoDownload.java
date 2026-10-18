@@ -44,6 +44,8 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *       tap saves its picture at the largest size, the way {@link StoryDownload} saves a photo story.
  *   <li>A carousel also has Save all. It snapshots every ordered page for one cancellable batch,
  *       respecting the photo and video switches while Download still saves the page on screen.
+ *   <li>With Choose carousel pages on, a carousel also has Choose pages after Save all, which lists
+ *       its pages so only the ticked ones save, in order, through the same batch ({@link CarouselPages}).
  *   <li>With Download video covers on, a post, or carousel page on screen, with a video gets
  *       Download cover, which saves the still picture Instagram shows before the video plays, as
  *       Download cover on a reel does (#94). It's offered after Save all, and the short menu keeps
@@ -74,6 +76,13 @@ public final class VideoDownload {
 
     /** Download cover's option, made once, as Save all's is. */
     private static Object coverOption;
+
+    /** Choose pages' option name, and the option itself, made once, as Save all's is. */
+    static final String CHOOSE_OPTION = "HUSHGRAM_CHOOSE_PAGES";
+    private static Object chooseOption;
+
+    /** Counted when Choose pages is tapped with no screen to show its list on. */
+    static final String CHOOSE_NO_SCREEN = "choose pages not shown, no activity";
 
     public static synchronized Object coverOption() {
         try {
@@ -196,8 +205,55 @@ public final class VideoDownload {
             if (pages == null || pages.size() < 2 || !anySaves(pages)) return;
             Object option = allOption();
             if (option != null) InstagramMedia.addSaveAllRow(menu, rows, option, L10n.t("Save all"));
+            Object choose = chooses() ? chooseOption() : null;
+            if (choose != null) InstagramMedia.addSaveAllRow(menu, rows, choose, L10n.t("Choose pages"));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "carousel menu", failure);
+        }
+    }
+
+    /** Choose pages' option, made once, as Save all's is. */
+    public static synchronized Object chooseOption() {
+        try {
+            if (chooseOption == null) chooseOption = InstagramMedia.feedOption(CHOOSE_OPTION);
+            return chooseOption;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "carousel choose option", failure);
+            return null;
+        }
+    }
+
+    /**
+     * Opens the list of [post]'s carousel pages over [activity] when its Choose pages row is tapped,
+     * read on the tap into plain values ({@link CarouselPages}). A carousel past the batch's page
+     * limit says so, as Save all does, and a tap with no screen to show the list on says why. Never
+     * throws.
+     */
+    public static void choosePages(Object post, Activity activity) {
+        Context context = activity != null ? activity : Utils.getContext();
+        try {
+            boolean videos = videos(), photos = photos();
+            if (!chooses()) return;
+            List<?> pages = post == null ? null : InstagramMedia.carouselMedia(post);
+            if (pages == null || pages.size() < 2) return;
+            List<?> ordered = new ArrayList<>(pages);
+            if (ordered.size() > MediaSave.MAX_BATCH_PAGES) {
+                Feedback.show(context, L10n.f(context, "Not saved: a carousel can have at most %1$d pages",
+                        MediaSave.MAX_BATCH_PAGES), true);
+                return;
+            }
+            if (CarouselPages.gone(activity)) {
+                HookStatus.counted(FamilyNames.VIDEO_DOWNLOAD, CHOOSE_NO_SCREEN);
+                if (context != null) Feedback.show(context.getApplicationContext(), L10n.t(context, "Not saved: the screen closed"), true);
+                return;
+            }
+            String owner = DownloadHistory.owner();
+            List<CarouselPages.Page> read = CarouselPages.read(ordered, post, videos, photos, CarouselPages.previewSize());
+            Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "carousel choose opened: " + read.size() + " page(s)");
+            CarouselPages.show(activity, read, owner);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "carousel choose", failure);
+            if (context != null) Feedback.show(context.getApplicationContext(), L10n.t(context, "Download failed"), true);
         }
     }
 
@@ -325,8 +381,9 @@ public final class VideoDownload {
      * on this list and orders the rows by it, so without this the row {@link #offer} added never
      * shows there. Save all follows Download, keeping native options in their existing order, then
      * Download cover with its switch on. With their own switches on, Open in another player follows
-     * them, then Details ({@link PostInfo}). A list with every action or the switches off comes back
-     * as it came. Never throws.
+     * them, then Details ({@link PostInfo}). With Choose carousel pages on, Choose pages goes right
+     * after Save all, as the long menu has it. A list with every action or the switches off comes
+     * back as it came. Never throws.
      */
     public static List<?> allow(List<?> options, Object download) {
         try {
@@ -335,7 +392,8 @@ public final class VideoDownload {
             List<?> allowed = download == null || !videos() && !photos() ? options : withSaves(options, download);
             if (covers()) allowed = withCover(allowed, download);
             if (ExternalPlayer.on()) allowed = withPlayer(allowed, download);
-            return PostInfo.on() ? PostInfo.withDetails(allowed, download, batchOption, coverOption, playerOption) : allowed;
+            if (PostInfo.on()) allowed = PostInfo.withDetails(allowed, download, batchOption, coverOption, playerOption);
+            return download != null && chooses() ? withChoose(allowed, download) : allowed;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "short feed menu", t);
             return options;
@@ -375,6 +433,18 @@ public final class VideoDownload {
         if (player == null || options.contains(player)) return options;
         List<Object> allowed = new ArrayList<>(options);
         allowed.add(after(allowed, coverOption, batchOption, download) + 1, player);
+        return allowed;
+    }
+
+    /**
+     * [options] with Choose pages right after Save all, or after Download when Save all isn't there,
+     * as {@link #offerAll} offers it. A list that has it already comes back as it came.
+     */
+    static synchronized List<?> withChoose(List<?> options, Object download) {
+        Object choose = chooseOption();
+        if (choose == null || options.contains(choose)) return options;
+        List<Object> allowed = new ArrayList<>(options);
+        allowed.add(after(allowed, batchOption, download) + 1, choose);
         return allowed;
     }
 
@@ -537,6 +607,11 @@ public final class VideoDownload {
     /** Whether a post with a video gets Download cover: Download feed videos and Download video covers both on. */
     static boolean covers() {
         return videos() && on(Settings.DOWNLOAD_FEED_COVER);
+    }
+
+    /** Whether a carousel gets Choose pages: Choose carousel pages on, with the video or the photo switch. */
+    static boolean chooses() {
+        return (videos() || photos()) && on(Settings.DOWNLOAD_CHOOSE_PAGES);
     }
 
     private static boolean on(BooleanSetting setting) {

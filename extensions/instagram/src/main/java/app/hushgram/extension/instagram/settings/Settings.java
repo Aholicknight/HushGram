@@ -1681,6 +1681,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_feed_cover", FALSE, parent(DOWNLOAD_VIDEOS));
 
     /**
+     * A carousel's menu gets Choose pages after Save all, and the feed's download icon offers it
+     * too: a list of the pages with a box each, saving only the ticked ones in order through Save
+     * all's batch ({@link app.hushgram.extension.instagram.download.CarouselPages}). It waits for the
+     * video or the photo switch, as Save all does. Starts off, so the menu stays as it was.
+     */
+    public static final BooleanSetting DOWNLOAD_CHOOSE_PAGES =
+            new BooleanSetting("hushgram_download_choose_pages", FALSE, parentsAny(DOWNLOAD_VIDEOS, DOWNLOAD_PHOTOS));
+
+    /**
      * A Download icon in the action row of a feed post, just left of Save, so a tap saves the post
      * without opening its menu (#97). It uses the same save as the menu's Download, and a carousel asks
      * for this page or all of them ({@link app.hushgram.extension.instagram.download.FeedDownloadButton}).

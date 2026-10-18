@@ -86,7 +86,7 @@ class DownloadVideoHookTest {
     @Test
     fun theHooksAreInTheExtension() {
         for (hook in listOf(OFFER_VIDEO, SAVE_VIDEO, ALLOW_VIDEO, OFFER_ALL, SAVE_ALL, ALL_OPTION, OWN_POST, OFFER_PLAYER, PLAYER_OPTION, PLAY_VIDEO,
-            OFFER_DETAILS, DETAILS_OPTION, SHOW_DETAILS, OFFER_COVER, COVER_OPTION, SAVE_COVER)) {
+            OFFER_DETAILS, DETAILS_OPTION, SHOW_DETAILS, OFFER_COVER, COVER_OPTION, SAVE_COVER, CHOOSE_OPTION, CHOOSE_PAGES)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -309,8 +309,10 @@ class DownloadVideoHookTest {
         val save = code[8] as Instruction35c
         assertEquals(SAVE_VIDEO, save.referenceText())
         assertEquals("save()'s arguments", listOf(1, 0, 2), listOf(save.registerC, save.registerD, save.registerE))
-        assertEquals("the original code moved", Opcode.CONST_STRING, code[12].opcode)
-        for (branch in listOf(2, 10)) assertEquals("the branch at $branch", 12, code.target(branch))
+        assertEquals("any other option goes on to the Choose pages check", CHOOSE_OPTION, code[12].referenceText())
+        assertEquals("the branch at 2", 12, code.target(2))
+        assertEquals("the original code moved", Opcode.CONST_STRING, code[22].opcode)
+        assertEquals("a save that didn't start, to the original code", 22, code.target(10))
     }
 
     /** The separate batch action never changes the enum's native constants or Download's route. */
@@ -429,6 +431,28 @@ class DownloadVideoHookTest {
         assertEquals("the cover tap stops native dispatch", Opcode.RETURN_VOID, menu[43].opcode)
         for (branch in listOf(35, 36)) assertEquals("native options reach current-page handling", 44, menu.target(branch))
         assertEquals(DOWNLOAD, menu[45].referenceText())
+    }
+
+    /**
+     * Choose pages, which offerAll() adds after Save all, has a tap of its own: an option that
+     * isn't Download goes on to it, and choosePages() gets the post and the activity. Every other
+     * option goes on to Instagram's own handling, as before.
+     */
+    @Test
+    fun choosePagesHasItsOwnTap() {
+        val context = PatchContexts.of(classes())
+        context.offerDownloadOnEveryVideo()
+        val menu = context.method(helper, "A09").code()
+        assertEquals("not Download, on to Choose pages", 56, menu.target(46))
+        assertEquals(CHOOSE_OPTION, menu[56].referenceText())
+        assertEquals("the getter that reads the post", "$helper->A01($helper)$MEDIA", menu[61].referenceText())
+        assertEquals("$helper->activity:$activity", menu[63].referenceText())
+        val choose = menu[64] as Instruction35c
+        assertEquals(CHOOSE_PAGES, choose.referenceText())
+        assertEquals("choosePages()'s arguments", listOf(1, 2), listOf(choose.registerC, choose.registerD))
+        assertEquals("the Choose pages tap stops native dispatch", Opcode.RETURN_VOID, menu[65].opcode)
+        for (branch in listOf(54, 58, 59)) assertEquals("everything else reaches Instagram's own handling", 66, menu.target(branch))
+        assertEquals(1, menu.count { it.referenceText() == CHOOSE_PAGES })
     }
 
     /** Unknown enum initialization and ambiguous or branching entry anchors cannot write half a patch. */
@@ -756,6 +780,7 @@ class DownloadVideoHookTest {
         assertEquals("$label: one player tap", 1, handled.count { it.referenceText() == PLAY_VIDEO })
         assertEquals("$label: one Details tap", 1, handled.count { it.referenceText() == SHOW_DETAILS })
         assertEquals("$label: one Download cover tap", 1, handled.count { it.referenceText() == SAVE_COVER })
+        assertEquals("$label: one Choose pages tap", 1, handled.count { it.referenceText() == CHOOSE_PAGES })
         val constructor = context.method(INSTAGRAM_MEDIA, "saveAllOption").code().single { it.opcode == Opcode.INVOKE_DIRECT }
         assertEquals("$label: direct native construction", "$OPTION-><init>(Ljava/lang/String;II)V", constructor.referenceText())
         assertEquals("$label: the native option class was preserved", classes.single { it.type == OPTION }.methods.map { it.code().map { instruction -> instruction.referenceText() } },

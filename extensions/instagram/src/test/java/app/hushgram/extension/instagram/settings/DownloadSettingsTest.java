@@ -81,6 +81,7 @@ public class DownloadSettingsTest {
         Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
+        Settings.DOWNLOAD_CHOOSE_PAGES.resetToDefault();
         Settings.FEED_DOWNLOAD_BUTTON.resetToDefault();
         Settings.FEED_DOWNLOAD_ALL_PAGES.resetToDefault();
         Settings.REEL_DOWNLOAD_BUTTON.resetToDefault();
@@ -373,6 +374,42 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.DOWNLOAD_FEED_COVER.key));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_FEED_COVER.key));
+        }
+    }
+
+    /**
+     * Choose carousel pages sits right under Details, with the feed menu's other rows. It starts
+     * off, waits for Download feed videos or Download feed photos, and goes in a settings file. A
+     * build with only reel downloads has no feed menu for it, so no row.
+     */
+    @Test
+    public void chooseCarouselPagesSitsUnderDetailsAndWaitsForAFeedSwitch() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            int choose = indexOfKey(rows, Settings.DOWNLOAD_CHOOSE_PAGES.key);
+            assertEquals(indexOfKey(rows, Settings.POST_DETAILS.key) + 1, choose);
+            SwitchPreference row = (SwitchPreference) rows.get(choose);
+            assertEquals("Choose carousel pages", String.valueOf(row.getTitle()));
+            assertFalse("Choose carousel pages starts off", row.isChecked());
+            assertFalse("it waits for a feed download switch", row.isEnabled());
+            SwitchPreference photos = (SwitchPreference) rows.get(indexOfKey(rows, Settings.DOWNLOAD_PHOTOS.key));
+            photos.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue("the photo switch alone is enough", row.isEnabled());
+            photos.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse(row.isEnabled());
+            SwitchPreference videos = (SwitchPreference) rows.get(indexOfKey(rows, Settings.DOWNLOAD_VIDEOS.key));
+            videos.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue("the video switch alone is enough", row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_CHOOSE_PAGES.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.DOWNLOAD_CHOOSE_PAGES.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_CHOOSE_PAGES.key));
         }
     }
 

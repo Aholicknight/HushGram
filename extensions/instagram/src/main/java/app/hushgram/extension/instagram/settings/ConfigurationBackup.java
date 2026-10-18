@@ -123,6 +123,7 @@ public final class ConfigurationBackup {
             settings.put(Settings.REEL_POST_TIME_AGO.key, Settings.REEL_POST_TIME_AGO);
         }
         if (PatchFamily.VIDEO_DOWNLOAD.inBuild()) settings.put(Settings.DOWNLOAD_FEED_COVER.key, Settings.DOWNLOAD_FEED_COVER);
+        if (PatchFamily.VIDEO_DOWNLOAD.inBuild()) settings.put(Settings.DOWNLOAD_CHOOSE_PAGES.key, Settings.DOWNLOAD_CHOOSE_PAGES);
         if (PatchFamily.VIDEO_DOWNLOAD.inBuild()) {
             settings.put(Settings.FEED_DOWNLOAD_BUTTON.key, Settings.FEED_DOWNLOAD_BUTTON);
             settings.put(Settings.FEED_DOWNLOAD_ALL_PAGES.key, Settings.FEED_DOWNLOAD_ALL_PAGES);

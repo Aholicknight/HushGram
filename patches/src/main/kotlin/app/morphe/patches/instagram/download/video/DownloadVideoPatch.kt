@@ -78,6 +78,8 @@ internal const val PLAY_VIDEO = "$VIDEO_DOWNLOAD->play(Ljava/lang/Object;Ljava/l
 internal const val OFFER_COVER = "$VIDEO_DOWNLOAD->offerCover(Ljava/lang/Object;Ljava/util/ArrayList;)V"
 internal const val COVER_OPTION = "$VIDEO_DOWNLOAD->coverOption()Ljava/lang/Object;"
 internal const val SAVE_COVER = "$VIDEO_DOWNLOAD->saveCover(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
+internal const val CHOOSE_OPTION = "$VIDEO_DOWNLOAD->chooseOption()Ljava/lang/Object;"
+internal const val CHOOSE_PAGES = "$VIDEO_DOWNLOAD->choosePages(Ljava/lang/Object;Landroid/app/Activity;)V"
 
 private const val POST_INFO = "$EXTENSION_PACKAGE/download/PostInfo;"
 internal const val OFFER_DETAILS = "$POST_INFO->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V"
@@ -143,7 +145,9 @@ private const val CAROUSEL_FIELD = "carousel_media"
  * offered right after it and made with its own option, which the handler hands to the extension
  * with the post and its feed state. A tap saves the still picture a video shows before it plays,
  * as Download cover on a reel does. Open in another player is one more row of that kind, offered
- * after it, and Details, with its own switch, comes last.
+ * after it, and Details, with its own switch, comes last. Choose pages, with its own switch, is
+ * offered by the extension with Save all, and its tap is checked after the current page's Download,
+ * so the checks before it keep their places; it hands the post and the activity over as Save all does.
  *
  * Hold to download, with its own switch, hands every touch on a feed post's media frame and on a
  * reel to the extension first ([addHoldToDownload]), which saves through the same Download when two
@@ -441,7 +445,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
             :current
             move-object/from16 v0, p1
             sget-object v1, $DOWNLOAD
-            if-ne v0, v1, :handle
+            if-ne v0, v1, :choose
             move-object/from16 v0, p0
             invoke-static { v0 }, $type->${media.name}($type)$MEDIA
             move-result-object v1
@@ -450,6 +454,17 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
             invoke-static { v1, v0, v2 }, $SAVE_VIDEO
             move-result v0
             if-eqz v0, :handle
+            return-void
+            :choose
+            invoke-static {}, $CHOOSE_OPTION
+            move-result-object v1
+            if-eqz v1, :handle
+            if-ne v0, v1, :handle
+            move-object/from16 v0, p0
+            invoke-static { v0 }, $type->${media.name}($type)$MEDIA
+            move-result-object v1
+            iget-object v2, v0, $type->${activity.name}:$FRAGMENT_ACTIVITY
+            invoke-static { v1, v2 }, $CHOOSE_PAGES
             return-void
         """,
         ExternalLabel("handle", menu.getInstruction(0)),
