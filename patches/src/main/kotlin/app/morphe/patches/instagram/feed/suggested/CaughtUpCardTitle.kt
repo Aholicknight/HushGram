@@ -116,6 +116,7 @@ internal class CaughtUpCardTitle(
                 stub.definingClass, stub.name, stub.parameters, stub.returnType, stub.accessFlags,
                 stub.annotations, stub.hiddenApiRestrictions, ImmutableMethodImplementation(3, emptyList(), null, null),
             ).toMutable().apply {
+                // Answers an Object: the open section, or null when the card has none.
                 addInstructionsWithLabels(
                     0,
                     """
