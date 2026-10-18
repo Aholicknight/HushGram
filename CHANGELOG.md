@@ -12,7 +12,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
-* **Instagram - HushGram settings:** Importing a settings file, or undoing one, shows Restart now when it changes a choice that needs a restart. Before, only the message said so and nothing offered the restart.
+* **Instagram - HushGram settings:** Importing a settings file, or undoing one, shows Restart now when a choice needs a restart, and the message asks for one only while it's owed. Before, nothing offered the restart.
 
 * **Instagram - Download any reel:** Download cover saved a small copy, 360 pixels wide, since Instagram stopped sending larger ones. When the cover is the reel's first frame, it's taken from the video now, at the video's full size. Reported in #214.
 

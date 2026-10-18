@@ -3174,12 +3174,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     String message = undo ? result.skipped == 0 ? L10n.t("Settings restored.")
                             : L10n.f("Restored %1$d settings. Kept %2$d newer choices.", result.applied, result.skipped)
                             : L10n.f("Imported %1$d settings. Skipped %2$d that this version doesn't know.", result.applied, result.skipped);
-                    if (result.restart) message += " " + L10n.t("Restart Instagram to apply these choices.");
-                    showImportFeedback(message);
                     // A file or an Undo owes the same restart as flipping each row by hand, so Restart now
-                    // shows for it too, and an Undo back to what's running takes it away again.
+                    // shows for it too, and an Undo back to what's running takes it away again. The
+                    // receipt asks for a restart only while one is owed, not for every restart choice
+                    // the file touched.
                     Utils.runOnMainThread(() -> {
-                        for (var changed : result.before.entrySet()) noteRestartPending(changed.getKey(), changed.getValue());
+                        boolean owed = false;
+                        for (var changed : result.before.entrySet()) owed |= noteRestartPending(changed.getKey(), changed.getValue());
+                        showImportFeedback(owed ? message + " " + L10n.t("Restart Instagram to apply these choices.") : message);
                     });
                 }
             } catch (Setting.BatchFailed failure) {

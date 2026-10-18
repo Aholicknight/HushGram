@@ -202,11 +202,15 @@ public class ConfigurationDocumentsTest {
             assertEquals(!running, Settings.DISABLE_ANALYTICS.savedValue());
             assertTrue(AbstractPreferenceFragment.restartPending.contains(Settings.DISABLE_ANALYTICS.key));
             assertTrue(RestartNow.owed());
+            assertTrue(page.findPreference("hushgram_import_configuration").getSummary().toString()
+                    .endsWith("Restart Instagram to apply these choices."));
             Preference undo = page.findPreference("hushgram_undo_configuration");
             undo.getOnPreferenceClickListener().onPreferenceClick(undo);
             finish();
             assertEquals(running, Settings.DISABLE_ANALYTICS.savedValue());
             assertFalse(RestartNow.owed());
+            assertEquals("back on what's running, the receipt asks for no restart", "Settings restored.",
+                    page.findPreference("hushgram_import_configuration").getSummary().toString());
         } finally {
             Settings.DISABLE_ANALYTICS.resetToDefault();
         }
