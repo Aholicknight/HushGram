@@ -40,6 +40,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Blur the bars around Reels:** The strip under the tab bar on Reels now shows the reel blurred instead of black, under the floating glass pill and on Instagram's own tab bar. Home and the other tabs keep their usual bar. Asked for in #197.
 
+* **Instagram - Full screen Reels and Home:** New `Bars to hide` choice, right under Full screen Reels. Full screen can hide both bars as before, or only the status bar at the top, or only the navigation bar at the bottom. Asked for in #231.
+
 * **Instagram - Download any video:** New `Convert to keep the full size` switch, under Save videos other apps can open. A full size reel or story Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Reported in #236.
 
 * **Instagram:** The diagnostic report now lists every card type the stories viewer checks, ads included, and how often Instagram asked to show the Music for you card. From #111 and #154.

@@ -233,7 +233,35 @@ public final class FullScreenBars {
 
     /** [now]'s flags without the immersive ones HushGram added to [before]; the rest stay as they are. */
     static int withoutAdded(int now, int before) {
-        return now & ~(IMMERSIVE_FLAGS & ~before);
+        return withoutAdded(now, before, IMMERSIVE_FLAGS);
+    }
+
+    /** [now]'s flags without those of [added] that [before] didn't have. */
+    static int withoutAdded(int now, int before, int added) {
+        return now & ~(added & ~before);
+    }
+
+    /** The bars the Bars to hide choice picks, both when it reads nothing (#231). */
+    static HiddenBars chosenBars() {
+        HiddenBars bars = Settings.FULL_SCREEN_HIDES.get();
+        return bars == null ? HiddenBars.BOTH : bars;
+    }
+
+    /** The immersive flags that hide [bars] on Android 9 and 10. */
+    @SuppressWarnings("deprecation")
+    static int immersiveFlags(HiddenBars bars) {
+        int flags = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+        if (bars.status()) flags |= View.SYSTEM_UI_FLAG_FULLSCREEN;
+        if (bars.navigation()) flags |= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+        return flags;
+    }
+
+    /** The bar types a hide asks for on Android 11 and newer: [bars], or every system bar for both. */
+    @RequiresApi(Build.VERSION_CODES.R)
+    static int barsToHide(HiddenBars bars) {
+        if (bars == HiddenBars.STATUS_BAR) return WindowInsets.Type.statusBars();
+        if (bars == HiddenBars.NAVIGATION_BAR) return WindowInsets.Type.navigationBars();
+        return WindowInsets.Type.systemBars();
     }
 
     /**
@@ -254,16 +282,17 @@ public final class FullScreenBars {
      * to the edges. Otherwise, or if anything throws, the height goes through as it came.
      */
     public static int barHeight(int height) {
-        int kept = hiddenBarHeight(height);
+        int kept = hiddenBarHeight(height, true);
         if (height > 0) statusOffered = height;
         statusTaken = taken(height, kept, statusTaken);
         statusAnswer = kept;
         return kept;
     }
 
-    private static int hiddenBarHeight(int height) {
+    /** [height], or 0 while HushGram has the status bar ([status]) or the navigation bar hidden. */
+    private static int hiddenBarHeight(int height, boolean status) {
         try {
-            if (height <= 0 || !anyHidden()) return height;
+            if (height <= 0 || !anyHidden(status)) return height;
             HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_NO_BAR_SPACE);
             return 0;
         } catch (Throwable failure) {
@@ -284,7 +313,7 @@ public final class FullScreenBars {
         int kept = height;
         boolean sheet = false;
         if (height <= 0 || !keyboardUp()) {
-            kept = hiddenBarHeight(height);
+            kept = hiddenBarHeight(height, false);
             try {
                 kept = GlassTabBar.navBarHeight(kept);
                 sheet = GlassTabBar.answeredForASheet();
@@ -465,22 +494,22 @@ public final class FullScreenBars {
      * Called as a session hides the bars. Coming back to Reels from another window (HushGram's
      * settings, a chat), Instagram's copy holds the real heights the pause gave back, and its listener
      * keeps them while the bars are hidden, so the viewer kept a strip at the top and the bottom (#200).
-     * Each height not already 0 goes to 0 here, and the activity's kept listeners hear it.
+     * Each height of a bar in [bars] not already 0 goes to 0 here, and the activity's kept listeners hear it.
      */
-    static void takeHiddenHeights() {
+    static void takeHiddenHeights(HiddenBars bars) {
         try {
             boolean took = false;
-            if (!statusTaken && statusOffered > 0) {
+            if (bars.status() && !statusTaken && statusOffered > 0) {
                 keepStatusBarHeight(0);
                 statusTaken = true;
                 took = true;
             }
-            if (!navTaken && navOffered > 0) {
+            if (bars.navigation() && !navTaken && navOffered > 0) {
                 keepNavBarHeight(0);
                 navTaken = true;
                 took = true;
             }
-            if (took) heightsKept(0, 0);
+            if (took) heightsKept(statusTaken ? 0 : statusOffered, navTaken ? 0 : navOffered);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "bar heights hidden", failure);
         }
@@ -552,10 +581,13 @@ public final class FullScreenBars {
         return held == null ? new ArrayList<>() : new ArrayList<>(held);
     }
 
-    /** Whether a watched activity has the bars hidden. Main thread, as Instagram's listener is. */
-    static boolean anyHidden() {
+    /**
+     * Whether a watched activity has the status bar ([status]) or the navigation bar hidden. Main
+     * thread, as Instagram's listener is.
+     */
+    static boolean anyHidden(boolean status) {
         for (Session session : sessions.values()) {
-            if (session != null && session.isHidden()) return true;
+            if (session != null && session.hides(status)) return true;
         }
         return false;
     }
@@ -618,6 +650,7 @@ public final class FullScreenBars {
         private long lastCheck;
         private boolean queued;
         private boolean hidden;
+        private HiddenBars bars = HiddenBars.BOTH;
         private int savedUi;
         private int savedBehavior;
         private boolean saved;
@@ -639,6 +672,11 @@ public final class FullScreenBars {
 
         boolean isHidden() {
             return hidden;
+        }
+
+        /** Whether this activity has the status bar ([status]) or the navigation bar hidden. */
+        boolean hides(boolean status) {
+            return hidden && (status ? bars.status() : bars.navigation());
         }
 
         /** Whether a look is waiting on the main thread for a quiet moment after the last frame, for tests. */
@@ -697,7 +735,8 @@ public final class FullScreenBars {
                 if (found == null || !Utils.settingsReady() || (!hidden && !eitherOn())) return;
                 View decor = found.getWindow().getDecorView();
                 boolean want = wanted(screenOf(decor));
-                if (want && !hidden) hide(found.getWindow(), decor);
+                // A Bars to hide choice changed while hidden takes over at the next look.
+                if (want && (!hidden || bars != chosenBars())) hide(found.getWindow(), decor);
                 else if (!want && hidden) show();
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "check", failure);
@@ -706,20 +745,25 @@ public final class FullScreenBars {
 
         @SuppressWarnings("deprecation")
         private void hide(Window window, View decor) {
+            HiddenBars chosen = chosenBars();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 WindowInsetsController controller = window.getInsetsController();
                 if (controller == null) return;
                 if (!saved) savedBehavior = controller.getSystemBarsBehavior();
                 controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-                controller.hide(WindowInsets.Type.systemBars());
+                // A bar the earlier choice hid comes back before the new choice hides its own.
+                if (saved && bars != chosen) controller.show(barsToShow());
+                controller.hide(barsToHide(chosen));
             } else {
                 int current = decor.getSystemUiVisibility();
                 if (!saved) savedUi = current;
-                decor.setSystemUiVisibility(current | IMMERSIVE_FLAGS);
+                else current = withoutAdded(current, savedUi, immersiveFlags(bars));
+                decor.setSystemUiVisibility(current | immersiveFlags(chosen));
             }
+            bars = chosen;
             saved = true;
             hidden = true;
-            takeHiddenHeights();
+            takeHiddenHeights(chosen);
             HookStatus.invoked(FamilyNames.FULL_SCREEN_BARS);
             HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_HID);
         }
@@ -740,7 +784,7 @@ public final class FullScreenBars {
                     controller.setSystemBarsBehavior(savedBehavior);
                 } else {
                     View decor = window.getDecorView();
-                    decor.setSystemUiVisibility(withoutAdded(decor.getSystemUiVisibility(), savedUi));
+                    decor.setSystemUiVisibility(withoutAdded(decor.getSystemUiVisibility(), savedUi, immersiveFlags(bars)));
                 }
                 HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_SHOWED);
             } catch (Throwable failure) {

@@ -116,6 +116,7 @@ import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.reels.BurnInMode;
 import app.hushgram.extension.instagram.reels.BurnInWait;
 import app.hushgram.extension.instagram.reels.CaptionWordReels;
+import app.hushgram.extension.instagram.reels.HiddenBars;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.StartTab;
 import app.hushgram.extension.instagram.reels.TabOrder;
@@ -934,6 +935,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.FULL_SCREEN_REELS, L10n.t("Full screen Reels"),
                     L10n.t("Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to "
                             + "bring them back for a moment. Back and the keyboard work as usual.")));
+            reels.add(hiddenBarsRow(context));
         }
         if (build.contains(PatchFamily.KEEP_REEL_SPEED)) {
             reels.add(toggle(context, Settings.KEEP_REEL_SPEED, L10n.t("Keep the reel speed"),
@@ -1856,6 +1858,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
                             || Settings.REEL_POST_TIME_AGO.key.equals(key));
                     belongs |= family == PatchFamily.FRIENDSHIP_STATUS && Settings.FOLLOW_LABEL_PLACE.key.equals(key);
+                    belongs |= family == PatchFamily.FULL_SCREEN_BARS && Settings.FULL_SCREEN_HIDES.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key)
@@ -5125,6 +5128,44 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 : L10n.t("The chip sits under the posts, followers and following counts.");
     }
 
+    /** Which bars Full screen Reels and Home hide (#231). Its values are the setting's own names. */
+    static HiddenBarsRow hiddenBarsRow(Context context) {
+        HiddenBarsRow row = new HiddenBarsRow(context);
+        row.setKey(Settings.FULL_SCREEN_HIDES.key);
+        row.setTitle(L10n.t("Bars to hide"));
+        row.setDialogTitle(L10n.t("Bars to hide"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        HiddenBars[] choices = HiddenBars.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = hiddenBarsLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.FULL_SCREEN_HIDES.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [bars]. */
+    static String hiddenBarsLabel(HiddenBars bars) {
+        if (bars == HiddenBars.STATUS_BAR) return L10n.t("The status bar only");
+        if (bars == HiddenBars.NAVIGATION_BAR) return L10n.t("The navigation bar only");
+        return L10n.t("Both bars");
+    }
+
+    /** What full screen hides with [bars], for the row's summary. */
+    static String hiddenBarsSummary(HiddenBars bars) {
+        if (bars == HiddenBars.STATUS_BAR) {
+            return L10n.t("Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.");
+        }
+        if (bars == HiddenBars.NAVIGATION_BAR) {
+            return L10n.t("Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.");
+        }
+        return L10n.t("Full screen Reels and Home hide the status bar and the navigation bar.");
+    }
+
     /**
      * The size the story rings are drawn at. Like the playback quality's row, its values are the
      * setting's own names and its summary says what the choice does.
@@ -5242,6 +5283,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryTimeModeRow) preference).showSummary();
         } else if (preference instanceof FollowLabelPlaceRow) {
             ((FollowLabelPlaceRow) preference).showSummary();
+        } else if (preference instanceof HiddenBarsRow) {
+            ((HiddenBarsRow) preference).showSummary();
         } else if (preference instanceof StartTabRow) {
             ((StartTabRow) preference).showSummary();
         } else if (preference instanceof FontRow) {
@@ -5278,6 +5321,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryTimeModeRow) listPreference).showSummary();
         } else if (listPreference instanceof FollowLabelPlaceRow) {
             ((FollowLabelPlaceRow) listPreference).showSummary();
+        } else if (listPreference instanceof HiddenBarsRow) {
+            ((HiddenBarsRow) listPreference).showSummary();
         } else if (listPreference instanceof StartTabRow) {
             ((StartTabRow) listPreference).showSummary();
         } else if (listPreference instanceof FontRow) {
@@ -6892,6 +6937,43 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             setSummary(Settings.FOLLOW_LABEL_PLACE.isAvailable()
                     ? followLabelPlaceSummary(place)
                     : L10n.t("Turn on Show it as a chip to use this choice."));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class HiddenBarsRow extends ListPreference {
+        HiddenBarsRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            HiddenBars bars = HiddenBars.BOTH;
+            for (HiddenBars candidate : HiddenBars.values()) {
+                if (candidate.name().equals(getValue())) bars = candidate;
+            }
+            setSummary(Settings.FULL_SCREEN_HIDES.isAvailable()
+                    ? hiddenBarsSummary(bars)
+                    : L10n.t("Turn on Full screen Reels or Full screen Home to use this choice."));
         }
 
         @Override

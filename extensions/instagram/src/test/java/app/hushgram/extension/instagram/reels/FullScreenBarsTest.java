@@ -61,6 +61,7 @@ public class FullScreenBarsTest {
         FullScreenBars.resetHeightsForTests(null);
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
+        Settings.FULL_SCREEN_HIDES.resetToDefault();
         Settings.GLASS_TAB_BAR.resetToDefault();
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
         FullScreenBars.idForTests(FullScreenBars.VIEWER, VIEWER);
@@ -88,6 +89,7 @@ public class FullScreenBarsTest {
         controller.close();
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
+        Settings.FULL_SCREEN_HIDES.resetToDefault();
         Settings.GLASS_TAB_BAR.resetToDefault();
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
     }
@@ -607,6 +609,100 @@ public class FullScreenBarsTest {
         }
         FullScreenBars.release(activity);
         assertEquals("back after a pause", status | navigation, requestedVisible() & (status | navigation));
+    }
+
+    /**
+     * #231: Bars to hide set to the status bar only hides that bar and keeps the navigation bar, with
+     * its height going through, and the bar comes back when Reels is left.
+     */
+    @Test public void theStatusBarAloneHidesWhenItsChosen() throws Exception {
+        Settings.FULL_SCREEN_HIDES.save(HiddenBars.STATUS_BAR);
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        assertBarsShowing(false, true);
+        assertEquals("the status bar's space stayed", 0, FullScreenBars.barHeight(128));
+        assertEquals("the navigation bar lost its space", 63, FullScreenBars.navBarHeight(63));
+        FullScreenBars.release(activity);
+        assertBarsShowing(true, true);
+    }
+
+    /** #231: the navigation bar only is the mirror, and the status bar keeps its height. */
+    @Test public void theNavigationBarAloneHidesWhenItsChosen() throws Exception {
+        Settings.FULL_SCREEN_HIDES.save(HiddenBars.NAVIGATION_BAR);
+        Settings.FULL_SCREEN_HOME.save(true);
+        select(homeTab);
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        assertBarsShowing(true, false);
+        assertEquals("the status bar lost its space", 128, FullScreenBars.barHeight(128));
+        assertEquals("the navigation bar's space stayed", 0, FullScreenBars.navBarHeight(63));
+        FullScreenBars.release(activity);
+        assertBarsShowing(true, true);
+    }
+
+    /**
+     * #231: a choice changed while the bars are hidden takes over at the next look, and the bar the
+     * earlier choice hid comes back, flags and all, before and after the window asks again.
+     */
+    @Test public void aChoiceChangedWhileHiddenTakesOverAtTheNextLook() throws Exception {
+        View decor = activity.getWindow().getDecorView();
+        decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        Settings.FULL_SCREEN_HIDES.save(HiddenBars.STATUS_BAR);
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        FullScreenBars.Session session = watch();
+        assertBarsShowing(false, true);
+        Settings.FULL_SCREEN_HIDES.save(HiddenBars.NAVIGATION_BAR);
+        session.evaluate();
+        assertTrue(session.isHidden());
+        assertBarsShowing(true, false);
+        assertEquals(128, FullScreenBars.barHeight(128));
+        assertEquals(0, FullScreenBars.navBarHeight(63));
+        session.onWindowFocusChanged(true);
+        assertBarsShowing(true, false);
+        FullScreenBars.release(activity);
+        assertBarsShowing(true, true);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            assertEquals(View.SYSTEM_UI_FLAG_LAYOUT_STABLE, decor.getSystemUiVisibility());
+        }
+    }
+
+    /** #231: the hide takes only the chosen bar's height, and only that one is owed back. */
+    @Test public void theHideTakesOnlyTheChosenBarsHeight() {
+        List<String> told = new ArrayList<>();
+        FullScreenBars.resetHeightsForTests((listener, status, nav) -> told.add(listener + " " + status + " " + nav));
+        FullScreenBars.registeredForTests(true);
+        try {
+            Settings.FULL_SCREEN_HIDES.save(HiddenBars.STATUS_BAR);
+            Settings.FULL_SCREEN_REELS.save(true);
+            FullScreenBars.nowResumed(activity);
+            FullScreenBars.heightsAsked(activity, "reels");
+            heights(75, 135);
+            showViewer(W, H);
+            assertTrue(watch().isHidden());
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals(Arrays.asList("reels 75 135", "reels 0 135"), told);
+            assertArrayEquals(new int[] {75, 0}, FullScreenBars.heightsToGiveBack());
+        } finally {
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
+    /** Whether the window shows the status bar ([status]) and the navigation bar ([navigation]), as far as HushGram asked. */
+    private void assertBarsShowing(boolean status, boolean navigation) throws Exception {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            int flags = activity.getWindow().getDecorView().getSystemUiVisibility();
+            assertEquals("status bar showing", status, (flags & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0);
+            assertEquals("navigation bar showing", navigation, (flags & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0);
+        } else {
+            int visible = requestedVisible();
+            assertEquals("status bar showing", status, (visible & android.view.WindowInsets.Type.statusBars()) != 0);
+            assertEquals("navigation bar showing", navigation,
+                    (visible & android.view.WindowInsets.Type.navigationBars()) != 0);
+        }
     }
 
     /** The bar types the window asks to have showing (Android 13 and newer keep it on the controller). */

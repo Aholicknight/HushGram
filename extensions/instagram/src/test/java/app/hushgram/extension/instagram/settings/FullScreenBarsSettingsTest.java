@@ -37,6 +37,7 @@ public class FullScreenBarsSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
+        Settings.FULL_SCREEN_HIDES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -48,6 +49,7 @@ public class FullScreenBarsSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
+        Settings.FULL_SCREEN_HIDES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -91,5 +93,47 @@ public class FullScreenBarsSettingsTest {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_REELS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_HOME.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_HIDES.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.FULL_SCREEN_HIDES.key));
+    }
+
+    /** #231: Bars to hide sits right under Full screen Reels, starts at both and waits for a switch. */
+    @Test public void barsToHideSitsUnderFullScreenReelsAndStartsAtBoth() throws Exception {
+        open(EnumSet.of(PatchFamily.FULL_SCREEN_BARS));
+        android.preference.Preference reels = page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_REELS.key);
+        android.preference.ListPreference row =
+                (android.preference.ListPreference) page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_HIDES.key);
+        assertNotNull(row);
+        PreferenceGroup group = (PreferenceGroup) reels.getParent();
+        assertSame(group, row.getParent());
+        int at = -1;
+        for (int i = 0; i < group.getPreferenceCount(); i++) {
+            if (group.getPreference(i) == reels) at = i;
+        }
+        assertSame("right under Full screen Reels", row, group.getPreference(at + 1));
+        assertEquals("Bars to hide", row.getTitle().toString());
+        assertArrayEquals(new CharSequence[] {"Both bars", "The status bar only", "The navigation bar only"}, row.getEntries());
+        assertArrayEquals(new CharSequence[] {"BOTH", "STATUS_BAR", "NAVIGATION_BAR"}, row.getEntryValues());
+        assertEquals("BOTH", row.getValue());
+        assertEquals(app.hushgram.extension.instagram.reels.HiddenBars.BOTH, Settings.FULL_SCREEN_HIDES.get());
+        assertFalse(Settings.FULL_SCREEN_HIDES.isAvailable());
+        assertEquals("Turn on Full screen Reels or Full screen Home to use this choice.", row.getSummary().toString());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FULL_SCREEN_HIDES.key));
+    }
+
+    /** #231: with either switch on the row says what each choice hides. */
+    @Test public void barsToHideSaysWhatEachChoiceHides() throws Exception {
+        Settings.FULL_SCREEN_HOME.save(true);
+        open(EnumSet.of(PatchFamily.FULL_SCREEN_BARS));
+        android.preference.ListPreference row =
+                (android.preference.ListPreference) page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_HIDES.key);
+        assertTrue(Settings.FULL_SCREEN_HIDES.isAvailable());
+        assertEquals("Full screen Reels and Home hide the status bar and the navigation bar.", row.getSummary().toString());
+        row.setValue("STATUS_BAR");
+        assertEquals("Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.",
+                row.getSummary().toString());
+        row.setValue("NAVIGATION_BAR");
+        assertEquals("Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.",
+                row.getSummary().toString());
     }
 }

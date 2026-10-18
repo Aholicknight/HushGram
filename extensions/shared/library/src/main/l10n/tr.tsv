@@ -1170,3 +1170,11 @@ Unfollower list cleared.	Takipten çıkanlar listesi temizlendi.
 Couldn't clear the unfollower list. Try again.	Takipten çıkanlar listesi temizlenemedi. Tekrar dene.
 Hide Messages on Home's header	Ana sayfa üstündeki Mesajlar'ı gizle
 Takes Instagram's Messages button off the top of Home, for when Messages is on your tab bar too. Restart Instagram to see the change.	Mesajlar sekme çubuğunda da varsa Instagram'ın Mesajlar düğmesini Ana sayfanın üstünden kaldırır. Değişikliği görmek için Instagram'ı yeniden başlat.
+Bars to hide	Gizlenecek çubuklar
+Both bars	İki çubuk da
+The status bar only	Yalnızca durum çubuğu
+The navigation bar only	Yalnızca gezinme çubuğu
+Full screen Reels and Home hide the status bar and the navigation bar.	Tam ekran Reels ve Tam ekran Ana sayfa, durum çubuğunu ve gezinme çubuğunu gizler.
+Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.	Tam ekran Reels ve Tam ekran Ana sayfa yalnızca üstteki durum çubuğunu gizler. Gezinme çubuğu kalır.
+Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.	Tam ekran Reels ve Tam ekran Ana sayfa yalnızca alttaki gezinme çubuğunu gizler. Durum çubuğu kalır.
+Turn on Full screen Reels or Full screen Home to use this choice.	Bu seçimi kullanmak için Tam ekran Reels veya Tam ekran Ana sayfa seçeneğini açın.
