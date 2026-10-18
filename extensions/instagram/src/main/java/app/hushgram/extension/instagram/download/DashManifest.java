@@ -11,6 +11,7 @@ package app.hushgram.extension.instagram.download;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -343,6 +344,29 @@ final class DashManifest {
         }
 
         Track video = pickCompatibleVideo(tracks, quality);
+        if (video == null) return null;
+
+        Track audio = bestCompatibleAudio(tracks);
+        if (audio == null && hasSound(tracks)) return null;
+        return new Pick(video, audio);
+    }
+
+    /**
+     * The VP9 or AV1 picture a save converts to H.264 for other apps (#236), by the rules of
+     * {@link #pickVideo} among those [convertible] passes, with the sound
+     * {@link #bestCompatibleAudio} gives. Null with no such picture, or with sound but none of it
+     * in a profile other apps open.
+     */
+    static Pick pickToConvert(List<Track> tracks, boolean allowAv1, DownloadQuality quality,
+            Predicate<Track> convertible) {
+        List<Track> pictures = new ArrayList<>();
+        for (Track track : tracks) {
+            if (track.isVideo() && (track.codecs.startsWith("vp09") || track.codecs.startsWith("av01"))
+                    && convertible.test(track)) {
+                pictures.add(track);
+            }
+        }
+        Track video = pickVideo(pictures, allowAv1, quality);
         if (video == null) return null;
 
         Track audio = bestCompatibleAudio(tracks);

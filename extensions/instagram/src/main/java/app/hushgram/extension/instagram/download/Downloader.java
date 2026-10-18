@@ -94,6 +94,13 @@ final class Downloader {
         default void joining() {
         }
 
+        /**
+         * The fetched picture is being converted to H.264, [percent] of it so far, or -1 when its
+         * length isn't known.
+         */
+        default void converting(int percent) {
+        }
+
         /** The finished file is being copied into the gallery. */
         default void saving() {
         }
@@ -141,6 +148,11 @@ final class Downloader {
             @Override
             public void joining() {
                 progress.joining();
+            }
+
+            @Override
+            public void converting(int percent) {
+                progress.converting(percent);
             }
 
             @Override

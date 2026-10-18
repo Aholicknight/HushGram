@@ -1487,6 +1487,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             downloads.addPreference(toggle(context, Settings.DOWNLOAD_COMPATIBLE, L10n.t("Save videos other apps can open"),
                     L10n.t("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves "
                             + "without sound. May lower quality.")));
+            downloads.addPreference(toggle(context, Settings.DOWNLOAD_CONVERT, L10n.t("Convert to keep the full size"),
+                    L10n.t("With Save videos other apps can open on, a full size video Instagram only has as VP9 or AV1 "
+                            + "is converted to H.264 on your phone instead of saved smaller. Slower, and videos over "
+                            + "3 minutes stay smaller.")));
             downloads.addPreference(qualityRow(context));
             downloads.addPreference(folderRow(context));
             downloads.addPreference(fileNameRow(context));
@@ -1874,7 +1878,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || family == PatchFamily.VOICE_MESSAGE)
                             && (Settings.DOWNLOAD_QUALITY.key.equals(key)
                             || Settings.SAVE_FOLDER.key.equals(key) || Settings.FILENAME_TEMPLATE.key.equals(key)
-                            || Settings.DOWNLOAD_COMPATIBLE.key.equals(key));
+                            || Settings.DOWNLOAD_COMPATIBLE.key.equals(key) || Settings.DOWNLOAD_CONVERT.key.equals(key));
                     belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.STORY_DOWNLOAD)
                             && (Settings.DOWNLOAD_SKIP_SAVED.key.equals(key) || CLEAR_DOWNLOAD_HISTORY.equals(key));
                     belongs |= family == PatchFamily.VIDEO_DOWNLOAD && CLEAR_DOWNLOAD_HISTORY.equals(key);

@@ -180,7 +180,8 @@ public class DownloadSettingsTest {
 
     /**
      * Saves other apps can open is a switch every save reads, so it's under Downloads with the
-     * download patch in, right above the quality it keeps within, and starts off.
+     * download patch in, above the quality it keeps within, and starts off. The switch that converts
+     * a VP9 or AV1 full size picture for those saves sits right under it, also off (#236).
      */
     @Test
     public void theCompatibleSwitchSitsAboveTheQuality() {
@@ -192,16 +193,29 @@ public class DownloadSettingsTest {
             Preference row = rows.get(compatible);
             assertTrue(row instanceof SwitchPreference);
             assertFalse(((SwitchPreference) row).isChecked());
-            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_QUALITY.key) - 1, compatible);
             assertEquals("Save videos other apps can open", String.valueOf(row.getTitle()));
             assertEquals("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves "
                     + "without sound. May lower quality.", String.valueOf(row.getSummary()));
+
+            int convert = indexOfKey(rows, Settings.DOWNLOAD_CONVERT.key);
+            assertEquals("the convert switch isn't right under the compatible one", compatible + 1, convert);
+            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_QUALITY.key) - 1, convert);
+            Preference convertRow = rows.get(convert);
+            assertTrue(convertRow instanceof SwitchPreference);
+            assertFalse(((SwitchPreference) convertRow).isChecked());
+            assertEquals("Convert to keep the full size", String.valueOf(convertRow.getTitle()));
+            assertEquals("With Save videos other apps can open on, a full size video Instagram only has as VP9 or AV1 "
+                    + "is converted to H.264 on your phone instead of saved smaller. Slower, and videos over "
+                    + "3 minutes stay smaller.", String.valueOf(convertRow.getSummary()));
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
             assertEquals("a compatible-saves row with no download in the build",
-                    -1, indexOfKey(rowsOf(pageIn(controller)), Settings.DOWNLOAD_COMPATIBLE.key));
+                    -1, indexOfKey(rows, Settings.DOWNLOAD_COMPATIBLE.key));
+            assertEquals("a convert row with no download in the build",
+                    -1, indexOfKey(rows, Settings.DOWNLOAD_CONVERT.key));
         }
     }
 

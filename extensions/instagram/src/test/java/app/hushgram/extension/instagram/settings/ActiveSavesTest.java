@@ -239,8 +239,8 @@ public class ActiveSavesTest {
     }
 
     /**
-     * Joining and saving show on the row as they happen, and the row is changed where it is: a row
-     * rebuilt under a finger would lose the tap on its Cancel.
+     * Converting, joining and saving show on the row as they happen, and the row is changed where it
+     * is: a row rebuilt under a finger would lose the tap on its Cancel.
      */
     @Test public void aSavesPhaseChangesOnItsRowInPlaceAndTheRowGoesWhenItEnds() {
         int id = SavesForTests.begin(RuntimeEnvironment.getApplication(), true);
@@ -248,6 +248,10 @@ public class ActiveSavesTest {
         View row = row(id);
         Button cancel = cancelOf(row);
 
+        SavesForTests.converting(id, 40);
+        ShadowLooper.idleMainLooper();
+        assertSame("the row was rebuilt", cancel, cancelOf(row(id)));
+        assertEquals("Converting to H.264\n40%", summaryOf(row));
         SavesForTests.joining(id);
         ShadowLooper.idleMainLooper();
         assertSame("the row was rebuilt", cancel, cancelOf(row(id)));

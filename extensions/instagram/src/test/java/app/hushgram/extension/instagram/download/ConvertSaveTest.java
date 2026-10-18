@@ -1,0 +1,251 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.hushgram.extension.instagram.download;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import android.content.Context;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
+import org.robolectric.util.ReflectionHelpers;
+
+import java.net.InetAddress;
+import java.util.List;
+
+import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
+import app.hushgram.extension.shared.settings.preference.LogBufferManager;
+
+/**
+ * Convert to keep the full size (#236). With saves other apps can open on, a reel whose full size
+ * is only VP9 or AV1 had its smaller H.264 saved. With this switch on too, the full size picture is
+ * taken and converted to H.264, when the phone can convert it and it suits the quality better than
+ * what the save would keep. Every save here starts for real and is refused before any socket opens,
+ * and the report says what it chose and what it falls back to.
+ */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = 30)
+public class ConvertSaveTest {
+    @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
+
+    private Context context;
+    private Boolean av1Before;
+
+    private static final String HD = "https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/clip_720p.mp4?oh=1&oe=2";
+    private static final String SD = "https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/clip_360p.mp4?oh=1&oe=2";
+    private static final String FULL = "https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/clip_1080p.mp4?oh=1&oe=2";
+
+    private static final String AV1 = "av01.0.08m.08.0.111.01.01.01.0";
+
+    /** The reel in #236: its 1080p only as AV1, its H.264 at 720p, with xHE-AAC and AAC-LC sound. */
+    private static final String MANIFEST = manifest(
+            representation(AV1, 1080, 1920, 1_525_000, "1080p", "v1080")
+                    + representation("avc1.64001f", 720, 1280, 1_200_000, "720p", "v720"),
+            sound("mp4a.40.42", 84_000, "xhe") + sound("mp4a.40.2", 64_000, "lc"));
+
+    /** AV1 pictures only, as stories often are. */
+    private static final String AV1_ONLY = manifest(
+            representation(AV1, 1080, 1920, 1_525_000, "1080p", "v1080"),
+            sound("mp4a.40.2", 64_000, "lc"));
+
+    private static final String FULL_AV1 = "video/mp4 " + AV1 + " 1080x1920 1525kbps 1080p + audio/mp4 mp4a.40.2 0x0 64kbps";
+    private static final String H264 = "video/mp4 avc1.64001f 720x1280 1200kbps 720p + audio/mp4 mp4a.40.2 0x0 64kbps";
+    private static final String CONVERTED = ", converted to H.264 for other apps";
+    private static final String KEPT = ", kept to files other apps can open";
+
+    private static String manifest(String videos, String sounds) {
+        return "<MPD><Period><AdaptationSet mimeType=\"video/mp4\">" + videos
+                + "</AdaptationSet><AdaptationSet mimeType=\"audio/mp4\">" + sounds
+                + "</AdaptationSet></Period></MPD>";
+    }
+
+    private static String representation(String codecs, int width, int height, long bandwidth, String label, String name) {
+        return "<Representation codecs=\"" + codecs + "\" width=\"" + width + "\" height=\"" + height
+                + "\" bandwidth=\"" + bandwidth + "\" FBQualityLabel=\"" + label + "\">"
+                + "<BaseURL>https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/" + name + ".mp4?oh=1&amp;oe=2</BaseURL>"
+                + "</Representation>";
+    }
+
+    private static String sound(String codecs, long bandwidth, String name) {
+        return "<Representation codecs=\"" + codecs + "\" bandwidth=\"" + bandwidth + "\">"
+                + "<BaseURL>https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/" + name + ".mp4?oh=1&amp;oe=2</BaseURL>"
+                + "</Representation>";
+    }
+
+    @Before
+    public void setUp() {
+        context = RuntimeEnvironment.getApplication();
+        LogBufferManager.clearLogBuffer();
+        // Every Meta name answers a private address, so each save is refused before it connects.
+        MediaSave.policyForTests = new MediaUrlPolicy(host -> new InetAddress[] { InetAddress.getByName("10.9.8.7") });
+        av1Before = ReflectionHelpers.getStaticField(DashSave.class, "canWriteAv1");
+        ReflectionHelpers.setStaticField(DashSave.class, "canWriteAv1", Boolean.TRUE);
+        // Robolectric has no codecs. The S22 decodes VP9 and AV1 and encodes H.264 at 1080p.
+        VideoConvert.convertibleForTests = track -> true;
+    }
+
+    @After
+    public void tearDown() throws InterruptedException {
+        waitForSaves();
+        VideoConvert.convertibleForTests = null;
+        ReflectionHelpers.setStaticField(DashSave.class, "canWriteAv1", av1Before);
+        MediaSave.policyForTests = null;
+        Settings.DOWNLOAD_COMPATIBLE.resetToDefault();
+        Settings.DOWNLOAD_CONVERT.resetToDefault();
+        Settings.DOWNLOAD_QUALITY.resetToDefault();
+        PauseForTests.resume();
+        LogBufferManager.clearLogBuffer();
+    }
+
+    private static void waitForSaves() throws InterruptedException {
+        long deadline = System.nanoTime() + 20_000_000_000L;
+        while (MediaSave.savesInFlight() > 0) {
+            assertTrue("a save never finished", System.nanoTime() < deadline);
+            Thread.sleep(10);
+        }
+    }
+
+    /** The report after one video save of [manifest] beside the single files [files]. */
+    private String save(boolean compatible, boolean convert, String manifest, String... files)
+            throws InterruptedException {
+        Settings.DOWNLOAD_COMPATIBLE.save(compatible);
+        Settings.DOWNLOAD_CONVERT.save(convert);
+        LogBufferManager.clearLogBuffer();
+        assertTrue(MediaSave.saveVideo(context, SavesForTests.renditions(files), manifest, null));
+        waitForSaves();
+        return LogBufferManager.buildExportText();
+    }
+
+    @Test
+    public void theSwitchStartsOff() {
+        assertFalse(Settings.DOWNLOAD_CONVERT.get());
+        Settings.DOWNLOAD_COMPATIBLE.save(true);
+        assertFalse(MediaSave.convertSaves());
+    }
+
+    /** The reel in #236: the AV1 1080p is converted, and if that fails the H.264 720p is saved instead. */
+    @Test
+    public void theFullSizeAv1IsConvertedOverTheSmallerH264() throws Exception {
+        String report = save(true, true, MANIFEST, SD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: " + FULL_AV1
+                + ", instead of mp4 (360p)" + CONVERTED + "\n"));
+        assertFalse(report, report.contains(KEPT));
+        assertFalse(report, report.contains("in a format other apps can open"));
+        // Every save here is refused before it connects, so the fallback shows in the report.
+        assertTrue(report, report.contains("saving the tracks as they are: " + H264));
+    }
+
+    /** Details shows the picture a Download saves: the full size it converts. */
+    @Test
+    public void detailsShowsThePictureItConverts() {
+        Settings.DOWNLOAD_COMPATIBLE.save(true);
+        Settings.DOWNLOAD_CONVERT.save(true);
+        MediaSave.Planned planned = MediaSave.plannedVideo(SavesForTests.renditions(SD), MANIFEST);
+        assertEquals(1080, planned.width());
+        assertEquals(AV1, planned.joined.codecs);
+
+        Settings.DOWNLOAD_CONVERT.save(false);
+        planned = MediaSave.plannedVideo(SavesForTests.renditions(SD), MANIFEST);
+        assertEquals(720, planned.width());
+    }
+
+    /** Off, a phone that can't convert, or saves other apps can open off: nothing is converted. */
+    @Test
+    public void nothingIsConvertedWithoutBothSwitchesAndCodecs() throws Exception {
+        String report = save(true, false, MANIFEST, SD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: " + H264));
+        assertTrue(report, report.contains(KEPT));
+        assertFalse(report, report.contains(CONVERTED));
+
+        report = save(false, true, MANIFEST, SD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: " + FULL_AV1
+                + ", instead of mp4 (360p)\n"));
+        assertFalse(report, report.contains(CONVERTED));
+
+        VideoConvert.convertibleForTests = track -> false;
+        report = save(true, true, MANIFEST, SD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: " + H264));
+        assertFalse(report, report.contains(CONVERTED));
+    }
+
+    /** At 720p the H.264 720p already fits, so there's nothing to gain from a conversion. */
+    @Test
+    public void belowTheBestQualityTheH264ThatFitsIsKept() throws Exception {
+        Settings.DOWNLOAD_QUALITY.save(DownloadQuality.P720);
+        String report = save(true, true, MANIFEST, SD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: " + H264));
+        assertFalse(report, report.contains(CONVERTED));
+    }
+
+    /**
+     * With no H.264 picture, the conversion has to beat the single file. A 720p file is beaten and
+     * saved when the conversion fails. A 1080p file ties, and the single file wins, one fetch and no
+     * work on the phone. With no single file at all, the AV1 is converted, and joined as it is if that fails.
+     */
+    @Test
+    public void withNoH264TheConversionHasToBeatTheSingleFile() throws Exception {
+        String report = save(true, true, AV1_ONLY, HD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: " + FULL_AV1
+                + ", instead of mp4 (720p)" + CONVERTED + "\n"));
+        assertTrue(report, report.contains(", saving mp4 (720p)"));
+        assertFalse(report, report.contains("saving the tracks as they are"));
+
+        report = save(true, true, AV1_ONLY, FULL);
+        assertFalse(report, report.contains(CONVERTED));
+        assertTrue(report, report.contains("has no H.264 video with AAC-LC or HE-AAC sound, saving the single file instead"));
+
+        report = save(true, true, AV1_ONLY);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: " + FULL_AV1
+                + ", instead of nothing" + CONVERTED + "\n"));
+        assertFalse(report, report.contains("in a format other apps can open"));
+        // Its fallback is the same tracks, so a failed save doesn't fetch them again.
+        assertFalse(report, report.contains("saving the tracks as they are"));
+    }
+
+    /** A conversion keeps the sound as it is, so a picture whose only sound is xHE-AAC isn't converted. */
+    @Test
+    public void aPictureWithOnlyXheAacSoundIsntConverted() throws Exception {
+        String xheOnly = manifest(representation(AV1, 1080, 1920, 1_525_000, "1080p", "v1080"),
+                sound("mp4a.40.42", 84_000, "xhe"));
+        String report = save(true, true, xheOnly);
+        assertFalse(report, report.contains(CONVERTED));
+        assertTrue(report, report.contains("nothing of the video is in a format other apps can open"));
+
+        assertNull(DashManifest.pickToConvert(DashManifest.parse(xheOnly), true, DownloadQuality.BEST, track -> true));
+        List<DashManifest.Track> tracks = DashManifest.parse(MANIFEST);
+        DashManifest.Pick pick = DashManifest.pickToConvert(tracks, true, DownloadQuality.BEST, track -> true);
+        assertEquals(AV1, pick.video.codecs);
+        assertEquals("mp4a.40.2", pick.audio.codecs);
+        assertNull("an H.264 picture was offered for conversion",
+                DashManifest.pickToConvert(DashManifest.parse(manifest(
+                        representation("avc1.64001f", 720, 1280, 1_200_000, "720p", "v720"),
+                        sound("mp4a.40.2", 64_000, "lc"))), true, DownloadQuality.BEST, track -> true));
+    }
+
+    /** Before the settings can be read, and while paused, nothing is converted. */
+    @Test
+    public void beforeTheSettingsAreReadyOrPausedNothingIsConverted() {
+        Settings.DOWNLOAD_COMPATIBLE.save(true);
+        Settings.DOWNLOAD_CONVERT.save(true);
+        assertTrue(MediaSave.convertSaves());
+        SettingsContextRule.withoutContext(() -> assertFalse(MediaSave.convertSaves()));
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(MediaSave.convertSaves());
+        PauseForTests.resume();
+        assertTrue(MediaSave.convertSaves());
+    }
+}
