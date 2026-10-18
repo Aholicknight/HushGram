@@ -134,6 +134,8 @@ internal data class MarkReadTargets(
     val bridges: List<ChatBridge>,
     /** The account id bridge, which "Lock your messages" may have written already. */
     val accountId: AccountIdBridge,
+    /** The chat interface Instagram's handler for marking a chat read picks its message from. */
+    val chat: String,
 )
 
 private fun refuse(why: String): Nothing = throw PatchException("$THREAD_SEEN_PATCH: $why")
@@ -302,7 +304,7 @@ internal fun BytecodePatchContext.findMarkRead(seen: ThreadSeenTargets): MarkRea
         """,
     ))
     return MarkReadTargets(markAsRead, builder, rows, offerAt, offerRegister, action, chosen, thread, key, session,
-        tapAt, tapRegisters, together, togetherAt, bridges, accountId)
+        tapAt, tapRegisters, together, togetherAt, bridges, accountId, chat)
 }
 
 private const val JAVA_OBJECT_TYPE = "Ljava/lang/Object;"

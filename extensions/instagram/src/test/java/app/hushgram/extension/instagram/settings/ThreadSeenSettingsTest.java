@@ -113,7 +113,9 @@ public class ThreadSeenSettingsTest {
         assertNotNull(row);
         assertEquals("Keep chats unread here", row.getTitle().toString());
         assertEquals("A chat you open stays unread in your messages on this phone until you long press it and tap "
-                + "Mark as read. A newer message in it stays unread too.", row.getSummary().toString());
+                + "Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read "
+                + "on this phone until a newer message comes in, even after your messages refresh.",
+                row.getSummary().toString());
         PreferenceGroup messages = row.getParent();
         assertEquals("one level below the main page, beside its switch", "Messages", messages.getTitle().toString());
         String[] keys = new String[messages.getPreferenceCount()];

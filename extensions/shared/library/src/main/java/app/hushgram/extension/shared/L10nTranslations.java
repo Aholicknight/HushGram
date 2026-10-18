@@ -142,8 +142,8 @@ public final class L10nTranslations {
                 "5 Minuten");
         table.put("A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.",
                 "Eine PIN, die du hier festlegst, entsperrt deine Nachrichten statt der Bildschirmsperre. Sie l\u00e4sst sich nicht wiederherstellen, nur durch L\u00f6schen des Instagram-Speichers entfernen.");
-        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.",
-                "Ein Chat, den du \u00f6ffnest, bleibt auf diesem Handy in deinen Nachrichten ungelesen, bis du ihn gedr\u00fcckt h\u00e4ltst und auf Als gelesen markieren tippst. Eine neuere Nachricht darin bleibt ebenfalls ungelesen.");
+        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.",
+                "Ein Chat, den du \u00f6ffnest, bleibt auf diesem Handy in deinen Nachrichten ungelesen, bis du ihn gedr\u00fcckt h\u00e4ltst und auf Als gelesen markieren tippst. Eine neuere Nachricht darin bleibt ebenfalls ungelesen. Ausgeschaltet bleibt ein Chat, den du \u00f6ffnest, auf diesem Handy gelesen, bis eine neuere Nachricht kommt, auch wenn sich deine Nachrichten aktualisieren.");
         table.put("A diagnostic report is already being saved.",
                 "Ein Diagnosebericht wird bereits gespeichert.");
         table.put("A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.",
@@ -2455,8 +2455,8 @@ public final class L10nTranslations {
                 "5 minutos");
         table.put("A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.",
                 "Un PIN que pongas aqu\u00ed desbloquea tus mensajes en lugar del bloqueo de pantalla. No se puede recuperar, solo se quita borrando el almacenamiento de Instagram.");
-        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.",
-                "Un chat que abres sigue sin leer en tus mensajes en este tel\u00e9fono hasta que lo mantienes presionado y tocas Marcar como le\u00eddo. Un mensaje m\u00e1s nuevo en \u00e9l tambi\u00e9n sigue sin leer.");
+        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.",
+                "Un chat que abres sigue sin leer en tus mensajes en este tel\u00e9fono hasta que lo mantienes presionado y tocas Marcar como le\u00eddo. Un mensaje m\u00e1s nuevo en \u00e9l tambi\u00e9n sigue sin leer. Desactivado, un chat que abres sigue le\u00eddo en este tel\u00e9fono hasta que llega un mensaje m\u00e1s nuevo, aunque tus mensajes se actualicen.");
         table.put("A diagnostic report is already being saved.",
                 "Ya se est\u00e1 guardando un informe de diagn\u00f3stico.");
         table.put("A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.",
@@ -4768,8 +4768,8 @@ public final class L10nTranslations {
                 "5 menit");
         table.put("A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.",
                 "PIN yang kamu atur di sini membuka kunci pesanmu, menggantikan kunci layar. PIN tidak bisa dipulihkan, hanya bisa dihapus dengan menghapus penyimpanan Instagram.");
-        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.",
-                "Chat yang Anda buka tetap belum dibaca di pesan Anda di ponsel ini sampai Anda menekan lama chat itu lalu mengetuk Tandai sudah dibaca. Pesan yang lebih baru di dalamnya juga tetap belum dibaca.");
+        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.",
+                "Chat yang Anda buka tetap belum dibaca di pesan Anda di ponsel ini sampai Anda menekan lama chat itu lalu mengetuk Tandai sudah dibaca. Pesan yang lebih baru di dalamnya juga tetap belum dibaca. Jika nonaktif, chat yang Anda buka tetap terbaca di ponsel ini sampai ada pesan yang lebih baru, meskipun pesan Anda dimuat ulang.");
         table.put("A diagnostic report is already being saved.",
                 "Sudah ada laporan diagnostik yang sedang disimpan.");
         table.put("A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.",
@@ -7081,8 +7081,8 @@ public final class L10nTranslations {
                 "5 minuti");
         table.put("A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.",
                 "Un PIN che imposti qui sblocca i tuoi messaggi, al posto del blocco schermo. Non si pu\u00f2 recuperare, solo cancellare svuotando l'archiviazione di Instagram.");
-        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.",
-                "Una chat che apri resta non letta nei tuoi messaggi su questo telefono finch\u00e9 non la tieni premuta e tocchi Segna come letto. Anche un messaggio pi\u00f9 recente al suo interno resta non letto.");
+        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.",
+                "Una chat che apri resta non letta nei tuoi messaggi su questo telefono finch\u00e9 non la tieni premuta e tocchi Segna come letto. Anche un messaggio pi\u00f9 recente al suo interno resta non letto. Disattivato, una chat che apri resta letta su questo telefono finch\u00e9 non arriva un messaggio pi\u00f9 recente, anche quando i tuoi messaggi si aggiornano.");
         table.put("A diagnostic report is already being saved.",
                 "Un report diagnostico \u00e8 gi\u00e0 in fase di salvataggio.");
         table.put("A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.",
@@ -9394,8 +9394,8 @@ public final class L10nTranslations {
                 "5\ubd84");
         table.put("A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.",
                 "\uc5ec\uae30\uc11c \uc815\ud55c PIN\uc73c\ub85c \ud654\uba74 \uc7a0\uae08 \ub300\uc2e0 \uba54\uc2dc\uc9c0 \uc7a0\uae08\uc744 \ud489\ub2c8\ub2e4. PIN\uc740 \ubcf5\uad6c\ud560 \uc218 \uc5c6\uace0, Instagram \uc800\uc7a5\uc18c\ub97c \uc9c0\uc6cc\uc57c\ub9cc \uc5c6\uc568 \uc218 \uc788\uc2b5\ub2c8\ub2e4.");
-        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.",
-                "\uc5f0 \ucc44\ud305\uc740 \uae38\uac8c \ub20c\ub7ec \uc77d\uc74c\uc73c\ub85c \ud45c\uc2dc\ub97c \ub204\ub974\uae30 \uc804\uae4c\uc9c0 \uc774 \ud734\ub300\ud3f0\uc758 \uba54\uc2dc\uc9c0\uc5d0\uc11c \uc77d\uc9c0 \uc54a\uc740 \uc0c1\ud0dc\ub85c \ub0a8\uc2b5\ub2c8\ub2e4. \uadf8 \ucc44\ud305\uc5d0 \uc628 \uc0c8 \uba54\uc2dc\uc9c0\ub3c4 \uc77d\uc9c0 \uc54a\uc740 \uc0c1\ud0dc\ub85c \ub0a8\uc2b5\ub2c8\ub2e4.");
+        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.",
+                "\uc5f0 \ucc44\ud305\uc740 \uae38\uac8c \ub20c\ub7ec \uc77d\uc74c\uc73c\ub85c \ud45c\uc2dc\ub97c \ub204\ub974\uae30 \uc804\uae4c\uc9c0 \uc774 \ud734\ub300\ud3f0\uc758 \uba54\uc2dc\uc9c0\uc5d0\uc11c \uc77d\uc9c0 \uc54a\uc740 \uc0c1\ud0dc\ub85c \ub0a8\uc2b5\ub2c8\ub2e4. \uadf8 \ucc44\ud305\uc5d0 \uc628 \uc0c8 \uba54\uc2dc\uc9c0\ub3c4 \uc77d\uc9c0 \uc54a\uc740 \uc0c1\ud0dc\ub85c \ub0a8\uc2b5\ub2c8\ub2e4. \ub044\uba74 \uc5f0 \ucc44\ud305\uc740 \uba54\uc2dc\uc9c0\uac00 \uc0c8\ub85c\uace0\uce68\ub418\uc5b4\ub3c4 \uc0c8 \uba54\uc2dc\uc9c0\uac00 \uc62c \ub54c\uae4c\uc9c0 \uc774 \ud734\ub300\ud3f0\uc5d0\uc11c \uc77d\uc740 \uc0c1\ud0dc\ub85c \ub0a8\uc2b5\ub2c8\ub2e4.");
         table.put("A diagnostic report is already being saved.",
                 "\uc9c4\ub2e8 \ubcf4\uace0\uc11c\ub97c \uc774\ubbf8 \uc800\uc7a5\ud558\uace0 \uc788\uc2b5\ub2c8\ub2e4");
         table.put("A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.",
@@ -11707,8 +11707,8 @@ public final class L10nTranslations {
                 "5 minutos");
         table.put("A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.",
                 "Um PIN que voc\u00ea define aqui desbloqueia suas mensagens no lugar do bloqueio de tela. Ele n\u00e3o pode ser recuperado, s\u00f3 removido limpando o armazenamento do Instagram.");
-        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.",
-                "Uma conversa que voc\u00ea abre continua n\u00e3o lida nas suas mensagens neste celular at\u00e9 voc\u00ea mant\u00ea-la pressionada e tocar em Marcar como lida. Uma mensagem mais nova nela tamb\u00e9m continua n\u00e3o lida.");
+        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.",
+                "Uma conversa que voc\u00ea abre continua n\u00e3o lida nas suas mensagens neste celular at\u00e9 voc\u00ea mant\u00ea-la pressionada e tocar em Marcar como lida. Uma mensagem mais nova nela tamb\u00e9m continua n\u00e3o lida. Desativado, uma conversa que voc\u00ea abre continua lida neste celular at\u00e9 chegar uma mensagem mais nova, mesmo quando suas mensagens s\u00e3o atualizadas.");
         table.put("A diagnostic report is already being saved.",
                 "Um relat\u00f3rio de diagn\u00f3stico j\u00e1 est\u00e1 sendo salvo.");
         table.put("A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.",
@@ -14020,8 +14020,8 @@ public final class L10nTranslations {
                 "5 dakika");
         table.put("A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.",
                 "Burada belirledi\u011fin PIN, ekran kilidi yerine mesajlar\u0131n\u0131n kilidini a\u00e7ar. Geri al\u0131namaz, ancak Instagram'\u0131n depolamas\u0131n\u0131 temizleyerek kald\u0131r\u0131l\u0131r.");
-        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.",
-                "A\u00e7t\u0131\u011f\u0131n bir sohbet, ona uzun bas\u0131p Okundu olarak i\u015faretle'ye dokunana kadar bu telefondaki mesajlar\u0131nda okunmam\u0131\u015f kal\u0131r. \u0130\u00e7indeki daha yeni bir mesaj da okunmam\u0131\u015f kal\u0131r.");
+        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.",
+                "A\u00e7t\u0131\u011f\u0131n bir sohbet, ona uzun bas\u0131p Okundu olarak i\u015faretle'ye dokunana kadar bu telefondaki mesajlar\u0131nda okunmam\u0131\u015f kal\u0131r. \u0130\u00e7indeki daha yeni bir mesaj da okunmam\u0131\u015f kal\u0131r. Kapal\u0131yken, a\u00e7t\u0131\u011f\u0131n bir sohbet mesajlar\u0131n yenilense bile daha yeni bir mesaj gelene kadar bu telefonda okunmu\u015f kal\u0131r.");
         table.put("A diagnostic report is already being saved.",
                 "Bir tan\u0131lama raporu zaten kaydediliyor.");
         table.put("A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.",

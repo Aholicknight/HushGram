@@ -10,6 +10,7 @@ import app.morphe.patches.instagram.direct.seen.ThreadSeenHookTest.Companion.Thr
 import app.morphe.patches.instagram.direct.seen.ThreadSeenHookTest.Companion.assertThreadGuard
 import app.morphe.patches.instagram.direct.seen.ThreadSeenHookTest.Companion.traceThreadGuard
 import app.morphe.patches.instagram.direct.seen.VisualSeenHookTest.Companion.snapshot
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.util.ControlFlow
 import app.morphe.util.namedRegisters
@@ -18,6 +19,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -117,11 +119,19 @@ class MarkReadHookTest {
         assertEquals(listOf(0, 1, 2), bridges.getValue("markUnread").visualCode()[2].namedRegisters())
         assertBridge(bridges, "storeSession", listOf(Opcode.CHECK_CAST to M.STORE_IMPL, Opcode.IGET_OBJECT to M.STORE_SESSION.toString(),
             Opcode.RETURN_OBJECT to null))
+        assertBridge(bridges, "chatKey", listOf(Opcode.CHECK_CAST to M.SUMMARY, Opcode.INVOKE_VIRTUAL to M.SUMMARY_KEY.toString(),
+            Opcode.MOVE_RESULT_OBJECT to null, Opcode.RETURN_OBJECT to null))
+        assertNewestMessageBridge(bridges.getValue("newestMessage"), M.SUMMARY,
+            listOf(M.SUMMARY_ITEMS, M.NEWEST_ITEM, M.NEWEST_ID).map { it.toString() })
 
         val states = context.mutableClassDefBy(M.STATES).methods.single { it.name == "report" }
         assertStateGuard(states, original.getValue(M.STATES).getValue("report"))
 
-        val hooked = setOf("${F.HANDLER}->send(", "${M.ROWS}->rows(", "${M.ACTIONS}->act(", "${M.PICKED}->onClick(", "${M.STATES}->report(")
+        val summary = context.mutableClassDefBy(M.SUMMARY).methods.single { it.name == M.ASKED.name }
+        assertReadHereHook(summary, listOf(M.PENDING, M.MANUAL).map(Any::toString), original.getValue(M.SUMMARY).getValue(M.ASKED.name))
+
+        val hooked = setOf("${F.HANDLER}->send(", "${M.ROWS}->rows(", "${M.ACTIONS}->act(", "${M.PICKED}->onClick(", "${M.STATES}->report(",
+            "${M.SUMMARY}->${M.ASKED.name}(")
         for (candidate in input) {
             val now = snapshot(context.mutableClassDefBy(candidate.type).methods)
             if (candidate.type == INSTAGRAM_CHATS) continue
@@ -133,7 +143,46 @@ class MarkReadHookTest {
         assertEquals(1, context.callsTo(MARK_READ, input))
         assertEquals(1, context.callsTo(MARK_READ_TOGETHER, input))
         assertEquals(1, context.callsTo(KEEP_UNREAD, input))
+        assertEquals(1, context.callsTo(READ_HERE, input))
     }
+
+    @Test fun aChatThatNeverAsksWhetherItShowsUnreadIsRefused() = refuses(M.classes().map { if (it.type == M.CHAT) M.chat(asks = false) else it },
+        "expected one question whether a chat shows unread, found 0")
+    @Test fun aMissingChatSummaryIsRefused() = refuses(M.classes().filter { it.type != M.SUMMARY }, "$SUMMARY_REFUSAL, found 0")
+    @Test fun aSecondChatSummaryIsRefused() = refuses(M.classes() + M.summary("Lfixture/OtherChatSummary;"), "$SUMMARY_REFUSAL, found 2")
+    @Test fun aSummaryWithoutTheMarkAsUnreadFlagIsRefused() = changed(M.SUMMARY, M.ASKED.name, "expected one Mark as unread flag the summary checks, found 0") {
+        it[3] = call(Opcode.INVOKE_VIRTUAL, listOf(5), M.PENDING)
+    }
+    @Test fun aSummaryThatNeverChecksTheNewestItemIsRefused() =
+        changed(M.SUMMARY, M.ASKED.name, "expected one check of the chat's newest item against the last one seen, found 0") {
+            it[12] = call(Opcode.INVOKE_STATIC, listOf(5, 3, 1, 2), M.SUMMARY, M.SEEN_UP_TO.name, listOf(M.SUMMARY) + List(3) { STRING }, "Z")
+        }
+    @Test fun aNewestItemThatIsntReadOffAFieldIsRefused() = changed(M.SUMMARY, M.ASKED.name, "chat's newest item isn't read off a field") {
+        it[7] = field(Opcode.SGET_OBJECT, 0, M.NEWEST_ITEM)
+    }
+    @Test fun aNewestItemReadOffTheAccountIsRefused() = changed(M.SUMMARY, M.ASKED.name, "chat's newest item doesn't come from the summary") {
+        it[6] = ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 6, M.SUMMARY_ITEMS)
+    }
+    @Test fun aNewestItemAPathCanSkipIsRefused() = changed(M.SUMMARY, M.ASKED.name, "chat's newest item can be replaced or bypassed") {
+        it[5] = ImmutableInstruction21t(Opcode.IF_NEZ, 0, offset(it, 5, 9))
+    }
+    @Test fun aNewestItemIdThatIsntAStringIsRefused() =
+        changed(M.SUMMARY, M.ASKED.name, "chat's newest item id isn't a String the summary reaches through its own fields") {
+            it[8] = ImmutableInstruction22c(Opcode.IGET_OBJECT, 1, 0, ImmutableFieldReference(M.NEWEST, M.NEWEST_ID.name, OBJECT))
+        }
+    @Test fun aChatKeyTheExtensionCantReachIsRefused() =
+        refuses(M.classes().map { if (it.type == M.SUMMARY) M.summary(keyFlags = AccessFlags.FINAL.value) else it }, "isn't public, so the extension can't reach it")
+    @Test fun aNewestItemTheExtensionCantReachIsRefused() =
+        refuses(M.classes().map { if (it.type == M.ITEMS) M.items(newestFlags = AccessFlags.FINAL.value) else it }, "isn't public, so the extension can't reach it")
+    @Test fun aJumpToTheStartOfTheSummarysAnswerIsRefused() =
+        changed(M.SUMMARY, M.ASKED.name, "a jump reaches the start of the summary's answer whether the chat shows unread") {
+            it[2] = ImmutableInstruction21t(Opcode.IF_NEZ, 0, -it.take(2).sumOf { instruction -> instruction.codeUnits })
+        }
+    @Test fun anExtensionWithoutTheReadHereHookIsRefused() = refuses(M.classes().map { if (it.type == THREAD_SEEN) M.extension(readHere = false) else it },
+        "expected one extension's public static readHere, found 0")
+    @Test fun aMissingNewestMessageBridgeIsRefused() =
+        refuses(M.classes().map { if (it.type == INSTAGRAM_CHATS) M.bridges(without = "newestMessage") else it },
+            "expected one extension's chat bridge newestMessage, found 0")
 
     @Test fun aMissingStateReportIsRefused() = refuses(M.classes().filter { it.type != M.STATES }, "$STATES_REFUSAL, found 0")
     @Test fun aSecondStateReportIsRefused() = refuses(M.classes() + M.states("Lfixture/OtherStates;"), "$STATES_REFUSAL, found 2")
@@ -392,6 +441,7 @@ class MarkReadHookTest {
         private const val ROUTE_REFUSAL = "expected exactly one Instagram handler for marking a chat read in this Instagram build"
         private const val PICK_REFUSAL = "expected one message Instagram's handler for marking a chat read sends its receipt for, found 0"
         private const val STATES_REFUSAL = "expected one static method the queue reports a chat receipt's state to"
+        private const val SUMMARY_REFUSAL = "expected one chat summary the inbox draws its rows from"
 
         /** Stand-ins the tap trace hands the guard. */
         internal const val CHOSEN = "chosen row"
@@ -576,6 +626,63 @@ class MarkReadHookTest {
             assertEquals("nothing else reaches Instagram's report", listOf(4), flow.normal.indices.filter { 6 in flow.normal[it] })
         }
 
+        /**
+         * The extension is asked first, with the summary and the account. Its yes returns that the
+         * chat isn't unread, unless one of the summary's own [flags], Mark as unread among them, is
+         * set, each asked in turn. Its no, and a set flag, go on to [original], which follows unchanged.
+         */
+        internal fun assertReadHereHook(method: Method, flags: List<String>, original: List<Instruction>) {
+            assertTrue("a chat kept read waits for Mark as unread at least", flags.isNotEmpty())
+            val code = method.visualCode()
+            val asks = flags.indices.map { 5 + 3 * it }
+            val yes = 5 + 3 * flags.size
+            val start = yes + 2
+            assertEquals(listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ) +
+                flags.flatMap { listOf(Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.IF_NEZ) } + listOf(Opcode.CONST_4, Opcode.RETURN),
+                code.take(start).map { it.opcode })
+            val self = method.localRegisterCount()
+            for (register in 0..1) {
+                val move = code[register] as TwoRegisterInstruction
+                assertEquals("this, then the account", listOf(register, self + register), listOf(move.registerA, move.registerB))
+            }
+            assertEquals(READ_HERE, code[2].visualReference().toString())
+            assertEquals(listOf(0, 1), code[2].namedRegisters())
+            assertEquals(flags, asks.map { code[it].visualReference().toString() })
+            assertEquals("each flag is asked of the summary", asks.map { listOf(0) }, asks.map { code[it].namedRegisters() })
+            val answers = listOf(3, 4) + asks.flatMap { listOf(it + 1, it + 2) }
+            assertEquals(answers.map { 1 }, answers.map { (code[it] as OneRegisterInstruction).registerA })
+            assertEquals("its yes answers not unread", listOf(0, 0), listOf((code[yes] as NarrowLiteralInstruction).narrowLiteral,
+                (code[yes + 1] as OneRegisterInstruction).registerA))
+            assertEquals(0, (code[yes] as OneRegisterInstruction).registerA)
+            assertEquals(1, code.count { it.visualReference()?.toString() == READ_HERE })
+            assertEquals(shape(original), shape(code.drop(start)))
+            val flow = ControlFlow.of(method)
+            assertEquals("the extension's no goes on to Instagram's answer", setOf(5, start), flow.normal[4].toSet())
+            for (ask in asks) assertEquals("so does a set flag", setOf(ask + 3, start), flow.normal[ask + 2].toSet())
+            assertTrue("the yes returns", flow.normal[yes + 1].isEmpty())
+            assertEquals("nothing else reaches Instagram's answer", listOf(4) + asks.map { it + 2 },
+                flow.normal.indices.filter { start in flow.normal[it] })
+        }
+
+        /**
+         * The bridge checks it was handed a [summary], reads [fields] off it in turn, and answers the
+         * last one. A link that's null answers null.
+         */
+        internal fun assertNewestMessageBridge(bridge: Method, summary: String, fields: List<String>) {
+            val reads = fields.dropLast(1).flatMap { listOf(Opcode.IGET_OBJECT to it, Opcode.IF_EQZ to null) }
+            val body = listOf(Opcode.CHECK_CAST to summary) + reads + listOf(Opcode.IGET_OBJECT to fields.last(), Opcode.RETURN_OBJECT to null,
+                Opcode.CONST_4 to null, Opcode.RETURN_OBJECT to null)
+            val code = bridge.visualCode()
+            assertEquals(body, code.take(body.size).map { it.opcode to it.visualReference()?.toString() })
+            val handed = bridge.parameterRegisterNumber(0)
+            assertTrue("every read is of what the one before got", code.take(body.size).filter { it.opcode == Opcode.IGET_OBJECT }
+                .all { (it as TwoRegisterInstruction).registerA == handed && it.registerB == handed })
+            val none = body.size - 2
+            val flow = ControlFlow.of(bridge)
+            for (at in body.indices.filter { body[it].first == Opcode.IF_EQZ }) assertEquals(setOf(at + 1, none), flow.normal[at].toSet())
+            assertEquals(0, (code[none] as NarrowLiteralInstruction).narrowLiteral)
+        }
+
         /** The bridge's body is [body], ahead of the stub it replaces. */
         internal fun assertBridge(bridges: Map<String, Method>, name: String, body: List<Pair<Opcode, String?>>) {
             val code = bridges.getValue(name).visualCode()
@@ -622,6 +729,9 @@ internal object MarkReadFixture {
     const val STATES = "Lfixture/ReceiptStates;"
     const val STORE = "Lfixture/ChatStore;"
     const val STORE_IMPL = "Lfixture/InboxStore;"
+    const val SUMMARY = "Lfixture/ChatSummary;"
+    const val ITEMS = "Lfixture/ChatItems;"
+    const val NEWEST = "Lfixture/NewestItem;"
     const val LIST = "Ljava/util/List;"
     private const val ENUM = "Ljava/lang/Enum;"
     private const val INTEGER = "Ljava/lang/Integer;"
@@ -646,16 +756,72 @@ internal object MarkReadFixture {
     val HAS = ImmutableMethodReference(CAPABILITIES, "has", listOf(CAPABILITY), "Z")
     val BLOCKED = ImmutableMethodReference(BLOCKS, "blocked", listOf(USER_SESSION, "I"), "Z")
     val USER_ID = ImmutableMethodReference(USER_SESSION, "getUserId", emptyList(), STRING)
-    private val ITEM = ImmutableMethodReference(F.SEEN_ITEM, "of", listOf(STRING, STRING), F.SEEN_ITEM)
+    val ASKED = ImmutableMethodReference(CHAT, "unread", listOf(USER_SESSION), "Z")
+    val PENDING = ImmutableMethodReference(SUMMARY, "pending", emptyList(), "Z")
+    val MANUAL = ImmutableMethodReference(SUMMARY, "markedUnread", emptyList(), "Z")
+    val SEEN_UP_TO = ImmutableMethodReference(SUMMARY, "seenUpTo", List(3) { STRING }, "Z")
+    val SUMMARY_KEY = ImmutableMethodReference(SUMMARY, "key", emptyList(), THREAD_KEY)
+    val SUMMARY_ITEMS = ImmutableFieldReference(SUMMARY, "items", ITEMS)
+    val NEWEST_ITEM = ImmutableFieldReference(ITEMS, "newest", NEWEST)
+    val NEWEST_ID = ImmutableFieldReference(NEWEST, "id", STRING)
+    val NEWEST_SENDER = ImmutableFieldReference(NEWEST, "sender", STRING)
+    private val ITEM =ImmutableMethodReference(F.SEEN_ITEM, "of", listOf(STRING, STRING), F.SEEN_ITEM)
 
     private const val PUBLIC = 0x1
     private val INTERFACE = AccessFlags.PUBLIC.value or AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value
+    private val ABSTRACT = AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value
 
     fun classes(): List<ClassDef> = F.classes().filter { it.type != F.CREATOR && it.type != THREAD_SEEN } + listOf(
         sender(), mutation(), seenBase(), seenItem(), session(), menu(), capability(), rows(), blocks(), actions(), picked(),
         chat(), inboxChat(), messages(), message(), detail(), key(), route(), extension(), bridges(),
-        states(), store(), storeImpl(),
+        states(), store(), storeImpl(), summary(), items(), newest(),
     )
+
+    /**
+     * The chat summary the inbox draws its rows from, shaped like 451's: its answer whether the chat
+     * shows unread asks a flag the chat declares, then Instagram's own Mark as unread flag, either of
+     * which answers unread, then reads the chat's newest item through its own fields and checks that
+     * item's id, after the account's, against the last one seen. v0 to v4 are locals, this is v5 and
+     * the account v6.
+     */
+    fun summary(type: String = SUMMARY, keyFlags: Int = AccessFlags.PUBLIC.value): ClassDef {
+        fun own(reference: ImmutableMethodReference) = ImmutableMethodReference(type, reference.name, reference.parameterTypes, reference.returnType)
+        fun answer(name: String) = method(type, name, emptyList(), "Z", 2, listOf(ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+            ImmutableInstruction11x(Opcode.RETURN, 0)))
+        val items = ImmutableFieldReference(type, SUMMARY_ITEMS.name, ITEMS)
+        val code = mutableListOf<Instruction>(
+            call(Opcode.INVOKE_VIRTUAL, listOf(5), own(PENDING)), ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+            ImmutableInstruction21t(Opcode.IF_NEZ, 0, 0),
+            call(Opcode.INVOKE_VIRTUAL, listOf(5), own(MANUAL)), ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+            ImmutableInstruction21t(Opcode.IF_NEZ, 0, 0),
+            ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 5, items), ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 0, NEWEST_ITEM),
+            ImmutableInstruction22c(Opcode.IGET_OBJECT, 1, 0, NEWEST_ID), ImmutableInstruction22c(Opcode.IGET_OBJECT, 2, 0, NEWEST_SENDER),
+            call(Opcode.INVOKE_VIRTUAL, listOf(6), USER_ID), ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 3),
+            call(Opcode.INVOKE_VIRTUAL, listOf(5, 3, 1, 2), own(SEEN_UP_TO)), ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+            ImmutableInstruction11x(Opcode.RETURN, 0),
+            ImmutableInstruction11n(Opcode.CONST_4, 0, 1), ImmutableInstruction11x(Opcode.RETURN, 0),
+        )
+        code[2] = ImmutableInstruction21t(Opcode.IF_NEZ, 0, offset(code, 2, 15))
+        code[5] = ImmutableInstruction21t(Opcode.IF_NEZ, 0, offset(code, 5, 15))
+        return ImmutableClassDef(type, PUBLIC or AccessFlags.FINAL.value, OBJECT, listOf(INBOX_CHAT), null, null,
+            listOf(ImmutableField(type, items.name, ITEMS, AccessFlags.PUBLIC.value, null, null, null)),
+            listOf(
+                method(type, ASKED.name, listOf(USER_SESSION), "Z", 7, code),
+                answer(PENDING.name), answer(MANUAL.name),
+                method(type, SEEN_UP_TO.name, List(3) { STRING }, "Z", 5, listOf(ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                    ImmutableInstruction11x(Opcode.RETURN, 0))),
+                ImmutableMethod(type, SUMMARY_KEY.name, null, THREAD_KEY, keyFlags, null, null,
+                    ImmutableMethodImplementation(2, listOf(ImmutableInstruction11n(Opcode.CONST_4, 0, 0), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)), null, null)),
+            ))
+    }
+
+    /** What the summary keeps of the chat's items: the newest one. */
+    fun items(newestFlags: Int = AccessFlags.PUBLIC.value): ClassDef = ImmutableClassDef(ITEMS, PUBLIC or AccessFlags.FINAL.value, OBJECT, null, null, null,
+        listOf(ImmutableField(ITEMS, NEWEST_ITEM.name, NEWEST, newestFlags, null, null, null)), null)
+
+    /** The chat's newest item: its id and its sender's. */
+    fun newest(): ClassDef = ImmutableClassDef(NEWEST, PUBLIC or AccessFlags.FINAL.value, OBJECT, null, null, null,
+        listOf(NEWEST_ID, NEWEST_SENDER).map { ImmutableField(NEWEST, it.name, STRING, AccessFlags.PUBLIC.value, null, null, null) }, null)
 
     /**
      * Where the queue reports a receipt's state, static as 451's is: the chat store hears the
@@ -840,7 +1006,11 @@ internal object MarkReadFixture {
             listOf(method(type, "onClick", listOf(OBJECT, "I"), "V", 9, code)))
     }
 
-    fun chat(): ClassDef = ImmutableClassDef(CHAT, INTERFACE, OBJECT, null, null, null, null, null)
+    /** The chat, which answers whether it shows unread for an account, and whether an item is pending. */
+    fun chat(asks: Boolean = true): ClassDef = ImmutableClassDef(CHAT, INTERFACE, OBJECT, null, null, null, null, listOfNotNull(
+        ImmutableMethod(CHAT, ASKED.name, listOf(parameter(USER_SESSION)), "Z", ABSTRACT, null, null, null).takeIf { asks },
+        ImmutableMethod(CHAT, PENDING.name, null, "Z", ABSTRACT, null, null, null),
+    ))
     fun inboxChat(): ClassDef = ImmutableClassDef(INBOX_CHAT, INTERFACE, OBJECT, listOf(CHAT), null, null, null, null)
 
     fun messages(): ClassDef = clazz(MESSAGES, listOf(method(MESSAGES, "last", listOf(CHAT), MESSAGE, 2, listOf(
@@ -877,7 +1047,7 @@ internal object MarkReadFixture {
         text(0, MARK_READ_DONE), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
     ))))
 
-    fun extension(offer: Boolean = true, markRead: Boolean = true, together: Boolean = true, keepUnread: Boolean = true): ClassDef = clazz(THREAD_SEEN, listOfNotNull(
+    fun extension(offer: Boolean = true, markRead: Boolean = true, together: Boolean = true, keepUnread: Boolean = true, readHere: Boolean = true): ClassDef = clazz(THREAD_SEEN, listOfNotNull(
         method(THREAD_SEEN, "hold", listOf(OBJECT, OBJECT), "Z", 3, listOf(ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
             ImmutableInstruction11x(Opcode.RETURN, 0)), static = true),
         method(THREAD_SEEN, "offerMarkRead", listOf(LIST, OBJECT), "V", 2, listOf(ImmutableInstruction10x(Opcode.RETURN_VOID)), static = true)
@@ -888,6 +1058,8 @@ internal object MarkReadFixture {
             listOf(ImmutableInstruction10x(Opcode.RETURN_VOID)), static = true).takeIf { together },
         method(THREAD_SEEN, "keepUnread", listOf(OBJECT, OBJECT), "Z", 3, listOf(ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
             ImmutableInstruction11x(Opcode.RETURN, 0)), static = true).takeIf { keepUnread },
+        method(THREAD_SEEN, "readHere", listOf(OBJECT, OBJECT), "Z", 3, listOf(ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+            ImmutableInstruction11x(Opcode.RETURN, 0)), static = true).takeIf { readHere },
     ))
 
     /** The extension's bridge stubs, as javac writes them: null back, or nothing done. */
@@ -896,7 +1068,7 @@ internal object MarkReadFixture {
         "receiptMessage" to (listOf(OBJECT) to STRING), "lastMessage" to (listOf(OBJECT) to OBJECT),
         "messageId" to (listOf(OBJECT) to STRING), "senderId" to (listOf(OBJECT) to STRING),
         "sendSeen" to (listOf(OBJECT, OBJECT, STRING, STRING, STRING) to "V"), "markUnread" to (listOf(OBJECT, OBJECT, "Z") to "V"),
-        "storeSession" to (listOf(OBJECT) to OBJECT),
+        "storeSession" to (listOf(OBJECT) to OBJECT), "chatKey" to (listOf(OBJECT) to OBJECT), "newestMessage" to (listOf(OBJECT) to STRING),
     ).filter { it.first != without }.map { (name, shape) ->
         val (parameters, returns) = shape
         if (returns == "V") {

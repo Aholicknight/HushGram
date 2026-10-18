@@ -323,7 +323,7 @@ Removes the stack of Instants (quick photos from friends) from your messages. Re
 Read messages without the seen receipt	Leggi i messaggi senza conferma di lettura
 Opening a chat doesn't tell people you've seen their messages, and you still see when they've seen yours. To let one chat know, long press it in your messages and tap Mark as read.	Aprire una chat non dice alle persone che hai visto i loro messaggi, e tu vedi comunque quando hanno visto i tuoi. Per farlo sapere a una chat, tienila premuta nei messaggi e tocca Segna come letto.
 Keep chats unread here	Tieni le chat non lette qui
-A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.	Una chat che apri resta non letta nei tuoi messaggi su questo telefono finché non la tieni premuta e tocchi Segna come letto. Anche un messaggio più recente al suo interno resta non letto.
+A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.	Una chat che apri resta non letta nei tuoi messaggi su questo telefono finché non la tieni premuta e tocchi Segna come letto. Anche un messaggio più recente al suo interno resta non letto. Disattivato, una chat che apri resta letta su questo telefono finché non arriva un messaggio più recente, anche quando i tuoi messaggi si aggiornano.
 # context: the toasts after tapping Mark as read on a chat's long press while seen receipts are held
 Marked as read	Segnato come letto
 Couldn't mark as read	Impossibile segnare come letto

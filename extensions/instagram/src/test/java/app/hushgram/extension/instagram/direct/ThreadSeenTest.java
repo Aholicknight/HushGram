@@ -596,6 +596,166 @@ public class ThreadSeenTest {
         assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
     }
 
+    /** #186: with Keep chats unread here off, a chat opened while its receipt is held reads as read until a newer message. */
+    @Test
+    public void withKeepUnreadOffAnOpenedChatStaysReadUntilANewerMessage() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue("the receipt is still held", hold(receipt("t1", "m1")));
+        assertTrue("the chat opened while m1 was newest reads as read", read(summary("t1", "m1")));
+        assertFalse("a newer message lets Instagram decide", read(summary("t1", "m2")));
+        assertFalse("another chat isn't kept", read(summary("t2", "m1")));
+        assertFalse("another account's chat isn't kept",
+                ThreadSeen.readHere(summary("t1", "m1"), OTHER, ThreadSeen::readsHere, chats));
+
+        assertTrue(hold(receipt("t1", "m2")));
+        assertTrue("opened again, the chat reads as read up to its new newest message", read(summary("t1", "m2")));
+        assertFalse(read(summary("t1", "m1")));
+        assertNothingReported();
+    }
+
+    @Test
+    public void withKeepUnreadOnNoChatIsKeptRead() {
+        assertTrue(hold(receipt("t1", "m1")));
+        assertEquals(0, ThreadSeen.openedForTests());
+        assertFalse(read(summary("t1", "m1")));
+        assertNothingReported();
+    }
+
+    @Test
+    public void aChatMarkedReadIsntKeptRead() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(mark(MARK, chat("m1", "s1"), new Key("t1")));
+        assertFalse("its receipt goes through", hold(receipt("t1", "m1")));
+        assertEquals(0, ThreadSeen.openedForTests());
+        assertNothingReported();
+    }
+
+    @Test
+    public void offKeepUnreadOnPausedAndUnreadyLetInstagramDecide() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(hold(receipt("t1", "m1")));
+        assertTrue(ThreadSeen.readHere(summary("t1", "m1"), SESSION, ThreadSeen::readsHere, chats));
+
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        assertFalse(read(summary("t1", "m1")));
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(true);
+
+        Settings.KEEP_CHATS_UNREAD.save(true);
+        assertFalse("with chats kept unread, Instagram decides", read(summary("t1", "m1")));
+        Settings.KEEP_CHATS_UNREAD.save(false);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(read(summary("t1", "m1")));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertFalse(read(summary("t1", "m1"))));
+        SettingsContextRule.beforeThePauseIsDecided(() -> assertFalse(read(summary("t1", "m1"))));
+
+        assertTrue(read(summary("t1", "m1")));
+        assertFalse("as built, Instagram's summary can't be read", ThreadSeen.readHere(summary("t1", "m1"), SESSION));
+        assertNothingReported();
+    }
+
+    @Test
+    public void aSummaryOrAccountThatCantBeReadLetsInstagramDecide() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(hold(receipt("t1", "m1")));
+        assertFalse(read(null));
+        assertFalse(read(new Object()));
+        assertFalse(read(summary(null, "m1")));
+        assertFalse(read(summary("t1", null)));
+        assertFalse(read(summary("t1", "")));
+        assertFalse(ThreadSeen.readHere(summary("t1", "m1"), new Session(null), ThreadSeen::readsHere, chats));
+        assertFalse(ThreadSeen.readHere(summary("t1", "m1"), null, ThreadSeen::readsHere, chats));
+        assertNothingReported();
+    }
+
+    @Test
+    public void aThrowIsReportedAndLetsInstagramDecide() {
+        assertFalse(ThreadSeen.readHere(summary("t1", "m1"), SESSION, THROWS, chats));
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(hold(receipt("t1", "m1")));
+        chats.summaryThrows = true;
+        assertFalse(read(summary("t1", "m1")));
+        chats.summaryThrows = false;
+        assertTrue(read(summary("t1", "m1")));
+
+        String missing = HookStatus.missing(FamilyNames.THREAD_SEEN).toString();
+        assertTrue(missing, missing.contains("'" + ThreadSeen.READ + "'"));
+        assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+    }
+
+    @Test
+    public void aChatThatCantBeKeptStillHasItsReceiptHeld() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(ThreadSeen.hold(receipt("t1", "m1"), SESSION, ON, THROWS, chats, clock));
+        chats.accountThrows = true;
+        assertTrue(hold(receipt("t1", "m1")));
+        chats.accountThrows = false;
+        assertTrue(hold(receipt(null, "m1")));
+        assertTrue(hold(receipt("t1", null)));
+        assertTrue(ThreadSeen.hold(receipt("t1", "m1"), new Session(null), ON, chats, clock));
+        assertEquals(0, ThreadSeen.openedForTests());
+
+        String missing = HookStatus.missing(FamilyNames.THREAD_SEEN).toString();
+        assertTrue(missing, missing.contains("'" + ThreadSeen.READ + "'"));
+    }
+
+    @Test
+    public void aChatKeptReadOutlivesARestart() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(hold(receipt("t1", "m1")));
+        assertEquals(Collections.singleton(ReadHere.key("a1", "t1")), openedOnFile().keySet());
+        ThreadSeen.restartForTests();
+        assertTrue(read(summary("t1", "m1")));
+        assertFalse(read(summary("t1", "m2")));
+    }
+
+    /** At most 500 chats are kept, and the one opened longest ago goes first, on file too. */
+    @Test
+    public void onlyTheChatsOpenedLastAreKeptRead() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        for (int thread = 0; thread <= ReadHere.MAX_CHATS; thread++) {
+            now[0]++;
+            assertTrue(hold(receipt("t" + thread, "m1")));
+        }
+        assertFalse("the one opened longest ago is gone", read(summary("t0", "m1")));
+        assertTrue(read(summary("t1", "m1")));
+        assertTrue(read(summary("t" + ReadHere.MAX_CHATS, "m1")));
+        assertEquals(ReadHere.MAX_CHATS, openedOnFile().size());
+
+        ThreadSeen.restartForTests();
+        assertFalse(read(summary("t0", "m1")));
+        assertTrue(read(summary("t1", "m1")));
+        assertEquals(ReadHere.MAX_CHATS, ThreadSeen.openedForTests());
+    }
+
+    /** A file with more chats than are kept, or a value that isn't a time and a message, is put right when it's read. */
+    @Test
+    public void aFileWithTooManyOrBrokenChatsIsCleanedWhenRead() {
+        SharedPreferences.Editor edit = openedFile().edit();
+        for (int thread = 0; thread <= ReadHere.MAX_CHATS; thread++) {
+            edit.putString(ReadHere.key("a1", "t" + thread), (now[0] + thread) + "/m1");
+        }
+        edit.putString(ReadHere.key("a1", "words"), "not a time/m1");
+        edit.putString(ReadHere.key("a1", "empty"), "7/");
+        edit.putLong(ReadHere.key("a1", "number"), 7L);
+        edit.commit();
+        ThreadSeen.restartForTests();
+        Settings.KEEP_CHATS_UNREAD.save(false);
+
+        assertFalse(read(summary("t0", "m1")));
+        assertTrue(read(summary("t1", "m1")));
+        assertFalse(read(summary("words", "m1")));
+        assertEquals(ReadHere.MAX_CHATS, openedOnFile().size());
+    }
+
+    private boolean read(Object summary) {
+        return ThreadSeen.readHere(summary, SESSION, ThreadSeen::readsHere, chats);
+    }
+
     private boolean keep(Object receipt) {
         return ThreadSeen.keepUnread(receipt, STORE, ON, chats, clock);
     }
@@ -631,8 +791,20 @@ public class ThreadSeenTest {
         return file().getAll();
     }
 
+    private static SharedPreferences openedFile() {
+        return RuntimeEnvironment.getApplication().getSharedPreferences(ReadHere.FILE, Context.MODE_PRIVATE);
+    }
+
+    private static Map<String, ?> openedOnFile() {
+        return openedFile().getAll();
+    }
+
     private static Chat chat(String message, String sender) {
         return new Chat(new Message(message, sender));
+    }
+
+    private static Summary summary(String thread, String newest) {
+        return new Summary(thread, newest);
     }
 
     private static Receipt receipt(String thread, String message) {
@@ -696,9 +868,20 @@ public class ThreadSeenTest {
         }
     }
 
+    /** An inbox row's summary: its chat and the id of its newest message. */
+    private static final class Summary {
+        final String thread;
+        final String newest;
+
+        Summary(String thread, String newest) {
+            this.thread = thread;
+            this.newest = newest;
+        }
+    }
+
     /**
      * Instagram's chats as these tests keep them: a session names its account, a receipt its chat
-     * and message, a key its chat, and a chat its last message.
+     * and message, a key its chat, a chat its last message, and a summary its chat and newest message.
      */
     private static final class FakeChats implements ThreadSeen.Chats {
         final List<String> sent = new ArrayList<>();
@@ -709,6 +892,18 @@ public class ThreadSeenTest {
         boolean messageThrows;
         boolean accountThrows;
         boolean storeThrows;
+        boolean summaryThrows;
+
+        @Override
+        public Object chatKey(Object thread) {
+            return thread instanceof Summary ? new Key(((Summary) thread).thread) : null;
+        }
+
+        @Override
+        public String newestMessage(Object thread) {
+            if (summaryThrows) throw new IllegalStateException("the summary went away");
+            return thread instanceof Summary ? ((Summary) thread).newest : null;
+        }
 
         @Override
         public Object storeSession(Object store) {

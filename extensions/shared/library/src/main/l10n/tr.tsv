@@ -323,7 +323,7 @@ Removes the stack of Instants (quick photos from friends) from your messages. Re
 Read messages without the seen receipt	Mesajları görüldü bilgisi olmadan oku
 Opening a chat doesn't tell people you've seen their messages, and you still see when they've seen yours. To let one chat know, long press it in your messages and tap Mark as read.	Bir sohbeti açtığında karşı taraf mesajlarını gördüğünü öğrenmez ve onların seninkileri ne zaman gördüğünü görmeye devam edersin. Bir sohbetin bilmesini istersen mesajlarında ona uzun bas ve Okundu olarak işaretle'ye dokun.
 Keep chats unread here	Sohbetleri burada okunmamış tut
-A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.	Açtığın bir sohbet, ona uzun basıp Okundu olarak işaretle'ye dokunana kadar bu telefondaki mesajlarında okunmamış kalır. İçindeki daha yeni bir mesaj da okunmamış kalır.
+A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.	Açtığın bir sohbet, ona uzun basıp Okundu olarak işaretle'ye dokunana kadar bu telefondaki mesajlarında okunmamış kalır. İçindeki daha yeni bir mesaj da okunmamış kalır. Kapalıyken, açtığın bir sohbet mesajların yenilense bile daha yeni bir mesaj gelene kadar bu telefonda okunmuş kalır.
 # context: the toasts after tapping Mark as read on a chat's long press while seen receipts are held
 Marked as read	Okundu olarak işaretlendi
 Couldn't mark as read	Okundu olarak işaretlenemedi

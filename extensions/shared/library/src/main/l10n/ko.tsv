@@ -324,7 +324,7 @@ Removes the stack of Instants (quick photos from friends) from your messages. Re
 Read messages without the seen receipt	읽음 표시 없이 메시지 읽기
 Opening a chat doesn't tell people you've seen their messages, and you still see when they've seen yours. To let one chat know, long press it in your messages and tap Mark as read.	채팅을 열어도 상대방에게 메시지를 봤다는 사실이 전달되지 않으며, 상대방이 내 메시지를 봤는지는 계속 확인할 수 있습니다. 한 채팅에만 알리려면 메시지에서 그 채팅을 길게 누르고 읽음으로 표시를 누르세요
 Keep chats unread here	이 휴대폰에서 채팅을 읽지 않음으로 유지
-A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.	연 채팅은 길게 눌러 읽음으로 표시를 누르기 전까지 이 휴대폰의 메시지에서 읽지 않은 상태로 남습니다. 그 채팅에 온 새 메시지도 읽지 않은 상태로 남습니다.
+A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.	연 채팅은 길게 눌러 읽음으로 표시를 누르기 전까지 이 휴대폰의 메시지에서 읽지 않은 상태로 남습니다. 그 채팅에 온 새 메시지도 읽지 않은 상태로 남습니다. 끄면 연 채팅은 메시지가 새로고침되어도 새 메시지가 올 때까지 이 휴대폰에서 읽은 상태로 남습니다.
 # context: the toasts after tapping Mark as read on a chat's long press while seen receipts are held
 Marked as read	읽음으로 표시함
 Couldn't mark as read	읽음으로 표시할 수 없습니다

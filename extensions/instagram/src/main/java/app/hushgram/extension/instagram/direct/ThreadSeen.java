@@ -30,6 +30,13 @@ import java.util.function.Supplier;
  * asks {@link #keepUnread} first there. While both switches are on, a held receipt never reaches the
  * store, so the chat stays unread here until Mark as read lets its receipt through.
  *
+ * <p>With Keep chats unread here off, the store records an opened chat seen, but Instagram puts its
+ * unread mark back once the inbox refreshes, since the other side never got the receipt. So
+ * {@link #hold} keeps each chat it holds a receipt for, with the message the receipt points at
+ * ({@link ReadHere}), and the inbox asks {@link #readHere} before it decides whether a chat shows
+ * unread. The chat reads as read until its newest message is another one, unless Instagram's own
+ * Mark as unread is on it.
+ *
  * <p>Instagram's own Mark as read still lets a chat know. While the switch is on, a long press on a
  * chat in the inbox offers it, which Instagram otherwise offers only when several chats are picked
  * ({@link #offerMarkRead}), wherever Instagram would let that chat be marked unread. Tapping it
@@ -56,6 +63,7 @@ public final class ThreadSeen {
     static final String PASS = "chat marked read";
     static final String FEEDBACK = "mark as read feedback";
     static final String UNREAD = "chat kept unread";
+    static final String READ = "chat kept read";
 
     /** Instagram's chats, through the bodies the patch writes in {@link InstagramChats}. Tests stand in their own. */
     interface Chats {
@@ -78,6 +86,10 @@ public final class ThreadSeen {
         void clearUnread(Object session, Object key);
 
         Object storeSession(Object store);
+
+        Object chatKey(Object thread);
+
+        String newestMessage(Object thread);
     }
 
     private static final Chats INSTAGRAM = new Chats() {
@@ -130,6 +142,16 @@ public final class ThreadSeen {
         public Object storeSession(Object store) {
             return InstagramChats.storeSession(store);
         }
+
+        @Override
+        public Object chatKey(Object thread) {
+            return InstagramChats.chatKey(thread);
+        }
+
+        @Override
+        public String newestMessage(Object thread) {
+            return InstagramChats.newestMessage(thread);
+        }
     };
 
     /** Wall time, since a mark outlives the process and elapsed time starts over with the phone. */
@@ -139,6 +161,9 @@ public final class ThreadSeen {
 
     /** The marks, read the first time they're needed. */
     private static ReadMarks marks;
+
+    /** The chats kept read here, read the first time they're needed. */
+    private static ReadHere opened;
 
     private static volatile boolean logged;
 
@@ -151,7 +176,8 @@ public final class ThreadSeen {
      * Asked at the start of Instagram's seen receipt handler with the receipt and the account the
      * handler sends it for. True makes the handler finish without sending. False while the switch
      * is off, HushGram is paused or the settings aren't ready, and for the receipt of a message
-     * marked read. Never throws.
+     * marked read. A held receipt's chat is kept read here while Keep chats unread here is off.
+     * Never throws.
      */
     public static boolean hold(Object receipt, Object session) {
         return hold(receipt, session, ThreadSeen::switchedOn, INSTAGRAM, CLOCK);
@@ -162,6 +188,11 @@ public final class ThreadSeen {
     }
 
     static boolean hold(Object receipt, Object session, BooleanSupplier on, Chats chats, LongSupplier clock) {
+        return hold(receipt, session, on, ThreadSeen::readsHere, chats, clock);
+    }
+
+    static boolean hold(Object receipt, Object session, BooleanSupplier on, BooleanSupplier here, Chats chats,
+                        LongSupplier clock) {
         try {
             HookStatus.invoked(FamilyNames.THREAD_SEEN);
             boolean hold = on.getAsBoolean();
@@ -169,6 +200,7 @@ public final class ThreadSeen {
                 Logger.printDebug(() -> "Messages: sent the seen receipt for a chat marked read");
                 return false;
             }
+            if (hold) keepRead(receipt, session, here, chats, clock);
             if (hold && !logged) {
                 logged = true;
                 Logger.printDebug(() -> "Messages: held back a seen receipt");
@@ -329,6 +361,36 @@ public final class ThreadSeen {
     }
 
     /**
+     * Asked at the start of the inbox's question whether a chat shows unread, with the chat's
+     * summary and the account. True makes the chat read, unless Instagram's own Mark as unread is on
+     * it, which the patch checks next. True only while the switch is on and Keep chats unread here is
+     * off, for a chat opened here while its receipt was held, as long as the message newest then is
+     * still its newest. False otherwise, when the summary or the account can't be read, and while
+     * HushGram is paused or the settings aren't ready. Never throws.
+     */
+    public static boolean readHere(Object thread, Object session) {
+        return readHere(thread, session, ThreadSeen::readsHere, INSTAGRAM);
+    }
+
+    static boolean readHere(Object thread, Object session, BooleanSupplier on, Chats chats) {
+        try {
+            HookStatus.invoked(FamilyNames.THREAD_SEEN);
+            if (!on.getAsBoolean()) return false;
+            ReadHere kept = opened();
+            // With no chat kept, nothing was opened while its receipt was held.
+            if (kept == null || kept.isEmpty()) return false;
+            String account = chats.accountId(session);
+            String id = chats.threadId(chats.chatKey(thread));
+            String newest = chats.newestMessage(thread);
+            if (isEmpty(account) || isEmpty(id) || isEmpty(newest)) return false;
+            return kept.readUpTo(account, id, newest);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, READ, t);
+            return false;
+        }
+    }
+
+    /**
      * Whether [receipt] goes through because its message was marked read on [session]'s account.
      * With no mark kept, the receipt isn't read at all. Anything that can't be read leaves it held,
      * and the failure is reported.
@@ -350,6 +412,25 @@ public final class ThreadSeen {
     }
 
     /**
+     * Keeps [receipt]'s chat read here up to the message it points at, while [here] says so. A
+     * receipt that can't be read is left out, and a failure is reported without changing the hold.
+     */
+    private static void keepRead(Object receipt, Object session, BooleanSupplier here, Chats chats, LongSupplier clock) {
+        try {
+            if (!here.getAsBoolean()) return;
+            ReadHere kept = opened();
+            if (kept == null) return;
+            String account = chats.accountId(session);
+            String thread = chats.threadId(chats.receiptKey(receipt));
+            String message = chats.receiptMessage(receipt);
+            if (isEmpty(account) || isEmpty(thread) || isEmpty(message)) return;
+            kept.read(account, thread, message, clock.getAsLong());
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, READ, t);
+        }
+    }
+
+    /**
      * The marks, kept in their own file in Instagram's main process and only in memory in any other.
      * Null before Instagram's context is set.
      */
@@ -367,19 +448,44 @@ public final class ThreadSeen {
         }
     }
 
-    /** Forgets every mark, on file too, for tests. */
+    /** The chats kept read here, kept like {@link #marks()}. Null before Instagram's context is set. */
+    private static ReadHere opened() {
+        synchronized (LOCK) {
+            if (opened == null) {
+                if (!Utils.settingsReady()) return null;
+                Context context = Utils.getContext();
+                if (context == null) return null;
+                opened = new ReadHere(Utils.isMainProcess()
+                        ? context.getSharedPreferences(ReadHere.FILE, Context.MODE_PRIVATE)
+                        : null);
+            }
+            return opened;
+        }
+    }
+
+    /** Forgets every mark and every chat kept read, on file too, for tests. */
     static void forgetMarks() {
         synchronized (LOCK) {
             ReadMarks current = marks();
             if (current != null) current.clear();
             marks = null;
+            ReadHere kept = opened();
+            if (kept != null) kept.clear();
+            opened = null;
         }
     }
 
-    /** Drops the marks read so far, as a restart does, so the next one is read from the file. For tests. */
+    /** How many chats are kept read here, for tests. */
+    static int openedForTests() {
+        ReadHere kept = opened();
+        return kept == null ? 0 : kept.size();
+    }
+
+    /** Drops the marks and chats read so far, as a restart does, so the next one is read from the file. For tests. */
     static void restartForTests() {
         synchronized (LOCK) {
             marks = null;
+            opened = null;
         }
     }
 
@@ -403,5 +509,10 @@ public final class ThreadSeen {
     /** Both switches, read the same way: chats stay unread only while their receipts are held. */
     static boolean keepsUnread() {
         return switchedOn() && Settings.KEEP_CHATS_UNREAD.get();
+    }
+
+    /** The switch on and Keep chats unread here off: an opened chat stays read here instead. */
+    static boolean readsHere() {
+        return switchedOn() && !Settings.KEEP_CHATS_UNREAD.get();
     }
 }

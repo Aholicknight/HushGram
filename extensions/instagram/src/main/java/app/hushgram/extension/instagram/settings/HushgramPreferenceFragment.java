@@ -771,7 +771,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                                 + "tap Mark as read.")));
                 messages.addPreference(toggle(context, Settings.KEEP_CHATS_UNREAD, L10n.t("Keep chats unread here"),
                         L10n.t("A chat you open stays unread in your messages on this phone until you long press it "
-                                + "and tap Mark as read. A newer message in it stays unread too.")));
+                                + "and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you "
+                                + "open stays read on this phone until a newer message comes in, even after your "
+                                + "messages refresh.")));
             }
             if (build.contains(PatchFamily.TYPING)) {
                 messages.addPreference(toggle(context, Settings.HIDE_TYPING, L10n.t("Hide that you're typing"),

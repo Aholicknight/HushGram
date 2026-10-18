@@ -323,7 +323,7 @@ Removes the stack of Instants (quick photos from friends) from your messages. Re
 Read messages without the seen receipt	Baca pesan tanpa tanda dilihat
 Opening a chat doesn't tell people you've seen their messages, and you still see when they've seen yours. To let one chat know, long press it in your messages and tap Mark as read.	Membuka chat tidak memberi tahu orang lain bahwa Anda sudah melihat pesan mereka, dan Anda tetap melihat kapan mereka melihat pesan Anda. Agar satu chat tahu, tekan lama chat itu di pesan Anda lalu ketuk Tandai sudah dibaca.
 Keep chats unread here	Biarkan chat belum dibaca di sini
-A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too.	Chat yang Anda buka tetap belum dibaca di pesan Anda di ponsel ini sampai Anda menekan lama chat itu lalu mengetuk Tandai sudah dibaca. Pesan yang lebih baru di dalamnya juga tetap belum dibaca.
+A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.	Chat yang Anda buka tetap belum dibaca di pesan Anda di ponsel ini sampai Anda menekan lama chat itu lalu mengetuk Tandai sudah dibaca. Pesan yang lebih baru di dalamnya juga tetap belum dibaca. Jika nonaktif, chat yang Anda buka tetap terbaca di ponsel ini sampai ada pesan yang lebih baru, meskipun pesan Anda dimuat ulang.
 # context: the toasts after tapping Mark as read on a chat's long press while seen receipts are held
 Marked as read	Ditandai sudah dibaca
 Couldn't mark as read	Tidak dapat menandai sudah dibaca

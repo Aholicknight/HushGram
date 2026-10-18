@@ -41,18 +41,21 @@ val readWithoutSeenReceiptPatch = bytecodePatch(
 }
 
 /**
- * Resolves the receipt's handler, everything Mark as read needs and where the chat store hears the
- * receipt's state before changing anything. Then holds the receipt back, offers Mark as read on a
- * chat's long press, lets the receipts of chats marked read through and keeps a held chat unread on
- * this phone.
+ * Resolves the receipt's handler, everything Mark as read needs, where the chat store hears the
+ * receipt's state and where the inbox asks whether a chat shows unread before changing anything.
+ * Then holds the receipt back, offers Mark as read on a chat's long press, lets the receipts of chats
+ * marked read through, keeps a held chat unread on this phone, or, with that turned off, keeps it
+ * read until a newer message comes in.
  */
 internal fun BytecodePatchContext.readWithoutSeenReceipt() {
     val seen = findThreadSeen()
     val marks = findMarkRead(seen)
     val unread = findKeepUnread(seen)
+    val read = findReadHere(marks.chat)
     holdBackThreadSeen(seen)
     markReadByHand(marks)
     keepChatsUnread(unread)
+    keepChatsRead(read)
 }
 
 /** [holdBackThreadSeen] on the handler this build resolves to, with nothing else hooked. */

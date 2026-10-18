@@ -315,7 +315,8 @@ public class Settings extends BaseSettings {
      * Under {@link #READ_WITHOUT_SEEN_RECEIPT}: a chat opened while its receipt is held stays unread
      * in your messages until Mark as read lets that receipt go (#184). Read each time Instagram
      * records a chat seen, so a change applies the next time a chat opens. On to start, so a held
-     * chat doesn't read as seen on this phone either.
+     * chat doesn't read as seen on this phone either. Off, a chat opened while its receipt is held
+     * stays read here until a newer message comes in, even after the inbox refreshes (#186).
      */
     public static final BooleanSetting KEEP_CHATS_UNREAD =
             new BooleanSetting("hushgram_keep_chats_unread", TRUE, parent(READ_WITHOUT_SEEN_RECEIPT));
