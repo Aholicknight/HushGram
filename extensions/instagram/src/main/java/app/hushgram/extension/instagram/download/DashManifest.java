@@ -359,6 +359,15 @@ final class DashManifest {
      */
     static Pick pickToConvert(List<Track> tracks, boolean allowAv1, DownloadQuality quality,
             Predicate<Track> convertible) {
+        return pickToConvert(tracks, allowAv1, quality, convertible, false);
+    }
+
+    /**
+     * As above. With [soundElsewhere], sound none of which is in such a profile (xHE-AAC only) leaves
+     * the pick without sound rather than without a pick: the caller takes the sound from elsewhere.
+     */
+    static Pick pickToConvert(List<Track> tracks, boolean allowAv1, DownloadQuality quality,
+            Predicate<Track> convertible, boolean soundElsewhere) {
         List<Track> pictures = new ArrayList<>();
         for (Track track : tracks) {
             if (track.isVideo() && (track.codecs.startsWith("vp09") || track.codecs.startsWith("av01"))
@@ -370,7 +379,7 @@ final class DashManifest {
         if (video == null) return null;
 
         Track audio = bestCompatibleAudio(tracks);
-        if (audio == null && hasSound(tracks)) return null;
+        if (audio == null && hasSound(tracks) && !soundElsewhere) return null;
         return new Pick(video, audio);
     }
 

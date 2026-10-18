@@ -142,6 +142,27 @@ final class DashSave {
         long maxBytes,
         Downloader.Progress progress
     ) {
+        return save(application, video, audio, null, convert, orAsItIs, sink, policy, maxBytes, progress);
+    }
+
+    /**
+     * As above. With [soundFrom] and no [audio], the sound is the one in the single file at
+     * [soundFrom], fetched whole: the join takes its sound track and leaves its picture (#236). Only a
+     * converted picture is joined that way, so a conversion that fails ends the save.
+     */
+    static Downloader.Result save(
+        Context application,
+        DashManifest.Track video,
+        DashManifest.Track audio,
+        String soundFrom,
+        boolean convert,
+        boolean orAsItIs,
+        Downloader.Sink sink,
+        MediaUrlPolicy policy,
+        long maxBytes,
+        Downloader.Progress progress
+    ) {
+        String soundUrl = audio != null ? audio.url : soundFrom;
         File videoFile = null;
         File audioFile = null;
         File converted = null;
@@ -156,11 +177,11 @@ final class DashSave {
                 progress);
             if (!result.ok()) return result;
 
-            if (audio != null) {
+            if (soundUrl != null) {
                 audioFile = File.createTempFile("audio", ".mp4", folder);
                 // One count for the pair: the sound's bytes go on from the picture's.
-                result = fetchWork(audio.url, Downloader.Kind.AUDIO, audioFile, policy,
-                    maxBytes - videoFile.length(), Downloader.after(videoFile.length(), progress));
+                result = fetchWork(soundUrl, audio != null ? Downloader.Kind.AUDIO : Downloader.Kind.VIDEO, audioFile,
+                    policy, maxBytes - videoFile.length(), Downloader.after(videoFile.length(), progress));
                 if (!result.ok()) return result;
             }
 
@@ -178,7 +199,7 @@ final class DashSave {
                     converted = null;
                     holdTo(videoFile, videoFile.length());
                     isH264 = true;
-                } else if (!orAsItIs || result.status == Downloader.Status.CANCELLED) {
+                } else if (!orAsItIs || audio == null && soundFrom != null || result.status == Downloader.Status.CANCELLED) {
                     return result;
                 } else {
                     Downloader.Result failed = result;

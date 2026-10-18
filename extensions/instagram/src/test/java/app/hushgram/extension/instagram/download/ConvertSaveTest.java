@@ -216,7 +216,41 @@ public class ConvertSaveTest {
         assertFalse(report, report.contains("saving the tracks as they are"));
     }
 
-    /** A conversion keeps the sound as it is, so a picture whose only sound is xHE-AAC isn't converted. */
+    /**
+     * The reel the S22 found (#236): its 1080p only as AV1 and its only DASH sound xHE-AAC, beside a
+     * 720p single file. The AV1 is converted and joined with the single file's sound, the sound a
+     * save of that file keeps anyway. Refused before it connects here, it saves the single file.
+     */
+    @Test
+    public void withOnlyXheAacSoundTheConvertedPictureTakesTheSingleFilesSound() throws Exception {
+        String xheOnly = manifest(representation(AV1, 1080, 1920, 1_525_000, "1080p", "v1080"),
+                sound("mp4a.40.42", 84_000, "xhe"));
+        String report = save(true, true, xheOnly, HD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: video/mp4 " + AV1
+                + " 1080x1920 1525kbps 1080p + the sound of mp4 (720p), instead of mp4 (720p)" + CONVERTED
+                + ", the manifest's sound being only xHE-AAC\n"));
+        assertFalse(report, report.contains("saving the single file instead"));
+        assertTrue(report, report.contains(", saving mp4 (720p)"));
+
+        MediaSave.DashChoice choice = MediaSave.DashChoice.of(DashManifest.parse(xheOnly), SavesForTests.renditions(HD),
+                DownloadQuality.BEST, true, true, track -> true);
+        assertTrue(choice.converts);
+        assertTrue(choice.soundFromFile);
+        assertNull("the xHE-AAC track isn't joined", choice.taken.audio);
+        choice = MediaSave.DashChoice.of(DashManifest.parse(MANIFEST), SavesForTests.renditions(SD),
+                DownloadQuality.BEST, true, true, track -> true);
+        assertFalse("the manifest's AAC-LC is used where there is one", choice.soundFromFile);
+
+        // A 1080p single file ties, and is saved whole as before.
+        report = save(true, true, xheOnly, FULL);
+        assertFalse(report, report.contains(CONVERTED));
+        assertTrue(report, report.contains("saving the single file instead"));
+    }
+
+    /**
+     * A conversion keeps the sound as it is, so with no single file to take the sound from, a
+     * picture whose only sound is xHE-AAC isn't converted.
+     */
     @Test
     public void aPictureWithOnlyXheAacSoundIsntConverted() throws Exception {
         String xheOnly = manifest(representation(AV1, 1080, 1920, 1_525_000, "1080p", "v1080"),
