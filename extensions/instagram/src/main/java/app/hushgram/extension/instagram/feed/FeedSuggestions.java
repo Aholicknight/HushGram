@@ -844,8 +844,9 @@ public final class FeedSuggestions {
      * seen on a phone 2026-10-17). The title is the card's own text, not the section's name.
      * Answers "" while Hide suggested posts is on and the section the card's group set has open
      * shows nothing, as {@link #sectionTitle} decides, and [title] otherwise: for a card without a
-     * group set or with the switch off, and when anything goes wrong. The card hides a title it's
-     * handed empty. Its subtitle and the link stay. Never throws.
+     * group set or with the switch off, and when anything goes wrong. 451's caught up card drops a
+     * title it's handed empty (seen on a phone), and other end of feed holders may leave a blank row
+     * instead. Its subtitle and the link stay. Never throws.
      */
     public static String caughtUpTitle(String title, Object card) {
         if (title == null || title.isEmpty() || card == null) return title;

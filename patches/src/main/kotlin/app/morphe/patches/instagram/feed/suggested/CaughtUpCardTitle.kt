@@ -58,13 +58,18 @@ private val BIND_VIEW = listOf("I", "Landroid/view/View;", OBJECT, OBJECT)
  * it: the card's data, the data's group set, a new sections view of that group set, and the view's
  * lookup by the open section's id.
  *
- * The binder reaches the link only when the card draws its group set's Older posts link beside the
- * title, which makes the title that section's header: a card with buttons, or without a group set,
- * never gets there. [write] fills the extension's stub with the walk and, right before the link's
- * text is read, sets the holder's title and subtitle again, the title through
- * FeedSuggestions.caughtUpTitle, so a card whose open section shows nothing gets no title. The
- * subtitle and the link stay. The card's own text is its title, not the section's name: "Suggested
- * for you" over a section named "Suggested Posts" (#104, seen on a phone 2026-10-17).
+ * The binder reaches the link only when the card draws an Older posts link beside the title, and a
+ * card with buttons never gets there. On 451 that title stands as the open section's header, seen on
+ * a phone. The link being there is taken as the sign the title is a header, which 451 shows and no
+ * other build has proven. A card without a group set reaches the link too, with the fallback section
+ * its getter makes, but the stub finds no section for it, so it keeps its title.
+ *
+ * [write] fills the extension's stub with the walk and, right before the link's text is read, sets
+ * the holder's title and subtitle again, the title through FeedSuggestions.caughtUpTitle, which
+ * answers "" when the open section shows nothing. Seven of 451's nine holders behind that call hide
+ * an empty title, LX/07Ks leaves a blank row and LX/0OUh ignores it. The caught up card's (LX/06ML)
+ * drops it, seen on a phone. The subtitle and the link stay. The card's own text is its title, not
+ * the section's name: "Suggested for you" over a section named "Suggested Posts" (#104, 2026-10-17).
  */
 internal class CaughtUpCardTitle(
     val binder: String,

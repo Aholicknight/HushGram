@@ -139,6 +139,31 @@ class CaughtUpCardTitleTest {
     @Test
     fun aJumpOntoTheLinkFailsTheFind() = refused("jumps between", classes(jumpTo = LINK_AT))
 
+    /** Onto the card's section getter, between the title and the link: neither is a jump target. */
+    @Test
+    fun aJumpIntoTheMiddleFailsTheFind() = refused("jumps between", classes(jumpTo = TITLE_AT + 1))
+
+    /** The hook's reads name the card in a four bit register. */
+    @Test
+    fun aCardPastV15FailsTheFind() = refused("past v15", classes(cardRegister = 16))
+
+    @Test
+    fun aLinkBeforeTheCardFailsTheFind() = refused("sets the link before it casts the card", classes(linkFirst = true))
+
+    @Test
+    fun aSubtitleFromElsewhereFailsTheFind() = refused("aren't read from", classes(subtitleOwner = SECTION))
+
+    /** v1, the title, read again by the holder after the link: the hook borrows v2 instead. */
+    @Test
+    fun aRegisterReadAfterTheLinkIsntBorrowed() {
+        val context = PatchContexts.of(classes(titleReadAfter = true))
+        val found = context.findCaughtUpCardTitle()
+
+        assertEquals(listOf(0, 2), found.scratch)
+        found.write(context, itemsFilled = false)
+        assertHooked("v1 read after the link", context, found, itemsFilled = false)
+    }
+
     /** A card that draws no group set link has no section header to drop. */
     @Test
     fun noLinkFailsTheFind() = refused("expected one link", classes(link = false))
@@ -330,32 +355,43 @@ class CaughtUpCardTitleTest {
             jumpTo: Int? = null,
             link: Boolean = true,
             titleOwner: String = DATA,
+            subtitleOwner: String = DATA,
             sectionsFlags: Int = PUBLIC_FINAL,
             idFlags: Int = PUBLIC_FINAL,
+            /** Where the card is cast. A register past v15 is a stand-in that only the find reads. */
+            cardRegister: Int = 8,
+            /** The link's read and call right after the holder's cast, ahead of the card's. */
+            linkFirst: Boolean = false,
+            titleReadAfter: Boolean = false,
         ): List<ClassDef> {
             val setTitles = { invoke(Opcode.INVOKE_VIRTUAL, 3, 3, 1, 0, HOLDER, "setTitles", listOf(STRING, STRING), "V") }
+            val linkCode = listOf(
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 9, field(SECTION, "link", STRING)),
+                invoke(Opcode.INVOKE_VIRTUAL, 3, 3, 0, 7, HOLDER, "setLink", listOf(STRING, LISTENER), "V"),
+            )
             val code = mutableListOf<Instruction>(
                 ImmutableInstruction12x(Opcode.MOVE_OBJECT, 8, 12),
                 ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(END_CARD_HOLDER)),
                 ImmutableInstruction21c(Opcode.CHECK_CAST, 3, ImmutableTypeReference(HOLDER)),
                 ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(END_CARD_UNIT)),
-                ImmutableInstruction21c(Opcode.CHECK_CAST, 8, ImmutableTypeReference(CARD)),
+                ImmutableInstruction21c(Opcode.CHECK_CAST, cardRegister, ImmutableTypeReference(CARD)),
                 ImmutableInstruction22c(Opcode.IGET_OBJECT, 6, 8, field(CARD, "data", DATA)),
                 ImmutableInstruction22c(Opcode.IGET_OBJECT, 1, 6, field(titleOwner, "title", STRING)),
-                ImmutableInstruction22c(Opcode.IGET_OBJECT, if (cardWritten) 8 else 0, 6, field(DATA, "subtitle", STRING)),
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, if (cardWritten) 8 else 0, 6, field(subtitleOwner, "subtitle", STRING)),
                 // Without a write over the card, the subtitle's register; with one, the card's own.
-                if (cardWritten) ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 6, field(DATA, "subtitle", STRING))
+                if (cardWritten) ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 6, field(subtitleOwner, "subtitle", STRING))
                 else ImmutableInstruction10x(Opcode.NOP),
                 setTitles(),
                 invoke(Opcode.INVOKE_VIRTUAL, 1, 8, 0, 0, CARD, "section", emptyList(), SECTION),
                 ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 9),
             )
             if (titleCalls == 2) code += setTitles()
+            if (link && linkFirst) code.addAll(3, linkCode)
             if (link) {
-                code += ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 9, field(SECTION, "link", STRING))
-                code += invoke(Opcode.INVOKE_VIRTUAL, 3, 3, 0, 7, HOLDER, "setLink", listOf(STRING, LISTENER), "V")
+                if (!linkFirst) code += linkCode
                 code += invoke(Opcode.INVOKE_VIRTUAL, 2, 3, 8, 0, HOLDER, "bindCard", listOf(CARD), "V")
             }
+            if (titleReadAfter) code += invoke(Opcode.INVOKE_VIRTUAL, 2, 3, 1, 0, HOLDER, "describe", listOf(STRING), "V")
             // A goto from below back onto the title's call or the link's read.
             if (jumpTo != null) code += ImmutableInstruction10t(Opcode.GOTO, -(code.drop(jumpTo).sumOf { it.codeUnits }))
             code += ImmutableInstruction10x(Opcode.RETURN_VOID)
