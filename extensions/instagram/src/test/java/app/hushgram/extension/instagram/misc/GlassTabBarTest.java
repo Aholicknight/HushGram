@@ -341,6 +341,7 @@ public class GlassTabBarTest {
             host.controller.pause().resume();
             host.frame();
             assertEquals("no sheet holder yet", 0, GlassTabBar.navBarHeight(nav));
+            assertEquals("a reel away from the pill stops above the handle (#221)", nav, GlassTabBar.reelsRoomWhileAway());
             host.frame();
             int height = host.bar.getLayoutParams().height;
 
@@ -359,6 +360,7 @@ public class GlassTabBarTest {
             assertTrue("a sheet came up, the insets went round again", insets.get() > asked);
             assertEquals("under a sheet", nav, GlassTabBar.navBarHeight(nav));
             assertTrue("and the answer says a sheet gave it", GlassTabBar.answeredForASheet());
+            assertEquals("Instagram keeps the screens above the handle itself", 0, GlassTabBar.reelsRoomWhileAway());
             host.frame();
             assertEquals("the pill keeps its room under the sheet", height, host.bar.getLayoutParams().height);
 
@@ -380,6 +382,8 @@ public class GlassTabBarTest {
             holder.setVisibility(View.GONE);
             host.frame();
             assertEquals("the holder set to GONE", 0, GlassTabBar.navBarHeight(nav));
+            assertEquals("full screen, no navigation bar to stop above", 0, GlassTabBar.navBarHeight(0));
+            assertEquals(0, GlassTabBar.reelsRoomWhileAway());
 
             String report = String.join("\n", HookStatus.report());
             assertTrue(report, report.contains(GlassTabBar.COUNT_NAV_UNDER_SHEET));

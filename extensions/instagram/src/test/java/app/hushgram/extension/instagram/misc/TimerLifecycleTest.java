@@ -112,6 +112,7 @@ public class TimerLifecycleTest {
         Settings.SAVED_ON_PROFILE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
+        GlassTabBar.resetForTests();
         controller.close();
     }
 
@@ -304,6 +305,52 @@ public class TimerLifecycleTest {
         idle(500);
         assertEquals("the pill is back", 0f, tabs.getTranslationY(), 0f);
         assertEquals("and the reel stops above it again", pill, bottomMargin(viewer));
+        GlassTabBar.restoreAll();
+    }
+
+    /**
+     * #221: with the screens run behind the gesture handle, a pill slid away gives the reel its room back
+     * only down to the navigation bar's height Instagram was answered 0 for. Run to the bottom edge, the
+     * reel's seek bar sat in the handle's reach and took no touches.
+     */
+    @Test public void aReelGivenTheRoomBackStillStopsAboveTheGestureHandle() {
+        LinearLayout tabs = namedTabBar();
+        FrameLayout viewer = showReels();
+        Settings.GLASS_TAB_BAR.save(true);
+        Settings.GLASS_TAB_BAR_REELS_HIDE.save(GlassReelsHide.TWO_SECONDS);
+        GlassTabBar.apply(activity);
+        GlassTabBar.nowInFront(activity);
+        assertEquals("the screens run behind the handle", 0, GlassTabBar.navBarHeight(63));
+        // Instagram lays its screens out again with the answer; the next frame gives the pill its room.
+        idle(GlassTabBar.REELS_LOOK_MS * 2);
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
+        layout();
+        idle(500);
+        int pill = tabs.getLayoutParams().height;
+        assertEquals("the pill made room for the handle", 150 + 63, pill);
+        assertEquals("above the pill while it shows", pill, bottomMargin(viewer));
+        int[] at = new int[2];
+        tabs.getLocationOnScreen(at);
+        float x = at[0] + tabs.getWidth() / 2f, y = at[1] + tabs.getHeight() / 2f;
+
+        idle(2500);
+        assertTrue("the pill slid away", tabs.getTranslationY() > 50f);
+        idle(500);
+        assertEquals("the reel stops above the handle", 63, bottomMargin(viewer));
+
+        long now = SystemClock.uptimeMillis();
+        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, x, y, 0);
+        MotionEvent up = MotionEvent.obtain(now, now + 40, MotionEvent.ACTION_UP, x, y, 0);
+        try {
+            activity.getWindow().getCallback().dispatchTouchEvent(down);
+            activity.getWindow().getCallback().dispatchTouchEvent(up);
+        } finally {
+            down.recycle();
+            up.recycle();
+        }
+        idle(500);
+        assertEquals("the pill is back", 0f, tabs.getTranslationY(), 0f);
+        assertEquals("and the reel stops above it again", tabs.getLayoutParams().height, bottomMargin(viewer));
         GlassTabBar.restoreAll();
     }
 
