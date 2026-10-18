@@ -476,10 +476,13 @@ public enum PatchFamily {
             return line.append("no switch, stays in while paused: ").append(staysWhilePaused).toString();
         }
         boolean anyOn = false;
-        // A switch with switches under it acts only through them, and one under a switch that's off
-        // does nothing, whatever it holds.
+        // One under a switch that's off does nothing, whatever it holds. Turn off double tap to like
+        // acts only through the places under it, while every other switch with switches under it
+        // acts on its own and those only change how.
         Set<Object> parents = new HashSet<>();
-        for (BooleanSetting setting : switches) parents.addAll(setting.getParentSettings());
+        if (this == DOUBLE_TAP_LIKE) {
+            for (BooleanSetting setting : switches) parents.addAll(setting.getParentSettings());
+        }
         for (BooleanSetting setting : switches) {
             anyOn |= setting.savedValue() && setting.isAvailable() && !parents.contains(setting);
         }
