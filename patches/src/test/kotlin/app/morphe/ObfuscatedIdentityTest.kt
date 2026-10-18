@@ -46,6 +46,7 @@ class ObfuscatedIdentityTest {
         assertTrue(identitiesIn("""category("Ads")""", extensionTree = false).isEmpty())
         assertTrue(identitiesIn("""L10n.t(context, "Bio")""", extensionTree = true).isEmpty())
         assertTrue(identitiesIn("""if (name.startsWith("X.")) walk()""", extensionTree = true).isEmpty())
+        assertTrue(identitiesIn("""if (mode == BITRATE_MODE_CBR) return "CBR";""", extensionTree = true).isEmpty())
     }
 
     @Test
@@ -132,8 +133,9 @@ class ObfuscatedIdentityTest {
 
         /**
          * Names that match a shape above and are nobody's invention: the patch category, framework
-         * members compared by name, file extensions, and the label Copy bio gives the clipboard.
+         * members compared by name, file extensions, the label Copy bio gives the clipboard, and the
+         * encoder bitrate mode the converted-save report names.
          */
-        val REAL_NAMES = setOf("Ads", "Bio", "add", "get", "put", "run", "id", "raw", "mp3", "mp4", "m4a", "m4v")
+        val REAL_NAMES = setOf("Ads", "Bio", "CBR", "add", "get", "put", "run", "id", "raw", "mp3", "mp4", "m4a", "m4v")
     }
 }
