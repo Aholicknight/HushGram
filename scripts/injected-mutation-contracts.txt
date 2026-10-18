@@ -696,6 +696,10 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPolicyAs
 # right before the title's setText, so a section the switch emptied shows only its Older posts link (#104). Its bindView
 # is the one method holding both cast messages below. Left out, the Suggested for you title sits over nothing.
 once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->sectionTitle(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String; in instance (ILandroid/view/View;Ljava/lang/Object;Ljava/lang/Object;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.mainfeed.unconnectedcontent.GroupSetHeaderViewBinder.Holder null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.feed.feeditem.FeedItemGroupSet
+# On 451 the end of feed card's own binder shows that title, through the holder's (title, subtitle) call, and the group
+# set's header isn't drawn. That call's title goes through caughtUpTitle() first. The binder's bindView is the one method
+# holding both cast messages below. Left out, the caught up card's Suggested for you title sits over nothing.
+once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->caughtUpTitle(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String; in instance (ILandroid/view/View;Ljava/lang/Object;Ljava/lang/Object;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.feed.feeditem.EndOfFeedDemarcatorUnit null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.mainfeed.unconnectedcontent.demarcator.EndOfFeedUnitDemarcatorHolder
 #
 # Hide Meta AI answers each read of Meta AI's search flags through searchFlag(), right after the
 # read. The messages inbox's setup, the invoke() holding "direct_inbox" and "hatch_channel_enabled",

@@ -57,14 +57,15 @@ internal class SuggestedSectionHeader(
     val items: FieldReference,
     private val stub: MutableMethod,
 ) {
-    fun write(context: BytecodePatchContext) {
+    /** Whether it hooked the title, and so filled the items stub. */
+    fun write(context: BytecodePatchContext): Boolean {
         val bind = context.mutableClassDefBy(GROUP_SET_BINDER).methods.single { it.isBindView() }
         // Found before the patch's other steps wrote anything: if one moved the title's setText, leave the header be.
         val now = bind.implementation?.instructions?.toList()?.takeIf { titleAt < it.size }?.let { titleSetAt(it, titleAt) }
         if (now == null || now.text != text || now.section != section) {
             patchLog.warning("$PATCH: the Suggested for you header's title moved before it was hooked. " +
                 "The header keeps its title when nothing is left under it.")
-            return
+            return false
         }
         stub.addInstructions(
             0,
@@ -82,6 +83,7 @@ internal class SuggestedSectionHeader(
                 move-result-object v$text
             """,
         )
+        return true
     }
 }
 

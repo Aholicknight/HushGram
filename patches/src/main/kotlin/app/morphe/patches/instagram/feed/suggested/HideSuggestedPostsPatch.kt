@@ -92,12 +92,15 @@ val hideSuggestedPostsPatch = bytecodePatch(
         val nextPage = homeNextPageOrWarn()
         // The Suggested for you header after Home's end of feed card (#104). A build without it keeps the title.
         val sectionHeader = suggestedSectionHeaderOrWarn()
+        // On 451 the end of feed card shows that title itself, over the same section (#104).
+        val caughtUpTitle = caughtUpCardTitleOrWarn(sectionHeader)
         filterSuggestedFeedItems()
         endFollowingAtItsCard()
         // The Older Posts page's loading row, a separate builder; a build without it keeps Instagram's row.
         endOlderPostsSpinnerOrWarn()
         nextPage?.write(this)
-        sectionHeader?.write(this)
+        val itemsFilled = sectionHeader?.write(this) == true
+        caughtUpTitle?.write(this, itemsFilled)
         exploreShops.write(this)
         productTags.write(this)
         interest.write(this)
