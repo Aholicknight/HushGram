@@ -922,8 +922,8 @@ public class Settings extends BaseSettings {
 
     /**
      * Under {@link #GLASS_TAB_BAR}: on the Reels screen the pill slides away once the screen has gone this
-     * long without a touch ({@link app.hushgram.extension.instagram.misc.GlassReelsHide}, #170). A touch where
-     * the pill sits, a tab change or Back brings it back. It has nothing to do with
+     * long without a touch ({@link app.hushgram.extension.instagram.misc.GlassReelsHide}, #170). A tap where
+     * the pill sits, a tab change or Back brings it back. A drag there is the reel's seek bar's (#221). It has nothing to do with
      * {@link #GLASS_TAB_BAR_HIDE_ON_SCROLL}, which leaves the bar alone on every reel. Starts on never. Read
      * as the bar is built, so a change asks for a restart.
      */

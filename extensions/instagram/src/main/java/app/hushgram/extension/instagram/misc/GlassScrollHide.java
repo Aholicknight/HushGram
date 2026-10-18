@@ -53,8 +53,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>"Hide the tab bar on Reels" (#170) is a second way out with a setting of its own, since no scroll hides
  * the bar on a reel. There a wait does it: it starts over when a touch ends, on Back and when the screen
  * comes to the front, and if it runs out with the Reels viewer on screen and no finger down, the bar slides
- * away the same way. A swipe to another reel leaves it away, whichever way the finger goes. A finger put
- * down where the bar sits brings it back, and the wait starts again when that finger lifts. While the bar
+ * away the same way. A swipe to another reel leaves it away, whichever way the finger goes. A tap where the
+ * bar sits brings it back as the finger lifts, and the wait starts again then. A drag there is left to the
+ * reel, whose seek bar sits in the bar's place while it's away (#221), and the bar stays away. While the bar
  * is away for a reel the timer looks at the viewer in place of a list, and brings the bar back as soon as
  * the viewer isn't the screen showing. The wait is one delayed call, dropped whenever the bar is put back
  * at once, and never made with the choice on Never.
@@ -162,6 +163,8 @@ final class GlassScrollHide {
     private final long reelsMillis;
     private final float density;
     private final float slop;
+    /** How far a finger may move and still be a tap, the system's own touch slop. */
+    private final float touchSlop;
     private final Drag drag = new Drag();
     private final Rect rect = new Rect();
     private final Rect other = new Rect();
@@ -185,6 +188,12 @@ final class GlassScrollHide {
     /** Whether a window's watcher hands this its touches. Without them nothing could bring the bar back, so no wait starts. */
     private boolean installed;
     private boolean fingerDown;
+    /**
+     * Whether the finger down went where the bar sits while it's away for a reel and hasn't moved off as a
+     * drag yet, so its lift is a tap that brings the bar back.
+     */
+    private boolean tapAtHome;
+    private float homeDownX, homeDownY;
     /** What shrinks the bar in place of a scroll sliding it away, or null. The wait on Reels still slides it. */
     @Nullable private final Shrinker shrinker;
     /** Whether a scroll shrank the bar, in place of sliding it away. */
@@ -222,7 +231,8 @@ final class GlassScrollHide {
         this.reelsMillis = Math.max(0L, reelsMillis);
         this.shrinker = shrinker;
         this.density = bar.getResources().getDisplayMetrics().density;
-        this.slop = Math.max(SLOP_DP * density, ViewConfiguration.get(bar.getContext()).getScaledTouchSlop());
+        this.touchSlop = ViewConfiguration.get(bar.getContext()).getScaledTouchSlop();
+        this.slop = Math.max(SLOP_DP * density, touchSlop);
     }
 
     boolean isHidden() {
@@ -316,6 +326,7 @@ final class GlassScrollHide {
             if (hidden) restoreNow();
             disarm();
             fingerDown = false;
+            tapAtHome = false;
             drag.cancel();
             return;
         }
@@ -324,10 +335,15 @@ final class GlassScrollHide {
                 fingerDown = true;
                 disarm();
                 refused = false;
+                tapAtHome = false;
                 if (byReels && atHome(event)) {
-                    // Away for a reel, and a finger where the bar sits wants it back. That is all this touch does.
+                    // Away for a reel, and a finger where the bar sits. The reel's seek bar is there now (#221),
+                    // so only a tap wants the bar back, at its lift. Moving the reel up under a finger that
+                    // went down on the seek bar lost the drag. That is all this touch does.
                     drag.cancel();
-                    slideBack(COUNT_TAPPED_BACK);
+                    tapAtHome = true;
+                    homeDownX = event.getRawX();
+                    homeDownY = event.getRawY();
                     return;
                 }
                 if (shrunk && onBar(event)) {
@@ -350,6 +366,9 @@ final class GlassScrollHide {
                 drag.start(event.getRawX(), event.getRawY());
                 break;
             case MotionEvent.ACTION_MOVE:
+                if (tapAtHome && Math.hypot(event.getRawX() - homeDownX, event.getRawY() - homeDownY) > touchSlop) {
+                    tapAtHome = false;
+                }
                 if (!drag.isActive()) return;
                 if (findScrollerAtMove) {
                     findScrollerAtMove = false;
@@ -367,11 +386,14 @@ final class GlassScrollHide {
                 break;
             case MotionEvent.ACTION_POINTER_DOWN:
                 drag.cancel();
+                tapAtHome = false;
                 break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 drag.cancel();
                 fingerDown = false;
+                if (tapAtHome && event.getActionMasked() == MotionEvent.ACTION_UP) slideBack(COUNT_TAPPED_BACK);
+                tapAtHome = false;
                 arm();
                 break;
             default:

@@ -631,7 +631,7 @@ public class GlassScrollHideTest {
         assertTrue(hide.isOffScreen());
     }
 
-    @Test public void aTouchWhereTheBarSitsBringsItBackAndTheWaitTakesItAwayAgain() {
+    @Test public void aTapWhereTheBarSitsBringsItBackAndTheWaitTakesItAwayAgain() {
         HookStatus.clear();
         try {
             onReels(true, 2000);
@@ -639,20 +639,51 @@ public class GlassScrollHideTest {
             settle();
             assertTrue(hide.isOffScreen());
             touch(MotionEvent.ACTION_DOWN, 500, 1850);
-            assertFalse(hide.isHidden());
+            idle(10_000);
+            assertTrue("a finger down there may be on the reel's seek bar, so it waits for the lift (#221)",
+                    hide.isOffScreen());
+            touch(MotionEvent.ACTION_UP, 500, 1850);
+            assertFalse("the lift of a tap brings it back", hide.isHidden());
             settle();
             assertEquals(0f, bar.getTranslationY(), 0.5f);
-            idle(10_000);
+            idle(1500);
             assertFalse("the wait starts when the finger lifts", hide.isHidden());
-            touch(MotionEvent.ACTION_UP, 500, 1850);
-            idle(1900);
-            assertFalse(hide.isHidden());
             idle(200);
             assertTrue(hide.isHidden());
             String report = HookStatus.report().toString();
             assertTrue(report, report.contains(GlassScrollHide.COUNT_REELS_HID + " 2"));
             assertTrue(report, report.contains(GlassScrollHide.COUNT_TAPPED_BACK + " 1"));
             assertFalse(report, report.contains(GlassScrollHide.COUNT_SHOWED));
+        } finally {
+            HookStatus.clear();
+        }
+    }
+
+    /**
+     * #221: while the bar is away for a reel, the reel's seek bar sits where the bar was. A drag there is the
+     * seek bar's, so the bar stays away and the reel doesn't move under the finger. A tap still brings it back.
+     */
+    @Test public void aDragWhereTheBarSitsIsTheSeekBarsAndLeavesItAway() {
+        HookStatus.clear();
+        try {
+            onReels(true, 2000);
+            idle(2100);
+            settle();
+            assertTrue(hide.isOffScreen());
+            touch(MotionEvent.ACTION_DOWN, 300, 1850);
+            for (int i = 1; i <= 10; i++) touch(MotionEvent.ACTION_MOVE, 300 + 50 * i, 1850);
+            touch(MotionEvent.ACTION_UP, 800, 1850);
+            settle();
+            assertTrue("a drag on the seek bar leaves the bar away", hide.isOffScreen());
+            idle(10_000);
+            assertTrue(hide.isOffScreen());
+            // A finger that drifts less than a tap's slop is still a tap.
+            touch(MotionEvent.ACTION_DOWN, 500, 1850);
+            touch(MotionEvent.ACTION_MOVE, 502, 1851);
+            touch(MotionEvent.ACTION_UP, 502, 1851);
+            assertFalse(hide.isHidden());
+            String report = HookStatus.report().toString();
+            assertTrue(report, report.contains(GlassScrollHide.COUNT_TAPPED_BACK + " 1"));
         } finally {
             HookStatus.clear();
         }

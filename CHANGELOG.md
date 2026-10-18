@@ -35,6 +35,7 @@ Every HushGram release, newest first.
 * **Instagram - Hide suggested posts:** On Instagram 451 the "You've seen the latest posts" card draws the Suggested for you title itself, so it stayed with nothing under it. It goes away there too now, and Older posts stays. Reported in #104.
 
 * **Instagram - Glass tab bar:** With Hide the tab bar on Reels, a reel given the room back once the pill slid away ran under the gesture bar or the navigation buttons, where its seek bar couldn't be dragged. It stops just above them now. Reported in #221.
+* **Instagram - Glass tab bar:** With Hide the tab bar on Reels, dragging a reel's seek bar while the pill is away moves through the reel instead of only bringing the pill back. A tap there still brings it back. Reported in #221.
 
 ### Improvements
 
