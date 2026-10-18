@@ -101,8 +101,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * A tap on the video playing in a feed pauses it in place instead of opening it in Reels, and the
  * next tap plays it again.
  *
- * The text promises only the pause until a device run shows taps alternating any number of times.
- * The pause leaves the controller's playing item bound (only its bind and the player's stop
+ * The text promises the play too since the S22 on 451 (385713073) showed a tap pausing and the next
+ * one playing, through the tap handler both times (2026-10-15). The pause leaves the controller's playing item bound (only its bind and the player's stop
  * callback write it), so the next tap finds the same post and the controller's play resumes it: an
  * S25 run on 385611438 counted one tap left with nothing playing yet, one pause and one play, all in
  * place. Its fourth tap opened Reels without reaching the tap handler at all. That was a press held
@@ -145,8 +145,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 @Suppress("unused")
 val tapFeedVideoToPausePatch = bytecodePatch(
     name = "Tap a feed video to pause it",
-    description = "A tap on the video playing in a feed pauses it in place instead of opening it in Reels. Ads keep " +
-        "Instagram's own tap. Starts off. Turn it on in HushGram settings > Feed.",
+    description = "A tap on the video playing in a feed pauses it in place instead of opening it in Reels, and " +
+        "another tap plays it again. Ads keep Instagram's own tap. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     // Manager's Feed group is full at the fifteen PatchCategoriesTest allows. The switch is still under Feed in settings.
     category("Playback")

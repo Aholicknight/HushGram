@@ -34,6 +34,8 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* **Instagram - Tap a feed video to pause it:** The switch's description now says that tapping the paused video again plays it, which it already did. Asked for in #137.
+
 * **Instagram - Download any video:** New `Convert to keep the full size` switch, under Save videos other apps can open. A full size reel or story Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Reported in #236.
 
 * **Instagram:** The diagnostic report now lists every card type the stories viewer checks, ads included, and how often Instagram asked to show the Music for you card. From #111 and #154.
