@@ -10,6 +10,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.util.ControlFlow
@@ -44,31 +45,40 @@ internal const val CAUGHT_UP_TITLE = "$FEED_SUGGESTIONS->caughtUpTitle(Ljava/lan
 /** The extension's stub the patch fills to find the section an end of feed card shows under its title. */
 internal const val CAUGHT_UP_SECTION_STUB = "caughtUpSection"
 
-/** The extension's stub the patch fills to read a section's name, which the card's title has to be. */
-internal const val SECTION_NAME_STUB = "sectionName"
-
 private const val STRING = "Ljava/lang/String;"
 private const val OBJECT = "Ljava/lang/Object;"
 private const val LIST = "Ljava/util/List;"
 private val BIND_VIEW = listOf("I", "Landroid/view/View;", OBJECT, OBJECT)
 
 /**
- * The end of feed card's title, found: its binder, the index of the holder's (title, subtitle) call
- * and that call, the registers holding the title and the card, and the walk from the card to the
- * section its group set has open. The walk takes the card's data, the data's group set and a new
- * sections view of that group set from the card's own section getter, then looks up the view's own
- * open section id, the section the Suggested for you header titles. The getter itself looks up fixed
- * ids, the Older posts link's section among them. [write] fills the extension's stubs with that walk
- * and the section's [name] field, and passes the title through FeedSuggestions.caughtUpTitle right
- * before the call, so a card titled with the name of an open section that shows nothing gets no
- * title. The subtitle and the Older posts link stay.
+ * The end of feed card's title, found: its binder, the holder's (title, subtitle) call and the fields
+ * of the card's data it shows, the read of the link's text right before the holder's link call, the
+ * registers holding the holder and the card there, two registers nothing reads after it, and the
+ * walk from the card to the section its group set has open, as the card's own section getter walks
+ * it: the card's data, the data's group set, a new sections view of that group set, and the view's
+ * lookup by the open section's id.
+ *
+ * The binder reaches the link only when the card draws its group set's Older posts link beside the
+ * title, which makes the title that section's header: a card with buttons, or without a group set,
+ * never gets there. [write] fills the extension's stub with the walk and, right before the link's
+ * text is read, sets the holder's title and subtitle again, the title through
+ * FeedSuggestions.caughtUpTitle, so a card whose open section shows nothing gets no title. The
+ * subtitle and the link stay. The card's own text is its title, not the section's name: "Suggested
+ * for you" over a section named "Suggested Posts" (#104, seen on a phone 2026-10-17).
  */
 internal class CaughtUpCardTitle(
     val binder: String,
     val titleAt: Int,
     val titleCall: String,
-    val title: Int,
+    val titleField: String,
+    val subtitleField: String,
+    val linkAt: Int,
+    val linkRead: String,
+    val linkCall: String,
+    val holder: Int,
     val card: Int,
+    /** Two locals nothing reads after [linkAt]: the card's data, then its subtitle, and the title. */
+    val scratch: List<Int>,
     val cardType: String,
     val data: String,
     val groupSet: String,
@@ -80,16 +90,15 @@ internal class CaughtUpCardTitle(
     val sectionType: String,
     /** The section's list of items, for FeedSuggestions.sectionItems when the header's hook didn't fill it. */
     val items: String,
-    /** The section's name, the field the header's title is read from. */
-    val name: String,
 ) {
     /** [itemsFilled] when the header's hook already filled FeedSuggestions.sectionItems. */
     fun write(context: BytecodePatchContext, itemsFilled: Boolean) = with(context) {
         val bind = mutableClassDefBy(binder).methods.single { it.isBindView() }
-        // Found before the patch's other steps wrote anything: if one moved the title's call, leave the card be.
-        val now = bind.implementation?.instructions?.toList()?.getOrNull(titleAt)
-        if (now?.methodReference()?.toString() != titleCall || (now as FiveRegisterInstruction).registerD != title) {
-            patchLog.warning("$PATCH: the caught up card's title moved before it was hooked. " +
+        // Found before the patch's other steps wrote anything: if one moved the link, leave the card be.
+        val code = bind.implementation?.instructions?.toList()
+        val read = code?.getOrNull(linkAt)?.fieldReference()
+        if (read?.smali() != linkRead || code.getOrNull(linkAt + 1)?.methodReference()?.toString() != linkCall) {
+            patchLog.warning("$PATCH: the caught up card's link moved before it was hooked. " +
                 "The card keeps its Suggested for you title when nothing is left under it.")
             return@with
         }
@@ -121,14 +130,6 @@ internal class CaughtUpCardTitle(
                 )
             },
         )
-        staticStub(FEED_SUGGESTIONS, SECTION_NAME_STUB, STRING).addInstructions(
-            0,
-            """
-                check-cast p0, $sectionType
-                iget-object p0, p0, $name
-                return-object p0
-            """,
-        )
         if (!itemsFilled) {
             staticStub(FEED_SUGGESTIONS, SECTION_ITEMS_STUB, LIST).addInstructions(
                 0,
@@ -139,11 +140,16 @@ internal class CaughtUpCardTitle(
                 """,
             )
         }
+        val (fields, title) = scratch
         bind.addInstructions(
-            titleAt,
+            linkAt,
             """
+                iget-object v$fields, v$card, $data
+                iget-object v$title, v$fields, $titleField
                 invoke-static { v$title, v$card }, $CAUGHT_UP_TITLE
                 move-result-object v$title
+                iget-object v$fields, v$fields, $subtitleField
+                invoke-virtual { v$holder, v$title, v$fields }, $titleCall
             """,
         )
     }
@@ -154,25 +160,27 @@ internal class CaughtUpCardTitle(
  * loading both [END_CARD_HOLDER] and [END_CARD_UNIT]. In it:
  * - the card's register and class come from the first cast after [END_CARD_UNIT] and the holder's
  *   class from the first cast after [END_CARD_HOLDER];
- * - the title is the one call on the holder taking two Strings, its (title, subtitle). The card has
- *   to stay in its register from its cast to that call, and nothing may jump onto the call;
- * - the card's section getter is its one call on the card taking nothing and answering a class of the app.
- * On 451's 385713073 that's LX/05ws's bindView: LX/0Bft->A07 at 34 with the title in v1, and the
- * card, LX/06hB, in v8 with its getter A00.
+ * - the title is the one call on the holder taking two Strings, its (title, subtitle), each read
+ *   right there from a String field of the card's data;
+ * - the card's section getter is its one call on the card taking nothing and answering a class of the app;
+ * - the link is the one call on the holder taking a String read right before it from a String field
+ *   of the getter's section. The card has to stay in its register from its cast to the link, and
+ *   nothing may jump in between or onto the title's call or the link's read.
+ * On 451's 385713073 that's LX/05ws's bindView: LX/0Bft->A07 at 34 with LX/06LF->A0G and A0F, the
+ * card, LX/06hB, in v8 with its getter A00, and the link's read of LX/06LI->A04 at 58 before
+ * LX/0Bft->A06 on the holder in v3, with v0 and v1 free.
  *
  * In the getter, the one constructor taking one value, other than the section's, is the sections
  * view of the group set (LX/06LH from LX/06LE). The getter's read of a field of the group set's
  * class is the data's group set (LX/06LF->A05), and its read of a field of the data's class on the
  * card is the card's data (LX/06hB->A01). The sections view's call taking a String and answering
  * the getter's class is its lookup by id (LX/06LH->A00), and the one String its constructor keeps is
- * the open section's id (LX/06LH->A01), the id the header's binder matches its title's section by.
- * The section class (LX/06LI) has one list field, its items, and [sectionName] is the header's read
- * of its name (LX/06LI->A05). Every class and member the stubs reach has to be public, since the
- * extension calls them.
+ * the open section's id (LX/06LH->A01). The section class (LX/06LI) has one list field, its items.
+ * Every class and member the stub reaches has to be public, since the extension calls them.
  *
  * Anything else is an update this patch hasn't seen, and it stops.
  */
-internal fun BytecodePatchContext.findCaughtUpCardTitle(sectionName: FieldReference): CaughtUpCardTitle {
+internal fun BytecodePatchContext.findCaughtUpCardTitle(): CaughtUpCardTitle {
     val binds = mutableListOf<Pair<ClassDef, Method>>()
     classesHolding(END_CARD_HOLDER, END_CARD_UNIT).forEach { classDef ->
         classDef.methods.filter { it.isBindView() && it.loads(END_CARD_HOLDER) && it.loads(END_CARD_UNIT) }
@@ -193,15 +201,7 @@ internal fun BytecodePatchContext.findCaughtUpCardTitle(sectionName: FieldRefere
     }
     val titleAt = titles.singleOrNull()
         ?: refuse("expected one (String, String) call on the holder $holderType, found ${titles.size}")
-    val title = (code[titleAt] as FiveRegisterInstruction).registerD
-    if (card > 15 || title > 15) refuse("bindView keeps the card or the title past v15")
     if (titleAt <= cardAt) refuse("bindView sets the title before it casts the card")
-    if ((cardAt + 1 until titleAt).any { code[it].writes(card) }) refuse("bindView writes over the card before the title")
-    val flow = ControlFlow.of(bind)
-    val jumpsIn = flow.instructions.indices.any { from ->
-        (from < cardAt || from >= titleAt) && (flow.normal[from] + flow.exceptional[from]).any { it in cardAt + 1..titleAt }
-    }
-    if (jumpsIn || titleAt in bind.jumpTargets()) refuse("something jumps between the card's cast and the title")
 
     val getters = code.mapNotNull { it.methodReference() }.filter {
         it.definingClass == cardType && it.parameterTypes.isEmpty() && it.returnType.startsWith("L") &&
@@ -244,15 +244,41 @@ internal fun BytecodePatchContext.findCaughtUpCardTitle(sectionName: FieldRefere
     val sectionClass = classDefByOrNull(sectionType) ?: refuse("$sectionType isn't in this build")
     val lists = sectionClass.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == LIST }
     val items = lists.singleOrNull() ?: refuse("expected one list field in $sectionType, found ${lists.size}")
-    if (sectionName.definingClass != sectionType || sectionName.type != STRING) {
-        refuse("the header's section name ${sectionName.smali()} isn't a String of $sectionType")
+
+    val dataType = groupSet.definingClass
+    val titleCall = code[titleAt] as FiveRegisterInstruction
+    val (titleField, subtitleField) = listOf(titleCall.registerD, titleCall.registerE).map { register ->
+        val read = (titleAt - 1 downTo cardAt + 1).firstOrNull { code[it].writes(register) }?.let { code[it] }
+        read?.fieldReference()?.takeIf { read.opcode == Opcode.IGET_OBJECT && it.definingClass == dataType && it.type == STRING }
+            ?: refuse("the card's title and subtitle aren't read from its $dataType")
     }
+    val links = code.indices.drop(1).filter { at ->
+        val call = code[at].methodReference() ?: return@filter false
+        val text = code[at - 1].fieldReference() ?: return@filter false
+        code[at].opcode == Opcode.INVOKE_VIRTUAL && call.definingClass == holderType && call.parameterTypes.size == 2 &&
+            call.parameterTypes[0].toString() == STRING && call.returnType == "V" &&
+            code[at - 1].opcode == Opcode.IGET_OBJECT && text.definingClass == sectionType && text.type == STRING &&
+            (code[at - 1] as TwoRegisterInstruction).registerA == (code[at] as FiveRegisterInstruction).registerD
+    }
+    val linkAt = (links.singleOrNull() ?: refuse("expected one link from a $sectionType on the holder, found ${links.size}")) - 1
+    val holder = (code[linkAt + 1] as FiveRegisterInstruction).registerC
+    if (card > 15 || holder > 15) refuse("bindView keeps the card or the holder past v15")
+    if (linkAt <= cardAt) refuse("bindView sets the link before it casts the card")
+    if ((cardAt + 1 until linkAt).any { code[it].writes(card) }) refuse("bindView writes over the card before the link")
+    val flow = ControlFlow.of(bind)
+    val last = maxOf(titleAt, linkAt)
+    val jumpsIn = flow.instructions.indices.any { from ->
+        (from < cardAt || from >= last) && (flow.normal[from] + flow.exceptional[from]).any { it in cardAt + 1..last }
+    }
+    val targets = bind.jumpTargets()
+    if (jumpsIn || titleAt in targets || linkAt in targets) refuse("something jumps between the card's cast and the link")
+    val scratch = bind.freeLocalsAt("$PATCH: the caught up card's title", linkAt, 2, except = listOf(card, holder))
 
     for (type in listOf(cardType, data.definingClass, groupSetType, sectionsType, sectionType)) {
         val classDef = classDefByOrNull(type) ?: refuse("$type isn't in this build")
         if (!AccessFlags.PUBLIC.isSet(classDef.accessFlags)) refuse("$type isn't public, so the extension can't reach it")
     }
-    for (field in listOf(data, groupSet, activeId, items, sectionName)) {
+    for (field in listOf(data, groupSet, activeId, items)) {
         val declared = classDefByOrNull(field.definingClass)?.fields?.singleOrNull { it.name == field.name && it.type == field.type }
             ?: refuse("${field.smali()} isn't declared where it's read")
         if (!AccessFlags.PUBLIC.isSet(declared.accessFlags) || AccessFlags.STATIC.isSet(declared.accessFlags)) {
@@ -264,28 +290,28 @@ internal fun BytecodePatchContext.findCaughtUpCardTitle(sectionName: FieldRefere
             refuse("${method.reference()} isn't a public instance method")
         }
     }
-    // Every stub the write fills has to be there.
+    // Both stubs the write fills have to be there.
     staticStub(FEED_SUGGESTIONS, CAUGHT_UP_SECTION_STUB, OBJECT)
     staticStub(FEED_SUGGESTIONS, SECTION_ITEMS_STUB, LIST)
-    staticStub(FEED_SUGGESTIONS, SECTION_NAME_STUB, STRING)
 
     return CaughtUpCardTitle(
-        binder.type, titleAt, code[titleAt].methodReference().toString(), title, card, cardType,
-        data.smali(), groupSet.smali(), groupSetType, sectionsType, activeId.smali(), lookupRef, sectionType, items.smali(),
-        sectionName.smali(),
+        binder.type, titleAt, code[titleAt].methodReference().toString(), titleField.smali(), subtitleField.smali(),
+        linkAt, code[linkAt].fieldReference()!!.smali(), code[linkAt + 1].methodReference().toString(), holder, card, scratch,
+        cardType, data.smali(), groupSet.smali(), groupSetType, sectionsType, activeId.smali(), lookupRef, sectionType, items.smali(),
     )
 }
 
 /**
  * [findCaughtUpCardTitle], or null after the patch log says why, and the caught up card keeps its
- * title. [header] is the Suggested for you header's hook. Without it there's no section name to match
- * the card's title to, and a card titled anything else ("You're all caught up" over the header) keeps
- * its title, so the card is left be. Its section class has to be the card's, since both read their
- * items through the same stub.
+ * title. [header] is the Suggested for you header's hook when it was found: its section class has to
+ * be the card's, since both read their items through the same stub.
  */
 internal fun BytecodePatchContext.caughtUpCardTitleOrWarn(header: SuggestedSectionHeader?): CaughtUpCardTitle? = try {
-    if (header == null) refuse("the Suggested for you header wasn't found, so there's no section name to match it to")
-    findCaughtUpCardTitle(header.name)
+    findCaughtUpCardTitle().also {
+        if (header != null && header.sectionType != it.sectionType) {
+            refuse("its section ${it.sectionType} isn't the header's ${header.sectionType}")
+        }
+    }
 } catch (moved: PatchException) {
     patchLog.warning("${moved.message}. The caught up card keeps its Suggested for you title when nothing is left under it.")
     null
@@ -310,6 +336,8 @@ private fun Instruction.loadsString(value: String) =
         ((this as ReferenceInstruction).reference as StringReference).string == value
 
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
+
+private fun Instruction.fieldReference(): FieldReference? = (this as? ReferenceInstruction)?.reference as? FieldReference
 
 private fun Method.isBindView(): Boolean =
     name == "bindView" && returnType == "V" && !AccessFlags.STATIC.isSet(accessFlags) &&

@@ -29,9 +29,8 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 /**
  * The caught up card's title on 451 (#104): the end of feed card shows "Suggested for you" itself,
  * over the section its group set has open. With Hide suggested posts on and nothing left in that
- * section the title goes and the card keeps its subtitle and Older posts link. A card titled
- * something other than the section's name, one with no section, the switch off, a pause or a read
- * that fails keeps Instagram's title.
+ * section the title goes and the card keeps its subtitle and Older posts link. A card with no
+ * section, the switch off, a pause or a read that fails keeps Instagram's title.
  */
 @RunWith(RobolectricTestRunner.class)
 public class CaughtUpTitleTest {
@@ -39,13 +38,11 @@ public class CaughtUpTitleTest {
 
     private static final String TITLE = "Suggested for you";
 
-    /** A section of the group set, its name and [items] as the patch's stubs would read them. */
+    /** A section of the group set, holding [items] as the patch's stub would read them. */
     static final class Section {
-        final String name;
         final List<?> items;
 
-        Section(String name, List<?> items) {
-            this.name = name;
+        Section(List<?> items) {
             this.items = items;
         }
     }
@@ -66,7 +63,6 @@ public class CaughtUpTitleTest {
         Settings.HIDE_SUGGESTED_POSTS.save(true);
         FeedSuggestions.caughtUpSections = card -> ((Card) card).section;
         FeedSuggestions.sections = section -> ((Section) section).items;
-        FeedSuggestions.sectionNames = section -> ((Section) section).name;
         FeedSuggestions.tookOut = true;
         HookStatus.clear();
     }
@@ -75,7 +71,6 @@ public class CaughtUpTitleTest {
     public void restore() {
         FeedSuggestions.caughtUpSections = FeedSuggestions::caughtUpSection;
         FeedSuggestions.sections = FeedSuggestions::sectionItems;
-        FeedSuggestions.sectionNames = FeedSuggestions::sectionName;
         FeedSuggestions.tookOut = false;
         Settings.HIDE_SUGGESTED_POSTS.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -84,7 +79,7 @@ public class CaughtUpTitleTest {
     }
 
     private static String title(List<?> items) {
-        return FeedSuggestions.caughtUpTitle(TITLE, new Card(new Section(TITLE, items)));
+        return FeedSuggestions.caughtUpTitle(TITLE, new Card(new Section(items)));
     }
 
     /** Every suggestion taken out, nothing under the card: no title, and Diagnostics counts both steps. */
@@ -102,24 +97,6 @@ public class CaughtUpTitleTest {
         assertEquals(TITLE, title(Collections.singletonList(new SuggestedSectionTitleTest.Item(SuggestedSectionTitleTest.Kind.MEDIA))));
         String report = String.join("\n", HookStatus.report());
         assertTrue(report, report.contains(FeedSuggestions.SECTION_KEPT_SHOWS));
-    }
-
-    /**
-     * A card titled something other than its open section's name, "You're all caught up" over a
-     * header of its own, keeps that title over an empty section. So does any card while the name
-     * can't be read, as in a build where the patch couldn't fill its stub.
-     */
-    @Test
-    public void aTitleThatIsntTheSectionsNameStays() {
-        String caughtUp = "You're all caught up";
-        Card card = new Card(new Section(TITLE, Collections.emptyList()));
-        assertEquals(caughtUp, FeedSuggestions.caughtUpTitle(caughtUp, card));
-        String report = String.join("\n", HookStatus.report());
-        assertTrue(report, report.contains(FeedSuggestions.CAUGHT_UP_KEPT_OTHER_TITLE));
-        assertTrue(report, !report.contains(FeedSuggestions.SECTION_TITLE_DROPPED));
-
-        FeedSuggestions.sectionNames = FeedSuggestions::sectionName;
-        assertEquals(TITLE, FeedSuggestions.caughtUpTitle(TITLE, card));
     }
 
     /** A card whose group set has no open section, or a build where the patch couldn't fill the stub, keeps its title. */
@@ -156,8 +133,8 @@ public class CaughtUpTitleTest {
     /** No title, an empty one or no card passes through untouched, and isn't counted. */
     @Test
     public void nothingToDecideIsPassedThrough() {
-        assertNull(FeedSuggestions.caughtUpTitle(null, new Card(new Section(TITLE, Collections.emptyList()))));
-        assertEquals("", FeedSuggestions.caughtUpTitle("", new Card(new Section(TITLE, Collections.emptyList()))));
+        assertNull(FeedSuggestions.caughtUpTitle(null, new Card(new Section(Collections.emptyList()))));
+        assertEquals("", FeedSuggestions.caughtUpTitle("", new Card(new Section(Collections.emptyList()))));
         assertEquals(TITLE, FeedSuggestions.caughtUpTitle(TITLE, null));
         String report = String.join("\n", HookStatus.report());
         assertTrue(report, !report.contains(FeedSuggestions.CAUGHT_UP_CHECKED));
