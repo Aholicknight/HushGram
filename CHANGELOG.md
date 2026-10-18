@@ -28,6 +28,8 @@ Every HushGram release, newest first.
 
 * **Instagram:** The diagnostic report now lists every card type the stories viewer checks, ads included, and how often Instagram asked to show the Music for you card. From #111 and #154.
 
+* **Tooling:** The release preflight now builds the bundle and runs every patch on the declared Instagram build, so a patch that stopped applying shows up in a few minutes rather than an hour into the release.
+
 ## 0.0.12 (2026-10-16)
 
 ### Features

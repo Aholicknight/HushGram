@@ -24,7 +24,8 @@ $scratch = [IO.Path]::GetFullPath((Join-Path ([IO.Path]::GetTempPath()) ('hushgr
 $passed = 0
 $variables = @('HUSHGRAM_FIXTURE_DIR', 'HUSHGRAM_DESKTOP_JAR', 'HUSHGRAM_WORKDIR', 'HUSHGRAM_JAVA', 'HUSHGRAM_AAPT2',
     'HUSHGRAM_ALLOW_RELEASE', 'HUSHGRAM_BUILD_WRAPPER', 'HUSHGRAM_GATE_CACHE', 'BUILD_QUEUE_SCRIPT', 'BUILD_QUEUE_PRIORITY',
-    'BUILD_QUEUE_TICKET', 'HUSHGRAM_HELPERS_LOG', 'HUSHGRAM_HELPERS_STALE', 'HUSHGRAM_HELPERS_GRADLE_EXIT')
+    'BUILD_QUEUE_TICKET', 'HUSHGRAM_HELPERS_LOG', 'HUSHGRAM_HELPERS_STALE', 'HUSHGRAM_HELPERS_GRADLE_EXIT',
+    'HUSHGRAM_HELPERS_NO_BUNDLE', 'HUSHGRAM_HELPERS_VERIFY_EXIT')
 $saved = @{}
 foreach ($name in $variables) { $saved[$name] = [Environment]::GetEnvironmentVariable($name, [EnvironmentVariableTarget]::Process) }
 # Run from the machine's queue, this process inherits that slot's ticket, and the all-builds checks
@@ -465,8 +466,9 @@ function Get-BuildQueueMask { param([int]$Slot) [System.Diagnostics.Process]::Ge
     # --- preflight.ps1 ---------------------------------------------------------------------------
 
     # The checkout holds copies of the preflight, the notes builder and the scripts they load, a
-    # release check that logs what it was asked, and a Gradle wrapper that logs its tasks. A case
-    # can have the wrapper fail, or rewrite the catalog the way a stale one comes out.
+    # release check and a patch run that log what they were asked, and a Gradle wrapper that logs
+    # its tasks and leaves a bundle where buildAndroid would. A case can have the wrapper fail,
+    # leave no bundle, or rewrite the catalog the way a stale one comes out, or the patch run fail.
     foreach ($name in @('common.ps1', 'patch-target.ps1', 'build-jobs.ps1', 'gate-evidence.ps1')) {
         Write-Text (Join-Path $repo "scripts/$name") ([IO.File]::ReadAllText((Join-Path $Root "scripts/$name")))
     }
@@ -478,11 +480,25 @@ function Get-BuildQueueMask { param([int]$Slot) [System.Diagnostics.Process]::Ge
 Add-Content -LiteralPath $env:HUSHGRAM_HELPERS_LOG -Value "facts $($args -join ' ')"
 exit 0
 '@
+    Write-Text (Join-Path $repo 'scripts/verify-all-patches.ps1') @'
+param([string]$Apk, [string]$DesktopJar, [string]$WorkDir, [string]$Bundle, [string]$PatchList)
+New-Item -ItemType Directory -Force -Path $WorkDir | Out-Null
+Set-Content -LiteralPath (Join-Path $WorkDir 'patched.apk') -Value 'stand-in'
+Add-Content -LiteralPath $env:HUSHGRAM_HELPERS_LOG -Value ("verify $(Split-Path -Leaf $Apk) $(Split-Path -Leaf $Bundle) " +
+    "$(Split-Path -Leaf $PatchList) $(Split-Path -Leaf $DesktopJar) bundle=$(Test-Path -LiteralPath $Bundle) $WorkDir")
+exit [int]$env:HUSHGRAM_HELPERS_VERIFY_EXIT
+'@
     $wrapper = Join-Path $tools 'wrapper.ps1'
     Write-Text $wrapper @'
 param([string]$ProjectDir, [string[]]$Tasks)
 Add-Content -LiteralPath $env:HUSHGRAM_HELPERS_LOG -Value "gradle $($Tasks -join ' ')"
 if ($env:HUSHGRAM_HELPERS_STALE) { Add-Content -LiteralPath (Join-Path $ProjectDir 'patches-list.json') -Value ' ' }
+$bundle = Join-Path $ProjectDir 'patches/build/release/patches-0.0.1.mpp'
+Remove-Item -LiteralPath $bundle -ErrorAction SilentlyContinue
+if ($Tasks -contains ':patches:buildAndroid' -and -not $env:HUSHGRAM_HELPERS_NO_BUNDLE) {
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $bundle) | Out-Null
+    Set-Content -LiteralPath $bundle -Value 'stand-in bundle'
+}
 exit [int]$env:HUSHGRAM_HELPERS_GRADLE_EXIT
 '@
     Invoke-RepoGit add -A | Out-Null
@@ -498,7 +514,9 @@ exit [int]$env:HUSHGRAM_HELPERS_GRADLE_EXIT
         Clear-Log
         $result = Invoke-Script $preflight $Extra
         foreach ($name in @('HUSHGRAM_FIXTURE_DIR', 'HUSHGRAM_DESKTOP_JAR', 'HUSHGRAM_BUILD_WRAPPER', 'BUILD_QUEUE_SCRIPT',
-                'HUSHGRAM_HELPERS_STALE', 'HUSHGRAM_HELPERS_GRADLE_EXIT')) { Remove-Item -LiteralPath "Env:\$name" -ErrorAction SilentlyContinue }
+                'HUSHGRAM_HELPERS_STALE', 'HUSHGRAM_HELPERS_GRADLE_EXIT', 'HUSHGRAM_HELPERS_NO_BUNDLE', 'HUSHGRAM_HELPERS_VERIFY_EXIT')) {
+            Remove-Item -LiteralPath "Env:\$name" -ErrorAction SilentlyContinue
+        }
         return $result
     }
 
@@ -510,10 +528,18 @@ exit [int]$env:HUSHGRAM_HELPERS_GRADLE_EXIT
     Assert-True ($facts.Count -eq 1 -and $facts[0] -like '*-SkipDescriptionTestCount*' -and $facts[0] -like '*-AllowPublishedIndexLag*' -and
         $facts[0] -like '*-SkipLocalBuild*' -and $facts[0] -notlike '*-VerifyPublishedAsset*') "The preflight didn't run the ordinary push's release check: $($facts -join '; ')"
     Assert-True ($gradle.Count -eq 1 -and $gradle[0] -like '*:patches:generatePatchesList :patches:test*' -and
-        ([regex]::Matches($gradle[0], '--tests app\.morphe\.\w+Test')).Count -eq 9 -and $gradle[0] -like '*--tests app.morphe.ReadmePatchNamesTest*') `
-        "The preflight's Gradle step isn't the catalog and the fixture-free patch tests: $($gradle -join '; ')"
+        ([regex]::Matches($gradle[0], '--tests app\.morphe\.\w+Test')).Count -eq 9 -and $gradle[0] -like '*--tests app.morphe.ReadmePatchNamesTest*' -and
+        $gradle[0] -like '* :patches:buildAndroid') `
+        "The preflight's Gradle step isn't the catalog, the fixture-free patch tests and the bundle: $($gradle -join '; ')"
+    # Then every patch runs on each declared build with that bundle, in a work folder it removes.
+    $verify = @(Read-Log | Where-Object { $_ -like 'verify *' })
+    $verifyDir = if ($verify.Count -eq 1) { $verify[0].Substring($verify[0].IndexOf(' bundle=') + ' bundle=True '.Length) } else { '' }
+    Assert-True ($verify.Count -eq 1 -and $verify[0] -like ("verify instagram-$declared-${declaredCode}.apks patches-0.0.1.mpp patches-list.json " +
+            "$(Split-Path -Leaf $desktop) bundle=True *") -and $verifyDir -and -not (Test-Path -LiteralPath $verifyDir) -and
+        $run.Output -like '*every patch on the declared build*') `
+        "The preflight didn't run every patch on the declared build with the new bundle and clean up after: $($verify -join '; ') $($run.Output)"
     $run = Invoke-Preflight @('-Version', '0.0.2', '-SkipGradle')
-    Assert-True ($run.Exit -eq 0 -and $run.Output -like '*0.0.2: 3 bullets*' -and @(Read-Log | Where-Object { $_ -like 'gradle *' }).Count -eq 0) `
+    Assert-True ($run.Exit -eq 0 -and $run.Output -like '*0.0.2: 3 bullets*' -and @(Read-Log | Where-Object { $_ -like 'gradle *' -or $_ -like 'verify *' }).Count -eq 0) `
         "-Version or -SkipGradle didn't do what it says: $($run.Output)"
 
     # Each refusal stops the run there, so nothing after it runs.
@@ -526,7 +552,17 @@ exit [int]$env:HUSHGRAM_HELPERS_GRADLE_EXIT
     Assert-True ($run.Exit -eq 1 -and $run.Output -like '*patches-list.json is stale*') "A stale catalog passed the preflight: $($run.Output)"
     Invoke-RepoGit checkout -q -- patches-list.json | Out-Null
     $run = Invoke-Preflight @() @{ HUSHGRAM_HELPERS_GRADLE_EXIT = '1' }
-    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*Gradle exited 1*') "A failed Gradle step passed the preflight: $($run.Output)"
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*Gradle exited 1*' -and @(Read-Log | Where-Object { $_ -like 'verify *' }).Count -eq 0) `
+        "A failed Gradle step passed the preflight: $($run.Output)"
+    $run = Invoke-Preflight @() @{ HUSHGRAM_HELPERS_NO_BUNDLE = '1' }
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*left no bundle*' -and @(Read-Log | Where-Object { $_ -like 'verify *' }).Count -eq 0) `
+        "A Gradle step that left no bundle passed the preflight: $($run.Output)"
+    $run = Invoke-Preflight @() @{ HUSHGRAM_HELPERS_VERIFY_EXIT = '1' }
+    $verify = @(Read-Log | Where-Object { $_ -like 'verify *' })
+    $verifyDir = if ($verify.Count -eq 1) { $verify[0].Substring($verify[0].IndexOf(' bundle=') + ' bundle=True '.Length) } else { '' }
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like "*verify-all-patches.ps1 exited 1 on $declared*" -and
+        $verifyDir -and -not (Test-Path -LiteralPath $verifyDir)) `
+        "A failed patch run passed the preflight or left its work folder: $($run.Output)"
     Write-Text (Join-Path $repo 'CHANGELOG.md') $goodChangelog.Replace('* **Tooling:** A script change.', '* A script change.')
     $run = Invoke-Preflight @('-SkipGradle')
     Assert-True ($run.Exit -eq 1 -and $run.Output -like '*uncommitted changes to tracked files*' -and (Read-Log).Count -eq 0) `
