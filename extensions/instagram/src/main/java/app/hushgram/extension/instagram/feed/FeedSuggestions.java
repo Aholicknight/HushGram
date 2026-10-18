@@ -861,8 +861,10 @@ public final class FeedSuggestions {
                 HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAUGHT_UP_KEPT_NO_SECTION);
                 return title;
             }
-            if (!title.equals(sectionNames.apply(section))) {
+            String name = sectionNames.apply(section);
+            if (!title.equals(name)) {
                 HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAUGHT_UP_KEPT_OTHER_TITLE);
+                Logger.printDebug(() -> "Feed suggestions: the caught up card's title (" + title + ") isn't its open section's name (" + name + "), so it stays");
                 return title;
             }
             return titleOver(title, section);
