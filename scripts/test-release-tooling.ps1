@@ -2737,6 +2737,36 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
         foreach ($name in @('gradle.properties', 'patches-list.json', 'README.md', 'CHANGELOG.md')) { Reset-FactsFile $name }
     }
 
+    # The same patches added with the version held at the published one, since nothing is bumped
+    # until a release is called: the sentence still counts the release's own, and only the release's
+    # tag can back that count.
+    Set-FactsFile 'README.md' { param($text) $text.Replace("with $countHere patches. Add", "with $releasedCount patches. Add") }
+    $heldFile = Join-Path ([System.IO.Path]::GetTempPath()) ('hushgram-held-' + [guid]::NewGuid().ToString('N') + '.json')
+    try {
+        Assert-Throws { Invoke-Facts } "*latest release has $releasedCount patches, but it has $countHere*" `
+            'The check took a count for the held release that no tag backs.'
+        $heldCatalog = Get-Content -LiteralPath (Join-Path $factsRoot 'patches-list.json') -Raw | ConvertFrom-Json
+        $heldCatalog.patches = @($heldCatalog.patches | Select-Object -Skip 1)
+        [System.IO.File]::WriteAllText($heldFile, ($heldCatalog | ConvertTo-Json -Depth 20), (New-Object System.Text.UTF8Encoding($false)))
+        & git -C $factsRoot init -q
+        $blob = [string](& git -C $factsRoot hash-object -w $heldFile)
+        & git -C $factsRoot update-index --add --cacheinfo "100644,$($blob.Trim()),patches-list.json"
+        $tree = [string](& git -C $factsRoot write-tree)
+        $commit = [string](& git -C $factsRoot -c user.name=HushGram -c user.email=release@example.invalid commit-tree $tree.Trim() -m 'the release')
+        & git -C $factsRoot tag "v$versionHere" $commit.Trim()
+        Assert-True ($LASTEXITCODE -eq 0) "Could not tag the stand-in release's catalog in $factsRoot."
+        $said = Invoke-Facts
+        Assert-True ($said -like "*v$versionHere's catalog at its tag lists $releasedCount patches; the source held at that version lists $countHere*") `
+            "The check didn't read the held release's count from its tag: $said"
+        Set-FactsFile 'README.md' { param($text) $text.Replace("with $releasedCount patches. Add", "with 13 patches. Add") }
+        Assert-Throws { Invoke-Facts } "*latest release has 13 patches, but it has $countHere or $releasedCount*" `
+            'The check took a held release count that neither the source nor the tag has.'
+    } finally {
+        Remove-Item -LiteralPath $heldFile -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $factsGit) { Remove-Item -LiteralPath $factsGit -Recurse -Force }
+        Reset-FactsFile 'README.md'
+    }
+
     # A dead link: the address has every right shape and names a release nobody published. GitHub
     # answers 404 for it; a stand-in for the request does here, so the case needs no network.
     & {

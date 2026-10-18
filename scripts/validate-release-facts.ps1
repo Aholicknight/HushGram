@@ -310,6 +310,7 @@ $indexLagsSource = $false
 $publishedVersion = $releaseVersion
 $descriptionVersion = $sourceVersion
 $descriptionPatchCount = $patchCount
+$heldPatchCount = $null
 $descriptionTargetVersion = $targetVersion
 if ($hasIndex) {
 $bundleVersion = [string]$bundle.version
@@ -403,6 +404,14 @@ if ($indexLagsSource) {
     if ($null -ne $publishedFacts.TargetVersion -and $publishedFacts.TargetVersion -ne $targetVersion) {
         throw 'bundle description target version does not match the generated release facts.'
     }
+    # Patches added on main while the version waits at the published one: the README's sentence
+    # still counts the release's own, read from its tag. No tag, or a tag that agrees, adds nothing.
+    $heldFacts = Get-TaggedCatalogFacts -Root $rootPath -Version $publishedVersion
+    if ($heldFacts -and $null -ne $heldFacts.PatchCount -and $heldFacts.PatchCount -ne $patchCount) {
+        Write-Host ("[release] v$publishedVersion's catalog at its tag lists $($heldFacts.PatchCount) patches; " +
+            "the source held at that version lists $patchCount")
+        $heldPatchCount = $heldFacts.PatchCount
+    }
 }
 # Once a release is out, the README's line saying there isn't one is wrong.
 if ($readme -match "(?i)\bThere's no release yet\b") {
@@ -419,7 +428,7 @@ Require-Match -Text $readme -Pattern "Instagram\s+$([regex]::Escape($targetVersi
 # version, they may name the source's version and count or the published ones (the badge moves with
 # the source, the sentence with the release), and nothing else.
 $readmeVersions = @(@($releaseVersion, $publishedVersion) | Select-Object -Unique)
-$readmeCounts = @(@($patchCount, $descriptionPatchCount) | Select-Object -Unique)
+$readmeCounts = @(@($patchCount, $descriptionPatchCount, $heldPatchCount) | Where-Object { $null -ne $_ } | Select-Object -Unique)
 $readmeExpected = if ($readmeVersions.Count -eq 1) { "this release is $releaseVersion" } else {
     "the source is $releaseVersion and the published release $publishedVersion"
 }
