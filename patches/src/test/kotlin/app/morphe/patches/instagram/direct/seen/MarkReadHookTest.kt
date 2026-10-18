@@ -153,6 +153,15 @@ class MarkReadHookTest {
     @Test fun aSummaryWithoutTheMarkAsUnreadFlagIsRefused() = changed(M.SUMMARY, M.ASKED.name, "expected one Mark as unread flag the summary checks, found 0") {
         it[3] = call(Opcode.INVOKE_VIRTUAL, listOf(5), M.PENDING)
     }
+    @Test fun aMarkAsUnreadFlagAskedOfAnotherObjectIsRefused() = changed(M.SUMMARY, M.ASKED.name, "expected one Mark as unread flag the summary checks, found 0") {
+        it[3] = call(Opcode.INVOKE_VIRTUAL, listOf(6), M.MANUAL)
+    }
+    @Test fun aMarkAsUnreadFlagTheHookCantAskTheSameWayIsRefused() = changed(M.SUMMARY, M.ASKED.name, "expected one Mark as unread flag the summary checks, found 0") {
+        it[3] = call(Opcode.INVOKE_DIRECT, listOf(5), M.MANUAL)
+    }
+    @Test fun aSummaryThatWritesOverThisBeforeItsFlagsIsRefused() = changed(M.SUMMARY, M.ASKED.name, "writes over this (v5)") {
+        it.add(0, ImmutableInstruction12x(Opcode.MOVE_OBJECT, 5, 6))
+    }
     @Test fun aSummaryThatNeverChecksTheNewestItemIsRefused() =
         changed(M.SUMMARY, M.ASKED.name, "expected one check of the chat's newest item against the last one seen, found 0") {
             it[12] = call(Opcode.INVOKE_STATIC, listOf(5, 3, 1, 2), M.SUMMARY, M.SEEN_UP_TO.name, listOf(M.SUMMARY) + List(3) { STRING }, "Z")

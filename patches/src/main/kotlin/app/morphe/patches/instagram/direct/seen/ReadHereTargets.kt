@@ -103,9 +103,16 @@ internal fun BytecodePatchContext.findReadHere(chat: String): ReadHereTargets {
     }.one("check of the chat's newest item against the last one seen")
     // A chat kept read waits for each of these, not just Mark as unread: on 451 the other two show
     // the chat unread for an item the newest one doesn't cover, such as a pending or unseen one (#186).
-    val flags = code.take(compare).mapNotNull { it.call() }.filter {
-        it.definingClass == summary.type && it.parameterTypes.isEmpty() && it.returnType == "Z"
-    }.distinctBy { it.name }
+    // The hook asks each one with invoke-virtual on the summary, so only those asked that way of this count.
+    val self = answer.localRegisterCount()
+    val asks = code.indices.take(compare).filter { at ->
+        code[at].opcode == Opcode.INVOKE_VIRTUAL && (code[at] as FiveRegisterInstruction).registerC == self &&
+            code[at].call()?.let {
+                it.definingClass == summary.type && it.parameterTypes.isEmpty() && it.returnType == "Z"
+            } == true
+    }
+    answer.requireThisIntact(THREAD_SEEN_PATCH, asks)
+    val flags = asks.mapNotNull { code[it].call() }.distinctBy { it.name }
     val declared = chatClass.methods.mapTo(mutableSetOf()) { it.name }
     flags.filter { it.name !in declared }.one("Mark as unread flag the summary checks")
     // The check takes the account's id, the newest item's id and its sender's id, in that order.
