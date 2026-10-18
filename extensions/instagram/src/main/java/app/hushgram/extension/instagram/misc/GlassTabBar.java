@@ -127,6 +127,12 @@ public final class GlassTabBar {
     static final String SHEET_HOLDER = "layout_container_bottom_sheet";
     /** How often the sheet holder is looked for again while there isn't one. */
     static final long SHEET_LOOK_MS = 250L;
+    /**
+     * The story viewer's root, which Instagram puts in the screens' container. Instagram hides its bar
+     * while a story is open, but on Android 17 the pill stayed over the story's reply box, with the
+     * navigation bar answered 0 under it (#224). It's looked for as often as the sheet holder.
+     */
+    static final String STORY_ROOT = "reel_viewer_root";
 
     private static final java.util.HashMap<String, Integer> IDS = new java.util.HashMap<>();
 
@@ -337,6 +343,21 @@ public final class GlassTabBar {
     }
 
     /**
+     * Whether [story] is a story viewer that shows, laid out, with no screen showing after it in its
+     * container. A screen opened from the story, such as a profile, goes after it there and has the bar.
+     */
+    static boolean storyOnTop(@Nullable View story) {
+        if (story == null || !story.isShown() || story.getHeight() <= 0) return false;
+        if (!(story.getParent() instanceof ViewGroup)) return true;
+        ViewGroup container = (ViewGroup) story.getParent();
+        for (int i = container.indexOfChild(story) + 1, n = container.getChildCount(); i < n; i++) {
+            View later = container.getChildAt(i);
+            if (later.getVisibility() == View.VISIBLE && later.getHeight() > 0) return false;
+        }
+        return true;
+    }
+
+    /**
      * Proportions of the floating tab bar on the iPhone: the pill is about 90% of the screen's width
      * (5% left clear each side, so it floats without touching the edges), with its tabs 7dp in from its
      * ends. It's as tall as the bar Instagram laid out, less a gap above and under. A wide screen keeps
@@ -398,6 +419,8 @@ public final class GlassTabBar {
     static final String COUNT_INSETS_AGAIN = "Insets asked again for the pill";
     /** Counted each time the navigation bar's height goes through as it came because a bottom sheet covers the pill (#209). */
     static final String COUNT_NAV_UNDER_SHEET = "Navigation bar's height given to a sheet over the pill";
+    /** Counted each time the bar, left showing by Instagram over a story, is hidden for it (#224). */
+    static final String COUNT_STORY_ASIDE = "Bar hidden over a story";
     /** Counted once for each bar whose Search tab the liquid look puts in a circle of its own (#65). */
     static final String COUNT_SEARCH_APART = "Search put in its own circle";
 
@@ -872,6 +895,11 @@ public final class GlassTabBar {
         /** Instagram's bottom sheet holder in the bar's window, as last found, and when it was last looked for. */
         private WeakReference<View> sheetHolder = new WeakReference<>(null);
         private long sheetLookedAt = -SHEET_LOOK_MS;
+        /** Instagram's story viewer in the bar's window, as last found, and when it was last looked for (#224). */
+        private WeakReference<View> storyRoot = new WeakReference<>(null);
+        private long storyLookedAt = -SHEET_LOOK_MS;
+        /** Whether this hid the bar over a story, so this shows it again, and only then (#224). */
+        private boolean hidOverAStory;
         /**
          * Hides the bar while a list scrolls down, with that switch on, and on Reels after the wait picked
          * for it (#170). Null with the switch off and the wait on Never.
@@ -1202,6 +1230,44 @@ public final class GlassTabBar {
             return false;
         }
 
+        /** Whether Instagram's story viewer shows on top in the bar's window ({@link #storyOnTop}, #224). */
+        boolean overAStory() {
+            View root = bar.getRootView();
+            View story = storyRoot.get();
+            if (story == null || story.getRootView() != root) {
+                long now = SystemClock.uptimeMillis();
+                if (story == null && now - storyLookedAt < SHEET_LOOK_MS) return false;
+                storyLookedAt = now;
+                story = find(root, STORY_ROOT);
+                storyRoot = new WeakReference<>(story);
+            }
+            return storyOnTop(story);
+        }
+
+        /**
+         * Hides the bar while a story shows on top in its window, when Instagram left the bar showing, so
+         * the pill is off the story's reply box and Instagram is told the navigation bar's real height
+         * again (#224). The bar shows again once the story goes, if it's still as this left it.
+         */
+        private void stepAsideForStories() {
+            if (!HushgramPause.isPaused() && overAStory()) {
+                if (bar.getVisibility() == View.VISIBLE) {
+                    bar.setVisibility(View.INVISIBLE);
+                    hidOverAStory = true;
+                    HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_STORY_ASIDE);
+                }
+            } else {
+                showAfterAStory();
+            }
+        }
+
+        /** Shows the bar again if this hid it over a story and nothing changed it since. */
+        private void showAfterAStory() {
+            if (!hidOverAStory) return;
+            hidOverAStory = false;
+            if (bar.getVisibility() == View.INVISIBLE) bar.setVisibility(View.VISIBLE);
+        }
+
         /**
          * Whether this is a floating pill set to show in [activity], whether or not its window shows yet:
          * a stopped activity's window is still hidden while it resumes.
@@ -1448,6 +1514,7 @@ public final class GlassTabBar {
         @Override public boolean onPreDraw() {
             Trace.beginSection("hushgram:preDraw");
             try {
+                stepAsideForStories();
                 keep();
                 askForInsetsWhenShownChanges();
                 followReels();
@@ -1495,6 +1562,7 @@ public final class GlassTabBar {
 
         @Override public void onViewDetachedFromWindow(@NonNull View view) {
             if (scrollHide != null) scrollHide.restoreNow();
+            showAfterAStory();
             bar.getViewTreeObserver().removeOnPreDrawListener(this);
             // A catch-up waiting in the queue would hold this bar after it's gone; the next frame
             // after it comes back arranges another.

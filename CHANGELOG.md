@@ -36,6 +36,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** With Hide the tab bar on Reels, a reel given the room back once the pill slid away ran under the gesture bar or the navigation buttons, where its seek bar couldn't be dragged. It stops just above them now. Reported in #221.
 
+* **Instagram - Glass tab bar:** On Android 17 the pill could stay over an open story and cover its reply box and reactions. It now steps aside whenever a story is open and comes back when you leave. Reported in #224.
+
 * **Instagram - Glass tab bar:** With Hide the tab bar on Reels, dragging a reel's seek bar while the pill is away moves through the reel instead of only bringing the pill back. A tap there still brings it back. Reported in #221.
 
 ### Improvements

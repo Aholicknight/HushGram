@@ -437,6 +437,82 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * #224: on Android 17 the pill stayed over an open story's reply box, with the navigation bar answered
+     * 0 under it. While Instagram's story viewer shows on top in the bar's window the bar is hidden and
+     * the real height goes through, and the bar shows again once the story goes. A bar Instagram hides
+     * itself, or changes while it's hidden, is left as Instagram has it.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aStoryOnTopHidesThePillAndGetsTheNavigationBarsHeight() {
+        GlassTabBar.resetForTests();
+        HookStatus.clear();
+        int storyId = 0x7f0b0123;
+        Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+        Integer previous;
+        synchronized (ids) { previous = ids.put(GlassTabBar.STORY_ROOT, storyId); }
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            int nav = host.dp(24);
+            int full = ViewGroup.LayoutParams.MATCH_PARENT;
+            host.controller.pause().resume();
+            host.frame();
+            assertEquals("no story", 0, GlassTabBar.navBarHeight(nav));
+
+            // The screens' container under the bar, with a story opened in it.
+            FrameLayout content = new FrameLayout(host.activity);
+            host.root.addView(content, 0, new FrameLayout.LayoutParams(full, full));
+            FrameLayout story = new FrameLayout(host.activity);
+            story.setId(storyId);
+            content.addView(story, new FrameLayout.LayoutParams(full, full));
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("hidden over the story", View.INVISIBLE, host.bar.getVisibility());
+            assertEquals("the story's reply box stops above the navigation bar", nav, GlassTabBar.navBarHeight(nav));
+
+            // A profile opened from the story goes after it in the container, and has the bar.
+            View profile = new View(host.activity);
+            content.addView(profile, new FrameLayout.LayoutParams(full, full));
+            host.frame();
+            assertEquals("a screen over the story", View.VISIBLE, host.bar.getVisibility());
+            assertEquals(0, GlassTabBar.navBarHeight(nav));
+            content.removeView(profile);
+            host.frame();
+            assertEquals("back on the story", View.INVISIBLE, host.bar.getVisibility());
+
+            content.removeView(story);
+            host.frame();
+            assertEquals("the story went", View.VISIBLE, host.bar.getVisibility());
+            assertEquals(0, GlassTabBar.navBarHeight(nav));
+
+            // Instagram hiding its own bar for a story, as it does on Android 16, is left to it.
+            host.bar.setVisibility(View.GONE);
+            content.addView(story);
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("Instagram's own hide", View.GONE, host.bar.getVisibility());
+            content.removeView(story);
+            host.bar.setVisibility(View.VISIBLE);
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals(View.VISIBLE, host.bar.getVisibility());
+
+            // A change Instagram makes while the bar is hidden over a story stands.
+            content.addView(story);
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals(View.INVISIBLE, host.bar.getVisibility());
+            host.bar.setVisibility(View.GONE);
+            content.removeView(story);
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("Instagram's change since", View.GONE, host.bar.getVisibility());
+
+            String report = String.join("\n", HookStatus.report());
+            assertTrue(report, report.contains(GlassTabBar.COUNT_STORY_ASIDE));
+        } finally {
+            synchronized (ids) {
+                if (previous == null) ids.remove(GlassTabBar.STORY_ROOT);
+                else ids.put(GlassTabBar.STORY_ROOT, previous);
+            }
+        }
+    }
+
     /** A pill over Instagram's own place, not floating, leaves the navigation bar's height alone and never asks for insets. */
     @Test
     @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
