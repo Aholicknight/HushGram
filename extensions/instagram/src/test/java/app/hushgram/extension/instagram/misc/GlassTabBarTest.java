@@ -1348,6 +1348,54 @@ public class GlassTabBarTest {
     }
 
     /**
+     * Home videos played out of place under a scroll-hidden bar (reported on 0.0.9, #136's double draw). The
+     * bar slid away is still drawn, and the glass recorded before a video started holds the feed as it
+     * draws now, video and all. So a SurfaceView that starts under the hidden bar is left out of a new
+     * recording in that frame, not once the bar is back, while a frame with nothing new records nothing.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aVideoStartingUnderTheHiddenBarIsLeftOutOfTheGlassAtOnce() {
+        GlassTabBar.animationsOnForTests = false;
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, true)) {
+            FrameLayout feed = new FrameLayout(host.activity);
+            feed.setBackgroundColor(Color.RED);
+            host.root.addView(feed, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(true);
+            GlassTabBar.apply(host.activity);
+            host.frame();
+            Object pill = host.bar.getBackground();
+            assertTrue("no backdrop recorded", (boolean) ReflectionHelpers.getField(pill, "recorded"));
+            Set<View> leftOut = ReflectionHelpers.getField(pill, "leftOut");
+            assertTrue(leftOut.isEmpty());
+
+            GlassScrollHide hide = ReflectionHelpers.getField(host.glass(), "scrollHide");
+            ReflectionHelpers.setField(hide, "hidden", true);
+            host.bar.setTranslationY(host.dp(200));
+            assertTrue(hide.isOffScreen());
+            ReflectionHelpers.callInstanceMethod(pill, "cancelCatchUp");
+            ReflectionHelpers.setField(pill, "lastRecorded", 1L);
+            host.frame();
+            assertEquals("hidden with nothing new under it, the glass recorded", 1L, (long) ReflectionHelpers.getField(pill, "lastRecorded"));
+            assertFalse("hidden, the glass arranged a catch-up", (boolean) ReflectionHelpers.getField(pill, "catchUpPending"));
+
+            CountingSurface video = new CountingSurface(host.activity);
+            feed.addView(video, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            host.layout();
+            host.frame();
+            assertTrue("a video under the hidden bar waited for the bar to come back", (long) ReflectionHelpers.getField(pill, "lastRecorded") != 1L);
+            assertTrue("the video isn't left out: " + leftOut, leftOut.contains(video) && leftOut.contains(feed));
+            assertEquals("the glass drew the video", 0, video.drawn);
+
+            ReflectionHelpers.setField(pill, "lastRecorded", 1L);
+            host.frame();
+            assertEquals("the same video recorded again", 1L, (long) ReflectionHelpers.getField(pill, "lastRecorded"));
+            assertTrue("still hidden", hide.isOffScreen());
+        }
+    }
+
+    /**
      * A floating pill keeps each Reels viewer above it, so its seek bar, caption and the touch strip
      * Instagram lays over the bar's top don't sit under the pill and take its taps: the Reels tab's in the
      * swipe pager and one opened over another tab get the bar's height as their margin. A margin Instagram
