@@ -60,7 +60,8 @@ foreach ($scope in @('settings-plugin', 'project-plugin', 'build', 'test', 'host
         @(if ($desktop) { 'external-desktop' })) {
     $scopeFindings = @($findings | Where-Object { $scope -cin $_.Scopes })
     $verdicts[$scope] = Test-AdvisoryFindings -Findings $scopeFindings -Exceptions $toolExceptions -Scope $scope `
-        -Subject "the $scope scope" -ExceptionsLabel 'scripts/dependency-advisory-exceptions.txt'
+        -Subject "the $scope scope" -ExceptionsLabel 'scripts/dependency-advisory-exceptions.txt' `
+        -DesktopSha256 $(if ($desktop) { $desktop.sha256 })
 }
 $valid = @($verdicts.Values | Where-Object { -not $_.Valid }).Count -eq 0
 $reason = @($verdicts.Values.Reason | Where-Object { $_ }) -join ' '

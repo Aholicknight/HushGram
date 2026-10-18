@@ -68,6 +68,8 @@ Every HushGram release, newest first.
 
 * **Tooling:** The release receipt now audits the Morphe Desktop JAR it patches with, tied to that file's SHA-256. Desktop's own Bouncy Castle and Guava are checked, and an advisory whose classes minimization removed isn't counted as exposure.
 
+* **Tooling:** A Desktop advisory can only be accepted by a review that names the JAR's SHA-256, so a new Desktop gets read again. All five Bouncy Castle advisories the gate holds against Desktop 1.18.1 are reviewed as unreachable.
+
 ## 0.0.12 (2026-10-16)
 
 ### Features

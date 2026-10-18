@@ -92,6 +92,17 @@ function Read-AdvisoryExceptions {
                 "90 days out. Read the advisory again when the date comes, and give it a date within 90 days.")
         }
         $reason = $shape.Groups['reason'].Value
+        # A reachability review holds for the JAR it read, so it names that JAR's bytes.
+        $desktopSha256 = $null
+        if ($scope -ceq 'external-desktop') {
+            $bound = [regex]::Match($reason, '^jar-sha256=(?<sha>[0-9A-Fa-f]{64})\s+(?<why>.*\S)$')
+            if (-not $bound.Success) {
+                throw ("Line $number of $Path reviews $advisory for $package without naming the Desktop JAR it read. " +
+                    "Start the reason with jar-sha256=<the JAR's SHA-256>: $text")
+            }
+            $desktopSha256 = $bound.Groups['sha'].Value.ToUpperInvariant()
+            $reason = $bound.Groups['why'].Value
+        }
         if (@($reason -split '\s+' | Where-Object { $_ -match '[A-Za-z]' }).Count -lt 3) {
             throw ("Line $number of $Path accepts $advisory for $package without saying why. Give the reason it " +
                 "doesn't apply to what the bundle does with the library: $text")
@@ -107,6 +118,7 @@ function Read-AdvisoryExceptions {
             Line     = $number
             Expired  = $until -lt $Today
             Scope    = $scope
+            DesktopSha256 = $desktopSha256
         })
     }
     # No comma wrap: an empty list comes back as nothing, and every caller writes @(...).
@@ -786,7 +798,9 @@ function Test-AdvisoryFindings {
         In the external-desktop scope a finding carries DesktopClassPresence. One whose reviewed
         classes are all absent from the JAR is packed metadata, not exposure, and is listed
         rather than refused. Present or unreviewed classes need the reviewed-reachability
-        exception like any other scope.
+        exception like any other scope, and only one naming -DesktopSha256 counts. A review of
+        another JAR is left out, neither used nor stale, so a new Desktop's findings stay refused
+        until that JAR is read again.
     #>
     param(
         [object[]]$Findings = @(),
@@ -794,7 +808,8 @@ function Test-AdvisoryFindings {
         [string]$Subject = 'what the bundle carries',
         [string]$ExceptionsLabel = 'scripts/advisory-exceptions.txt',
         [ValidateSet('shipped', 'settings-plugin', 'project-plugin', 'build', 'test', 'host-contract', 'tooling-distribution', 'external-desktop')]
-        [string]$Scope = 'shipped'
+        [string]$Scope = 'shipped',
+        [string]$DesktopSha256
     )
 
     $findingsIn = @(@($Findings) | Where-Object { $null -ne $_ })
@@ -802,6 +817,10 @@ function Test-AdvisoryFindings {
     $exceptionsIn = @(@($Exceptions) | Where-Object {
         $null -ne $_ -and ($_.Scope -ceq $Scope -or ($Scope -ceq 'shipped' -and -not $_.Scope))
     })
+    if ($Scope -ceq 'external-desktop') {
+        $DesktopSha256 = "$DesktopSha256".ToUpperInvariant()
+        $exceptionsIn = @($exceptionsIn | Where-Object { $DesktopSha256 -and $_.DesktopSha256 -ceq $DesktopSha256 })
+    }
     $refused = New-Object System.Collections.Generic.List[string]
     $excused = New-Object System.Collections.Generic.List[string]
     $minor = New-Object System.Collections.Generic.List[string]

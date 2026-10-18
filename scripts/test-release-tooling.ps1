@@ -2013,14 +2013,27 @@ try {
     Assert-True (-not (Test-AdvisoryFindings -Findings $bcFinding -Scope 'external-desktop').Valid) `
         'An unreviewed high Desktop advisory passed.'
     $desktopList = Join-Path $advisoryRoot 'desktop-exceptions.txt'
-    $reviewLine = 'GHSA-qp49-qgx5-5m26 org.bouncycastle:bcprov-jdk18on 2026-10-15 Desktop parses only its own keystore'
+    $desktopSha = Get-Sha256Hex -Path $desktopFixture
+    $reviewLine = "GHSA-qp49-qgx5-5m26 org.bouncycastle:bcprov-jdk18on 2026-10-15 jar-sha256=$($desktopSha.ToLowerInvariant()) Desktop parses only its own keystore"
     Set-Content -LiteralPath $desktopList -Value "external-desktop $reviewLine"
-    $reviewed = Test-AdvisoryFindings -Findings $bcFinding -Scope 'external-desktop' `
+    $reviewed = Test-AdvisoryFindings -Findings $bcFinding -Scope 'external-desktop' -DesktopSha256 $desktopSha `
         -Exceptions @(Read-AdvisoryExceptions -Path $desktopList -Scoped -Today $today)
     Assert-True ($reviewed.Valid -and $reviewed.Excused.Count -eq 1 -and $reviewed.Excused[0] -like '*unreviewed*own keystore*') `
         'A reviewed-reachability exception did not cover its Desktop finding, or lost the class evidence.'
-    Set-Content -LiteralPath $desktopList -Value "build $reviewLine"
+    # The review holds for the JAR it read: another JAR's finding stays refused, and the review
+    # isn't stale there either, since it says nothing about that JAR.
+    $otherJar = Test-AdvisoryFindings -Findings $bcFinding -Scope 'external-desktop' -DesktopSha256 ('0' * 64) `
+        -Exceptions @(Read-AdvisoryExceptions -Path $desktopList -Scoped -Today $today)
+    Assert-True (-not $otherJar.Valid -and $otherJar.Excused.Count -eq 0 -and $otherJar.Refused.Count -eq 1 -and
+        $otherJar.Stale.Count -eq 0) "A reachability review of one Desktop JAR excused another JAR's finding."
     Assert-True (-not (Test-AdvisoryFindings -Findings $bcFinding -Scope 'external-desktop' `
+            -Exceptions @(Read-AdvisoryExceptions -Path $desktopList -Scoped -Today $today)).Valid) `
+        'A reachability review excused a Desktop finding with no audited JAR named.'
+    Set-Content -LiteralPath $desktopList -Value 'external-desktop GHSA-qp49-qgx5-5m26 org.bouncycastle:bcprov-jdk18on 2026-10-15 Desktop parses only its own keystore'
+    Assert-Throws { Read-AdvisoryExceptions -Path $desktopList -Scoped -Today $today } '*without naming the Desktop JAR*' `
+        'A Desktop reachability review that names no JAR was read.'
+    Set-Content -LiteralPath $desktopList -Value "build $reviewLine"
+    Assert-True (-not (Test-AdvisoryFindings -Findings $bcFinding -Scope 'external-desktop' -DesktopSha256 $desktopSha `
             -Exceptions @(Read-AdvisoryExceptions -Path $desktopList -Scoped -Today $today)).Valid) `
         'A build-scope review covered the Desktop JAR.'
     # A JAR, metadata or provider that can't be read certifies nothing.
