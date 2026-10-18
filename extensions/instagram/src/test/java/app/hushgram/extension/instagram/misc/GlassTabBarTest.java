@@ -71,6 +71,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_BLUR.resetToDefault();
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
+        Settings.GLASS_TAB_BAR_CORNERS.resetToDefault();
         Settings.GLASS_TAB_BAR_LIFT.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTICS.resetToDefault();
@@ -447,6 +448,60 @@ public class GlassTabBarTest {
         for (GlassLift lift : GlassLift.values()) assertEquals(lift.name(), 0, GlassTabBar.liftPx(lift, false, density));
         assertEquals(0, GlassTabBar.liftPx(null, true, density));
         assertEquals(GlassLift.STANDARD, Settings.GLASS_TAB_BAR_LIFT.defaultValue);
+    }
+
+    /** Tab bar corners (#144): each step keeps its dp up to half the height, and no choice read is Standard. */
+    @Test
+    public void cornersKeepTheirDpUpToHalfTheHeight() {
+        float density = 2.625f;
+        float tall = 50 * density;
+        assertEquals(Math.round(12 * density), GlassTabBar.cornerPx(GlassCorners.STANDARD, false, tall, density), 0f);
+        assertEquals(Math.round(8 * density), GlassTabBar.cornerPx(GlassCorners.STANDARD, true, tall, density), 0f);
+        assertEquals(Math.round(20 * density), GlassTabBar.cornerPx(GlassCorners.ROUNDER, false, tall, density), 0f);
+        assertEquals(Math.round(14 * density), GlassTabBar.cornerPx(GlassCorners.ROUNDER, true, tall, density), 0f);
+        assertEquals(tall / 2f, GlassTabBar.cornerPx(GlassCorners.ROUND, false, tall, density), 0f);
+        assertEquals(tall / 2f, GlassTabBar.cornerPx(GlassCorners.ROUND, true, tall, density), 0f);
+        assertEquals("never past half the height", 10f, GlassTabBar.cornerPx(GlassCorners.ROUNDER, false, 20f, density), 0f);
+        assertEquals(0f, GlassTabBar.cornerPx(GlassCorners.ROUND, false, -4f, density), 0f);
+        assertEquals(Math.round(12 * density), GlassTabBar.cornerPx(null, false, tall, density), 0f);
+        assertEquals(GlassCorners.STANDARD, Settings.GLASS_TAB_BAR_CORNERS.defaultValue);
+    }
+
+    /**
+     * Fully round (#144) gives the pill half circle ends: the spot a 12dp corner fills stays clear and the
+     * middle of the end is glass. The selected tab's highlight is as round, so its corner spot stays unlit.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void fullyRoundCornersGiveThePillAndItsHighlightRoundEnds() throws Exception {
+        GlassTabBar.animationsOnForTests = false;
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            Settings.GLASS_TAB_BAR_CORNERS.save(GlassCorners.ROUND);
+            GlassTabBar.apply(host.activity);
+            host.layout();
+            int outer = GlassTabBar.outerPx(host.bar.getWidth(), host.density);
+            int top = host.dp(1);
+            try (Pixels plain = host.background()) {
+                assertEquals("where a 12dp corner fills, a round end is clear", 0,
+                        plain.bitmap.getPixel(outer + host.dp(3), top + host.dp(6)));
+                RectF drawn = ReflectionHelpers.getField(host.bar.getBackground(), "rect");
+                int middle = Math.round((drawn.top + drawn.bottom) / 2f);
+                assertTrue("the round end's middle is glass", Color.red(plain.bitmap.getPixel(outer + host.dp(3), middle)) > 5);
+                assertTrue(host.bar.getChildAt(0).performClick());
+                try (Pixels active = host.background()) {
+                    RectF slot = ReflectionHelpers.getField(host.bar.getBackground(), "capsule");
+                    int x = Math.round(slot.left) + host.dp(2);
+                    int y = Math.round(slot.top) + host.dp(4);
+                    assertEquals("an 8dp corner would light this spot; a round one leaves it",
+                            Color.red(plain.bitmap.getPixel(x, y)), Color.red(active.bitmap.getPixel(x, y)), 2);
+                    int inside = Math.round((slot.top + slot.bottom) / 2f);
+                    assertTrue("the highlight itself is lit", Color.red(active.bitmap.getPixel(x, inside))
+                            > Color.red(plain.bitmap.getPixel(x, inside)) + 10);
+                }
+            }
+            host.capture("dark-floating-round-selected-0");
+        }
     }
 
     /**

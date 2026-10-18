@@ -105,6 +105,7 @@ import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.profile.FollowLabelPlace;
+import app.hushgram.extension.instagram.misc.GlassCorners;
 import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.GlassReelsHide;
@@ -1383,6 +1384,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 glass.addPreference(hapticStyleRow(context));
                 glass.addPreference(glassOpacityRow(context));
                 glass.addPreference(glassHeightRow(context));
+                glass.addPreference(glassCornersRow(context));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, L10n.t("Hide the tab bar as you scroll"),
                         L10n.t("Scrolling a list down slides the pill out of the way. Scrolling up, reaching the top, "
                                 + "or changing tab brings it back. Restart Instagram after changing it.")));
@@ -1870,7 +1872,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key)
-                            || Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key));
+                            || Settings.GLASS_TAB_BAR_CORNERS.key.equals(key) || Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key));
                     belongs |= family == PatchFamily.VIDEO_DOWNLOAD && (Settings.HOLD_TO_DOWNLOAD.key.equals(key)
                             || Settings.HOLD_FINGERS.key.equals(key) || Settings.HOLD_TIME.key.equals(key)
                             || Settings.FEED_DOWNLOAD_BUTTON.key.equals(key) || Settings.FEED_DOWNLOAD_ALL_PAGES.key.equals(key)
@@ -4707,6 +4709,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** How round the glass tab bar's pill is (#144). Its summary is the step chosen. */
+    static GlassCornersRow glassCornersRow(Context context) {
+        GlassCornersRow row = new GlassCornersRow(context);
+        row.setKey(Settings.GLASS_TAB_BAR_CORNERS.key);
+        row.setTitle(L10n.t("Tab bar corners"));
+        row.setDialogTitle(L10n.t("Tab bar corners"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        GlassCorners[] steps = GlassCorners.values();
+        CharSequence[] entries = new CharSequence[steps.length];
+        CharSequence[] values = new CharSequence[steps.length];
+        for (int i = 0; i < steps.length; i++) {
+            entries[i] = glassCornersLabel(steps[i]);
+            values[i] = steps[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.GLASS_TAB_BAR_CORNERS.savedValue().name());
+        return row;
+    }
+
     /** How much room a floating glass pill leaves under itself. Its summary is the step chosen. */
     static GlassLiftRow glassLiftRow(Context context) {
         GlassLiftRow row = new GlassLiftRow(context);
@@ -5010,6 +5032,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("A little more");
             case MOST:
                 return L10n.t("More");
+            default:
+                return L10n.t("Standard");
+        }
+    }
+
+    /** What the list calls [step]. */
+    static String glassCornersLabel(GlassCorners step) {
+        switch (step) {
+            case ROUNDER:
+                return L10n.t("Rounder");
+            case ROUND:
+                return L10n.t("Fully round");
             default:
                 return L10n.t("Standard");
         }
@@ -6677,6 +6711,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(getValue())) delay = candidate;
             }
             setSummary(glassReelsHideSummary(delay));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class GlassCornersRow extends ListPreference {
+        GlassCornersRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the step chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            GlassCorners step = GlassCorners.STANDARD;
+            for (GlassCorners candidate : GlassCorners.values()) {
+                if (candidate.name().equals(value)) step = candidate;
+            }
+            setSummary(glassCornersLabel(step));
         }
 
         @Override

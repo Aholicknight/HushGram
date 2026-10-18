@@ -14,6 +14,7 @@ import android.preference.SwitchPreference;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -29,6 +30,7 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
 
+import app.hushgram.extension.instagram.misc.GlassCorners;
 import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
@@ -78,6 +80,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
+        Settings.GLASS_TAB_BAR_CORNERS.resetToDefault();
         Settings.GLASS_TAB_BAR_LIFT.resetToDefault();
         Settings.GLASS_TAB_BAR_REELS_HIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
@@ -103,7 +106,7 @@ public class TabBarAndBatterySettingsTest {
     @Test public void withoutThePatchesNoneOfTheirRowsShow() throws Exception {
         open();
         for (String key : List.of(Settings.GLASS_TAB_BAR.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_HEIGHT.key,
-                Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.SAVED_ON_PROFILE.key, Settings.STOP_HEARTBEAT.key,
+                Settings.GLASS_TAB_BAR_CORNERS.key, Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.SAVED_ON_PROFILE.key, Settings.STOP_HEARTBEAT.key,
                 Settings.STOP_UPLOAD_ALARM.key)) {
             assertNull(key, row(key));
         }
@@ -169,6 +172,49 @@ public class TabBarAndBatterySettingsTest {
         assertEquals("Tall", String.valueOf(height.getSummary()));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_OPACITY.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HEIGHT.key));
+    }
+
+    /**
+     * Tab bar corners (#144) is a list right after Tab bar height, starting on the corners the bar has always
+     * had, backed up, and a pick waits on a restart. It rests while the liquid look, always fully round, is on.
+     */
+    @Test public void tabBarCornersFollowTheHeightAndRestUnderTheLiquidLook() throws Exception {
+        open(PatchFamily.GLASS_TAB_BAR);
+        Preference found = row(Settings.GLASS_TAB_BAR_CORNERS.key);
+        assertTrue(found instanceof HushgramPreferenceFragment.GlassCornersRow);
+        HushgramPreferenceFragment.GlassCornersRow corners = (HushgramPreferenceFragment.GlassCornersRow) found;
+        assertEquals("Tab bar corners", String.valueOf(corners.getTitle()));
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), corners);
+        assertEquals("Tab bar", String.valueOf(section.getTitle()));
+        int heightAt = -1;
+        int cornersAt = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            String key = section.getPreference(i).getKey();
+            if (Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key)) heightAt = i;
+            if (Settings.GLASS_TAB_BAR_CORNERS.key.equals(key)) cornersAt = i;
+        }
+        assertEquals("right after Tab bar height", heightAt + 1, cornersAt);
+        List<String> entries = new ArrayList<>();
+        for (CharSequence entry : corners.getEntries()) entries.add(String.valueOf(entry));
+        assertEquals(Arrays.asList("Standard", "Rounder", "Fully round"), entries);
+        assertEquals("STANDARD", corners.getValue());
+        assertEquals("Standard", String.valueOf(corners.getSummary()));
+        assertTrue(Settings.GLASS_TAB_BAR_CORNERS.rebootApp);
+        corners.setValue("ROUND");
+        ShadowLooper.idleMainLooper();
+        assertEquals(GlassCorners.ROUND, Settings.GLASS_TAB_BAR_CORNERS.savedValue());
+        assertEquals("Fully round", String.valueOf(corners.getSummary()));
+        assertTrue(AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_CORNERS.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_CORNERS.key));
+
+        Settings.GLASS_TAB_BAR.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_CORNERS.isAvailable());
+        Settings.GLASS_TAB_BAR_LIQUID.save(true);
+        assertFalse("the liquid look is always round", Settings.GLASS_TAB_BAR_CORNERS.isAvailable());
+        Settings.GLASS_TAB_BAR_LIQUID.save(false);
+        Settings.GLASS_TAB_BAR.save(false);
+        assertFalse("no glass, no corners to pick", Settings.GLASS_TAB_BAR_CORNERS.isAvailable());
+        assertEquals(Collections.singletonList(Settings.GLASS_TAB_BAR), Settings.GLASS_TAB_BAR_CORNERS.getParentSettings());
     }
 
     /**
@@ -381,7 +427,7 @@ public class TabBarAndBatterySettingsTest {
      */
     @Test public void theGlassChoicesAskForARestart() throws Exception {
         for (Setting<?> setting : List.<Setting<?>>of(Settings.GLASS_TAB_BAR_OPACITY, Settings.GLASS_TAB_BAR_HEIGHT,
-                Settings.GLASS_TAB_BAR_LIFT, Settings.GLASS_TAB_BAR_REELS_HIDE)) {
+                Settings.GLASS_TAB_BAR_CORNERS, Settings.GLASS_TAB_BAR_LIFT, Settings.GLASS_TAB_BAR_REELS_HIDE)) {
             assertTrue(setting.key, setting.rebootApp);
         }
         open(PatchFamily.GLASS_TAB_BAR);

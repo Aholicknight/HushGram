@@ -353,8 +353,6 @@ public final class GlassTabBar {
      */
     static final int FIT_GAP_DP = 1;
     static final int BLUR_DP = 18;
-    static final int CORNER_DP = 12;
-    static final int HIGHLIGHT_CORNER_DP = 8;
     /** The selected tab's capsule sits 4dp in from the pill's top and bottom and stands 4dp past its slot. */
     static final int HIGHLIGHT_INSET_DP = 4;
     static final int HIGHLIGHT_GROW_DP = 4;
@@ -671,6 +669,17 @@ public final class GlassTabBar {
         return floating && lift != null ? Math.round(lift.dp * density) : 0;
     }
 
+    /**
+     * The corner radius of a shape [heightPx] tall with [corners] picked (#144): its dp, the highlight's when
+     * [highlight], never past half the height, so a fully round pill has half circle ends. Standard with no
+     * choice read.
+     */
+    static float cornerPx(GlassCorners corners, boolean highlight, float heightPx, float density) {
+        GlassCorners pick = corners == null ? GlassCorners.STANDARD : corners;
+        int dp = highlight ? pick.highlightDp : pick.dp;
+        return Math.min(Math.round(dp * density), Math.max(0f, heightPx / 2f));
+    }
+
     /** The selected tab's capsule: a quarter of white on dark glass, a sixth of grey on light. */
     static int highlight(int base) {
         return isDark(base) ? 0x40ffffff : 0x2a787880;
@@ -840,6 +849,8 @@ public final class GlassTabBar {
         private final HapticStyle hapticStyle;
         private final GlassOpacity opacity;
         private final GlassHeight height;
+        /** How round the pill and its highlight are, outside the liquid look (#144). */
+        private final GlassCorners corners;
         /** How much higher the pill sits, in pixels, by the lift chosen. */
         private final int lift;
         /**
@@ -926,6 +937,7 @@ public final class GlassTabBar {
             this.hapticStyle = Settings.GLASS_TAB_BAR_HAPTIC_STYLE.get();
             this.opacity = Settings.GLASS_TAB_BAR_OPACITY.get();
             this.height = Settings.GLASS_TAB_BAR_HEIGHT.get();
+            this.corners = Settings.GLASS_TAB_BAR_CORNERS.get();
             this.lift = liftPx(Settings.GLASS_TAB_BAR_LIFT.get(), floating, density);
             this.room = lift;
             this.liquid = Settings.GLASS_TAB_BAR_LIQUID.get();
@@ -1553,7 +1565,7 @@ public final class GlassTabBar {
                     drawLiquid(canvas);
                     return;
                 }
-                float radius = dp(CORNER_DP);
+                float radius = cornerPx(corners, false, rect.height(), density);
                 boolean dark = isDark(base);
                 underlay(canvas);
                 // Light glass has nothing under it to stand out against, so it gets a soft shadow.
@@ -1565,7 +1577,7 @@ public final class GlassTabBar {
                 keepSheen(dark);
                 canvas.drawRoundRect(rect, radius, radius, sheen);
 
-                drawCapsule(canvas, rect, dp(HIGHLIGHT_CORNER_DP), 1f);
+                drawCapsule(canvas, rect, cornerPx(corners, true, rect.height() - 2 * dp(HIGHLIGHT_INSET_DP), density), 1f);
 
                 stroke.setStrokeWidth(Math.max(1f, density));
                 stroke.setColor(edge(base));
@@ -1829,7 +1841,7 @@ public final class GlassTabBar {
                 try {
                     float scale = 1f / DOWNSAMPLE;
                     float pad = dp(BLUR_DP);
-                    float radius = dp(CORNER_DP);
+                    float radius = cornerPx(corners, false, area.height(), density);
                     float wide = area.width() + 2 * pad;
                     float tall = area.height() + 2 * pad;
                     int width = Math.max(1, (int) Math.ceil(wide * scale));

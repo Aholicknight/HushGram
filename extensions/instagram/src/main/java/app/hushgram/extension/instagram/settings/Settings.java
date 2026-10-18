@@ -28,6 +28,9 @@ import app.hushgram.extension.shared.settings.LongSetting;
 import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.StringSetting;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * The switches behind the hooks that ask before they act.
  *
@@ -881,6 +884,23 @@ public class Settings extends BaseSettings {
     public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassHeight> GLASS_TAB_BAR_HEIGHT =
             new EnumSetting<>("hushgram_glass_tab_bar_height",
                     app.hushgram.extension.instagram.misc.GlassHeight.STANDARD, true, parent(GLASS_TAB_BAR));
+
+    /**
+     * Under {@link #GLASS_TAB_BAR}: how round the pill is ({@link app.hushgram.extension.instagram.misc.GlassCorners},
+     * #144). Starts on the corners the bar has always had. {@link #GLASS_TAB_BAR_LIQUID} is fully round whatever
+     * is picked, so the choice rests while that's on. A change shows after a restart, so it asks for one.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassCorners> GLASS_TAB_BAR_CORNERS =
+            new EnumSetting<>("hushgram_glass_tab_bar_corners",
+                    app.hushgram.extension.instagram.misc.GlassCorners.STANDARD, true, new Setting.Availability() {
+                        @Override public boolean isAvailable() {
+                            return GLASS_TAB_BAR.savedValue() && !GLASS_TAB_BAR_LIQUID.savedValue();
+                        }
+
+                        @Override public List<Setting<?>> getParentSettings() {
+                            return Collections.singletonList(GLASS_TAB_BAR);
+                        }
+                    });
 
     /**
      * Under {@link #GLASS_TAB_BAR_FLOAT}: how much room a floating pill leaves under itself
