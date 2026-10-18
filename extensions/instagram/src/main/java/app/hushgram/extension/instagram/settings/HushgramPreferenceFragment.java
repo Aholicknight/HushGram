@@ -1178,7 +1178,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         if (build.contains(PatchFamily.COMMENT_COPY) || build.contains(PatchFamily.COMMENT_PHOTO)
-                || build.contains(PatchFamily.HIDE_COMMENTS)) {
+                || build.contains(PatchFamily.HIDE_COMMENTS) || build.contains(PatchFamily.COMMENT_EMOJI_ROW)) {
             PreferenceCategory comments = category(screen, L10n.t("Comments"), SettingsIcons.COMMENTS,
                     L10n.t("Copy, save or hide comments."));
             if (build.contains(PatchFamily.COMMENT_COPY)) {
@@ -1196,6 +1196,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (build.contains(PatchFamily.HIDE_COMMENTS)) {
                 comments.addPreference(toggle(context, Settings.HIDE_COMMENTS, L10n.t("Hide comments"),
                         L10n.t("Takes the Comment button and the comment count off the posts in your feed.")));
+            }
+            if (build.contains(PatchFamily.COMMENT_EMOJI_ROW)) {
+                comments.addPreference(toggle(context, Settings.HIDE_COMMENT_EMOJI_ROW, L10n.t("Hide the emoji row"),
+                        L10n.t("Takes the row of quick emoji off above the comment box. The box itself stays.")));
             }
         }
 

@@ -303,6 +303,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean commentEmojiRow() {
+        return false;
+    }
+
     public static boolean followingFeed() {
         return false;
     }

@@ -1257,6 +1257,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_COMMENTS =
             new BooleanSetting("hushgram_hide_comments", FALSE);
 
+    /**
+     * The comment sheet leaves out the row of quick emoji above the comment box
+     * ({@link app.hushgram.extension.instagram.feed.CommentEmojiRow}). Read before each frame of a
+     * resumed screen, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_COMMENT_EMOJI_ROW =
+            new BooleanSetting("hushgram_hide_comment_emoji_row", FALSE);
+
     /** The Follow button beside a reel's author in the Reels viewer. Off to start. */
     public static final BooleanSetting HIDE_REEL_FOLLOW_BUTTON =
             new BooleanSetting("hushgram_hide_reel_follow_button", FALSE);

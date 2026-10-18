@@ -659,6 +659,9 @@ Hide the HushGram row in Instagram's menu	Instagram 메뉴에서 HushGram 항목
 While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.	탭이나 프로필 메뉴를 길게 탭해 HushGram을 여는 동안에는 Instagram의 설정 및 활동 화면에 HushGram 항목이 표시되지 않습니다. 길게 탭하기를 끄면 항목이 다시 나타납니다.
 Stop loading stories	스토리 불러오기 중지
 Takes the Comment button and the comment count off the posts in your feed.	피드 게시물에서 댓글 버튼과 댓글 수를 없앱니다.
+# context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
+Hide the emoji row	이모지 줄 숨기기
+Takes the row of quick emoji off above the comment box. The box itself stays.	댓글 입력창 위에 있는 빠른 이모지 줄을 없앱니다. 입력창은 그대로 표시됩니다
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Instagram이 만드는 추억, 요약, 팔로우 기념일, 생일 카드를 홈 상단의 스토리 줄에서 없앱니다. 사람들이 올린 스토리는 그대로 남습니다.
 Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	홈 상단 스토리 목록에서 예전 하이라이트를 다시 보여주는 되감기 카드를 숨깁니다.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	댓글을 두 번 탭해도 좋아요가 눌리지 않습니다. 처음에는 꺼져 있으므로 이 스위치를 켜기 전까지 댓글은 두 번 탭으로 좋아요가 눌립니다.

@@ -877,6 +877,23 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.settings.StoryFollowSettingsTest" to listOf(
                 "missingPatchHasNoSwitch", "aloneItStillGetsStories", "switchStartsOffUnderStoriesAndHonorsPause"
             ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.feed.ViewHiderTest" to listOf(
+                "hidesOnlyTheNamedViewsAndCancelsTheFrameThatWouldShowThem",
+                "aViewInstagramShowsAgainIsHiddenBeforeTheNextFrame",
+                "aViewAddedAfterTheFirstLookIsFoundAfterTheNextLayout", "aViewStubIsLeftAlone",
+                "withAScopeOnlyTheViewsInsideItGo", "aBuildWithoutTheScopeSaysSoAndChangesNothing",
+                "aBuildWithoutAnIdSaysSoAndKeepsTheOtherOne", "offAtResumeListensToNothing",
+                "turnedOffWhileShowingItDropsItsListenersAtTheNextFrame", "pausingAnActivityTakesItsListenersAway",
+                "watchingTwiceListensOnce", "theApplicationHookWatchesEachActivityThatResumes",
+                "aBuildWithoutThePatchRegistersNothing", "nothingThrowsIntoInstagram"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.feed.CommentEmojiRowTest" to listOf(
+                "offToStartLeavesTheRowAlone", "onTakesTheRowOffAndLeavesTheBoxAndPost",
+                "onlyTheStripIsHiddenWhenTheRowViewIsAnotherOne", "pausedReadsAsOff"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.CommentEmojiRowSettingsTest" to listOf(
+                "missingPatchHasNoSwitch", "aloneItStillGetsComments", "switchStartsOffUnderCommentsAndHonorsPause"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.reels.ReelsSuggestionsTest" to listOf(
                 "offPausedAndUnreadyKeepEveryItem[28]", "offPausedAndUnreadyKeepEveryItem[37]",
                 "aThrowingReaderOrSwitchKeepsTheItemAndIsReported[28]", "aThrowingReaderOrSwitchKeepsTheItemAndIsReported[37]"),

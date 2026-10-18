@@ -660,6 +660,9 @@ Hide the HushGram row in Instagram's menu	Ocultar la fila de HushGram en el men�
 While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.	Mientras mantener pulsada una pestaña o el menú de tu perfil abra HushGram, la pantalla Configuración y actividad de Instagram no muestra la fila de HushGram. Desactiva esas pulsaciones largas y la fila vuelve.
 Stop loading stories	No cargar historias
 Takes the Comment button and the comment count off the posts in your feed.	Quita el botón Comentar y el número de comentarios de las publicaciones de tu feed.
+# context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
+Hide the emoji row	Ocultar la fila de emojis
+Takes the row of quick emoji off above the comment box. The box itself stays.	Quita la fila de emojis rápidos que aparece sobre el cuadro de comentarios. El cuadro se queda.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Quita de la fila de historias de arriba de Inicio los recuerdos, resúmenes, aniversarios de seguimiento y tarjetas de cumpleaños que crea Instagram. Las historias que publica la gente se quedan.
 Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	Oculta las tarjetas de rewind, que recuperan destacados antiguos, de la fila de historias de la parte superior de Inicio.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Tocar dos veces un comentario no le da me gusta. Empieza desactivado, así que los comentarios mantienen tocar dos veces para dar me gusta hasta que lo actives.

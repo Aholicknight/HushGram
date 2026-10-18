@@ -660,6 +660,9 @@ Hide the HushGram row in Instagram's menu	Instagram menüsündeki HushGram satı
 While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.	Bir sekmeye ya da profilinin menüsüne uzun basmak HushGram'ı açtığı sürece Instagram'ın Ayarlar ve hareketler ekranında HushGram satırı gösterilmez. Uzun basmaları kapatınca satır geri gelir.
 Stop loading stories	Hikayeleri yükleme
 Takes the Comment button and the comment count off the posts in your feed.	Akışındaki gönderilerden Yorum yap düğmesini ve yorum sayısını kaldırır.
+# context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
+Hide the emoji row	Emoji satırını gizle
+Takes the row of quick emoji off above the comment box. The box itself stays.	Yorum kutusunun üstündeki hızlı emoji satırını kaldırır. Kutunun kendisi kalır.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Instagram'ın oluşturduğu anıları, özetleri, takip yıl dönümlerini ve doğum günü kartlarını Ana Sayfa'nın üstündeki hikaye satırından kaldırır. İnsanların paylaştığı hikayeler kalır.
 Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	Eski öne çıkanları geri getiren geri sarma kartlarını Ana Sayfa'nın üstündeki hikâye satırından gizler.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Bir yoruma iki kez dokunmak onu beğenmez. Kapalı başlar, yani sen bunu açana kadar yorumlar iki kez dokunarak beğenmeyi korur.
