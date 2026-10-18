@@ -20,13 +20,13 @@ Every HushGram release, newest first.
 
 * **Instagram - Clean up Reels:** Keep clear mode on missed some reels and left their buttons up when the next reel's controls showed up late. It waits for them now. Reported in #233.
 
-* **Instagram - Find the reel you came from:** The search keeps going much further down a profile's reels before it says it couldn't find one, so an older reel many pages down is still found. It also waits out a slow page while Instagram's spinner shows, instead of taking it for the end of the profile. Reported in #225.
+* **Instagram - Find the reel you came from:** The search goes much further down a profile's reels before giving up, so an older reel many pages down is still found. It also waits out a slow page while Instagram's spinner shows. Reported in #225.
 
-* **Instagram - Hide suggested posts:** With `Hide videos` or another Home switch on, a page that came back with a post or two, or none at all, left Home on an endless spinner or the Welcome card. Home asks for the next page by itself now. Reported in #28.
+* **Instagram - Hide suggested posts:** With `Hide videos` or another Home switch on, a page with a post or two, or none at all, left Home on an endless spinner or the Welcome card. Home asks for the next page by itself now. Reported in #28.
 
 ### Improvements
 
-* **Instagram - Diagnostics:** The report now lists every card type the stories viewer checks, ads included, and how often Instagram asked whether to show the Music for you card. A report from someone who still sees those cards shows which way they came in. From #111 and #154.
+* **Instagram:** The diagnostic report now lists every card type the stories viewer checks, ads included, and how often Instagram asked to show the Music for you card. From #111 and #154.
 
 ## 0.0.12 (2026-10-16)
 
