@@ -132,6 +132,7 @@ public final class FeedSuggestions {
     /** The report's counts of how each {@link #caughtUpTitle} call went, before {@link #sectionTitle}'s decision. */
     static final String CAUGHT_UP_CHECKED = "caught up card titles checked";
     static final String CAUGHT_UP_KEPT_NO_SECTION = "caught up card titles kept, no section under them";
+    static final String CAUGHT_UP_KEPT_OTHER_TITLE = "caught up card titles kept, not the section's name";
 
     private static final String END_CARD_KIND = "END_OF_FEED_DEMARCATOR";
 
@@ -143,6 +144,9 @@ public final class FeedSuggestions {
 
     /** Reads the section an end of feed card shows under its title, as {@link #caughtUpSection} does. Tests stand in. */
     static volatile Function<Object, Object> caughtUpSections = FeedSuggestions::caughtUpSection;
+
+    /** Reads a section's name, as {@link #sectionName} does. Tests stand in. */
+    static volatile Function<Object, String> sectionNames = FeedSuggestions::sectionName;
 
     /** Set once {@link #filter} has taken an item out of the home feed in this run. Tests clear it. */
     static volatile boolean tookOut;
@@ -840,11 +844,12 @@ public final class FeedSuggestions {
      * subtitle, with the title and the card. On 451 the caught up card draws the Suggested for you
      * header itself: "You've seen the latest posts from accounts you follow" on top, then the title
      * with the Older posts link beside it, so {@link #sectionTitle}'s header binder never runs for it
-     * (#104, seen on a phone 2026-10-17). Answers "" while Hide suggested posts is on and the
-     * section the card's group set has open shows nothing, as {@link #sectionTitle} decides, and
-     * [title] otherwise: for a card without a group set or with the switch off, and when anything
-     * goes wrong. The card hides a title it's handed empty. Its subtitle and the link stay. Never
-     * throws.
+     * (#104, seen on a phone 2026-10-17). Answers "" while Hide suggested posts is on, the title is
+     * the name of the section the card's group set has open and that section shows nothing, as
+     * {@link #sectionTitle} decides. Answers [title] otherwise: for a card titled something else
+     * ("You're all caught up" over a header of its own), one without a group set or with the switch
+     * off, and when anything goes wrong. The card hides a title it's handed empty. Its subtitle and
+     * the link stay. Never throws.
      */
     public static String caughtUpTitle(String title, Object card) {
         if (title == null || title.isEmpty() || card == null) return title;
@@ -854,6 +859,10 @@ public final class FeedSuggestions {
             Object section = caughtUpSections.apply(card);
             if (section == null) {
                 HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAUGHT_UP_KEPT_NO_SECTION);
+                return title;
+            }
+            if (!title.equals(sectionNames.apply(section))) {
+                HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAUGHT_UP_KEPT_OTHER_TITLE);
                 return title;
             }
             return titleOver(title, section);
@@ -893,6 +902,14 @@ public final class FeedSuggestions {
      * The patch writes the body. Null as built, so the card keeps its title.
      */
     public static Object caughtUpSection(Object card) {
+        return null;
+    }
+
+    /**
+     * A section's name, the one its header shows ("Suggested for you"), or null. The patch writes the
+     * body. Null as built, so the caught up card keeps its title.
+     */
+    public static String sectionName(Object section) {
         return null;
     }
 

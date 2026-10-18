@@ -44,6 +44,9 @@ internal const val CAUGHT_UP_TITLE = "$FEED_SUGGESTIONS->caughtUpTitle(Ljava/lan
 /** The extension's stub the patch fills to find the section an end of feed card shows under its title. */
 internal const val CAUGHT_UP_SECTION_STUB = "caughtUpSection"
 
+/** The extension's stub the patch fills to read a section's name, which the card's title has to be. */
+internal const val SECTION_NAME_STUB = "sectionName"
+
 private const val STRING = "Ljava/lang/String;"
 private const val OBJECT = "Ljava/lang/Object;"
 private const val LIST = "Ljava/util/List;"
@@ -52,11 +55,13 @@ private val BIND_VIEW = listOf("I", "Landroid/view/View;", OBJECT, OBJECT)
 /**
  * The end of feed card's title, found: its binder, the index of the holder's (title, subtitle) call
  * and that call, the registers holding the title and the card, and the walk from the card to the
- * section its group set has open, as the card's own section getter walks it: the card's data, the
- * data's group set, a new sections view of that group set, and the view's lookup by the open
- * section's id. [write] fills the extension's stub with that walk and passes the title through
- * FeedSuggestions.caughtUpTitle right before the call, so a card whose open section shows nothing
- * gets no title. The subtitle and the Older posts link stay.
+ * section its group set has open. The walk takes the card's data, the data's group set and a new
+ * sections view of that group set from the card's own section getter, then looks up the view's own
+ * open section id, the section the Suggested for you header titles. The getter itself looks up fixed
+ * ids, the Older posts link's section among them. [write] fills the extension's stubs with that walk
+ * and the section's [name] field, and passes the title through FeedSuggestions.caughtUpTitle right
+ * before the call, so a card titled with the name of an open section that shows nothing gets no
+ * title. The subtitle and the Older posts link stay.
  */
 internal class CaughtUpCardTitle(
     val binder: String,
@@ -75,6 +80,8 @@ internal class CaughtUpCardTitle(
     val sectionType: String,
     /** The section's list of items, for FeedSuggestions.sectionItems when the header's hook didn't fill it. */
     val items: String,
+    /** The section's name, the field the header's title is read from. */
+    val name: String,
 ) {
     /** [itemsFilled] when the header's hook already filled FeedSuggestions.sectionItems. */
     fun write(context: BytecodePatchContext, itemsFilled: Boolean) = with(context) {
@@ -114,6 +121,14 @@ internal class CaughtUpCardTitle(
                 )
             },
         )
+        staticStub(FEED_SUGGESTIONS, SECTION_NAME_STUB, STRING).addInstructions(
+            0,
+            """
+                check-cast p0, $sectionType
+                iget-object p0, p0, $name
+                return-object p0
+            """,
+        )
         if (!itemsFilled) {
             staticStub(FEED_SUGGESTIONS, SECTION_ITEMS_STUB, LIST).addInstructions(
                 0,
@@ -150,12 +165,14 @@ internal class CaughtUpCardTitle(
  * class is the data's group set (LX/06LF->A05), and its read of a field of the data's class on the
  * card is the card's data (LX/06hB->A01). The sections view's call taking a String and answering
  * the getter's class is its lookup by id (LX/06LH->A00), and the one String its constructor keeps is
- * the open section's id (LX/06LH->A01). The section class (LX/06LI) has one list field, its items.
- * Every class and member the stub reaches has to be public, since the extension calls them.
+ * the open section's id (LX/06LH->A01), the id the header's binder matches its title's section by.
+ * The section class (LX/06LI) has one list field, its items, and [sectionName] is the header's read
+ * of its name (LX/06LI->A05). Every class and member the stubs reach has to be public, since the
+ * extension calls them.
  *
  * Anything else is an update this patch hasn't seen, and it stops.
  */
-internal fun BytecodePatchContext.findCaughtUpCardTitle(): CaughtUpCardTitle {
+internal fun BytecodePatchContext.findCaughtUpCardTitle(sectionName: FieldReference): CaughtUpCardTitle {
     val binds = mutableListOf<Pair<ClassDef, Method>>()
     classesHolding(END_CARD_HOLDER, END_CARD_UNIT).forEach { classDef ->
         classDef.methods.filter { it.isBindView() && it.loads(END_CARD_HOLDER) && it.loads(END_CARD_UNIT) }
@@ -227,12 +244,15 @@ internal fun BytecodePatchContext.findCaughtUpCardTitle(): CaughtUpCardTitle {
     val sectionClass = classDefByOrNull(sectionType) ?: refuse("$sectionType isn't in this build")
     val lists = sectionClass.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == LIST }
     val items = lists.singleOrNull() ?: refuse("expected one list field in $sectionType, found ${lists.size}")
+    if (sectionName.definingClass != sectionType || sectionName.type != STRING) {
+        refuse("the header's section name ${sectionName.smali()} isn't a String of $sectionType")
+    }
 
     for (type in listOf(cardType, data.definingClass, groupSetType, sectionsType, sectionType)) {
         val classDef = classDefByOrNull(type) ?: refuse("$type isn't in this build")
         if (!AccessFlags.PUBLIC.isSet(classDef.accessFlags)) refuse("$type isn't public, so the extension can't reach it")
     }
-    for (field in listOf(data, groupSet, activeId, items)) {
+    for (field in listOf(data, groupSet, activeId, items, sectionName)) {
         val declared = classDefByOrNull(field.definingClass)?.fields?.singleOrNull { it.name == field.name && it.type == field.type }
             ?: refuse("${field.smali()} isn't declared where it's read")
         if (!AccessFlags.PUBLIC.isSet(declared.accessFlags) || AccessFlags.STATIC.isSet(declared.accessFlags)) {
@@ -244,27 +264,28 @@ internal fun BytecodePatchContext.findCaughtUpCardTitle(): CaughtUpCardTitle {
             refuse("${method.reference()} isn't a public instance method")
         }
     }
-    // Both stubs the write fills have to be there.
+    // Every stub the write fills has to be there.
     staticStub(FEED_SUGGESTIONS, CAUGHT_UP_SECTION_STUB, OBJECT)
     staticStub(FEED_SUGGESTIONS, SECTION_ITEMS_STUB, LIST)
+    staticStub(FEED_SUGGESTIONS, SECTION_NAME_STUB, STRING)
 
     return CaughtUpCardTitle(
         binder.type, titleAt, code[titleAt].methodReference().toString(), title, card, cardType,
         data.smali(), groupSet.smali(), groupSetType, sectionsType, activeId.smali(), lookupRef, sectionType, items.smali(),
+        sectionName.smali(),
     )
 }
 
 /**
  * [findCaughtUpCardTitle], or null after the patch log says why, and the caught up card keeps its
- * title. [header] is the Suggested for you header's hook when it was found: its section class has to
- * be the card's, since both read their items through the same stub.
+ * title. [header] is the Suggested for you header's hook. Without it there's no section name to match
+ * the card's title to, and a card titled anything else ("You're all caught up" over the header) keeps
+ * its title, so the card is left be. Its section class has to be the card's, since both read their
+ * items through the same stub.
  */
 internal fun BytecodePatchContext.caughtUpCardTitleOrWarn(header: SuggestedSectionHeader?): CaughtUpCardTitle? = try {
-    findCaughtUpCardTitle().also {
-        if (header != null && header.sectionType != it.sectionType) {
-            refuse("its section ${it.sectionType} isn't the header's ${header.sectionType}")
-        }
-    }
+    if (header == null) refuse("the Suggested for you header wasn't found, so there's no section name to match it to")
+    findCaughtUpCardTitle(header.name)
 } catch (moved: PatchException) {
     patchLog.warning("${moved.message}. The caught up card keeps its Suggested for you title when nothing is left under it.")
     null

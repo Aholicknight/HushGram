@@ -17,6 +17,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -50,8 +51,9 @@ import org.junit.Test
 /**
  * The caught up card's Suggested for you title (#104): on 451 Home's end of feed card shows it
  * through its holder's (title, subtitle) call, and the group set's header isn't drawn. The hooks are
- * in the extension, the card's open section is found the way its own getter finds it, and in every
- * declared build the title goes past FeedSuggestions.caughtUpTitle with the card in hand.
+ * in the extension, the card's open section is found through its getter's sections view by that
+ * view's own open id, the section's name is the header's, and in every declared build the title goes
+ * past FeedSuggestions.caughtUpTitle with the card in hand.
  */
 class CaughtUpCardTitleTest {
     @Test
@@ -61,11 +63,12 @@ class CaughtUpCardTitleTest {
             .map { "$FEED_SUGGESTIONS->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$CAUGHT_UP_TITLE is not in the extension: $declared", CAUGHT_UP_TITLE in declared)
         assertTrue("the section stub is not in the extension: $declared", "$FEED_SUGGESTIONS->$CAUGHT_UP_SECTION_STUB(Ljava/lang/Object;)Ljava/lang/Object;" in declared)
+        assertTrue("the name stub is not in the extension: $declared", "$FEED_SUGGESTIONS->$SECTION_NAME_STUB(Ljava/lang/Object;)Ljava/lang/String;" in declared)
     }
 
     @Test
     fun theTitleAndTheWalkAreFound() {
-        val found = PatchContexts.of(classes()).findCaughtUpCardTitle()
+        val found = PatchContexts.of(classes()).findCaughtUpCardTitle(NAME)
 
         assertEquals(BINDER, found.binder)
         assertEquals(TITLE_AT, found.titleAt)
@@ -79,12 +82,13 @@ class CaughtUpCardTitleTest {
         assertEquals("$SECTIONS->find($STRING)$SECTION", found.lookup)
         assertEquals(SECTION, found.sectionType)
         assertEquals("$SECTION->items:$LIST", found.items)
+        assertEquals("$SECTION->name:$STRING", found.name)
     }
 
     @Test
     fun theTitleGoesPastTheExtension() {
         val context = PatchContexts.of(classes())
-        val found = context.findCaughtUpCardTitle()
+        val found = context.findCaughtUpCardTitle(NAME)
 
         found.write(context, itemsFilled = false)
 
@@ -95,7 +99,7 @@ class CaughtUpCardTitleTest {
     @Test
     fun theItemsStubIsFilledOnce() {
         val context = PatchContexts.of(classes())
-        val found = context.findCaughtUpCardTitle()
+        val found = context.findCaughtUpCardTitle(NAME)
 
         found.write(context, itemsFilled = true)
 
@@ -113,6 +117,29 @@ class CaughtUpCardTitleTest {
 
         val after = context.classDefBy(FEED_SUGGESTIONS).methods.associate { it.name to it.code().size }
         assertEquals(before, after)
+    }
+
+    /**
+     * Without the header's hook there's no section name to match, and a card titled "You're all
+     * caught up" over a header of its own would lose that title, so the card is left be.
+     */
+    @Test
+    fun aBuildWithoutTheHeaderLeavesTheCardBe() {
+        val context = PatchContexts.of(classes())
+        val before = context.classDefBy(BINDER).methods.single().code().size
+
+        assertNull(context.caughtUpCardTitleOrWarn(null))
+
+        assertEquals(before, context.classDefBy(BINDER).methods.single().code().size)
+        assertTrue(context.classDefBy(FEED_SUGGESTIONS).methods.single { it.name == SECTION_NAME_STUB }.code().first().opcode != Opcode.CHECK_CAST)
+    }
+
+    @Test
+    fun aNameFromAnotherClassFailsTheFind() {
+        val failure = assertThrows(PatchException::class.java) {
+            PatchContexts.of(classes()).findCaughtUpCardTitle(field(DATA, "title", STRING))
+        }
+        assertTrue(failure.message!!, failure.message!!.contains("isn't a String of $SECTION"))
     }
 
     @Test
@@ -156,16 +183,23 @@ class CaughtUpCardTitleTest {
         assertTrue("no other build", checked > 0)
     }
 
-    /** The binder, the classes it names, the classes they name (the card's walk among them) and the extension. */
+    /**
+     * The binder, the classes it names, the classes they name (the card's walk among them), the
+     * header's binder for the section's name, and the extension.
+     */
     private fun hooksTheTitle(bundle: File, label: String) {
         val binders = FixtureDex.classesHolding(bundle, END_CARD_HOLDER)
             .filter { binder -> binder.methods.any { method -> method.code().any { it.loads(END_CARD_UNIT) } } }
         assertTrue("$label: no class holds both of the card's casts", binders.isNotEmpty())
         val named = FixtureDex.classes(bundle, binders.typesNamed()).values
         val walked = FixtureDex.classes(bundle, named.typesNamed()).values
-        val context = PatchContexts.of((binders + named + walked).distinctBy { it.type } + ExtensionDex.classDef(FEED_SUGGESTIONS))
+        val header = FixtureDex.classes(bundle, setOf(GROUP_SET_BINDER)).values
+        assertTrue("$label: $GROUP_SET_BINDER isn't in the build", header.isNotEmpty())
+        val context = PatchContexts.of(
+            (binders + named + walked + header).distinctBy { it.type } + ExtensionDex.classDef(FEED_SUGGESTIONS),
+        )
 
-        val found = context.findCaughtUpCardTitle()
+        val found = context.findCaughtUpCardTitle(context.findSuggestedSectionHeader().name)
         found.write(context, itemsFilled = false)
 
         assertHooked("$label ${found.binder}", context, found, itemsFilled = false)
@@ -211,6 +245,19 @@ class CaughtUpCardTitleTest {
             ),
             stub.code().map { it.opcode to it.referenceText() },
         )
+        val walk = stub.code()
+        val addresses = walk.runningFold(0) { at, instruction -> at + instruction.codeUnits }
+        walk.indices.filter { walk[it].opcode == Opcode.IF_EQZ }.forEach { at ->
+            assertEquals("$what: a missing link goes to the return", addresses[walk.lastIndex], addresses[at] + (walk[at] as OffsetInstruction).codeOffset)
+        }
+        val onP0 = walk.filter { it.opcode in setOf(Opcode.CHECK_CAST, Opcode.IF_EQZ, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT) }
+            .map { (it as OneRegisterInstruction).registerA }
+        assertEquals("$what: the card, its walk and the answer stay in p0", List(onP0.size) { 2 }, onP0)
+        assertEquals(
+            "$what: the name stub reads the section's name",
+            listOf(Opcode.CHECK_CAST to found.sectionType, Opcode.IGET_OBJECT to found.name, Opcode.RETURN_OBJECT to null),
+            extension.single { it.name == SECTION_NAME_STUB }.code().take(3).map { it.opcode to it.referenceText() },
+        )
         val items = extension.single { it.name == SECTION_ITEMS_STUB }.code()
         if (itemsFilled) {
             assertTrue("$what: the items stub is left to the header", items.firstOrNull()?.opcode != Opcode.CHECK_CAST)
@@ -224,7 +271,7 @@ class CaughtUpCardTitleTest {
     }
 
     private fun refused(why: String, classes: List<ClassDef>) {
-        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(classes).findCaughtUpCardTitle() }
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(classes).findCaughtUpCardTitle(NAME) }
         assertTrue(failure.message!!, failure.message!!.contains(why))
     }
 
@@ -263,6 +310,9 @@ class CaughtUpCardTitleTest {
         val BIND_VIEW = listOf("I", "Landroid/view/View;", "Ljava/lang/Object;", "Ljava/lang/Object;")
 
         fun field(owner: String, name: String, type: String) = ImmutableFieldReference(owner, name, type)
+
+        /** The section's name, as the header's hook reads it. */
+        val NAME = field(SECTION, "name", STRING)
 
         fun invoke(opcode: Opcode, count: Int, c: Int, d: Int, e: Int, owner: String, name: String, parameters: List<String>, returns: String) =
             ImmutableInstruction35c(opcode, count, c, d, e, 0, 0, ImmutableMethodReference(owner, name, parameters, returns))

@@ -55,6 +55,8 @@ internal class SuggestedSectionHeader(
     val section: Int,
     val sectionType: String,
     val items: FieldReference,
+    /** The section's name field the title is read from, for the caught up card's title to match. */
+    val name: FieldReference,
     private val stub: MutableMethod,
 ) {
     /** Whether it hooked the title, and so filled the items stub. */
@@ -115,7 +117,7 @@ internal fun BytecodePatchContext.findSuggestedSectionHeader(): SuggestedSection
     if (!AccessFlags.PUBLIC.isSet(items.accessFlags)) refuse("${sectionClass.type}'s list field ${items.name} isn't public")
 
     val stub = staticStub(FEED_SUGGESTIONS, SECTION_ITEMS_STUB, LIST)
-    return SuggestedSectionHeader(at, text, section, sectionClass.type, items, stub)
+    return SuggestedSectionHeader(at, text, section, sectionClass.type, items, name, stub)
 }
 
 /** [findSuggestedSectionHeader], or null after the patch log says why, and the header keeps its title. */
