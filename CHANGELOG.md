@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Hide Follow on feed posts:** New patch. Feed posts show a Follow or Subscribe button next to the author's name, and this takes it off. The name, time and menu stay. The switch is under Feed and starts off. Asked for in #248.
 * **Instagram - Hide the comment emoji row:** New patch. The comment box has a row of quick emoji above it, and this takes it off. The box stays. The switch is under Comments and starts off. Asked for in #248.
 * **Instagram - Hide Follow on stories:** New patch. Stories from accounts you don't follow show a Follow button at the top again, and this takes it off. The name, time and menu stay. The switch is under Stories and starts off. Asked for in #237.
 

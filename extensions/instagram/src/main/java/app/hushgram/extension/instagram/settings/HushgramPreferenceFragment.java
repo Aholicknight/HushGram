@@ -559,9 +559,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         boolean longPressZoom = build.contains(PatchFamily.LONG_PRESS_ZOOM);
         boolean roundedCorners = build.contains(PatchFamily.ROUNDED_POST_CORNERS);
         boolean fullScreen = build.contains(PatchFamily.FULL_SCREEN_BARS);
+        boolean feedFollow = build.contains(PatchFamily.FEED_FOLLOW);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
                 || askLike || askRefresh || postTime || hiddenLikes || backHome || feedSound || feedTapPause || longPressZoom || roundedCorners
-                || fullScreen
+                || fullScreen || feedFollow
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
         if (following) {
@@ -688,6 +689,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             feed.addPreference(toggle(context, Settings.FULL_SCREEN_HOME, L10n.t("Full screen Home"),
                     L10n.t("Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to "
                             + "bring them back for a moment.")));
+        }
+        if (feedFollow) {
+            feed.addPreference(toggle(context, Settings.HIDE_FEED_FOLLOW, L10n.t("Hide Follow on posts"),
+                    L10n.t("Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.")));
         }
 
         if (build.contains(PatchFamily.META_AI)) {

@@ -39,6 +39,7 @@ import java.util.function.Predicate;
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.feed.CommentEmojiRow;
+import app.hushgram.extension.instagram.feed.FeedFollowButton;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
@@ -140,6 +141,7 @@ public final class SettingsEntry {
         TabStart.install(context);
         ProfileSaved.install(context);
         CommentEmojiRow.install(context);
+        FeedFollowButton.install(context);
         ProfileMenuPress.install(context);
         ProfileTitle.install(context);
         LaunchScreen.install(context);

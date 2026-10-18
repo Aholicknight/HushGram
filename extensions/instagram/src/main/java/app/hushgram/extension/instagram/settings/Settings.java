@@ -1265,6 +1265,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_COMMENT_EMOJI_ROW =
             new BooleanSetting("hushgram_hide_comment_emoji_row", FALSE);
 
+    /**
+     * The Follow and Subscribe buttons beside the author's name on a feed post
+     * ({@link app.hushgram.extension.instagram.feed.FeedFollowButton}). Read before each frame of a
+     * resumed screen, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_FEED_FOLLOW =
+            new BooleanSetting("hushgram_hide_feed_follow", FALSE);
+
     /** The Follow button beside a reel's author in the Reels viewer. Off to start. */
     public static final BooleanSetting HIDE_REEL_FOLLOW_BUTTON =
             new BooleanSetting("hushgram_hide_reel_follow_button", FALSE);

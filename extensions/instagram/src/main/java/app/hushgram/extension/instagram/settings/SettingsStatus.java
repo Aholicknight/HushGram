@@ -307,6 +307,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean feedFollow() {
+        return false;
+    }
+
     public static boolean followingFeed() {
         return false;
     }
