@@ -1614,17 +1614,18 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reel_cap", FALSE);
 
     /**
-     * A profile opened from a reel scrolls its Reels tab to that reel and outlines its tile for a
-     * moment ({@link app.hushgram.extension.instagram.reels.ReelOrigin}). Read as the profile opens and
-     * each time its Reels tab comes up, so a change shows on the next profile opened. Off to start.
+     * A profile opened from a reel scrolls its Reels tab to that reel, or its posts grid for a photo
+     * reel, and outlines its tile for a moment ({@link app.hushgram.extension.instagram.reels.ReelOrigin}).
+     * Read as the profile opens and each time its Reels tab or posts grid comes up, so a change shows on
+     * the next profile opened. Off to start.
      */
     public static final BooleanSetting FIND_REEL_ORIGIN =
             new BooleanSetting("hushgram_find_reel_origin", FALSE);
 
     /**
-     * With Find the reel you came from on, a reel past the first screen of the Reels tab is looked for
-     * only once its Find the reel button is tapped, instead of right away
-     * ({@link app.hushgram.extension.instagram.reels.ReelOrigin}). Read each time the tab comes up. Off
+     * With Find the reel you came from on, a reel past the first screen of the Reels tab or posts grid
+     * is looked for only once its Find the reel button is tapped, instead of right away
+     * ({@link app.hushgram.extension.instagram.reels.ReelOrigin}). Read each time the grid comes up. Off
      * to start.
      */
     public static final BooleanSetting FIND_REEL_ORIGIN_ON_TAP =

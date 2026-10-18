@@ -51,6 +51,7 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.ScreenColors;
@@ -76,6 +77,11 @@ public class ReelOriginTest {
     private static final BooleanSupplier THROWS = () -> {
         throw new IllegalStateException("settings went away");
     };
+    /** The media types a reel's media answers: a photo, a carousel, a video, and none, as with the bridge unwritten. */
+    private static final Function<Object, Integer> PHOTO = media -> ReelOrigin.PHOTO;
+    private static final Function<Object, Integer> CAROUSEL = media -> ReelOrigin.CAROUSEL;
+    private static final Function<Object, Integer> VIDEO = media -> 2;
+    private static final Function<Object, Integer> UNKNOWN = media -> null;
     /** The reel's author, and the reel as Instagram names it: its own id, then its author's. */
     private static final String AUTHOR = "7";
     private static final String REEL = "3100_" + AUTHOR;
@@ -112,6 +118,36 @@ public class ReelOriginTest {
             this.activity = activity;
             this.grid = grid;
             arguments.putString(ReelOrigin.USER_KEY, user);
+            TABS.add(this);
+        }
+
+        public Activity getActivity() {
+            return activity;
+        }
+
+        public Bundle getArguments() {
+            return arguments;
+        }
+
+        public boolean isResumed() {
+            return resumed;
+        }
+    }
+
+    /**
+     * A profile's posts grid as the extension sees 451's ProfileMediaTabFragment: which of the
+     * profile's grids it is, and no user id, then the rest as a tab's.
+     */
+    public static final class PostsGrid {
+        public RecyclerView recyclerView;
+        public boolean resumed = true;
+        private final Activity activity;
+        private final Bundle arguments = new Bundle();
+
+        PostsGrid(Activity activity, RecyclerView grid, String which) {
+            this.activity = activity;
+            this.recyclerView = grid;
+            arguments.putString(ReelOrigin.GRID_KEY, which);
             TABS.add(this);
         }
 
@@ -868,6 +904,166 @@ public class ReelOriginTest {
         ReelOrigin.reelsTabResumed(new Tab(late, grid, AUTHOR), ON);
         idleSeconds(6);
         assertTrue(shown.isEmpty());
+    }
+
+    /**
+     * A photo reel or a carousel lives in the profile's posts grid, never its Reels tab (#225), so
+     * the posts grid is searched for it and the Reels tab is left alone.
+     */
+    @Test
+    public void aPhotoReelIsFoundInThePostsGrid() {
+        for (Function<Object, Integer> type : List.of(PHOTO, CAROUSEL)) {
+            ReelOrigin.forget();
+            shown.clear();
+            List<String> posts = reels(30, 9000);
+            posts.set(20, REEL);
+            ReelOrigin.opening(new Reel(REEL), ON, type);
+            openProfile(posts, null);
+
+            ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON, OFF);
+            idleSeconds(3);
+            assertTrue("the Reels tab doesn't look for a photo reel", shown.isEmpty());
+            assertTrue(grid.drags.isEmpty());
+
+            ReelOrigin.postsGridResumed(new PostsGrid(profile, grid, ReelOrigin.POSTS), ON, OFF);
+            idleSeconds(5);
+            assertEquals(HookStatus.report() + " drags " + grid.drags, List.of(REEL), shown);
+            assertFalse("dragged down to it", grid.drags.isEmpty());
+            assertNull("dropped once found", ReelOrigin.heldForTests());
+        }
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.FOUND + " 2"));
+        assertTrue(HookStatus.missing(FamilyNames.REEL_ORIGIN).toString(), HookStatus.missing(FamilyNames.REEL_ORIGIN).isEmpty());
+    }
+
+    /**
+     * A video reel, or one whose type can't be read, is looked for in the Reels tab as before: the
+     * posts grid never moves for it.
+     */
+    @Test
+    public void aVideoReelLeavesThePostsGridAlone() {
+        for (Function<Object, Integer> type : List.of(VIDEO, UNKNOWN)) {
+            ReelOrigin.forget();
+            shown.clear();
+            ReelOrigin.opening(new Reel(REEL), ON, type);
+            List<String> posts = reels(30, 9000);
+            posts.set(20, REEL);
+            openProfile(posts, null);
+            RecyclerView postsGrid = grid;
+
+            ReelOrigin.postsGridResumed(new PostsGrid(profile, postsGrid, ReelOrigin.POSTS), ON, OFF);
+            idleSeconds(5);
+            assertTrue("the posts grid isn't searched", shown.isEmpty());
+            assertTrue(postsGrid.drags.isEmpty());
+            assertEquals(REEL, ReelOrigin.heldForTests());
+
+            ReelOrigin.reelsTabResumed(new Tab(profile, postsGrid, AUTHOR), ON, OFF);
+            idleSeconds(5);
+            assertEquals("the Reels tab finds it", List.of(REEL), shown);
+        }
+    }
+
+    /**
+     * Only the profile's main posts grid looks. Its tagged, fan club and long video grids are left
+     * alone, and so is a second posts grid in the same screen, which is another profile's.
+     */
+    @Test
+    public void onlyTheFirstMainPostsGridLooks() {
+        ReelOrigin.opening(new Reel(REEL), ON, PHOTO);
+        openProfile(List.of("3000_7", REEL, "2900_7"), null);
+        for (String other : List.of("profile_tagged_media_photos_of_you", "profile_fan_club_grid", "profile_longform")) {
+            ReelOrigin.postsGridResumed(new PostsGrid(profile, grid, other), ON, OFF);
+        }
+        Activity elsewhere = Robolectric.buildActivity(Activity.class).setup().get();
+        ReelOrigin.postsGridResumed(new PostsGrid(elsewhere, grid, ReelOrigin.POSTS), ON, OFF);
+        idleSeconds(3);
+        assertTrue("no other grid looked", shown.isEmpty());
+        assertEquals(REEL, ReelOrigin.heldForTests());
+
+        PostsGrid author = new PostsGrid(profile, grid, ReelOrigin.POSTS);
+        PostsGrid another = new PostsGrid(profile, grid, ReelOrigin.POSTS);
+        author.resumed = false;
+        ReelOrigin.postsGridResumed(author, ON, OFF);
+        ReelOrigin.postsGridResumed(another, ON, OFF);
+        idleSeconds(3);
+        assertTrue("the author's grid was left first, and the second is another profile's", shown.isEmpty());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ReelOrigin.OTHER_PROFILE + " 1"));
+
+        author.resumed = true;
+        ReelOrigin.postsGridResumed(author, ON, OFF);
+        ShadowLooper.idleMainLooper();
+        assertEquals("back on the author's grid, it's found", List.of(REEL), shown);
+    }
+
+    /**
+     * Profile posts as a list asks before opening a grid's first post: only the author's main posts
+     * grid, while a photo reel is held and the switch is on, is kept up for the search (#225).
+     */
+    @Test
+    public void profilePostsAsAListLeavesTheAuthorsGridUpForAPhoto() {
+        ReelOrigin.opening(new Reel(REEL), ON, PHOTO);
+        openProfile(List.of("3000_7", REEL), null);
+        PostsGrid author = new PostsGrid(profile, grid, ReelOrigin.POSTS);
+        assertTrue(ReelOrigin.searchesPosts(author, ON));
+        assertFalse("switched off", ReelOrigin.searchesPosts(author, OFF));
+        assertFalse("the tagged grid", ReelOrigin.searchesPosts(new PostsGrid(profile, grid, "profile_tagged_media_photos_of_you"), ON));
+        Activity elsewhere = Robolectric.buildActivity(Activity.class).setup().get();
+        assertFalse("another screen", ReelOrigin.searchesPosts(new PostsGrid(elsewhere, grid, ReelOrigin.POSTS), ON));
+        assertFalse(ReelOrigin.searchesPosts(null, ON));
+        assertFalse(ReelOrigin.searchesPosts(new Object(), ON));
+        assertFalse(ReelOrigin.searchesPosts(author, THROWS));
+
+        ReelOrigin.postsGridResumed(author, ON, ON);
+        assertTrue("still the author's", ReelOrigin.searchesPosts(author, ON));
+        assertFalse("a second posts grid is another profile's", ReelOrigin.searchesPosts(new PostsGrid(profile, grid, ReelOrigin.POSTS), ON));
+
+        ReelOrigin.forget();
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(List.of("3000_7", REEL), null);
+        assertFalse("a video reel is looked for on the Reels tab", ReelOrigin.searchesPosts(new PostsGrid(profile, grid, ReelOrigin.POSTS), ON));
+    }
+
+    /** With Wait for a tap on, a photo reel past the posts grid's first screen waits for Find the reel too. */
+    @Test
+    public void waitForATapHoldsThePostsGridSearch() {
+        List<String> posts = reels(30, 9000);
+        posts.set(25, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON, PHOTO);
+        openProfile(posts, null);
+
+        ReelOrigin.postsGridResumed(new PostsGrid(profile, grid, ReelOrigin.POSTS), ON, ON);
+        idleSeconds(5);
+        TextView button = ReelOrigin.buttonForTests();
+        assertNotNull(button);
+        assertEquals("Find the reel", button.getText().toString());
+        assertTrue("nothing moved before the tap", grid.drags.isEmpty());
+
+        assertTrue(button.performClick());
+        idleSeconds(5);
+        assertEquals(List.of(REEL), shown);
+        assertNull(ReelOrigin.heldForTests());
+    }
+
+    /** A posts grid that throws or lacks what the extension reads moves nothing and is reported under its own hook. */
+    @Test
+    public void postsGridFailuresAreReported() {
+        ReelOrigin.opening(new Reel(REEL), ON, PHOTO);
+        openProfile(List.of(REEL), null);
+        ReelOrigin.postsGridResumed(new PostsGrid(profile, grid, ReelOrigin.POSTS), THROWS, OFF);
+        ReelOrigin.postsGridResumed(null, ON, OFF);
+        ReelOrigin.postsGridResumed(new Object(), ON, OFF);
+        idleSeconds(3);
+        assertTrue(shown.isEmpty());
+        assertEquals("a failure on the grid keeps the reel", REEL, ReelOrigin.heldForTests());
+
+        String missing = HookStatus.missing(FamilyNames.REEL_ORIGIN).toString();
+        assertTrue(missing, missing.contains("'" + ReelOrigin.POSTS_RESUME + "'"));
+        assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+        assertTrue(missing, missing.contains(Object.class.getName() + "#getActivity"));
+
+        ReelOrigin.postsGridResumed(new PostsGrid(profile, grid, ReelOrigin.POSTS), ON, OFF);
+        ShadowLooper.idleMainLooper();
+        assertEquals("a sound grid still finds it", List.of(REEL), shown);
     }
 
     /** Leaving the profile drops the reel. */

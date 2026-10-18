@@ -103,6 +103,14 @@ public final class InstagramMedia {
         return null;
     }
 
+    /**
+     * A Media's {@code media_type}: 1 for a photo, 2 for a video, 8 for a carousel. Written by the
+     * Find the reel you came from patch alone, which looks for a photo reel in a profile's posts grid.
+     */
+    public static Integer mediaType(Object media) {
+        return null;
+    }
+
     /** A Media's {@code image_versions2}: the sizes Instagram lists for its picture. */
     public static Object imageVersions(Object media) {
         return null;

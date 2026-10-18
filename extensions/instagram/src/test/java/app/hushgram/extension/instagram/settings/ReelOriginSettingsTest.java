@@ -84,7 +84,8 @@ public class ReelOriginSettingsTest {
         assertNotNull(row);
         assertEquals("Find the reel you came from", row.getTitle().toString());
         assertEquals("Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and "
-                + "outlines it for a moment. Stop looking ends the search where it is.", row.getSummary().toString());
+                + "outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.",
+                row.getSummary().toString());
         PreferenceGroup reels = row.getParent();
         assertEquals("Reels", reels.getTitle().toString());
         String[] keys = new String[reels.getPreferenceCount()];
@@ -102,7 +103,7 @@ public class ReelOriginSettingsTest {
 
         SwitchPreference tap = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.FIND_REEL_ORIGIN_ON_TAP.key);
         assertEquals("Wait for a tap to find it", tap.getTitle().toString());
-        assertEquals("When the reel isn't on the first screen, the Reels tab shows a Find the reel button instead of "
+        assertEquals("When the reel isn't on the first screen, the profile shows a Find the reel button instead of "
                 + "scrolling on its own.", tap.getSummary().toString());
         assertFalse(tap.isChecked());
         assertFalse(Settings.FIND_REEL_ORIGIN_ON_TAP.defaultValue);

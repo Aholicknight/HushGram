@@ -987,9 +987,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (build.contains(PatchFamily.REEL_ORIGIN)) {
             reels.add(toggle(context, Settings.FIND_REEL_ORIGIN, L10n.t("Find the reel you came from"),
                     L10n.t("Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel "
-                            + "and outlines it for a moment. Stop looking ends the search where it is.")));
+                            + "and outlines it for a moment. A photo reel is found in their posts. Stop looking ends "
+                            + "the search where it is.")));
             reels.add(toggle(context, Settings.FIND_REEL_ORIGIN_ON_TAP, L10n.t("Wait for a tap to find it"),
-                    L10n.t("When the reel isn't on the first screen, the Reels tab shows a Find the reel button "
+                    L10n.t("When the reel isn't on the first screen, the profile shows a Find the reel button "
                             + "instead of scrolling on its own.")));
         }
         if (!reels.isEmpty()) {

@@ -22,6 +22,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Find the reel you came from:** The search goes much further down a profile's reels before giving up, so an older reel many pages down is still found. It also waits out a slow page while Instagram's spinner shows. Reported in #225.
 
+* **Instagram - Find the reel you came from:** A photo reel now works too. Instagram keeps those in a profile's posts instead of the Reels tab, so the search looks there for them. With Profile posts as a list on, the grid stays up for it. Reported in #225.
+
 * **Instagram - Hide suggested posts:** With `Hide videos` or another Home switch on, a page with a post or two, or none at all, left Home on an endless spinner or the Welcome card. Home asks for the next page by itself now. Reported in #28.
 
 * **Instagram - Hide suggested posts:** On Instagram 451 the "You've seen the latest posts" card draws the Suggested for you title itself, so it stayed with nothing under it. It goes away there too now, and Older posts stays. Reported in #104.

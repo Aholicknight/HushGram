@@ -8,8 +8,10 @@ import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.assertGridHook
 import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.assertOpenHook
 import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.assertResumeHook
 import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.code
@@ -32,8 +34,9 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Both hooks on each of 451's eight builds: the one profile opener and the one Reels tab onResume
- * they land in, nothing else changed. And what the extension's search goes by: the grid's binder
+ * The hooks on each of 451's eight builds: the one profile opener, the one Reels tab onResume and
+ * the posts grid's onResume they land in, nothing else changed, and the media type bridge a photo
+ * reel is told by (#225). And what the extension's search goes by: the grid's binder
  * names each tile by the string its reel's getId() returns, and the Reels tab puts up nine unnamed
  * placeholder tiles while its first page loads, which the search waits out (#30).
  */
@@ -44,11 +47,12 @@ class NativeFindReelOriginTest {
         for (bundle in bundles) {
             val name = bundle.absolutePath
             val classes = load(bundle) { types -> FixtureDex.classes(bundle, types) }
-            val context = PatchContexts.of(classes.values + ExtensionDex.classDef(REEL_ORIGIN))
+            val context = PatchContexts.of(classes.values + ExtensionDex.classDef(REEL_ORIGIN) + ExtensionDex.classDef(INSTAGRAM_MEDIA))
             val methods = classes.values.flatMap { it.methods }
             val open = methods.single { OPEN_PROFILE in it.markers() }
             val resume = methods.single { TAB_RESUME in it.markers() }
-            val hooked = setOf(open.toString(), resume.toString())
+            val gridResume = classes.getValue(POSTS_GRID).methods.single { it.name == "onResume" && it.parameterTypes.isEmpty() }
+            val hooked = setOf(open.toString(), resume.toString(), gridResume.toString())
             val media = classes.getValue(open.parameterTypes.single().toString()).fields.single { it.type == MEDIA }
             context.hookReelOrigin()
 
@@ -56,6 +60,11 @@ class NativeFindReelOriginTest {
                 open.code(), "${media.definingClass}->${media.name}:$MEDIA")
             assertResumeHook(context.mutableClassDefBy(resume.definingClass).methods.single { it.toString() == resume.toString() },
                 resume.code())
+            // A photo reel is looked for in the profile's posts grid, which goes to the extension right
+            // after its super.onResume(), leaving the first spot to Profile posts as a list (#225).
+            assertGridHook(context.mutableClassDefBy(POSTS_GRID).methods.single { it.toString() == gridResume.toString() },
+                gridResume.code())
+            assertMediaTypeBridge(name, classes, context.mutableClassDefBy(INSTAGRAM_MEDIA).methods.single { it.name == "mediaType" })
             for (classDef in classes.values) {
                 assertEquals("$name: ${classDef.type} changed", snapshot(classDef.methods.filter { it.toString() !in hooked }),
                     snapshot(context.mutableClassDefBy(classDef.type).methods.filter { it.toString() !in hooked }))
@@ -69,6 +78,20 @@ class NativeFindReelOriginTest {
             checked += name
         }
         for (code in BUILDS) assertTrue("no fixture of 451 build $code among $checked", checked.any { it.contains("-$code") })
+    }
+
+    /** The media type bridge casts to Media and calls its one getter answering an Integer that loads `media_type`'s key. */
+    private fun assertMediaTypeBridge(name: String, classes: Map<String, ClassDef>, bridge: Method) {
+        val code = bridge.code()
+        assertEquals("$name: the bridge's code", listOf(Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT),
+            code.take(4).map { it.opcode })
+        assertEquals("$name: casts to Media", MEDIA, code[0].reference())
+        val call = (code[1] as ReferenceInstruction).reference as MethodReference
+        assertEquals("$name: calls Media", MEDIA, call.definingClass)
+        assertEquals("$name: answers an Integer", "Ljava/lang/Integer;", call.returnType)
+        val getter = classes.getValue(MEDIA).methods.single { it.name == call.name && it.parameterTypes.isEmpty() && it.returnType == call.returnType }
+        assertTrue("$name: ${call.name} loads media_type's key",
+            getter.code().any { (it as? NarrowLiteralInstruction)?.narrowLiteral == "media_type".hashCode() })
     }
 
     /**
@@ -147,8 +170,9 @@ class NativeFindReelOriginTest {
         assertTrue("no fixture of a declared build", bundles.isNotEmpty())
         for (bundle in bundles) {
             val classes = load(bundle) { types -> FixtureDex.classesAsRead(bundle, types) }
-            val context = PatchContexts.of(classes.values + ExtensionDex.classDef(REEL_ORIGIN))
+            val context = PatchContexts.of(classes.values + ExtensionDex.classDef(REEL_ORIGIN) + ExtensionDex.classDef(INSTAGRAM_MEDIA))
             val found = context.findReelOriginTargets()
+            assertNotNull("${bundle.name}: a photo reel's posts grid is found", found.photoReels)
             val open = found.openProfile.code()
             val resume = found.tabResume.code()
             context.hookReelOrigin()
@@ -208,7 +232,12 @@ class NativeFindReelOriginTest {
             var next = supers[checkNotNull(tab) { "${bundle.name}: no Reels tab" }]
             while (next != null && next in supers && chain.add(next)) next = supers[next]
             assertTrue("${bundle.name}: the Reels tab is a Fragment", FRAGMENT in chain)
-            val types = marked + destinations + MEDIA + chain + made.filter { it in supers }
+            assertTrue("${bundle.name}: no $POSTS_GRID", POSTS_GRID in supers)
+            val gridChain = mutableSetOf(POSTS_GRID)
+            next = supers[POSTS_GRID]
+            while (next != null && next in supers && gridChain.add(next)) next = supers[next]
+            assertTrue("${bundle.name}: the posts grid is a Fragment", FRAGMENT in gridChain)
+            val types = marked + destinations + MEDIA + chain + gridChain + made.filter { it in supers }
             val classes = read(types)
             assertEquals(bundle.name, types.size, classes.size)
             return classes

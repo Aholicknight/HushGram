@@ -286,6 +286,15 @@ internal fun BytecodePatchContext.storyMusicBridges(patch: String): () -> Unit {
     ))
 }
 
+/**
+ * The same for a post's `media_type`, which Find the reel you came from reads to tell a photo reel,
+ * a photo or carousel played in Reels, from a video one (#225).
+ */
+internal fun BytecodePatchContext.mediaTypeBridge(patch: String): () -> Unit {
+    val type = pandoGetter(patch, MEDIA, "media_type", "Ljava/lang/Integer;")
+    return bridgeWriter(patch, listOf(Bridge("mediaType", MEDIA, virtual(type))))
+}
+
 /** A post's music, the track it comes from, and the part of the track the post plays. All keep their names. */
 internal const val MUSIC_INFO = "Lcom/instagram/api/schemas/MusicInfo;"
 internal const val PANDO_MUSIC_INFO = "Lcom/instagram/api/schemas/ImmutablePandoMusicInfo;"

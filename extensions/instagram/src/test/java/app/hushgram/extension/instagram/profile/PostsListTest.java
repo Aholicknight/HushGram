@@ -190,6 +190,31 @@ public class PostsListTest {
         assertTrue(HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).toString(), HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).isEmpty());
     }
 
+    /**
+     * A profile opened from a photo reel, which Find the reel you came from looks for in this grid:
+     * the grid stays up, and stays up when the tab comes back (#225).
+     */
+    @Test
+    public void aPhotoReelSearchKeepsTheGridUp() {
+        addRow("first", "second");
+        layout();
+        Page page = new Page();
+        Tab tab = tab(PostsList.POSTS_TAB, false);
+        tab.page = page;
+        List<Object> asked = new ArrayList<>();
+        PostsList.resumed(tab, ON, searched -> asked.add(searched));
+        idleSeconds(6);
+        assertEquals(List.of(tab), asked);
+        assertTrue("no post opened", taps.isEmpty());
+        assertTrue(tab.getArguments().getBoolean(PostsList.OPENED_KEY));
+        assertTrue(page.getArguments().getBoolean(PostsList.OPENED_KEY));
+
+        PostsList.resumed(tab, ON, searched -> false);
+        idleSeconds(6);
+        assertTrue("back from the photo, the grid stays", taps.isEmpty());
+        assertTrue(HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).toString(), HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).isEmpty());
+    }
+
     /** A cell that leaves the tap to the view around it gets it through that view, and a subclass of the cell counts. */
     @Test
     public void theTapGoesToWhicheverViewTakesItAndSubclassesCount() {

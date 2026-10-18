@@ -17,7 +17,9 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
+import app.hushgram.extension.instagram.reels.ReelOrigin;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -87,6 +89,11 @@ public final class PostsList {
     }
 
     static void resumed(Object tab, BooleanSupplier on) {
+        resumed(tab, on, ReelOrigin::searchesPosts);
+    }
+
+    /** [photoSearch] answers whether Find the reel you came from is about to look for a photo in the tab. */
+    static void resumed(Object tab, BooleanSupplier on, Predicate<Object> photoSearch) {
         try {
             HookStatus.invoked(FamilyNames.PROFILE_POSTS_LIST);
             if (tab == null || !on.getAsBoolean()) return;
@@ -102,6 +109,8 @@ public final class PostsList {
             if (page != null && page.getBoolean(OPENED_KEY)) return;
             bundle.putBoolean(OPENED_KEY, true);
             if (page != null) page.putBoolean(OPENED_KEY, true);
+            // The photo reel this profile was opened from is looked for in the grid, so it stays up (#225).
+            if (photoSearch.test(tab)) return;
             main().post(new Look(tab, bundle, page, SystemClock.uptimeMillis() + GIVE_UP_MS));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_POSTS_LIST, RESUME, failure);

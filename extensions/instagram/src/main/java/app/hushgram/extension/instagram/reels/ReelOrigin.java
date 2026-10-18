@@ -30,7 +30,9 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 
+import app.hushgram.extension.instagram.download.InstagramMedia;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -59,6 +61,15 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * was, a toast says so, and the id is dropped. Leaving the tab first stops the search and keeps the
  * id for the next time the tab opens.
  *
+ * <p>A photo reel, a photo or carousel Instagram plays in Reels with music, sits in the profile's
+ * posts grid instead and never in its Reels tab (#225). So {@link #opening} also notes the reel's
+ * media type, and for a photo or carousel the search runs the same way in the posts grid
+ * (ProfileMediaTabFragment), from the patch's call first in its onResume, while the Reels tab leaves
+ * it alone. The posts grid's arguments name which of the profile's grids it is but not whose, so the
+ * first main posts grid resumed in the profile's activity is taken as the author's, and another one
+ * resumed there later, a profile reached from it, is left alone. A video reel is looked for in the
+ * Reels tab alone, as before, and so is any reel while the media type can't be read.
+ *
  * <p>Nothing is dragged and no end is waited for until the grid holds a tile Instagram named. A
  * profile can open straight on its Reels tab (451 does for some reels), and then the tab resumes
  * before its first page: the grid shows nine grey placeholder tiles with no names, as many as fill
@@ -77,12 +88,22 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public final class ReelOrigin {
     /** The Reels tab's argument holding whose profile it is. */
     static final String USER_KEY = "ClipsProfileTabFragment.ARGS_PROFILE_USER_ID";
-    /** The type of the Reels tab's one grid field. */
+    /**
+     * The posts grid's argument naming which of a profile's grids it is, and the name of the main
+     * one, where a photo reel's tile sits; the tagged grid and the others have names of their own.
+     */
+    static final String GRID_KEY = "ProfileMediaTabFragment.profile_tab_identifier";
+    static final String POSTS = "profile_media_grid";
+    /** Instagram's media types of a photo and of a carousel, the two a photo reel comes as. */
+    static final int PHOTO = 1;
+    static final int CAROUSEL = 8;
+    /** The type of the Reels tab's one grid field, and the posts grid's. */
     static final String GRID_TYPE = "androidx.recyclerview.widget.RecyclerView";
 
     /** The steps a failure is reported under. */
     static final String OPENING = "profile opened from a reel";
     static final String RESUME = "reels tab resumed";
+    static final String POSTS_RESUME = "posts grid resumed";
     static final String LOOK = "looking for the reel";
     static final String WATCH = "profile screen watched";
     /** Counted when a reel's id is held, found in the grid, not found, and when the tab was left first. */
@@ -102,7 +123,10 @@ public final class ReelOrigin {
     static final String ENDED = "grid ended";
     static final String RAN_OUT = "screens ran out";
     static final String NO_TILES = "no named tiles";
-    /** Counted when the Reels tab in the profile's screen is another profile's than the reel's author. */
+    /**
+     * Counted when the Reels tab in the profile's screen is another profile's than the reel's author,
+     * or a posts grid there is another than the first.
+     */
     static final String OTHER_PROFILE = "other profile's tab";
 
     /** How long after the tap the profile's activity may take to be created. */
@@ -150,8 +174,12 @@ public final class ReelOrigin {
     /** The one reel id held, and when. */
     private static String held;
     private static long heldAt;
+    /** Whether the reel held is a photo or a carousel, looked for in the posts grid and not the Reels tab. */
+    private static boolean heldPhoto;
     /** The activity the profile opened in, once it's created. */
     private static WeakReference<Activity> host;
+    /** The first main posts grid resumed in the profile's activity, the author's, while a photo is held. */
+    private static WeakReference<Object> postsGrid;
     /** Where the watcher is registered while an id is held. */
     private static Application watched;
     /** The search running, at most one. */
@@ -168,18 +196,27 @@ public final class ReelOrigin {
     }
 
     static void opening(Object media, BooleanSupplier on) {
+        opening(media, on, InstagramMedia::mediaType);
+    }
+
+    /** [type] reads the media's type, null when it can't be told. */
+    static void opening(Object media, BooleanSupplier on, Function<Object, Integer> type) {
         try {
             HookStatus.invoked(FamilyNames.REEL_ORIGIN);
             if (media == null || !on.getAsBoolean()) return;
             String id = mediaId(media);
             if (id == null || id.isEmpty()) return;
+            Integer kind = type.apply(media);
+            boolean photo = kind != null && (kind == PHOTO || kind == CAROUSEL);
             Application application = application();
             if (application == null) return;
             synchronized (LOCK) {
                 stopLooking();
                 held = id;
+                heldPhoto = photo;
                 heldAt = SystemClock.uptimeMillis();
                 host = null;
+                postsGrid = null;
                 if (watched == null) {
                     application.registerActivityLifecycleCallbacks(WATCHER);
                     watched = application;
@@ -207,15 +244,17 @@ public final class ReelOrigin {
             if (tab == null || !on.getAsBoolean()) return;
             String id;
             Activity profile;
+            boolean photo;
             synchronized (LOCK) {
                 id = held;
+                photo = heldPhoto;
                 profile = host == null ? null : host.get();
                 if (id != null && profile == null && SystemClock.uptimeMillis() - heldAt > HOST_WINDOW_MS) {
                     id = null;
                     forget();
                 }
             }
-            if (id == null || profile == null) return;
+            if (id == null || profile == null || photo) return;
             Method activity = method(tab, "getActivity");
             if (activity == null || activity.invoke(tab) != profile) return;
             Method arguments = method(tab, "getArguments");
@@ -227,19 +266,104 @@ public final class ReelOrigin {
                 HookStatus.counted(FamilyNames.REEL_ORIGIN, OTHER_PROFILE);
                 return;
             }
-            Method resumed = method(tab, "isResumed");
-            Field grid = gridField(tab);
-            if (resumed == null || grid == null) return;
-            Look look = new Look(tab, resumed, grid, id, on, profile, !waits.getAsBoolean());
-            synchronized (LOCK) {
-                if (!id.equals(held)) return;
-                stopLooking();
-                looking = look;
-            }
-            look.handler.post(look);
+            look(tab, id, on, profile, waits);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_ORIGIN, RESUME, failure);
         }
+    }
+
+    /** Called right after the posts grid's super.onResume() with the grid's fragment. Never throws. */
+    public static void postsGridResumed(Object grid) {
+        postsGridResumed(grid, ReelOrigin::switchedOn);
+    }
+
+    static void postsGridResumed(Object grid, BooleanSupplier on) {
+        postsGridResumed(grid, on, ReelOrigin::waitsForTap);
+    }
+
+    static void postsGridResumed(Object grid, BooleanSupplier on, BooleanSupplier waits) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_ORIGIN);
+            if (grid == null || !on.getAsBoolean()) return;
+            String id;
+            Activity profile;
+            boolean photo;
+            synchronized (LOCK) {
+                id = held;
+                photo = heldPhoto;
+                profile = host == null ? null : host.get();
+                if (id != null && profile == null && SystemClock.uptimeMillis() - heldAt > HOST_WINDOW_MS) {
+                    id = null;
+                    forget();
+                }
+            }
+            if (id == null || profile == null || !photo) return;
+            Method activity = method(grid, "getActivity");
+            if (activity == null || activity.invoke(grid) != profile) return;
+            Method arguments = method(grid, "getArguments");
+            if (arguments == null) return;
+            Object found = arguments.invoke(grid);
+            if (!(found instanceof Bundle) || !POSTS.equals(((Bundle) found).getString(GRID_KEY))) return;
+            boolean other;
+            synchronized (LOCK) {
+                if (!id.equals(held)) return;
+                Object first = postsGrid == null ? null : postsGrid.get();
+                if (first == null) postsGrid = new WeakReference<>(grid);
+                other = first != null && first != grid;
+            }
+            if (other) {
+                HookStatus.counted(FamilyNames.REEL_ORIGIN, OTHER_PROFILE);
+                return;
+            }
+            look(grid, id, on, profile, waits);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_ORIGIN, POSTS_RESUME, failure);
+        }
+    }
+
+    /**
+     * Whether a photo reel held is to be looked for in [grid], the profile's first main posts grid,
+     * so Profile posts as a list leaves the grid up instead of opening its first post. Never throws.
+     */
+    public static boolean searchesPosts(Object grid) {
+        return searchesPosts(grid, ReelOrigin::switchedOn);
+    }
+
+    static boolean searchesPosts(Object grid, BooleanSupplier on) {
+        try {
+            if (grid == null || !on.getAsBoolean()) return false;
+            Activity profile;
+            synchronized (LOCK) {
+                if (held == null || !heldPhoto) return false;
+                Object first = postsGrid == null ? null : postsGrid.get();
+                if (first != null && first != grid) return false;
+                profile = host == null ? null : host.get();
+            }
+            Method activity = method(grid, "getActivity");
+            Method arguments = method(grid, "getArguments");
+            if (profile == null || activity == null || arguments == null || activity.invoke(grid) != profile) return false;
+            Object found = arguments.invoke(grid);
+            return found instanceof Bundle && POSTS.equals(((Bundle) found).getString(GRID_KEY));
+        } catch (Throwable failure) {
+            return false;
+        }
+    }
+
+    /**
+     * Starts looking for [id] in [tab]'s grid in place of any search running, unless the id was
+     * dropped meanwhile or the tab lacks what the search reads.
+     */
+    private static void look(Object tab, String id, BooleanSupplier on, Activity profile, BooleanSupplier waits) {
+        Method resumed = method(tab, "isResumed");
+        Field grid = gridField(tab);
+        if (resumed == null || grid == null) return;
+        Look look = new Look(tab, resumed, grid, id, on, profile, !waits.getAsBoolean());
+        synchronized (LOCK) {
+            if (!id.equals(held)) return;
+            stopLooking();
+            looking = look;
+        }
+        look.handler.post(look);
     }
 
     /** The id held, for tests. */
@@ -253,7 +377,9 @@ public final class ReelOrigin {
     static void forget() {
         synchronized (LOCK) {
             held = null;
+            heldPhoto = false;
             host = null;
+            postsGrid = null;
             stopLooking();
             if (watched != null) {
                 watched.unregisterActivityLifecycleCallbacks(WATCHER);

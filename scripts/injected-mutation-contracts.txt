@@ -1656,6 +1656,14 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->opening(Ljava/la
 once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->opening(Ljava/lang/Object;)V in instance (L*;)Z holding android_purge_26_q3_AuthorInfoNavigator_navigateToNormalProfile
 start-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->reelsTabResumed(Ljava/lang/Object;)V in instance ()V holding android_purge_26_q2_ClipsProfileTabFragment_onResume
 once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->reelsTabResumed(Ljava/lang/Object;)V in instance ()V holding android_purge_26_q2_ClipsProfileTabFragment_onResume
+# For a photo reel (#225) it also hands a profile's posts grid to ReelOrigin.postsGridResumed right
+# after the grid's super.onResume(). ProfileMediaTabFragment keeps its name but holds no marker, and its
+# onResume no string: it's the instance ()V of the class holding the grid's tab identifier key that
+# calls its superclass's onResume. Not first in the method: Profile posts as a list keeps that spot
+# (its start-call above), whichever patch goes in first. Left out, a photo reel is never looked for;
+# twice or elsewhere, it isn't the hook the patch wrote. NativeFindReelOriginTest checks on all eight
+# 451 builds where it lands.
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->postsGridResumed(Ljava/lang/Object;)V in instance ()V calling instance LX/*;->onResume()V class-holding ProfileMediaTabFragment.profile_tab_identifier
 # Blur the bars around Reels hands ReelBlurBars.pager the Reels pager (AndroidX's ViewPager2, whose pages
 # each hold the reel's TextureView) right after the viewer's onViewCreated stores it, the same method
 # Stop Reels scrolling finds by the trace name of the pager's setup. Left out, the switch does nothing;
