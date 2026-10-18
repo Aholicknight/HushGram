@@ -183,6 +183,19 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragment {
         return pending;
     }
 
+    /**
+     * Records what a restart-gated setting runs with before something other than its row changes
+     * it, such as a settings file or its Undo. The row's listener reads the value only after the
+     * save, so without this it took the new value for the running one and owed no restart. An
+     * earlier record stays, since that is still what the process runs.
+     */
+    public static void noteRunningValue(Setting<?> setting, Object running) {
+        if (setting == null || !setting.rebootApp) return;
+        synchronized (runningValues) {
+            if (!runningValues.containsKey(setting.key)) runningValues.put(setting.key, running);
+        }
+    }
+
     /** The page's chance to show that a restart is owed. */
     protected void onRestartPendingChanged() {
     }

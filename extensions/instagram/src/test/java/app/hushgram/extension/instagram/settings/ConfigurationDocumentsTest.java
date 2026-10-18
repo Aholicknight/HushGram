@@ -35,6 +35,7 @@ import org.robolectric.shadows.ShadowLooper;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
@@ -179,6 +180,35 @@ public class ConfigurationDocumentsTest {
             assertTrue(Settings.HIDE_ADS.savedValue());
             assertTrue(control.isChecked());
             assertFalse(undo.isEnabled());
+        }
+    }
+
+    // A file that changes a choice waiting on a restart owes Restart now, as flipping its row does.
+    // It owed nothing before: the row's listener read the value after the save and took the new
+    // one for what Instagram runs. An Undo back to that value owes nothing again.
+    @Test public void importOwesRestartNowAndUndoBackToTheRunningValueClearsIt() throws Exception {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.DISABLE_ANALYTICS);
+        boolean running = Settings.DISABLE_ANALYTICS.savedValue();
+        try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
+            assertTrue(Settings.DISABLE_ANALYTICS.rebootApp);
+            assertNotNull("the row's listener is part of what this proves", page.findPreference(Settings.DISABLE_ANALYTICS.key));
+            assertFalse(RestartNow.owed());
+            Shadows.shadowOf(activity.get().getContentResolver()).registerInputStream(DOCUMENT, new ByteArrayInputStream(
+                    ConfigurationBackupTest.file(ConfigurationBackupTest.entry(Settings.DISABLE_ANALYTICS.key, "boolean", !running))));
+            ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_import_configuration");
+            Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
+            finish();
+            assertEquals(!running, Settings.DISABLE_ANALYTICS.savedValue());
+            assertTrue(AbstractPreferenceFragment.restartPending.contains(Settings.DISABLE_ANALYTICS.key));
+            assertTrue(RestartNow.owed());
+            Preference undo = page.findPreference("hushgram_undo_configuration");
+            undo.getOnPreferenceClickListener().onPreferenceClick(undo);
+            finish();
+            assertEquals(running, Settings.DISABLE_ANALYTICS.savedValue());
+            assertFalse(RestartNow.owed());
+        } finally {
+            Settings.DISABLE_ANALYTICS.resetToDefault();
         }
     }
 

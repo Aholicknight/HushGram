@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -30,6 +31,7 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.SettingsJson;
+import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
 
 /** A portable, typed settings file. It never reads the host's preferences or private ledgers. */
 public final class ConfigurationBackup {
@@ -58,11 +60,17 @@ public final class ConfigurationBackup {
         public final int applied;
         public final int skipped;
         public final boolean restart;
+        /**
+         * Each setting this changed, with the value it held before, so the page can offer Restart
+         * now for the ones that wait on a restart, as it does when their own rows are flipped.
+         */
+        public final Map<Setting<?>, Object> before;
 
-        Result(int applied, int skipped, boolean restart) {
+        Result(int applied, int skipped, boolean restart, Map<Setting<?>, Object> before) {
             this.applied = applied;
             this.skipped = skipped;
             this.restart = restart;
+            this.before = Collections.unmodifiableMap(before);
         }
     }
 
@@ -239,6 +247,7 @@ public final class ConfigurationBackup {
             }
             if (!before.isEmpty()) {
                 forgetUndo();
+                for (var changed : before.entrySet()) AbstractPreferenceFragment.noteRunningValue(changed.getKey(), changed.getValue());
                 try {
                     Setting.saveAll(updates);
                     offerUndo(before);
@@ -247,7 +256,7 @@ public final class ConfigurationBackup {
                     throw failure;
                 }
             }
-            return new Result(updates.size(), skipped, restart);
+            return new Result(updates.size(), skipped, restart, before);
         }
     }
 
@@ -340,6 +349,7 @@ public final class ConfigurationBackup {
         Map<Setting<?>, Long> revisions = importedRevisions;
         forgetUndo();
         synchronized (Setting.class) {
+            Map<Setting<?>, Object> before = new LinkedHashMap<>();
             boolean restart = false;
             int skipped = 0;
             for (var entries = values.entrySet().iterator(); entries.hasNext();) {
@@ -349,10 +359,14 @@ public final class ConfigurationBackup {
                         || !expected.get(setting).equals(setting.savedValue())) {
                     entries.remove();
                     skipped++;
-                } else restart |= setting.rebootApp && !entry.getValue().equals(setting.savedValue());
+                } else if (!entry.getValue().equals(setting.savedValue())) {
+                    before.put(setting, setting.savedValue());
+                    restart |= setting.rebootApp;
+                }
             }
+            for (var changed : before.entrySet()) AbstractPreferenceFragment.noteRunningValue(changed.getKey(), changed.getValue());
             Setting.saveAll(values);
-            return new Result(values.size(), skipped, restart);
+            return new Result(values.size(), skipped, restart, before);
         }
     }
 
