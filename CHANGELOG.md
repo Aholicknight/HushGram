@@ -32,7 +32,7 @@ Every HushGram release, newest first.
 
 * **Instagram:** The diagnostic report now lists every card type the stories viewer checks, ads included, and how often Instagram asked to show the Music for you card. From #111 and #154.
 
-* **Diagnostics:** What HushGram writes to Android's system log and its error toasts now leaves out tokens, signed links and files from your storage, the same way the exported report does. Error traces go in as text, so nothing reaches the log unchecked.
+* **Instagram:** What HushGram writes to Android's system log and its error toasts now leaves out tokens, signed links and files from your storage, the same way the exported report does. Error traces are checked too.
 
 * **Tooling:** An everyday push now builds once and runs only the tests its changes can reach, plus the checks that read every source. A change no test reaches stops the push. A release, or `HUSHGRAM_FULL_GATE=1`, still gets the full gate.
 
