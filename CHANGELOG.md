@@ -34,6 +34,8 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* **Instagram - Story ring size:** Ring size goes from 50% to 150% now, in steps of ten, and the list shows each size as a percent. A size you picked before stays the same. Asked for in #223.
+
 * **Instagram - Tap a feed video to pause it:** The switch's description now says that tapping the paused video again plays it, which it already did. Asked for in #137.
 
 * **Instagram - Read messages without the seen receipt:** With Keep chats unread here off, a chat you open now stays read on this phone until a newer message comes in. Before, it went back to unread once your messages refreshed. The sender still sees no Seen. Asked for in #186.

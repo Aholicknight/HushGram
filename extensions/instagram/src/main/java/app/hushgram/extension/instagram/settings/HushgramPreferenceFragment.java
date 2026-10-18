@@ -5233,20 +5233,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** What the list calls [size]. */
+    /** What the list calls [size]: its share in the phone's own percent format, or Instagram's size. */
     static String storyRingLabel(StoryRingSize size) {
-        switch (size) {
-            case SMALLEST:
-                return L10n.t("Much smaller");
-            case SMALLER:
-                return L10n.t("Smaller");
-            case LARGER:
-                return L10n.t("Larger");
-            case LARGEST:
-                return L10n.t("Much larger");
-            default:
-                return L10n.t("Instagram's size");
-        }
+        if (size == StoryRingSize.INSTAGRAM) return L10n.t("Instagram's size");
+        return NumberFormat.getPercentInstance().format(size.percent() / 100.0);
     }
 
     /** What the rings look like at [size], for the row's summary, with its share in the phone's own percent format. */

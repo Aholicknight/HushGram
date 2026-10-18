@@ -362,11 +362,7 @@ Leaves New group out of the share sheet, and the button that sends to the people
 Story ring size	Hikâye halkası boyutu
 Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Restart Instagram to see a change.	Ana Sayfa'nın üstündeki hikâye satırındaki halkaları aşağıdaki boyutta, izlemediğin hikâyelerin halkalarını da aşağıdaki renkte çizer. Değişikliği görmek için Instagram'ı yeniden başlat.
 Ring size	Halka boyutu
-Much smaller	Çok daha küçük
-Smaller	Daha küçük
 Instagram's size	Instagram boyutu
-Larger	Daha büyük
-Much larger	Çok daha büyük
 The rings are the size Instagram picks for your screen.	Halkalar, Instagram'ın ekranın için seçtiği boyuttadır.
 The rings are %1$s of the size Instagram picks for your screen.	Halkalar, Instagram'ın ekranın için seçtiği boyutun %1$s kadarıdır.
 # context: Stories list under Story ring size; it picks the color of the ring around a story you haven't watched

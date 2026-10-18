@@ -153,7 +153,8 @@ public class StoryRingSettingsTest {
             assertEquals("Ring size", String.valueOf(size.getTitle()));
             List<String> entries = new ArrayList<>();
             for (CharSequence entry : size.getEntries()) entries.add(String.valueOf(entry));
-            assertEquals(Arrays.asList("Much smaller", "Smaller", "Instagram's size", "Larger", "Much larger"), entries);
+            assertEquals(Arrays.asList("50%", "60%", "70%", "80%", "85%", "90%", "Instagram's size",
+                    "110%", "115%", "120%", "130%", "140%", "150%"), entries);
 
             assertEquals("INSTAGRAM", size.getValue());
             assertEquals("The rings are the size Instagram picks for your screen.", String.valueOf(size.getSummary()));

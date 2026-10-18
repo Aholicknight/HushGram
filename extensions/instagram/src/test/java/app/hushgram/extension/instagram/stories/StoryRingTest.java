@@ -93,13 +93,21 @@ public class StoryRingTest {
         assertTrue(Float.isNaN(StoryRing.size(Float.NaN)));
     }
 
-    /** The shares the list offers, smallest first, with Instagram's in the middle. */
+    /**
+     * The shares the list offers, smallest first, from 50% to 150% with Instagram's in the middle
+     * (#223). The sizes offered before keep their names and shares, so a saved pick draws the same.
+     */
     @Test
     public void theSizesRunFromSmallestToLargest() {
         StoryRingSize[] sizes = StoryRingSize.values();
         for (int i = 1; i < sizes.length; i++) assertTrue(sizes[i - 1].scale < sizes[i].scale);
         assertEquals(StoryRingSize.INSTAGRAM, sizes[sizes.length / 2]);
-        assertEquals(85, StoryRingSize.SMALLER.percent());
+        assertEquals(50, sizes[0].percent());
+        assertEquals(150, sizes[sizes.length - 1].percent());
+        assertEquals(70, StoryRingSize.valueOf("SMALLEST").percent());
+        assertEquals(85, StoryRingSize.valueOf("SMALLER").percent());
+        assertEquals(115, StoryRingSize.valueOf("LARGER").percent());
+        assertEquals(130, StoryRingSize.valueOf("LARGEST").percent());
     }
 
     /** The color starts as Instagram's, so the builder gets back the very array it passed. */
