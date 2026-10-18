@@ -56,6 +56,8 @@ Every HushGram release, newest first.
 
 * **Tooling:** The release preflight now builds the bundle and runs every patch on the declared Instagram build, so a patch that stopped applying shows up in a few minutes rather than an hour into the release.
 
+* **Tooling:** A push that changes where a patch hooks Instagram, but not `scripts/injected-mutation-contracts.txt`, now prints a one-line hint naming the patch. It never stops the push, and it shows on a skipped push too.
+
 ## 0.0.12 (2026-10-16)
 
 ### Features

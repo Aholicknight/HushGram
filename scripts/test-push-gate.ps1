@@ -685,6 +685,38 @@ exit 0
         "A script provenance.json doesn't name was built: $((Read-Log) -join '; ') $($run.Output)"
     Invoke-FixtureGit reset -q --hard $tip | Out-Null
 
+    # A push that moves where a patch hooks Instagram with the contracts file left as it was gets a
+    # one-line hint naming the patch, on a skipped push too, and still goes out. With the contracts
+    # file in the push, or a change to a comment or an ordinary line, there's no hint.
+    $hookFolder = 'patches/src/main/kotlin/app/morphe/patches/instagram/hinted'
+    $hookSource = @'
+fun hook() {
+    method.addInstructions(0, "invoke-static { }, $HINTED->first()V")
+}
+'@
+    Write-FixtureFile "$hookFolder/HintedPatch.kt" "val hintedPatch = bytecodePatch(`n    name = `"Hinted patch`",`n)`n"
+    Write-FixtureFile "$hookFolder/HintedHook.kt" $hookSource
+    Write-FixtureFile 'scripts/injected-mutation-contracts.txt' "once-call Lapp/Hinted;->first()V`n"
+    $hintBase = New-FixtureCommit 'add a hooked patch'
+    $skipped = @{ HUSHGRAM_SKIP_PRE_PUSH = '1' }
+    Write-FixtureFile "$hookFolder/HintedHook.kt" $hookSource.Replace('first()V', 'second()V')
+    $hookMoved = New-FixtureCommit 'move a hook'
+    $run = Invoke-Push -Tip $hookMoved -Base $hintBase -Environment $skipped
+    $hints = @($run.Output -split "`n" | Where-Object { $_ -like '*hint:*' })
+    Assert-True ($run.Exit -eq 0 -and $hints.Count -eq 1 -and $hints[0] -like '*hint: Hinted patch moved where it hooks Instagram (HintedHook.kt)*' -and
+        $hints[0] -like '*scripts/injected-mutation-contracts.txt*' -and $run.Output -like '*skipped by HUSHGRAM_SKIP_PRE_PUSH*') `
+        "A moved hook with no contracts change didn't get one hint on a skipped push: $($run.Output)"
+    Write-FixtureFile 'scripts/injected-mutation-contracts.txt' "once-call Lapp/Hinted;->second()V`n"
+    $ruleMoved = New-FixtureCommit 'move its rule too'
+    $run = Invoke-Push -Tip $ruleMoved -Base $hintBase -Environment $skipped
+    Assert-True ($run.Exit -eq 0 -and $run.Output -notlike '*hint:*') "A hook moved with its rule still got a hint: $($run.Output)"
+    Write-FixtureFile "$hookFolder/HintedHook.kt" ($hookSource.Replace('first()V', 'second()V').Replace('fun hook() {',
+        "// invoke-static goes in front of the call`nfun hook() {`n    val tries = 2"))
+    $plainChange = New-FixtureCommit 'change a comment and a plain line'
+    $run = Invoke-Push -Tip $plainChange -Base $ruleMoved -Environment $skipped
+    Assert-True ($run.Exit -eq 0 -and $run.Output -notlike '*hint:*') "A comment or a plain line got a hint: $($run.Output)"
+    Invoke-FixtureGit reset -q --hard $tip | Out-Null
+
     # Only the newest runs are kept, and a folder still being written is left alone for a while.
     $pruneCache = Join-Path $scratch 'prune-cache'
     $env:HUSHGRAM_GATE_CACHE = $pruneCache

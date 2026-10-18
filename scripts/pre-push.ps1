@@ -47,6 +47,10 @@
     the commit it pushes, with the receipt build-release-receipt.ps1 wrote beside it. Set
     HUSHGRAM_SKIP_PRE_PUSH=1 to push anyway.
 
+    One thing runs on every push, a skipped one too, and never stops it: a pushed commit that
+    moves where a patch hooks Instagram while scripts/injected-mutation-contracts.txt stays as it
+    was gets a one-line hint naming the patch (Write-ContractsHint).
+
 .NOTES
     Taken from Hushfacebook's scripts/pre-push.ps1
     (https://github.com/SysAdminDoc/Hushfacebook, commit c15d4f7930505824789684d35039d3c78c8b0903).
@@ -64,6 +68,74 @@ $ErrorActionPreference = 'Stop'
 # Not a parameter default: Windows PowerShell leaves $PSScriptRoot empty while it evaluates the
 # defaults of an advanced script started with -File.
 if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
+
+# The patch that -Path belongs to in -Commit, named as Morphe lists it: the bytecodePatch the file
+# declares, else those its folder declares, else the path itself.
+function Get-HookPatchName([string]$Commit, [string]$Path) {
+    $folder = $Path.Substring(0, $Path.LastIndexOf('/') + 1)
+    foreach ($scope in @($Path, $folder)) {
+        $declared = @(& git -C $Root grep -h -A4 -E 'bytecodePatch\(' $Commit -- $scope 2>$null | ForEach-Object {
+            if ("$_" -match '^\s*name\s*=\s*"([^"]+)"') { $Matches[1] }
+        } | Select-Object -Unique)
+        if ($declared.Count -gt 0) { return $declared -join ', ' }
+    }
+    return $Path
+}
+
+# A hint, never a refusal. A pushed commit that adds or drops a line where a patch hooks Instagram
+# (an instruction it adds, replaces or removes, an invoke, a call into the extension, a fingerprint
+# or its strings) while no pushed commit touches the contracts file gets one line per patch, so a
+# hook that outgrew its DexDiff rule shows the day it lands rather than at the release preflight.
+# Comment lines don't count. It runs before the skip below, since everyday pushes skip the rest,
+# and a push it can't read gets a warning and goes on.
+function Write-ContractsHint([string[]]$PushedRefs) {
+    $contracts = 'scripts/injected-mutation-contracts.txt'
+    $hookLine = '(add(Instruction|Instructions|InstructionsWithLabels)|replaceInstruction|removeInstructions?|Fingerprint)\(|' +
+        'invoke-[a-z]|\bstrings( ?\(| ?=)|->[A-Za-z_<$]'
+    $none = '0' * 40
+    try {
+        $commits = New-Object System.Collections.Generic.List[string]
+        $hintTip = $null
+        foreach ($refLine in $PushedRefs) {
+            $localRef, $localSha, $remoteRef, $remoteSha = $refLine.Trim() -split '\s+'
+            if ($localSha -eq $none -or $remoteRef -notlike 'refs/heads/*') { continue }
+            [string[]]$range = if ($remoteSha -eq $none) { $localSha, '--not', '--remotes' } else { "$remoteSha..$localSha" }
+            $listed = @(& git -C $Root rev-list @range)
+            if ($LASTEXITCODE -ne 0) { throw "git rev-list $($range -join ' ') failed with exit $LASTEXITCODE" }
+            foreach ($commit in $listed) { if ($commit -and -not $commits.Contains($commit)) { $commits.Add($commit) } }
+            $hintTip = $localSha
+        }
+        $moved = New-Object 'System.Collections.Generic.SortedSet[string]' ([StringComparer]::Ordinal)
+        foreach ($commit in $commits) {
+            if (@(& git -C $Root -c core.quotepath=false diff-tree --no-commit-id --name-only -r --root $commit) -contains $contracts) { return }
+            $diffPath = $null
+            foreach ($diffLine in @(& git -C $Root -c core.quotepath=false diff-tree -p --no-color --no-ext-diff -U0 --no-commit-id --root $commit -- patches/src/main)) {
+                if ($diffLine -cmatch '^(---|\+\+\+) /dev/null$') { continue }
+                if ($diffLine -cmatch '^(--- a|\+\+\+ b)/(.+)$') { $diffPath = $Matches[2]; continue }
+                if ($diffLine -cnotmatch '^[+-]') { continue }
+                $code = $diffLine.Substring(1).Trim()
+                if ($diffPath -and $code -cnotmatch '^(//|/?\*)' -and $code -cmatch $hookLine) { [void]$moved.Add($diffPath) }
+            }
+        }
+        $byPatch = [ordered]@{}
+        foreach ($movedPath in $moved) {
+            $patchName = Get-HookPatchName -Commit $hintTip -Path $movedPath
+            if (-not $byPatch.Contains($patchName)) { $byPatch[$patchName] = New-Object System.Collections.Generic.List[string] }
+            $byPatch[$patchName].Add($movedPath.Substring($movedPath.LastIndexOf('/') + 1))
+        }
+        foreach ($patchName in $byPatch.Keys) {
+            Write-Host ("[pre-push] hint: $patchName moved where it hooks Instagram ($($byPatch[$patchName] -join ', ')) " +
+                "and $contracts didn't change with it. Its DexDiff rules may need the same move before the release preflight runs them.")
+        }
+    } catch {
+        Write-Warning "[pre-push] the contracts hint couldn't read this push: $($_.Exception.Message)"
+    }
+}
+
+# The pushed refs, read once and before the skip, so the hint sees a skipped push too.
+$pushedRefs = if ([Console]::IsInputRedirected) { @([Console]::In.ReadToEnd() -split "`n" | Where-Object { $_.Trim() }) } else { @() }
+Write-ContractsHint -PushedRefs $pushedRefs
+
 if ($env:HUSHGRAM_SKIP_PRE_PUSH -eq '1') {
     Write-Host '[pre-push] skipped by HUSHGRAM_SKIP_PRE_PUSH'
     exit 0
@@ -321,7 +393,7 @@ function Get-FocusedChecks {
 $published = New-Object System.Collections.Generic.List[string]
 $tips = New-Object System.Collections.Generic.List[string]
 $release = $false
-foreach ($line in @([Console]::In.ReadToEnd() -split "`n" | Where-Object { $_.Trim() })) {
+foreach ($line in $pushedRefs) {
     $localRef, $localSha, $remoteRef, $remoteSha = $line.Trim() -split '\s+'
     if ($localSha -eq $zero) { continue }
     if ($remoteRef -like 'refs/tags/*') { $release = $true }
