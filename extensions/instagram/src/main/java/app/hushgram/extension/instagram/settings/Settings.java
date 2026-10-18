@@ -1299,6 +1299,21 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reels_top_bar", FALSE);
 
     /**
+     * The Create (+) button in the top bar of every reel viewer, the Reels tab's and the others,
+     * which opens the camera (#177). The rest of the bar stays
+     * ({@link app.hushgram.extension.instagram.reels.ReelsTopBar}). Off to start.
+     */
+    public static final BooleanSetting HIDE_REELS_CREATE_BUTTON =
+            new BooleanSetting("hushgram_hide_reels_create_button", FALSE);
+
+    /**
+     * The Your algorithm button in the top bar of the Reels tab (#217). The rest of the bar stays
+     * ({@link app.hushgram.extension.instagram.reels.ReelsTopBar}). Off to start.
+     */
+    public static final BooleanSetting HIDE_REELS_YOUR_ALGORITHM =
+            new BooleanSetting("hushgram_hide_reels_your_algorithm", FALSE);
+
+    /**
      * The Save (bookmark) button in the right-hand column of a reel, and the save count under it
      * when Instagram draws one. Feed posts keep theirs. Off to start.
      */

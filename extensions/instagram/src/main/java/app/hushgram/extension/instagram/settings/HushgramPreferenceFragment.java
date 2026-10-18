@@ -881,6 +881,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Takes away the row at the top of the Reels tab, with the Reels title, the camera button and "
                             + "anything else Instagram puts there. Reels you open from a profile, a post or a chat keep "
                             + "theirs. The camera still opens from Home.")));
+            reels.add(toggle(context, Settings.HIDE_REELS_CREATE_BUTTON, L10n.t("Hide the Create button on reels"),
+                    L10n.t("Takes the plus button that opens the camera off the top of reels, on the Reels tab and "
+                            + "everywhere else, and closes up the gap. The rest of the bar stays.")));
+            reels.add(toggle(context, Settings.HIDE_REELS_YOUR_ALGORITHM, L10n.t("Hide Your algorithm on reels"),
+                    L10n.t("Takes the Your algorithm button off the top of the Reels tab and closes up the gap. The "
+                            + "rest of the bar stays.")));
             reels.add(toggle(context, Settings.HIDE_REEL_SAVE_BUTTON, L10n.t("Hide the Save button on reels"),
                     L10n.t("Takes the Save button out of the column of buttons beside a reel, and the count under it. "
                             + "Posts in your feed keep theirs.")));

@@ -22,6 +22,7 @@ import org.robolectric.annotation.Config;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
@@ -37,6 +38,8 @@ public class ReelsTopBarSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.HIDE_REELS_TOP_BAR.resetToDefault();
+        Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
+        Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -47,6 +50,8 @@ public class ReelsTopBarSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_REELS_TOP_BAR.resetToDefault();
+        Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
+        Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -89,5 +94,26 @@ public class ReelsTopBarSettingsTest {
     @Test public void withoutCleanUpReelsThereIsNoSwitch() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_TOP_BAR.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_CREATE_BUTTON.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_YOUR_ALGORITHM.key));
+    }
+    /** The Create and Your algorithm switches (#177, #217) follow the top bar's, each its own row. */
+    @Test public void theButtonSwitchesFollowTheTopBarAndStartOff() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference bar = page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_TOP_BAR.key);
+        Preference create = page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_CREATE_BUTTON.key);
+        Preference algorithm = page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_YOUR_ALGORITHM.key);
+        assertNotNull(create);
+        assertNotNull(algorithm);
+        assertEquals("Hide the Create button on reels", create.getTitle().toString());
+        assertTrue(create.getSummary().toString(), create.getSummary().toString().contains("The rest of the bar stays."));
+        assertEquals("Hide Your algorithm on reels", algorithm.getTitle().toString());
+        PreferenceGroup reels = (PreferenceGroup) bar.getParent();
+        assertEquals(indexIn(reels, bar) + 1, indexIn(reels, create));
+        assertEquals(indexIn(reels, create) + 1, indexIn(reels, algorithm));
+        for (BooleanSetting setting : new BooleanSetting[] {Settings.HIDE_REELS_CREATE_BUTTON, Settings.HIDE_REELS_YOUR_ALGORITHM}) {
+            assertFalse(setting.key, setting.get());
+            assertTrue(setting.key, ConfigurationBackup.eligible().containsKey(setting.key));
+        }
     }
 }

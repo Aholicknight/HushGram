@@ -54,6 +54,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Tap to play:** New `Wait after auto scroll` switch, under Where videos wait. With Instagram's auto scroll on, the reel it moves to waits for your tap too. Off, it plays reel after reel as before. Asked for in #175.
 
+* **Instagram - Clean up Reels:** Two new switches under Reels, both off by default. One hides the Create (+) button at the top of every reel, the other hides Your algorithm on the Reels tab, and the bar closes up around them. Asked for in #177 and #217.
+
 * **Instagram:** The diagnostic report now lists every card type the stories viewer checks, ads included, and how often Instagram asked to show the Music for you card. From #111 and #154.
 
 * **Instagram:** What HushGram writes to Android's system log and its error toasts now leaves out tokens, signed links and files from your storage, the same way the exported report does. Error traces are checked too.
