@@ -56,11 +56,12 @@ foreach ($name in @('HUSHGRAM_FIXTURE_DIR', 'HUSHGRAM_DESKTOP_JAR', 'HUSHGRAM_WO
     }
 }
 
-# The patch tests that open no fixture: they read the README, the catalog, the notices and the
-# sources, and take seconds once the module is compiled.
+# The patch tests that open no fixture: they read the README, the catalog, the notices, the
+# sources and the compiled hooks, and take seconds once the module is compiled. A hook taking a
+# boolean (BooleanHookParametersTest) otherwise first fails half an hour into the gate.
 $quickPatchTests = @('ReadmePatchNamesTest', 'PatchCategoriesTest', 'ProvenanceTest', 'SourceNoticeTest',
     'OriginNoticeMirrorsTest', 'ExtensionHostsTest', 'GuavaPatchSourceGuardTest', 'ConstantReturnSourceTest',
-    'ObfuscatedIdentityTest')
+    'ObfuscatedIdentityTest', 'patches.instagram.misc.extension.BooleanHookParametersTest')
 $started = Get-Date
 $stepStarted = $null
 $stepName = $null

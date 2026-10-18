@@ -46,12 +46,12 @@ public final class CommentEmojiRow {
 
     /**
      * Injected where the comment sheet checks whether it has emoji for the strip above the box, with
-     * that check's answer. True, draw no strip, when there are none or the switch is on. False, as
+     * that check's answer as an int, non-zero for no emoji (BooleanHookParametersTest). True, draw no strip, when there are none or the switch is on. False, as
      * Instagram found, with the switch off, HushGram paused, the settings not read, or anything
      * going wrong. Read each time the sheet lays out, so the switch needs no restart. Never throws.
      */
-    public static boolean hidesRow(boolean empty) {
-        if (empty) return true;
+    public static boolean hidesRow(int empty) {
+        if (empty != 0) return true;
         try {
             HookStatus.invoked(FamilyNames.COMMENT_EMOJI_ROW);
             if (!HIDER.wanted()) return false;

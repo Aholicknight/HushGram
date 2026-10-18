@@ -32,7 +32,7 @@ internal const val COMMENT_EMOJI_ROW_STATUS = "commentEmojiRow"
 
 private const val PATCH = "Hide the comment emoji row"
 
-internal const val HIDES_EMOJI_ROW = "$EXTENSION_PACKAGE/feed/CommentEmojiRow;->hidesRow(Z)Z"
+internal const val HIDES_EMOJI_ROW = "$EXTENSION_PACKAGE/feed/CommentEmojiRow;->hidesRow(I)Z"
 
 /**
  * Parts the comment sheet draws above its box, by the keys Instagram gives them. Only the

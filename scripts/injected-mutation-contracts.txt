@@ -1958,4 +1958,4 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/la
 # sheet never inflates the ids the view hider looks for; twice or elsewhere, it isn't the call the
 # patch wrote. HideCommentEmojiRowPatchTest checks the call, its register and the branch on all
 # eight 451 builds.
-once-call Lapp/hushgram/extension/instagram/feed/CommentEmojiRow;->hidesRow(Z)Z holding replying_to_bar group_mention_banner
+once-call Lapp/hushgram/extension/instagram/feed/CommentEmojiRow;->hidesRow(I)Z holding replying_to_bar group_mention_banner

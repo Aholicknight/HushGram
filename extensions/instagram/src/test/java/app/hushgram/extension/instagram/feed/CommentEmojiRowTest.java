@@ -144,19 +144,19 @@ public class CommentEmojiRowTest {
 
         assertFalse(CommentEmojiRow.hider().listeningForTests(activity));
         assertEquals(View.VISIBLE, parent.getVisibility());
-        assertFalse("451's strip is drawn as Instagram found", CommentEmojiRow.hidesRow(false));
+        assertFalse("451's strip is drawn as Instagram found", CommentEmojiRow.hidesRow(0));
     }
 
     /** 451's sheet asks whether it has no emoji for its strip: off keeps its answer, on says none. */
     @Test
     public void theSheetsEmojiCheckAnswersEmptyOnlyWhileOn() {
-        assertFalse("off, the strip is drawn", CommentEmojiRow.hidesRow(false));
-        assertTrue("no emoji stays no emoji", CommentEmojiRow.hidesRow(true));
+        assertFalse("off, the strip is drawn", CommentEmojiRow.hidesRow(0));
+        assertTrue("no emoji stays no emoji", CommentEmojiRow.hidesRow(1));
 
         Settings.HIDE_COMMENT_EMOJI_ROW.save(true);
 
-        assertTrue("on, the strip isn't drawn", CommentEmojiRow.hidesRow(false));
-        assertTrue(CommentEmojiRow.hidesRow(true));
+        assertTrue("on, the strip isn't drawn", CommentEmojiRow.hidesRow(0));
+        assertTrue(CommentEmojiRow.hidesRow(1));
         assertTrue(HookStatus.missing("Hide the comment emoji row").toString(),
                 HookStatus.missing("Hide the comment emoji row").isEmpty());
     }
