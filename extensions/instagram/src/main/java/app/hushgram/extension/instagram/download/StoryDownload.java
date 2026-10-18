@@ -256,6 +256,14 @@ public final class StoryDownload {
             return sources.get(best) + (r.width > 0 && r.height > 0 ? " " + r.width + "x" + r.height : "");
         }
 
+        /**
+         * Whether the cover is the video's first frame: a first frame still, which {@link #cover}
+         * keeps only when it shares the cover's file, is one of its sizes.
+         */
+        boolean firstFrame() {
+            return sources.contains("first_frame") || sources.contains("igtv_first_frame");
+        }
+
         /** A line for the log: how many sizes, per place, and where the largest is from. */
         String summary() {
             StringBuilder places = new StringBuilder();

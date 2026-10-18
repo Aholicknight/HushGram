@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Download any reel:** Download cover saved a small copy, 360 pixels wide, since Instagram stopped sending larger ones. When the cover is the reel's first frame, it's taken from the video now, at the video's full size. Reported in #214.
+
 * **Instagram - Hide suggested people on profiles:** A profile's buttons keep their spacing when Instagram redraws the row during a refresh. With the switch off or HushGram paused, Instagram's own button sizes stay. Reported in #220.
 
 * **Instagram - HushGram settings:** Flipping Pause HushGram, or turning HushGram back on from the card at the top, shows Restart now right away. It used to show nothing to tap. Restart now also stopped hanging on "Instagram isn't responding" when HushGram was paused. Reported in #146.

@@ -511,13 +511,15 @@ public final class ReelDownload {
      * Starts the save of [media]'s cover, the still picture Instagram shows before the reel plays,
      * and answers whether it started. The sizes are all of that one picture, so the largest the reel
      * states goes, by {@link MediaSave#savePictureBySize}: a cover's address often names its size,
-     * like {@code p540x540}, which the photo save takes for a thumbnail's and turns down (#79).
+     * like {@code p540x540}, which the photo save takes for a thumbnail's and turns down (#79). A
+     * cover that is the reel's first frame is taken from its video when that is larger (#214).
      */
     static boolean saveCover(Context context, Object media) {
         StoryDownload.Cover cover = StoryDownload.cover(media);
         Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "reel cover tapped: " + cover.summary());
         if (cover.sizes.isEmpty()) return false;
-        boolean started = MediaSave.savePictureBySize(context, cover.sizes, details(media));
+        boolean started = MediaSave.saveCover(context, cover, renditions(media), InstagramMedia.dashManifest(media),
+                details(media));
         if (started) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, SAVED_COVER);
         return started;
     }

@@ -108,8 +108,9 @@ public final class VideoDownload {
      * Saves the cover of the post [media], or of the carousel page on screen that [itemState] names,
      * when its Download cover row is tapped: the still picture shown before the video plays, at the
      * largest size it lists. The sizes are all of that one picture, so it goes by
-     * {@link MediaSave#savePictureBySize}, as a reel's cover does (#79). [activity] is the one the
-     * menu belongs to. A save that can't start says so. Never throws.
+     * {@link MediaSave#savePictureBySize}, as a reel's cover does (#79), or from the video when the
+     * cover is its first frame and the video is larger (#214). [activity] is the one the menu
+     * belongs to. A save that can't start says so. Never throws.
      */
     public static void saveCover(Object media, Object itemState, Activity activity) {
         Context context = activity != null ? activity : Utils.getContext();
@@ -119,7 +120,8 @@ public final class VideoDownload {
             final StoryDownload.Cover cover = shown == null ? new StoryDownload.Cover() : StoryDownload.cover(shown);
             final String on = shown != media ? " on a carousel page" : "";
             Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "feed cover download tapped" + on + ": " + cover.summary());
-            if (cover.sizes.isEmpty() || !MediaSave.savePictureBySize(context, cover.sizes, details(shown, media))) {
+            if (cover.sizes.isEmpty() || !MediaSave.saveCover(context, cover, ReelDownload.renditions(shown),
+                    InstagramMedia.dashManifest(shown), details(shown, media))) {
                 Context application = context.getApplicationContext();
                 Feedback.show(application, L10n.t(application, "Download failed"), true);
             }

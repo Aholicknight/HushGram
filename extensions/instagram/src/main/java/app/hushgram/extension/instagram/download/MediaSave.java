@@ -21,11 +21,13 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
  * Saves a photo or a video from the addresses the app already holds, without asking the app to do
@@ -497,6 +499,42 @@ public final class MediaSave {
             return startPicture(safe, details, fileJob(safe, chosen.url, Downloader.Kind.IMAGE)) != null;
         } catch (Throwable t) {
             failure(() -> "the picture save could not start", t);
+            return false;
+        }
+    }
+
+    /**
+     * Save a video's cover, the sizes [cover] lists of it, as {@link #savePictureBySize} does. When
+     * the cover is the video's first frame and [videos] or [manifest] has a larger picture, the
+     * frame is taken from that video instead ({@link CoverFrame}, #214), and the largest still is
+     * saved should that fail. [videos] and [manifest] may be null.
+     *
+     * @return whether a save started. Never throws.
+     */
+    static boolean saveCover(Context context, StoryDownload.Cover cover, List<Rendition> videos, String manifest,
+            PostDetails details) {
+        try {
+            Rendition still = null;
+            for (Rendition rendition : metaOnly(usable(cover.sizes))) {
+                if (still == null || biggerPicture(rendition, still)) still = rendition;
+            }
+            Rendition video = still == null || !cover.firstFrame() ? null : CoverFrame.source(videos, manifest, still);
+            if (video == null) return savePictureBySize(context, cover.sizes, details);
+            Context safe = ready(context);
+            if (safe == null) return false;
+            Rendition shown = still;
+            info(() -> "the cover is the first frame, taking it from the video at " + video.width + "x" + video.height
+                + " over the still at " + shown.width + "x" + shown.height);
+            Job stillJob = fileJob(safe, still.url, Downloader.Kind.IMAGE);
+            return startPicture(safe, details, (writer, progress) -> {
+                Downloader.Result result = CoverFrame.save(safe, video, writer, policyFor(safe), cap(), progress);
+                if (result.ok() || result.status == Downloader.Status.CANCELLED) return result;
+                HookStatus.counted(FamilyNames.REEL_DOWNLOAD, CoverFrame.FRAME_FAILED);
+                failure(() -> "the cover frame ended with " + result + ", saving the still as it is", null);
+                return stillJob.run(writer, progress);
+            }) != null;
+        } catch (Throwable t) {
+            failure(() -> "the cover save could not start", t);
             return false;
         }
     }

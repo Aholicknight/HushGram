@@ -118,6 +118,7 @@ public class CarouselSaveTest {
         MediaBridge.postedAt = null;
         MediaBridge.cover = null;
         MediaBridge.frames = null;
+        CoverFrame.firstFrameForTests = null;
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();
         Settings.SAVE_NAME_BY_POST.resetToDefault();
         LogBufferManager.clearLogBuffer();
@@ -490,6 +491,146 @@ public class CarouselSaveTest {
         waitForSaves();
         assertEquals(1, server.hits("/v/custom_n.jpg")); assertEquals(0, server.hits("/w/frame0_n.jpg"));
         assertClean();
+    }
+
+    /** A reel whose cover is its first frame, listed at 360x640, beside a 720x1280 video file (#214). */
+    private MediaSave.Item aReelWithASmallFirstFrameCover() {
+        server.serve("/v/up_1_n.jpg", "image/jpeg", body(false));
+        server.serve("/w/up_1_n.jpg", "image/jpeg", body(false));
+        server.serve("/720.mp4", "video/mp4", body(true));
+        MediaBridge.cover = Collections.singletonList(new MediaSave.Rendition(server.origin() + "/v/up_1_n.jpg", 360, 640, 0));
+        MediaBridge.frames = new MediaSave.Rendition[] {new MediaSave.Rendition(server.origin() + "/w/up_1_n.jpg", 360, 640, 0), null, null};
+        return new MediaSave.Item(true, Collections.singletonList(
+                new MediaSave.Rendition(server.origin() + "/720.mp4", 720, 1280, 0)), null, PostDetails.of("7"));
+    }
+
+    private int coverWorkFiles() {
+        String[] left = DashSave.workFolder(context).list((folder, name) -> name.startsWith("frame") || name.startsWith("cover"));
+        return left == null ? 0 : left.length;
+    }
+
+    /**
+     * #214: Instagram lists a reel's cover at 360 wide now. When the cover is the reel's first frame,
+     * that frame is taken from the larger video and saved as a JPEG, and the small still isn't fetched.
+     */
+    @Test public void aFirstFrameCoverIsTakenFromTheLargerVideo() throws Exception {
+        MediaSave.Item reel = aReelWithASmallFirstFrameCover();
+        CoverFrame.firstFrameForTests = file -> android.graphics.Bitmap.createBitmap(720, 1280, android.graphics.Bitmap.Config.ARGB_8888);
+        assertTrue(StoryDownload.cover(reel).firstFrame());
+
+        assertTrue(ReelDownload.saveCover(context, reel));
+        waitForSaves();
+
+        assertEquals(1, server.hits("/720.mp4"));
+        assertEquals(0, server.hits("/v/up_1_n.jpg")); assertEquals(0, server.hits("/w/up_1_n.jpg"));
+        assertEquals(1, gallery.rows.size());
+        assertEquals("image/jpeg", gallery.rows.values().iterator().next().getAsString(MediaStore.MediaColumns.MIME_TYPE));
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("the cover is the first frame, taking it from the video at 720x1280 over the still at 360x640"));
+        assertTrue(report, report.contains("the cover was taken from the video's first frame at 720x1280"));
+        assertEquals(0, coverWorkFiles());
+        assertClean();
+    }
+
+    /** A video that gives no frame still saves the cover: the largest still, as before. */
+    @Test public void aCoverFrameThatFailsSavesTheStill() throws Exception {
+        MediaSave.Item reel = aReelWithASmallFirstFrameCover();
+        CoverFrame.firstFrameForTests = file -> null;
+
+        assertTrue(ReelDownload.saveCover(context, reel));
+        waitForSaves();
+
+        assertEquals(1, server.hits("/720.mp4"));
+        assertEquals(1, server.hits("/v/up_1_n.jpg") + server.hits("/w/up_1_n.jpg"));
+        assertEquals(1, gallery.rows.size());
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("the cover frame ended with BUILD_ERROR (the video gave no first frame), saving the still as it is"));
+        assertEquals(0, coverWorkFiles());
+        assertClean();
+    }
+
+    /** A cancel while the frame is read ends the save there, with no still saved in its place. */
+    @Test public void aCancelWhileTakingTheFrameSavesNoStill() throws Exception {
+        MediaSave.Item reel = aReelWithASmallFirstFrameCover();
+        CoverFrame.firstFrameForTests = file -> {
+            for (SaveControl.Running save : SaveControl.running()) SaveControl.cancel(save.id);
+            return null;
+        };
+
+        assertTrue(ReelDownload.saveCover(context, reel));
+        waitForSaves();
+
+        assertEquals(1, server.hits("/720.mp4"));
+        assertEquals(0, server.hits("/v/up_1_n.jpg") + server.hits("/w/up_1_n.jpg"));
+        assertTrue(gallery.rows.isEmpty());
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("CANCELLED (cancelled while taking the cover from the video)"));
+        assertFalse(report, report.contains("saving the still as it is"));
+        assertEquals(0, coverWorkFiles());
+        assertClean();
+    }
+
+    /**
+     * A custom cover is another picture than the first frame, and a still at least the video's size
+     * needs nothing from it, so neither fetches the video.
+     */
+    @Test public void onlyAFirstFrameCoverSmallerThanTheVideoComesFromIt() throws Exception {
+        MediaSave.Item reel = aReelWithASmallFirstFrameCover();
+        CoverFrame.firstFrameForTests = file -> { throw new AssertionError("the video was read"); };
+
+        server.serve("/w/frame0_n.jpg", "image/jpeg", body(false));
+        MediaBridge.frames = new MediaSave.Rendition[] {new MediaSave.Rendition(server.origin() + "/w/frame0_n.jpg", 360, 640, 0), null, null};
+        assertFalse("a custom cover", StoryDownload.cover(reel).firstFrame());
+        assertTrue(ReelDownload.saveCover(context, reel));
+        waitForSaves();
+        assertEquals(1, server.hits("/v/up_1_n.jpg"));
+
+        MediaBridge.frames = new MediaSave.Rendition[] {new MediaSave.Rendition(server.origin() + "/w/up_1_n.jpg", 720, 1280, 0), null, null};
+        MediaSave.Item another = new MediaSave.Item(true, reel.renditions, null, PostDetails.of("8"));
+        assertTrue(StoryDownload.cover(another).firstFrame());
+        assertTrue(ReelDownload.saveCover(context, another));
+        waitForSaves();
+        assertEquals("a still the video's size", 1, server.hits("/w/up_1_n.jpg"));
+
+        assertEquals(0, server.hits("/720.mp4"));
+        assertEquals(2, gallery.rows.size());
+        assertClean();
+    }
+
+    /**
+     * The video a cover is taken from is the largest picture the phone decodes, of the files and
+     * the manifest's tracks: AV1 only on a phone with an AV1 decoder, and only Meta's addresses.
+     */
+    @Test public void theCoverComesFromTheLargestVideoThePhoneDecodes() {
+        Object av1Before = org.robolectric.util.ReflectionHelpers.getStaticField(DashSave.class, "canWriteAv1");
+        try {
+            String cdn = "https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/";
+            String manifest = "<MPD><Period><AdaptationSet mimeType=\"video/mp4\">"
+                    + "<Representation codecs=\"av01.0.08m.08.0.111.01.01.01.0\" width=\"1080\" height=\"1920\" bandwidth=\"1525000\">"
+                    + "<BaseURL>" + cdn + "v1080.mp4?oh=1&amp;oe=2</BaseURL></Representation>"
+                    + "<Representation codecs=\"avc1.64001f\" width=\"720\" height=\"1280\" bandwidth=\"900000\">"
+                    + "<BaseURL>" + cdn + "v720.mp4?oh=1&amp;oe=2</BaseURL></Representation>"
+                    + "</AdaptationSet></Period></MPD>";
+            List<MediaSave.Rendition> files = Arrays.asList(
+                    new MediaSave.Rendition(cdn + "f720.mp4", 720, 1280, 0),
+                    new MediaSave.Rendition("https://example.com/big.mp4", 1440, 2560, 0));
+            MediaSave.Rendition still = new MediaSave.Rendition(cdn + "c.jpg", 360, 640, 0);
+
+            org.robolectric.util.ReflectionHelpers.setStaticField(DashSave.class, "canWriteAv1", Boolean.TRUE);
+            assertEquals(cdn + "v1080.mp4?oh=1&oe=2", CoverFrame.source(files, manifest, still).url);
+
+            org.robolectric.util.ReflectionHelpers.setStaticField(DashSave.class, "canWriteAv1", Boolean.FALSE);
+            assertEquals("of two at 720, the track that states the smaller file", cdn + "v720.mp4?oh=1&oe=2",
+                    CoverFrame.source(files, manifest, still).url);
+            assertEquals(cdn + "f720.mp4", CoverFrame.source(files, null, still).url);
+            assertNull("no video beats a still its size", CoverFrame.source(files, manifest,
+                    new MediaSave.Rendition(cdn + "c.jpg", 720, 1280, 0)));
+            assertNull("a still of unknown size may be the larger", CoverFrame.source(files, manifest,
+                    new MediaSave.Rendition(cdn + "c.jpg", 0, 0, 0)));
+            assertNull(CoverFrame.source(null, null, still));
+        } finally {
+            org.robolectric.util.ReflectionHelpers.setStaticField(DashSave.class, "canWriteAv1", av1Before);
+        }
     }
 
     @Test public void theFileAnAddressNamesIsWhatTwoSizesShare() {
