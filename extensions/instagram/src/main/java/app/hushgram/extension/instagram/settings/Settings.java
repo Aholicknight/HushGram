@@ -843,13 +843,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_hide_on_scroll", FALSE, true, parent(GLASS_TAB_BAR));
 
     /**
-     * Under {@link #GLASS_TAB_BAR}: a finger put on the pill and slid sideways carries the highlight, and
-     * lifting it opens the tab under it ({@link app.hushgram.extension.instagram.misc.GlassTabSlide}, #136).
-     * Taps and long presses on a tab stay Instagram's. Read as the bar is built, so a change asks for a
-     * restart. Off to start.
+     * A finger put on the tab bar and slid sideways carries a highlight, and lifting it opens the tab under
+     * it ({@link app.hushgram.extension.instagram.misc.GlassTabSlide}, #136). On the glass pill or, with
+     * {@link #GLASS_TAB_BAR} off, on Instagram's own bar (#201), so it isn't under the glass switch. Taps
+     * and long presses on a tab stay Instagram's. Read as the bar is built, so a change asks for a restart.
+     * Off to start.
      */
     public static final BooleanSetting GLASS_TAB_BAR_SLIDE =
-            new BooleanSetting("hushgram_glass_tab_bar_slide", FALSE, true, parent(GLASS_TAB_BAR));
+            new BooleanSetting("hushgram_glass_tab_bar_slide", FALSE, true);
 
     /**
      * Under {@link #GLASS_TAB_BAR}: the liquid glass look (#65). The pill and its highlight are fully round,

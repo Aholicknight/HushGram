@@ -42,6 +42,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** New `Tab bar corners` choice, right under Tab bar height. Rounder or Fully round gives the pill and its highlight rounder ends. Starts on Standard. The Liquid look is always round, so the choice rests while it's on. Asked for in #144.
 
+* **Instagram - Glass tab bar:** `Slide across the tabs` works on Instagram's own tab bar now, with the glass off. Slide a finger along the tabs and a light box follows it. Let go and that tab opens. Asked for in #201.
+
 * **Instagram - Full screen Reels and Home:** New `Bars to hide` choice, right under Full screen Reels. Full screen can hide both bars as before, or only the status bar at the top, or only the navigation bar at the bottom. Asked for in #231.
 
 * **Instagram - Download any video:** New `Convert to keep the full size` switch, under Save videos other apps can open. A full size reel or story Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Reported in #236.

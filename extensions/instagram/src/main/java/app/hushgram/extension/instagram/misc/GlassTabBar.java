@@ -451,7 +451,12 @@ public final class GlassTabBar {
 
     static void apply(Activity activity) {
         try {
-            if (!Utils.settingsReady() || !Settings.GLASS_TAB_BAR.get()) return;
+            if (!Utils.settingsReady()) return;
+            if (!Settings.GLASS_TAB_BAR.get()) {
+                // Instagram's own bar can still slide across its tabs (#201).
+                PlainTabSlide.apply(activity);
+                return;
+            }
             View found = find(activity.getWindow().getDecorView(), TAB_BAR);
             if (!(found instanceof ViewGroup) || !(found.getParent() instanceof FrameLayout)) return;
             if (applied.containsKey(found)) {

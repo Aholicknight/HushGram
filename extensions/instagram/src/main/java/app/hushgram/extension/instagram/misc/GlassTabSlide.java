@@ -26,7 +26,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 /**
  * "Slide across the tabs" for the glass tab bar (#136): a finger that goes down on the pill and moves
  * sideways carries the highlight with it, and lifting it opens the tab it ended on, the way the tab bar
- * on an iPhone does.
+ * on an iPhone does. With Glass tab bar off, Instagram's own bar slides the same way ({@link PlainTabSlide}, #201).
  *
  * <p>It changes no Instagram code and looks for no class of Instagram's. Like "Hide the tab bar as you
  * scroll", it wraps the window's callback so it sees each touch before the screen does. A touch that

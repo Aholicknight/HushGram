@@ -1365,15 +1365,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 glass.addPreference(startTabRow(context));
             }
             if (build.contains(PatchFamily.GLASS_TAB_BAR)) {
+                // Before Glass tab bar, since it works on Instagram's own bar too (#201).
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_SLIDE, L10n.t("Slide across the tabs"),
+                        L10n.t("Put a finger on the tab bar and slide it sideways. A highlight follows your finger, and "
+                                + "letting go opens the tab under it. Taps and long presses on a tab work as before. "
+                                + "It works with or without Glass tab bar. Restart Instagram after changing it.")));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR, L10n.t("Glass tab bar"),
                         L10n.t("Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab "
                                 + "you're on. Restart Instagram after changing it.")));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_BLUR, L10n.t("Blur behind the tab bar"),
                         L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.")));
-                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_SLIDE, L10n.t("Slide across the tabs"),
-                        L10n.t("Put a finger on the pill and slide it sideways. The highlight follows your finger, and "
-                                + "letting go opens the tab under it. Taps and long presses on a tab work as before. "
-                                + "Restart Instagram after changing it.")));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_LIQUID, L10n.t("Liquid glass look"),
                         L10n.t("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling "
                                 + "a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as "

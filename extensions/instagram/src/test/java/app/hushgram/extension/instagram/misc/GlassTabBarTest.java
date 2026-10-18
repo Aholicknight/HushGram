@@ -234,6 +234,26 @@ public class GlassTabBarTest {
             }
         }
         assertFalse(GlassTabBar.wearsGlass(null));
+    }
+
+    /**
+     * Glass tab bar turned off without the restart it asks for (#201): the bar still wears the pill, so
+     * Instagram's-own-bar slide leaves it to the pill's slide rather than wrapping the window twice.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aBarStillWearingTheGlassGetsNoSecondSlide() {
+        try (GlassHost host = new GlassHost(Color.BLACK, false, GlassHeight.STANDARD, false, false)) {
+            Settings.GLASS_TAB_BAR_SLIDE.save(true);
+            GlassTabBar.apply(host.activity);
+            assertTrue(GlassTabBar.wearsGlass(host.bar));
+            Window.Callback wrapped = host.activity.getWindow().getCallback();
+            Settings.GLASS_TAB_BAR.save(false);
+            GlassTabBar.apply(host.activity);
+            assertNull(PlainTabSlide.of(host.bar));
+            assertSame(wrapped, host.activity.getWindow().getCallback());
+        }
         assertFalse(GlassTabBar.floatsGlass(null));
     }
 
