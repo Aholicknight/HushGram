@@ -9,6 +9,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 
 import org.junit.Test;
@@ -95,5 +96,39 @@ public class VideoConvertTest {
         assertEquals(VideoConvert.MAX_BITRATE, VideoConvert.bitrate(9_000_000, 1080, 1920, 30));
         assertEquals(6_220_800, VideoConvert.bitrate(0, 1080, 1920, 30));
         assertEquals(VideoConvert.MIN_BITRATE, VideoConvert.bitrate(0, 360, 640, 30));
+    }
+
+    /** The encoder is told to keep to the bitrate, variable first, since left alone it wrote 3 to 4 times it (#236). */
+    @Test
+    public void theEncoderIsToldHowToKeepTheBitrate() {
+        int vbr = MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR;
+        int cbr = MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR;
+        assertEquals(vbr, VideoConvert.bitrateMode(mode -> true));
+        assertEquals(cbr, VideoConvert.bitrateMode(mode -> mode == cbr));
+        assertEquals(-1, VideoConvert.bitrateMode(mode -> mode == MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CQ));
+        assertEquals("VBR", VideoConvert.modeName(vbr));
+        assertEquals("CBR", VideoConvert.modeName(cbr));
+    }
+
+    /** The report gives what the frames came to, so a phone's overshoot shows in it. */
+    @Test
+    public void theWrittenBitrateIsMeasuredOverThePicture() {
+        assertEquals(3_000, VideoConvert.achievedKbps(11_250_000L, 29_966_000L, 30_000_000L));
+        assertEquals("without a length, the last frame's time", 4_000, VideoConvert.achievedKbps(5_000_000L, 10_000_000L, -1));
+        assertEquals(0, VideoConvert.achievedKbps(5_000_000L, 0, 0));
+    }
+
+    /** The retry after an encoder refuses its listed mode asks again with no mode at all. */
+    @Test
+    public void theModeIsLeftOutWhenThereIsNone() {
+        int vbr = MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR;
+        MediaFormat named = VideoConvert.encoderFormat(1080, 1920, 3_000_000, vbr, 30);
+        assertEquals(vbr, named.getInteger(MediaFormat.KEY_BITRATE_MODE));
+        assertEquals(3_000_000, named.getInteger(MediaFormat.KEY_BIT_RATE));
+        assertEquals(1080, named.getInteger(MediaFormat.KEY_WIDTH));
+        MediaFormat plain = VideoConvert.encoderFormat(1080, 1920, 3_000_000, -1, 30);
+        assertFalse(plain.containsKey(MediaFormat.KEY_BITRATE_MODE));
+        assertEquals(30, plain.getInteger(MediaFormat.KEY_FRAME_RATE));
+        assertEquals("in the encoder's own mode", VideoConvert.modeName(-1));
     }
 }

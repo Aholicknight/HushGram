@@ -10,6 +10,7 @@ import android.media.MediaCodecList;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
+import android.os.Bundle;
 import android.view.Surface;
 
 import java.io.File;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
 import app.hushgram.extension.shared.Logger;
@@ -141,6 +143,48 @@ final class VideoConvert {
     }
 
     /**
+     * The rate control asked of an encoder that [supports] the modes it's asked about: variable,
+     * then constant, or -1 to leave it to the encoder.
+     */
+    static int bitrateMode(IntPredicate supports) {
+        if (supports.test(MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR)) {
+            return MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR;
+        }
+        if (supports.test(MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR)) {
+            return MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR;
+        }
+        return -1;
+    }
+
+    private static int bitrateMode(MediaCodecInfo.EncoderCapabilities encoder) {
+        return encoder == null ? -1 : bitrateMode(encoder::isBitrateModeSupported);
+    }
+
+    /** How the report names a {@link #bitrateMode} answer. */
+    static String modeName(int mode) {
+        if (mode == MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR) return "VBR";
+        if (mode == MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR) return "CBR";
+        return "in the encoder's own mode";
+    }
+
+    /** The kbps [bytes] of frames come to over the picture's length, or its last frame's time when it gave none. */
+    static long achievedKbps(long bytes, long lastUs, long durationUs) {
+        long us = durationUs > 0 ? durationUs : lastUs;
+        return us <= 0 ? 0 : bytes * 8L * 1000L / us;
+    }
+
+    /** The encoder's format, naming {@code mode} only when it is one (MediaFormat.removeKey is API 29). */
+    static MediaFormat encoderFormat(int width, int height, int bitrate, int mode, int frameRate) {
+        MediaFormat format = MediaFormat.createVideoFormat(AVC, width, height);
+        format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+        format.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
+        if (mode >= 0) format.setInteger(MediaFormat.KEY_BITRATE_MODE, mode);
+        format.setInteger(MediaFormat.KEY_FRAME_RATE, frameRate);
+        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, KEY_FRAME_EVERY_S);
+        return format;
+    }
+
+    /**
      * Why the picture [format] describes isn't converted, or null when it is: no picture, no size,
      * longer than {@link #MAX_LENGTH_US}, or HDR, which the encoder would write as washed out SDR.
      */
@@ -226,8 +270,8 @@ final class VideoConvert {
             if (extractor.getSampleTime() < 0) throw new Stop("the picture starts before zero");
 
             encoder = MediaCodec.createByCodecName(names[1]);
-            MediaCodecInfo.VideoCapabilities capabilities =
-                encoder.getCodecInfo().getCapabilitiesForType(AVC).getVideoCapabilities();
+            MediaCodecInfo.CodecCapabilities avc = encoder.getCodecInfo().getCapabilitiesForType(AVC);
+            MediaCodecInfo.VideoCapabilities capabilities = avc.getVideoCapabilities();
             int bitrate = capabilities.getBitrateRange().clamp(bitrate(sourceBps, width, height, frameRate));
             // The whole picture at twice its bitrate, with the boxes: more than the file can come to.
             long seconds = (durationUs > 0 ? durationUs : MAX_LENGTH_US) / 1_000_000L + 1L;
@@ -236,15 +280,24 @@ final class VideoConvert {
                 return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "not enough free space to convert the picture");
             }
 
-            MediaFormat format = MediaFormat.createVideoFormat(AVC, width, height);
-            format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
-            format.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
-            format.setInteger(MediaFormat.KEY_FRAME_RATE, frameRate);
-            format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, KEY_FRAME_EVERY_S);
-            encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+            // Left to itself, the S22's encoder wrote about 7.9 Mbps whatever it was asked for, so
+            // the mode is named and the rate is asked again once it runs.
+            int mode = bitrateMode(avc.getEncoderCapabilities());
+            try {
+                encoder.configure(encoderFormat(width, height, bitrate, mode, frameRate), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+            } catch (IllegalArgumentException | MediaCodec.CodecException e) {
+                if (mode < 0) throw e;
+                // An encoder can list a mode and still refuse it at this size. It keeps its own then.
+                encoder.reset();
+                mode = -1;
+                encoder.configure(encoderFormat(width, height, bitrate, mode, frameRate), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+            }
             surface = encoder.createInputSurface();
             encoder.start();
             encoding = true;
+            Bundle rateNow = new Bundle();
+            rateNow.putInt(MediaCodec.PARAMETER_KEY_VIDEO_BITRATE, bitrate);
+            encoder.setParameters(rateNow);
 
             decoder = MediaCodec.createByCodecName(names[0]);
             decoder.configure(source, surface, null, 0);
@@ -262,6 +315,8 @@ final class VideoConvert {
             boolean decoderDone = false;
             int track = -1;
             int written = 0;
+            long bytes = 0L;
+            long lastUs = 0L;
             int shown = 0;
             long answered = System.currentTimeMillis();
 
@@ -317,6 +372,8 @@ final class VideoConvert {
                         frame.set(encoded.offset, encoded.size, time, encoded.flags & MediaCodec.BUFFER_FLAG_KEY_FRAME);
                         muxer.writeSampleData(track, data, frame);
                         written++;
+                        bytes += encoded.size;
+                        lastUs = Math.max(lastUs, time);
                         if (durationUs > 0) {
                             int percent = (int) Math.min(99L, Math.max(0L, time * 100L / durationUs));
                             if (percent != shown) {
@@ -336,7 +393,9 @@ final class VideoConvert {
             if (written == 0) throw new Stop("the encoder wrote no frame");
             // Said once the muxer has finished the file, below.
             done = "converted " + written + " frame(s) of " + type + " at " + width + "x" + height
-                + " to H.264 at " + bitrate / 1000 + "kbps";
+                + (rate == null || rate <= 0 ? " (" + frameRate + " fps assumed)" : " (" + frameRate + " fps)")
+                + " to H.264 at " + bitrate / 1000 + "kbps " + modeName(mode) + ", wrote "
+                + achievedKbps(bytes, lastUs, durationUs) + "kbps";
             return Downloader.Result.ok("video/mp4");
         } catch (Throwable t) {
             failure = t;
