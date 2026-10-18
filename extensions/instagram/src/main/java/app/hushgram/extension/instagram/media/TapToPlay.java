@@ -223,8 +223,10 @@ public final class TapToPlay {
      * that player isn't armed already ({@link #decide}). A held reel never plays, so it never ends,
      * and the scroller never moves on from it, and a reel you pause doesn't end either, so the chain
      * stops there. Without this the reel auto scroll moved to sat on its first frame and auto scroll
-     * stopped for good. Off, paused, before the settings are ready, or when anything here throws,
-     * nothing is recorded, and the next reel waits for a tap.
+     * stopped for good. With {@link Settings#TAP_TO_PLAY_AUTO_SCROLL_WAITS} on, that's what you
+     * get on purpose: nothing is recorded, so the viewer still moves on when a reel ends and the next
+     * reel waits for a tap (#175). With Tap to play off, paused, before the settings are ready, or
+     * when anything here throws, nothing is recorded either, and the next reel waits for a tap.
      */
     public static void autoScrolled() {
         try {
@@ -236,6 +238,7 @@ public final class TapToPlay {
             }
             if (!onFor(true)) return;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "auto scroll");
+            if (Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.get()) return;
             scrolledAt(SystemClock.uptimeMillis());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.TAP_TO_PLAY, "auto scroll", failure);

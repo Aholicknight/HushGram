@@ -1102,6 +1102,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("Videos wait for your tap where the choice below says. Feed videos show a play button, "
                                 + "as they do when you use less mobile data.")));
                 playback.addPreference(tapToPlayScopeRow(context));
+                playback.addPreference(toggle(context, Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS,
+                        L10n.t("Wait after auto scroll"),
+                        L10n.t("A reel Instagram's auto scroll moves to waits for your tap too. "
+                                + "Off, auto scroll plays reel after reel.")));
             }
             if (build.contains(PatchFamily.REEL_TAP_AND_VOLUME)) {
                 playback.addPreference(reelTapChoiceRow(context));
@@ -1856,7 +1860,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.BURN_IN_WAIT.key.equals(key));
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
-                    belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
+                    belongs |= family == PatchFamily.TAP_TO_PLAY && (Settings.TAP_TO_PLAY_SCOPE.key.equals(key)
+                            || Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key.equals(key));
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
                             || Settings.REEL_POST_TIME_AGO.key.equals(key));

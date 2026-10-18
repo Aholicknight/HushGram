@@ -46,6 +46,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Download any video:** New `Choose carousel pages` switch. A carousel's menu and the download icon get Choose pages, right after Save all. Tick the pages you want and only those save, in order. Pages are numbered, with a small picture once it loads.
 
+* **Instagram - Tap to play:** New `Wait after auto scroll` switch, under Where videos wait. With Instagram's auto scroll on, the reel it moves to waits for your tap too. Off, it plays reel after reel as before. Asked for in #175.
+
 * **Instagram:** The diagnostic report now lists every card type the stories viewer checks, ads included, and how often Instagram asked to show the Music for you card. From #111 and #154.
 
 * **Instagram:** What HushGram writes to Android's system log and its error toasts now leaves out tokens, signed links and files from your storage, the same way the exported report does. Error traces are checked too.

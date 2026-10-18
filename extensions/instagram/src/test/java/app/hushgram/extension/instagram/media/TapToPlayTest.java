@@ -66,6 +66,7 @@ public class TapToPlayTest {
         PauseForTests.resume();
         Settings.TAP_TO_PLAY.resetToDefault();
         Settings.TAP_TO_PLAY_SCOPE.resetToDefault();
+        Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.resetToDefault();
         BaseSettings.DEBUG.resetToDefault();
         TapToPlayForTests.forget();
         HookStatus.clear();
@@ -728,6 +729,34 @@ public class TapToPlayTest {
         TapToPlay.autoScrolled();
         assertTrue("the control: on, the same move starts the next reel", TapToPlay.allowStart(new Object(), "autoplay", 0));
         assertEquals(Collections.emptyList(), HookStatus.missing(FamilyNames.TAP_TO_PLAY));
+    }
+
+    /**
+     * With Wait after auto scroll on, a move records nothing, so the reel it moves to waits for a
+     * tap, and a tap on it plays it as any tap does (#175). Off, the same move starts the next reel,
+     * the chain #21 needs, and that's where it starts.
+     */
+    @Test
+    @Config(sdk = {28, 37})
+    public void waitAfterAutoScrollLeavesTheNextReelForATap() {
+        assertFalse("off to start, so #21's chain stays", Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.get());
+        Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.save(true);
+        Object next = new Object();
+        TapToPlay.autoScrolled();
+        SystemClock.sleep(800);
+        assertFalse("playInternal of the reel auto scroll moved to", TapToPlay.allowStart(next, "autoplay", 0));
+        assertFalse("its IgGrootPlayer's play", TapToPlay.allowDirectStart(next, "autoplay"));
+        assertFalse(TapToPlay.armed(next));
+        assertEquals("the hook still counts as working", Collections.emptyList(), HookStatus.missing(FamilyNames.TAP_TO_PLAY));
+
+        long now = SystemClock.uptimeMillis();
+        tapAt(now - 100);
+        assertTrue("a tap on it plays it", TapToPlay.allowStart(next, "autoplay", 0));
+
+        Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.save(false);
+        SystemClock.sleep(TapToPlay.LOAD_WINDOW_MS + 1);
+        TapToPlay.autoScrolled();
+        assertTrue("the control: off, the same move starts the next reel", TapToPlay.allowStart(new Object(), "autoplay", 0));
     }
 
     /** The choice starts as everywhere, what the switch did before there was one, so nobody's Tap to play changes. */

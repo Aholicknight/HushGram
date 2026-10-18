@@ -1752,6 +1752,14 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_tap_to_play_scope", TapToPlayScope.EVERYWHERE, parent(TAP_TO_PLAY));
 
     /**
+     * Under {@link #TAP_TO_PLAY}: a reel Instagram's auto scroller moves to waits for a tap too
+     * (#175). Off to start, which keeps 784c0d17's chain for #21: the move counts as a tap on the
+     * next reel, so auto scroll plays reel after reel. It takes effect at the next move.
+     */
+    public static final BooleanSetting TAP_TO_PLAY_AUTO_SCROLL_WAITS =
+            new BooleanSetting("hushgram_tap_to_play_auto_scroll_waits", FALSE, parent(TAP_TO_PLAY));
+
+    /**
      * What a single tap on a reel does ({@link app.hushgram.extension.instagram.reels.ReelTapAndVolume}):
      * Instagram's own tap, pause, or mute. It starts as Instagram's own, so nothing changes until a
      * choice is made. Paused, it answers Instagram's own like every setting. A reel you paused still
