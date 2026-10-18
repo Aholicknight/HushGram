@@ -44,6 +44,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * changes nothing Home draws, or one whose build ran while it was still loading, is decided by a
  * check {@link #SETTLE_MS} later ({@link #settle}) with the latest build that read its feed.
  *
+ * <p>Instagram doesn't always answer a request with a page of Home's response. On the S22 the first
+ * one after a cold start read some 60 posts outside any page, Hide videos took every one, and no page
+ * followed, so Home sat under one post with no loading row and stopped (#28). Each request is watched
+ * ({@link #watch}): while no page with items has answered it, it's asked again once Home's list sits
+ * at its end, within the same {@link #END_CAP}.
+ *
  * <p>A page the switches emptied leaves Home empty, and {@link FeedSuggestions#feedEnded} ends it so
  * Instagram draws its empty feed card rather than a loading placeholder nothing would ever fill. It
  * still asks for For you's next page then, within the same cap: the card shows until that page comes,
@@ -78,6 +84,12 @@ public final class HomeNextPage {
     /** How long after a short page {@link #settle} checks whether a build decided it, in milliseconds. */
     static final long SETTLE_MS = 1_500L;
 
+    /** How long after a request {@link #watch} checks whether a page answered it, in milliseconds. */
+    static final long ANSWER_MS = 4_000L;
+
+    /** How long after a request {@link #watch} keeps checking, in nanoseconds. */
+    static final long WATCH_NANOS = 30_000_000_000L;
+
     /** For you's paging source, as Instagram names the feed Home's switcher calls ALL. */
     static final String FOR_YOU = "homecoming_all";
 
@@ -107,6 +119,15 @@ public final class HomeNextPage {
 
     /** Set when the next page parsed is the answer to a request this class made. Tests clear it. */
     static volatile boolean waitingForOurs;
+
+    /** How many requests this class has made. Tests clear it. */
+    static volatile long requests;
+
+    /** The latest request ({@link #requests}) a page with items answered. Tests clear it. */
+    static volatile long answered;
+
+    /** When the latest request was made, by {@link #clock}. Tests clear it. */
+    static volatile long requestAt;
 
     /** Set once the report has counted {@link #CAPPED} for the current chain. Tests clear it. */
     static volatile boolean capCounted;
@@ -181,6 +202,9 @@ public final class HomeNextPage {
     /** Posts {@link #settle} to the main thread {@link #SETTLE_MS} later. Tests stand in. */
     static volatile Consumer<Runnable> later = HomeNextPage::settleLater;
 
+    /** Posts {@link #watch} to the main thread {@link #ANSWER_MS} later. Tests stand in. */
+    static volatile Consumer<Runnable> watcher = HomeNextPage::watchLater;
+
     private HomeNextPage() {
     }
 
@@ -196,6 +220,7 @@ public final class HomeNextPage {
         try {
             boolean ours = waitingForOurs;
             waitingForOurs = false;
+            if (ours) answered = requests;
             long number = ++pages;
             if (read - lost >= SHORT_PAGE) {
                 chain = 0;
@@ -374,11 +399,68 @@ public final class HomeNextPage {
             HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, ASKED);
             Logger.printDebug(() -> "Home next page: asked for the next page after a short one (" + chain + " in a row"
                     + (atEnd ? ", Home's list at its end)" : ")"));
+            requested();
         } catch (Throwable failure) {
             decided = page;
             waitingForOurs = false;
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home next page", failure);
         }
+    }
+
+    /** Numbers the request just made and has {@link #watch} check on it. */
+    private static void requested() {
+        long request = ++requests;
+        requestAt = clock.getAsLong();
+        watcher.accept(() -> watch(request));
+    }
+
+    /**
+     * Posted {@link #ANSWER_MS} after request [request], while it's the latest. Until a page with
+     * items answers it, within {@link #WATCH_NANOS}: once {@link #home}'s list sits at its end with
+     * no page loading and a next page left, it asks again, within {@link #END_CAP}, where no scroll
+     * would (#28). While a page loads or the list still scrolls it checks again later. A next page
+     * Home doesn't have, a list or policy it can't read, a switch turned off or the cap stops it.
+     * Never throws.
+     */
+    static void watch(long request) {
+        if (requests != request || answered >= request) return;
+        try {
+            if (!Utils.settingsReady() || !FeedSuggestions.switchesTookOut()) return;
+            long age = clock.getAsLong() - requestAt;
+            if (age < 0 || age > WATCH_NANOS) return;
+            Build build = home;
+            Object adapter = build == null ? null : build.adapter.get();
+            Object feed = build == null ? null : build.feed();
+            if (adapter == null || feed == null || !asksFor(sources.apply(feed))) return;
+            Object policy = policies.apply(adapter);
+            if (policy == null) return;
+            int busy = loading.applyAsInt(policy);
+            int left = busy == 0 ? more.applyAsInt(policy) : -1;
+            int end = left == 1 ? ends.applyAsInt(adapter) : -1;
+            Logger.printDebug(() -> "Home next page: no page answered request " + request + " yet (loading " + busy
+                    + ", next page " + left + ", at its end " + end + ")");
+            if (busy == 1 || end == 0) {
+                watcher.accept(() -> watch(request));
+                return;
+            }
+            if (end != 1 || chain >= END_CAP) return;
+            chain++;
+            waitingForOurs = true;
+            asker.accept(policy, new HashMap<String, String>());
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, ASKED);
+            int asked = chain;
+            Logger.printDebug(() -> "Home next page: asked again, no page answered the last request (" + asked
+                    + " in a row, Home's list at its end)");
+            requested();
+        } catch (Throwable failure) {
+            waitingForOurs = false;
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home next page watch", failure);
+        }
+    }
+
+    /** Posts [check] to the main thread {@link #ANSWER_MS} from now. */
+    static void watchLater(Runnable check) {
+        Utils.runOnMainThreadDelayed(check, ANSWER_MS);
     }
 
     /** Whether [source], a feed's paging source, is For you's. For you's first pages may name none. */

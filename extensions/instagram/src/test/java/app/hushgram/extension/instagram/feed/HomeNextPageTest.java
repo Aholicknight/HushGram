@@ -62,6 +62,9 @@ public class HomeNextPageTest {
     /** The settle checks posted for later and not run yet. */
     private final List<Runnable> settles = new ArrayList<>();
 
+    /** The checks on a request posted for later and not run yet. */
+    private final List<Runnable> watches = new ArrayList<>();
+
     private final long[] now = {1_000_000_000L};
     private String source;
     private int loading;
@@ -87,6 +90,7 @@ public class HomeNextPageTest {
         end = 0;
         HomeNextPage.ends = adapter -> adapter == this.adapter ? end : -1;
         HomeNextPage.later = settles::add;
+        HomeNextPage.watcher = watches::add;
         HomeNextPage.clock = () -> now[0];
         HomeNextPage.poster = posted::add;
         HomeNextPage.policies = adapter -> adapter == this.adapter ? policy : null;
@@ -117,6 +121,7 @@ public class HomeNextPageTest {
         clear();
         HomeNextPage.ends = HomeNextPage::atEnd;
         HomeNextPage.later = HomeNextPage::settleLater;
+        HomeNextPage.watcher = HomeNextPage::watchLater;
         FeedSuggestions.emptiness = FeedSuggestions::feedEmpty;
         FeedSuggestions.homeReadsForTests = null;
         FeedSuggestions.homePageLost = false;
@@ -147,6 +152,9 @@ public class HomeNextPageTest {
         HomeNextPage.shortPageAt = 0;
         HomeNextPage.decided = 0;
         HomeNextPage.chain = 0;
+        HomeNextPage.requests = 0;
+        HomeNextPage.answered = 0;
+        HomeNextPage.requestAt = 0;
         HomeNextPage.waitingForOurs = false;
         HomeNextPage.capCounted = false;
         HomeNextPage.posted = false;
@@ -171,6 +179,13 @@ public class HomeNextPageTest {
     private void runSettles() {
         List<Runnable> due = new ArrayList<>(settles);
         settles.clear();
+        for (Runnable check : due) check.run();
+    }
+
+    /** Runs the checks on requests due now, as the main thread does {@link HomeNextPage#ANSWER_MS} after each was posted. */
+    private void runWatches() {
+        List<Runnable> due = new ArrayList<>(watches);
+        watches.clear();
         for (Runnable check : due) check.run();
     }
 
@@ -793,6 +808,118 @@ public class HomeNextPageTest {
         assertTrue(HomeNextPage.homeFeed(null));
         assertTrue(HomeNextPage.homeFeed(HomeNextPage.SUGGESTED));
         assertFalse(HomeNextPage.homeFeed("homecoming_favorites"));
+    }
+
+    /**
+     * #28 on the S22: the first request after a cold start read posts outside any page of Home's
+     * response, Hide videos took them all, and no page answered it, so Home sat under one post. Once
+     * Home's list sits at its end the request is made again, and a page that answers stops the watch.
+     */
+    @Test
+    public void aRequestNoPageAnswersIsMadeAgainOnceHomesListSitsAtItsEnd() {
+        shortPage();
+        build();
+        assertEquals(1, asks.size());
+        assertEquals("the request is watched", 1, watches.size());
+
+        runWatches();
+        assertEquals("the list still scrolls, so the scroll asks", 1, asks.size());
+        assertEquals("and the watch checks again", 1, watches.size());
+
+        end = 1;
+        runWatches();
+        assertEquals("asked again at the end", 2, asks.size());
+        assertEquals(2, HomeNextPage.chain);
+        assertTrue(HomeNextPage.waitingForOurs);
+        assertEquals(2, counted(HomeNextPage.ASKED));
+        assertEquals("the new request is watched", 1, watches.size());
+
+        HomeNextPage.pageParsed(9, 0);
+        runWatches();
+        assertEquals("a page answered it", 2, asks.size());
+        assertTrue(watches.isEmpty());
+    }
+
+    /** An empty page doesn't answer a request: Home's list still sits at its end with nothing new in it. */
+    @Test
+    public void anEmptyPageLeavesTheRequestWatched() {
+        FeedSuggestions.homeReadsForTests = true;
+        end = 1;
+        shortPage();
+        build();
+        homePage();
+        assertFalse(HomeNextPage.waitingForOurs);
+        runWatches();
+        assertEquals(2, asks.size());
+        assertTrue(HomeNextPage.waitingForOurs);
+    }
+
+    /** The watch stops at END_CAP, once Home has no next page or can't say, past its window, or with the switches off. */
+    @Test
+    public void theWatchStopsAtTheCapTheEndItsWindowOrAnOffSwitch() {
+        end = 1;
+        shortPage();
+        build();
+        for (int check = 0; check < HomeNextPage.END_CAP + 2; check++) runWatches();
+        assertEquals("up to END_CAP in a row", HomeNextPage.END_CAP, asks.size());
+        assertTrue(watches.isEmpty());
+
+        for (int answer : new int[] {0, -1}) {
+            clear();
+            asks.clear();
+            shortPage();
+            build();
+            more = answer;
+            runWatches();
+            assertEquals("next page " + answer, 1, asks.size());
+            assertTrue(watches.isEmpty());
+            more = 1;
+        }
+
+        // A page loading holds it, and it asks once loading ends with nothing answered.
+        clear();
+        asks.clear();
+        shortPage();
+        build();
+        loading = 1;
+        runWatches();
+        assertEquals(1, asks.size());
+        assertEquals(1, watches.size());
+        loading = 0;
+        runWatches();
+        assertEquals(2, asks.size());
+
+        clear();
+        asks.clear();
+        watches.clear();
+        shortPage();
+        build();
+        now[0] += HomeNextPage.WATCH_NANOS + 1;
+        runWatches();
+        assertEquals("past the window", 1, asks.size());
+        assertTrue(watches.isEmpty());
+
+        clear();
+        asks.clear();
+        shortPage();
+        build();
+        FeedSuggestions.tookOut = false;
+        runWatches();
+        assertEquals("switches off", 1, asks.size());
+        assertTrue(watches.isEmpty());
+
+        // A request that isn't the latest is left to the latest one's watch.
+        FeedSuggestions.tookOut = true;
+        clear();
+        asks.clear();
+        shortPage();
+        build();
+        Runnable first = watches.remove(0);
+        shortPage();
+        build();
+        first.run();
+        assertEquals(2, asks.size());
+        assertEquals(1, watches.size());
     }
 
     /** A page of Home's response holding items of [kinds], read through the filter and homeItem as Home's parser does. */
