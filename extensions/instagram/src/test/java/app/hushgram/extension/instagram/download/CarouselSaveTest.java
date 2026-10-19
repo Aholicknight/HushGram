@@ -456,6 +456,37 @@ public class CarouselSaveTest {
     }
 
     /**
+     * #261: on a phone whose screen is 720 pixels wide every size Instagram sends of a photo names
+     * its size, and the photo save took them all for thumbnails, so feed photos, a profile's photos
+     * and a carousel's photo pages failed. The largest saves now, alone and in a batch.
+     */
+    @Test public void aPhotoWhoseEverySizeNamesItSavesItsLargest() throws Exception {
+        server.serve("/360.jpg", "image/jpeg", body(false));
+        server.serve("/720.jpg", "image/jpeg", body(false));
+        List<MediaSave.Rendition> sizes = Arrays.asList(
+                new MediaSave.Rendition(server.origin() + "/360.jpg?stp=dst-jpg_e35_p360x360_tt6", 360, 450, 0),
+                new MediaSave.Rendition(server.origin() + "/720.jpg?stp=dst-jpg_e35_p720x720_tt6", 720, 900, 0));
+        assertNull("every address names its size", RenditionPicker.pickImage(sizes));
+        assertTrue(MediaSave.savePhoto(context, sizes, PostDetails.of("7")));
+        waitForSaves();
+        assertEquals(1, server.hits("/720.jpg")); assertEquals(0, server.hits("/360.jpg"));
+
+        CompletableFuture<MediaSave.BatchResult> ended = new CompletableFuture<>();
+        assertTrue(MediaSave.saveBatch(context, Arrays.asList(new MediaSave.Item(false, sizes, null, PostDetails.of("8")),
+                page(false, "/next.jpg", "9")), ended::complete));
+        MediaSave.BatchResult result = ended.get(20, TimeUnit.SECONDS);
+        waitForSaves();
+        assertEquals(2, result.saved); assertEquals(0, result.failed);
+        assertEquals(2, server.hits("/720.jpg")); assertEquals(0, server.hits("/360.jpg"));
+        assertEquals(3, gallery.rows.size());
+
+        // An address that doesn't name its size still wins over every one that does.
+        MediaSave.Rendition plain = new MediaSave.Rendition(server.origin() + "/full.jpg?stp=dst-jpg_e35_tt6", 0, 0, 0);
+        assertSame(plain, MediaSave.pictureOf(Arrays.asList(sizes.get(1), plain)));
+        assertClean();
+    }
+
+    /**
      * #155: when the app states no size for any of a cover's addresses, the size each address
      * names decides, so a thumbnail listed first doesn't save in place of the full picture.
      */
