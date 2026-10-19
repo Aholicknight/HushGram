@@ -22,11 +22,11 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 internal const val SUMMARY_CARD = "$EXTENSION_PACKAGE/metaai/MetaAi;->summaryCard(Landroid/view/View;)Landroid/view/View;"
 
 /**
- * Instagram 451's layout_high_confidence_module and meta_ai_hcm_search_plugin_layout_v3: the two
- * kinds of search results row Meta AI's summary card is built in. The same ids in all eight 451
- * builds (aapt2), renumbered from 450's 0x7f0e0b28 and 0x7f0e100e, so read them again each update.
+ * Instagram 452's layout_high_confidence_module and meta_ai_hcm_search_plugin_layout_v3: the two
+ * kinds of search results row Meta AI's summary card is built in. The same ids in all three 452
+ * builds (aapt2), unchanged from 451 (450 had 0x7f0e0b28 and 0x7f0e100e), so read them again each update.
  */
-internal val SUMMARY_LAYOUTS = listOf(0x7f0e0b34, 0x7f0e101f)
+internal val SUMMARY_LAYOUTS = listOf(0x7f0e0b37, 0x7f0e1024)
 
 private const val INFLATER = "Landroid/view/LayoutInflater;"
 private const val GROUP = "Landroid/view/ViewGroup;"

@@ -76,7 +76,7 @@ private const val VIEW = "Landroid/view/View;"
  * puts a Meta AI chats ("hatch") button in Home's top bar when the server's list has no messages
  * button, and the same item in the bar's settings list.
  */
-internal val SEARCH_FLAGS = listOf(0x81067900111f10L, 0x810411000610fcL, 0x81040f001b10f2L, 0x81169800017263L)
+internal val SEARCH_FLAGS = listOf(0x81067100111e9fL, 0x81040c0006109dL, 0x81040a001b1093L, 0x81168700017258L)
 
 /** The Search tab's flag, which the search results page reads too (#152). */
 internal val RESULTS_FLAG = SEARCH_FLAGS[0]
@@ -366,9 +366,21 @@ internal fun BytecodePatchContext.dropFollowUpBar(check: HookSite) = passThrough
 /** The search results page's bottom bar setup: the one method holding [FOLLOW_UP_SETUP]. */
 private fun BytecodePatchContext.followUpSetup(): Pair<ClassDef, Method> {
     val setups = mutableListOf<Pair<ClassDef, Method>>()
-    classesHolding(*FOLLOW_UP_SETUP.toTypedArray()).forEach { classDef ->
+    // 452 reads the pills helper through its owner's null-checking getter, which holds the second
+    // string itself, so a method holds the pair when it calls that getter as well.
+    val (first, second) = FOLLOW_UP_SETUP
+    classesHolding(first).forEach { classDef ->
         classDef.methods.forEach { method ->
-            if (method.strings().containsAll(FOLLOW_UP_SETUP)) setups += classDef to method
+            val strings = method.strings()
+            if (first !in strings) return@forEach
+            val getter = method.implementation?.instructions?.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+                .orEmpty().distinct().any { call ->
+                    call.parameterTypes.isEmpty() && classDefByOrNull(call.definingClass)?.methods?.any {
+                        it.name == call.name && it.parameterTypes.isEmpty() && it.returnType == call.returnType &&
+                            (it.implementation?.instructions?.count() ?: 99) <= 12 && second in it.strings()
+                    } == true
+                }
+            if (second in strings || getter) setups += classDef to method
         }
     }
     return setups.singleOrNull()

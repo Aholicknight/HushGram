@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -25,7 +26,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 internal const val INBOX_ROW = "$EXTENSION_PACKAGE/metaai/MetaAi;->inboxRow(Ljava/lang/Object;)Ljava/lang/Object;"
-internal const val INBOX_ROW_RENDER_MARKER = "instagram.features.direct.inbox.feature.hatchinboxrow.ui.HatchInboxRow (HatchInboxRow.kt:41)"
+internal const val INBOX_ROW_RENDER_MARKER = "instagram.features.direct.inbox.feature.hatchinboxrow.ui.HatchInboxRow (HatchInboxRow.kt:45)"
 internal const val INBOX_ROW_ITEM_MARKER = "instagram.features.direct.inbox.feature.hatchinboxrow.ui.HatchInboxRowItem.<init>.<anonymous> (HatchInboxRowItem.kt:12)"
 internal const val INBOX_SECTION_MARKER = "No section generator found for section type "
 
@@ -97,9 +98,10 @@ private fun optionalInboxRead(method: Method, model: String): Int? {
         code.rowTarget(read + 3) != skip + 1 || code.getOrNull(read + 4)?.opcode !in listOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32) ||
         code.rowTarget(read + 4) != skip || code[skip].opcode !in listOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16) ||
         nullMove.registerA != register) return null
-    // The native null source has not been overwritten on the path to this optional read.
-    val zero = code.take(read).lastOrNull { it.opcode.setsRegister() && (it as? OneRegisterInstruction)?.registerA == nullMove.registerB }
-    if ((zero as? NarrowLiteralInstruction)?.narrowLiteral != 0) return null
+    // Every write of the native null source that reaches this optional read is a literal 0. 452 sets the
+    // register to 0 early and reuses it on branches that never get here, so text order says nothing.
+    val sources = reachingWrites(method, code, nullMove.registerB, read)
+    if (sources.isEmpty() || sources.any { (code.getOrNull(it) as? NarrowLiteralInstruction)?.narrowLiteral != 0 || code[it].opcode.setsWideRegister() }) return null
     val adds = code.indices.filter { index ->
         code[index].opcode == Opcode.INVOKE_VIRTUAL &&
             code[index].rowMethod()?.toString() == "Ljava/util/AbstractCollection;->add(Ljava/lang/Object;)Z" &&
@@ -137,3 +139,26 @@ private fun List<Instruction>.rowTarget(index: Int): Int? {
 }
 
 private fun refuseInbox(detail: String): Nothing = throw PatchException("Hide Meta AI: $detail")
+
+/**
+ * The indexes of the instructions whose write of [register] reaches [at] on some path from the method's
+ * start, over every branch and handler. An empty set is returned when the register can arrive unwritten.
+ */
+private fun reachingWrites(method: Method, code: List<Instruction>, register: Int, at: Int): Set<Int> {
+    val flow = ControlFlow.of(method)
+    val written = code.map { it.opcode.setsRegister() && (it as? OneRegisterInstruction)?.registerA == register }
+    val into = arrayOfNulls<MutableSet<Int>>(code.size)
+    into[0] = mutableSetOf(-1)
+    val pending = ArrayDeque(listOf(0))
+    while (pending.isNotEmpty()) {
+        val index = pending.removeFirst()
+        val state = into[index]!!
+        val out: Set<Int> = if (written[index]) setOf(index) else state
+        for (next in flow.normal[index] + flow.exceptional[index]) {
+            val target = into[next] ?: mutableSetOf<Int>().also { into[next] = it }
+            if (target.addAll(out)) pending.addLast(next)
+        }
+    }
+    val reaching = into[at] ?: return emptySet()
+    return if (-1 in reaching) emptySet() else reaching
+}

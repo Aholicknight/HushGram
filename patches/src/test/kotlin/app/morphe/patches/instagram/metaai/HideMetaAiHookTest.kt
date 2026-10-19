@@ -302,7 +302,7 @@ class HideMetaAiHookTest {
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (classDef.methods.any { it.holdsAll(FOLLOW_UP_SETUP) }) holders += ImmutableClassDef.of(classDef)
+                if (classDef.methods.any { it.holdsAny(FOLLOW_UP_SETUP) }) holders += ImmutableClassDef.of(classDef)
             }
         }
         val context = PatchContexts.of(holders)
@@ -396,7 +396,7 @@ class HideMetaAiHookTest {
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (classDef.methods.any { it.holdsAll(FOLLOW_UP_SETUP) }) holders += ImmutableClassDef.of(classDef)
+                if (classDef.methods.any { it.holdsAny(FOLLOW_UP_SETUP) }) holders += ImmutableClassDef.of(classDef)
             }
         }
         val context = PatchContexts.of(holders)
@@ -648,6 +648,13 @@ class HideMetaAiHookTest {
             assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[result + 2].opcode)
             assertEquals("$what: the register", register, (code[result + 2] as OneRegisterInstruction).registerA)
         }
+    }
+
+    /** A string of the setup, 452 keeps the pills one in a getter next to the method that calls it. */
+    private fun Method.holdsAny(strings: List<String>): Boolean {
+        val held = implementation?.instructions
+            ?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string } ?: return false
+        return held.any { it in strings }
     }
 
     private fun Method.holdsAll(strings: List<String>): Boolean {

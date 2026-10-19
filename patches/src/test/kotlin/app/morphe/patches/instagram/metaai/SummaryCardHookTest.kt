@@ -95,12 +95,12 @@ class SummaryCardHookTest {
         assertEquals("a declared build has no fixture", versions, checked)
     }
 
-    /** The same in the seven other builds of 451, which Redex names differently. */
+    /** The same in the two other builds of 452, which Redex names differently. */
     @Test
     fun eachOtherBuildFoldsTheSummaryRows() {
         val builds = Fixtures.otherBuilds()
         for (base in builds) foldsTheSummaryRowsIn(base, base.parentFile.name)
-        assertEquals("the declared build and these seven make the eight 451 builds", 7, builds.size)
+        assertEquals("the declared build and these two make the three 452 builds", 2, builds.size)
     }
 
     /**
