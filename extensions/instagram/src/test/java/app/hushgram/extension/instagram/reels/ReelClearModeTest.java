@@ -292,9 +292,12 @@ public class ReelClearModeTest {
         assertEquals(3_000, ReelClearMode.RETRY_WINDOW_MS);
     }
 
-    /** A page Instagram built no exit button for could never leave clear mode again, so it isn't put in it. */
+    /**
+     * A page Instagram built no exit button for could never leave clear mode again, so it isn't put
+     * in it, and once the wait for its button runs out the next reels show their buttons.
+     */
     @Test
-    public void aPageWithNoExitButtonEndsIt() {
+    public void aPageWithNoExitButtonEndsItWhenTheWaitRunsOut() {
         Reel first = reel("first");
         Reel card = new Reel("a card with no exit button");
         Reel after = reel("after");
@@ -305,16 +308,97 @@ public class ReelClearModeTest {
         assertEquals("Instagram was asked, and found nothing to turn on", 1, viewer.asked);
         assertTrue("its button may still be coming", ReelClearMode.waiting());
 
+        viewer.now += 1_000;
         ReelClearMode.paged();
         viewer.runPosted();
-        assertEquals("one more try, and the card still has no button", 2, viewer.asked);
+        assertEquals("tried again, and the card still has no button", 2, viewer.asked);
         assertEquals(Collections.singletonList("first OVERFLOW_MENU"), viewer.turnedOn);
-        assertFalse(ReelClearMode.wanted());
-        assertFalse(ReelClearMode.waiting());
+        assertTrue("the wait keeps its first end", ReelClearMode.waiting());
 
+        viewer.now += ReelClearMode.RETRY_WINDOW_MS;
         swipe(card, after);
         assertEquals(2, viewer.asked);
         assertEquals(1, viewer.turnedOn.size());
+        assertFalse(ReelClearMode.wanted());
+        assertFalse(ReelClearMode.waiting());
+    }
+
+    /** A card swiped past while its wait still runs hands clear mode to the reel after it. */
+    @Test
+    public void aReelRightAfterACardStillGetsClearMode() {
+        Reel first = reel("first");
+        Reel card = new Reel("a card with no exit button");
+        Reel after = reel("after");
+        viewer.page = first;
+        tapClearMode();
+
+        swipe(first, card);
+        viewer.now += 1_500;
+        swipe(card, after);
+
+        assertEquals(Arrays.asList("first OVERFLOW_MENU", "after OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(ReelClearMode.wanted());
+        assertFalse(ReelClearMode.waiting());
+    }
+
+    /**
+     * Instagram builds the buttons of reels further on while a swipe is still landing. That isn't
+     * the swipe landing: the wait goes on, and the page it lands on gets clear mode (#233).
+     */
+    @Test
+    public void aButtonBuiltWhileTheSwipeLandsDoesntEndTheWait() {
+        Reel first = reel("first");
+        Reel second = reel("second");
+        viewer.page = first;
+        tapClearMode();
+        ReelClearMode.left(viewer.handler, first, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
+        assertEquals(1, viewer.asked);
+
+        viewer.now += 100;
+        reel("third");
+        viewer.runPosted();
+        assertEquals("tried, and the pager is still on the reel that left", 2, viewer.asked);
+        assertTrue(ReelClearMode.wanted());
+        assertTrue(ReelClearMode.waiting());
+
+        viewer.now += 300;
+        viewer.page = second;
+        ReelClearMode.paged();
+        viewer.runPosted();
+
+        assertEquals(Arrays.asList("first OVERFLOW_MENU", "second OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(ReelClearMode.wanted());
+        assertFalse(ReelClearMode.waiting());
+        assertTrue(HookStatus.report().toString(), counted(1));
+    }
+
+    /**
+     * A swipe can land before its reel's exit button is built, after the old button already left.
+     * The page's try waits on, and the button gets clear mode when it comes (#233).
+     */
+    @Test
+    public void aButtonBuiltAfterItsPageLandedStillGetsClearMode() {
+        Reel first = reel("first");
+        Reel late = new Reel("late");
+        viewer.page = first;
+        tapClearMode();
+        ReelClearMode.left(viewer.handler, first, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
+
+        viewer.now += 300;
+        viewer.page = late;
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals("tried on the page, which has no button yet", 2, viewer.asked);
+        assertTrue(ReelClearMode.waiting());
+
+        viewer.now += 400;
+        ReelClearMode.built(late);
+        viewer.runPosted();
+
+        assertEquals(Arrays.asList("first OVERFLOW_MENU", "late OVERFLOW_MENU"), viewer.turnedOn);
+        assertEquals(3, viewer.asked);
+        assertTrue(ReelClearMode.wanted());
+        assertFalse(ReelClearMode.waiting());
     }
 
     /**

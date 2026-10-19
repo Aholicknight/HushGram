@@ -24,6 +24,7 @@ Every HushGram release, newest first.
 * **Instagram - Hide suggested people on profiles:** The Follow suggestions row in your notifications stayed with `Hide suggestions in notifications` on. It's hidden now. Reported in #112.
 * **Instagram - HushGram settings:** On Instagram Plus accounts, holding the feed logo opened Instagram's app icon picker and never HushGram settings. The logo opens HushGram settings on every account now, and taps still go to Instagram.
 * **Instagram - Glass tab bar:** The floating pill blurred a flipped copy of the strip above it, so over a dark row it could still glow with the photo higher up. It blurs what's actually behind it now. Reported in #262.
+* **Instagram - Clean up Reels:** Keep clear mode on could still drop out partway through a scroll, when Instagram readied the next reels before a swipe landed. It waits for the swipe to land now, and for buttons that show up late. Reported in #233.
 
 ### Improvements
 
