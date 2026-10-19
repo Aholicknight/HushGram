@@ -225,9 +225,11 @@ class DoubleTapLikeHookTest {
                 val posts = FixtureDex.classesHolding(bundle, FEED_DOUBLE_TAP)
                 val post = posts.flatMap { it.methods }.single { method -> method.code().any { it.string() == FEED_DOUBLE_TAP } }
                 val like = post.code().mapNotNull { it.likeShapedCall() }.map { it.text() }.distinct().single()
-                val messageHolders = FixtureDex.classesHolding(bundle, MESSAGE_TIP_COUNT)
+                // 452 asks a pool for the tip count, so the holders are the classes that load it either way.
+                val messageHolders = FixtureDex.classesLoading(bundle, MESSAGE_TIP_COUNT)
+                val messageContext = PatchContexts.of(FixtureDex.withStringPools(bundle, messageHolders))
                 val messageTaps = messageHolders.flatMap { it.methods }.filter { method ->
-                    method.code().mapNotNull { it.string() }.let { MESSAGE_TIP_COUNT in it && MESSAGE_DOUBLE_TAP in it }
+                    messageContext.isMessageDoubleTap(method)
                 }.map { it.text() }
                 val messageTap = messageTaps.singleOrNull() ?: throw AssertionError("${bundle.name}: message double taps $messageTaps")
                 val callers = mutableSetOf<String>()
@@ -257,7 +259,7 @@ class DoubleTapLikeHookTest {
                     FixtureDex.classesHolding(bundle, UNLIKE_COMMENT)
                 val holders = (posts + likeClasses + FixtureDex.classesHolding(bundle, handleMarker) + commentRows + messageHolders)
                     .distinctBy { it.type }
-                val context = PatchContexts.of(holders)
+                val context = PatchContexts.of(FixtureDex.withStringPools(bundle, holders))
                 val reelType = holders.single { holder -> holder.methods.any { method -> method.code().any { it.string() == handleMarker } } }.type
 
                 context.turnOffDoubleTapLikes()

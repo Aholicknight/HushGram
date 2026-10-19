@@ -25,6 +25,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -142,7 +143,7 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
             if (HANDLE_DOUBLE_TAP in markers) reels += method
             if (SET_LIKE_ACTION in markers) setters += method
             if (classDef.superclass == GESTURE_LISTENER && method.isDoubleTapListener()) listeners += method
-            if (code.any { it.stringLoaded() == MESSAGE_TIP_COUNT } && code.any { it.stringLoaded() == MESSAGE_DOUBLE_TAP }) messages += method
+            if (isMessageDoubleTap(method, code)) messages += method
             code.mapNotNull { it.likeShapedCall() }.forEach { call ->
                 likeShapes.putIfAbsent(call.text(), call)
                 likeCallers.getOrPut(call.text()) { mutableMapOf() }[method.text()] = method
@@ -181,11 +182,18 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     if (like.localRegisterCount() < 1) refuse("the feed's double-tap like ${like.text()} has no local register")
 
     val reel = reels.singleOrNull() ?: refuse("expected one method marked $HANDLE_DOUBLE_TAP, found ${reels.size}")
-    val setter = setters.singleOrNull() ?: refuse("expected one method marked $SET_LIKE_ACTION, found ${setters.size}")
-    if (setter.definingClass != reel.definingClass) refuse("$SET_LIKE_ACTION isn't in ${reel.definingClass}")
-    val written = setter.code().filter { it.opcode == Opcode.IPUT_OBJECT }.mapNotNull { it.fieldReference() }
-        .filter { it.definingClass == reel.definingClass }.distinctBy { it.toString() }
-    val action = written.singleOrNull() ?: refuse("$SET_LIKE_ACTION writes ${written.size} fields of ${reel.definingClass}, expected one")
+    // 451 files a setter for the like action next to the handler. 452 inlines the handler into the
+    // gesture listener's onDoubleTap and files no setter, so there the action is the one field the
+    // double tap reads, tests for null and calls with four values.
+    val action = if (setters.isEmpty()) {
+        reelLikeAction(reel)
+    } else {
+        val setter = setters.singleOrNull() ?: refuse("expected one method marked $SET_LIKE_ACTION, found ${setters.size}")
+        if (setter.definingClass != reel.definingClass) refuse("$SET_LIKE_ACTION isn't in ${reel.definingClass}")
+        val written = setter.code().filter { it.opcode == Opcode.IPUT_OBJECT }.mapNotNull { it.fieldReference() }
+            .filter { it.definingClass == reel.definingClass }.distinctBy { it.toString() }
+        written.singleOrNull() ?: refuse("$SET_LIKE_ACTION writes ${written.size} fields of ${reel.definingClass}, expected one")
+    }
 
     // The handler reads its like action once and skips the like when it's null.
     val code = reel.code()
@@ -204,6 +212,47 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     comments.firstOrNull { it.localRegisterCount() < 1 }?.let { refuse("the comment double tap ${it.definingClass}->onDoubleTap has no local register") }
     val message = findMessageDoubleTap(messages)
     return DoubleTaps(post, like, reel, read, action, comments, message)
+}
+
+/**
+ * Whether [method] loads both [MESSAGE_TIP_COUNT] and [MESSAGE_DOUBLE_TAP], each itself or from a
+ * pool of shared strings, as 452 asks a pool for the tip count. Only a method that loads one of them
+ * itself or hands a message's id to an interface call is asked about its pooled strings.
+ */
+internal fun BytecodePatchContext.isMessageDoubleTap(method: Method, code: List<Instruction> = method.code()): Boolean {
+    val raw = code.mapNotNullTo(HashSet()) { it.stringLoaded() }
+    val reacts = code.any { instruction ->
+        (instruction.opcode == Opcode.INVOKE_INTERFACE || instruction.opcode == Opcode.INVOKE_INTERFACE_RANGE) &&
+            ((instruction as ReferenceInstruction).reference as? MethodReference)?.parameterTypes?.any { it.toString() == MESSAGE_ID } == true
+    }
+    if (MESSAGE_TIP_COUNT in raw && MESSAGE_DOUBLE_TAP in raw) return true
+    if (!reacts && MESSAGE_TIP_COUNT !in raw && MESSAGE_DOUBLE_TAP !in raw) return false
+    val strings = code.indices.mapNotNullTo(HashSet()) { stringLoadedAt(code, it) }
+    return MESSAGE_TIP_COUNT in strings && MESSAGE_DOUBLE_TAP in strings
+}
+
+/**
+ * The Reels double tap's like action where no setter is filed: the field [reel] reads, tests for null
+ * and then calls through its interface with four values (the other actions it runs take one, two or
+ * five), the way 451's handler hands the like on.
+ */
+private fun reelLikeAction(reel: Method): FieldReference {
+    val code = reel.code()
+    val found = code.indices.mapNotNull { at ->
+        val field = code[at].fieldReference()?.takeIf { code[at].opcode == Opcode.IGET_OBJECT } ?: return@mapNotNull null
+        val register = (code[at] as OneRegisterInstruction).registerA
+        val test = code.getOrNull(at + 1)
+        if (test?.opcode != Opcode.IF_EQZ || (test as OneRegisterInstruction).registerA != register) return@mapNotNull null
+        val calls = (at + 2 until minOf(code.size, at + 8)).any { next ->
+            val call = code[next]
+            val target = (call as? ReferenceInstruction)?.reference as? MethodReference
+            call.opcode == Opcode.INVOKE_INTERFACE && target != null && target.definingClass == field.type &&
+                target.name == "invoke" && target.parameterTypes.size == 4 && (call as FiveRegisterInstruction).registerC == register
+        }
+        if (calls) field else null
+    }.distinctBy { it.toString() }
+    return found.singleOrNull()
+        ?: refuse("expected one like action ${reel.definingClass}->${reel.name} reads, tests for null and calls with four values, found ${found.size}")
 }
 
 /**
