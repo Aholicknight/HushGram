@@ -28,12 +28,13 @@ class CloneCodeTest {
         "385713111" to 32, "385713116" to 32, "385713117" to 31, "385713118" to 32,
     )
     private val keptLoads = mapOf(
-        "385713073" to 91, "385713078" to 91, "385713082" to 91, "385713109" to 92,
-        "385713111" to 92, "385713116" to 91, "385713117" to 91, "385713118" to 91,
+        "385713073" to 89, "385713078" to 89, "385713082" to 89, "385713109" to 90,
+        "385713111" to 90, "385713116" to 89, "385713117" to 89, "385713118" to 89,
     )
     private val uses = mapOf(
         SelfUse.INLINED to 4, SelfUse.PACKAGE_MANAGER to 6, SelfUse.OWN_INTENT to 9,
         SelfUse.NAME_CHECK to 6, SelfUse.CALLER_CHECK to 3, SelfUse.PROVIDER_OWNER to 4, SelfUse.RELEASE_AND_DEBUG to 4,
+        SelfUse.DEX_LOAD_REPORT to 2,
     )
 
     /** Google Play's uses, the one count that differs by build: R8 keeps more or fewer of its helpers in each. */
@@ -44,6 +45,8 @@ class CloneCodeTest {
 
     /** The uses in classes Redex leaves named, the same in every build. */
     private val namedUses = listOf(
+        "Lcom/facebook/common/dextricks/achilles/Achilles; DEX_LOAD_REPORT",
+        "Lcom/facebook/common/dextricks/achilles/Achilles; DEX_LOAD_REPORT",
         "Lcom/facebook/rti/mqtt/manager/MqttBackgroundServiceDelegate; NAME_CHECK",
         "Lcom/google/android/gms/internal/play_billing/zzan; GOOGLE_PLAY",
         "Lcom/google/android/gms/internal/play_billing/zzan; GOOGLE_PLAY",

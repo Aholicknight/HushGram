@@ -15,6 +15,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Install next to Instagram:** The copy now also gives its own package name to the report Instagram sends the system about which app loaded its code, on phones that make that report. It was still naming Instagram. Seen while chasing #205.
 * **Instagram - Glass tab bar:** Reels kept changing size as the pill slid away and back, and a paused reel's footer squeezed the video too. Reels stay one size behind the pill now, with the caption and seek bar just above it. Reported in #221 and #260.
 * **Instagram - Glass tab bar:** A reel's buttons and caption fell back behind the pill once a sheet over the reel closed, like the More menu. They stay above it now. Reported in #221 and #260.
 * **Instagram - Hide suggested people on profiles:** A profile's Follow and Message buttons, or Edit profile and Share profile on your own, still twitched for a split second whenever the profile refreshed. They hold still now. Reported in #220.
