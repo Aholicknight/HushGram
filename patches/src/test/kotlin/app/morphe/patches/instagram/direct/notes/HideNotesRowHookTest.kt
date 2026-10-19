@@ -46,6 +46,7 @@ class HideNotesRowHookTest {
     private val enabled = "Lfixture/Enabled;"
     private val lookups = "Lfixture/Sections;"
     private val inbox = "Lfixture/Inbox;"
+    private val modes = "Lfixture/Modes;"
     private val enabledInit = "$enabled-><init>([$section)V"
 
     /** The hook the patch writes is in the NotesRow the bundle ships, public and static. */
@@ -74,6 +75,22 @@ class HideNotesRowHookTest {
         assertEquals("the jump to the construction lands on the question", keep, diff.targetOf(jump))
     }
 
+    /**
+     * When the diff update hands the building to a static factory, as 452 does, the sections are
+     * asked for in the factory, at the construction every mode jumps toward, and the diff update is left alone.
+     */
+    @Test
+    fun aSetBuiltInAFactoryTheDiffUpdateCallsIsAskedForThere() {
+        val context = PatchContexts.of(classes(factories = 1))
+
+        context.hide()
+
+        val factory = context.mutableClassDefBy(modes).methods.single()
+        assertSectionsAsked("the factory", factory, register = 1, sections = section)
+        val diff = context.mutableClassDefBy(inbox).methods.single { it.name == "diff" }
+        assertTrue("the diff update is left alone", diff.code().none { it.referenceText() == KEEP_SECTIONS })
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, and nothing is changed. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
@@ -92,6 +109,7 @@ class HideNotesRowHookTest {
             classes(fillsBits = false) to "$enabled doesn't fill a Ljava/util/BitSet; from the sections it's given",
             classes(checksBits = false) to "$lookups never checks a section against $enabled",
             classes(readAfter = true) to "reads v2, the sections, after building $enabled",
+            classes(factories = 2) to "to call one method building the inbox's sections, found 2",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -122,11 +140,16 @@ class HideNotesRowHookTest {
     private fun builds(bundle: File, label: String) {
         val holders = listOf(INBOX_DIFF, INBOX_SECTION_MARKER, NOTES_SECTION)
             .flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
-        val sets = holders.flatMap { it.methods }.filter { method -> method.code().any { it.referenceText() == INBOX_DIFF } }
-            .flatMap { it.code() }
+        val diffs = holders.flatMap { it.methods }.filter { method -> method.code().any { it.referenceText() == INBOX_DIFF } }
+        // 452 builds the set in a static factory the diff update calls, so the classes it calls come along.
+        val called = diffs.flatMap { it.code() }
+            .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+            .mapNotNull { (it.reference() as? MethodReference)?.definingClass }.toSet()
+        val factories = FixtureDex.classes(bundle, called).values
+        val sets = (diffs + factories.flatMap { it.methods }).flatMap { it.code() }
             .mapNotNull { (it.reference() as? MethodReference)?.takeIf { call -> call.name == "<init>" && call.parameterTypes.size == 1 } }
             .map { it.definingClass }.toSet()
-        val classes = (holders + FixtureDex.classes(bundle, sets).values).distinctBy { it.type }
+        val classes = (holders + factories + FixtureDex.classes(bundle, sets).values).distinctBy { it.type }
         val context = PatchContexts.of(classes)
         val site = context.findNotesSections()
         val stock = context.mutableClassDefBy(site.type).methods.single {
@@ -200,6 +223,7 @@ class HideNotesRowHookTest {
         fillsBits: Boolean = true,
         checksBits: Boolean = true,
         readAfter: Boolean = false,
+        factories: Int = 0,
     ): List<ClassDef> {
         val names = (0 until notesNames).joinToString("\n") { "const-string v0, \"$NOTES_SECTION\"" }
         val sectionSetup = method(section, "<clinit>", emptyList(), "V", 1, static = true, body = """
@@ -247,23 +271,48 @@ class HideNotesRowHookTest {
                     new-instance v3, $enabled
                     invoke-direct { v3, v2 }, $enabledInit
                 """.trimIndent()
-                methods += method(type, "diff", listOf(type), "V", 4, static = true, body = """
-                    const-string v0, "$INBOX_DIFF"
-                    const/4 v1, 0x1
-                    new-array v2, v1, [$section
-                    new-instance v3, $enabled
-                    if-eqz p0, :make
-                    const/4 v1, 0x2
-                    :make
-                    invoke-direct { v3, v2 }, $enabledInit
-                    $second
-                    ${if (readAfter) "invoke-static { v2 }, $lookups->keep([$section)V" else "const/4 v2, 0x0"}
-                    return-void
-                """)
+                methods += if (factories > 0) {
+                    val calls = (0 until factories).joinToString("\n") { "invoke-static { p0 }, $modes->forMode$it(Ljava/lang/Object;)$enabled" }
+                    method(type, "diff", listOf(type), "V", 1, static = true, body = """
+                        const-string v0, "$INBOX_DIFF"
+                        $calls
+                        return-void
+                    """)
+                } else {
+                    method(type, "diff", listOf(type), "V", 4, static = true, body = """
+                        const-string v0, "$INBOX_DIFF"
+                        const/4 v1, 0x1
+                        new-array v2, v1, [$section
+                        new-instance v3, $enabled
+                        if-eqz p0, :make
+                        const/4 v1, 0x2
+                        :make
+                        invoke-direct { v3, v2 }, $enabledInit
+                        $second
+                        ${if (readAfter) "invoke-static { v2 }, $lookups->keep([$section)V" else "const/4 v2, 0x0"}
+                        return-void
+                    """)
+                }
             }
             classDef(type, methods)
         }
-        return listOf(sectionClass, enabledClass, lookupClass) + inboxClasses
+        // 452's shape: a static factory the diff update calls, every mode jumping to its one construction.
+        val factoryClasses = if (factories == 0) emptyList() else listOf(
+            classDef(modes, (0 until factories).map { copy ->
+                method(modes, "forMode$copy", listOf("Ljava/lang/Object;"), enabled, 3, static = true, body = """
+                    const/4 v0, 0x1
+                    new-array v1, v0, [$section
+                    if-eqz p0, :make
+                    const/4 v0, 0x2
+                    new-array v1, v0, [$section
+                    :make
+                    new-instance v2, $enabled
+                    invoke-direct { v2, v1 }, $enabledInit
+                    return-object v2
+                """)
+            }),
+        )
+        return listOf(sectionClass, enabledClass, lookupClass) + inboxClasses + factoryClasses
     }
 
     private fun method(

@@ -92,8 +92,9 @@ internal class NotesSectionsSite(
 
 /**
  * Finds the one place your messages name their sections, failing before anything changes when an
- * update moved it, since that's a build this patch hasn't seen: in the method holding [INBOX_DIFF],
- * the one construction of a set from an array of an enum whose setup names [NOTES_SECTION] once.
+ * update moved it, since that's a build this patch hasn't seen: in the method holding [INBOX_DIFF]
+ * (or, when it builds none, the one static method it calls that does), the one construction of a
+ * set from an array of an enum whose setup names [NOTES_SECTION] once.
  * That enum has to be the one the inbox's section lookup (the method holding
  * [INBOX_SECTION_MARKER]) takes first, and the set has to be the one it checks: the set's class
  * keeps a [BIT_SET] its constructor fills, and the lookup's class reads one to decide each section.
@@ -101,14 +102,29 @@ internal class NotesSectionsSite(
  * the set a copy in that register.
  */
 internal fun BytecodePatchContext.findNotesSections(): NotesSectionsSite {
-    val diff = uniqueMethod(PATCH, "inbox generator holding \"$INBOX_DIFF\"", InboxDiffFingerprint)
+    val inboxDiff = uniqueMethod(PATCH, "inbox generator holding \"$INBOX_DIFF\"", InboxDiffFingerprint)
+    // 451 builds the set in the diff update itself. 452 moved it into a static factory the diff
+    // update calls with the inbox's mode (07SN.A00(05Ok)07SY), whose every mode jumps to the one
+    // construction, so when the diff update builds none the one method it calls that does is used.
+    val diff = inboxDiff.takeIf { setConstructions(it).isNotEmpty() } ?: run {
+        val builders = inboxDiff.instructions().asSequence()
+            .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+            .mapNotNull { it.methodCalled() }.distinctBy { it.toString() }
+            .mapNotNull { called ->
+                classDefByOrNull(called.definingClass)?.methods?.firstOrNull { method ->
+                    method.name == called.name && method.returnType == called.returnType &&
+                        method.parameterTypes.map(CharSequence::toString) == called.parameterTypes.map(CharSequence::toString)
+                }
+            }
+            .filter { setConstructions(it).isNotEmpty() }.toList()
+        if (builders.size > 1) {
+            refuse("expected ${inboxDiff.definingClass}->${inboxDiff.name} to call one method building the inbox's sections, found ${builders.size}")
+        }
+        builders.singleOrNull() ?: inboxDiff
+    }
     val code = diff.instructions()
     val where = "${diff.definingClass}->${diff.name}"
-    val constructions = code.indices.filter { at ->
-        val made = code[at].constructorCalled() ?: return@filter false
-        val array = made.parameterTypes.singleOrNull()?.toString() ?: return@filter false
-        array.startsWith("[L") && namesNotes(array.removePrefix("["))
-    }
+    val constructions = setConstructions(diff)
     val construction = constructions.singleOrNull()
         ?: refuse("expected $where to build one set from an array of the inbox's sections, found ${constructions.size}")
     val made = code[construction].constructorCalled()!!
@@ -138,6 +154,16 @@ internal fun BytecodePatchContext.findNotesSections(): NotesSectionsSite {
         refuse("$where reads v$register, the sections, after building ${set.type}")
     }
     return NotesSectionsSite(diff.definingClass, diff.name, diff.parameterTypes.map(CharSequence::toString), construction, register, sections)
+}
+
+/** The indexes in [method] that construct an object from an array of an enum naming [NOTES_SECTION]. */
+private fun BytecodePatchContext.setConstructions(method: Method): List<Int> {
+    val code = method.instructions()
+    return code.indices.filter { at ->
+        val made = code[at].constructorCalled() ?: return@filter false
+        val array = made.parameterTypes.singleOrNull()?.toString() ?: return@filter false
+        array.startsWith("[L") && namesNotes(array.removePrefix("["))
+    }
 }
 
 /** Whether [enum] is an enum whose setup names [NOTES_SECTION] exactly once. */
