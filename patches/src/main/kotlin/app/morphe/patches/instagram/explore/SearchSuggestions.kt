@@ -72,7 +72,7 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * answering nothing adds the older screen's Suggested for you section. The one also loading
  * [SHOW_MORE_RECENTS] and taking one list builds the newer screen out of that list's items, and
  * the items' class is the one class it casts to with an enum field naming [SEARCH_ITEM_KINDS].
- * Both are static, and nothing jumps back to either's start. Fails before anything changes when
+ * The builder is static, and nothing jumps back to either's start. Fails before anything changes when
  * any of it isn't so, since that's an update this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findSearchSuggestions(): SearchSuggestionSites {
@@ -85,9 +85,11 @@ internal fun BytecodePatchContext.findSearchSuggestions(): SearchSuggestionSites
     val builders = holders.filter { it.returnType != "V" && loadsString(it, SHOW_MORE_RECENTS) && it.parameters().count { type -> type == LIST } == 1 }
     val builder = builders.singleOrNull()
         ?: refuse("expected one builder of the search screen taking a list and holding $SHOW_MORE_RECENTS, found ${builders.size}")
+    // The older screen's section is an instance method on 452 (it was static on 451); only the builder takes
+    // its list from a parameter register the hook counts, so only the builder has to be static.
+    if (!AccessFlags.STATIC.isSet(builder.accessFlags)) refuse("${builder.definingClass}->${builder.name} isn't static")
     for (method in listOf(section, builder)) {
         val where = "${method.definingClass}->${method.name}"
-        if (!AccessFlags.STATIC.isSet(method.accessFlags)) refuse("$where isn't static")
         if (0 in method.jumpTargets()) refuse("something in $where jumps back to its start")
     }
 

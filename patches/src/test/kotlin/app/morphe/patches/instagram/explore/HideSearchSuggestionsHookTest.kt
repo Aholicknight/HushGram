@@ -80,7 +80,6 @@ class HideSearchSuggestionsHookTest {
             classes(sections = 0) to "expected one method adding the search screen's $NULL_STATE_SUGGESTED section, found 0",
             classes(sections = 2) to "expected one method adding the search screen's $NULL_STATE_SUGGESTED section, found 2",
             classes(builderHoldsRecents = false) to "expected one builder of the search screen taking a list and holding $SHOW_MORE_RECENTS, found 0",
-            classes(sectionStatic = false) to "$oldSearch->A02 isn't static",
             classes(loopsToStart = true) to "something in $newSearch->A00 jumps back to its start",
             classes(kindNames = listOf("RECENTS", "NULLSTATE_SUGGESTIONS")) to
                 "expected the search screen's builder to cast to one class with a kind naming SUGGESTED_USERS, found []",
@@ -107,7 +106,7 @@ class HideSearchSuggestionsHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         // The declared build and the other builds of the version, each compiled on its own.
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("the eight 451 builds: ${bundles.map { it.name }}", 8, bundles.size)
+        assertEquals("the three 452 builds: ${bundles.map { it.name }}", 3, bundles.size)
         for (bundle in bundles) {
             val holders = mutableListOf<ClassDef>()
             val casts = mutableSetOf<String>()

@@ -168,7 +168,7 @@ class ExploreShopTilesTest {
             checked++
         }
         assertTrue("no other build", checked > 0)
-        assertEquals("the declared build and these seven make the eight 451 builds", 7, checked)
+        assertEquals("the declared build and these two make the three 452 builds", 2, checked)
     }
 
     /**
