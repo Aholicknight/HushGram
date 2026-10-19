@@ -483,7 +483,7 @@ public final class TapToPlay {
                 logLeftOutOnce(inReels);
                 return true;
             }
-            return decide(player, reason, now, path);
+            return decide(player, reason, now, path, inReels);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.TAP_TO_PLAY, hook, failure);
             return true;
@@ -514,8 +514,16 @@ public final class TapToPlay {
                 + (reels ? "in Reels" : "outside Reels") + " go ahead, the choice of where leaves them out");
     }
 
-    /** The rule, with the clock passed in. Arms the player when it lets the start through. */
+    /** The rule, with the clock passed in, for a start outside Reels. */
     static boolean decide(@Nullable Object player, @Nullable String reason, long now, String path) {
+        return decide(player, reason, now, path, false);
+    }
+
+    /**
+     * The rule, with the clock passed in. Arms the player when it lets the start through. A tap's
+     * first start of a player outside Reels, [inReels] false, hides the play button under the tap.
+     */
+    static boolean decide(@Nullable Object player, @Nullable String reason, long now, String path, boolean inReels) {
         boolean armed = ARMED.contains(player);
         long sinceTap = TapClock.msSinceTap(now);
         boolean covered = tapCovers(sinceTap, now, armed);
@@ -524,7 +532,7 @@ public final class TapToPlay {
         if (allowed && !armed) ARMED.add(player, now);
         if (allowed) HELD.remove(player);
         else HELD.add(player, now);
-        if (covered) PlayButtons.started(player, now);
+        if (covered) PlayButtons.started(player, now, now - sinceTap, !armed && !inReels);
         logDecision(allowed, reason, sinceTap, armed, scrolled, path);
         return allowed;
     }

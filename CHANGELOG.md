@@ -26,6 +26,7 @@ Every HushGram release, newest first.
 * **Instagram - Glass tab bar:** The floating pill blurred a flipped copy of the strip above it, so over a dark row it could still glow with the photo higher up. It blurs what's actually behind it now. Reported in #262.
 * **Instagram - Clean up Reels:** Keep clear mode on could still drop out partway through a scroll, when Instagram readied the next reels before a swipe landed. It waits for the swipe to land now, and for buttons that show up late. Reported in #233.
 * **Instagram - Tap to play:** Dragging the slider in the Notes or story music picker stopped the song for good, since Tap to play took the slider's pause for yours. The song keeps playing from the new spot now. Reported in #263.
+* **Instagram - Tap to play:** Tapping a feed video itself, not its play button, started it with the play icon still drawn over it on some posts. The icon goes away while it plays and comes back when it stops. Reported in #229.
 
 ### Improvements
 
