@@ -1673,6 +1673,30 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #221: a reel's band is raised by scrolling its content, as far as the highest child it shows has room
+     * above it. A hidden or empty child doesn't count, and a band showing nothing has no room.
+     */
+    @Test
+    public void aBandScrollsAsFarAsItsHighestShownChildHasRoom() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout band = new FrameLayout(context);
+        assertEquals("nothing in it", 0, GlassTabBar.roomAbove(band));
+        View buttons = new View(context), caption = new View(context), hidden = new View(context), empty = new View(context);
+        band.addView(buttons);
+        band.addView(caption);
+        band.addView(hidden);
+        band.addView(empty);
+        buttons.layout(900, 954, 1080, 1700);
+        caption.layout(0, 1807, 900, 2000);
+        hidden.layout(0, 100, 1080, 200);
+        hidden.setVisibility(View.GONE);
+        empty.layout(0, 50, 1080, 50);
+        assertEquals("the buttons are highest", 954, GlassTabBar.roomAbove(band));
+        buttons.setVisibility(View.INVISIBLE);
+        assertEquals(1807, GlassTabBar.roomAbove(band));
+    }
+
+    /**
      * Instagram's touch strip for a reel's seek bar is placed by how far the reel stops above the screens'
      * bottom. Measured with its own margin back on for a frame and the pill's counted too (back from
      * HushGram's settings on the S22), it sat a bar's height too high, over the reel's More button, and

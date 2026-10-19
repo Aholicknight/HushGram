@@ -339,10 +339,40 @@ public class TimerLifecycleTest {
 
     /** That the reel's caption and seek bar are raised [by] over the pill, and the video and the layer over it stay put. */
     private static void assertRaised(Reel reel, int by) {
-        assertEquals("the caption clears the pill", -by, reel.infoBand.getTranslationY(), 0f);
-        assertEquals("and so does the seek bar", -by, reel.scrubBand.getTranslationY(), 0f);
+        assertEquals("the caption clears the pill", by, raisedBy(reel.infoBand));
+        assertEquals("and so does the seek bar", by, raisedBy(reel.scrubBand));
         assertEquals("the video stays put", 0f, reel.media.getTranslationY(), 0f);
+        assertEquals(0, reel.media.getScrollY());
         assertEquals("and so does the layer of controls", 0f, reel.layer.getTranslationY(), 0f);
+        assertEquals(0, reel.layer.getScrollY());
+    }
+
+    /** How far up [band] shows what it holds: its content's scroll, less its own translation. */
+    private static int raisedBy(View band) {
+        return Math.round(band.getScrollY() - band.getTranslationY());
+    }
+
+    /**
+     * Litho ending an animation of [view], a view it mounted in [lithoView]: it puts the view at [y]
+     * inside [lithoView], adding up where the views on the way sit, translations and all, but not their scrolls.
+     */
+    private static void lithoPlaces(View view, View lithoView, float y) {
+        float parentY = 0f;
+        for (View at = (View) view.getParent(); at != lithoView; at = (View) at.getParent()) parentY += at.getY();
+        view.setY(y - parentY);
+    }
+
+    /** Where [view]'s layout puts it inside [lithoView]. */
+    private static float laidOutIn(View view, View lithoView) {
+        float y = 0f;
+        for (View at = view; at != lithoView; at = (View) at.getParent()) y += at.getTop();
+        return y;
+    }
+
+    private static int topOnScreen(View view) {
+        int[] at = new int[2];
+        view.getLocationOnScreen(at);
+        return at[1];
     }
 
     /** The middle of [view] on the screen, where it sits now. */
@@ -507,7 +537,8 @@ public class TimerLifecycleTest {
         assertRaised(reel, pill);
 
         reel.layer.removeView(reel.infoBand);
-        assertEquals("put back as it came off", 0f, reel.infoBand.getTranslationY(), 0f);
+        assertEquals("put back as it came off", 0, raisedBy(reel.infoBand));
+        assertEquals(0, reel.infoBand.getScrollY());
         reel.layer.addView(reel.infoBand, 0);
         tabs.getViewTreeObserver().dispatchOnPreDraw();
         assertRaised(reel, pill);
@@ -515,9 +546,52 @@ public class TimerLifecycleTest {
         reel.scrubBand.setTranslationY(-40f);
         tabs.getViewTreeObserver().dispatchOnPreDraw();
         assertEquals("Instagram's move stays", -40f, reel.scrubBand.getTranslationY(), 0f);
+        assertEquals("and the seek bar stays up", pill + 40, raisedBy(reel.scrubBand));
         reel.scrubBand.setTranslationY(0f);
         tabs.getViewTreeObserver().dispatchOnPreDraw();
         assertRaised(reel, pill);
+
+        reel.scrubBand.scrollTo(0, 25);
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
+        assertEquals("Instagram's scroll stays", 25, reel.scrubBand.getScrollY());
+        assertEquals("and the seek bar is raised by moving it", pill + 25, raisedBy(reel.scrubBand));
+        reel.scrubBand.scrollTo(0, 0);
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
+        assertRaised(reel, pill);
+        assertEquals(0f, reel.scrubBand.getTranslationY(), 0f);
+        GlassTabBar.restoreAll();
+    }
+
+    /**
+     * #221: a reel's caption and seek bar stay clear of the pill after Instagram animates them, as it does
+     * when a sheet over the reel closes. Instagram's Litho puts an animated view back where its layout says
+     * by adding up the translations of the views it sits in, so a band raised by translation had its
+     * caption pushed back down by the pill's height. A band is raised by scrolling its content instead, and
+     * one too short for that is translated only for the rest.
+     */
+    @Test public void aReelsCaptionStaysClearOfThePillAfterInstagramAnimatesIt() {
+        LinearLayout tabs = namedTabBar();
+        Reel reel = showReel();
+        // A seek bar's band only a little taller than the seek bar, as Instagram's is.
+        reel.scrubBand.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 80, Gravity.BOTTOM));
+        layout();
+        Settings.GLASS_TAB_BAR.save(true);
+        GlassTabBar.apply(activity);
+        idle(500);
+        int pill = tabs.getLayoutParams().height;
+        assertTrue(pill > 50);
+        assertRaised(reel, pill);
+        View info = reel.infoBand.findViewById(INFO_ID);
+        View page = (View) reel.layer.getParent();
+        int raisedTo = topOnScreen(info);
+        assertEquals(topOnScreen(reel.media) + Math.round(laidOutIn(info, page)) - pill, raisedTo);
+
+        lithoPlaces(info, page, laidOutIn(info, page));
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
+        assertEquals("the caption stays clear of the pill", raisedTo, topOnScreen(info));
+        assertEquals("the caption's band scrolls", 0f, reel.infoBand.getTranslationY(), 0f);
+        assertEquals("the seek bar's band scrolls as far as it has room", 50, reel.scrubBand.getScrollY());
+        assertEquals("and moves for the rest", -(pill - 50), reel.scrubBand.getTranslationY(), 0f);
         GlassTabBar.restoreAll();
     }
 

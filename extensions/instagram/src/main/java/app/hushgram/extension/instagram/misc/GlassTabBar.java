@@ -240,6 +240,20 @@ public final class GlassTabBar {
     }
 
     /**
+     * How far [band]'s content can scroll up before a shown child of it is cut off at the band's top: the
+     * top of the highest one, or 0 with none.
+     */
+    static int roomAbove(ViewGroup band) {
+        int room = Integer.MAX_VALUE;
+        for (int i = 0; i < band.getChildCount(); i++) {
+            View child = band.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE || child.getHeight() <= 0) continue;
+            room = Math.min(room, child.getTop());
+        }
+        return room == Integer.MAX_VALUE ? 0 : Math.max(0, room);
+    }
+
+    /**
      * Puts each shown view under [view] whose id is [info] or [scrubber] in [anchors], and each whose id
      * is [footers] in [footerViews], without looking inside those.
      */
@@ -999,6 +1013,8 @@ public final class GlassTabBar {
         private final java.util.Set<View> viewers = java.util.Collections.newSetFromMap(new WeakHashMap<>());
         /** The views raised over a reel to clear the pill (#221), each with the translation it was given. */
         private final WeakHashMap<View, Float> raised = new WeakHashMap<>();
+        /** The bands whose content is scrolled up over a reel to clear the pill, each with the scroll it was given. */
+        private final WeakHashMap<View, Integer> scrolled = new WeakHashMap<>();
         /** The view to raise for each caption or seek bar, found once per view Instagram mounts. */
         private final WeakHashMap<View, View> bands = new WeakHashMap<>();
         /** The footers laid over a reel's bottom (#260), each with the top margin it was given. */
@@ -1010,8 +1026,8 @@ public final class GlassTabBar {
         private boolean footerMoved;
         private long footerRedrawAt = Long.MIN_VALUE / 2;
         /**
-         * Puts back a raised view's translation as it comes off the window: Instagram mounts the same
-         * views again elsewhere, and one would carry the lift there.
+         * Puts back a raised view's translation and scroll as it comes off the window: Instagram mounts
+         * the same views again elsewhere, and one would carry the lift there.
          */
         private final View.OnAttachStateChangeListener putBack = new View.OnAttachStateChangeListener() {
             @Override public void onViewAttachedToWindow(@NonNull View view) {
@@ -1529,7 +1545,8 @@ public final class GlassTabBar {
          * [above], the pill's height over the navigation bar, plus the height of any footer Instagram
          * shows under that viewer, such as a paused reel's controls (#260). The footer is laid over the
          * reel's bottom ({@link #overlapFooter}) rather than shrinking it, and raised by [above] too. A
-         * view raised before and no longer met is put back.
+         * view raised before and no longer met is put back. A band is raised by scrolling its content
+         * ({@link #lift}).
          */
         private void raiseReels(Context context, int above) {
             int info = id(context, REEL_INFO), scrubber = id(context, SCRUBBER);
@@ -1549,19 +1566,65 @@ public final class GlassTabBar {
                         if (band == null) continue;
                         bands.put(anchor, band);
                     }
-                    if (raisedNow.add(band) && raise(band, -(above + footer))) {
+                    if (raisedNow.add(band) && lift(band, -(above + footer))) {
                         HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_REEL_RAISED);
                     }
                 }
             }
             anchors.clear();
             footerViews.clear();
-            if (raised.size() > raisedNow.size()) {
-                for (View view : new java.util.ArrayList<>(raised.keySet())) {
+            if (!raisedNow.containsAll(raised.keySet()) || !raisedNow.containsAll(scrolled.keySet())) {
+                java.util.ArrayList<View> gone = new java.util.ArrayList<>(raised.keySet());
+                gone.addAll(scrolled.keySet());
+                for (View view : gone) {
                     if (view != null && !raisedNow.contains(view)) lower(view);
                 }
             }
             raisedNow.clear();
+        }
+
+        /**
+         * Raises [band], a reel's caption, buttons or seek bar, by [by] up the screen (negative): its content
+         * scrolls up as far as the room over its highest child allows ({@link #roomAbove}), and only the rest
+         * is a translation. Says whether that changed it.
+         *
+         * <p>The bands are Litho's views, inside the reel's LithoView. As Litho animates one of its views, after
+         * a sheet over the reel closes, say, it ends by putting it where its layout says inside the LithoView,
+         * adding up the translations of the views on the way and not their scrolls. A band moved by translation
+         * had each animated child pushed back down by the band's lift, so the caption and buttons dropped by the
+         * pill's height and stayed there (#221).
+         */
+        private boolean lift(View band, int by) {
+            int scroll = band instanceof ViewGroup ? Math.max(0, Math.min(-by, roomAbove((ViewGroup) band))) : 0;
+            boolean changed = scrollUp(band, scroll);
+            // A band Instagram scrolls itself is moved by translation alone.
+            if (!scrolled.containsKey(band)) scroll = 0;
+            return raise(band, by + scroll) | changed;
+        }
+
+        /**
+         * Scrolls [view]'s content [by] up and says whether that changed it. A scroll that is neither 0 nor the
+         * last one this gave is Instagram's: the view is left to it and taken up again once it's back at 0.
+         */
+        private boolean scrollUp(View view, int by) {
+            Integer ours = scrolled.get(view);
+            int now = view.getScrollY();
+            if (ours == null ? now != 0 : now != ours) {
+                if (ours != null) {
+                    scrolled.remove(view);
+                    unwatch(view);
+                }
+                return false;
+            }
+            if (by == 0) {
+                if (ours != null) unscroll(view);
+                return false;
+            }
+            watch(view);
+            scrolled.put(view, by);
+            if (now == by) return false;
+            view.scrollTo(view.getScrollX(), by);
+            return true;
         }
 
         /** Whether [view] is [anchor] or holds it, a few levels up at most. */
@@ -1613,26 +1676,47 @@ public final class GlassTabBar {
                 return false;
             }
             if (lift == 0) {
-                if (ours != null) lower(view);
+                if (ours != null) unraise(view);
                 return false;
             }
-            if (ours == null) view.addOnAttachStateChangeListener(putBack);
+            watch(view);
             raised.put(view, (float) lift);
             if (now == lift) return false;
             view.setTranslationY(lift);
             return true;
         }
 
-        /** Puts back the translation [view] was given, if it still has it, and forgets it. */
+        /** Puts back the translation and the scroll [view] was given, where it still has them, and forgets it. */
         private void lower(View view) {
+            unraise(view);
+            unscroll(view);
+        }
+
+        private void unraise(View view) {
             Float ours = raised.get(view);
             forget(view);
             if (ours != null && view.getTranslationY() == ours) view.setTranslationY(0f);
         }
 
+        private void unscroll(View view) {
+            Integer ours = scrolled.remove(view);
+            unwatch(view);
+            if (ours != null && view.getScrollY() == ours) view.scrollTo(view.getScrollX(), 0);
+        }
+
         private void forget(View view) {
             raised.remove(view);
-            view.removeOnAttachStateChangeListener(putBack);
+            unwatch(view);
+        }
+
+        /** Has [view] put back as it comes off the window, before it's first raised or scrolled. */
+        private void watch(View view) {
+            if (!raised.containsKey(view) && !scrolled.containsKey(view)) view.addOnAttachStateChangeListener(putBack);
+        }
+
+        /** Stops watching [view] once it's neither raised nor scrolled. */
+        private void unwatch(View view) {
+            if (!raised.containsKey(view) && !scrolled.containsKey(view)) view.removeOnAttachStateChangeListener(putBack);
         }
 
         /**
