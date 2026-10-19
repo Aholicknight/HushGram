@@ -187,7 +187,7 @@ class TapToPlayHookTest {
         assertEquals("$what: the hook names no register", 0, (code[hook] as FiveRegisterInstruction).registerCount)
         val move = code[hook + 1]
         val moved = move.referenceText()!!
-        assertEquals("$what: right in front of a virtual call", Opcode.INVOKE_VIRTUAL, move.opcode)
+        assertTrue("$what: right in front of a virtual call", move.opcode in setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_INTERFACE))
         assertTrue("$what: $moved takes nothing and returns nothing", moved.endsWith("()V"))
         val pagerRegister = (move as FiveRegisterInstruction).registerC
         assertEquals(
@@ -498,9 +498,21 @@ class TapToPlayHookTest {
             ?: throw AssertionError("$label: no method carries $SCROLL_TO_NEXT_REEL")
         // The call the patch found by its shape is the Reels pager's smooth scroll to the next item.
         val moveCall = (autoScroll.move.code()[autoScroll.call] as ReferenceInstruction).reference as MethodReference
-        val pagerClass = FixtureDex.classes(bundle, setOf(moveCall.definingClass)).values.single()
+        val declared = FixtureDex.classes(bundle, setOf(moveCall.definingClass)).values.single()
+        // 451 called the pager class itself. 452 calls its interface, so the class holding the ViewPager2 is
+        // the one implementing that interface and the method.
+        val pagerClass = if (AccessFlags.INTERFACE.isSet(declared.accessFlags)) {
+            val implementers = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                dex.classes.filterTo(implementers) { classDef ->
+                    declared.type in classDef.interfaces.map(CharSequence::toString) &&
+                        classDef.methods.any { it.name == moveCall.name && it.parameterTypes.isEmpty() && it.returnType == "V" }
+                }
+            }
+            implementers.single()
+        } else declared
         val target = pagerClass.methods.single { it.name == moveCall.name && it.parameterTypes.isEmpty() && it.returnType == "V" }
-        assertTrue("$label: ${moveCall.definingClass} holds a ViewPager2", pagerClass.fields.any { it.type == viewPager2 })
+        assertTrue("$label: ${pagerClass.type} holds a ViewPager2", pagerClass.fields.any { it.type == viewPager2 })
         assertEquals("$label: $moveCall", listOf(smoothScrollToNextItem), target.markers())
         assertEquals("$label: the player's IgGrootPlayer field", hooks.prepare.definingClass, hooks.grootField.type)
         assertEquals("$label: play and prepare are one class's", hooks.prepare.definingClass, hooks.play.definingClass)
