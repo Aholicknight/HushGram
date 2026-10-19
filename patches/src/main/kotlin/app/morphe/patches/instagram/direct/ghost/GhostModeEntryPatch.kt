@@ -185,8 +185,9 @@ private fun Method.holds(string: String) = code().any { (it.reference() as? Stri
 /**
  * Finds the New message button's configuration in the older inbox header without a name that a
  * build renames. The New message tap logs [NEW_MESSAGE_TAPPED] in one method, and the one method of the
- * inbox header's controller (the class holding [INBOX_OPTIONS_TAPPED]) that calls it starts a new
- * message. The View.OnClickListener classes that call that start (one on 450, two on 451) are
+ * inbox header's controller (the class holding [INBOX_OPTIONS_TAPPED]), or from 452 of the inbox
+ * class it keeps in a field, that calls it starts a new message. The View.OnClickListener classes
+ * that call that start (one on 450, two on 451) are
  * switches over their constructor's number, and a case reaching the call starts a message. The
  * header builder is the one place that makes such a listener with such a number in a button's
  * configuration. A different build fails the search with a reason, and nothing is changed.
@@ -194,8 +195,8 @@ private fun Method.holds(string: String) = code().any { (it.reference() as? Stri
 internal fun BytecodePatchContext.findGhostEntries(): List<GhostEntry> {
     val (controller, start) = findNewMessageStart()
 
-    fun Method.callsStart() = callsOf(controller.type, start.name)
-    val listeners = classesCalling(controller.type, start.name).filter { owner ->
+    fun Method.callsStart() = callsOf(start.definingClass, start.name)
+    val listeners = classesCalling(start.definingClass, start.name).filter { owner ->
         CLICK_LISTENER in owner.interfaces && owner.methods.any { it.name == "onClick" && it.callsStart().isNotEmpty() }
     }
     if (listeners.isEmpty()) refuse("no tap listener class starts a new message")
@@ -226,13 +227,13 @@ internal fun BytecodePatchContext.findGhostEntries(): List<GhostEntry> {
 /**
  * Finds the newer top bar's New message button. The bar's binder is the one method of
  * [IGDS_ACTION_BAR] taking an ImageView and an action model and setting the button's tap
- * listener. The model's tap is a Kotlin lambda: the one Function0 class whose invoke() starts a new
+ * listener. The model's tap is a Kotlin lambda: a Function0 class whose invoke() starts a new
  * message the way the older bar's listener does, in one case of its switch. The one method that
- * makes that lambda with that case's number and answers a model of the binder's type is the New
+ * makes such a lambda with such a case's number and answers a model of the binder's type is the New
  * message model's maker.
  */
 internal fun BytecodePatchContext.findGhostAction(): GhostAction {
-    val (controller, start) = findNewMessageStart()
+    val (_, start) = findNewMessageStart()
 
     val bar = classDefByOrNull(IGDS_ACTION_BAR) ?: refuse("the build has no $IGDS_ACTION_BAR")
     val binders = bar.methods.filter { method ->
@@ -246,17 +247,23 @@ internal fun BytecodePatchContext.findGhostAction(): GhostAction {
     val action = binder.parameterTypes[1].toString()
     if (!action.startsWith("L")) refuse("the newer top bar's action model isn't an object")
 
-    fun Method.callsStart() = callsOf(controller.type, start.name)
-    val lambdas = classesCalling(controller.type, start.name).filter { owner ->
+    fun Method.callsStart() = callsOf(start.definingClass, start.name)
+    val lambdas = classesCalling(start.definingClass, start.name).filter { owner ->
         FUNCTION0 in owner.interfaces && owner.methods.any { it.name == "invoke" && it.parameterTypes.isEmpty() && it.callsStart().isNotEmpty() }
     }
-    val lambda = lambdas.singleOrNull() ?: refuse("expected one lambda class that starts a new message, found ${lambdas.size}")
-    val invoke = lambda.methods.single { it.name == "invoke" && it.parameterTypes.isEmpty() && it.callsStart().isNotEmpty() }
-    val keys = invoke.callsStart().flatMap { caseReaching(invoke, it) }.distinct()
-    if (keys.isEmpty()) refuse("no case of the lambda starts a new message")
+    if (lambdas.isEmpty()) refuse("expected one lambda class that starts a new message, found 0")
 
-    val makers = classesCreating(lambda.type).flatMap { owner ->
-        owner.methods.filter { method -> method.returnType == action && keys.any { listening(method, lambda.type, it) != null } }
+    // 452 has two lambda classes that start a new message (0Au0 and 0675), and only the bar's is
+    // made by a method answering its action model, so the makers are gathered over every switch
+    // lambda and the one maker decides. A lambda without a switch has no case to match.
+    val makers = lambdas.flatMap { lambda ->
+        val invoke = lambda.methods.single { it.name == "invoke" && it.parameterTypes.isEmpty() && it.callsStart().isNotEmpty() }
+        if (invoke.code().none { it.opcode == Opcode.PACKED_SWITCH || it.opcode == Opcode.SPARSE_SWITCH }) return@flatMap emptyList<Method>()
+        val keys = invoke.callsStart().flatMap { caseReaching(invoke, it) }.distinct()
+        if (keys.isEmpty()) refuse("no case of the lambda ${lambda.type} starts a new message")
+        classesCreating(lambda.type).flatMap { owner ->
+            owner.methods.filter { method -> method.returnType == action && keys.any { listening(method, lambda.type, it) != null } }
+        }
     }
     val maker = makers.singleOrNull() ?: refuse("expected one method making the New message action of the newer top bar, found ${makers.size}")
     val returns = maker.code().indices.filter { maker.code()[it].opcode == Opcode.RETURN_OBJECT }
@@ -274,9 +281,12 @@ private fun Method.callsOf(owner: String, name: String) = code().indices.filter 
 }
 
 /**
- * The inbox header's controller and its method that starts a new message. The New message tap
- * logs [NEW_MESSAGE_TAPPED] in one method, and the one method of the inbox header's controller
- * (the class holding [INBOX_OPTIONS_TAPPED]) that calls it starts a new message.
+ * The inbox header's controller and the method that starts a new message. The New message tap
+ * logs [NEW_MESSAGE_TAPPED] in one method, and the one no-argument method calling it starts a new
+ * message. Through 451 that method is the inbox header controller's own (the class holding
+ * [INBOX_OPTIONS_TAPPED]). 452 moved it to the inbox class the controller keeps in a field
+ * (07Bp.A03 is 06Sw, whose A0C calls the tap 06Ur.A07), and the listeners reach it through that
+ * field, so the controller's fields are searched when the controller has none of its own.
  */
 private fun BytecodePatchContext.findNewMessageStart(): Pair<ClassDef, Method> {
     val taps = classesHolding(NEW_MESSAGE_TAPPED).flatMap { owner -> owner.methods.filter { it.holds(NEW_MESSAGE_TAPPED) }.map { owner to it } }
@@ -285,11 +295,15 @@ private fun BytecodePatchContext.findNewMessageStart(): Pair<ClassDef, Method> {
 
     val controllers = classesHolding(INBOX_OPTIONS_TAPPED)
     val controller = controllers.singleOrNull() ?: refuse("expected one inbox header controller holding $INBOX_OPTIONS_TAPPED, found ${controllers.size}")
-    val starts = controller.methods.filter { method ->
+    fun ClassDef.starts() = methods.filter { method ->
         !method.isStatic() && method.parameterTypes.isEmpty() && method.returnType == "V" && method.code().any {
             val call = it.call()
             call != null && call.definingClass == tapOwner.type && call.name == tap.name && call.parameterTypes.isEmpty()
         }
+    }
+    val starts = controller.starts().ifEmpty {
+        controller.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type != controller.type }
+            .map { it.type }.distinct().mapNotNull { classDefByOrNull(it) }.flatMap { it.starts() }
     }
     val start = starts.singleOrNull() ?: refuse("expected one inbox header method that starts a new message, found ${starts.size}")
     return controller to start
