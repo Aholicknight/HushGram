@@ -7,12 +7,6 @@
       "versionCode": "385713073",
       "families": [
         {
-          "family": "disableAnalytics",
-          "patch": "Disable analytics",
-          "targets": ["builder", "graph", "mqtt", "reports", "pings", "stream", "setup"],
-          "optional": []
-        },
-        {
           "family": "sanitizeSharingLinks",
           "patch": "Sanitize sharing links",
           "targets": ["permalink parser", "story link parser", "clipboard copies", "share sheets", "direct shares", "in-app browser menu"],

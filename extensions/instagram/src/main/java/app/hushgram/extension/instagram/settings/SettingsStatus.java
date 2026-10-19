@@ -20,10 +20,6 @@ public final class SettingsStatus {
     }
 
     /** Input-derived subtarget coverage, filled by the corresponding selected patch. */
-    public static String disableAnalyticsCoverage() {
-        return "";
-    }
-
     public static String sanitizeSharingLinksCoverage() {
         return "";
     }
@@ -41,10 +37,6 @@ public final class SettingsStatus {
     }
 
     public static boolean externalBrowser() {
-        return false;
-    }
-
-    public static boolean disableAnalytics() {
         return false;
     }
 

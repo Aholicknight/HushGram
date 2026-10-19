@@ -62,7 +62,6 @@ final class QuickSetupKeys {
             Settings.HIDE_SCREENSHOTS,
             Settings.ALLOW_SCREENSHOTS,
             Settings.SANITIZE_SHARING_LINKS,
-            Settings.DISABLE_ANALYTICS,
             Settings.STOP_UPLOAD_ALARM));
 
     /** Switches Back to defaults leaves as they are, though a settings file carries them. */

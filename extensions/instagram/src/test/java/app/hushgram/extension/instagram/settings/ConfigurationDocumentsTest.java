@@ -187,32 +187,32 @@ public class ConfigurationDocumentsTest {
     // It owed nothing before: the row's listener read the value after the save and took the new
     // one for what Instagram runs. An Undo back to that value owes nothing again.
     @Test public void importOwesRestartNowAndUndoBackToTheRunningValueClearsIt() throws Exception {
-        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.DISABLE_ANALYTICS);
-        boolean running = Settings.DISABLE_ANALYTICS.savedValue();
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.META_AI);
+        boolean running = Settings.HIDE_META_AI_SEARCH.savedValue();
         try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
-            assertTrue(Settings.DISABLE_ANALYTICS.rebootApp);
-            assertNotNull("the row's listener is part of what this proves", page.findPreference(Settings.DISABLE_ANALYTICS.key));
+            assertTrue(Settings.HIDE_META_AI_SEARCH.rebootApp);
+            assertNotNull("the row's listener is part of what this proves", page.findPreference(Settings.HIDE_META_AI_SEARCH.key));
             assertFalse(RestartNow.owed());
             Shadows.shadowOf(activity.get().getContentResolver()).registerInputStream(DOCUMENT, new ByteArrayInputStream(
-                    ConfigurationBackupTest.file(ConfigurationBackupTest.entry(Settings.DISABLE_ANALYTICS.key, "boolean", !running))));
+                    ConfigurationBackupTest.file(ConfigurationBackupTest.entry(Settings.HIDE_META_AI_SEARCH.key, "boolean", !running))));
             ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_import_configuration");
             Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
             finish();
-            assertEquals(!running, Settings.DISABLE_ANALYTICS.savedValue());
-            assertTrue(AbstractPreferenceFragment.restartPending.contains(Settings.DISABLE_ANALYTICS.key));
+            assertEquals(!running, Settings.HIDE_META_AI_SEARCH.savedValue());
+            assertTrue(AbstractPreferenceFragment.restartPending.contains(Settings.HIDE_META_AI_SEARCH.key));
             assertTrue(RestartNow.owed());
             assertTrue(page.findPreference("hushgram_import_configuration").getSummary().toString()
                     .endsWith("Restart Instagram to apply these choices."));
             Preference undo = page.findPreference("hushgram_undo_configuration");
             undo.getOnPreferenceClickListener().onPreferenceClick(undo);
             finish();
-            assertEquals(running, Settings.DISABLE_ANALYTICS.savedValue());
+            assertEquals(running, Settings.HIDE_META_AI_SEARCH.savedValue());
             assertFalse(RestartNow.owed());
             assertEquals("back on what's running, the receipt asks for no restart", "Settings restored.",
                     page.findPreference("hushgram_import_configuration").getSummary().toString());
         } finally {
-            Settings.DISABLE_ANALYTICS.resetToDefault();
+            Settings.HIDE_META_AI_SEARCH.resetToDefault();
         }
     }
 
@@ -252,12 +252,12 @@ public class ConfigurationDocumentsTest {
     }
 
     @Test public void completeRestartFeedbackStaysReadableAfterTheToastExpires() throws Exception {
-        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.DISABLE_ANALYTICS);
-        Settings.DISABLE_ANALYTICS.resetToDefault();
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.META_AI);
+        Settings.HIDE_META_AI_SEARCH.resetToDefault();
         try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
             Shadows.shadowOf(activity.get().getContentResolver()).registerInputStream(DOCUMENT,
-                    new ByteArrayInputStream(ConfigurationBackupTest.file(ConfigurationBackupTest.entry(Settings.DISABLE_ANALYTICS.key, "boolean", false))));
+                    new ByteArrayInputStream(ConfigurationBackupTest.file(ConfigurationBackupTest.entry(Settings.HIDE_META_AI_SEARCH.key, "boolean", false))));
             ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_import_configuration");
             Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
             finish();
@@ -266,7 +266,7 @@ public class ConfigurationDocumentsTest {
             assertTrue(page.findPreference("hushgram_import_configuration").getSummary().toString()
                     .contains("Restart Instagram to apply these choices."));
         } finally {
-            Settings.DISABLE_ANALYTICS.resetToDefault();
+            Settings.HIDE_META_AI_SEARCH.resetToDefault();
         }
     }
 
@@ -308,15 +308,15 @@ public class ConfigurationDocumentsTest {
     }
 
     @Test public void theCompleteReceiptSurvivesClosingAndReopeningSettings() throws Exception {
-        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.DISABLE_ANALYTICS);
-        Settings.DISABLE_ANALYTICS.resetToDefault();
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.META_AI);
+        Settings.HIDE_META_AI_SEARCH.resetToDefault();
         String receipt;
         try {
             try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
                 HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
                 Shadows.shadowOf(activity.get().getContentResolver()).registerInputStream(DOCUMENT,
                         new ByteArrayInputStream(ConfigurationBackupTest.file(
-                                ConfigurationBackupTest.entry(Settings.DISABLE_ANALYTICS.key, "boolean", false))));
+                                ConfigurationBackupTest.entry(Settings.HIDE_META_AI_SEARCH.key, "boolean", false))));
                 ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_import_configuration");
                 Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
                 finish();
@@ -328,7 +328,7 @@ public class ConfigurationDocumentsTest {
                 HushgramPreferenceFragment reopened = DownloadSettingsTest.pageIn(activity);
                 assertEquals(receipt, reopened.findPreference("hushgram_import_configuration").getSummary().toString());
             }
-        } finally { Settings.DISABLE_ANALYTICS.resetToDefault(); }
+        } finally { Settings.HIDE_META_AI_SEARCH.resetToDefault(); }
     }
 
     private static ShadowActivity.IntentForResult pick(HushgramPreferenceFragment page, Activity activity, String key) {

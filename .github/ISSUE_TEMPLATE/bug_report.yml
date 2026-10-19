@@ -76,7 +76,7 @@ body:
     attributes:
       label: Which patches did you select?
       description: If you kept the manager's own selection, just say so. Otherwise list what you added or removed.
-      placeholder: The default selection, without Disable analytics.
+      placeholder: The default selection, without Hide ads.
     validations:
       required: true
   - type: dropdown

@@ -792,13 +792,13 @@ try {
 
     # A family may apply yet miss a subtarget. Certification must reject a required absence,
     # preserve an explicitly optional absence, and never take a forged count as evidence.
-    $partial = [pscustomobject]@{ family = 'disableAnalytics'; matched = 2; expected = 3
+    $partial = [pscustomobject]@{ family = 'sanitizeSharingLinks'; matched = 2; expected = 3
         targets = @('alpha', 'beta', 'gamma'); missing = @('gamma') }
     $policy = [pscustomobject]@{ schemaVersion = 1; fixtures = @([pscustomobject]@{
         package = 'com.example.host'; versionName = '46.7.3'; versionCode = '2024607030'
-        families = @([pscustomobject]@{ family = 'disableAnalytics'; patch = 'Disable analytics'
+        families = @([pscustomobject]@{ family = 'sanitizeSharingLinks'; patch = 'Sanitize sharing links'
             targets = @('alpha', 'beta', 'gamma'); optional = @('gamma') }) }) }
-    $arguments = @{ Names = @('Disable analytics'); Package = 'com.example.host'; VersionName = '46.7.3'
+    $arguments = @{ Names = @('Sanitize sharing links'); Package = 'com.example.host'; VersionName = '46.7.3'
         VersionCode = '2024607030'; Policy = $policy }
     $optional = Test-TargetCoverage -Coverage @($partial) @arguments
     Assert-True ($optional.Valid -and $optional.Reviewed -and $partial.missing[0] -ceq 'gamma') `
@@ -835,18 +835,19 @@ try {
     $coverageTarget.source.package = 'com.instagram.android'
     $coverageTarget.source.versionName = $reviewedName
     $coverageTarget.source.versionCode = $reviewedCode
-    $coverageTarget.patches = @([pscustomobject]@{ name = 'Disable analytics'; applied = $true; reason = $null })
-    $coverageTarget.coverage = @([pscustomobject]@{ family = 'disableAnalytics'; matched = 7; expected = 7
-        targets = @('builder', 'graph', 'mqtt', 'reports', 'pings', 'stream', 'setup'); missing = @() })
-    $receiptArguments = @{ ExpectedVersion = '9.9.9'; ExpectedPatchNames = @('Disable analytics')
+    $coverageTarget.patches = @([pscustomobject]@{ name = 'Sanitize sharing links'; applied = $true; reason = $null })
+    $coverageTarget.coverage = @([pscustomobject]@{ family = 'sanitizeSharingLinks'; matched = 6; expected = 6
+        targets = @('permalink parser', 'story link parser', 'clipboard copies', 'share sheets', 'direct shares',
+            'in-app browser menu'); missing = @() })
+    $receiptArguments = @{ ExpectedVersion = '9.9.9'; ExpectedPatchNames = @('Sanitize sharing links')
         ExpectedPatcherVersion = '1.12.0'; ExpectedManagerFloor = '1.29.0'; ExpectedPackageName = 'com.instagram.android'
         ExpectedPackageVersions = @($reviewedName); ExpectedPackageVersionCodes = @{ $reviewedName = @($reviewedCode) }
         BundlePath = $bundle }
     $certified = Test-ReleaseReceipt -Receipt $coverageReceipt @receiptArguments
     Assert-True $certified.Valid "The reviewed coverage receipt failed: $($certified.Reason)"
-    $coverageTarget.coverage[0].matched = 6; $coverageTarget.coverage[0].missing = @('mqtt')
+    $coverageTarget.coverage[0].matched = 5; $coverageTarget.coverage[0].missing = @('share sheets')
     $lost = Test-ReleaseReceipt -Receipt $coverageReceipt @receiptArguments
-    Assert-True (-not $lost.Valid -and $lost.Reason -like '*Required*mqtt*') 'A receipt hid missing required coverage.'
+    Assert-True (-not $lost.Valid -and $lost.Reason -like '*Required*share sheets*') 'A receipt hid missing required coverage.'
     $coverageTarget.coverage[0].matched = 7
     Assert-True (-not (Test-ReleaseReceipt -Receipt $coverageReceipt @receiptArguments).Valid) 'Forged receipt counts passed.'
 } finally {

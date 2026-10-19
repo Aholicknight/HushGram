@@ -110,14 +110,6 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_open_links_externally", TRUE);
 
     /**
-     * Instagram's event uploads, to its own logging endpoint and to Facebook's graph endpoint, go
-     * to an address on the phone that refuses them. The uploader reads the address when it starts,
-     * so a change shows after a restart.
-     */
-    public static final BooleanSetting DISABLE_ANALYTICS =
-            new BooleanSetting("hushgram_disable_analytics", TRUE, true);
-
-    /**
      * The screen an old build shows to push an update, which a patched build can't install from
      * the Play Store. Instagram checks when its main screen opens.
      */

@@ -214,7 +214,7 @@
     {
       "paths": [
         "patches/src/main/kotlin/app/morphe/patches/instagram/ads/**",
-        "patches/src/main/kotlin/app/morphe/patches/instagram/misc/analytics/**",
+        "patches/src/main/kotlin/app/morphe/patches/instagram/misc/extension/PooledStrings.kt",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/buildexpiry/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/cache/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/adid/**",
@@ -232,7 +232,6 @@
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/SameKeyProviderCallerTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/DmMediaSeenSettingsTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/LastActiveSettingsTest.java",
-        "patches/src/test/kotlin/app/morphe/patches/instagram/misc/analytics/AlternateSetupScreensTest.kt",
         "patches/src/test/kotlin/app/morphe/patches/instagram/metaai/ComposerButtonsHookTest.kt",
         "patches/src/test/kotlin/app/morphe/MergedReturnSourceTest.kt",
         "patches/src/test/kotlin/app/morphe/patches/instagram/metaai/InboxRowHookTest.kt",
@@ -374,7 +373,6 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/media/HdrBoost.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/media/PlayButtonsTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/TapToPlayScopeSettingsTest.java",
-        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/AnalyticsTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/DeveloperOptionsTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/stories/StoryRetryTest.java",
         "patches/src/test/kotlin/app/morphe/patches/instagram/stories/seen/StoryRetryFixtures.kt",

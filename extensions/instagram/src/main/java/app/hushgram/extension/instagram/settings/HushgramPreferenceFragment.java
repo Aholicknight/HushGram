@@ -520,11 +520,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Web links you tap open in your usual browser, without Instagram's click tracker. "
                             + "Instagram pages and ads still open in the app.")));
         }
-        if (build.contains(PatchFamily.DISABLE_ANALYTICS)) {
-            privacy.add(toggle(context, Settings.DISABLE_ANALYTICS, L10n.t("Disable analytics"),
-                    withCoverage(L10n.t("Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. "
-                            + "Restart Instagram to see the change."), SettingsStatus.disableAnalyticsCoverage())));
-        }
         if (build.contains(PatchFamily.DM_MEDIA_SEEN)) {
             privacy.add(toggle(context, Settings.VIEW_DM_MEDIA_ANONYMOUSLY,
                     L10n.t("View DM photos and videos anonymously"),
@@ -1568,8 +1563,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "unaffected.")));
             battery.addPreference(toggle(context, Settings.STOP_UPLOAD_ALARM, L10n.t("Stop the analytics upload alarm"),
                     L10n.t("Instagram sets an alarm to wake your phone and send its usage events five minutes later. "
-                            + "This stops that alarm. The events go the next time you use the app, or nowhere with "
-                            + "Disable analytics.")));
+                            + "This stops that alarm. The events go the next time you use the app.")));
         }
 
         if (build.contains(PatchFamily.BUILD_EXPIRED_POPUP)) {
@@ -1926,8 +1920,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.VERSION_CODE && L10n.t("No Play Store updates").equals(row.getTitle());
                     if (!belongs) continue;
                     aliases.append(' ').append(family.patchName);
-                    if (family == PatchFamily.DISABLE_ANALYTICS) aliases.append(" contacts contact location setup analytics ")
-                            .append(L10n.t("Contacts, location setup, analytics"));
                     if (family == PatchFamily.FOLLOWING_FEED) aliases.append(" following home feed");
                     if (Settings.REEL_AUTO_ADVANCE.key.equals(key)) aliases.append(" auto advance autoloop loop next reels");
                     if (family == PatchFamily.REEL_DECLUTTER || family == PatchFamily.REEL_DOWNLOAD

@@ -62,7 +62,7 @@ Back it up right after your first patch. In Morphe Manager open **Settings → S
 
 ## Patches
 
-There are 109 patches for `com.instagram.android`, checked against Instagram 451.0.0.53.80. Manager's simple mode includes 104 of them, so you don't need Expert mode to get any feature below. A patch that comes in this way changes nothing until you turn its switch on in HushGram settings, and each description says where that switch is. A few start on: Hide ads, Sanitize sharing links, Open links in external browser, Disable analytics, Remove build expired popup, Hide suggested posts, Hide suggested stories, Hide Meta AI's search and posts switches, Show if a profile follows you, Download any reel, Download any story and Keep the reel speed. Story ring size and Default playback quality start on too, but they keep Instagram's own size and quality until you pick one.
+There are 108 patches for `com.instagram.android`, checked against Instagram 451.0.0.53.80. Manager's simple mode includes 103 of them, so you don't need Expert mode to get any feature below. A patch that comes in this way changes nothing until you turn its switch on in HushGram settings, and each description says where that switch is. A few start on: Hide ads, Sanitize sharing links, Open links in external browser, Remove build expired popup, Hide suggested posts, Hide suggested stories, Hide Meta AI's search and posts switches, Show if a profile follows you, Download any reel, Download any story and Keep the reel speed. Story ring size and Default playback quality start on too, but they keep Instagram's own size and quality until you pick one.
 
 Five patches stay out of simple mode. Tick them in Manager's patch list (Expert mode, then **Choose patches**) if you want them:
 
@@ -91,7 +91,6 @@ In Expert mode the patches are grouped under Ads, Ghost mode, Privacy, Messages,
 | `Copy comment` | Adds Copy and Copy username to the menu you get on a comment, so you can copy its text or the commenter's username. Starts off. Turn it on in HushGram settings > Comments. | Included |
 | `Default playback quality` | Plays videos, reels and video stories at the quality you choose, instead of the one Instagram picks as it plays. Nothing changes until you pick a quality. On by default. Turn it off in HushGram settings > Playback. | Included |
 | `Data saver` | Saves mobile data by loading smaller photos and starting videos at the lowest quality. It uses Full resolution photos and Default playback quality, so it turns both on. It starts with mobile data only. Starts off. Turn it on in HushGram settings > Playback. | Included |
-| `Disable analytics` | Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. It also skips the contacts and location setup screens. Restart Instagram after you change it. On by default. Turn it off in HushGram settings > Ads and privacy. | Included |
 | `Don't save recent searches` | Keeps the accounts and tags you open from search out of your Recent list. Searches already in Recent stay until you clear them. Starts off. Turn it on in HushGram settings > Explore. | Included |
 | `Don't report screenshots` | Stops Instagram from telling people when you take a screenshot of their disappearing photo or video. Ghost mode, at the top of Ads and privacy, turns it on with the others. Starts off. Turn it on in HushGram settings > Messages. | Included |
 | `Don't send reel watch history` | Stops Instagram from learning which reels you watched and how far you got. Reels you've already watched may come back. Starts off. Turn it on in HushGram settings > Reels. | Included |
@@ -274,12 +273,11 @@ On Windows, `Get-FileHash -Algorithm SHA256 .\patches-<version>.mpp` prints the 
 
 ## Privacy
 
-HushGram doesn't collect anything and has no server. The one connection it opens itself fetches media you ask for, like a save, a picture you open with View profile picture or the small pictures in See who a story mentions. It all comes over HTTPS from Meta's media servers (`cdninstagram.com`, `fbcdn.net` and `fbsbx.com`), and an address anywhere else is refused. Apart from that, its code names four addresses:
+HushGram doesn't collect anything and has no server. The one connection it opens itself fetches media you ask for, like a save, a picture you open with View profile picture or the small pictures in See who a story mentions. It all comes over HTTPS from Meta's media servers (`cdninstagram.com`, `fbcdn.net` and `fbsbx.com`), and an address anywhere else is refused. Apart from that, its code names three addresses:
 
 - `github.com`, for the link to this page in settings. It opens in your browser, only when you tap it.
 - `ko-fi.com`, for the Support HushGram row at the end of settings, again only when you tap it.
 - `www.instagram.com`, in the link Send downloads to another app hands to the app you pick, and in the profile links See who a story mentions opens inside Instagram.
-- `127.0.0.1`, your phone's own loopback address. Disable analytics hands it to Instagram in place of its logging servers, so nothing sent there leaves the phone.
 
 The diagnostic report stays on your phone until you copy or share it yourself.
 

@@ -240,47 +240,6 @@ once-call Lapp/hushgram/extension/instagram/ads/Ads;->hide()Z in static (*)Z hol
 # "lockout_active"; the lockout is the one taking the activity first.
 start-call Lapp/hushgram/extension/instagram/misc/BuildExpiry;->suppress()Z in (Landroidx/fragment/app/FragmentActivity;*)V holding lockout_active
 once-call Lapp/hushgram/extension/instagram/misc/BuildExpiry;->suppress()Z in (Landroidx/fragment/app/FragmentActivity;*)V holding lockout_active
-#
-# Disable analytics passes the address Instagram uploads its usage events to through the extension
-# before the builder returns it. The builder is the one static method taking a host and a flag that
-# holds all three pieces of the address, and it returns once on 449, so one call. The extension's
-# endpoint() is also called wherever Instagram loads Facebook's Graph logging address, so the
-# builder's rule is shared-call: the builder calls it once and no other method holding its strings
-# calls it, whoever else does.
-shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->endpoint(Ljava/lang/String;)Ljava/lang/String; in static (Ljava/lang/String;Z)Ljava/lang/String; holding https:// /pigeon_nest /logging_client_events
-# The MQTT client's settings constructor, the one taking a JSONObject that holds both keys below,
-# hands the analytics_endpoint value it reads to endpoint() once.
-shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->endpoint(Ljava/lang/String;)Ljava/lang/String; in instance (Lorg/json/JSONObject;)V holding php_sandbox_host_name
-# Lacrima, Instagram's error reporter, posts a startup ping and a debug ping to b-www.facebook.com,
-# the address a constant in each sender's run(). reportEndpoint() takes it once in each.
-shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->reportEndpoint(Ljava/lang/String;)Ljava/lang/String; in instance ()V holding https://b-www.facebook.com/mobile/extra_data_collector/ user_id=0&report_type=appstartup&app_id=
-shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->reportEndpoint(Ljava/lang/String;)Ljava/lang/String; in instance ()V holding https://b-www.facebook.com/mobile/extra_data_collector/ user_id=0&report_type=debug_ping&debug_ping_ver=
-# Its crash and reliability reports go to an address it builds at startup and keeps as text, and
-# reportEndpoint() takes it each time a sender reads it back. The direct report sender reads it once.
-# The report sender's factory (ReportSender, ReportAssembler) reads it on two branches, so it has no
-# rule: a rule here holds a method to one call.
-shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->reportEndpoint(Ljava/lang/String;)Ljava/lang/String; in instance ()V holding DirectSend DirectReportSource
-# The logger's step for each event hands its switch for Falco's event stream to streamEvents()
-# between reading it and branching on it. The step is the one method holding both strings below, and
-# nothing else calls streamEvents(). Left out, events stream to the gateway host whatever the switch
-# says; twice or elsewhere, it isn't the hook the patch wrote.
-once-call Lapp/hushgram/extension/instagram/misc/Analytics;->streamEvents(I)I in instance (LX/*;I)V holding LX/*;->*:Ljava/util/concurrent/ScheduledExecutorService;
-# The Bloks screen opener asks setupScreen() first thing in each of its three ways of showing a
-# screen, with the app id it reads off itself, and returns on a yes. Full screen holds the fetch's
-# trace name, the bottom sheet its two bundle keys, and the third holds no string: it's the class's
-# one instance (Context, IgBloksScreenConfig)V handing a screen to the static that shows one, and
-# its class is picked by A0A's TTL check, a string none of the three loads. Left out, the contacts
-# and location setup screens come back on every start while their seen events are refused.
-start-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava/lang/String;)I in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V holding BKDataFetcher.fetch
-shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava/lang/String;)I in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V holding BKDataFetcher.fetch
-start-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava/lang/String;)I in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V holding bloks_screen_config bottom_sheet_content_fragment
-shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava/lang/String;)I in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V holding bloks_screen_config bottom_sheet_content_fragment
-start-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava/lang/String;)I in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V calling static LX/*;->*(Landroid/content/Context;LX/*;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;LX/*;LX/*;I)V class-holding CacheTTL\smust\sbe\spositive
-shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava/lang/String;)I in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V calling static LX/*;->*(Landroid/content/Context;LX/*;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;LX/*;LX/*;I)V class-holding CacheTTL\smust\sbe\spositive
-# The direct screen presenter needs a null-data bypass before reading its immutable app id.
-# The existing opener routes share this hook, so one call is required here without forbidding them.
-# 385611400, 439 and 440 ask a string pool for some of its strings, so pool asks count (pooled).
-shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava/lang/String;)I in static (Landroid/content/Context;L*;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;L*;L*;I)V pooled holding FragmentActivity\sis\srequired\sto\sopen\sCDS\sbottom\ssheet cds_bloks cds_bloks_bottomsheet
 # Open developer options asks open() first in Home's long press, the one onLongClick holding the
 # two values the server can set the press to. Nothing else calls open().
 start-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->open()I in instance (Landroid/view/View;)Z holding click activity
@@ -513,10 +472,6 @@ no-call Landroid/view/Window;->setColorMode(I)V outside Lapp/hushgram/extension/
 no-call Landroid/view/SurfaceControl$Transaction;->setExtendedRangeBrightness(Landroid/view/SurfaceControl;FF)Landroid/view/SurfaceControl$Transaction; outside Lapp/hushgram/extension/
 #
 # Not pinned:
-# Disable analytics also sends every load of Facebook's Graph logging address through endpoint().
-# Three methods load it on 449: a string table and two getters of the same shape holding nothing
-# else, so no rule can single one out, and shared-call on the table would count the getters' calls
-# against it.
 # Sanitize sharing links also sends ClipboardManager.setPrimaryClip and both Intent.createChooser
 # calls to stand-ins. The patcher rewrites only the root classes*.dex, and the in-app browser's dex
 # (split_heliumcore, three dex entries in the merge) still makes those calls itself, so a no-call

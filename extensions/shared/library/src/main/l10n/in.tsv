@@ -85,7 +85,6 @@ Debug logging	Pencatatan debug
 Diagnostic data cleared. Tap again to put it back.	Data diagnostik dihapus. Ketuk lagi untuk mengembalikannya.
 Diagnostic data put back.	Data diagnostik dikembalikan.
 Diagnostic report copied to the clipboard.	Laporan diagnostik disalin ke papan klip.
-Disable analytics	Nonaktifkan analitik
 Download failed	Unduhan gagal
 Downloading	Mengunduh
 Empties the activity log that a diagnostic report would include.	Mengosongkan log aktivitas yang akan disertakan dalam laporan diagnostik.
@@ -109,7 +108,6 @@ HushGram turns back on when Instagram restarts.	HushGram aktif lagi saat Instagr
 Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	Instagram berhenti mendadak atau macet dalam satu menit setelah dibuka, tiga kali berturut-turut, jadi HushGram menjeda dirinya sendiri.
 Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	Instagram berhenti menampilkan layar yang menyatakan versi ini terlalu lama. Build yang ditambal tidak memperbarui dirinya sendiri, jadi ini membuatnya tetap bisa dipakai.
 Instagram's own checks of who signed the app keep passing on this patched build.	Pemeriksaan Instagram sendiri tentang siapa yang menandatangani aplikasi tetap lolos pada build yang di-patch ini.
-Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. Restart Instagram to see the change.	Menghentikan Instagram mengirim laporan penggunaan dan laporan error ke Instagram dan Facebook. Mulai ulang Instagram untuk melihat perubahannya.
 Joining the picture and sound	Menggabungkan gambar dan suara
 Licenses	Lisensi
 Link expired. Reopen the item and try again.	Tautan kedaluwarsa. Buka ulang kontennya lalu coba lagi.
@@ -448,7 +446,6 @@ Search settings	Cari pengaturan
 Clear search	Hapus pencarian
 No matching settings	Tidak ada pengaturan yang cocok
 Try another word. Settings only appear for patches included in this install.	Coba kata lain. Pengaturan hanya muncul untuk patch yang disertakan dalam instalasi ini.
-Contacts, location setup, analytics	Kontak, pengaturan lokasi, analitik
 Save all	Simpan semua
 Saving a carousel	Menyimpan carousel
 Cancel saving this carousel	Batalkan penyimpanan carousel ini
@@ -872,7 +869,7 @@ Battery	Baterai
 Stop the background heartbeat	Hentikan detak latar belakang
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram membangunkan ponselmu setiap satu atau dua menit, termasuk saat layar mati, hanya untuk mencatat bahwa ia masih berjalan. Ini menghentikannya. Pesan, notifikasi, dan semua yang kamu lihat tidak terpengaruh.
 Stop the analytics upload alarm	Hentikan alarm unggah analitik
-Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app, or nowhere with Disable analytics.	Instagram memasang alarm yang membangunkan ponselmu untuk mengirim data penggunaannya lima menit kemudian. Ini menghentikan alarm itu. Data dikirim saat kamu memakai aplikasi berikutnya, atau tidak ke mana pun dengan Nonaktifkan analitik.
+Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram memasang alarm yang membangunkan ponselmu untuk mengirim data penggunaannya lima menit kemudian. Ini menghentikan alarm itu. Data dikirim saat kamu memakai aplikasi berikutnya.
 Haptic style	Gaya haptik
 Short tick	Ketukan pendek
 System tick	Ketukan sistem

@@ -85,7 +85,6 @@ Debug logging	Log di debug
 Diagnostic data cleared. Tap again to put it back.	Dati diagnostici cancellati. Tocca di nuovo per ripristinarli.
 Diagnostic data put back.	Dati diagnostici ripristinati.
 Diagnostic report copied to the clipboard.	Report diagnostico copiato negli appunti.
-Disable analytics	Disattiva l'analisi
 Download failed	Download non riuscito
 Downloading	Download in corso
 Empties the activity log that a diagnostic report would include.	Svuota il registro attività che includerebbe un report diagnostico.
@@ -109,7 +108,6 @@ HushGram turns back on when Instagram restarts.	HushGram si riattiva quando Inst
 Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	Instagram si è chiuso o bloccato entro un minuto dall'avvio tre volte di fila, quindi HushGram si è messo in pausa da solo.
 Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	Instagram smette di mostrare la schermata che dice che questa versione è troppo vecchia. Una build con patch non si aggiorna da sola, quindi così resta utilizzabile.
 Instagram's own checks of who signed the app keep passing on this patched build.	I controlli di Instagram su chi ha firmato l'app continuano a passare su questa build con patch.
-Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. Restart Instagram to see the change.	Impedisce a Instagram di inviare report di utilizzo e di arresto anomalo a Instagram e Facebook. Riavvia Instagram per vedere la modifica.
 Joining the picture and sound	Unione di immagine e audio
 Licenses	Licenze
 Link expired. Reopen the item and try again.	Link scaduto. Riapri l'elemento e riprova.
@@ -448,7 +446,6 @@ Search settings	Cerca nelle impostazioni
 Clear search	Cancella la ricerca
 No matching settings	Nessuna impostazione corrispondente
 Try another word. Settings only appear for patches included in this install.	Prova un'altra parola. Le impostazioni compaiono solo per le patch incluse in questa installazione.
-Contacts, location setup, analytics	Contatti, impostazione della posizione, analisi
 Save all	Salva tutto
 Saving a carousel	Salvataggio di un carosello
 Cancel saving this carousel	Annulla il salvataggio di questo carosello
@@ -872,7 +869,7 @@ Battery	Batteria
 Stop the background heartbeat	Ferma il battito in background
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram sveglia il telefono ogni minuto o due, anche a schermo spento, solo per segnalare che è ancora in esecuzione. Questo lo ferma. Messaggi, notifiche e tutto ciò che vedi non cambiano.
 Stop the analytics upload alarm	Ferma la sveglia di invio dell'analisi
-Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app, or nowhere with Disable analytics.	Instagram imposta una sveglia per risvegliare il telefono e inviare i suoi eventi di utilizzo cinque minuti dopo. Questo ferma quella sveglia. Gli eventi partono la prossima volta che usi l'app, o da nessuna parte con Disattiva l'analisi.
+Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram imposta una sveglia per risvegliare il telefono e inviare i suoi eventi di utilizzo cinque minuti dopo. Questo ferma quella sveglia. Gli eventi partono la prossima volta che usi l'app.
 Haptic style	Stile del feedback aptico
 Short tick	Tic breve
 System tick	Tic di sistema

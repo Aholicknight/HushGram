@@ -563,43 +563,6 @@
       "options": []
     },
     {
-      "name": "Disable analytics",
-      "description": "Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. It also skips the contacts and location setup screens. Restart Instagram after you change it. On by default. Turn it off in HushGram settings > Ads and privacy.",
-      "category": "Privacy",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "451.0.0.53.80"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "451.0.0.53.80",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 385713073
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Don't report screenshots",
       "description": "Stops Instagram from telling people when you take a screenshot of their disappearing photo or video. Ghost mode, at the top of Ads and privacy, turns it on with the others. Starts off. Turn it on in HushGram settings > Messages.",
       "category": "Ghost mode",

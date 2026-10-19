@@ -140,7 +140,7 @@ public class SettingsTextAlignmentTest {
     }
 
     private void open() throws Exception {
-        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.DISABLE_ANALYTICS, PatchFamily.VIDEO_DOWNLOAD);
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.VIDEO_DOWNLOAD);
         controller = Robolectric.buildActivity(Activity.class).setup();
         page = new HushgramPreferenceFragment();
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
@@ -152,12 +152,12 @@ public class SettingsTextAlignmentTest {
         ShadowLooper.idleMainLooper();
     }
 
-    /** The status card, Disable analytics, the last carousel save and the running save, in that order. */
+    /** The status card, Hide ads, the last carousel save and the running save, in that order. */
     private List<Preference> rows() {
         List<Preference> found = new ArrayList<>();
         ListAdapter adapter = page.getPreferenceScreen().getRootAdapter();
         found.add((Preference) adapter.getItem(0));
-        found.add(page.findPreference(Settings.DISABLE_ANALYTICS.key));
+        found.add(page.findPreference(Settings.HIDE_ADS.key));
         found.add(page.findPreference("hushgram_last_carousel_save"));
         found.add(page.findPreference("running_save_" + save));
         for (Preference row : found) assertNotNull(found.toString(), row);

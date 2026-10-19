@@ -19,8 +19,8 @@ import app.morphe.patches.instagram.feed.isToString
 import app.morphe.patches.instagram.feed.prepareFlagWrites
 import app.morphe.patches.instagram.feed.printedFlag
 import app.morphe.patches.instagram.feed.sameAs
-import app.morphe.patches.instagram.misc.analytics.loadsString
-import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
+import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.enableStatus

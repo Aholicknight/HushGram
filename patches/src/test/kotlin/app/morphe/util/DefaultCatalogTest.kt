@@ -50,7 +50,6 @@ import app.morphe.patches.instagram.media.resume.resumeLongVideosPatch
 import app.morphe.patches.instagram.media.taptoplay.tapToPlayPatch
 import app.morphe.patches.instagram.metaai.hideMetaAiPatch
 import app.morphe.patches.instagram.misc.adid.removeAdIdPatch
-import app.morphe.patches.instagram.misc.analytics.disableAnalyticsPatch
 import app.morphe.patches.instagram.misc.bottomspace.removeBottomSpacePatch
 import app.morphe.patches.instagram.misc.buildexpiry.removeBuildExpiredPopupPatch
 import app.morphe.patches.instagram.misc.comment.copyCommentPatch
@@ -218,7 +217,6 @@ class DefaultCatalogTest {
 
     private val prior = listOf<Patch<*>>(
         defaultPlaybackQualityPatch,
-        disableAnalyticsPatch,
         downloadReelPatch,
         downloadStoryPatch,
         friendshipStatusPatch,
@@ -246,7 +244,7 @@ class DefaultCatalogTest {
     )
 
     @Test fun existingDefaultsRetainTheirSelections() {
-        assertEquals(18, prior.size)
+        assertEquals(17, prior.size)
         prior.forEach { assertEquals(it.name, true, it.use) }
     }
 
@@ -263,7 +261,7 @@ class DefaultCatalogTest {
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.use }
-        assertEquals("every named patch needs one reviewed decision", 109, all.size)
+        assertEquals("every named patch needs one reviewed decision", 108, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

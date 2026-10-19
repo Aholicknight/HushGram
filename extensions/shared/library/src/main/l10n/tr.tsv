@@ -85,7 +85,6 @@ Debug logging	Hata ayıklama günlüğü
 Diagnostic data cleared. Tap again to put it back.	Tanılama verileri temizlendi. Geri getirmek için tekrar dokun.
 Diagnostic data put back.	Tanılama verileri geri getirildi.
 Diagnostic report copied to the clipboard.	Tanılama raporu panoya kopyalandı.
-Disable analytics	Analitiği devre dışı bırak
 Download failed	İndirme başarısız oldu
 Downloading	İndiriliyor
 Empties the activity log that a diagnostic report would include.	Bir tanılama raporuna dahil edilecek etkinlik günlüğünü boşaltır.
@@ -109,7 +108,6 @@ HushGram turns back on when Instagram restarts.	HushGram, Instagram yeniden baş
 Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	Instagram açıldıktan sonraki bir dakika içinde üst üste üç kez çöktü veya dondu, bu yüzden HushGram kendini duraklattı.
 Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	Instagram bu sürümün çok eski olduğunu söyleyen ekranı artık göstermez. Yamalanmış bir sürüm kendi kendine güncellenmez, bu yüzden bu onu kullanılabilir tutar.
 Instagram's own checks of who signed the app keep passing on this patched build.	Instagram'ın uygulamayı kimin imzaladığına bakan kendi kontrolleri bu yamalı sürümde de geçmeye devam eder.
-Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. Restart Instagram to see the change.	Instagram'ın kullanım ve çökme raporlarını Instagram'a ve Facebook'a göndermesini engeller. Değişikliği görmek için Instagram'ı yeniden başlat.
 Joining the picture and sound	Görüntü ve ses birleştiriliyor
 Licenses	Lisanslar
 Link expired. Reopen the item and try again.	Bağlantının süresi doldu. Öğeyi yeniden açıp tekrar dene.
@@ -448,7 +446,6 @@ Search settings	Ayarlarda ara
 Clear search	Aramayı temizle
 No matching settings	Eşleşen ayar yok
 Try another word. Settings only appear for patches included in this install.	Başka bir sözcük deneyin. Yalnızca bu kuruluma dahil edilen yamaların ayarları görünür.
-Contacts, location setup, analytics	Kişiler, konum kurulumu, analiz
 Save all	Tümünü kaydet
 Saving a carousel	Çoklu gönderi kaydediliyor
 Cancel saving this carousel	Bu çoklu gönderinin kaydını iptal et
@@ -872,7 +869,7 @@ Battery	Pil
 Stop the background heartbeat	Arka plandaki kalp atışını durdur
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram, ekran kapalıyken bile her bir iki dakikada bir telefonunu yalnızca hâlâ çalıştığını not etmek için uyandırır. Bu, bunu durdurur. Mesajlar, bildirimler ve gördüğün her şey etkilenmez.
 Stop the analytics upload alarm	Analiz yükleme alarmını durdur
-Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app, or nowhere with Disable analytics.	Instagram, kullanım verilerini beş dakika sonra göndermek için telefonunu uyandıran bir alarm kurar. Bu, o alarmı durdurur. Veriler uygulamayı bir sonraki kullanışında gider, Analizleri kapat açıkken hiçbir yere gitmez.
+Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram, kullanım verilerini beş dakika sonra göndermek için telefonunu uyandıran bir alarm kurar. Bu, o alarmı durdurur. Veriler uygulamayı bir sonraki kullanışında gider.
 Haptic style	Haptik stili
 Short tick	Kısa tık
 System tick	Sistem tıkı

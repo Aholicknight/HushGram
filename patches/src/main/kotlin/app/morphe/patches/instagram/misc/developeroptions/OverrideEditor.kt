@@ -6,9 +6,9 @@ package app.morphe.patches.instagram.misc.developeroptions
 
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patches.instagram.misc.analytics.loadsString
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import com.android.tools.smali.dexlib2.AccessFlags

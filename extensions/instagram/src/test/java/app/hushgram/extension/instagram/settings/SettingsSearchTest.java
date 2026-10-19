@@ -188,11 +188,11 @@ public class SettingsSearchTest {
     }
 
     @Test public void verifiedAliasesFindOnlyTheirInstalledControls() throws Exception {
-        open(PatchFamily.DISABLE_ANALYTICS, PatchFamily.FOLLOWING_FEED, PatchFamily.REEL_DOWNLOAD);
-        for (String query : new String[]{"contacts", "LOCATION SETUP", "analytics"}) {
+        open(PatchFamily.SPOOF_LOCATION, PatchFamily.FOLLOWING_FEED, PatchFamily.REEL_DOWNLOAD);
+        for (String query : new String[]{"home feed", "HOME FEED"}) {
             page.searchSettings(query);
-            assertNotNull(visible(Settings.DISABLE_ANALYTICS.key));
-            assertNull(visible(Settings.START_ON_FOLLOWING.key));
+            assertNotNull(visible(Settings.START_ON_FOLLOWING.key));
+            assertNull(visible(Settings.SPOOF_LOCATION.key));
         }
         page.searchSettings("following");
         assertNotNull(visible(Settings.START_ON_FOLLOWING.key));
@@ -208,16 +208,16 @@ public class SettingsSearchTest {
 
     @Test @Config(qualifiers = "es-rES-w320dp-h640dp-xhdpi")
     public void localizedTitlesAndSummariesMatchWithoutCaseOrAccentRestrictions() throws Exception {
-        open(PatchFamily.DISABLE_ANALYTICS, PatchFamily.FOLLOWING_FEED);
-        Preference analytics = visible(Settings.DISABLE_ANALYTICS.key);
-        assertNotEquals("Disable analytics", analytics.getTitle().toString());
-        page.searchSettings(analytics.getTitle().toString().toUpperCase(Locale.ROOT));
-        assertSame(analytics, visible(Settings.DISABLE_ANALYTICS.key));
+        open(PatchFamily.SPOOF_LOCATION, PatchFamily.FOLLOWING_FEED);
+        Preference spoof = visible(Settings.SPOOF_LOCATION.key);
+        assertNotEquals("Spoof location", spoof.getTitle().toString());
+        page.searchSettings(spoof.getTitle().toString().toUpperCase(Locale.ROOT));
+        assertSame(spoof, visible(Settings.SPOOF_LOCATION.key));
         assertNull(visible(Settings.START_ON_FOLLOWING.key));
-        page.searchSettings(analytics.getSummary().toString().toUpperCase(Locale.ROOT));
-        assertSame(analytics, visible(Settings.DISABLE_ANALYTICS.key));
-        page.searchSettings("configuracion de ubicacion");
-        assertSame(analytics, visible(Settings.DISABLE_ANALYTICS.key));
+        page.searchSettings(spoof.getSummary().toString().toUpperCase(Locale.ROOT));
+        assertSame(spoof, visible(Settings.SPOOF_LOCATION.key));
+        page.searchSettings("falsificar ubicacion");
+        assertSame(spoof, visible(Settings.SPOOF_LOCATION.key));
     }
 
     /**
@@ -245,14 +245,14 @@ public class SettingsSearchTest {
 
     @Test @Config(qualifiers = "tr-rTR-w320dp-h640dp-xhdpi")
     public void turkishCaseVariantsAlsoKeepEnglishPatchNameLookup() throws Exception {
-        open(PatchFamily.FOLLOWING_FEED, PatchFamily.DISABLE_ANALYTICS);
+        open(PatchFamily.FOLLOWING_FEED, PatchFamily.SPOOF_LOCATION);
         Preference following = visible(Settings.START_ON_FOLLOWING.key);
         page.searchSettings(following.getTitle().toString().toUpperCase(Locale.ROOT));
         assertSame(following, visible(Settings.START_ON_FOLLOWING.key));
-        page.searchSettings("KISILER");
-        assertNotNull(visible(Settings.DISABLE_ANALYTICS.key));
-        page.searchSettings("DISABLE ANALYTICS");
-        assertNotNull(visible(Settings.DISABLE_ANALYTICS.key));
+        page.searchSettings("TAKLIT");
+        assertNotNull(visible(Settings.SPOOF_LOCATION.key));
+        page.searchSettings("SPOOF LOCATION");
+        assertNotNull(visible(Settings.SPOOF_LOCATION.key));
     }
 
     /**
@@ -308,7 +308,7 @@ public class SettingsSearchTest {
      * used to list it ahead of the rows named for the search, and one named for it keeps it first.
      */
     @Test public void quickSetupsIsRankedWithTheRows() throws Exception {
-        open(PatchFamily.FOLLOWING_FEED, PatchFamily.HIDE_ADS, PatchFamily.DISABLE_ANALYTICS);
+        open(PatchFamily.FOLLOWING_FEED, PatchFamily.HIDE_ADS, PatchFamily.SANITIZE_SHARING_LINKS);
         ShadowLooper.idleMainLooper();
         Preference quick = visible(HushgramPreferenceFragment.QUICK_SETUPS_ROW_KEY);
         assertNotNull(quick);
@@ -339,13 +339,13 @@ public class SettingsSearchTest {
     }
 
     @Test public void clearingRestoresTheOriginalObjectsOrderAndChoices() throws Exception {
-        open(PatchFamily.FOLLOWING_FEED, PatchFamily.REEL_DOWNLOAD, PatchFamily.DISABLE_ANALYTICS);
+        open(PatchFamily.FOLLOWING_FEED, PatchFamily.REEL_DOWNLOAD, PatchFamily.SPOOF_LOCATION);
         Settings.DOWNLOAD_QUALITY.save(DownloadQuality.SMALLEST);
         ShadowLooper.idleMainLooper();
         List<Preference> before = rows(page.getPreferenceScreen());
         ListPreference quality = (ListPreference) visible(Settings.DOWNLOAD_QUALITY.key);
         for (int i = 0; i < 4; i++) {
-            page.searchSettings("contacts");
+            page.searchSettings("spoof");
             assertNull(visible(Settings.DOWNLOAD_QUALITY.key));
             page.searchSettings("");
             assertEquals(before, rows(page.getPreferenceScreen()));
@@ -357,12 +357,12 @@ public class SettingsSearchTest {
 
     @Test public void hiddenRowsStillSynchronizeStoredChangesAndParentAvailability() throws Exception {
         Settings.START_ON_FOLLOWING.save(true);
-        open(PatchFamily.FOLLOWING_FEED, PatchFamily.DISABLE_ANALYTICS);
+        open(PatchFamily.FOLLOWING_FEED, PatchFamily.SPOOF_LOCATION);
         Settings.ONLY_FOLLOWING.save(true);
         ShadowLooper.idleMainLooper();
         SwitchPreference parent = (SwitchPreference) visible(Settings.START_ON_FOLLOWING.key);
         SwitchPreference child = (SwitchPreference) visible(Settings.ONLY_FOLLOWING.key);
-        page.searchSettings("analytics");
+        page.searchSettings("spoof");
         Settings.START_ON_FOLLOWING.save(false);
         ShadowLooper.idleMainLooper();
         assertSame(parent, page.findPreference(new StringBuilder(Settings.START_ON_FOLLOWING.key)));
@@ -377,7 +377,7 @@ public class SettingsSearchTest {
     }
 
     @Test public void noMatchIsLocalizedWhilePauseAndRecoveryStayReachable() throws Exception {
-        open(PatchFamily.DISABLE_ANALYTICS);
+        open(PatchFamily.SPOOF_LOCATION);
         page.searchSettings("zzzz-no-match");
         assertNotNull(visible(BaseSettings.PAUSED.key));
         assertNotNull(visible(BaseSettings.DEBUG.key));
@@ -392,12 +392,12 @@ public class SettingsSearchTest {
         assertNotNull(visible("hushgram_settings_search_empty"));
         page.searchSettings(" \t ");
         assertNull(visible("hushgram_settings_search_empty"));
-        assertNotNull(visible(Settings.DISABLE_ANALYTICS.key));
+        assertNotNull(visible(Settings.SPOOF_LOCATION.key));
     }
 
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
     public void typingAndClearUseTheInlineAccessibleControls() throws Exception {
-        open(PatchFamily.DISABLE_ANALYTICS, PatchFamily.FOLLOWING_FEED);
+        open(PatchFamily.SPOOF_LOCATION, PatchFamily.FOLLOWING_FEED);
         controller.visible();
         View root = page.getView();
         float density = root.getResources().getDisplayMetrics().density;
@@ -409,8 +409,8 @@ public class SettingsSearchTest {
         View row = (View) input.getParent();
         assertTrue("typing must use the current, attached native row", row.isAttachedToWindow());
         assertEquals(L10n.t("Search settings"), input.getContentDescription());
-        input.setText("contacts");
-        assertNotNull(visible(Settings.DISABLE_ANALYTICS.key));
+        input.setText("spoof");
+        assertNotNull(visible(Settings.SPOOF_LOCATION.key));
         assertNull(visible(Settings.START_ON_FOLLOWING.key));
         Button clear = (Button) ((android.view.ViewGroup) row).getChildAt(1);
         assertEquals(L10n.t("Clear search"), clear.getContentDescription());
@@ -424,8 +424,8 @@ public class SettingsSearchTest {
     }
 
     @Test public void frameworkStateDoesNotRetainTheSearchQuery() throws Exception {
-        open(PatchFamily.DISABLE_ANALYTICS, PatchFamily.FOLLOWING_FEED);
-        page.searchSettings("location setup");
+        open(PatchFamily.SPOOF_LOCATION, PatchFamily.FOLLOWING_FEED);
+        page.searchSettings("spoof");
         android.os.Bundle state = new android.os.Bundle();
         page.onSaveInstanceState(state);
         assertFalse(state.containsKey("hushgram_settings_query"));
@@ -434,7 +434,7 @@ public class SettingsSearchTest {
         page = new HushgramPreferenceFragment();
         page.setInitialSavedState(saved);
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
-        assertNotNull(visible(Settings.DISABLE_ANALYTICS.key));
+        assertNotNull(visible(Settings.SPOOF_LOCATION.key));
         assertNotNull(visible(Settings.START_ON_FOLLOWING.key));
         EditText input = render(visible("hushgram_settings_search")).findViewWithTag("hushgram-settings-search");
         assertEquals("", input.getText().toString());
@@ -446,7 +446,7 @@ public class SettingsSearchTest {
     public void theLiveInlineControlsFitAndMirrorAtTwiceTheTextSize() throws Exception {
         RuntimeEnvironment.getApplication().getApplicationInfo().flags |= ApplicationInfo.FLAG_SUPPORTS_RTL;
         RuntimeEnvironment.setFontScale(2f);
-        open(PatchFamily.DISABLE_ANALYTICS, PatchFamily.FOLLOWING_FEED);
+        open(PatchFamily.SPOOF_LOCATION, PatchFamily.FOLLOWING_FEED);
         View root = page.getView();
         root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         float density = root.getResources().getDisplayMetrics().density;
@@ -464,7 +464,7 @@ public class SettingsSearchTest {
                 View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
         root.layout(0, 0, width, height);
         assertTrue("typing focus was lost before filtering: " + root.findFocus(), input.hasFocus());
-        input.setText("contacts");
+        input.setText("spoof");
         ShadowLooper.idleMainLooper();
         root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
@@ -477,7 +477,7 @@ public class SettingsSearchTest {
         assertTrue(clear.getWidth() >= Math.round(48 * density));
         assertTrue(clear.getHeight() >= Math.round(48 * density));
         assertTrue(clear.getLeft() < input.getLeft());
-        assertNotNull(visible(Settings.DISABLE_ANALYTICS.key));
+        assertNotNull(visible(Settings.SPOOF_LOCATION.key));
         assertNull(visible(Settings.START_ON_FOLLOWING.key));
         capture(root, "filtered");
         assertTrue(clear.performClick());

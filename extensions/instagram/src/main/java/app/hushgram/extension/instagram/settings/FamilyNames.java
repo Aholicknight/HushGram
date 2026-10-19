@@ -19,7 +19,6 @@ public final class FamilyNames {
     public static final String HIDE_ADS = "Hide ads";
     public static final String SANITIZE_SHARING_LINKS = "Sanitize sharing links";
     public static final String EXTERNAL_BROWSER = "Open links in external browser";
-    public static final String DISABLE_ANALYTICS = "Disable analytics";
     public static final String BUILD_EXPIRED_POPUP = "Remove build expired popup";
     public static final String RESTORE_TRUST = "Restore trust on re-signed builds";
     public static final String REMOVE_AD_ID = "Remove the advertising ID";

@@ -664,9 +664,8 @@ if (-not $SkipDescriptionTestCount) {
     $patchTestSourceRoot = Join-Path $rootPath 'patches/src/test'
     if (Test-Path -LiteralPath $patchTestSourceRoot) {
         # Gradle writes one result per test class, and a Kotlin file can declare more than one:
-        # AlternateSetupScreensTest.kt carries AlternateSetupScreensRefusalTest, whose result read
-        # as left over from a deleted class. Top-level declarations only, since a nested class is
-        # part of the class around it.
+        # a second class in FooTest.kt once read as left over from a deleted class. Top-level
+        # declarations only, since a nested class is part of the class around it.
         $patchClasses = @(Get-ChildItem -LiteralPath $patchTestSourceRoot -Recurse -File -Filter '*Test.kt' |
             ForEach-Object {
                 $_.BaseName

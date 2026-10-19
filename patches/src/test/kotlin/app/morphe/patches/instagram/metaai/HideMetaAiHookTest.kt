@@ -14,7 +14,7 @@ import app.morphe.patches.instagram.feed.FeedItemStandIns
 import app.morphe.patches.instagram.feed.FeedItemStandIns.assertFilteredBeforeReturn
 import app.morphe.patches.instagram.feed.FeedItemStandIns.instructions
 import app.morphe.patches.instagram.feed.filterParsedFeedItems
-import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags

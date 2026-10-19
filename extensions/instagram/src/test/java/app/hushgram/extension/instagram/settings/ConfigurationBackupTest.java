@@ -308,13 +308,13 @@ public class ConfigurationBackupTest {
     }
 
     @Test public void undoIsOneUseAndRestartRequirementsDescribeActualChanges() throws Exception {
-        ConfigurationBackup.Result applied = ConfigurationBackup.restore(file(entry(Settings.DISABLE_ANALYTICS.key, "boolean", false)));
+        ConfigurationBackup.Result applied = ConfigurationBackup.restore(file(entry(Settings.HIDE_META_AI_SEARCH.key, "boolean", false)));
         assertTrue(applied.restart);
-        assertFalse(Settings.DISABLE_ANALYTICS.savedValue());
+        assertFalse(Settings.HIDE_META_AI_SEARCH.savedValue());
         assertTrue(ConfigurationBackup.undo().restart);
-        assertTrue(Settings.DISABLE_ANALYTICS.savedValue());
+        assertTrue(Settings.HIDE_META_AI_SEARCH.savedValue());
         assertNull(ConfigurationBackup.undo());
-        assertFalse(ConfigurationBackup.restore(file(entry(Settings.DISABLE_ANALYTICS.key, "boolean", true))).restart);
+        assertFalse(ConfigurationBackup.restore(file(entry(Settings.HIDE_META_AI_SEARCH.key, "boolean", true))).restart);
         assertFalse(ConfigurationBackup.canUndo());
     }
 

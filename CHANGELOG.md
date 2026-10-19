@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Removed
+
+* **Instagram - Disable analytics:** Removed. It sent Instagram's usage and crash reports to a dead address, which is something Instagram can notice, and no switch is worth an account. The contacts and location setup screens it skipped show again. A settings file that still has this switch imports fine and the switch is ignored.
+
 ## 0.0.13 (2026-10-18)
 
 ### Features

@@ -20,7 +20,7 @@
 
 function Get-ApkTargetCoverage {
     param([string]$Apk, [string]$Java, [string]$DesktopJar, [string[]]$Names)
-    if (@($Names | Where-Object { $_ -cin @('Disable analytics', 'Sanitize sharing links', 'Start on x86 devices') }).Count -eq 0) {
+    if (@($Names | Where-Object { $_ -cin @('Sanitize sharing links', 'Start on x86 devices') }).Count -eq 0) {
         return @()
     }
     $preference = $ErrorActionPreference
@@ -32,7 +32,7 @@ function Get-ApkTargetCoverage {
     } finally { $ErrorActionPreference = $preference }
     if ($code -ne 0) { throw "Could not read target coverage from the patched APK: $($lines -join ' ')" }
     foreach ($line in $lines) {
-        $match = [regex]::Match([string]$line, '^(disableAnalytics|sanitizeSharingLinks|translatedStart)=(.+)$')
+        $match = [regex]::Match([string]$line, '^(sanitizeSharingLinks|translatedStart)=(.+)$')
         if (-not $match.Success) { throw 'Unexpected output from the target coverage reader.' }
         $parts = $match.Groups[2].Value.Split('|')
         if ($parts.Count -ne 5 -or $parts[0] -cne '1' -or
@@ -48,8 +48,7 @@ function Test-TargetCoverage {
     param([object[]]$Coverage, [string[]]$Names, [string]$Package, [string]$VersionName, [string]$VersionCode,
         [object]$Policy)
     function Bad([string]$Reason) { return [pscustomobject]@{ Valid = $false; Reviewed = $false; Reason = $Reason } }
-    $families = [ordered]@{ disableAnalytics = 'Disable analytics'; sanitizeSharingLinks = 'Sanitize sharing links'
-        translatedStart = 'Start on x86 devices' }
+    $families = [ordered]@{ sanitizeSharingLinks = 'Sanitize sharing links'; translatedStart = 'Start on x86 devices' }
     $wanted = @($families.Keys | Where-Object { $families[$_] -cin $Names })
     $entries = @($Coverage)
     if ($entries.Count -ne $wanted.Count) { return Bad 'The APK/receipt does not record every selected coverage family exactly once.' }
