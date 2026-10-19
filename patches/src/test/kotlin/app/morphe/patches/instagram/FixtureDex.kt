@@ -73,6 +73,15 @@ internal object FixtureDex {
         return found
     }
 
+    /** The classes whose direct superclass is one of [supers] in the bundle. */
+    fun subclasses(bundle: File, supers: Set<String>): List<ClassDef> {
+        val found = mutableListOf<ClassDef>()
+        forEachDex(bundle) { dex ->
+            for (classDef in dex.classes) if (classDef.superclass in supers) found += ImmutableClassDef.of(classDef)
+        }
+        return found
+    }
+
     /**
      * [classes] plus the string pools they call. From 450 Redex moves many strings into static
      * (int)String switch methods, and a patch reading a pooled string needs the pool's class to

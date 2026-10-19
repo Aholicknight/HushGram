@@ -156,10 +156,12 @@ class FontHookTest {
         val renderers = FixtureDex.classesHolding(bundle, EMOJI_MARKER)
         assertEquals("$label: classes holding the emoji marker", 1, renderers.size)
         val renderer = renderers.single()
-        val lookupName = renderer.methods.single {
+        val subclasses = FixtureDex.subclasses(bundle, setOf(renderer.type))
+        val family = listOf(renderer) + subclasses
+        val lookupName = family.flatMap { it.methods }.single {
             !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == TYPEFACE && it.parameterTypes.map(Any::toString) == listOf(STRING)
         }.name
-        val lookups = (listOf(renderer.type) + renderer.interfaces).map { "$it->$lookupName($STRING)$TYPEFACE" }.toSet()
+        val lookups = family.flatMap { listOf(it.type) + it.interfaces }.map { "$it->$lookupName($STRING)$TYPEFACE" }.toSet()
         val callerTypes = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.toString() in lookups } }) { method ->
             method.code().any { it.methodCalled() in lookups }
         }.map { it.definingClass }.toSet()
@@ -169,7 +171,7 @@ class FontHookTest {
         val emoji = FixtureDex.classes(bundle, setOf(IG_EMOJI)).values
         assertEquals("$label: Instagram's Emoji", 1, emoji.size)
         val sheets = FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, EMOJI_SHEET_MARKER))
-        val context = PatchContexts.of((holders + views + compats + renderers + callers + emoji + sheets).distinctBy { it.type } + extension())
+        val context = PatchContexts.of((holders + views + compats + renderers + subclasses + callers + emoji + sheets).distinctBy { it.type } + extension())
 
         val found = context.findFontSites()
         assertEquals("$label: writes", 6, found.writes.size)

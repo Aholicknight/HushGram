@@ -26,6 +26,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -149,10 +150,11 @@ internal class FontSites(
  * ResourcesCompat is the one class holding [FONT_RESOURCE_MARKER], and getFont(Context, int) its one
  * static (Context, int) Typeface method. It needs a register of its own for the extension's answer.
  *
- * Instagram's emoji renderer is the one class holding [EMOJI_MARKER], and its emoji lookup the one
- * instance (String) Typeface method there. Instagram calls the lookup through the interface the
- * renderer shares with the class that answers nothing, so the calls found are those to the lookup
- * by the renderer's own name or any of its interfaces, each with its answer moved into a register
+ * Instagram's emoji renderer is the one class holding [EMOJI_MARKER] (an abstract base on 452, with the
+ * lookup in its one subclass), and its emoji lookup the one instance (String) Typeface method in that
+ * class or its subclasses. Instagram calls the lookup through the interface the renderer shares with
+ * the class that answers nothing, so the calls found are those to the lookup by the name of any
+ * class of that family or any of their interfaces, each with its answer moved into a register
  * by the next instruction. There has to be at least one.
  *
  * A single emoji picture's name comes from the one static (String, String) method of [IG_EMOJI]
@@ -210,13 +212,14 @@ internal fun BytecodePatchContext.findFontSites(): FontSites {
 
     val renderers = classesHolding(EMOJI_MARKER)
     val renderer = renderers.singleOrNull() ?: refuse("expected one class holding \"$EMOJI_MARKER\", found ${renderers.size}")
-    val lookups = renderer.methods.filter {
+    val family = withSubclasses(renderer)
+    val lookups = family.flatMap { it.methods }.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == TYPEFACE &&
             it.parameterTypes.map(Any::toString) == listOf(STRING)
     }
     val emojiLookup = lookups.singleOrNull()
-        ?: refuse("expected one (String) Typeface in ${renderer.type}, found ${lookups.size}")
-    val emojiCalls = (listOf(renderer.type) + renderer.interfaces.map(Any::toString)).flatMap { contract ->
+        ?: refuse("expected one (String) Typeface in ${renderer.type} or its subclasses, found ${lookups.size}")
+    val emojiCalls = family.flatMap { listOf(it.type) + it.interfaces.map(Any::toString) }.distinct().flatMap { contract ->
         val lookup = "$contract->${emojiLookup.name}($STRING)$TYPEFACE"
         classesCalling(contract, emojiLookup.name).flatMap { caller ->
             caller.methods.flatMap { method ->
@@ -327,6 +330,22 @@ internal fun BytecodePatchContext.swapFonts() {
                 move-result-object v${naming.register}
             """,
         )
+    }
+}
+
+/**
+ * [root] and every class below it. Instagram 452 split the emoji renderer in two: the class
+ * holding [EMOJI_MARKER] became an abstract base, and the emoji lookup moved to its one subclass.
+ */
+private fun BytecodePatchContext.withSubclasses(root: ClassDef): List<ClassDef> {
+    val all = mutableListOf<ClassDef>()
+    classDefForEach { all += it }
+    val family = mutableListOf(root)
+    while (true) {
+        val seen = family.mapTo(HashSet()) { it.type }
+        val more = all.filter { it.superclass in seen && it.type !in seen }
+        if (more.isEmpty()) return family
+        family += more
     }
 }
 
