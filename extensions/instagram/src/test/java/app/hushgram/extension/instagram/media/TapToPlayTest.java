@@ -972,6 +972,39 @@ public class TapToPlayTest {
         assertFalse(report, report.contains("Tap to play: Instagram's autoplay check"));
     }
 
+    /**
+     * #229: page 1 of a carousel is tapped and plays, the person swipes to page 2 and taps it. Our
+     * gate only answers yes or no to a start Instagram makes; it never starts or resumes a player,
+     * so page 1 can only run on if Instagram leaves it running or starts it itself. The gate must
+     * not let page 1 back in on page 2's tap once Instagram has paused it, and must keep page 2's
+     * start armed.
+     */
+    @Test
+    public void aLaterCarouselPagesTapDoesNotStartThePageBefore() {
+        long now = 700_000;
+        Object page1 = new Object();
+        Object page2 = new Object();
+        tapAt(now - 20_000);
+        assertTrue("page 1's tap starts it", TapToPlay.decide(page1, "autoplay", now - 19_900, ""));
+        assertTrue(TapToPlay.armed(page1));
+
+        // The swipe: a drag, then page 2 binds and its autoplay start is held with no tap.
+        TapClock.record(MotionEvent.ACTION_DOWN, 900, 500, now - 10_000, 8);
+        TapClock.record(MotionEvent.ACTION_MOVE, 300, 500, now - 9_950, 8);
+        TapClock.record(MotionEvent.ACTION_UP, 100, 500, now - 9_900, 8);
+        assertFalse("page 2 waits for its tap", TapToPlay.decide(page2, "autoplay", now - 9_800, ""));
+        // Instagram pauses page 1 when the page changes.
+        TapToPlay.paused(page1, "carousel_page_changed");
+        assertFalse("page 1 is no longer armed once Instagram paused it", TapToPlay.armed(page1));
+
+        tapAt(now);
+        assertTrue("page 2's tap starts page 2", TapToPlay.decide(page2, "autoplay", now + 50, ""));
+        assertTrue(TapToPlay.armed(page2));
+        assertFalse("page 1 stays stopped: nothing of ours started it", TapToPlay.armed(page1));
+        assertFalse("a held start of page 1 from before the swipe isn't released by page 2's tap later on",
+                TapToPlay.decide(page1, "autoplay", now + TapToPlay.TAP_WINDOW_MS + 500, ""));
+    }
+
     private static int occurrences(String text, String part) {
         int count = 0;
         for (int at = text.indexOf(part); at >= 0; at = text.indexOf(part, at + part.length())) count++;
