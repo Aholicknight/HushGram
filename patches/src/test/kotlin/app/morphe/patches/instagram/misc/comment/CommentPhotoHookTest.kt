@@ -176,7 +176,7 @@ class CommentPhotoHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("the eight 451 builds", 8, bundles.size)
+        assertEquals("the three 452 builds", 3, bundles.size)
         val checked = mutableListOf<String>()
         for (bundle in bundles) {
             val label = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
@@ -194,7 +194,7 @@ class CommentPhotoHookTest {
             }
             checked += label
         }
-        assertEquals(8, checked.distinct().size)
+        assertEquals(3, checked.distinct().size)
     }
 
     /**
