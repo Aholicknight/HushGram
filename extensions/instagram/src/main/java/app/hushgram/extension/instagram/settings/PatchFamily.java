@@ -427,7 +427,10 @@ public enum PatchFamily {
         StringBuilder line = new StringBuilder(patchName).append(": ");
         if (switches.isEmpty() && staysWhilePaused == null) {
             // A choice, not a switch: paused, it answers Instagram's own.
-            return line.append(paused ? "disabled while paused" : "a choice, not a switch").toString();
+            line.append(paused ? "disabled while paused" : "a choice, not a switch");
+            String chosen = choiceText();
+            if (!chosen.isEmpty()) line.append(" (").append(chosen).append(')');
+            return line.toString();
         }
         if (switches.isEmpty()) {
             return line.append("no switch, stays in while paused: ").append(staysWhilePaused).toString();
@@ -452,6 +455,8 @@ public enum PatchFamily {
             BooleanSetting setting = switches.get(i);
             line.append(setting.key).append(setting.savedValue() ? "=on" : "=off");
         }
+        String chosen = choiceText();
+        if (!chosen.isEmpty()) line.append(", ").append(chosen);
         line.append(')');
         if (staysWhilePaused != null) line.append("; stays in while paused: ").append(staysWhilePaused);
         return line.toString();
@@ -471,6 +476,32 @@ public enum PatchFamily {
             if (on && reachable(parent)) return true;
         }
         return false;
+    }
+
+    /**
+     * The choices a report prints beside the switches, so it shows what a switch that's on picked
+     * (#85 needed the playback quality and the report left it out).
+     */
+    List<Setting<?>> choices() {
+        switch (this) {
+            case FONT:
+                return Collections.singletonList(Settings.FONT);
+            case PLAYBACK_QUALITY:
+                return Collections.singletonList(Settings.PLAYBACK_QUALITY);
+            case REEL_TAP_AND_VOLUME:
+                return Collections.singletonList(Settings.REEL_TAP_CHOICE);
+            default:
+                return Collections.emptyList();
+        }
+    }
+
+    private String choiceText() {
+        StringBuilder text = new StringBuilder();
+        for (Setting<?> choice : choices()) {
+            if (text.length() > 0) text.append(", ");
+            text.append(choice.key).append('=').append(choice.savedValue());
+        }
+        return text.toString();
     }
 
     /**
