@@ -328,7 +328,7 @@ class ClearModeHookTest {
         assertEquals("$name: the cast is on the reel's register", reel, (newEnabled[asked + 2] as OneRegisterInstruction).registerA)
         assertEquals("$name: Instagram's own test follows", Opcode.IF_EQZ, newEnabled[asked + 3].opcode)
         assertEquals("$name: the test is of the answer", reel, (newEnabled[asked + 3] as OneRegisterInstruction).registerA)
-        val withoutReel = newEnabled.drop(newEnabled.target(asked + 3)).takeWhile { it.opcode != Opcode.RETURN_OBJECT }
+        val withoutReel = newEnabled.drop(newEnabled.target(asked + 3)).takeWhile { it.opcode !in setOf(Opcode.RETURN_VOID, Opcode.RETURN, Opcode.RETURN_OBJECT, Opcode.RETURN_WIDE) }
         assertTrue("$name: no reel does more than return", withoutReel.none { it.methodRef() != null || it is OffsetInstruction })
 
         val newPaged = after(paged)
