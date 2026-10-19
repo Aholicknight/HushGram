@@ -15,6 +15,9 @@ import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.profilePictureBridges
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -60,6 +63,12 @@ internal const val POPUP_ITEM_ARGUMENTS = 24
 /** The parameters of the stub [ADD_ROW_STUB], and of the sheet's adder of a plain row after them. */
 internal val ADD_ROW_PARAMETERS = listOf(OBJECT, CONTEXT, CLICK, STRING)
 internal val ROW_ADDER_PARAMETERS = listOf(CONTEXT, CLICK, STRING, "I", "Z")
+
+/**
+ * 452 folds the plain row adder into its callers, which call the sheet's general row adder with the
+ * defaults the plain one gave it: no second listener, no subtitle, full opacity, no flags but one.
+ */
+internal val WIDE_ROW_ADDER_PARAMETERS = listOf(CONTEXT, CLICK, CLICK, STRING, STRING, "F", "I", "I", "Z", "Z", "Z", "Z", "Z")
 
 /**
  * The names of the two helpers that build the menu on someone's profile, one a bottom sheet and the
@@ -149,9 +158,9 @@ internal class ProfileMenus(
  * one adder of a plain row (context, click listener, label, int, boolean), which the method calls.
  */
 internal fun BytecodePatchContext.findProfileMenus(): ProfileMenus {
-    val hosts = classesHolding(*PROFILE_MENUS.toTypedArray())
+    val hosts = classesLoadingString(PROFILE_MENUS[0]).filter { host -> PROFILE_MENUS.all { name -> host in classesLoadingString(name) } }
     val candidates = hosts.flatMap { host ->
-        host.methods.filter { method -> PROFILE_MENUS.all { it in method.strings() } }.map { host.type to it }
+        host.methods.filter { method -> !(method.returnType == STRING && method.parameters() == listOf("I")) && PROFILE_MENUS.all { loadsString(method, it) } }.map { host.type to it }
     }
     val (hostType, found) = candidates.singleOrNull()
         ?: refuse("expected one method loading ${PROFILE_MENUS.joinToString(" and ")}, found ${candidates.size}")
@@ -162,7 +171,10 @@ internal fun BytecodePatchContext.findProfileMenus(): ProfileMenus {
     var sheetType: String? = null
     var showType: String? = null
     val sites = PROFILE_MENUS.map { name ->
-        val loads = code.indices.filter { (code[it].reference() as? StringReference)?.string == name }
+        val loads = code.indices.filter { at ->
+            if (code[at].opcode == Opcode.CONST_STRING || code[at].opcode == Opcode.CONST_STRING_JUMBO) (code[at].reference() as? StringReference)?.string == name
+            else stringLoadedAt(code, at) == name && code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT
+        }.map { if (code[it].opcode == Opcode.INVOKE_STATIC) it + 1 else it }
         val load = loads.singleOrNull() ?: refuse("expected one load of \"$name\", found ${loads.size}")
         val made = code.getOrNull(load + 1)
         val built = code.getOrNull(load + 2)
@@ -216,12 +228,14 @@ internal fun BytecodePatchContext.findProfileMenus(): ProfileMenus {
     }
 
     val sheetClass = classDefByOrNull(sheetType!!) ?: refuse("the sheet $sheetType isn't in the app")
-    val adders = sheetClass.methods.filter {
-        it.parameters() == ROW_ADDER_PARAMETERS && it.returnType == "V" && AccessFlags.PUBLIC.isSet(it.accessFlags) &&
+    fun adders(parameters: List<String>) = sheetClass.methods.filter {
+        it.parameters() == parameters && it.returnType == "V" && AccessFlags.PUBLIC.isSet(it.accessFlags) &&
             !AccessFlags.STATIC.isSet(it.accessFlags)
     }
+    val adders = adders(ROW_ADDER_PARAMETERS).ifEmpty { adders(WIDE_ROW_ADDER_PARAMETERS) }
     val adder = adders.singleOrNull() ?: refuse("expected one adder of a plain row on $sheetType, found ${adders.size}")
-    if (code.none { it.call()?.let { call -> call.definingClass == sheetType && call.name == adder.name && call.parameters() == ROW_ADDER_PARAMETERS } == true }) {
+    val adderParameters = adder.parameters()
+    if (code.none { it.call()?.let { call -> call.definingClass == sheetType && call.name == adder.name && call.parameters() == adderParameters } == true }) {
         refuse("the menu doesn't add its rows with ${adder.name}")
     }
     stub()
@@ -370,10 +384,33 @@ internal fun ProfilePopupSite.layout(): String =
 
 /** Only called once [findProfileMenus] found everything. */
 internal fun BytecodePatchContext.applyProfileMenus(menus: ProfileMenus) {
-    val adder = "${menus.sheetType}->${menus.adder.name}(${ROW_ADDER_PARAMETERS.joinToString("")})V"
+    val parameters = menus.adder.parameterTypes.joinToString("")
+    val adder = "${menus.sheetType}->${menus.adder.name}($parameters)V"
+    val wide = menus.adder.parameterTypes.size == WIDE_ROW_ADDER_PARAMETERS.size
     // Six locals for the adder's arguments in a row, then the stub's four parameters. No icon (-1), and
     // false for the plain text color: true draws the row in the red Instagram gives Report.
-    replace(stub(), 10, """
+    // The general adder takes the plain adder's defaults after the label: no second listener or subtitle, full
+    // opacity, the icon -1, and the flags the plain one passed (only the fourth set).
+    val call = if (wide) """
+        check-cast p0, ${menus.sheetType}
+        move-object v0, p0
+        move-object v1, p1
+        move-object v2, p2
+        const/4 v3, 0x0
+        move-object v4, p3
+        const/4 v5, 0x0
+        const/high16 v6, 0x3f800000
+        const/4 v7, -0x1
+        const/4 v8, 0x0
+        const/4 v9, 0x0
+        const/4 v10, 0x0
+        const/4 v11, 0x0
+        const/4 v12, 0x1
+        const/4 v13, 0x0
+        invoke-virtual/range { v0 .. v13 }, $adder
+        const/4 v0, 0x1
+        return v0
+    """ else """
         check-cast p0, ${menus.sheetType}
         move-object v0, p0
         move-object v1, p1
@@ -384,7 +421,8 @@ internal fun BytecodePatchContext.applyProfileMenus(menus: ProfileMenus) {
         invoke-virtual/range { v0 .. v5 }, $adder
         const/4 v0, 0x1
         return v0
-    """)
+    """
+    replace(stub(), if (wide) 18 else 10, call)
     // No parameters, so v0 is the stub's own.
     replace(fieldsStub(), 1, """
         const-string v0, "${menus.popup.layout()}"
