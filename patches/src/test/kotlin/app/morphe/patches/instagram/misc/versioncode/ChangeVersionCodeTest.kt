@@ -191,11 +191,12 @@ class ChangeVersionCodeTest {
     }
 
     /**
-     * 385713117 (x86) is the one 451 build with minSdk 26, where every other has 28, so its crash
-     * reporter keeps getLongVersionCode's fallback for Android 8: below API 28 it reads versionCode
-     * from the same PackageInfo instead. That's Instagram's own code too, one more own read.
+     * The two armeabi-v7a builds (385810231 and 385810269) have minSdk 26 where the arm64 build has 28,
+     * so their crash reporter keeps getLongVersionCode's fallback for Android 8: below API 28 it reads
+     * versionCode from the same PackageInfo instead. That's Instagram's own code too, one more own read.
+     * The declared arm64 build is the .apks bundle.
      */
-    private val PRE_28_FALLBACK_BUILD = "instagram-452.0.0.48.64-385810231"
+    private fun hasPre28Fallback(label: String) = !label.endsWith(".apks")
 
     private fun builds(bundle: File, label: String) {
         val code = realVersionCode(label.removeSuffix(".apks").substringAfterLast('-'))
@@ -235,8 +236,8 @@ class ChangeVersionCodeTest {
         })
         assertEquals("the job scheduler check's two reads", 2,
             prepared.reads.count { read -> read.method.implementation!!.instructions.any { it.string()?.startsWith(SCHEDULER_CHECK) == true } })
-        val fallback = label == PRE_28_FALLBACK_BUILD
-        assertEquals("own reads", if (fallback) 15 else 14, prepared.reads.size)
+        val fallback = hasPre28Fallback(label)
+        assertEquals("own reads", if (fallback) 16 else 15, prepared.reads.size)
         assertEquals("own long reads", 1, prepared.reads.count { it.long })
         val longRead = prepared.reads.single { it.long }
         val beside = prepared.reads.filter { !it.long && it.method == longRead.method }
