@@ -107,6 +107,14 @@ public final class TapToPlay {
             "seek", "seek_force_pause", "Seek start", "paused_for_pinch_to_zoom", "paused_for_replay")));
 
     /**
+     * The pause reason the music picker's clip slider, in Notes and stories, gives a moment into a
+     * drag ({@link TapClock#dragging}). It plays the song again from the new spot right after the
+     * finger comes up, so that pause is momentary too (#263). The same reason with no drag under way,
+     * from the picker's pause button, still ends the start.
+     */
+    static final String DRAG_PAUSE = "user_paused_video";
+
+    /**
      * The IgVideoPlayerImpl states a tap on a reel starts from: prepared and never started, which is
      * where the gate leaves a held reel, and paused, which is where a pause for the comments sheet
      * leaves it. ClipsVideoPlayer's resume restarts a player only from these two, so a tap on a reel
@@ -173,13 +181,16 @@ public final class TapToPlay {
 
     /**
      * The hook, first thing in IgGrootPlayer's pause. A paused player waits for a tap again, unless
-     * the pause is one of the {@link #MOMENTARY} ones Instagram plays on from by itself.
+     * the pause is one of the {@link #MOMENTARY} ones Instagram plays on from by itself, or the
+     * slider's {@link #DRAG_PAUSE} in the middle of a drag.
      */
     public static void paused(@Nullable Object player, @Nullable String reason) {
         try {
             HookStatus.invoked(FamilyNames.TAP_TO_PLAY);
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "player pause");
-            if ((reason == null || !MOMENTARY.contains(reason)) && ARMED.remove(player)) {
+            boolean momentary = reason != null
+                    && (MOMENTARY.contains(reason) || DRAG_PAUSE.equals(reason) && TapClock.dragging());
+            if (!momentary && ARMED.remove(player)) {
                 PlayButtons.ended(player);
                 logEnded(() -> "a pause for " + (reason == null ? "no reason" : reason));
             }

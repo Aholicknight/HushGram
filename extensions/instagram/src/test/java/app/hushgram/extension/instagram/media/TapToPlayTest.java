@@ -225,6 +225,36 @@ public class TapToPlayTest {
         assertTrue("the play at the drag's end", TapToPlay.allowStart(player, "autoplay", 0));
     }
 
+    /**
+     * The music picker's clip slider, in Notes and stories, pauses the song with
+     * "user_paused_video" a moment into a drag and plays it again right after the finger comes up,
+     * with no tap, since a drag isn't one (#263). The song plays on. The same pause from the
+     * picker's pause button, with no drag under way, still ends the start.
+     */
+    @Test
+    public void aDragOfTheMusicSliderKeepsTheSongPlaying() {
+        Object song = new Object();
+        Object pressed = new Object();
+        TapToPlayForTests.tapEnded(10);
+        assertTrue(TapToPlay.allowDirectStart(song, "start"));
+        assertTrue(TapToPlay.allowDirectStart(pressed, "start"));
+        TapClock.forget();
+
+        long drag = SystemClock.uptimeMillis();
+        TapClock.record(MotionEvent.ACTION_DOWN, 760, 2195, drag, 8);
+        TapToPlay.paused(pressed, TapToPlay.DRAG_PAUSE);
+        assertFalse("a finger that hasn't moved yet isn't a drag", TapToPlay.armed(pressed));
+        TapClock.record(MotionEvent.ACTION_MOVE, 735, 2195, drag + 200, 8);
+        TapToPlay.paused(song, TapToPlay.DRAG_PAUSE);
+        assertTrue("the slider's pause mid-drag", TapToPlay.armed(song));
+        TapClock.record(MotionEvent.ACTION_UP, 380, 2195, drag + 3_000, 8);
+        assertTrue("the play right after the release", TapToPlay.allowDirectStart(song, "start"));
+
+        TapToPlay.paused(song, TapToPlay.DRAG_PAUSE);
+        assertFalse("the pause button's pause", TapToPlay.armed(song));
+        assertFalse(TapToPlay.allowDirectStart(song, "start"));
+    }
+
     /** Debug logging says what ended a start, and a pause Instagram plays on from ends none. */
     @Test
     public void debugLoggingSaysWhatEndedAStart() {

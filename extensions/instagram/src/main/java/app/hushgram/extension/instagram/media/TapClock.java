@@ -118,6 +118,11 @@ public final class TapClock {
         return now - at;
     }
 
+    /** Whether a finger is down right now and has moved further than the touch slop: a drag. */
+    static synchronized boolean dragging() {
+        return tracking && moved;
+    }
+
     /** How long the finger stayed down for the last tap, or -1 when there's none. */
     static long heldMs() {
         return lastTapUp == NO_TAP ? -1 : lastTapHeld;
