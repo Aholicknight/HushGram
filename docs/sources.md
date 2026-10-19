@@ -629,7 +629,7 @@ Other implemented controls include ring size, exact time/time-left labels, menti
 
 #111's Music/Popular For you card is a newly reported annoyance. The reporter calls it an ad, but no paid-delivery evidence is supplied. Classify it initially as a recommendation/promotional tray surface. None of the current explicit tray-kind names above proves it is covered. Inspect the actual item's type, nested metadata and click route before adding a specific switch. Do not drop every USER_REEL to make this one card disappear.
 
-#110 asks for the newer story style via a named flag. A maintainable version should bind one verified flag to a named option, explain the visible change and remember how to restore the previous override. Importing a large third-party preset is unnecessary for one layout choice. Runtime layout varies by account rollout, so first record which old/new style the target account receives.
+#110 asks for the newer story style via a named flag. HushGram stopped writing Instagram's flag overrides when Open developer options was removed for ban risk, so a version of this has to change the story layout through its own code path rather than a flag. Importing a large third-party preset is unnecessary for one layout choice. Runtime layout varies by account rollout, so first record which old/new style the target account receives.
 
 Other opportunities are audio-start preferences, editor restyle/rewrite controls and improving upload quality only where the client owns transcoding. For #37, distinguish source file, client-generated upload file and server-delivered rendition. Server transcoding means "original quality" cannot be promised from a client flag alone. Uploading and live identity checks require authorized test content/accounts. Expired-story retention is held and is not an opportunity recommendation.
 
@@ -734,7 +734,7 @@ This October 9 intake snapshot covers all 74 open issue threads through #113. Bo
 | [113](https://github.com/SysAdminDoc/HushGram/issues/113) | Improvement / independent local preference | Keep a gray local watched ring while still holding the remote view. The report explicitly accepts a separate switch preserving the present default. Combine with A16 and #92, without treating local ring color as privacy proof. |
 | [112](https://github.com/SysAdminDoc/HushGram/issues/112) | New option | Hide Accounts to follow in the DM inbox. Hide suggested accounts in DMs is in for the next release. It needs a phone check on an account that gets the section. |
 | [111](https://github.com/SysAdminDoc/HushGram/issues/111) | New option | Music/Popular For you stories. Identify its native tray kind. Calling it an ad is the reporter's interpretation, not proof of paid delivery. |
-| [110](https://github.com/SysAdminDoc/HushGram/issues/110) | New option | Named choice for the new story layout. Verify the current flag and provide a narrow reversible override rather than a broad preset. |
+| [110](https://github.com/SysAdminDoc/HushGram/issues/110) | New option | Named choice for the new story layout. HushGram no longer writes flag overrides, so it needs its own code path rather than a flag or a broad preset. |
 | [109](https://github.com/SysAdminDoc/HushGram/issues/109) | Improvement | Link cleaner misses a rotating tracking-key name. Current source has follow-up work. Verify copied and shared links across surfaces, including legitimate functional query arguments. |
 | [108](https://github.com/SysAdminDoc/HushGram/issues/108) | Improvement | Comments background is outside the current pure-black coverage. Identify that surface's color/token and preserve menu contrast. |
 | [106](https://github.com/SysAdminDoc/HushGram/issues/106) | Support/docs | Keep public release notes and the main README concise. Detailed maintainer audit belongs in the repository's reference documentation. |
@@ -748,7 +748,7 @@ This October 9 intake snapshot covers all 74 open issue threads through #113. Bo
 | [96](https://github.com/SysAdminDoc/HushGram/issues/96) | Held | Instagram Plus benefits/paywall behavior remains held. No implementation recommendation. |
 | [93](https://github.com/SysAdminDoc/HushGram/issues/93) | New entry for an existing control | Quality selection exists. Add an optional quick chooser only after resolving collisions with native and HushGram tab long presses. |
 | [92](https://github.com/SysAdminDoc/HushGram/issues/92) | Existing correction plus new preference | Ring preservation is implemented. A separate local watched-ring preference would serve the opposite request without releasing the held receipt. Sender-side acceptance remains distinct. |
-| [91](https://github.com/SysAdminDoc/HushGram/issues/91) | Improvement | Developer flag-name lookup remains incomplete on 450. Map names with versioned provenance; do not promise names for unknown ids. |
+| [91](https://github.com/SysAdminDoc/HushGram/issues/91) | Removed feature | Flag-name lookup went with Open developer options, which was removed for ban risk in October 2026. Nothing left to map. |
 | [90](https://github.com/SysAdminDoc/HushGram/issues/90) | New option | General per-tab hide/alignment. Reels hiding exists. Consolidate with #55/#63/#70 and cover home-tab/selection routes. |
 | [88](https://github.com/SysAdminDoc/HushGram/issues/88) | Improvement | Feed Reels row transiently returns after a DM story and Back. Trace warm-return/rebind/cache paths, not just response parsing. |
 | [87](https://github.com/SysAdminDoc/HushGram/issues/87) | New option | Auto-hide/floating tab bar. Preserve keyboard, Back, inset handling and accessibility before adding cosmetic transitions. |
@@ -763,7 +763,7 @@ This October 9 intake snapshot covers all 74 open issue threads through #113. Bo
 | [72](https://github.com/SysAdminDoc/HushGram/issues/72) | New presentation option | Blurred Reel letterboxing. Keep video aspect ratio and provide a low-cost fallback. |
 | [70](https://github.com/SysAdminDoc/HushGram/issues/70) | Mixed | Tab/header placement is new. Threads hide exists. Reflow after hiding profile recommendations is an existing-layout improvement. |
 | [68](https://github.com/SysAdminDoc/HushGram/issues/68) | Implemented | Change version code is present and remains an explicit patch-time choice. The compatibility tradeoff is already documented. |
-| [67](https://github.com/SysAdminDoc/HushGram/issues/67) | Implemented import plus lookup gap | Native override JSON import works in source and had a recorded phone check. Latest user concern is missing flag-name search, linked to #25/#50/#91. |
+| [67](https://github.com/SysAdminDoc/HushGram/issues/67) | Removed feature | Override import went with Open developer options, which was removed for ban risk in October 2026. Linked to #25/#50/#91. |
 | [65](https://github.com/SysAdminDoc/HushGram/issues/65) | New presentation option | Floating glass tab bar with opacity/blur/height. Combine with navigation design, keep ordinary bar recoverable. |
 | [64](https://github.com/SysAdminDoc/HushGram/issues/64) | Implemented requiring target acceptance | Repost comment-bar hide is under Clean up Reels. Verify the actual repost route and later unVanish/rebind. |
 | [63](https://github.com/SysAdminDoc/HushGram/issues/63) | New options | Long-press photo zoom and tab reorder. Existing pinch gesture must continue working. |
@@ -776,7 +776,7 @@ This October 9 intake snapshot covers all 74 open issue threads through #113. Bo
 | [54](https://github.com/SysAdminDoc/HushGram/issues/54) | New behavior option | Preserve Home position and let Back exit without a refresh. Ask before refresh does not establish control over lifecycle-triggered refresh. |
 | [53](https://github.com/SysAdminDoc/HushGram/issues/53) | Improvement | Explicit photo/video choices for photo stories with music. Same native-media distinction as #98. |
 | [52](https://github.com/SysAdminDoc/HushGram/issues/52) | Improvement | Sparse For you pages after filtering. Bounded prefetch investigation; Following is a current workaround. |
-| [50](https://github.com/SysAdminDoc/HushGram/issues/50) | Improvement/new named options | Named safe flag choices and names import. Existing Threads hide covers one requested result. Unknown numbers must stay unknown. |
+| [50](https://github.com/SysAdminDoc/HushGram/issues/50) | New named options | HushGram no longer writes flag overrides, so each requested result needs its own patch. Existing Threads hide covers one of them. |
 | [49](https://github.com/SysAdminDoc/HushGram/issues/49) | Implemented correction requiring reporter acceptance | Feed Repost state/bind routes were repaired. Verify photo, video, carousel and view recycling with off/Pause. |
 | [48](https://github.com/SysAdminDoc/HushGram/issues/48) | Implemented requiring target acceptance | Reel cover download exists. Distinguish displayed cover from the first video frame and save the largest supplied cover. |
 | [45](https://github.com/SysAdminDoc/HushGram/issues/45) | Implemented requiring sender acceptance | Explicit Mark as read is in the seen-receipt family. Verify per-thread intended release, unread UI and no later queue replay on another account. |
@@ -791,7 +791,7 @@ This October 9 intake snapshot covers all 74 open issue threads through #113. Bo
 | [30](https://github.com/SysAdminDoc/HushGram/issues/30) | Implemented requiring target acceptance | Find the reel you came from holds one reel id in memory until the profile it opened is gone, scrolls that author's Reels tab to the tile Instagram names by the id and outlines it. Verify a reel several pages down, the not-found toast and that a profile reached from the first keeps its grid. |
 | [29](https://github.com/SysAdminDoc/HushGram/issues/29) | Implemented plus menu gap | Save/view avatar and copy bio/username exist. The alternate pop-up menu remains a coverage target. |
 | [28](https://github.com/SysAdminDoc/HushGram/issues/28) | Improvement | Startup blank frame, Pause-sensitive in reporter's account. Now has diagnostics and a pending isolation question. Preserve native loading until current-generation filtering actually empties Home. |
-| [25](https://github.com/SysAdminDoc/HushGram/issues/25) | Improvement plus implemented backup | Override export/import exists. Missing names/search is the remaining request and is combined with #50/#67/#91. |
+| [25](https://github.com/SysAdminDoc/HushGram/issues/25) | Removed feature | Override export/import went with Open developer options, which was removed for ban risk in October 2026. Combined with #50/#67/#91. |
 | [24](https://github.com/SysAdminDoc/HushGram/issues/24) | Implemented requiring correctness acceptance | Optional follows-you chip and following-list marks exist. Correct unknown/fresh relationship semantics matter before more visual styling. |
 | [20](https://github.com/SysAdminDoc/HushGram/issues/20) | Mostly implemented umbrella | Copy comment, hides, voice downloads, external saving, story filters, size choices, labels, privacy and folders exist in source. Navigation and specific optional-surface acceptance remain. Do not mark the whole list done from one passing subfeature. |
 | [19](https://github.com/SysAdminDoc/HushGram/issues/19) | Implemented plus usability acceptance | Category pages exist. Check navigation/search/Back and discoverability with #80/#100. |
@@ -804,7 +804,7 @@ This October 9 intake snapshot covers all 74 open issue threads through #113. Bo
 | [5](https://github.com/SysAdminDoc/HushGram/issues/5) | New presentation option | Splash and frosted bar requests belong with the same theme/navigation design, with startup cost measured. |
 | [3](https://github.com/SysAdminDoc/HushGram/issues/3) | Support | Community-channel request. Existing maintainer decision keeps support on GitHub. No app patch follows from it. |
 | [2](https://github.com/SysAdminDoc/HushGram/issues/2) | Mixed infrastructure | Hosted translation review and theme/icon packs remain larger tasks. Expanded simple-mode selection is already in current source. Volunteer translation is not proof of native review of every string. |
-| [1](https://github.com/SysAdminDoc/HushGram/issues/1) | Mostly implemented umbrella with hold | Black theme, Mark as seen, feed controls, relationship labels, sharing controls, story size, developer/override tools and comment-photo saving exist. GIF media still needs provider proof. Deleted/unsent retention remains held. A commenter confirmed the old setup popup was gone after 0.0.3. |
+| [1](https://github.com/SysAdminDoc/HushGram/issues/1) | Mostly implemented umbrella with hold | Black theme, Mark as seen, feed controls, relationship labels, sharing controls, story size and comment-photo saving exist. The developer and override tools were removed for ban risk. GIF media still needs provider proof. Deleted/unsent retention remains held. A commenter confirmed the old setup popup was gone after 0.0.3. |
 
 ### Pull requests and discussion intake
 
@@ -909,7 +909,7 @@ The file headers and [provenance.json](../provenance.json) say which files came 
 
 ### piko
 
-**[crimera/piko](https://github.com/crimera/piko)** (GPL-3.0) patches Twitter and Instagram, and its Instagram half has more patches than any other source: ghost mode, downloads, saved deleted messages, feed and story filters, developer options, about sixty patches in all. The ledger lists it as adopted, for two data files only. Its licence would allow a port, but HushGram 0.0.1 took nothing but behavior from it: we read what its patches do and which parts of Instagram they touch, and wrote our own. No piko code is in HushGram. One piece of piko's data is: since the October 2026 flag names change, HushGram ships the MetaConfig name list piko publishes for Instagram 447 (`docs/mappings/447.0.0.55.81.json` at commit `ea752648f5688a50a96df21430020e98bf9ece00`, 5,774 configs and 41,075 parameter names). `scripts/gen-flag-names.py` packs it into `FlagNameData.java`, and MetaConfig's list and search show those names in place of numbers. The names are shown only and never written into Instagram's schema. The list is from 447, so a few flags new in 450 still show as numbers. The second is the recommended flag list from the same commit (`docs/mappings/piko_recommended_flags_v3.json`), which `RecommendedFlags.java` writes out with HushGram's own titles and descriptions. provenance.json records both files as ported from piko under GPL-3.0, and NOTICE carries piko's notice.
+**[crimera/piko](https://github.com/crimera/piko)** (GPL-3.0) patches Twitter and Instagram, and its Instagram half has more patches than any other source: ghost mode, downloads, saved deleted messages, feed and story filters, developer options, about sixty patches in all. Its licence would allow a port, but HushGram took nothing but behavior from it: we read what its patches do and which parts of Instagram they touch, and wrote our own. No piko code is in HushGram. From October 2026 until Open developer options was removed later that month, HushGram did ship two piko data files from commit `ea752648f5688a50a96df21430020e98bf9ece00`: the MetaConfig name list for Instagram 447 and the recommended flag list. Both went with that patch, so the ledger lists piko as a candidate again and NOTICE no longer carries its notice.
 
 piko ships a NOTICE file with an extra term under section 7(b) of the GPL. Here it is, word for word:
 
@@ -921,9 +921,7 @@ This NOTICE file must be preserved and retained in all distributions
 of the Source Code and any Derivative Works.
 ```
 
-That NOTICE goes into HushGram's distributions with the name list, and with any patch ported from piko later.
-
-HushGram's Recommended flags page under Developer started from the config IDs in piko's `docs/mappings/piko_recommended_flags_v3.json`. Only the IDs and what each flag does were used. The names, descriptions and code are HushGram's own, and the Instagram Plus fonts flag is left out on purpose. Two groups of rows have no piko counterpart: story upload quality (#37) and the newer like animations (#13).
+Any patch ported from piko later brings that NOTICE back into HushGram's distributions.
 
 Why HushGram exists at all comes down to the recorded comparison against Instagram 449. piko 3.10.0-dev.9, run through the Morphe CLI 1.17.0 with every Instagram patch selected:
 

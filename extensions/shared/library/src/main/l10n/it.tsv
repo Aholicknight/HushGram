@@ -1,67 +1,5 @@
 # Italian for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
-2x speed for videos in the feed	Velocità 2x per i video nel feed
-Adds a shortcut to your saved posts in the Explore tab.	Aggiunge una scorciatoia ai tuoi post salvati nella scheda Esplora.
-Adds a speed choice to the menu on a reel.	Aggiunge una scelta della velocità al menu di un reel.
-Adds the option to put a new story in a Highlight as you post it.	Aggiunge l'opzione di mettere una nuova storia In evidenza mentre la pubblichi.
-Asks Instagram to keep more detail when it prepares a story. Instagram's servers still compress what they receive.	Chiede a Instagram di mantenere più dettagli quando prepara una storia. I server di Instagram comprimono comunque ciò che ricevono.
-Blurred background on story reposts	Sfondo sfocato sulle ripubblicazioni delle storie
-Choose Off to hide the suggested accounts that show before you type a search.	Scegli Off per nascondere gli account suggeriti che compaiono prima di digitare una ricerca.
-Choose Off to remove the brightness boost on reels and videos on HDR screens.	Scegli Off per rimuovere l'aumento di luminosità su reel e video negli schermi HDR.
-Choose Off to show your recent searches instead of AI suggestions.	Scegli Off per mostrare le tue ricerche recenti al posto dei suggerimenti dell'IA.
-Choose Off to stop photos from being shown at full HDR brightness.	Scegli Off per non mostrare le foto alla piena luminosità HDR.
-Couldn't change that setting. Open settings from Home while signed in. Nothing changed.	Impossibile cambiare questa impostazione. Apri le impostazioni dalla Home con l'accesso effettuato. Non è cambiato nulla.
-Couldn't read Instagram's overrides. Open settings from Home while signed in.	Impossibile leggere le modifiche di Instagram. Apri le impostazioni dalla Home con l'accesso effettuato.
-Edit a story after posting	Modifica una storia dopo la pubblicazione
-Enlarge profile photos	Ingrandisci le foto profilo
-Extra-bright HDR video	Video HDR extra luminoso
-Fills the space behind a reposted reel, post or story with a blur.	Riempie con una sfocatura lo spazio dietro a un reel, un post o una storia ripubblicati.
-Instagram turns auto scroll off each time it starts. On keeps it the way you left it.	Instagram disattiva lo scorrimento automatico a ogni avvio. On lo mantiene come l'hai lasciato.
-Instagram's own	Quello di Instagram
-Keep Reels auto scroll between sessions	Mantieni lo scorrimento automatico dei reel tra le sessioni
-Leave a Close Friends list	Esci da una lista Amici più stretti
-Lets you change a story for a short while after you post it.	Ti permette di cambiare una storia per un breve periodo dopo averla pubblicata.
-Lets you tap a profile photo to see it bigger, with a setting in Account Privacy.	Ti permette di toccare una foto profilo per vederla più grande, con un'impostazione in Privacy dell'account.
-Meta AI suggestions in search	Suggerimenti di Meta AI nella ricerca
-Named switches for some of Instagram's hidden settings, such as the new story style. Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore.	Interruttori con nome per alcune impostazioni nascoste di Instagram, come il nuovo stile delle storie. Ognuno è un'impostazione di Instagram, On oppure Off. Le tue modifiche attuali vengono salvate prima, per Ripristina.
-New like animations	Nuove animazioni dei Mi piace
-New story fonts and animations	Nuovi caratteri e animazioni per le storie
-New story timestamp style	Nuovo stile dell'orario delle storie
-On	On
-Pick Instagram's own setting, On or Off. Restart Instagram after a change.	Scegli l'impostazione di Instagram, On oppure Off. Riavvia Instagram dopo una modifica.
-Playback speed in the Reels menu	Velocità di riproduzione nel menu dei reel
-Post a story straight to Highlights	Pubblica una storia direttamente In evidenza
-Press and hold a reel to open a menu with playback speed.	Tieni premuto su un reel per aprire un menu con la velocità di riproduzione.
-Press and hold the edge of a video in your feed to watch it at double speed.	Tieni premuto sul bordo di un video nel feed per guardarlo al doppio della velocità.
-Press and hold the like button on a story to pick an emoji reaction.	Tieni premuto il pulsante Mi piace su una storia per scegliere una reazione con emoji.
-Press and hold the paper plane on a story to send it.	Tieni premuto l'aeroplano di carta su una storia per inviarla.
-Preview of disappearing photos in Messages	Anteprima delle foto a scomparsa nei Messaggi
-Quick emoji reactions on stories	Reazioni rapide con emoji alle storie
-Quick speed menu in Reels	Menu rapido della velocità nei reel
-Recommended flags	Flag consigliati
-Redesigned Explore tab	Scheda Esplora ridisegnata
-Redesigned notification settings	Impostazioni delle notifiche ridisegnate
-Redesigned story viewer list	Elenco di chi ha visto la storia ridisegnato
-Saved button in Explore	Pulsante Salvati in Esplora
-Saved. Restart Instagram to apply it.	Salvato. Riavvia Instagram per applicarlo.
-Send stories with a long press	Invia le storie con una pressione lunga
-Set another way right now.	Già impostato in un altro modo.
-Shows a blurred preview of a disappearing photo or video in a chat.	Mostra un'anteprima sfocata di una foto o un video a scomparsa in una chat.
-Shows usernames in place of display names in chats and notifications.	Mostra i nomi utente al posto dei nomi visualizzati nelle chat e nelle notifiche.
-Suggested accounts in search	Account suggeriti nella ricerca
-Tap the Close Friends icon on someone's story to remove yourself from their list.	Tocca l'icona Amici più stretti sulla storia di qualcuno per toglierti dalla sua lista.
-That's already how it is. Nothing changed.	È già così. Non è cambiato nulla.
-The newer animations when you like a post, and the emoji ones on stories.	Le animazioni più recenti quando metti Mi piace a un post e quelle con emoji sulle storie.
-The newer layout of the Explore tab.	Il layout più recente della scheda Esplora.
-The newer layout of the notification settings.	Il layout più recente delle impostazioni delle notifiche.
-The newer list of who viewed and replied to your story.	L'elenco più recente di chi ha visto e risposto alla tua storia.
-The newer look for the "posted ... ago" label on stories.	L'aspetto più recente dell'etichetta "pubblicata ... fa" sulle storie.
-The newer text fonts, animations and effects in the story editor.	I caratteri, le animazioni e gli effetti più recenti nell'editor delle storie.
-This Instagram version has none of these switches.	Questa versione di Instagram non ha nessuno di questi interruttori.
-Turn on Allow importing overrides first. These switches use the same path.	Attiva prima Consenti l'importazione delle modifiche. Questi interruttori usano lo stesso percorso.
-Ultra HDR photos	Foto Ultra HDR
-Upload stories at higher quality	Carica le storie a qualità più alta
-Usernames in Messages and notifications	Nomi utente nei Messaggi e nelle notifiche
 %1$s of %2$s	%1$s di %2$s
 %1$s so far	%1$s finora
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. È stato impostato durante la patch, quindi Pausa non può disattivarlo. Per escluderlo, applica di nuovo la patch senza quella patch.
@@ -342,12 +280,7 @@ Leaves out the Suggested for you cards of accounts to follow that Instagram puts
 Download feed photos	Scarica le foto del feed
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	Lo stesso Scarica su un post con foto, e su un carosello che mostra una foto. Salva la dimensione più grande che ha Instagram.
 the start-up fix for x86 devices	la correzione di avvio per i dispositivi x86
-Developer	Sviluppatore
-Developer options on a long press of Home	Opzioni sviluppatore con una pressione lunga su Home
-Opens Instagram's own developer options, where you can look at and change its hidden settings. A wrong change can break parts of Instagram until you reset it.	Apre le opzioni sviluppatore di Instagram, dove puoi vedere e cambiare le sue impostazioni nascoste. Una modifica sbagliata può rompere parti di Instagram finché non la ripristini.
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
-Instagram's developer options didn't load, so MetaConfig opened instead.	Le opzioni sviluppatore di Instagram non si sono caricate, quindi si è aperto MetaConfig.
-Instagram's developer options didn't load. Try the long press again later.	Le opzioni sviluppatore di Instagram non si sono caricate. Riprova più tardi con la pressione lunga.
 Pure black dark mode	Modalità scura nero puro
 Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.	La modalità scura di Instagram usa il nero puro invece del suo grigio quasi nero, e così i menu che salgono dal basso. I pulsanti mantengono i loro grigi.
 the pure black dark mode	la modalità scura nero puro
@@ -427,7 +360,6 @@ Undo is available until %1$s. Restarting Instagram discards Undo.	Puoi annullare
 No settings import to undo.	Nessuna importazione di impostazioni da annullare.
 This phone has no file picker. Your settings haven't changed.	Questo telefono non ha un selettore di file. Le tue impostazioni non sono cambiate.
 Couldn't use that settings file. Your settings haven't changed.	Impossibile usare quel file di impostazioni. Le tue impostazioni non sono cambiate.
-That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.	Quello è un file di modifiche, non un file di impostazioni. Attiva Consenti l'importazione delle modifiche in Sviluppatore, poi usa Importa le modifiche. Le tue impostazioni non sono cambiate.
 HushGram settings exported.	Impostazioni di HushGram esportate.
 Couldn't export HushGram settings. Try another file.	Impossibile esportare le impostazioni di HushGram. Prova con un altro file.
 Settings restored.	Impostazioni ripristinate.
@@ -455,12 +387,6 @@ Carousel canceled. Saved %1$d. Failed %2$d. Skipped %3$d.	Carosello annullato. S
 Saved %1$d. Failed %2$d. Skipped %3$d.	Salvati %1$d. Falliti %2$d. Saltati %3$d.
 %1$d saved in lower quality than on Instagram.	%1$d salvati a qualità inferiore rispetto a Instagram.
 Last carousel save	Ultimo salvataggio di un carosello
-Open MetaConfig overrides	Apri le modifiche di MetaConfig
-Opens Instagram's own editor for its hidden settings (MetaConfig). A wrong override, which is a changed setting, can break parts of Instagram.	Apre l'editor di Instagram per le sue impostazioni nascoste (MetaConfig). Una modifica sbagliata, cioè un'impostazione cambiata, può rompere parti di Instagram.
-MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.	MetaConfig non è disponibile in questa schermata. Apri le impostazioni di HushGram dalla Home con l'accesso effettuato.
-Open Whitehat settings	Apri le impostazioni Whitehat
-Opens Instagram's own Whitehat settings. Its switch lets Instagram trust the certificates installed on this phone for 24 hours, so you can check the app's traffic. Restart Instagram after you turn it on.	Apre le impostazioni Whitehat di Instagram. Il suo interruttore permette a Instagram di fidarsi per 24 ore dei certificati installati su questo telefono, così puoi controllare il traffico dell'app. Riavvia Instagram dopo averlo attivato.
-Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.	Le impostazioni Whitehat non sono disponibili in questa schermata. Apri le impostazioni di HushGram dalla Home con l'accesso effettuato.
 Comments	Commenti
 Copy comment	Copia il commento
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	Aggiunge Copia al menu di un commento selezionato. Copia il testo originale, comprese le interruzioni di riga.
@@ -470,45 +396,6 @@ Comment copied	Commento copiato
 Couldn't copy comment	Impossibile copiare il commento
 Save comment photo	Salva la foto del commento
 Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Aggiunge Salva al menu di un commento selezionato quando il commento ha una foto o una GIF. Salva la dimensione più grande inviata da Instagram.
-Export overrides	Esporta le modifiche
-Saves your overrides (changes to Instagram's hidden settings) for this exact Instagram version.	Salva le tue modifiche (cambiamenti alle impostazioni nascoste di Instagram) per questa esatta versione di Instagram.
-Validate an overrides file	Verifica un file di modifiche
-Checks a saved file against this Instagram version. Nothing is applied.	Controlla un file salvato rispetto a questa versione di Instagram. Non viene applicato nulla.
-This phone has no file picker. Overrides haven't changed.	Questo telefono non ha un selettore di file. Le modifiche non sono cambiate.
-Couldn't use that file. Instagram's overrides haven't changed.	Impossibile usare quel file. Le modifiche di Instagram non sono cambiate.
-Checked %1$d overrides only. Nothing was applied.	Controllate solo %1$d modifiche. Non è stato applicato nulla.
-%1$d more come from a different Instagram version and don't fit this one, so the import leaves them out.	Altre %1$d provengono da una versione diversa di Instagram e non vanno bene per questa, quindi l'importazione le esclude.
-None of this file's overrides fit this Instagram version. Nothing changed.	Nessuna modifica di questo file va bene per questa versione di Instagram. Non è cambiato nulla.
-%1$d overrides from a different Instagram version don't fit this one and were left out.	%1$d modifiche di una versione diversa di Instagram non vanno bene per questa e sono state escluse.
-Overrides exported for this Instagram version.	Modifiche esportate per questa versione di Instagram.
-Couldn't validate overrides. Check the file and open settings from Home while signed in. Nothing changed.	Impossibile verificare le modifiche. Controlla il file e apri le impostazioni dalla Home con l'accesso effettuato. Non è cambiato nulla.
-Couldn't export overrides. The selected file may be incomplete. Instagram's overrides haven't changed.	Impossibile esportare le modifiche. Il file selezionato potrebbe essere incompleto. Le modifiche di Instagram non sono cambiate.
-Allow importing overrides	Consenti l'importazione delle modifiche
-Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.	Mostra le righe Importa e Ripristina. Un'importazione cambia le impostazioni nascoste di Instagram per questo account con l'accesso effettuato.
-Import overrides	Importa le modifiche
-Applies a HushGram export, or Instagram's own overrides file. Your current overrides are saved first so Restore can bring them back.	Applica un'esportazione di HushGram o un file di modifiche di Instagram. Le tue modifiche attuali vengono salvate prima, così Ripristina può riportarle indietro.
-Restore previous overrides	Ripristina le modifiche precedenti
-Puts back the overrides saved before your last import for this account and Instagram version.	Rimette le modifiche salvate prima della tua ultima importazione per questo account e questa versione di Instagram.
-An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.	Un'importazione precedente richiede ancora Ripristina le modifiche precedenti, oppure Scarta le modifiche salvate se Ripristina non può partire. Non è cambiato nulla.
-Couldn't restore overrides. There's no saved copy for this account and Instagram version. Nothing changed.	Impossibile ripristinare le modifiche. Non c'è una copia salvata per questo account e questa versione di Instagram. Non è cambiato nulla.
-Couldn't import overrides. Check the file and open settings from Home while signed in. Nothing changed.	Impossibile importare le modifiche. Controlla il file e apri le impostazioni dalla Home con l'accesso effettuato. Non è cambiato nulla.
-The current overrides already match the saved copy. Nothing changed.	Le modifiche attuali corrispondono già alla copia salvata. Non è cambiato nulla.
-This file matches the current overrides. Nothing changed.	Questo file corrisponde alle modifiche attuali. Non è cambiato nulla.
-Previous overrides restored. Restart Instagram to apply them.	Modifiche precedenti ripristinate. Riavvia Instagram per applicarle.
-Imported %1$d override changes. Restart Instagram to apply them.	Importate %1$d modifiche. Riavvia Instagram per applicarle.
-Instagram didn't keep the change, so the overrides were put back as they were.	Instagram non ha mantenuto la modifica, quindi le modifiche sono state rimesse com'erano.
-Instagram didn't keep the change and the overrides couldn't be confirmed. Use Restore previous overrides, then restart Instagram.	Instagram non ha mantenuto la modifica e non è stato possibile confermare le modifiche. Usa Ripristina le modifiche precedenti, poi riavvia Instagram.
-Discard saved overrides	Scarta le modifiche salvate
-Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.	Dimentica la copia salvata per Ripristina così le importazioni possono ripartire. Le impostazioni di Instagram non cambiano.
-Discarded the saved copy. Imports can run again, and Instagram's overrides haven't changed.	Copia salvata scartata. Le importazioni possono ripartire e le modifiche di Instagram non sono cambiate.
-There's no saved copy to discard. Nothing changed.	Non c'è nessuna copia salvata da scartare. Non è cambiato nulla.
-Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram to apply the rest.	Ripristina ha rimesso quanto possibile, tranne %1$d modifiche impostate su nulla, che non si possono rimettere così. Le importazioni restano bloccate finché non usi Scarta le modifiche salvate. Riavvia Instagram per applicare il resto.
-Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Restart Instagram to apply the rest.	Ripristina ha rimesso quanto possibile, tranne %1$d modifiche impostate su nulla, che non si possono rimettere così. Riavvia Instagram per applicare il resto.
-Couldn't restore overrides. The saved copy doesn't fit this account and Instagram version. Use Discard saved overrides if you don't need it. Nothing changed.	Impossibile ripristinare le modifiche. La copia salvata non va bene per questo account e questa versione di Instagram. Usa Scarta le modifiche salvate se non ti serve. Non è cambiato nulla.
-Instagram is still saving an override change. Wait a moment and try again. Nothing changed.	Instagram sta ancora salvando una modifica. Aspetta un attimo e riprova. Non è cambiato nulla.
-Allow importing overrides is off or HushGram is paused. Nothing changed.	Consenti l'importazione delle modifiche è off oppure HushGram è in pausa. Non è cambiato nulla.
-Couldn't restore overrides. Open settings from Home while signed in. Nothing changed.	Impossibile ripristinare le modifiche. Apri le impostazioni dalla Home con l'accesso effettuato. Non è cambiato nulla.
-Couldn't start that. Try again. Nothing changed.	Impossibile avviare. Riprova. Non è cambiato nulla.
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
 Mark as seen button	Pulsante Segna come visto
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	Aggiunge un pulsante a forma di occhio in cima a ogni storia mentre guardi in modo anonimo. Toccalo per comparire nell'elenco di chi ha visto quella storia. Le altre storie restano nascoste.
@@ -517,8 +404,6 @@ Marked as seen. Tap again to undo.	Segnato come visto. Tocca di nuovo per annull
 Marked as seen and sent	Segnato come visto e inviato
 View DM photos and videos anonymously	Guarda foto e video dei messaggi in modo anonimo
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	Impedisce che le persone vedano che hai aperto le loro foto e i loro video a visualizzazione singola. Scompaiono comunque dopo che li hai visti. È una funzione di prova e parte disattivata.
-Couldn't finish discarding the saved copies. Try Discard saved overrides again. Instagram's overrides haven't changed.	Impossibile finire di scartare le copie salvate. Riprova con Scarta le modifiche salvate. Le modifiche di Instagram non sono cambiate.
-Recovery cleanup didn't finish. Use Restore previous overrides or Discard saved overrides.	La pulizia di recupero non è terminata. Usa Ripristina le modifiche precedenti o Scarta le modifiche salvate.
 Restored %1$d settings. Kept %2$d newer choices.	Ripristinate %1$d impostazioni. Mantenute %2$d scelte più recenti.
 Preparing diagnostic report...	Preparazione del report diagnostico...
 Saving diagnostic report...	Salvataggio del report diagnostico...
@@ -593,7 +478,6 @@ Your messages are locked	I tuoi messaggi sono bloccati
 Allow screenshots	Consenti gli screenshot
 Couldn't change every Ghost mode switch. Check them below.	Impossibile cambiare tutti gli interruttori della modalità Ghost. Controllali qui sotto.
 Couldn't change every Ghost mode switch. Open HushGram settings to check them.	Impossibile cambiare tutti gli interruttori della modalità Ghost. Apri le impostazioni di HushGram per controllarli.
-Couldn't reset overrides. Open settings from Home while signed in. Nothing changed.	Impossibile reimpostare le modifiche. Apri le impostazioni dalla Home con l'accesso effettuato. Non è cambiato nulla.
 Don't report screenshots	Non segnalare gli screenshot
 Ghost mode	Modalità Ghost
 Ghost mode is off, and so is each of its switches.	La modalità Ghost è off, e lo sono anche tutti i suoi interruttori.
@@ -601,11 +485,7 @@ Ghost mode is on, and so is each of its switches.	La modalità Ghost è on, e lo
 Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	Instagram non si accorge quando fai uno screenshot, quindi chi ti ha inviato una foto o un video a scomparsa non viene avvisato. I tuoi screenshot si salvano come al solito.
 Keep in chat	Mantieni nella chat
 Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	Le live che guardi non ti mettono nell'elenco di chi guarda dell'host, quindi non sa che ci sei. Commentare o reagire ti mostra comunque. Il conteggio di chi guarda che vedi smette di aggiornarsi, e una live che finisce può sembrare ancora in corso finché non esci.
-Removed %1$d overrides. Restart Instagram to go back to its own settings.	Rimosse %1$d modifiche. Riavvia Instagram per tornare alle sue impostazioni.
-Reset all overrides	Reimposta tutte le modifiche
 Screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos. Turn on Don't report screenshots too if the sender shouldn't hear about it.	Screenshot e registrazioni dello schermo funzionano dove Instagram li blocca, come foto e video a scomparsa. Attiva anche Non segnalare gli screenshot se chi li ha inviati non deve saperlo.
-Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.	Rimuove ogni modifica da questo account con l'accesso effettuato, così Instagram torna alle sue impostazioni. Le tue modifiche attuali vengono salvate prima, per Ripristina.
-There are no overrides to reset. Nothing changed.	Non ci sono modifiche da reimpostare. Non è cambiato nulla.
 Turns the switches that keep what you do to yourself on or off in one go, like View stories anonymously and Hide that you're typing. Each one keeps its own switch.	Attiva o disattiva in un colpo solo gli interruttori che tengono per te ciò che fai, come Guarda le storie in modo anonimo e Nascondi che stai scrivendo. Ognuno mantiene il proprio interruttore.
 View live anonymously	Guarda le live in modo anonimo
 Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.	Le foto e i video inviati a visualizzazione singola o rivedibili restano nella chat così puoi riaprirli. Riapri la chat per aggiornare quelli già caricati.
@@ -832,20 +712,6 @@ Three fingers	Tre dita
 Half a second	Mezzo secondo
 1 second	1 secondo
 1.5 seconds	1,5 secondi
-Use HushGram's setting names	Usa i nomi delle impostazioni di HushGram
-MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig mostra i nomi dell'elenco di HushGram al posto dei numeri. L'elenco viene da Instagram 447, quindi alcune impostazioni più recenti si vedono ancora come numeri. Un elenco che importi viene usato al suo posto.
-Import setting names	Importa i nomi delle impostazioni
-Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Scegli un elenco di nomi di MetaConfig, come un file id_name_mapping.json, e MetaConfig mostra quei nomi al posto dei numeri. La ricerca per numero funziona ancora.
-Remove setting names	Rimuovi i nomi delle impostazioni
-Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.	Dimentica i nomi importati. MetaConfig torna ai nomi di HushGram, o alle etichette di Instagram se quell'interruttore è off.
-Couldn't read setting names from that file. Nothing changed.	Impossibile leggere i nomi delle impostazioni da quel file. Non è cambiato nulla.
-Setting names removed. Open MetaConfig again to see the change.	Nomi delle impostazioni rimossi. Riapri MetaConfig per vedere la modifica.
-There are no imported setting names to remove.	Non ci sono nomi di impostazioni importati da rimuovere.
-Setting names imported: %1$d. Open MetaConfig again to see them.	Nomi delle impostazioni importati: %1$d. Riapri MetaConfig per vederli.
-Entries left out because they repeat or don't fit: %1$d.	Voci escluse perché ripetute o non adatte: %1$d.
-That file has no setting names in it. Nothing changed.	Quel file non contiene nomi di impostazioni. Non è cambiato nulla.
-Couldn't remove the setting names. Try again.	Impossibile rimuovere i nomi delle impostazioni. Riprova.
-Couldn't save the setting names. Nothing changed.	Impossibile salvare i nomi delle impostazioni. Non è cambiato nulla.
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Su questa build di Instagram copre %1$d percorsi su %2$d. Il report diagnostico elenca il resto.
 Hide suggested accounts in Messages	Nascondi gli account suggeriti nei Messaggi
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Toglie gli account suggeriti da Instagram dal fondo dei tuoi messaggi. Le tue chat e le richieste di seguire restano. Riavvia Instagram per vedere la modifica.
@@ -1017,7 +883,6 @@ Keep Instagram's saved photos and videos from filling your phone.	Evita che le f
 Save photos, videos and more, and choose where they go.	Salva foto, video e altro, e scegli dove vanno.
 Stop background work Instagram doesn't need.	Ferma il lavoro in background che Instagram non richiede.
 Stop Instagram from saying this version is too old.	Impedisci a Instagram di dire che questa versione è troppo vecchia.
-Instagram's own testing tools. Change them only if you know what they do.	Gli strumenti di test di Instagram. Cambiali solo se sai cosa fanno.
 Chosen when you patched, so Pause leaves them on. Patch again to change them.	Scelte quando hai applicato la patch, quindi Pausa le lascia attive. Applica di nuovo la patch per cambiarle.
 Save your HushGram choices to a file, or bring them back.	Salva le tue scelte di HushGram in un file, oppure ripristinale.
 Your version, the source code and licenses.	La tua versione, il codice sorgente e le licenze.

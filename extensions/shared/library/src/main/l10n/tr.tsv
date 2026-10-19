@@ -1,67 +1,5 @@
 # Turkish for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
-2x speed for videos in the feed	Akıştaki videolar için 2x hız
-Adds a shortcut to your saved posts in the Explore tab.	Keşfet sekmesine kaydettiğin gönderilere bir kısayol ekler.
-Adds a speed choice to the menu on a reel.	Bir Reels menüsüne hız seçeneği ekler.
-Adds the option to put a new story in a Highlight as you post it.	Yeni bir hikayeyi paylaşırken doğrudan Öne Çıkanlar'a ekleme seçeneği getirir.
-Asks Instagram to keep more detail when it prepares a story. Instagram's servers still compress what they receive.	Instagram'dan bir hikayeyi hazırlarken daha fazla ayrıntı korumasını ister. Instagram sunucuları aldıkları dosyayı yine de sıkıştırır.
-Blurred background on story reposts	Hikaye yeniden paylaşımlarında bulanık arka plan
-Choose Off to hide the suggested accounts that show before you type a search.	Aramaya yazmadan önce görünen önerilen hesapları gizlemek için Kapalı'yı seç.
-Choose Off to remove the brightness boost on reels and videos on HDR screens.	HDR ekranlarda Reels ve videolardaki parlaklık artışını kaldırmak için Kapalı'yı seç.
-Choose Off to show your recent searches instead of AI suggestions.	Yapay zekâ önerileri yerine son aramalarını görmek için Kapalı'yı seç.
-Choose Off to stop photos from being shown at full HDR brightness.	Fotoğrafların tam HDR parlaklığıyla gösterilmesini durdurmak için Kapalı'yı seç.
-Couldn't change that setting. Open settings from Home while signed in. Nothing changed.	Bu ayar değiştirilemedi. Oturum açıkken ayarları Ana Sayfa'dan aç. Hiçbir şey değişmedi.
-Couldn't read Instagram's overrides. Open settings from Home while signed in.	Instagram'ın geçersiz kılmaları okunamadı. Oturum açıkken ayarları Ana Sayfa'dan aç.
-Edit a story after posting	Paylaştıktan sonra hikayeyi düzenle
-Enlarge profile photos	Profil fotoğraflarını büyüt
-Extra-bright HDR video	Ekstra parlak HDR video
-Fills the space behind a reposted reel, post or story with a blur.	Yeniden paylaşılan bir Reels, gönderi veya hikayenin arkasındaki boşluğu bulanıklıkla doldurur.
-Instagram turns auto scroll off each time it starts. On keeps it the way you left it.	Instagram her açılışta otomatik kaydırmayı kapatır. Açık, bıraktığın gibi kalmasını sağlar.
-Instagram's own	Instagram'ın kendi değeri
-Keep Reels auto scroll between sessions	Reels otomatik kaydırmayı oturumlar arasında koru
-Leave a Close Friends list	Yakın Arkadaşlar listesinden ayrıl
-Lets you change a story for a short while after you post it.	Hikayeyi paylaştıktan sonra kısa bir süre değiştirmeni sağlar.
-Lets you tap a profile photo to see it bigger, with a setting in Account Privacy.	Bir profil fotoğrafına dokunup daha büyük görmeni sağlar, Hesap Gizliliği'nde bir ayarı vardır.
-Meta AI suggestions in search	Aramada Meta AI önerileri
-Named switches for some of Instagram's hidden settings, such as the new story style. Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore.	Yeni hikaye stili gibi Instagram'ın bazı gizli ayarları için adlandırılmış anahtarlar. Her biri Instagram'ın kendi değeri, Açık veya Kapalı olabilir. Mevcut geçersiz kılmaların Geri Yükle için önce kaydedilir.
-New like animations	Yeni beğeni animasyonları
-New story fonts and animations	Yeni hikaye yazı tipleri ve animasyonları
-New story timestamp style	Yeni hikaye zaman damgası stili
-On	Açık
-Pick Instagram's own setting, On or Off. Restart Instagram after a change.	Instagram'ın kendi değerini, Açık veya Kapalı'yı seç. Değişiklikten sonra Instagram'ı yeniden başlat.
-Playback speed in the Reels menu	Reels menüsünde oynatma hızı
-Post a story straight to Highlights	Hikayeyi doğrudan Öne Çıkanlar'a paylaş
-Press and hold a reel to open a menu with playback speed.	Oynatma hızı menüsünü açmak için bir Reels'e basılı tut.
-Press and hold the edge of a video in your feed to watch it at double speed.	Akıştaki bir videonun kenarına basılı tutarak iki kat hızda izle.
-Press and hold the like button on a story to pick an emoji reaction.	Bir emoji tepkisi seçmek için hikayedeki beğen düğmesine basılı tut.
-Press and hold the paper plane on a story to send it.	Hikayeyi göndermek için kağıt uçağa basılı tut.
-Preview of disappearing photos in Messages	Mesajlar'da kaybolan fotoğrafların önizlemesi
-Quick emoji reactions on stories	Hikayelerde hızlı emoji tepkileri
-Quick speed menu in Reels	Reels'te hızlı hız menüsü
-Recommended flags	Önerilen bayraklar
-Redesigned Explore tab	Yeniden tasarlanan Keşfet sekmesi
-Redesigned notification settings	Yeniden tasarlanan bildirim ayarları
-Redesigned story viewer list	Yeniden tasarlanan hikaye izleyici listesi
-Saved button in Explore	Keşfet'te Kaydedilenler düğmesi
-Saved. Restart Instagram to apply it.	Kaydedildi. Uygulamak için Instagram'ı yeniden başlat.
-Send stories with a long press	Hikayeleri uzun basarak gönder
-Set another way right now.	Şu an başka bir yolla ayarlanmış.
-Shows a blurred preview of a disappearing photo or video in a chat.	Sohbette kaybolan bir fotoğraf veya videonun bulanık önizlemesini gösterir.
-Shows usernames in place of display names in chats and notifications.	Sohbetlerde ve bildirimlerde görünen ad yerine kullanıcı adını gösterir.
-Suggested accounts in search	Aramada önerilen hesaplar
-Tap the Close Friends icon on someone's story to remove yourself from their list.	Birinin listesinden çıkmak için hikayesindeki Yakın Arkadaşlar simgesine dokun.
-That's already how it is. Nothing changed.	Zaten böyle. Hiçbir şey değişmedi.
-The newer animations when you like a post, and the emoji ones on stories.	Bir gönderiyi beğenirken yeni animasyonlar ve hikayelerdeki emoji animasyonları.
-The newer layout of the Explore tab.	Keşfet sekmesinin yeni düzeni.
-The newer layout of the notification settings.	Bildirim ayarlarının yeni düzeni.
-The newer list of who viewed and replied to your story.	Hikayeni kimlerin izlediği ve yanıtladığının yeni listesi.
-The newer look for the "posted ... ago" label on stories.	Hikayelerdeki "... önce paylaşıldı" etiketinin yeni görünümü.
-The newer text fonts, animations and effects in the story editor.	Hikaye düzenleyicisindeki yeni yazı tipleri, animasyonlar ve efektler.
-This Instagram version has none of these switches.	Bu Instagram sürümünde bu anahtarların hiçbiri yok.
-Turn on Allow importing overrides first. These switches use the same path.	Önce Geçersiz kılmaları içe aktarmaya izin ver'i aç. Bu anahtarlar aynı yolu kullanır.
-Ultra HDR photos	Ultra HDR fotoğraflar
-Upload stories at higher quality	Hikayeleri daha yüksek kalitede yükle
-Usernames in Messages and notifications	Mesajlar ve bildirimlerde kullanıcı adları
 %1$s of %2$s	%1$s / %2$s
 %1$s so far	Şimdiye kadar %1$s
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. Yamaladığında ayarlandığı için Duraklatma bunu kapatamaz. Bunu elemek için yeniden yamala ve o yamayı dışarıda bırak.
@@ -342,12 +280,7 @@ Leaves out the Suggested for you cards of accounts to follow that Instagram puts
 Download feed photos	Akıştaki fotoğrafları indir
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	Aynı İndir seçeneği bir fotoğraf gönderisinde ve fotoğraf gösteren bir kaydırmalı gönderide de çıkar. Instagram'daki en büyük boyutu kaydeder.
 the start-up fix for x86 devices	x86 cihazlar için açılış düzeltmesi
-Developer	Geliştirici
-Developer options on a long press of Home	Ana Sayfa'ya uzun basınca geliştirici seçenekleri
-Opens Instagram's own developer options, where you can look at and change its hidden settings. A wrong change can break parts of Instagram until you reset it.	Instagram'ın kendi geliştirici seçeneklerini açar. Burada gizli ayarlarına bakabilir ve onları değiştirebilirsin. Yanlış bir değişiklik, sıfırlayana kadar Instagram'ın bazı bölümlerini bozabilir.
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
-Instagram's developer options didn't load, so MetaConfig opened instead.	Instagram'ın geliştirici seçenekleri yüklenmedi, bu yüzden onun yerine MetaConfig açıldı.
-Instagram's developer options didn't load. Try the long press again later.	Instagram'ın geliştirici seçenekleri yüklenmedi. Daha sonra Ana Sayfa'ya yeniden uzun bas.
 Pure black dark mode	Saf siyah karanlık mod
 Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.	Instagram'ın karanlık modu, siyaha yakın grisi yerine saf siyah kullanır. Alttan açılan menüler de siyah olur. Düğmeler kendi gri tonlarını korur.
 the pure black dark mode	saf siyah karanlık mod
@@ -427,7 +360,6 @@ Undo is available until %1$s. Restarting Instagram discards Undo.	%1$s saatine k
 No settings import to undo.	Geri alınacak ayar içe aktarma işlemi yok.
 This phone has no file picker. Your settings haven't changed.	Bu telefonda dosya seçici yok. Ayarların değişmedi.
 Couldn't use that settings file. Your settings haven't changed.	Bu ayar dosyası kullanılamadı. Ayarlarınız değişmedi.
-That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.	Bu bir ayar dosyası değil, geçersiz kılma dosyası. Geliştirici altında Geçersiz kılmaları içe aktarmaya izin ver seçeneğini açın, ardından Geçersiz kılmaları içe aktar'ı kullanın. Ayarlarınız değişmedi.
 HushGram settings exported.	HushGram ayarları dışa aktarıldı.
 Couldn't export HushGram settings. Try another file.	HushGram ayarları dışa aktarılamadı. Başka bir dosya deneyin.
 Settings restored.	Ayarlar geri yüklendi.
@@ -455,12 +387,6 @@ Carousel canceled. Saved %1$d. Failed %2$d. Skipped %3$d.	Çoklu gönderi iptal 
 Saved %1$d. Failed %2$d. Skipped %3$d.	Kaydedilen %1$d. Başarısız %2$d. Atlanan %3$d.
 %1$d saved in lower quality than on Instagram.	%1$d öğe Instagram'dakinden daha düşük kalitede kaydedildi.
 Last carousel save	Son çoklu gönderi kaydı
-Open MetaConfig overrides	MetaConfig geçersiz kılmalarını aç
-Opens Instagram's own editor for its hidden settings (MetaConfig). A wrong override, which is a changed setting, can break parts of Instagram.	Instagram'ın gizli ayarları için kendi düzenleyicisini (MetaConfig) açar. Yanlış bir override, yani değiştirilmiş bir ayar, Instagram'ın bazı bölümlerini bozabilir.
-MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.	MetaConfig bu ekranda kullanılamıyor. Oturum açıkken Ana Sayfa'dan HushGram ayarlarını açın.
-Open Whitehat settings	Whitehat ayarlarını aç
-Opens Instagram's own Whitehat settings. Its switch lets Instagram trust the certificates installed on this phone for 24 hours, so you can check the app's traffic. Restart Instagram after you turn it on.	Instagram'ın kendi Whitehat ayarlarını açar. Buradaki anahtar, Instagram'ın bu telefonda yüklü sertifikalara 24 saat boyunca güvenmesini sağlar, böylece uygulamanın trafiğini inceleyebilirsiniz. Açtıktan sonra Instagram'ı yeniden başlatın.
-Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.	Whitehat ayarları bu ekranda kullanılamıyor. Oturum açıkken Ana Sayfa'dan HushGram ayarlarını açın.
 Comments	Yorumlar
 Copy comment	Yorumu kopyala
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	Seçilen yorumun menüsüne Kopyala seçeneğini ekler. Satır sonları dahil özgün metni kopyalar.
@@ -470,45 +396,6 @@ Comment copied	Yorum kopyalandı
 Couldn't copy comment	Yorum kopyalanamadı
 Save comment photo	Yorum fotoğrafını kaydet
 Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Kendi fotoğrafı veya GIF'i olan seçili bir yorumun menüsüne Kaydet seçeneğini ekler. Instagram'ın gönderdiği en büyük boyutu kaydeder.
-Export overrides	Geçersiz kılmaları dışa aktar
-Saves your overrides (changes to Instagram's hidden settings) for this exact Instagram version.	Override'larını (Instagram'ın gizli ayarlarında yaptığın değişiklikler) tam olarak bu Instagram sürümü için kaydeder.
-Validate an overrides file	Bir geçersiz kılma dosyasını doğrula
-Checks a saved file against this Instagram version. Nothing is applied.	Kayıtlı bir dosyayı bu Instagram sürümüne göre kontrol eder. Hiçbir şey uygulanmaz.
-This phone has no file picker. Overrides haven't changed.	Bu telefonda dosya seçici yok. Override'lar değişmedi.
-Couldn't use that file. Instagram's overrides haven't changed.	Bu dosya kullanılamadı. Instagram'ın override'ları değişmedi.
-Checked %1$d overrides only. Nothing was applied.	Yalnızca %1$d override kontrol edildi. Hiçbir şey uygulanmadı.
-%1$d more come from a different Instagram version and don't fit this one, so the import leaves them out.	%1$d tanesi farklı bir Instagram sürümünden geliyor ve bu sürüme uymuyor, bu yüzden içe aktarma onları atlar.
-None of this file's overrides fit this Instagram version. Nothing changed.	Bu dosyadaki hiçbir override bu Instagram sürümüne uymuyor. Hiçbir şey değişmedi.
-%1$d overrides from a different Instagram version don't fit this one and were left out.	Farklı bir Instagram sürümünden gelen %1$d override bu sürüme uymuyor ve atlandı.
-Overrides exported for this Instagram version.	Override'lar bu Instagram sürümü için dışa aktarıldı.
-Couldn't validate overrides. Check the file and open settings from Home while signed in. Nothing changed.	Geçersiz kılmalar doğrulanamadı. Dosyayı denetleyin ve oturum açıkken Ana Sayfa'dan ayarları açın. Hiçbir şey değişmedi.
-Couldn't export overrides. The selected file may be incomplete. Instagram's overrides haven't changed.	Override'lar dışa aktarılamadı. Seçilen dosya eksik olabilir. Instagram'ın override'ları değişmedi.
-Allow importing overrides	Geçersiz kılmaları içe aktarmaya izin ver
-Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.	İçe Aktar ve Geri Yükle satırlarını gösterir. İçe aktarma, oturum açık olan bu hesap için Instagram'ın gizli ayarlarını değiştirir.
-Import overrides	Geçersiz kılmaları içe aktar
-Applies a HushGram export, or Instagram's own overrides file. Your current overrides are saved first so Restore can bring them back.	Bir HushGram dışa aktarımını veya Instagram'ın kendi override dosyasını uygular. Geri Yükle'nin geri getirebilmesi için mevcut override'ların önce kaydedilir.
-Restore previous overrides	Önceki geçersiz kılmaları geri yükle
-Puts back the overrides saved before your last import for this account and Instagram version.	Bu hesap ve Instagram sürümü için son içe aktarmandan önce kaydedilen override'ları geri getirir.
-An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.	Önceki bir içe aktarma için hâlâ Önceki geçersiz kılmaları geri yükle gerekiyor. Geri yükleme çalışamıyorsa Kayıtlı geçersiz kılmaları at seçeneğini kullanın. Hiçbir şey değişmedi.
-Couldn't restore overrides. There's no saved copy for this account and Instagram version. Nothing changed.	Override'lar geri yüklenemedi. Bu hesap ve Instagram sürümü için kayıtlı kopya yok. Hiçbir şey değişmedi.
-Couldn't import overrides. Check the file and open settings from Home while signed in. Nothing changed.	Geçersiz kılmalar içe aktarılamadı. Dosyayı denetleyin ve oturum açıkken Ana Sayfa'dan ayarları açın. Hiçbir şey değişmedi.
-The current overrides already match the saved copy. Nothing changed.	Geçerli geçersiz kılmalar kayıtlı kopyayla zaten aynı. Hiçbir şey değişmedi.
-This file matches the current overrides. Nothing changed.	Bu dosya geçerli geçersiz kılmalarla aynı. Hiçbir şey değişmedi.
-Previous overrides restored. Restart Instagram to apply them.	Önceki geçersiz kılmalar geri yüklendi. Uygulamak için Instagram'ı yeniden başlatın.
-Imported %1$d override changes. Restart Instagram to apply them.	%1$d geçersiz kılma değişikliği içe aktarıldı. Uygulamak için Instagram'ı yeniden başlatın.
-Instagram didn't keep the change, so the overrides were put back as they were.	Instagram değişikliği tutmadı, bu yüzden geçersiz kılmalar eski haline getirildi.
-Instagram didn't keep the change and the overrides couldn't be confirmed. Use Restore previous overrides, then restart Instagram.	Instagram değişikliği tutmadı ve geçersiz kılmalar doğrulanamadı. Önceki geçersiz kılmaları geri yükle seçeneğini kullanın, ardından Instagram'ı yeniden başlatın.
-Discard saved overrides	Kayıtlı geçersiz kılmaları at
-Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.	İçe aktarmalar yeniden çalışabilsin diye Geri Yükle için kaydedilen kopyayı unutur. Instagram'ın kendi ayarları değişmez.
-Discarded the saved copy. Imports can run again, and Instagram's overrides haven't changed.	Kayıtlı kopya atıldı. İçe aktarmalar yeniden çalışabilir ve Instagram'ın geçersiz kılmaları değişmedi.
-There's no saved copy to discard. Nothing changed.	Atılacak kayıtlı kopya yok. Hiçbir şey değişmedi.
-Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram to apply the rest.	Geri Yükle yapabildiğini geri getirdi, ancak hiçbir şeye ayarlanmış olan %1$d override bu yolla geri getirilemez. Discard saved overrides'ı kullanana kadar içe aktarmalar engelli kalır. Kalanını uygulamak için Instagram'ı yeniden başlat.
-Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Restart Instagram to apply the rest.	Geri Yükle yapabildiğini geri getirdi, ancak hiçbir şeye ayarlanmış olan %1$d override bu yolla geri getirilemez. Kalanını uygulamak için Instagram'ı yeniden başlat.
-Couldn't restore overrides. The saved copy doesn't fit this account and Instagram version. Use Discard saved overrides if you don't need it. Nothing changed.	Override'lar geri yüklenemedi. Kayıtlı kopya bu hesaba ve Instagram sürümüne uymuyor. Gerekmiyorsa Discard saved overrides'ı kullan. Hiçbir şey değişmedi.
-Instagram is still saving an override change. Wait a moment and try again. Nothing changed.	Instagram hâlâ bir geçersiz kılma değişikliğini kaydediyor. Biraz bekleyip yeniden deneyin. Hiçbir şey değişmedi.
-Allow importing overrides is off or HushGram is paused. Nothing changed.	Geçersiz kılmaları içe aktarmaya izin ver kapalı ya da HushGram duraklatıldı. Hiçbir şey değişmedi.
-Couldn't restore overrides. Open settings from Home while signed in. Nothing changed.	Geçersiz kılmalar geri yüklenemedi. Oturum açıkken Ana Sayfa'dan ayarları açın. Hiçbir şey değişmedi.
-Couldn't start that. Try again. Nothing changed.	Başlatılamadı. Tekrar dene. Hiçbir şey değişmedi.
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
 Mark as seen button	Görüldü olarak işaretle düğmesi
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	Anonim izlerken her hikayenin üstüne bir göz düğmesi ekler. O hikayenin izleyici listesinde görünmek için düğmeye dokun. Diğer hikayeler gizli kalır.
@@ -517,8 +404,6 @@ Marked as seen. Tap again to undo.	Görüldü olarak işaretlendi. Geri almak i�
 Marked as seen and sent	Görüldü olarak işaretlendi ve gönderildi
 View DM photos and videos anonymously	Mesajlardaki fotoğraf ve videoları anonim görüntüle
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	İnsanların tek seferlik fotoğraf ve videolarını açtığını görmelerini engeller. Baktıktan sonra yine kaybolurlar. Bu bir test özelliğidir ve kapalı başlar.
-Couldn't finish discarding the saved copies. Try Discard saved overrides again. Instagram's overrides haven't changed.	Kayıtlı kopyaları silme işlemi tamamlanamadı. Discard saved overrides'ı tekrar dene. Instagram'ın override'ları değişmedi.
-Recovery cleanup didn't finish. Use Restore previous overrides or Discard saved overrides.	Kurtarma temizliği tamamlanmadı. Önceki geçersiz kılmaları geri yükle veya Kayıtlı geçersiz kılmaları at seçeneğini kullanın.
 Restored %1$d settings. Kept %2$d newer choices.	%1$d ayar geri yüklendi. Daha sonra yapılan %2$d seçim korundu.
 Preparing diagnostic report...	Tanılama raporu hazırlanıyor...
 Saving diagnostic report...	Tanılama raporu kaydediliyor...
@@ -593,7 +478,6 @@ Your messages are locked	Mesajların kilitli
 Allow screenshots	Ekran görüntülerine izin ver
 Couldn't change every Ghost mode switch. Check them below.	Hayalet modu anahtarlarının hepsi değiştirilemedi. Aşağıdan kontrol et.
 Couldn't change every Ghost mode switch. Open HushGram settings to check them.	Hayalet modu anahtarlarının hepsi değiştirilemedi. HushGram ayarlarından kontrol et.
-Couldn't reset overrides. Open settings from Home while signed in. Nothing changed.	Geçersiz kılmalar sıfırlanamadı. Oturum açıkken ayarları Ana Sayfa'dan aç. Hiçbir şey değişmedi.
 Don't report screenshots	Ekran görüntülerini bildirme
 Ghost mode	Hayalet modu
 Ghost mode is off, and so is each of its switches.	Hayalet modu kapalı, anahtarlarının her biri de kapalı.
@@ -601,11 +485,7 @@ Ghost mode is on, and so is each of its switches.	Hayalet modu açık, anahtarla
 Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	Ekran görüntüsü aldığında Instagram bunu fark etmez, böylece sana kaybolan bir fotoğraf veya video gönderen kişiye haber verilmez. Ekran görüntülerin her zamanki gibi kaydedilir.
 Keep in chat	Sohbette tut
 Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	İzlediğin canlı yayınlar seni yayıncının izleyici listesine eklemez, böylece orada olduğun ona söylenmez. Yorum yapmak veya tepki vermek seni yine gösterir. Gördüğün izleyici sayısı güncellenmeyi bırakır ve biten bir canlı yayın, sen çıkana kadar canlı görünmeye devam edebilir.
-Removed %1$d overrides. Restart Instagram to go back to its own settings.	%1$d override kaldırıldı. Instagram'ın kendi ayarlarına dönmek için yeniden başlat.
-Reset all overrides	Tüm geçersiz kılmaları sıfırla
 Screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos. Turn on Don't report screenshots too if the sender shouldn't hear about it.	Ekran görüntüleri ve ekran kayıtları, kaybolan fotoğraf ve videolar gibi Instagram'ın engellediği her yerde çalışır. Gönderen bunu duymamalıysa Ekran görüntülerini bildirme'yi de aç.
-Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.	Oturum açık olan bu hesaptaki tüm override'ları kaldırır, böylece Instagram kendi ayarlarına döner. Mevcut override'ların önce Geri Yükle için kaydedilir.
-There are no overrides to reset. Nothing changed.	Sıfırlanacak geçersiz kılma yok. Hiçbir şey değişmedi.
 Turns the switches that keep what you do to yourself on or off in one go, like View stories anonymously and Hide that you're typing. Each one keeps its own switch.	Yaptıklarını kendine saklayan anahtarları, Hikayeleri anonim olarak izle ve Yazdığını gizle gibi, tek seferde açar veya kapatır. Her biri kendi anahtarını korur.
 View live anonymously	Canlı yayınları anonim izle
 Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.	Tek seferlik veya tekrar oynatılabilir gönderilen fotoğraflar ve videolar sohbette kalır, böylece tekrar açabilirsin. Önceden yüklenenleri güncellemek için sohbeti yeniden aç.
@@ -832,20 +712,6 @@ Three fingers	Üç parmak
 Half a second	Yarım saniye
 1 second	1 saniye
 1.5 seconds	1,5 saniye
-Use HushGram's setting names	HushGram'ın ayar adlarını kullan
-MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig sayılar yerine HushGram'ın kendi listesindeki adları gösterir. Liste Instagram 447'den geldiği için daha yeni birkaç ayar yine sayı olarak görünür. İçe aktardığın bir liste varsa onun yerine o kullanılır.
-Import setting names	Ayar adlarını içe aktar
-Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	id_name_mapping.json dosyası gibi bir MetaConfig ad listesi seç, MetaConfig sayılar yerine bu adları göstersin. Sayıyla arama çalışmaya devam eder.
-Remove setting names	Ayar adlarını kaldır
-Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.	İçe aktarılan adları unutur. MetaConfig HushGram'ın adlarına döner, bu anahtar kapalıysa Instagram'ın kendi etiketlerini gösterir.
-Couldn't read setting names from that file. Nothing changed.	Bu dosyadan ayar adları okunamadı. Hiçbir şey değişmedi.
-Setting names removed. Open MetaConfig again to see the change.	Ayar adları kaldırıldı. Değişikliği görmek için MetaConfig'i yeniden aç.
-There are no imported setting names to remove.	Kaldırılacak içe aktarılmış ayar adı yok.
-Setting names imported: %1$d. Open MetaConfig again to see them.	İçe aktarılan ayar adları: %1$d. Görmek için MetaConfig'i yeniden aç.
-Entries left out because they repeat or don't fit: %1$d.	Tekrarlandığı veya uymadığı için dışarıda bırakılan girişler: %1$d.
-That file has no setting names in it. Nothing changed.	Bu dosyada ayar adı yok. Hiçbir şey değişmedi.
-Couldn't remove the setting names. Try again.	Ayar adları kaldırılamadı. Tekrar dene.
-Couldn't save the setting names. Nothing changed.	Ayar adları kaydedilemedi. Hiçbir şey değişmedi.
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Bu Instagram sürümünde %2$d yolun %1$d tanesini kapsıyor. Kalanlar tanılama raporunda listelenir.
 Hide suggested accounts in Messages	Mesajlar'daki önerilen hesapları gizle
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Instagram'ın önerdiği hesapları mesajlarının altından kaldırır. Sohbetlerin ve takip istekleri kalır. Değişikliği görmek için Instagram'ı yeniden başlat.
@@ -1017,7 +883,6 @@ Keep Instagram's saved photos and videos from filling your phone.	Instagram'ın 
 Save photos, videos and more, and choose where they go.	Fotoğraf, video ve daha fazlasını kaydet, nereye gideceklerini seç.
 Stop background work Instagram doesn't need.	Instagram'ın ihtiyaç duymadığı arka plan işlerini durdur.
 Stop Instagram from saying this version is too old.	Instagram'ın bu sürümün çok eski olduğunu söylemesini engelle.
-Instagram's own testing tools. Change them only if you know what they do.	Instagram'ın kendi test araçları. Yalnızca ne yaptıklarını biliyorsan değiştir.
 Chosen when you patched, so Pause leaves them on. Patch again to change them.	Yamalarken seçildi, bu yüzden Duraklatma bunları kapatmaz. Değiştirmek için yeniden yamala.
 Save your HushGram choices to a file, or bring them back.	HushGram seçimlerini bir dosyaya kaydet ya da geri getir.
 Your version, the source code and licenses.	Sürümün, kaynak kodu ve lisanslar.

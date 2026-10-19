@@ -9,7 +9,6 @@ package app.hushgram.extension.instagram.settings;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.DialogFragment;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -55,8 +54,6 @@ import android.widget.FrameLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.LinearLayout;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -90,15 +87,11 @@ import app.hushgram.extension.instagram.download.DownloadQuality;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
 import app.hushgram.extension.instagram.media.ResumePlayback;
-import app.hushgram.extension.instagram.misc.OverrideExchange;
 import app.hushgram.extension.instagram.feed.HiddenAccounts;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
-import app.hushgram.extension.instagram.misc.FlagNames;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.NotificationGroups;
-import app.hushgram.extension.instagram.misc.OverrideImport;
-import app.hushgram.extension.instagram.misc.RecommendedFlags;
 import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
@@ -205,20 +198,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     };
     private static final int EXPORT_CONFIGURATION = 0x4847;
     private static final int IMPORT_CONFIGURATION = 0x4848;
-    private static final int EXPORT_OVERRIDES = 0x4849;
-    private static final int VALIDATE_OVERRIDES = 0x484a;
-    private static final int IMPORT_OVERRIDES = 0x484b;
-    private static final int IMPORT_FLAG_NAMES = 0x484c;
     private static final int PICK_FONT = 0x484d;
-    /** Restore, Discard, Reset and Remove flag names need no document, so they never become a document request. */
-    private static final int RESTORE_OVERRIDES = 0, DISCARD_OVERRIDES = -1, RESET_OVERRIDES = -2, REMOVE_FLAG_NAMES = -3;
     /** Framework fragment callbacks run on the main thread. Never reuse a code across pages. */
     private static int documentSequence = PICK_FONT;
     private int documentRequest;
     private int documentCode;
     @Nullable private String configurationExportToken;
     private boolean changingConfiguration;
-    private boolean changingOverrides;
     /** Last operation's receipt lasts for this process, including closing/reopening settings. */
     @Nullable static volatile String importFeedback;
     @Nullable private Row exportConfiguration;
@@ -226,19 +212,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private final Runnable exportChanges = this::showConfiguration;
     @Nullable private Row importConfiguration;
     @Nullable private Row undoConfiguration;
-    @Nullable private Row exportOverrides;
-    @Nullable private Row validateOverrides;
-    @Nullable static volatile String overrideExportFeedback, overrideValidationFeedback;
-    /** Shown only while Allow importing overrides is on; absent rows can't be found or searched. */
-    @Nullable private Row importOverrides, restoreOverrides, discardOverrides, resetOverrides;
-    @Nullable private PreferenceCategory developerSection;
     /** Ghost mode's switch, and the switches it turns, both set once the page is built. */
     @Nullable private SwitchPreference ghostMode;
     private List<BooleanSetting> ghostSwitches = new ArrayList<>();
-    @Nullable static volatile String overrideImportFeedback, overrideRestoreFeedback, overrideDiscardFeedback, overrideResetFeedback;
-    /** Import and Remove flag names, which only change HushGram's own copy of the names. */
-    @Nullable private Row importFlagNames, removeFlagNames;
-    @Nullable static volatile String flagNamesFeedback;
 
     private String searchQuery = "";
     @Nullable private SearchRow search;
@@ -1575,118 +1551,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "doesn't update on its own, so this keeps it usable.")));
         }
 
-        if (build.contains(PatchFamily.DEVELOPER_OPTIONS)) {
-            PreferenceCategory developer = category(screen, L10n.t("Developer"), SettingsIcons.CODE,
-                    L10n.t("Instagram's own testing tools. Change them only if you know what they do."));
-            developer.addPreference(toggle(context, Settings.OPEN_DEVELOPER_OPTIONS,
-                    L10n.t("Developer options on a long press of Home"),
-                    L10n.t("Opens Instagram's own developer options, where you can look at and change its hidden "
-                            + "settings. A wrong change can break parts of Instagram until you reset it.")));
-            developer.addPreference(nativeScreenRow(context, "hushgram_open_overrides",
-                    L10n.t("Open MetaConfig overrides"),
-                    L10n.t("Opens Instagram's own editor for its hidden settings (MetaConfig). A wrong override, "
-                            + "which is a changed setting, can break parts of Instagram."),
-                    app.hushgram.extension.instagram.misc.DeveloperOptions::openOverrides,
-                    L10n.t("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.")));
-            // The names go through the patch's hook on MetaConfig's list, which a build goes without
-            // when Instagram moved it.
-            if (PatchFamily.flagNamesInBuild()) {
-                developer.addPreference(toggle(context, Settings.USE_FLAG_NAMES,
-                        L10n.t("Use HushGram's setting names"),
-                        L10n.t("MetaConfig shows names from HushGram's own list in place of numbers. The list comes from "
-                                + "Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.")));
-                importFlagNames = new Row(context);
-                importFlagNames.setKey("hushgram_import_flag_names");
-                importFlagNames.setPersistent(false);
-                importFlagNames.setTitle(L10n.t("Import setting names"));
-                importFlagNames.setSummary(L10n.t("Pick a list of MetaConfig names, such as an id_name_mapping.json file, "
-                        + "and MetaConfig shows those names in place of numbers. Searching by number still works."));
-                importFlagNames.setOnPreferenceClickListener(row -> { pickOverrides(IMPORT_FLAG_NAMES); return true; });
-                developer.addPreference(importFlagNames);
-                removeFlagNames = new Row(context);
-                removeFlagNames.setKey("hushgram_remove_flag_names");
-                removeFlagNames.setPersistent(false);
-                removeFlagNames.setTitle(L10n.t("Remove setting names"));
-                removeFlagNames.setSummary(L10n.t("Forget the imported names. MetaConfig goes back to HushGram's names, "
-                        + "or to Instagram's own labels if that switch is off."));
-                removeFlagNames.setOnPreferenceClickListener(row -> { flagNames(null, REMOVE_FLAG_NAMES); return true; });
-                developer.addPreference(removeFlagNames);
-            }
-            developer.addPreference(nativeScreenRow(context, "hushgram_open_whitehat",
-                    L10n.t("Open Whitehat settings"),
-                    L10n.t("Opens Instagram's own Whitehat settings. Its switch lets Instagram trust the certificates "
-                            + "installed on this phone for 24 hours, so you can check the app's traffic. Restart "
-                            + "Instagram after you turn it on."),
-                    app.hushgram.extension.instagram.misc.DeveloperOptions::openWhitehat,
-                    L10n.t("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.")));
-            // Export, Validate and Import go through the patch's override reader and writer, which a
-            // build goes without when Instagram moved them. The rest of Developer stays.
-            if (PatchFamily.overrideExchangeInBuild()) {
-                exportOverrides = new Row(context);
-                exportOverrides.setKey("hushgram_export_overrides");
-                exportOverrides.setPersistent(false);
-                exportOverrides.setTitle(L10n.t("Export overrides"));
-                exportOverrides.setSummary(L10n.t("Saves your overrides (changes to Instagram's hidden settings) for "
-                        + "this exact Instagram version."));
-                exportOverrides.setOnPreferenceClickListener(row -> { pickOverrides(EXPORT_OVERRIDES); return true; });
-                developer.addPreference(exportOverrides);
-                validateOverrides = new Row(context);
-                validateOverrides.setKey("hushgram_validate_overrides");
-                validateOverrides.setPersistent(false);
-                validateOverrides.setTitle(L10n.t("Validate an overrides file"));
-                validateOverrides.setSummary(L10n.t("Checks a saved file against this Instagram version. Nothing is "
-                        + "applied."));
-                validateOverrides.setOnPreferenceClickListener(row -> { pickOverrides(VALIDATE_OVERRIDES); return true; });
-                developer.addPreference(validateOverrides);
-            }
-            if (PatchFamily.overrideImportInBuild()) {
-                developer.addPreference(toggle(context, Settings.ALLOW_OVERRIDE_IMPORT,
-                        L10n.t("Allow importing overrides"),
-                        L10n.t("Shows the Import and Restore rows. An import changes Instagram's hidden settings for "
-                                + "this signed-in account.")));
-                developer.addPreference(recommendedFlagsRow(context));
-                developerSection = developer;
-                importOverrides = new Row(context);
-                importOverrides.setKey("hushgram_import_overrides");
-                importOverrides.setPersistent(false);
-                importOverrides.setTitle(L10n.t("Import overrides"));
-                importOverrides.setSummary(L10n.t("Applies a HushGram export, or Instagram's own overrides file. "
-                        + "Your current overrides are saved first so Restore can bring them back."));
-                importOverrides.setOnPreferenceClickListener(row -> { pickOverrides(IMPORT_OVERRIDES); return true; });
-                restoreOverrides = new Row(context);
-                restoreOverrides.setKey("hushgram_restore_overrides");
-                restoreOverrides.setPersistent(false);
-                restoreOverrides.setTitle(L10n.t("Restore previous overrides"));
-                restoreOverrides.setSummary(L10n.t("Puts back the overrides saved before your last import for this "
-                        + "account and Instagram version."));
-                restoreOverrides.setOnPreferenceClickListener(row -> { exchangeOverrides(null, RESTORE_OVERRIDES); return true; });
-                discardOverrides = new Row(context);
-                discardOverrides.setKey("hushgram_discard_overrides");
-                discardOverrides.setPersistent(false);
-                discardOverrides.setTitle(L10n.t("Discard saved overrides"));
-                discardOverrides.setSummary(L10n.t("Forgets the copy saved for Restore so imports can run again. "
-                        + "Instagram's own settings don't change."));
-                discardOverrides.setOnPreferenceClickListener(row -> { exchangeOverrides(null, DISCARD_OVERRIDES); return true; });
-                resetOverrides = new Row(context);
-                resetOverrides.setKey("hushgram_reset_overrides");
-                resetOverrides.setPersistent(false);
-                resetOverrides.setTitle(L10n.t("Reset all overrides"));
-                resetOverrides.setSummary(L10n.t("Removes every override from this signed-in account, so Instagram "
-                        + "goes back to its own settings. Your current overrides are saved first for Restore."));
-                resetOverrides.setOnPreferenceClickListener(row -> { exchangeOverrides(null, RESET_OVERRIDES); return true; });
-                // Off the page until their switch is on, so the icon pass over the sections misses them.
-                for (Row exchange : new Row[]{importOverrides, restoreOverrides, discardOverrides, resetOverrides}) {
-                    mark(exchange, SettingsIcons.CODE);
-                }
-                if (Settings.ALLOW_OVERRIDE_IMPORT.get()) {
-                    developer.addPreference(importOverrides);
-                    developer.addPreference(restoreOverrides);
-                    developer.addPreference(discardOverrides);
-                    developer.addPreference(resetOverrides);
-                }
-            }
-        }
-
         if (build.contains(PatchFamily.RESTORE_TRUST) || build.contains(PatchFamily.REMOVE_AD_ID)
                 || build.contains(PatchFamily.PURE_BLACK) || build.contains(PatchFamily.VERSION_CODE)) {
             PreferenceCategory patched = category(screen, L10n.t("Set when you patched"), SettingsIcons.BUILD,
@@ -2101,12 +1965,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     @Override protected void updateUIToSettingValues() {
         restoreSearchRows();
-        try { super.updateUIToSettingValues(); } finally { showOverrideImport(); showGhostMode(); filterSettings(); }
+        try { super.updateUIToSettingValues(); } finally { showGhostMode(); filterSettings(); }
     }
 
     @Override protected void updateUIAvailability() {
         restoreSearchRows();
-        try { super.updateUIAvailability(); } finally { showOverrideImport(); showGhostMode(); filterSettings(); }
+        try { super.updateUIAvailability(); } finally { showGhostMode(); filterSettings(); }
     }
 
     /** Ghost mode shows on only while every switch it turns is on, whichever way they got there. */
@@ -2141,24 +2005,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setChecked(GhostMode.on(ghostSwitches));
         mark(row, SettingsIcons.HIDDEN);
         return row;
-    }
-
-    /** Import, Restore and Discard exist on the page, and in search, only while their switch is on. */
-    private void showOverrideImport() {
-        PreferenceCategory group = developerSection;
-        if (group == null || importOverrides == null || restoreOverrides == null || discardOverrides == null
-                || resetOverrides == null) return;
-        boolean allowed = Settings.ALLOW_OVERRIDE_IMPORT.get();
-        List<Preference> rows = searchableRows.get(group);
-        for (Row row : new Row[]{importOverrides, restoreOverrides, discardOverrides, resetOverrides}) {
-            if (allowed) {
-                if (rows != null && !rows.contains(row)) rows.add(row);
-                if (row.getParent() != group) group.addPreference(row);
-            } else {
-                if (rows != null) rows.remove(row);
-                if (row.getParent() == group) group.removePreference(row);
-            }
-        }
     }
 
     /**
@@ -2341,8 +2187,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /**
      * Puts back every order a search moved. It goes by what was moved, not by what a search can
-     * still find: the override rows leave the search when Allow importing overrides goes off, and
-     * used to keep their place at the end until settings was opened again.
+     * still find, so a row that left the search doesn't keep its moved place.
      */
     private void restoreOrders() {
         for (Map.Entry<Preference, Integer> moved : builtOrders.entrySet()) {
@@ -2484,7 +2329,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     private void showConfiguration() {
-        boolean busy = changingConfiguration || changingOverrides || documentRequest != 0 || ExportStatus.CONFIGURATION.active();
+        boolean busy = changingConfiguration || documentRequest != 0 || ExportStatus.CONFIGURATION.active();
         if (exportConfiguration != null) {
             exportConfiguration.setEnabled(!busy);
             ExportStatus.State state = ExportStatus.CONFIGURATION.state();
@@ -2516,40 +2361,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             });
         }
         scheduleUndoExpiry();
-        if (exportOverrides != null) {
-            exportOverrides.setEnabled(!busy);
-            if (overrideExportFeedback != null) exportOverrides.setSummary(overrideExportFeedback);
-        }
-        if (validateOverrides != null) {
-            validateOverrides.setEnabled(!busy);
-            if (overrideValidationFeedback != null) validateOverrides.setSummary(overrideValidationFeedback);
-        }
-        if (importOverrides != null) {
-            importOverrides.setEnabled(!busy);
-            if (overrideImportFeedback != null) importOverrides.setSummary(overrideImportFeedback);
-        }
-        if (restoreOverrides != null) {
-            restoreOverrides.setEnabled(!busy);
-            if (overrideRestoreFeedback != null) restoreOverrides.setSummary(overrideRestoreFeedback);
-        }
-        if (discardOverrides != null) {
-            discardOverrides.setEnabled(!busy);
-            if (overrideDiscardFeedback != null) discardOverrides.setSummary(overrideDiscardFeedback);
-        }
-        if (resetOverrides != null) {
-            resetOverrides.setEnabled(!busy);
-            if (overrideResetFeedback != null) resetOverrides.setSummary(overrideResetFeedback);
-        }
-        if (importFlagNames != null) {
-            importFlagNames.setEnabled(!busy);
-            if (flagNamesFeedback != null) importFlagNames.setSummary(flagNamesFeedback);
-        }
-        if (removeFlagNames != null) removeFlagNames.setEnabled(!busy);
         filterSettings();
     }
 
     private void pickConfiguration(boolean importing) {
-        if (documentRequest != 0 || changingConfiguration || changingOverrides || ExportStatus.CONFIGURATION.active()) return;
+        if (documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active()) return;
         if (documentSequence == Integer.MAX_VALUE) {
             Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
             return;
@@ -2576,31 +2392,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    private void pickOverrides(int request) {
-        if (documentRequest != 0 || changingConfiguration || changingOverrides || ExportStatus.CONFIGURATION.active()) return;
-        if (documentSequence == Integer.MAX_VALUE) {
-            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
-            return;
-        }
-        documentRequest = request;
-        documentCode = ++documentSequence;
-        showConfiguration();
-        boolean exporting = request == EXPORT_OVERRIDES;
-        boolean names = request == IMPORT_FLAG_NAMES;
-        // A name list can be HushGram's plain text as well as JSON, and some providers don't type either.
-        Intent picker = new Intent(exporting ? Intent.ACTION_CREATE_DOCUMENT : Intent.ACTION_OPEN_DOCUMENT)
-                .addCategory(Intent.CATEGORY_OPENABLE).setType(names ? "*/*" : "application/json");
-        if (exporting) picker.putExtra(Intent.EXTRA_TITLE, "HushGram-overrides.json");
-        try { startActivityForResult(picker, documentCode); }
-        catch (ActivityNotFoundException | SecurityException failure) {
-            documentRequest = 0;
-            documentCode = 0;
-            overrideFeedback(request, names ? L10n.t("This phone has no file picker. Your settings haven't changed.")
-                    : L10n.t("This phone has no file picker. Overrides haven't changed."));
-            showConfiguration();
-        }
-    }
-
     @Override
     public void onActivityResult(int code, int result, Intent data) {
         super.onActivityResult(code, result, data);
@@ -2613,9 +2404,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (result == Activity.RESULT_OK) keepFont(data == null ? null : data.getData());
             return;
         }
-        boolean overrides = request == EXPORT_OVERRIDES || request == VALIDATE_OVERRIDES || request == IMPORT_OVERRIDES;
-        boolean names = request == IMPORT_FLAG_NAMES;
-        if (request != EXPORT_CONFIGURATION && request != IMPORT_CONFIGURATION && !overrides && !names) return;
+        if (request != EXPORT_CONFIGURATION && request != IMPORT_CONFIGURATION) return;
         documentRequest = 0;
         documentCode = 0;
         if (request == EXPORT_CONFIGURATION) {
@@ -2633,172 +2422,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         Uri uri = data == null ? null : data.getData();
         if (uri == null || !"content".equals(uri.getScheme())) {
-            if (names) {
-                overrideFeedback(request, L10n.t("Couldn't read setting names from that file. Nothing changed."));
-            } else if (overrides) {
-                overrideFeedback(request, L10n.t("Couldn't use that file. Instagram's overrides haven't changed."));
-            } else {
-                if (request == EXPORT_CONFIGURATION) ExportStatus.CONFIGURATION.finish(configurationExportToken,
-                        L10n.t("Couldn't use that settings file. Your settings haven't changed."));
-                Utils.showToastLong(L10n.t("Couldn't use that settings file. Your settings haven't changed."));
-            }
+            if (request == EXPORT_CONFIGURATION) ExportStatus.CONFIGURATION.finish(configurationExportToken,
+                    L10n.t("Couldn't use that settings file. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("Couldn't use that settings file. Your settings haven't changed."));
             showConfiguration();
-            return;
-        }
-        if (overrides) {
-            exchangeOverrides(uri, request);
-            return;
-        }
-        if (names) {
-            flagNames(uri, request);
             return;
         }
         if (request == IMPORT_CONFIGURATION) changeConfiguration(uri, 0);
         else exportConfiguration(uri);
-    }
-
-    /** Restore and Discard read HushGram's saved copy instead of a document. */
-    private void exchangeOverrides(@Nullable Uri uri, int request) {
-        boolean saved = request == RESTORE_OVERRIDES || request == DISCARD_OVERRIDES || request == RESET_OVERRIDES;
-        if (saved && (documentRequest != 0 || changingConfiguration || changingOverrides || ExportStatus.CONFIGURATION.active())) return;
-        boolean importing = saved || request == IMPORT_OVERRIDES;
-        boolean validating = request == VALIDATE_OVERRIDES;
-        Context context = getContext();
-        Activity activity = getActivity();
-        if (context == null || activity == null) { showConfiguration(); return; }
-        changingOverrides = true;
-        showConfiguration();
-        if (!Utils.runOnBackgroundThread(() -> {
-            try {
-                // The rows hide while the switch is off or HushGram is paused, but either can change
-                // while a picker is open. Then neither the document nor the store is read.
-                if (importing && !Settings.ALLOW_OVERRIDE_IMPORT.get()) {
-                    Logger.printInfo(() -> "Override import refused while its switch is off");
-                    overrideFeedback(request, L10n.t("Allow importing overrides is off or HushGram is paused. Nothing changed."));
-                } else if (request == RESTORE_OVERRIDES) {
-                    overrideFeedback(request, overrideOutcome(OverrideImport.restore(activity), true));
-                } else if (request == RESET_OVERRIDES) {
-                    overrideFeedback(request, resetOutcome(OverrideImport.reset(activity)));
-                } else if (request == DISCARD_OVERRIDES) {
-                    overrideFeedback(request, OverrideImport.discard(activity)
-                            ? L10n.t("Discarded the saved copy. Imports can run again, and Instagram's overrides haven't changed.")
-                            : L10n.t("There's no saved copy to discard. Nothing changed."));
-                } else if (request == IMPORT_OVERRIDES) {
-                    byte[] bytes;
-                    try (java.io.InputStream input = context.getContentResolver().openInputStream(uri)) {
-                        bytes = OverrideExchange.read(input);
-                    }
-                    // The document is closed before the first native call, so a provider failure
-                    // can't follow a write.
-                    overrideFeedback(request, overrideOutcome(OverrideImport.apply(activity, bytes), false));
-                } else if (validating) {
-                    byte[] bytes;
-                    try (java.io.InputStream input = context.getContentResolver().openInputStream(uri)) {
-                        bytes = OverrideExchange.read(input);
-                    }
-                    OverrideExchange.Checked checked = OverrideExchange.validate(bytes, OverrideExchange.capture(activity));
-                    String validated = L10n.f("Checked %1$d overrides only. Nothing was applied.", checked.fits);
-                    overrideFeedback(request, checked.leftOut == 0 ? validated : validated + " " + L10n.f("%1$d more "
-                            + "come from a different Instagram version and don't fit this one, so the import leaves "
-                            + "them out.", checked.leftOut));
-                } else {
-                    OverrideExchange.Snapshot snapshot = OverrideExchange.capture(activity);
-                    byte[] bytes = OverrideExchange.export(snapshot);
-                    try (java.io.OutputStream output = context.getContentResolver().openOutputStream(uri, "wt")) {
-                        if (output == null) throw new java.io.IOException();
-                        output.write(bytes);
-                    }
-                    String exported = L10n.t("Overrides exported for this Instagram version.");
-                    overrideFeedback(request, snapshot.leftOut() == 0 ? exported : exported + " " + L10n.f("%1$d "
-                            + "overrides from a different Instagram version don't fit this one and were left out.", snapshot.leftOut()));
-                }
-            } catch (OverrideImport.RestoreFirst failure) {
-                Logger.printInfo(() -> "Override import refused until Restore runs");
-                overrideFeedback(request, L10n.t("An earlier import still needs Restore previous overrides, "
-                        + "or Discard saved overrides if Restore can't run. Nothing changed."));
-            } catch (OverrideImport.NotAllowed failure) {
-                Logger.printInfo(() -> "Override import refused while its switch is off");
-                overrideFeedback(request, L10n.t("Allow importing overrides is off or HushGram is paused. Nothing changed."));
-            } catch (OverrideImport.StoreChanging failure) {
-                Logger.printInfo(() -> "Override import refused while the native store was still changing");
-                overrideFeedback(request, L10n.t("Instagram is still saving an override change. Wait a moment and try again. Nothing changed."));
-            } catch (OverrideImport.NothingSaved failure) {
-                overrideFeedback(request, L10n.t("Couldn't restore overrides. There's no saved copy for this account "
-                        + "and Instagram version. Nothing changed."));
-            } catch (OverrideExchange.NothingFits failure) {
-                Logger.printInfo(() -> "Override file holds nothing this build has");
-                overrideFeedback(request, L10n.t("None of this file's overrides fit this Instagram version. Nothing "
-                        + "changed."));
-            } catch (OverrideImport.SavedCopyDoesntFit failure) {
-                Logger.printInfo(() -> "Override restore refused a saved copy from another build or schema");
-                overrideFeedback(request, L10n.t("Couldn't restore overrides. The saved copy doesn't fit this "
-                        + "account and Instagram version. Use Discard saved overrides if you don't need it. Nothing "
-                        + "changed."));
-            } catch (Exception failure) {
-                Logger.printInfo(() -> "Override document operation failed before native mutation");
-                overrideFeedback(request, request == RESTORE_OVERRIDES
-                        ? L10n.t("Couldn't restore overrides. Open settings from Home while signed in. Nothing changed.")
-                        : request == RESET_OVERRIDES
-                        ? L10n.t("Couldn't reset overrides. Open settings from Home while signed in. Nothing changed.")
-                        : request == DISCARD_OVERRIDES
-                        ? L10n.t("Couldn't finish discarding the saved copies. Try Discard saved overrides again. "
-                                + "Instagram's overrides haven't changed.")
-                        : request == IMPORT_OVERRIDES
-                        ? L10n.t("Couldn't import overrides. Check the file and open settings from Home while signed in. Nothing changed.")
-                        : validating
-                        ? L10n.t("Couldn't validate overrides. Check the file and open settings from Home while signed in. Nothing changed.")
-                        : L10n.t("Couldn't export overrides. The selected file may be incomplete. Instagram's "
-                                + "overrides haven't changed."));
-            } finally { configurationFinished(); }
-        })) {
-            changingOverrides = false;
-            overrideFeedback(request, L10n.t("Couldn't start that. Try again. Nothing changed."));
-            showConfiguration();
-        }
-    }
-
-    /**
-     * Import flag names reads the picked list into HushGram's own copy, and Remove forgets that copy.
-     * Neither touches Instagram's overrides, its schema or anything it sends. A file that isn't a
-     * name list, or names nothing, changes nothing and says so in one line.
-     */
-    private void flagNames(@Nullable Uri uri, int request) {
-        boolean removing = request == REMOVE_FLAG_NAMES;
-        if (removing && (documentRequest != 0 || changingConfiguration || changingOverrides || ExportStatus.CONFIGURATION.active())) return;
-        Context context = getContext();
-        if (context == null || (!removing && uri == null)) { showConfiguration(); return; }
-        changingOverrides = true;
-        showConfiguration();
-        if (!Utils.runOnBackgroundThread(() -> {
-            try {
-                if (removing) {
-                    overrideFeedback(request, FlagNames.clear(context)
-                            ? L10n.t("Setting names removed. Open MetaConfig again to see the change.")
-                            : L10n.t("There are no imported setting names to remove."));
-                } else {
-                    byte[] bytes;
-                    try (java.io.InputStream input = context.getContentResolver().openInputStream(uri)) {
-                        bytes = FlagNames.read(input);
-                    }
-                    FlagNames.Names names = FlagNames.importNames(context, bytes);
-                    String imported = L10n.f("Setting names imported: %1$d. Open MetaConfig again to see them.", names.size());
-                    overrideFeedback(request, names.leftOut == 0 ? imported : imported + " " + L10n.f(
-                            "Entries left out because they repeat or don't fit: %1$d.", names.leftOut));
-                }
-            } catch (FlagNames.Empty failure) {
-                overrideFeedback(request, L10n.t("That file has no setting names in it. Nothing changed."));
-            } catch (FlagNames.Unreadable failure) {
-                overrideFeedback(request, L10n.t("Couldn't read setting names from that file. Nothing changed."));
-            } catch (Exception failure) {
-                Logger.printInfo(() -> "Flag names operation failed", failure);
-                overrideFeedback(request, removing ? L10n.t("Couldn't remove the setting names. Try again.")
-                        : L10n.t("Couldn't save the setting names. Nothing changed."));
-            } finally { configurationFinished(); }
-        })) {
-            changingOverrides = false;
-            overrideFeedback(request, L10n.t("Couldn't start that. Try again."));
-            showConfiguration();
-        }
     }
 
     /**
@@ -2806,7 +2437,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      * as a font.
      */
     private void pickFont() {
-        if (documentRequest != 0 || changingConfiguration || changingOverrides || ExportStatus.CONFIGURATION.active()) return;
+        if (documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active()) return;
         if (documentSequence == Integer.MAX_VALUE) {
             Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
             return;
@@ -2872,226 +2503,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Utils.showToastLong(L10n.t("Font saved. Restart Instagram to see it."));
     }
 
-    /** The row that opens the page of named switches for Instagram's hidden settings. */
-    private Row recommendedFlagsRow(Context context) {
-        Row row = new Row(context);
-        row.setKey("hushgram_recommended_flags");
-        row.setPersistent(false);
-        row.setTitle(L10n.t("Recommended flags"));
-        row.setSummary(L10n.t("Named switches for some of Instagram's hidden settings, such as the new story style. "
-                + "Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore."));
-        row.setOnPreferenceClickListener(tapped -> {
-            if (!Settings.ALLOW_OVERRIDE_IMPORT.get()) {
-                Utils.showToastLong(L10n.t("Turn on Allow importing overrides first. These switches use the same path."));
-            } else {
-                openRecommendedFlags();
-            }
-            return true;
-        });
-        return row;
-    }
-
-    /** Reads the store off the main thread, then shows the page with each switch where it stands. */
-    private void openRecommendedFlags() {
-        if (documentRequest != 0 || changingConfiguration || changingOverrides || ExportStatus.CONFIGURATION.active()) return;
-        Activity activity = getActivity();
-        if (activity == null) return;
-        changingOverrides = true;
-        showConfiguration();
-        if (!Utils.runOnBackgroundThread(() -> {
-            RecommendedFlags.Page page = null;
-            try {
-                page = RecommendedFlags.load(activity);
-            } catch (Exception failure) {
-                Logger.printInfo(() -> "Recommended flags couldn't read the overrides");
-            } finally {
-                // An Error past the catch is a failed read too, so it says so and frees the override rows.
-                RecommendedFlags.Page loaded = page;
-                Utils.runOnMainThread(() -> {
-                    if (loaded == null) {
-                        Utils.showToastLong(L10n.t("Couldn't read Instagram's overrides. Open settings from Home while signed in."));
-                    } else {
-                        showRecommendedFlags(loaded);
-                    }
-                });
-                configurationFinished();
-            }
-        })) {
-            changingOverrides = false;
-            showConfiguration();
-            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
-        }
-    }
-
-    private void showRecommendedFlags(RecommendedFlags.Page page) {
-        Context context = getActivity();
-        if (context == null) return;
-        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
-        int inset = Math.round(20 * context.getResources().getDisplayMetrics().density);
-        LinearLayout list = new LinearLayout(context);
-        list.setOrientation(LinearLayout.VERTICAL);
-        list.setPaddingRelative(inset, inset / 2, inset, inset / 2);
-        TextView intro = new TextView(context);
-        intro.setText(page.flags.isEmpty()
-                ? L10n.t("This Instagram version has none of these switches.")
-                : L10n.t("Pick Instagram's own setting, On or Off. Restart Instagram after a change."));
-        intro.setTextColor(colors.summary);
-        intro.setPadding(0, 0, 0, inset / 2);
-        list.addView(intro);
-        List<RadioGroup> groups = new ArrayList<>();
-        for (int i = 0; i < page.flags.size(); i++) {
-            RecommendedFlags.Flag flag = page.flags.get(i);
-            RecommendedFlags.Choice shown = page.choices.get(i);
-            TextView title = new TextView(context);
-            title.setText(flag.title);
-            title.setTextColor(colors.title);
-            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-            title.setPadding(0, inset / 2, 0, 0);
-            TextView about = new TextView(context);
-            about.setText(shown == RecommendedFlags.Choice.OTHER
-                    ? flag.description + " " + L10n.t("Set another way right now.") : flag.description);
-            about.setTextColor(colors.summary);
-            RadioGroup group = new RadioGroup(context);
-            group.setOrientation(RadioGroup.VERTICAL);
-            String[] labels = {L10n.t("Instagram's own"), L10n.t("On"), L10n.t("Off")};
-            RecommendedFlags.Choice[] choices = {RecommendedFlags.Choice.DEFAULT, RecommendedFlags.Choice.ON,
-                    RecommendedFlags.Choice.OFF};
-            for (int c = 0; c < labels.length; c++) {
-                RadioButton button = new RadioButton(context);
-                button.setId(View.generateViewId());
-                button.setText(labels[c]);
-                button.setTextColor(colors.title);
-                button.setTag(choices[c]);
-                group.addView(button);
-                if (choices[c] == shown) group.check(button.getId());
-            }
-            group.setTag(shown);
-            group.setOnCheckedChangeListener((radios, checkedId) -> {
-                RadioButton chosen = radios.findViewById(checkedId);
-                if (chosen == null || chosen.getTag() == radios.getTag()) return;
-                RecommendedFlags.Choice previous = (RecommendedFlags.Choice) radios.getTag();
-                setRecommendedFlag(flag, (RecommendedFlags.Choice) chosen.getTag(), radios, previous, groups);
-            });
-            groups.add(group);
-            list.addView(title);
-            list.addView(about);
-            list.addView(group);
-        }
-        ScrollView scroll = new ScrollView(context);
-        scroll.addView(list);
-        show(new AlertDialog.Builder(context).setTitle(L10n.t("Recommended flags")).setView(scroll)
-                .setPositiveButton(L10n.t("OK"), null));
-    }
-
-    /** Applies one switch the way Import overrides does, then puts the radio back if it didn't take. */
-    private void setRecommendedFlag(RecommendedFlags.Flag flag, RecommendedFlags.Choice wanted, RadioGroup group,
-                                    RecommendedFlags.Choice previous, List<RadioGroup> groups) {
-        Activity activity = getActivity();
-        if (activity == null || changingOverrides || changingConfiguration) {
-            revertRecommendedFlag(group, previous);
-            return;
-        }
-        changingOverrides = true;
-        showConfiguration();
-        for (RadioGroup each : groups) for (int i = 0; i < each.getChildCount(); i++) each.getChildAt(i).setEnabled(false);
-        if (!Utils.runOnBackgroundThread(() -> {
-            boolean held = false;
-            String message = L10n.t("Couldn't change that setting. Open settings from Home while signed in. Nothing changed.");
-            try {
-                OverrideImport.Result result = RecommendedFlags.set(activity, flag, wanted);
-                held = result.outcome == OverrideImport.Outcome.APPLIED || result.outcome == OverrideImport.Outcome.UNCHANGED;
-                message = result.outcome == OverrideImport.Outcome.UNCHANGED
-                        ? L10n.t("That's already how it is. Nothing changed.")
-                        : result.outcome == OverrideImport.Outcome.APPLIED
-                        ? L10n.t("Saved. Restart Instagram to apply it.") : overrideOutcome(result, false);
-            } catch (OverrideImport.RestoreFirst failure) {
-                message = L10n.t("An earlier import still needs Restore previous overrides, "
-                        + "or Discard saved overrides if Restore can't run. Nothing changed.");
-            } catch (OverrideImport.NotAllowed failure) {
-                message = L10n.t("Allow importing overrides is off or HushGram is paused. Nothing changed.");
-            } catch (OverrideImport.StoreChanging failure) {
-                message = L10n.t("Instagram is still saving an override change. Wait a moment and try again. Nothing changed.");
-            } catch (Exception failure) {
-                Logger.printInfo(() -> "Recommended flag change failed before native mutation");
-                message = L10n.t("Couldn't change that setting. Open settings from Home while signed in. Nothing changed.");
-            } finally {
-                // An Error past the catches keeps the failure message, puts the radio back and frees the rows.
-                boolean kept = held;
-                Utils.showToastLong(message);
-                Utils.runOnMainThread(() -> {
-                    if (kept) group.setTag(wanted);
-                    else revertRecommendedFlag(group, previous);
-                    for (RadioGroup each : groups) for (int i = 0; i < each.getChildCount(); i++) each.getChildAt(i).setEnabled(true);
-                });
-                configurationFinished();
-            }
-        })) {
-            changingOverrides = false;
-            showConfiguration();
-            revertRecommendedFlag(group, previous);
-            for (RadioGroup each : groups) for (int i = 0; i < each.getChildCount(); i++) each.getChildAt(i).setEnabled(true);
-            Utils.showToastLong(L10n.t("Couldn't start that. Try again. Nothing changed."));
-        }
-    }
-
-    /** Puts a switch's radios back on the choice it had, without applying anything. */
-    private static void revertRecommendedFlag(RadioGroup group, RecommendedFlags.Choice choice) {
-        // The tag is set first, so the listener sees no change in the choice and applies nothing.
-        group.setTag(choice);
-        boolean found = false;
-        for (int i = 0; i < group.getChildCount(); i++) {
-            View child = group.getChildAt(i);
-            if (child.getTag() == choice) { group.check(child.getId()); found = true; }
-        }
-        if (!found) group.clearCheck();
-    }
-
-    private static String resetOutcome(OverrideImport.Result result) {
-        if (result.outcome == OverrideImport.Outcome.UNCHANGED) {
-            return L10n.t("There are no overrides to reset. Nothing changed.");
-        }
-        if (result.outcome != OverrideImport.Outcome.APPLIED) return overrideOutcome(result, false);
-        String message = L10n.f("Removed %1$d overrides. Restart Instagram to go back to its own settings.", result.changes);
-        return result.blocked ? message + " " + L10n.t("Recovery cleanup didn't finish. Use Restore previous overrides or "
-                + "Discard saved overrides.") : message;
-    }
-
-    private static String overrideOutcome(OverrideImport.Result result, boolean restoring) {
-        String message;
-        switch (result.outcome) {
-            case UNCHANGED: message = restoring
-                    ? L10n.t("The current overrides already match the saved copy. Nothing changed.")
-                    : L10n.t("This file matches the current overrides. Nothing changed."); break;
-            case APPLIED: message = restoring
-                    ? L10n.t("Previous overrides restored. Restart Instagram to apply them.")
-                    : L10n.f("Imported %1$d override changes. Restart Instagram to apply them.", result.changes); break;
-            case ROLLED_BACK: message = L10n.t("Instagram didn't keep the change, so the overrides were put back as they were."); break;
-            case PARTIAL: return result.blocked
-                    ? L10n.f("Restore put back what it could, except %1$d overrides that were set to nothing, which "
-                    + "can't be put back this way. Imports stay blocked until you use Discard saved overrides. "
-                    + "Restart Instagram to apply the rest.", result.skipped)
-                    : L10n.f("Restore put back what it could, except %1$d overrides that were set to nothing, which "
-                    + "can't be put back this way. Restart Instagram to apply the rest.", result.skipped);
-            default: return L10n.t("Instagram didn't keep the change and the overrides couldn't be confirmed. "
-                    + "Use Restore previous overrides, then restart Instagram.");
-        }
-        if (result.leftOut > 0) message += " " + L10n.f("%1$d overrides from a different Instagram version don't fit "
-                + "this one and were left out.", result.leftOut);
-        return result.blocked ? message + " " + L10n.t("Recovery cleanup didn't finish. Use Restore previous overrides or Discard saved overrides.") : message;
-    }
-
-    private void overrideFeedback(int request, String message) {
-        if (request == VALIDATE_OVERRIDES) overrideValidationFeedback = message;
-        else if (request == IMPORT_OVERRIDES) overrideImportFeedback = message;
-        else if (request == RESTORE_OVERRIDES) overrideRestoreFeedback = message;
-        else if (request == DISCARD_OVERRIDES) overrideDiscardFeedback = message;
-        else if (request == RESET_OVERRIDES) overrideResetFeedback = message;
-        else if (request == IMPORT_FLAG_NAMES || request == REMOVE_FLAG_NAMES) flagNamesFeedback = message;
-        else overrideExportFeedback = message;
-        Utils.showToastLong(message);
-        Utils.runOnMainThread(this::showConfiguration);
-    }
-
     private void exportConfiguration(Uri uri) {
         String token = configurationExportToken;
         if (!ExportStatus.CONFIGURATION.start(token, L10n.t("Exporting HushGram settings..."))) return;
@@ -3147,7 +2558,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         changingConfiguration = true;
         showConfiguration();
         if (!Utils.runOnBackgroundThread(() -> {
-            byte[] document = null;
             try {
                 ConfigurationBackup.Result result;
                 if (undo) result = ConfigurationBackup.undo(token);
@@ -3156,7 +2566,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     try (java.io.InputStream input = context.getContentResolver().openInputStream(uri)) {
                         bytes = ConfigurationBackup.read(input);
                     }
-                    document = bytes;
                     // A provider can fail while closing. Finish all document I/O before values
                     // change, so the failure verdict can truthfully say nothing was applied.
                     result = ConfigurationBackup.restore(bytes);
@@ -3184,11 +2593,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         : L10n.t("Couldn't save or fully restore the settings. Check the shown values and try Undo."));
             } catch (Exception failure) {
                 Logger.printInfo(() -> "Configuration import failed before applying settings");
-                // An overrides file handed to the settings import is the likeliest mix-up, so name it.
-                showImportFeedback(OverrideExchange.isOverridesFile(document)
-                        ? L10n.t("That's an overrides file, not a settings file. Turn on Allow importing overrides "
-                                + "under Developer, then use Import overrides. Your settings haven't changed.")
-                        : L10n.t("Couldn't use that settings file. Your settings haven't changed."));
+                showImportFeedback(L10n.t("Couldn't use that settings file. Your settings haven't changed."));
             } finally { configurationFinished(); }
         })) configurationQueueFull();
     }
@@ -3211,7 +2616,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private void configurationFinished() {
         Utils.runOnMainThread(() -> {
             changingConfiguration = false;
-            changingOverrides = false;
             if (isAdded() && getPreferenceScreen() != null) updateUIToSettingValues();
             showConfiguration();
         });
@@ -5609,33 +5013,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         preference.setSummary(summary);
         preference.setSelectable(false);
         preference.setPersistent(false);
-        return preference;
-    }
-
-    /**
-     * A row that opens one of Instagram's own screens over the current host. Settings close only
-     * once it opened; otherwise they stay, and the row keeps the whole reason, since Android cuts
-     * a toast to two lines.
-     */
-    private Preference nativeScreenRow(Context context, String key, String title, String summary,
-                                       java.util.function.Predicate<Activity> open, String unavailable) {
-        Preference preference = new Row(context);
-        preference.setKey(key);
-        preference.setPersistent(false);
-        preference.setTitle(title);
-        preference.setSummary(summary);
-        preference.setOnPreferenceClickListener(row -> {
-            if (open.test(getActivity())) {
-                SettingsEntry.onClosedByUser();
-                if (getParentFragment() instanceof DialogFragment) {
-                    ((DialogFragment) getParentFragment()).dismissAllowingStateLoss();
-                }
-            } else {
-                row.setSummary(unavailable);
-                Utils.showToastShort(unavailable);
-            }
-            return true;
-        });
         return preference;
     }
 

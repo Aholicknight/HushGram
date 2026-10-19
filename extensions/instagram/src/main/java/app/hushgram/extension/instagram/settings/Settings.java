@@ -117,28 +117,6 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_remove_build_expired_popup", TRUE);
 
     /**
-     * A long press on the Home tab opens Instagram's developer options. Its patch stays out of the
-     * default selection, so a build that has it asked for it, and the switch starts on.
-     */
-    public static final BooleanSetting OPEN_DEVELOPER_OPTIONS =
-            new BooleanSetting("hushgram_open_developer_options", TRUE);
-
-    /**
-     * MetaConfig's list shows the names HushGram ships in place of numbers, when no list is imported.
-     * Off goes back to Instagram's own labels. Only the labels change, never Instagram's schema.
-     */
-    public static final BooleanSetting USE_FLAG_NAMES =
-            new BooleanSetting("hushgram_use_flag_names", TRUE);
-
-    /**
-     * Shows Import, Restore and Discard for native overrides, and OverrideImport checks it again
-     * before it reads the store. Off by default, and deliberately not a patch switch: Pause and a
-     * settings import never turn it on, and it answers off while HushGram is paused.
-     */
-    public static final BooleanSetting ALLOW_OVERRIDE_IMPORT =
-            new BooleanSetting("hushgram_allow_override_import", FALSE);
-
-    /**
      * The reels you watch, and how far into each you got, which Instagram posts to
      * clips/write_seen_state/ to rank your Reels. Nobody else sees it. Held back, reels you've
      * watched may come back. Off to start.

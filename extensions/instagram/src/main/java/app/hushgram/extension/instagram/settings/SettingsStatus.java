@@ -410,25 +410,6 @@ public final class SettingsStatus {
         return false;
     }
 
-    public static boolean developerOptions() {
-        return false;
-    }
-
-    /** Export and Validate overrides: Open developer options' reader, which a build can lack. */
-    public static boolean overrideExchange() {
-        return false;
-    }
-
-    /** Import, Restore and Reset overrides: Open developer options' writer, which a build can lack. */
-    public static boolean overrideImport() {
-        return false;
-    }
-
-    /** Import flag names: Open developer options' hook on Instagram's MetaConfig list, which a build can lack. */
-    public static boolean flagNames() {
-        return false;
-    }
-
     public static boolean pureBlack() {
         return false;
     }

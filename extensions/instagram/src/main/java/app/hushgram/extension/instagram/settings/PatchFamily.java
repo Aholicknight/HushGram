@@ -185,7 +185,6 @@ public enum PatchFamily {
             Settings.DEFAULT_PLAYBACK_QUALITY),
     DATA_SAVER(FamilyNames.DATA_SAVER, "dataSaver", null, Settings.DATA_SAVER),
     TRANSLATED_START(FamilyNames.TRANSLATED_START, "translatedStart", "the start-up fix for x86 devices"),
-    DEVELOPER_OPTIONS(FamilyNames.DEVELOPER_OPTIONS, "developerOptions", null, Settings.OPEN_DEVELOPER_OPTIONS),
     PURE_BLACK(FamilyNames.PURE_BLACK, "pureBlack", "the pure black dark mode"),
     VERSION_CODE(FamilyNames.VERSION_CODE, "versionCode", "the raised version code");
 
@@ -294,46 +293,6 @@ public enum PatchFamily {
         return FEED_SUGGESTIONS.inBuild() && SettingsStatus.feedTypes();
     }
 
-    /** Whether a test says this build reads, or writes, MetaConfig overrides, instead of asking {@link SettingsStatus}. */
-    @Nullable
-    static volatile Boolean overrideExchangeForTests, overrideImportForTests;
-
-    /**
-     * Whether this build reads MetaConfig overrides, for Export and Validate. Open developer options
-     * goes in without it when Instagram's override reader has moved.
-     */
-    public static boolean overrideExchangeInBuild() {
-        Boolean forced = overrideExchangeForTests;
-        if (forced != null) return forced;
-        Set<PatchFamily> families = inBuildForTests;
-        if (families != null) return families.contains(DEVELOPER_OPTIONS);
-        return DEVELOPER_OPTIONS.inBuild() && SettingsStatus.overrideExchange();
-    }
-
-    /** Whether this build writes them too, for Import, Restore and Reset. The writer needs the reader. */
-    public static boolean overrideImportInBuild() {
-        if (!overrideExchangeInBuild()) return false;
-        Boolean forced = overrideImportForTests;
-        if (forced != null) return forced;
-        return inBuildForTests != null || SettingsStatus.overrideImport();
-    }
-
-    /** Whether a test says this build shows imported flag names in MetaConfig, instead of asking {@link SettingsStatus}. */
-    @Nullable
-    static volatile Boolean flagNamesForTests;
-
-    /**
-     * Whether this build shows imported flag names in Instagram's MetaConfig list, for Import flag
-     * names. Open developer options goes in without it when that list has moved.
-     */
-    public static boolean flagNamesInBuild() {
-        Boolean forced = flagNamesForTests;
-        if (forced != null) return forced;
-        Set<PatchFamily> families = inBuildForTests;
-        if (families != null) return families.contains(DEVELOPER_OPTIONS);
-        return DEVELOPER_OPTIONS.inBuild() && SettingsStatus.flagNames();
-    }
-
     /** The families this build carries, in declaration order. */
     public static Set<PatchFamily> inThisBuild() {
         Set<PatchFamily> found = EnumSet.noneOf(PatchFamily.class);
@@ -386,14 +345,6 @@ public enum PatchFamily {
                     lines.add("  Mark who doesn't follow you back: not in this build (Instagram's follow list didn't match)");
                 } else if (family == FRIENDSHIP_STATUS && !unfollowersInBuild()) {
                     lines.add("  Recent unfollowers: not in this build (Instagram's follow list pager didn't match)");
-                }
-                if (family == DEVELOPER_OPTIONS && !overrideExchangeInBuild()) {
-                    lines.add("  Export, Validate and Import overrides: not in this build (Instagram's override reader didn't match)");
-                } else if (family == DEVELOPER_OPTIONS && !overrideImportInBuild()) {
-                    lines.add("  Import overrides: not in this build (Instagram's override writer didn't match)");
-                }
-                if (family == DEVELOPER_OPTIONS && !flagNamesInBuild()) {
-                    lines.add("  Import flag names: not in this build (Instagram's MetaConfig list didn't match)");
                 }
                 if (family == VERSION_CODE) lines.add("  " + VersionCode.reportLine());
                 if (family == SANITIZE_SHARING_LINKS || family == TRANSLATED_START) {

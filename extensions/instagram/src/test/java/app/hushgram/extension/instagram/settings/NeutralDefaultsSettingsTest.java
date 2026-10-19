@@ -166,13 +166,8 @@ public class NeutralDefaultsSettingsTest {
         assertStockHooks();
     }
 
-    /**
-     * Open developer options stays out of the default selection, so picking it is the choice to use
-     * it and its switch starts on. View DM photos and videos anonymously stays out too, with its
-     * switch off.
-     */
+    /** View DM photos and videos anonymously stays out of the default selection, with its switch off. */
     @Test public void theOptInSwitchesKeepTheirDefaults() {
-        assertEquals(Boolean.TRUE, Settings.OPEN_DEVELOPER_OPTIONS.defaultValue);
         assertEquals(Boolean.FALSE, Settings.VIEW_DM_MEDIA_ANONYMOUSLY.defaultValue);
         // Auto scroll's remembered choice starts off as well, so it adds nothing while the switch is off.
         assertEquals(Boolean.FALSE, Settings.REEL_AUTO_SCROLL_ON.defaultValue);

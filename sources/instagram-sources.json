@@ -350,17 +350,8 @@
         "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
       },
       "contaminatedBy": null,
-      "disposition": "adopted",
-      "adopted": {
-        "commit": "ea752648f5688a50a96df21430020e98bf9ece00",
-        "fixtures": {
-          "builds": [
-            "450.0.0.50.77",
-            "451.0.0.53.80"
-          ]
-        }
-      },
-      "reason": "The biggest Instagram source by far, GPL-3.0 with a NOTICE that asks for attribution under GPL section 7(b). Its 3.10.0-dev.9 build applies all 60 Instagram patches to 439.0.0.37.89 but only 5 to 449.0.0.52.84, because Add settings misses its NativeSwitchInitializer fingerprint and the rest depend on it. HushGram reads it for behavior and anchors and carries none of its code. It does carry two of its data files from commit ea752648: the MetaConfig name list for Instagram 447 (docs/mappings/447.0.0.55.81.json, packed into FlagNameData.java) and the recommended flag list (docs/mappings/piko_recommended_flags_v3.json, written out in RecommendedFlags.java), so it is adopted for those two and NOTICE carries its notice.",
+      "disposition": "candidate",
+      "reason": "The biggest Instagram source by far, GPL-3.0 with a NOTICE that asks for attribution under GPL section 7(b). Its 3.10.0-dev.9 build applies all 60 Instagram patches to 439.0.0.37.89 but only 5 to 449.0.0.52.84, because Add settings misses its NativeSwitchInitializer fingerprint and the rest depend on it. HushGram reads it for behavior and anchors and carries none of its code. It carried two of its data files from commit ea752648 (the MetaConfig name list for 447 and the recommended flag list) until Open developer options was removed in October 2026, so nothing of it ships now.",
       "archived": false,
       "forks": [
         "0scvr/piko",

@@ -1,67 +1,5 @@
 # Indonesian for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
-2x speed for videos in the feed	Kecepatan 2x untuk video di beranda
-Adds a shortcut to your saved posts in the Explore tab.	Menambahkan pintasan ke kiriman tersimpan di tab Jelajahi.
-Adds a speed choice to the menu on a reel.	Menambahkan pilihan kecepatan ke menu reel.
-Adds the option to put a new story in a Highlight as you post it.	Menambahkan opsi untuk memasukkan cerita baru ke Sorotan saat kamu mengunggahnya.
-Asks Instagram to keep more detail when it prepares a story. Instagram's servers still compress what they receive.	Meminta Instagram mempertahankan lebih banyak detail saat menyiapkan cerita. Server Instagram tetap mengompres apa yang diterimanya.
-Blurred background on story reposts	Latar buram pada repost cerita
-Choose Off to hide the suggested accounts that show before you type a search.	Pilih Nonaktif untuk menyembunyikan akun yang disarankan sebelum kamu mengetik pencarian.
-Choose Off to remove the brightness boost on reels and videos on HDR screens.	Pilih Nonaktif untuk menghapus peningkatan kecerahan pada reel dan video di layar HDR.
-Choose Off to show your recent searches instead of AI suggestions.	Pilih Nonaktif untuk menampilkan pencarian terbaru, bukan saran AI.
-Choose Off to stop photos from being shown at full HDR brightness.	Pilih Nonaktif agar foto tidak ditampilkan dengan kecerahan HDR penuh.
-Couldn't change that setting. Open settings from Home while signed in. Nothing changed.	Pengaturan itu tidak dapat diubah. Buka pengaturan dari Beranda saat masuk. Tidak ada yang berubah.
-Couldn't read Instagram's overrides. Open settings from Home while signed in.	Nilai pengganti Instagram tidak dapat dibaca. Buka pengaturan dari Beranda saat masuk.
-Edit a story after posting	Edit cerita setelah diunggah
-Enlarge profile photos	Perbesar foto profil
-Extra-bright HDR video	Video HDR ekstra terang
-Fills the space behind a reposted reel, post or story with a blur.	Mengisi ruang di belakang reel, kiriman, atau cerita yang di-repost dengan efek buram.
-Instagram turns auto scroll off each time it starts. On keeps it the way you left it.	Instagram mematikan gulir otomatis setiap kali dimulai. Aktif mempertahankannya seperti yang kamu tinggalkan.
-Instagram's own	Bawaan Instagram
-Keep Reels auto scroll between sessions	Pertahankan gulir otomatis Reels antar sesi
-Leave a Close Friends list	Keluar dari daftar Teman Dekat
-Lets you change a story for a short while after you post it.	Memungkinkan kamu mengubah cerita sebentar setelah diunggah.
-Lets you tap a profile photo to see it bigger, with a setting in Account Privacy.	Memungkinkan kamu mengetuk foto profil untuk melihatnya lebih besar, dengan pengaturan di Privasi Akun.
-Meta AI suggestions in search	Saran Meta AI di pencarian
-Named switches for some of Instagram's hidden settings, such as the new story style. Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore.	Sakelar bernama untuk beberapa pengaturan tersembunyi Instagram, seperti gaya cerita baru. Masing-masing bisa bawaan Instagram, Aktif, atau Nonaktif. Nilai pengganti kamu saat ini disimpan dulu untuk Pulihkan.
-New like animations	Animasi suka baru
-New story fonts and animations	Font dan animasi cerita baru
-New story timestamp style	Gaya cap waktu cerita baru
-On	Aktif
-Pick Instagram's own setting, On or Off. Restart Instagram after a change.	Pilih bawaan Instagram, Aktif, atau Nonaktif. Mulai ulang Instagram setelah ada perubahan.
-Playback speed in the Reels menu	Kecepatan putar di menu Reels
-Post a story straight to Highlights	Unggah cerita langsung ke Sorotan
-Press and hold a reel to open a menu with playback speed.	Tekan dan tahan reel untuk membuka menu dengan kecepatan putar.
-Press and hold the edge of a video in your feed to watch it at double speed.	Tekan dan tahan tepi video di beranda untuk menontonnya dengan kecepatan dua kali lipat.
-Press and hold the like button on a story to pick an emoji reaction.	Tekan dan tahan tombol suka pada cerita untuk memilih reaksi emoji.
-Press and hold the paper plane on a story to send it.	Tekan dan tahan ikon pesawat kertas pada cerita untuk mengirimnya.
-Preview of disappearing photos in Messages	Pratinjau foto sekali lihat di Pesan
-Quick emoji reactions on stories	Reaksi emoji cepat pada cerita
-Quick speed menu in Reels	Menu kecepatan cepat di Reels
-Recommended flags	Flag yang disarankan
-Redesigned Explore tab	Tab Jelajahi desain baru
-Redesigned notification settings	Pengaturan notifikasi desain baru
-Redesigned story viewer list	Daftar penonton cerita desain baru
-Saved button in Explore	Tombol Tersimpan di Jelajahi
-Saved. Restart Instagram to apply it.	Tersimpan. Mulai ulang Instagram untuk menerapkannya.
-Send stories with a long press	Kirim cerita dengan tekan lama
-Set another way right now.	Saat ini diatur dengan cara lain.
-Shows a blurred preview of a disappearing photo or video in a chat.	Menampilkan pratinjau buram foto atau video sekali lihat di obrolan.
-Shows usernames in place of display names in chats and notifications.	Menampilkan nama pengguna, bukan nama tampilan, di obrolan dan notifikasi.
-Suggested accounts in search	Akun yang disarankan di pencarian
-Tap the Close Friends icon on someone's story to remove yourself from their list.	Ketuk ikon Teman Dekat pada cerita seseorang untuk keluar dari daftarnya.
-That's already how it is. Nothing changed.	Memang sudah begitu. Tidak ada yang berubah.
-The newer animations when you like a post, and the emoji ones on stories.	Animasi baru saat menyukai kiriman, dan animasi emoji pada cerita.
-The newer layout of the Explore tab.	Tata letak baru tab Jelajahi.
-The newer layout of the notification settings.	Tata letak baru pengaturan notifikasi.
-The newer list of who viewed and replied to your story.	Daftar baru siapa yang melihat dan membalas ceritamu.
-The newer look for the "posted ... ago" label on stories.	Tampilan baru untuk label "diunggah ... lalu" pada cerita.
-The newer text fonts, animations and effects in the story editor.	Font teks, animasi, dan efek baru di editor cerita.
-This Instagram version has none of these switches.	Versi Instagram ini tidak punya sakelar ini.
-Turn on Allow importing overrides first. These switches use the same path.	Nyalakan dulu Izinkan impor nilai pengganti. Sakelar ini memakai jalur yang sama.
-Ultra HDR photos	Foto Ultra HDR
-Upload stories at higher quality	Unggah cerita dengan kualitas lebih tinggi
-Usernames in Messages and notifications	Nama pengguna di Pesan dan notifikasi
 %1$s of %2$s	%1$s dari %2$s
 %1$s so far	%1$s terunduh
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. Ini diatur saat Anda menambal, jadi Jeda tidak dapat mematikannya. Untuk memastikan bukan ini penyebabnya, tambal ulang tanpa tambalan yang tertera dalam kurung setelahnya.
@@ -342,12 +280,7 @@ Leaves out the Suggested for you cards of accounts to follow that Instagram puts
 Download feed photos	Unduh foto feed
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	Opsi Unduh yang sama di postingan foto, dan di carousel yang sedang menampilkan foto. Menyimpan ukuran terbesar yang dimiliki Instagram.
 the start-up fix for x86 devices	perbaikan saat mulai untuk perangkat x86
-Developer	Pengembang
-Developer options on a long press of Home	Opsi pengembang saat Beranda ditekan lama
-Opens Instagram's own developer options, where you can look at and change its hidden settings. A wrong change can break parts of Instagram until you reset it.	Membuka opsi pengembang milik Instagram, tempat kamu bisa melihat dan mengubah pengaturan tersembunyinya. Perubahan yang salah bisa merusak sebagian Instagram sampai kamu meresetnya.
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
-Instagram's developer options didn't load, so MetaConfig opened instead.	Opsi pengembang Instagram tidak termuat, jadi MetaConfig dibuka sebagai gantinya.
-Instagram's developer options didn't load. Try the long press again later.	Opsi pengembang Instagram tidak termuat. Coba tekan lama lagi nanti.
 Pure black dark mode	Mode gelap hitam pekat
 Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.	Mode gelap Instagram memakai hitam pekat, bukan abu-abu yang hampir hitam, termasuk di menu yang muncul dari bawah. Tombol tetap memakai abu-abunya sendiri.
 the pure black dark mode	mode gelap hitam pekat
@@ -427,7 +360,6 @@ Undo is available until %1$s. Restarting Instagram discards Undo.	Pembatalan ter
 No settings import to undo.	Tidak ada impor pengaturan yang dapat dibatalkan.
 This phone has no file picker. Your settings haven't changed.	Ponsel ini tidak punya pemilih file. Pengaturan kamu tidak berubah.
 Couldn't use that settings file. Your settings haven't changed.	File pengaturan tersebut tidak dapat digunakan. Pengaturan Anda tidak berubah.
-That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.	Itu file nilai pengganti, bukan file pengaturan. Aktifkan Izinkan impor nilai pengganti di Pengembang, lalu gunakan Impor nilai pengganti. Pengaturan Anda tidak berubah.
 HushGram settings exported.	Pengaturan HushGram diekspor.
 Couldn't export HushGram settings. Try another file.	Pengaturan HushGram tidak dapat diekspor. Coba file lain.
 Settings restored.	Pengaturan dipulihkan.
@@ -455,12 +387,6 @@ Carousel canceled. Saved %1$d. Failed %2$d. Skipped %3$d.	Carousel dibatalkan. D
 Saved %1$d. Failed %2$d. Skipped %3$d.	Disimpan %1$d. Gagal %2$d. Dilewati %3$d.
 %1$d saved in lower quality than on Instagram.	%1$d disimpan dengan kualitas lebih rendah daripada di Instagram.
 Last carousel save	Penyimpanan carousel terakhir
-Open MetaConfig overrides	Buka penggantian MetaConfig
-Opens Instagram's own editor for its hidden settings (MetaConfig). A wrong override, which is a changed setting, can break parts of Instagram.	Membuka editor milik Instagram untuk pengaturan tersembunyinya (MetaConfig). Override yang salah, yaitu pengaturan yang diubah, bisa merusak sebagian Instagram.
-MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.	MetaConfig tidak tersedia di layar ini. Buka pengaturan HushGram dari Beranda saat sudah masuk.
-Open Whitehat settings	Buka pengaturan Whitehat
-Opens Instagram's own Whitehat settings. Its switch lets Instagram trust the certificates installed on this phone for 24 hours, so you can check the app's traffic. Restart Instagram after you turn it on.	Membuka pengaturan Whitehat milik Instagram sendiri. Sakelarnya membuat Instagram memercayai sertifikat yang terpasang di ponsel ini selama 24 jam, sehingga kamu bisa memeriksa lalu lintas aplikasi. Mulai ulang Instagram setelah menyalakannya.
-Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.	Pengaturan Whitehat tidak tersedia di layar ini. Buka pengaturan HushGram dari Beranda saat sudah masuk.
 Comments	Komentar
 Copy comment	Salin komentar
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	Menambahkan Salin ke menu komentar yang dipilih. Menyalin teks asli, termasuk pergantian baris.
@@ -470,45 +396,6 @@ Comment copied	Komentar disalin
 Couldn't copy comment	Tidak dapat menyalin komentar
 Save comment photo	Simpan foto komentar
 Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Menambahkan Simpan ke menu komentar yang dipilih jika komentar memiliki foto atau GIF sendiri. Menyimpan ukuran terbesar yang dikirim Instagram.
-Export overrides	Ekspor nilai pengganti
-Saves your overrides (changes to Instagram's hidden settings) for this exact Instagram version.	Menyimpan override kamu (perubahan pada pengaturan tersembunyi Instagram) untuk versi Instagram yang persis ini.
-Validate an overrides file	Validasi berkas nilai pengganti
-Checks a saved file against this Instagram version. Nothing is applied.	Memeriksa file tersimpan terhadap versi Instagram ini. Tidak ada yang diterapkan.
-This phone has no file picker. Overrides haven't changed.	Ponsel ini tidak punya pemilih file. Override tidak berubah.
-Couldn't use that file. Instagram's overrides haven't changed.	Tidak bisa memakai file itu. Override Instagram tidak berubah.
-Checked %1$d overrides only. Nothing was applied.	Hanya memeriksa %1$d override. Tidak ada yang diterapkan.
-%1$d more come from a different Instagram version and don't fit this one, so the import leaves them out.	%1$d lainnya berasal dari versi Instagram yang berbeda dan tidak cocok dengan versi ini, jadi impor melewatkannya.
-None of this file's overrides fit this Instagram version. Nothing changed.	Tidak ada override dalam file ini yang cocok dengan versi Instagram ini. Tidak ada yang berubah.
-%1$d overrides from a different Instagram version don't fit this one and were left out.	%1$d override dari versi Instagram yang berbeda tidak cocok dengan versi ini dan dilewati.
-Overrides exported for this Instagram version.	Override diekspor untuk versi Instagram ini.
-Couldn't validate overrides. Check the file and open settings from Home while signed in. Nothing changed.	Nilai pengganti tidak dapat divalidasi. Periksa berkas dan buka pengaturan dari Beranda saat sudah masuk. Tidak ada yang berubah.
-Couldn't export overrides. The selected file may be incomplete. Instagram's overrides haven't changed.	Tidak bisa mengekspor override. File yang dipilih mungkin tidak lengkap. Override Instagram tidak berubah.
-Allow importing overrides	Izinkan impor nilai pengganti
-Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.	Menampilkan baris Impor dan Pulihkan. Impor mengubah pengaturan tersembunyi Instagram untuk akun yang sedang masuk ini.
-Import overrides	Impor nilai pengganti
-Applies a HushGram export, or Instagram's own overrides file. Your current overrides are saved first so Restore can bring them back.	Menerapkan ekspor HushGram atau file override milik Instagram. Override kamu saat ini disimpan dulu agar Pulihkan bisa mengembalikannya.
-Restore previous overrides	Pulihkan nilai pengganti sebelumnya
-Puts back the overrides saved before your last import for this account and Instagram version.	Mengembalikan override yang disimpan sebelum impor terakhir kamu untuk akun dan versi Instagram ini.
-An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.	Impor sebelumnya masih perlu Pulihkan nilai pengganti sebelumnya, atau Buang nilai pengganti tersimpan jika Pulihkan tidak bisa dijalankan. Tidak ada yang berubah.
-Couldn't restore overrides. There's no saved copy for this account and Instagram version. Nothing changed.	Tidak bisa memulihkan override. Tidak ada salinan tersimpan untuk akun dan versi Instagram ini. Tidak ada yang berubah.
-Couldn't import overrides. Check the file and open settings from Home while signed in. Nothing changed.	Nilai pengganti tidak dapat diimpor. Periksa berkas dan buka pengaturan dari Beranda saat sudah masuk. Tidak ada yang berubah.
-The current overrides already match the saved copy. Nothing changed.	Nilai pengganti saat ini sudah sama dengan salinan tersimpan. Tidak ada yang berubah.
-This file matches the current overrides. Nothing changed.	Berkas ini sama dengan nilai pengganti saat ini. Tidak ada yang berubah.
-Previous overrides restored. Restart Instagram to apply them.	Nilai pengganti sebelumnya sudah dipulihkan. Mulai ulang Instagram untuk menerapkannya.
-Imported %1$d override changes. Restart Instagram to apply them.	%1$d perubahan nilai pengganti diimpor. Mulai ulang Instagram untuk menerapkannya.
-Instagram didn't keep the change, so the overrides were put back as they were.	Instagram tidak menyimpan perubahan itu, jadi nilai pengganti dikembalikan seperti semula.
-Instagram didn't keep the change and the overrides couldn't be confirmed. Use Restore previous overrides, then restart Instagram.	Instagram tidak menyimpan perubahan itu dan nilai pengganti tidak dapat dipastikan. Gunakan Pulihkan nilai pengganti sebelumnya, lalu mulai ulang Instagram.
-Discard saved overrides	Buang nilai pengganti tersimpan
-Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.	Melupakan salinan yang disimpan untuk Pulihkan agar impor bisa berjalan lagi. Pengaturan Instagram sendiri tidak berubah.
-Discarded the saved copy. Imports can run again, and Instagram's overrides haven't changed.	Salinan tersimpan sudah dibuang. Impor bisa dijalankan lagi, dan nilai pengganti Instagram tidak berubah.
-There's no saved copy to discard. Nothing changed.	Tidak ada salinan tersimpan untuk dibuang. Tidak ada yang berubah.
-Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram to apply the rest.	Pulihkan mengembalikan apa yang bisa, kecuali %1$d override yang diatur ke kosong dan tidak bisa dikembalikan dengan cara ini. Impor tetap diblokir sampai kamu memakai Discard saved overrides. Mulai ulang Instagram untuk menerapkan sisanya.
-Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Restart Instagram to apply the rest.	Pulihkan mengembalikan apa yang bisa, kecuali %1$d override yang diatur ke kosong dan tidak bisa dikembalikan dengan cara ini. Mulai ulang Instagram untuk menerapkan sisanya.
-Couldn't restore overrides. The saved copy doesn't fit this account and Instagram version. Use Discard saved overrides if you don't need it. Nothing changed.	Tidak bisa memulihkan override. Salinan tersimpan tidak cocok dengan akun dan versi Instagram ini. Pakai Discard saved overrides jika tidak membutuhkannya. Tidak ada yang berubah.
-Instagram is still saving an override change. Wait a moment and try again. Nothing changed.	Instagram masih menyimpan perubahan nilai pengganti. Tunggu sebentar lalu coba lagi. Tidak ada yang berubah.
-Allow importing overrides is off or HushGram is paused. Nothing changed.	Izinkan impor nilai pengganti nonaktif atau HushGram sedang dijeda. Tidak ada yang berubah.
-Couldn't restore overrides. Open settings from Home while signed in. Nothing changed.	Nilai pengganti tidak dapat dipulihkan. Buka pengaturan dari Beranda saat sudah masuk. Tidak ada yang berubah.
-Couldn't start that. Try again. Nothing changed.	Tidak bisa memulainya. Coba lagi. Tidak ada yang berubah.
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
 Mark as seen button	Tombol Tandai sudah dilihat
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	Menambahkan tombol mata di bagian atas setiap cerita saat kamu melihat secara anonim. Ketuk tombol itu agar kamu muncul di daftar penonton cerita tersebut. Cerita lainnya tetap tersembunyi.
@@ -517,8 +404,6 @@ Marked as seen. Tap again to undo.	Ditandai sudah dilihat. Ketuk lagi untuk memb
 Marked as seen and sent	Ditandai sudah dilihat dan dikirim
 View DM photos and videos anonymously	Lihat foto dan video di pesan secara anonim
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	Mencegah orang tahu bahwa kamu membuka foto dan video sekali lihat mereka. Foto dan video itu tetap hilang setelah kamu melihatnya. Ini fitur uji coba dan awalnya nonaktif.
-Couldn't finish discarding the saved copies. Try Discard saved overrides again. Instagram's overrides haven't changed.	Tidak bisa menyelesaikan penghapusan salinan tersimpan. Coba Discard saved overrides lagi. Override Instagram tidak berubah.
-Recovery cleanup didn't finish. Use Restore previous overrides or Discard saved overrides.	Pembersihan pemulihan belum selesai. Gunakan Pulihkan nilai pengganti sebelumnya atau Buang nilai pengganti tersimpan.
 Restored %1$d settings. Kept %2$d newer choices.	%1$d pengaturan dipulihkan. %2$d pilihan yang lebih baru dipertahankan.
 Preparing diagnostic report...	Menyiapkan laporan diagnostik...
 Saving diagnostic report...	Menyimpan laporan diagnostik...
@@ -593,7 +478,6 @@ Your messages are locked	Pesan Anda terkunci
 Allow screenshots	Izinkan tangkapan layar
 Couldn't change every Ghost mode switch. Check them below.	Tidak semua sakelar Mode hantu bisa diubah. Periksa di bawah.
 Couldn't change every Ghost mode switch. Open HushGram settings to check them.	Tidak semua sakelar Mode hantu bisa diubah. Periksa di pengaturan HushGram.
-Couldn't reset overrides. Open settings from Home while signed in. Nothing changed.	Tidak bisa mengatur ulang nilai pengganti. Buka pengaturan dari Beranda saat masuk. Tidak ada yang berubah.
 Don't report screenshots	Jangan laporkan tangkapan layar
 Ghost mode	Mode hantu
 Ghost mode is off, and so is each of its switches.	Mode hantu nonaktif, begitu pula setiap sakelarnya.
@@ -601,11 +485,7 @@ Ghost mode is on, and so is each of its switches.	Mode hantu aktif, begitu pula 
 Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	Instagram tidak tahu saat Anda mengambil tangkapan layar, jadi pengirim foto atau video sementara tidak diberi tahu. Tangkapan layar Anda tersimpan seperti biasa.
 Keep in chat	Simpan di chat
 Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	Siaran langsung yang Anda tonton tidak menaruh Anda di daftar penonton host, jadi mereka tidak tahu Anda ada di sana. Berkomentar atau bereaksi tetap menampilkan Anda. Jumlah penonton yang Anda lihat berhenti diperbarui, dan siaran langsung yang sudah berakhir bisa tetap tampak langsung sampai Anda keluar.
-Removed %1$d overrides. Restart Instagram to go back to its own settings.	%1$d override dihapus. Mulai ulang Instagram untuk kembali ke pengaturannya sendiri.
-Reset all overrides	Atur ulang semua nilai pengganti
 Screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos. Turn on Don't report screenshots too if the sender shouldn't hear about it.	Tangkapan layar dan rekaman layar berfungsi di mana pun Instagram memblokirnya, seperti foto dan video sementara. Aktifkan juga Jangan laporkan tangkapan layar jika pengirim tidak boleh tahu.
-Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.	Menghapus semua override dari akun yang sedang masuk ini, sehingga Instagram kembali ke pengaturannya sendiri. Override kamu saat ini disimpan dulu untuk Pulihkan.
-There are no overrides to reset. Nothing changed.	Tidak ada nilai pengganti untuk diatur ulang. Tidak ada yang berubah.
 Turns the switches that keep what you do to yourself on or off in one go, like View stories anonymously and Hide that you're typing. Each one keeps its own switch.	Menyalakan atau mematikan sekaligus sakelar yang merahasiakan aktivitas Anda, seperti Lihat cerita secara anonim dan Sembunyikan bahwa Anda sedang mengetik. Masing-masing tetap punya sakelarnya sendiri.
 View live anonymously	Tonton siaran langsung secara anonim
 Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.	Foto dan video yang dikirim sekali lihat atau bisa diputar ulang tetap ada di chat sehingga bisa kamu buka lagi. Buka chat lagi untuk memperbarui yang sudah dimuat.
@@ -832,20 +712,6 @@ Three fingers	Tiga jari
 Half a second	Setengah detik
 1 second	1 detik
 1.5 seconds	1,5 detik
-Use HushGram's setting names	Gunakan nama pengaturan HushGram
-MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig menampilkan nama dari daftar bawaan HushGram sebagai pengganti angka. Daftar ini berasal dari Instagram 447, jadi beberapa pengaturan yang lebih baru tetap tampil sebagai angka. Daftar yang kamu impor dipakai sebagai gantinya.
-Import setting names	Impor nama pengaturan
-Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Pilih daftar nama MetaConfig, misalnya berkas id_name_mapping.json, dan MetaConfig akan menampilkan nama itu sebagai pengganti angka. Pencarian dengan angka tetap berfungsi.
-Remove setting names	Hapus nama pengaturan
-Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.	Melupakan nama yang diimpor. MetaConfig kembali memakai nama HushGram, atau label bawaan Instagram jika sakelar itu mati.
-Couldn't read setting names from that file. Nothing changed.	Tidak bisa membaca nama pengaturan dari file itu. Tidak ada yang berubah.
-Setting names removed. Open MetaConfig again to see the change.	Nama pengaturan dihapus. Buka MetaConfig lagi untuk melihat perubahannya.
-There are no imported setting names to remove.	Tidak ada nama pengaturan yang diimpor untuk dihapus.
-Setting names imported: %1$d. Open MetaConfig again to see them.	Nama pengaturan diimpor: %1$d. Buka MetaConfig lagi untuk melihatnya.
-Entries left out because they repeat or don't fit: %1$d.	Entri yang dilewati karena berulang atau tidak cocok: %1$d.
-That file has no setting names in it. Nothing changed.	File itu tidak berisi nama pengaturan. Tidak ada yang berubah.
-Couldn't remove the setting names. Try again.	Tidak bisa menghapus nama pengaturan. Coba lagi.
-Couldn't save the setting names. Nothing changed.	Tidak bisa menyimpan nama pengaturan. Tidak ada yang berubah.
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Pada build Instagram ini, fitur ini mencakup %1$d dari %2$d jalur. Laporan diagnostik mencantumkan sisanya.
 Hide suggested accounts in Messages	Sembunyikan akun yang disarankan di Pesan
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Menghapus akun yang disarankan Instagram dari bagian bawah pesan kamu. Chat dan permintaan mengikuti tetap ada. Mulai ulang Instagram untuk melihat perubahannya.
@@ -1017,7 +883,6 @@ Keep Instagram's saved photos and videos from filling your phone.	Cegah foto dan
 Save photos, videos and more, and choose where they go.	Simpan foto, video, dan lainnya, lalu pilih tempat penyimpanannya.
 Stop background work Instagram doesn't need.	Hentikan kerja latar belakang yang tidak dibutuhkan Instagram.
 Stop Instagram from saying this version is too old.	Cegah Instagram menyebut versi ini terlalu lama.
-Instagram's own testing tools. Change them only if you know what they do.	Alat uji milik Instagram sendiri. Ubah hanya jika kamu tahu fungsinya.
 Chosen when you patched, so Pause leaves them on. Patch again to change them.	Dipilih saat kamu menambal, jadi Jeda tidak mematikannya. Tambal ulang untuk mengubahnya.
 Save your HushGram choices to a file, or bring them back.	Simpan pilihan HushGram kamu ke file, atau pulihkan kembali.
 Your version, the source code and licenses.	Versimu, kode sumber, dan lisensi.

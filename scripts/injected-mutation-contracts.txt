@@ -240,30 +240,8 @@ once-call Lapp/hushgram/extension/instagram/ads/Ads;->hide()Z in static (*)Z hol
 # "lockout_active"; the lockout is the one taking the activity first.
 start-call Lapp/hushgram/extension/instagram/misc/BuildExpiry;->suppress()Z in (Landroidx/fragment/app/FragmentActivity;*)V holding lockout_active
 once-call Lapp/hushgram/extension/instagram/misc/BuildExpiry;->suppress()Z in (Landroidx/fragment/app/FragmentActivity;*)V holding lockout_active
-# Open developer options asks open() first in Home's long press, the one onLongClick holding the
-# two values the server can set the press to. Nothing else calls open().
-start-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->open()I in instance (Landroid/view/View;)Z holding click activity
-once-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->open()I in instance (Landroid/view/View;)Z holding click activity
-# On a yes the same long press tells opening() the activity, once, right before the opener call, and
-# both answers of the callback the opener hands the module load ask loaded() first, so a load that
-# never answers loses its loading dialog after a while and a late answer is dropped (#158). The
-# success is the answer calling the Callable that makes the options screen, in the class whose
-# methods load the error key between them, and the failure the answer toasting the key without the
-# other callback's Function0. 385713117 asks a string pool for the key (pooled).
-once-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->opening(Ljava/lang/Object;)V in instance (Landroid/view/View;)Z holding click activity
-start-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->loaded()I in instance ()V calling instance Ljava/util/concurrent/Callable;->call()Ljava/lang/Object; pooled class-holding debug_options_error
-once-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->loaded()I in instance ()V calling instance Ljava/util/concurrent/Callable;->call()Ljava/lang/Object; pooled class-holding debug_options_error
-start-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->loaded()I in instance ()V calling static LX/*;->*(Landroid/content/Context;Ljava/lang/String;II)Landroid/widget/Toast; lacking instance Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; pooled holding debug_options_error
-once-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->loaded()I in instance ()V calling static LX/*;->*(Landroid/content/Context;Ljava/lang/String;II)Landroid/widget/Toast; lacking instance Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; pooled holding debug_options_error
-# Import flag names hands both labels of every row MetaConfig's list builder makes to FlagNames, in
-# both of its kinds of row. The builder is the one static ()List making rows of the (J, String,
-# String) constructor, whichever way its build makes the labels (inline, through getters on the
-# schema entry or through a helper taking it), and nothing else calls either hook. No class or
-# member name here is a 450 build's own: Redex renames them between the builds.
-once-call Lapp/hushgram/extension/instagram/misc/FlagNames;->parameter(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String; in static ()Ljava/util/List; sites 2 holding LX/*;->*(JLjava/lang/String;Ljava/lang/String;)V
-once-call Lapp/hushgram/extension/instagram/misc/FlagNames;->config(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String; in static ()Ljava/util/List; sites 2 holding LX/*;->*(JLjava/lang/String;Ljava/lang/String;)V
-# Read-only override exchange mustn't introduce native writes or cache reloads. The holder's
-# own typed forwarding wrappers are allowed; extension callers aren't.
+# No patch writes Instagram's MetaConfig overrides or reloads them. The holder's own typed
+# forwarding wrappers are allowed; extension callers aren't.
 no-call Lcom/facebook/mobileconfig/troubleshooting/MobileConfigOverridesWriterHolder;->importOverridesFromUser(Ljava/lang/String;)Ljava/lang/String; outside Lcom/facebook/mobileconfig/
 no-call Lcom/facebook/mobileconfig/MobileConfigOverridesTableHolder;->reload()V outside Lcom/facebook/mobileconfig/
 no-call Lcom/facebook/mobileconfig/MobileConfigOverridesTableHolder;->removeAllOverrides()V outside Lcom/facebook/mobileconfig/

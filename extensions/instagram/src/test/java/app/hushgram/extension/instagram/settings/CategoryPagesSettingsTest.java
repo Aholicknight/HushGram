@@ -310,7 +310,7 @@ public class CategoryPagesSettingsTest {
         openDialog();
         touchMode(page.getView(), false);
         List<String> categories = shown(Preference.class);
-        assertEquals(23, categories.size());
+        assertEquals(22, categories.size());
         for (String title : categories) {
             ListView list = page.getView().findViewById(android.R.id.list);
             list.setSelectionFromTop(12, -8);
