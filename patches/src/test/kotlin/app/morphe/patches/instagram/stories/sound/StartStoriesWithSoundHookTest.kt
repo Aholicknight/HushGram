@@ -155,7 +155,7 @@ class StartStoriesWithSoundHookTest {
     }
 
     /**
-     * In each of the version's seven builds the viewer's onCreate, the session getter above it, the audio toggle and
+     * In each of the version's three builds the viewer's onCreate, the session getter above it, the audio toggle and
      * the viewer's sound check are found once, and the hook goes in once, right after the super call, with two borrowed
      * locals up to v15 that nothing reads afterwards and every other instruction in place. Read as the patcher reads
      * an APK, and copied.
@@ -165,7 +165,7 @@ class StartStoriesWithSoundHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("eight builds of the version", 8, bundles.size)
+        assertEquals("three builds of the version", 3, bundles.size)
         for (apk in bundles) {
             val name = if (apk.extension == "apk") apk.parentFile.name else apk.name
             val wanted = wanted(apk)

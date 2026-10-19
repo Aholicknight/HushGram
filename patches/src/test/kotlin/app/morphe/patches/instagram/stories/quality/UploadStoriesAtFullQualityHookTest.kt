@@ -98,7 +98,7 @@ class UploadStoriesAtFullQualityHookTest {
     }
 
     /**
-     * In each of the eight 451 builds there's one reader of Instagram's setting, and among the
+     * In each of the three 452 builds there's one reader of Instagram's setting, and among the
      * classes holding an upload's share type one check asking it about that share type, by the
      * field or, as on 451's 385713073, through a static helper reading its ordinal. The check is
      * answered first, and nothing else is.
@@ -107,7 +107,7 @@ class UploadStoriesAtFullQualityHookTest {
     fun eachBuildAnswersTheCheckFirst() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("the eight 451 builds: ${bundles.map { it.name }}", 8, bundles.size)
+        assertEquals("the three 452 builds: ${bundles.map { it.name }}", 3, bundles.size)
         for (bundle in bundles) {
             val wanted = mutableListOf<ClassDef>()
             FixtureDex.forEach(bundle) { dex ->
