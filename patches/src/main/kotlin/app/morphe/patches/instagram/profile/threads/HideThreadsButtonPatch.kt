@@ -15,6 +15,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMuta
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCreating
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -29,9 +30,12 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -49,6 +53,16 @@ internal const val THREADS_BUTTON = "$EXTENSION_PACKAGE/profile/ThreadsButton;"
 internal const val BUTTONS = "$THREADS_BUTTON->buttons(Ljava/util/List;)Ljava/util/List;"
 internal const val ICON_STUB = "icon"
 internal const val HIDE_BANNER = "$THREADS_BUTTON->hideBanner()Z"
+internal const val HIDE_CREATE = "$THREADS_BUTTON->hideCreateInBar()Z"
+
+/** The profile screen, which keeps its name in Instagram's builds. Its own-profile flag guards the Create button. */
+internal const val USER_DETAIL = "Lcom/instagram/profile/fragment/UserDetailFragment;"
+
+/**
+ * Instagram 451's id/profile_header_create_button, the view id of the plus on your own profile,
+ * the same in all eight 451 builds (aapt2).
+ */
+internal const val CREATE_BUTTON_ID = 0x7f0b309c
 
 /** The events only the Threads chip under a profile's bio logs, loaded by its constructor. */
 internal const val BANNER_TAP = "tap_threads_banner"
@@ -84,9 +98,11 @@ private const val ITERATOR = "Ljava/util/List;->iterator()Ljava/util/Iterator;"
  * extension first too, and the other chips stay.
  *
  * Two more switches ride along, each off to start. The same list holds the Create button on your
- * own profile, which the extension leaves out by its icon (#254). And the two methods building the
- * row of action buttons under the bio, as text and as icons, hand each button and its model to the
- * extension, which hides Share profile's and lets the others take its space (#253).
+ * own profile, which the extension leaves out by its icon (#254). Instagram 451 builds that plus in
+ * the profile screen's action bar instead, so the action bar asks the extension before adding it.
+ * And the two methods building the row of action buttons under the bio, as text and as icons, hand
+ * each button and its model to the extension, which hides Share profile's and lets the others take
+ * its space (#253).
  */
 @Suppress("unused")
 val hideThreadsButtonPatch = bytecodePatch(
@@ -104,9 +120,11 @@ val hideThreadsButtonPatch = bytecodePatch(
         requireStatusMethod("threadsButton")
         val button = findThreadsButton()
         val banner = findThreadsBanner()
+        val create = findCreateInBar()
         val share = findShareButton()
         hideThreadsButton(button)
         hideThreadsBanner(banner)
+        hideCreateInBar(create)
         hideShareButton(share)
         enableStatus("threadsButton")
     }
@@ -284,6 +302,90 @@ internal fun BytecodePatchContext.hideThreadsBanner(site: ThreadsBannerSite) {
 }
 
 /**
+ * Where 451's own profile adds its Create button: in [type]'s [name], the stretch right after the
+ * guard at [guard] up to [skip], where the guard jumps when the profile isn't yours. [register]
+ * holds the guard's flag.
+ */
+internal class CreateInBarSite(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val returnType: String,
+    val guard: Int,
+    val skip: Int,
+    val register: Int,
+)
+
+/**
+ * Finds where Instagram 451's profile screen adds the Create button to its action bar, failing
+ * before anything changes when any of it isn't there exactly once. The button's builder gets the
+ * view id [CREATE_BUTTON_ID] loaded and stored straight into one of its int fields. The nearest
+ * branch before that is the guard: an if-eqz on a flag just read off [USER_DETAIL], true on your
+ * own profile, jumping past the store when it's false. Nothing else may jump in between the guard
+ * and the id, so every way to the button goes past the hook.
+ */
+internal fun BytecodePatchContext.findCreateInBar(): CreateInBarSite {
+    val stores = classesLoading(CREATE_BUTTON_ID.toLong()).flatMap { owner ->
+        owner.methods.flatMap { method ->
+            val code = method.code()
+            code.indices.filter { code[it].storesId(code.getOrNull(it + 1)) }.map { Triple(owner, method, it) }
+        }
+    }
+    val (owner, adder, load) = stores.singleOrNull()
+        ?: refuse("expected one Create button stored with its id 0x${CREATE_BUTTON_ID.toString(16)}, found ${stores.size}")
+    val where = "${owner.type}->${adder.name}"
+    val code = adder.code()
+    val guard = (load - 1 downTo 1).firstOrNull { code[it].opcode in BRANCHES || !code[it].opcode.canContinue() }
+        ?: refuse("$where adds the Create button with no guard before it")
+    val flag = code[guard - 1]
+    if (code[guard].opcode != Opcode.IF_EQZ || flag.opcode != Opcode.IGET_BOOLEAN ||
+        (flag as OneRegisterInstruction).registerA != (code[guard] as OneRegisterInstruction).registerA ||
+        (flag.reference() as FieldReference).definingClass != USER_DETAIL
+    ) {
+        refuse("$where guards the Create button with something other than a flag of $USER_DETAIL")
+    }
+    // An iget-boolean only writes v0 to v15, so the flag's register is in reach of const/4.
+    val register = (flag as OneRegisterInstruction).registerA
+    val flow = try {
+        ControlFlow.of(adder)
+    } catch (failure: IllegalArgumentException) {
+        refuse("$where can't be followed: ${failure.message}")
+    }
+    val skip = flow.normal[guard].singleOrNull { it != guard + 1 } ?: refuse("$where's guard doesn't jump anywhere")
+    if (skip <= load + 1) refuse("$where's guard doesn't jump past the Create button")
+    val from = List(code.size) { mutableListOf<Int>() }
+    for (at in code.indices) (flow.normal[at] + flow.exceptional[at]).forEach { from[it] += at }
+    if ((guard + 1..load).any { at -> from[at].any { it !in guard until load } }) {
+        refuse("something jumps in between $where's guard and the Create button")
+    }
+
+    val extension = classDefByOrNull(THREADS_BUTTON) ?: refuse("the extension has no $THREADS_BUTTON")
+    if (extension.methods.none { it.signature() == HIDE_CREATE && it.publicStatic() }) refuse("the extension has no public static $HIDE_CREATE")
+    return CreateInBarSite(owner.type, adder.name, adder.parameters(), adder.returnType, guard, skip, register)
+}
+
+/**
+ * Asks [HIDE_CREATE] right after the guard lets your own profile through, and jumps where the guard
+ * jumps for someone else's when it says so. Otherwise the flag goes back to true and the button is
+ * built as before. Only called once [findCreateInBar] found everything.
+ */
+internal fun BytecodePatchContext.hideCreateInBar(site: CreateInBarSite) {
+    val adder = mutableClassDefBy(site.type).methods.single {
+        it.name == site.name && it.parameters() == site.parameters && it.returnType == site.returnType
+    }
+    adder.addInstructionsWithLabels(
+        site.guard + 1,
+        """
+            invoke-static { }, $HIDE_CREATE
+            move-result v${site.register}
+            if-nez v${site.register}, :skip
+            const/4 v${site.register}, 0x1
+        """,
+        ExternalLabel("skip", adder.getInstruction(site.skip)),
+    )
+}
+
+/**
  * Where Share profile is hidden: [model] is the class of its buttons' models, and [builders] the
  * methods building the action row's buttons that hand one back.
  */
@@ -386,6 +488,18 @@ private fun Instruction.buildsBar(): Boolean {
     if (opcode != Opcode.INVOKE_STATIC && opcode != Opcode.INVOKE_STATIC_RANGE) return false
     val takes = call()?.parameters() ?: return false
     return takes.count { it == LIST } == 1 && takes.count { it == BAR_GROUP } == 2
+}
+
+private val BRANCHES = setOf(
+    Opcode.IF_EQ, Opcode.IF_NE, Opcode.IF_LT, Opcode.IF_GE, Opcode.IF_GT, Opcode.IF_LE,
+    Opcode.IF_EQZ, Opcode.IF_NEZ, Opcode.IF_LTZ, Opcode.IF_GEZ, Opcode.IF_GTZ, Opcode.IF_LEZ,
+    Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32, Opcode.PACKED_SWITCH, Opcode.SPARSE_SWITCH,
+)
+
+/** Whether this loads [CREATE_BUTTON_ID] and [next] stores it straight into an int field. */
+private fun Instruction.storesId(next: Instruction?): Boolean {
+    if ((this as? NarrowLiteralInstruction)?.narrowLiteral != CREATE_BUTTON_ID) return false
+    return next?.opcode == Opcode.IPUT && (next as TwoRegisterInstruction).registerA == (this as OneRegisterInstruction).registerA
 }
 
 /** Whether this writes [register], or a wide pair covering it. */

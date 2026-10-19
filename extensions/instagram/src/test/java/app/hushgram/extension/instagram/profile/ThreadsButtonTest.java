@@ -199,4 +199,24 @@ public class ThreadsButtonTest {
 
         SettingsContextRule.withoutContext(() -> assertFalse(ThreadsButton.hideBanner()));
     }
+
+    /** 451's own-profile plus, built in the action bar, stays until its own switch goes on, then is left out and counted. */
+    @Test
+    public void theActionBarPlusIsLeftOutWithTheCreateSwitchOn() {
+        assertFalse(ThreadsButton.hideCreateInBar());
+        Settings.HIDE_THREADS_BUTTON.save(true);
+        assertFalse(ThreadsButton.hideCreateInBar());
+        Settings.HIDE_CREATE_BUTTON.save(true);
+        assertTrue(ThreadsButton.hideCreateInBar());
+        assertEquals(List.of(FamilyNames.THREADS_BUTTON + ": invoked 3, 0 found, 0 missing. Counted: "
+                + ThreadsButton.CREATE_LEFT_OUT + " 1"), HookStatus.report());
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(ThreadsButton.hideCreateInBar());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertFalse(ThreadsButton.hideCreateInBar()));
+    }
 }

@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -54,6 +55,7 @@ class HideThreadsButtonHookTest {
         assertTrue("$BUTTONS is not in the extension: $declared", BUTTONS.substringAfter("->") in declared)
         assertTrue("the $ICON_STUB stub is not in the extension: $declared", "$ICON_STUB(Ljava/lang/Object;)I" in declared)
         assertTrue("$HIDE_BANNER is not in the extension: $declared", HIDE_BANNER.substringAfter("->") in declared)
+        assertTrue("$HIDE_CREATE is not in the extension: $declared", HIDE_CREATE.substringAfter("->") in declared)
     }
 
     /** Share profile's hook and the stub the patch writes are in the ShareProfileButton the bundle ships, public and static. */
@@ -289,6 +291,133 @@ class HideThreadsButtonHookTest {
             """)
         }
         return listOf(classDef(chip, listOf(init)), classDef(banners, adds))
+    }
+
+    /**
+     * #254: right after the guard lets your own profile through, the action bar asks the extension,
+     * jumps where the guard jumps for someone else's profile when told to, and otherwise puts the
+     * flag back and builds the plus as before.
+     */
+    @Test
+    fun theCreateButtonIsSkippedWhenTheExtensionSaysSo() {
+        val context = PatchContexts.of(createClasses() + ExtensionDex.classDef(THREADS_BUTTON))
+        val site = context.findCreateInBar()
+        val original = NeutralNativePath(context.createAdder(site))
+
+        context.hideCreateInBar(site)
+
+        assertEquals("the guard", 2, site.guard)
+        assertEquals("the flag's register", 0, site.register)
+        assertCreateHooked("the stand-in", context, site, original)
+    }
+
+    /** A Create button the patch can't place fails at patch time, saying what it found. */
+    @Test
+    fun aCreateButtonThePatchCantPlaceFails() {
+        val notOne = "expected one Create button stored with its id 0x7f0b309c, found"
+        val guarded = "$profileBar->Ady guards the Create button with something other than a flag of $USER_DETAIL"
+        val cases = listOf(
+            createClasses(stores = 0) to "$notOne 0",
+            createClasses(stores = 2) to "$notOne 2",
+            createClasses(guard = null) to "$profileBar->Ady adds the Create button with no guard before it",
+            createClasses(guard = "if-nez") to guarded,
+            createClasses(flagOwner = "Lfixture/Other;") to guarded,
+            createClasses(jumpIn = true) to "something jumps in between $profileBar->Ady's guard and the Create button",
+            createClasses(extension = fakeExtension()) to "the extension has no public static $HIDE_CREATE",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.findCreateInBar() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
+    /** In each declared build the profile screen's action bar asks the extension once before adding the plus on your own profile. */
+    @Test
+    fun eachDeclaredBuildAsksBeforeAddingTheCreateButton() {
+        forEachFixture { create(it, it.name) }
+    }
+
+    /** The same on every other build of the version. */
+    @Test
+    fun eachOtherBuildAsksBeforeAddingTheCreateButtonToo() {
+        for (base in Fixtures.otherBuilds()) create(base, base.parentFile.name)
+    }
+
+    private fun create(bundle: File, label: String) {
+        // Every dex, so another method storing the id would show up here as it would when patching.
+        val owners = FixtureDex.methodsWhere(bundle, { true }) { method ->
+            method.code().any { (it as? NarrowLiteralInstruction)?.narrowLiteral == CREATE_BUTTON_ID }
+        }.map { it.definingClass }.toSet()
+        val context = PatchContexts.of(FixtureDex.classes(bundle, owners).values + ExtensionDex.classDef(THREADS_BUTTON))
+        val site = context.findCreateInBar()
+        val original = NeutralNativePath(context.createAdder(site))
+
+        context.hideCreateInBar(site)
+
+        assertCreateHooked(label, context, site, original)
+    }
+
+    /** The guard, the ask, its answer, the jump to where the guard goes, the flag put back, and Instagram's own code untouched. */
+    private fun assertCreateHooked(what: String, context: BytecodePatchContext, site: CreateInBarSite, original: NeutralNativePath) {
+        val adder = context.createAdder(site)
+        val code = adder.code()
+        val written = adder.implementation!!.instructions.toList()
+        val at = site.guard + 1
+        val skip = site.skip + 4
+        assertEquals("$what: the guard", Opcode.IF_EQZ, code[site.guard].opcode)
+        assertEquals("$what: the guard still goes past the button", skip, (written[site.guard] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$what: the ask", HIDE_CREATE, code[at].referenceText())
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[at + 1].opcode)
+        assertEquals("$what: the answer's register", site.register, (code[at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the branch", Opcode.IF_NEZ, code[at + 2].opcode)
+        assertEquals("$what: the branch's register", site.register, (code[at + 2] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the branch goes where the guard does", skip, (written[at + 2] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$what: the flag put back", Opcode.CONST_4, code[at + 3].opcode)
+        assertEquals("$what: the flag's register", site.register, (code[at + 3] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the flag's value", 1, (code[at + 3] as NarrowLiteralInstruction).narrowLiteral)
+        assertTrue("$what: a jump lands on the hook", (at..at + 3).none { it in adder.jumpTargets() })
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == HIDE_CREATE })
+        original.assertPreserved(what, adder, (at..at + 3).toSet())
+    }
+
+    private fun BytecodePatchContext.createAdder(site: CreateInBarSite): MutableMethod =
+        mutableClassDefBy(site.type).methods.single {
+            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters && it.returnType == site.returnType
+        }
+
+    private val profileBar = "Lfixture/ProfileBar;"
+    private val barButton = "Lfixture/BarButton;"
+
+    /**
+     * The profile screen's action bar, shaped like 451's: a flag of the profile screen, true on your
+     * own profile, guards the build of the plus, whose builder gets the button's view id first.
+     * [stores] is how many methods store the id; 0 leaves one that only loads it.
+     */
+    private fun createClasses(
+        stores: Int = 1,
+        guard: String? = "if-eqz",
+        flagOwner: String = USER_DETAIL,
+        jumpIn: Boolean = false,
+        extension: ClassDef = ExtensionDex.classDef(THREADS_BUTTON),
+    ): List<ClassDef> {
+        val store = if (stores == 0) "invoke-virtual { v1, v2 }, $barButton->setId(I)V" else "iput v2, v1, $barButton->A05:I"
+        val body = """
+            ${if (jumpIn) "if-nez p1, :inside" else ""}
+            const/4 v1, 0x0
+            iget-boolean v0, p1, $flagOwner->A2V:Z
+            ${if (guard == null) "" else "$guard v0, :after"}
+            new-instance v1, $barButton
+            :inside
+            invoke-direct { v1 }, $barButton-><init>()V
+            const v2, 0x${CREATE_BUTTON_ID.toString(16)}
+            $store
+            :after
+            return-void
+        """
+        val names = if (stores == 2) listOf("Ady", "A00") else listOf("Ady")
+        val methods = names.map { method(profileBar, it, listOf(USER_DETAIL), "V", 3, body = body) }
+        return listOf(classDef(profileBar, methods), extension)
     }
 
     /**

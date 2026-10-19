@@ -36,8 +36,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Hide the Create button on, the answer leaves out the item with Instagram's add icon too, and the
  * other buttons close up the same way.
  *
+ * <p>Instagram 451 builds the plus on your own profile in the profile screen's action bar instead,
+ * not from that list. The action bar asks {@link #hideCreateInBar} before it adds the button and
+ * skips it when it says so.
+ *
  * <p>The hooks fail open: with the switches off, HushGram paused, the settings not read yet, an icon
- * that can't be named or anything thrown, the list goes through as it came and the chip is added.
+ * that can't be named or anything thrown, the list goes through as it came and the chip and the plus
+ * are added.
  */
 public final class ThreadsButton {
     /** The start of the resource name of each of Instagram's Threads icons. */
@@ -93,6 +98,23 @@ public final class ThreadsButton {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.THREADS_BUTTON, "profile Threads chip", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Injected where Instagram 451's profile action bar decides to add the Create button, the plus
+     * on your own profile. Answers true to leave it out. Never throws, and answers false whenever it
+     * can't tell.
+     */
+    public static boolean hideCreateInBar() {
+        try {
+            HookStatus.invoked(FamilyNames.THREADS_BUTTON);
+            if (!Utils.settingsReady() || !Settings.HIDE_CREATE_BUTTON.get()) return false;
+            HookStatus.counted(FamilyNames.THREADS_BUTTON, CREATE_LEFT_OUT);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.THREADS_BUTTON, "profile Create button", failure);
             return false;
         }
     }
