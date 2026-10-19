@@ -76,7 +76,7 @@ class TapFeedVideoToPauseHookTest {
     }
 
     /**
-     * In each of the version's eight builds the tap handler, the controller and the player are found by their strings, the
+     * In each of the version's three builds the tap handler, the controller and the player are found by their strings, the
      * hook goes in once, first thing in the handler, reading the handler, the post and the state from their own registers,
      * and every stub is filled. The handler class's press entry and release are found by their shapes, and each gets its
      * own hook once, first thing, reading its own registers. Every other instruction of the handler's class and of the
@@ -85,7 +85,7 @@ class TapFeedVideoToPauseHookTest {
     @Test
     fun eachDeclaredBuildHoldsItsFeedTap() {
         val bundles = bundles()
-        assertEquals("eight builds of the version", 8, bundles.size)
+        assertEquals("the three 452 builds", 3, bundles.size)
         for (apk in bundles) {
             val name = name(apk)
             val parts = parts(apk)
@@ -118,14 +118,14 @@ class TapFeedVideoToPauseHookTest {
                 assertEquals("$what: the launcher's lazy field is its own", parts.launcher, found.launcherSupplier.definingClass)
                 assertEquals("$what: and is asked as the handler's is", found.supplierValue.toString(), found.launcherValue.toString())
                 if (apk.extension == "apks") {
-                    assertEquals("$what: the launcher's names", listOf("LX/00R0;", "A00", "A03"),
+                    assertEquals("$what: the launcher's names", listOf("LX/05AO;", "A00", "A03"),
                         listOf(found.launcher.definingClass, found.launcher.name, found.launcherSupplier.name))
                     // The declared build's own names, 385713073. 451 pauses with a string of its own, no
                     // Integer constant named.
                     assertEquals("$what: the pause reason", "tapped", found.reasonText)
                     assertEquals(
                         "$what: the names",
-                        listOf("A05", "A06", "A09", "A0C", "A0F", "A00", "A0p", "A01", "A00", "A0B", "A03", "A0F", "A0r", "A3C"),
+                        listOf("A05", "A06", "A09", "A0C", "A0D", "A00", "A0n", "A01", "A00", "A0B", "A03", "A0F", "A0s", "A3G"),
                         listOf(
                             found.handler.name, found.press.name, found.release.name, found.moduleSupplier.name,
                             found.controllerField.name, found.playerField.name, found.isPlaying.name, found.itemField.name,

@@ -121,7 +121,7 @@ class ReelTapAndVolumeHookTest {
     }
 
     /**
-     * In each of the version's seven builds the Reels tap and the controller's audio toggle are found once, the hook
+     * In each of the version's three builds the Reels tap and the controller's audio toggle are found once, the hook
      * goes in once right after the load of the pause path's string with two borrowed locals, and every other
      * instruction keeps its place and its branches. Read as the patcher reads an APK, and copied.
      */
@@ -130,7 +130,7 @@ class ReelTapAndVolumeHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("eight builds of the version", 8, bundles.size)
+        assertEquals("the three 452 builds", 3, bundles.size)
         for (bundle in bundles) {
             val name = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
             val holders = (FixtureDex.classesHolding(bundle, tapMarker) + FixtureDex.classesHolding(bundle, toggleMarker)).map { it.type }.toSet()
@@ -245,7 +245,7 @@ class ReelTapAndVolumeHookTest {
     }
 
     /**
-     * In each of the version's seven builds the volume runnable is found once and the hook goes in once, right
+     * In each of the version's three builds the volume runnable is found once and the hook goes in once, right
      * after the marker's call, with one borrowed local and every other instruction in place. Read as the patcher
      * reads an APK, and copied.
      */
@@ -254,7 +254,7 @@ class ReelTapAndVolumeHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("eight builds of the version", 8, bundles.size)
+        assertEquals("the three 452 builds", 3, bundles.size)
         for (bundle in bundles) {
             val name = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
             val holders = FixtureDex.classesHolding(bundle, volumeMarker).map { it.type }.toSet()

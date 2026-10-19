@@ -60,7 +60,7 @@ class ReelDownloadButtonHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertTrue("eight builds of the declared version", bundles.size >= 8)
+        assertTrue("three builds of the declared version", bundles.size >= 3)
         for (bundle in bundles) check(bundle, if (bundle.extension == "apks") bundle.name else bundle.parentFile.name)
     }
 
