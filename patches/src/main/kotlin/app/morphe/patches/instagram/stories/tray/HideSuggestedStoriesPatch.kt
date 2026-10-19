@@ -101,9 +101,11 @@ val hideSuggestedStoriesPatch = bytecodePatch(
         guardTray(findFloatingTrayShow())
         val parse = findTrayItemParse()
         val netegoCheck = findStoryNetegoCheck()
+        val midcards = findStoryMidcards()
         hookTrayParser(parse, findTrayRemaining(parse.site))
         hideMusicCard()
         hideStorySuggestions(netegoCheck)
+        hideStoryMidcards(midcards)
         enableStatus("storiesTray")
     }
 }

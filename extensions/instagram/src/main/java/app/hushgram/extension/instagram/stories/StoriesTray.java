@@ -44,6 +44,12 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * and a yes makes the check answer no, so the viewer leaves the unit out the way it leaves out one
  * that isn't valid.
  *
+ * <p>The full-screen Suggested for you page between stories (#154) is neither. The viewer builds
+ * it itself, as a midcard: a reel whose type Instagram turns into a name such as
+ * story_interstitial_suggested_users_midcard. Each piece of code that adds a midcard builds its
+ * reel first and adds it after, so the patch hands the new reel's type name to {@link #midcard}
+ * right after the build, and a yes makes that code answer that it had no card to add.
+ *
  * <p>The Music for you card isn't a tray item. Instagram puts it between the stories in the viewer,
  * when a server flag says the card is on, so the patch passes that flag's answer through
  * {@link #musicCard} and a yes becomes a no while Hide the Music for you card is on.
@@ -112,6 +118,15 @@ public final class StoriesTray {
      */
     static final String UNITS_ROUTE = "Stories viewer units";
     static final String AD = "ad";
+
+    /**
+     * Every midcard the stories viewer builds, counted by its type's name, so a report from an
+     * account that still sees a card between stories says which one it is.
+     */
+    static final String MIDCARD_ROUTE = "Stories viewer midcards";
+
+    /** The midcard of the full-screen Suggested for you page between stories, by Instagram 451's name. */
+    static final Set<String> SUGGESTED_MIDCARDS = Collections.singleton("story_interstitial_suggested_users_midcard");
 
     /** A constant only the reel type enum has among the tray item's enum fields. */
     private static final String REEL_TYPE_MARKER = "USER_REEL";
@@ -207,6 +222,29 @@ public final class StoriesTray {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORIES_TRAY, "story netego", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Injected right after the stories viewer builds a midcard to add between stories, with the
+     * name of its type. Answers true, leave it out, for the Suggested for you page while Hide
+     * Suggested for you between stories is on, and false otherwise, or when anything goes wrong.
+     * Never throws, and never waits for the settings.
+     */
+    public static boolean midcard(String kind) {
+        if (kind == null) return false;
+        try {
+            HookStatus.invoked(FamilyNames.STORIES_TRAY);
+            FeedFilterCounters.sawKind(MIDCARD_ROUTE, kind);
+            if (!SUGGESTED_MIDCARDS.contains(kind)) return false;
+            FeedFilterCounters.sawKind(SUGGESTION_ROUTE, kind);
+            if (!Utils.settingsReady() || !Settings.HIDE_STORY_SUGGESTIONS.get()) return false;
+            FeedFilterCounters.removed(SUGGESTION_ROUTE, 1, kind);
+            Logger.printDebug(() -> "Stories: left out a " + kind + " card");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORIES_TRAY, "story midcard", failure);
             return false;
         }
     }
