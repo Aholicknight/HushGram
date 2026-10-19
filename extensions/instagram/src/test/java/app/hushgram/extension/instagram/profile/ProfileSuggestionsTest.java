@@ -614,6 +614,7 @@ public class ProfileSuggestionsTest {
     @Test
     public void onlyKindsThatSuggestSomethingAreSuggestions() {
         assertTrue(ProfileSuggestions.isSuggestion("connect_lowlness"));
+        assertTrue("#112's Follow suggestions row", ProfileSuggestions.isSuggestion("find_friend_activity"));
         assertTrue(ProfileSuggestions.isSuggestion("ig_text_app_non_onboarded_unconnected_daily_digest"));
         assertTrue(ProfileSuggestions.isSuggestion("ig_text_app_recommended_threads"));
         assertTrue(ProfileSuggestions.isSuggestion("ig_text_app_suggested_profiles"));

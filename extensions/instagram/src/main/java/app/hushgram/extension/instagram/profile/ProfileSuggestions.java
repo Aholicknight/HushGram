@@ -105,10 +105,12 @@ public final class ProfileSuggestions {
      * The server's names for notification rows that only suggest something to you, read off the
      * notifications of an account that gets them on Instagram 451 (2026-10-14): "<name>, who you might
      * know, is on Instagram" and "Check out your new follow suggestions" are connect_lowlness, and
-     * "<name> posted a thread you might be interested in" is the Threads one.
+     * "<name> posted a thread you might be interested in" is the Threads one. The "Follow suggestions"
+     * row over the list (#112, 2026-10-19) is find_friend_activity.
      */
     static final Set<String> SUGGESTION_TYPES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "connect_lowlness",
+            "find_friend_activity",
             "ig_text_app_non_onboarded_unconnected_daily_digest")));
 
     /** The prefix of every Threads ("text app") row, and the words in the names of those from accounts you aren't connected to. */
