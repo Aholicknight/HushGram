@@ -69,7 +69,7 @@ internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method,
     val setter = timer.methods.singleOrNull { it.concreteTimer() && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.timerParameters() == listOf(prefs, "J") }
         ?: refuseTimer("${timer.type} has no single static expiration setter taking ($prefs" + "J)V")
     val saved = proveExpirationSetter(setter, check)
-    proveBoxedTimestamp(saved)
+    if (saved != null) proveBoxedTimestamp(saved)
     // The cancellation callback holds the same log marker on 449, but never saves an expiration.
     val savingCallbacks = callbacks.distinctBy { (_, method) -> method.toString() }
         .filter { (_, method) -> method.timerCode().any { it.timerMethod()?.toString() == setter.toString() } }
@@ -190,9 +190,19 @@ private fun castCapture(type: ClassDef, constructor: Method, constructorCode: Li
     }.singleOrNull()
 }
 
-/** The native setter passes its wide parameter through the descriptor and metadata the check reads. */
-private fun proveExpirationSetter(setter: Method, check: Method): MethodReference {
+/**
+ * The native setter passes its wide parameter through the descriptor and metadata the check reads.
+ * 451 calls a static helper that boxes the timestamp and returns it, so that helper is handed back to
+ * be proved too. 452 boxes the timestamp in the setter itself and calls the store's interface method,
+ * so nothing is left to prove and this returns null.
+ */
+private fun proveExpirationSetter(setter: Method, check: Method): MethodReference? {
     val code = setter.timerCode()
+    val inlineOpcodes = listOf(
+        Opcode.CONST_4, Opcode.INVOKE_STATIC, Opcode.SGET_OBJECT, Opcode.SGET_OBJECT, Opcode.AGET_OBJECT,
+        Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_INTERFACE, Opcode.RETURN_VOID,
+    )
+    if (code.map { it.opcode } == inlineOpcodes) return proveInlineExpirationSetter(setter, check, code)
     val opcodes = listOf(Opcode.CONST_4, Opcode.INVOKE_STATIC, Opcode.SGET_OBJECT, Opcode.SGET_OBJECT, Opcode.AGET_OBJECT, Opcode.INVOKE_STATIC, Opcode.RETURN_VOID)
     if (code.map { it.opcode } != opcodes) refuseTimer("${setter.definingClass}'s expiration setter has an unproved body")
     val zero = (code[0] as OneRegisterInstruction).registerA
@@ -215,6 +225,34 @@ private fun proveExpirationSetter(setter: Method, check: Method): MethodReferenc
         setOf(zero, d, m, prefs, timestamp, timestamp + 1).size != 6
     ) refuseTimer("${setter.definingClass}'s expiration setter doesn't save its wide timestamp parameter")
     return save
+}
+
+private fun proveInlineExpirationSetter(setter: Method, check: Method, code: List<Instruction>): MethodReference? {
+    val zero = (code[0] as OneRegisterInstruction).registerA
+    val descriptor = code[2].timerField()!!
+    val metadata = code[3].timerField()!!
+    val d = (code[2] as OneRegisterInstruction).registerA
+    val m = (code[3] as OneRegisterInstruction).registerA
+    val element = code[4] as ThreeRegisterInstruction
+    val prefs = setter.parameterRegisterNumber(0)
+    val timestamp = setter.parameterRegisterNumber(1)
+    val boxed = (code[6] as OneRegisterInstruction).registerA
+    val save = code[7].timerMethod()!!
+    val reads = check.timerCode().filter { it.opcode == Opcode.SGET_OBJECT }.map { it.timerField()?.toString() }
+    // The metadata is read into the register that still holds the zero, so that one register serves both.
+    if ((code[0] as NarrowLiteralInstruction).narrowLiteral != 0 || code[1].timerMethod()?.parameterTypes != listOf("Ljava/lang/Object;", "I") ||
+        code[1].timerMethod()?.returnType != "V" || code[1].timerArguments() != listOf(prefs, zero) ||
+        descriptor.definingClass != setter.definingClass || metadata.definingClass != setter.definingClass ||
+        descriptor.toString() !in reads || metadata.toString() !in reads || !metadata.type.startsWith("[L") ||
+        element.registerA == d || element.registerB != m || element.registerC != zero ||
+        code[5].timerMethod()?.toString() != "Ljava/lang/Long;->valueOf(J)Ljava/lang/Long;" || code[5].timerArguments() != listOf(timestamp, timestamp + 1) ||
+        save.definingClass != descriptor.type || save.returnType != "V" ||
+        save.parameterTypes.map(CharSequence::toString) != listOf("Ljava/lang/Object;", "Ljava/lang/Object;", metadata.type.drop(1)) ||
+        code[7].timerArguments() != listOf(d, prefs, boxed, element.registerA) ||
+        boxed == d || boxed == prefs || boxed == element.registerA || boxed in timestamp..timestamp + 1 || d in timestamp..timestamp + 1 ||
+        element.registerA in timestamp..timestamp + 1 || prefs in timestamp..timestamp + 1
+    ) refuseTimer("${setter.definingClass}'s expiration setter doesn't save its wide timestamp parameter")
+    return null
 }
 
 private fun BytecodePatchContext.proveBoxedTimestamp(call: MethodReference) {

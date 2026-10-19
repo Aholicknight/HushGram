@@ -419,7 +419,11 @@ class KeepReelsAutoScrollHookTest {
         assertTrue("${label}: the check reads the memory", readers.any { it.text() == checkMethod.text() })
         val outside = readers.filter { it.text() != checkMethod.text() }
         val known = listOf(PIP_ON_CREATE, PLAYBACK_STATE)
-        assertEquals("${label}: what reads the memory besides the check", known, outside.map { m -> known.single { it in m.markers() } }.sorted())
+        // 452 added a static helper beside the check that repeats it (the same flag, the memory, else the getter).
+        val checkCopies = outside.filter { m -> known.none { it in m.markers() } && m.code().any { it.calls(getter) } }
+        assertTrue("${label}: at most one copy of the check reads the memory", checkCopies.size <= 1)
+        assertEquals("${label}: what reads the memory besides the check", known,
+            (outside - checkCopies.toSet()).map { m -> known.single { it in m.markers() } }.sorted())
         outside.forEach { assertMemoryReadsAnswered("${label}: ${it.text()}", context.method(it), memoryText, reads = 1) }
         assertEquals("${label}: reads answered", outside.map { "${it.definingClass}->${it.name}" }.sorted(),
             sites.memoryReads.map { "${it.method.definingClass}->${it.method.name}" }.sorted())
