@@ -1125,6 +1125,13 @@ public class CarouselSaveTest {
             assertEquals("Saved 0. Failed 0. Skipped 2.", SaveControl.batchOutcome());
             MediaSave.detailsForTests = details -> await(release);
             assertTrue(MediaSave.saveBatch(context, Arrays.asList(page(false, "/held.jpg", "1"), null), null));
+            // The first carousel gives up its turn just after its completion runs, so this one can
+            // queue for a moment before it starts. Its counts clear when it starts.
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            while (SaveControl.running().isEmpty()) {
+                assertTrue("the held carousel never started", System.nanoTime() < deadline);
+                Thread.sleep(10);
+            }
             assertNull("a newly admitted carousel retained stale counts", SaveControl.batchOutcome());
             assertCleanAfterRelease();
         } finally {
