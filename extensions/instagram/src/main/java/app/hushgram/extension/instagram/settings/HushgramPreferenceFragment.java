@@ -1260,6 +1260,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 profiles.addPreference(toggle(context, Settings.HIDE_THREADS_BUTTON, L10n.t("Hide the Threads button"),
                         L10n.t("Takes the Threads button off the top of profiles, yours included. The menu and "
                                 + "the other buttons stay where they were.")));
+                profiles.addPreference(toggle(context, Settings.HIDE_CREATE_BUTTON, L10n.t("Hide the Create button"),
+                        L10n.t("Takes the plus for new posts off the top of your own profile. The other buttons "
+                                + "stay where they were.")));
+                profiles.addPreference(toggle(context, Settings.HIDE_SHARE_PROFILE_BUTTON, L10n.t("Hide Share profile"),
+                        L10n.t("Takes the Share profile button off your profile, and Edit profile stretches to fill "
+                                + "the space.")));
             }
             if (build.contains(PatchFamily.PROFILE_NOTES)) {
                 profiles.addPreference(toggle(context, Settings.HIDE_PROFILE_NOTES, L10n.t("Hide Notes on profile pictures"),

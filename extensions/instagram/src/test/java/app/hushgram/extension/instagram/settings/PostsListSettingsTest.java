@@ -85,9 +85,9 @@ public class PostsListSettingsTest {
         assertEquals("Profiles", profiles.getTitle().toString());
         String[] keys = new String[profiles.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = profiles.getPreference(i).getKey();
-        int threads = Arrays.asList(keys).indexOf(Settings.HIDE_THREADS_BUTTON.key);
-        assertTrue(Arrays.toString(keys), threads >= 0);
-        assertEquals("right after Hide the Threads button", Settings.PROFILE_POSTS_LIST.key, keys[threads + 1]);
+        int share = Arrays.asList(keys).indexOf(Settings.HIDE_SHARE_PROFILE_BUTTON.key);
+        assertTrue(Arrays.toString(keys), share >= 0);
+        assertEquals("right after Hide the Threads button's switches", Settings.PROFILE_POSTS_LIST.key, keys[share + 1]);
         assertFalse(row.isChecked());
         assertFalse(Settings.PROFILE_POSTS_LIST.get());
         assertFalse("each posts tab reads the switch, so no restart prompt", Settings.PROFILE_POSTS_LIST.rebootApp);

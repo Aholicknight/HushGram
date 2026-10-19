@@ -1108,6 +1108,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_threads_button", FALSE);
 
     /**
+     * The Create button, the plus at the top of your own profile
+     * ({@link app.hushgram.extension.instagram.profile.ThreadsButton}, #254). Read each time Instagram
+     * builds a profile's top bar, so a change shows on the next profile opened. Off to start.
+     */
+    public static final BooleanSetting HIDE_CREATE_BUTTON =
+            new BooleanSetting("hushgram_hide_create_button", FALSE);
+
+    /**
+     * The Share profile button in your profile's row of action buttons, with Edit profile taking its
+     * space ({@link app.hushgram.extension.instagram.profile.ShareProfileButton}, #253). Read each time
+     * Instagram builds the row, so a change shows on the next profile opened. Off to start.
+     */
+    public static final BooleanSetting HIDE_SHARE_PROFILE_BUTTON =
+            new BooleanSetting("hushgram_hide_share_profile_button", FALSE);
+
+    /**
      * The Notes bubble on profile pictures, yours included
      * ({@link app.hushgram.extension.instagram.profile.ProfileNotes}). Read each time Instagram opens
      * a profile, so a change shows on the next profile opened. Off to start.

@@ -1066,6 +1066,11 @@ Takes the Follow button off the top of stories from accounts you don't follow. T
 # context: Reels: Burn-in guard's switch that keeps the faded buttons faded while you tap (#162)
 Stay dim when I tap	Continuar escurecido quando eu tocar
 Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	Depois que a Proteção contra burn-in esmaece os botões, eles continuam esmaecidos no Reels, não importa o que você toque ou deslize, inclusive no próximo reel. Eles continuam funcionando. Sair do Reels traz os botões de volta.
+# context: Profiles: switches next to Hide the Threads button. Create is the plus at the top of your own profile (#254); Share profile and Edit profile are Instagram's own button names (#253)
+Hide the Create button	Ocultar o botão Criar
+Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	Tira o mais para novos posts do topo do seu próprio perfil. Os outros botões continuam onde estavam.
+Hide Share profile	Ocultar Compartilhar perfil
+Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	Tira o botão Compartilhar perfil do seu perfil, e Editar perfil estica para ocupar o espaço.
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	Manter a pílula no tamanho cheio
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	Rolar uma lista para baixo deixa a pílula de vidro líquido como está, com cada aba no lugar. Reinicie o Instagram depois de alterar.

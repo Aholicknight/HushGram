@@ -56,6 +56,150 @@ class HideThreadsButtonHookTest {
         assertTrue("$HIDE_BANNER is not in the extension: $declared", HIDE_BANNER.substringAfter("->") in declared)
     }
 
+    /** Share profile's hook and the stub the patch writes are in the ShareProfileButton the bundle ships, public and static. */
+    @Test
+    fun theShareHookAndStubAreInTheExtension() {
+        val declared = ExtensionDex.classDef(SHARE_BUTTON).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$SHARE_HOOK is not in the extension: $declared", SHARE_HOOK.substringAfter("->") in declared)
+        assertTrue("the $SHARE_STUB stub is not in the extension: $declared", "$SHARE_STUB(Ljava/lang/Object;)Z" in declared)
+    }
+
+    /**
+     * #253: the stub tells Share profile's model, and each builder hands its button and model over
+     * right before its return, with the branches that went to the return going through the hook.
+     */
+    @Test
+    fun eachRowButtonGoesToTheExtensionBeforeItsReturned() {
+        val context = PatchContexts.of(shareClasses())
+        val site = context.findShareButton()
+        val before = site.builders.map { context.shareMethod(it).code().map { i -> i.describe() } }
+
+        context.hideShareButton(site)
+
+        assertShareHooked("the stand-in", context, site, before)
+        val text = site.builders.first()
+        assertTrue("the stand-in: the branch to the return goes through the hook", text.returnAt in context.shareMethod(text).jumpTargets())
+    }
+
+    /** A Share profile button the patch can't place fails at patch time, saying what it found. */
+    @Test
+    fun aShareButtonThePatchCantPlaceFails() {
+        val cases = listOf(
+            shareClasses(models = 0) to "expected one Share profile button loading \"$SHARE_URL\" and \"$SHARE_TRAY\" when tapped, found 0",
+            shareClasses(kinds = 2) to "expected Share profile's $shareModel to be one kind of action button, found 2 interfaces",
+            shareClasses(icons = 0) to "expected one method building Share profile as an icon from a $kind, found 0",
+            shareClasses(texts = 0) to "expected one method in $rowButtons building the action row's text buttons from a $kind, found 0",
+            shareClasses(texts = 2) to "expected one method in $rowButtons building the action row's text buttons from a $kind, found 2",
+            shareClasses(writesModel = true) to "$rowButtons->A01 writes over its model in v2",
+            shareClasses(extension = null) to "the extension has no $SHARE_BUTTON",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.findShareButton() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
+    /** In each declared build both of the row's builders hand Share profile over once, before their return. */
+    @Test
+    fun eachDeclaredBuildHandsShareProfileToTheExtension() {
+        forEachFixture { share(it, it.name) }
+    }
+
+    /** The same on every other build of the version. */
+    @Test
+    fun eachOtherBuildHandsShareProfileToTheExtensionToo() {
+        for (base in Fixtures.otherBuilds()) share(base, base.parentFile.name)
+    }
+
+    private fun share(bundle: File, label: String) {
+        val loading = (FixtureDex.classesLoading(bundle, SHARE_URL) + FixtureDex.classesLoading(bundle, SHARE_ICON_TAG)).distinctBy { it.type }
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading) + ExtensionDex.classDef(SHARE_BUTTON))
+        val site = context.findShareButton()
+        val before = site.builders.map { context.shareMethod(it).code().map { i -> i.describe() } }
+
+        context.hideShareButton(site)
+
+        assertShareHooked(label, context, site, before)
+    }
+
+    /** The stub's check, then for each builder one hook right before its return, Instagram's own code otherwise untouched. */
+    private fun assertShareHooked(what: String, context: BytecodePatchContext, site: ShareButtonSite, before: List<List<String>>) {
+        val stub = context.mutableClassDefBy(SHARE_BUTTON).methods.single { it.name == SHARE_STUB }.code()
+        assertEquals("$what: the stub", listOf(Opcode.INSTANCE_OF, Opcode.RETURN), stub.map { it.opcode })
+        assertEquals("$what: the stub's type", site.model, (stub[0].reference() as TypeReference).type)
+        assertEquals("$what: the builders", 2, site.builders.size)
+        for ((index, builder) in site.builders.withIndex()) {
+            val method = context.shareMethod(builder)
+            val code = method.code()
+            val where = "$what: ${builder.type}->${builder.name}"
+            assertEquals("$where: hooks", listOf(builder.returnAt), code.indices.filter { code[it].referenceText() == SHARE_HOOK })
+            assertEquals("$where: hands over the button and its model", listOf(builder.view, builder.from), code[builder.returnAt].arguments())
+            assertEquals("$where: the return after it", Opcode.RETURN_OBJECT, code[builder.returnAt + 1].opcode)
+            assertEquals("$where: the button returned", builder.view, (code[builder.returnAt + 1] as OneRegisterInstruction).registerA)
+            assertTrue("$where: a jump skips the hook", builder.returnAt + 1 !in method.jumpTargets())
+            val expected = before[index].toMutableList().apply { add(builder.returnAt, code[builder.returnAt].describe()) }
+            assertEquals("$where: Instagram's own code", expected, code.map { it.describe() })
+        }
+    }
+
+    private fun BytecodePatchContext.shareMethod(builder: ShareBuilder): MutableMethod =
+        mutableClassDefBy(builder.type).methods.single { it.name == builder.name && it.parameterTypes.map(CharSequence::toString) == builder.parameters }
+
+    private val kind = "Lfixture/ActionButton;"
+    private val shareModel = "Lfixture/ShareModel;"
+    private val rowButtons = "Lfixture/RowButtons;"
+
+    /**
+     * Share profile's model, an action button whose onClick loads the share link and the tray it
+     * opens; the class building the row's buttons, the text ones (with a branch to the return, as
+     * 451's has) and Share profile as an icon; and the extension.
+     */
+    private fun shareClasses(
+        models: Int = 1,
+        kinds: Int = 1,
+        icons: Int = 1,
+        texts: Int = 1,
+        writesModel: Boolean = false,
+        extension: ClassDef? = ExtensionDex.classDef(SHARE_BUTTON),
+    ): List<ClassDef> {
+        val view = "Landroid/view/View;"
+        val classes = mutableListOf<ClassDef>()
+        if (models == 1) {
+            val onClick = method(shareModel, "onClick", listOf(view), "V", 1, body = "const-string v0, \"$SHARE_URL\"\nconst-string v0, \"$SHARE_TRAY\"\nreturn-void")
+            val interfaces = List(kinds) { if (it == 0) kind else "Lfixture/Other$it;" }
+            classes += ImmutableClassDef(shareModel, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;",
+                interfaces, null, null, emptyList(), listOf(onClick))
+        }
+        val builders = mutableListOf<Method>()
+        builders += (0 until texts).map {
+            method(rowButtons, "A0${it + 1}", listOf(kind, "Ljava/lang/Integer;", "I"), view, 2, static = true, body = """
+                const-string v1, "$TEXT_TAG"
+                ${if (writesModel) "const/4 p0, 0x0" else ""}
+                const/4 v0, 0x0
+                if-eqz p2, :done
+                invoke-static {}, Lfixture/Views;->make()$view
+                move-result-object v0
+                :done
+                return-object v0
+            """)
+        }
+        builders += (0 until icons).map {
+            method(rowButtons, "B0$it", listOf(kind), view, 2, static = true, body = """
+                const-string v1, "$SHARE_ICON_TAG"
+                const/4 v0, 0x0
+                return-object v0
+            """)
+        }
+        // The share link loaded beside the row's builders by a method that isn't Share's onClick.
+        builders += method(rowButtons, "onClick", listOf(view), "V", 1, body = "const-string v0, \"$SHARE_URL\"\nreturn-void")
+        classes += classDef(rowButtons, builders)
+        if (extension != null) classes += extension
+        return classes
+    }
+
     /** The method adding the Threads chip asks the extension first and returns before the chip is made when told to. */
     @Test
     fun theThreadsChipIsSkippedWhenTheExtensionSaysSo() {

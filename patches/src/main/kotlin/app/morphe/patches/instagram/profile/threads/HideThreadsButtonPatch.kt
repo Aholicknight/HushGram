@@ -23,6 +23,7 @@ import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -55,6 +56,19 @@ internal const val BANNER_IMPRESSION = "impression_threads_banner"
 internal const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val ADD = "Ljava/util/List;->add(Ljava/lang/Object;)Z"
 
+internal const val SHARE_BUTTON = "$EXTENSION_PACKAGE/profile/ShareProfileButton;"
+internal const val SHARE_HOOK = "$SHARE_BUTTON->button(Landroid/view/View;Ljava/lang/Object;)V"
+internal const val SHARE_STUB = "isShare"
+
+/** The strings only Share profile's tap loads: what it logs sharing, and where it was tapped. */
+internal const val SHARE_URL = "share_profile_url"
+internal const val SHARE_TRAY = "button_tray"
+
+/** The pool tags of the action row's text buttons and of Share profile as an icon, loaded by their builders. */
+internal const val TEXT_TAG = "generic"
+internal const val SHARE_ICON_TAG = "share_profile_icon"
+private const val VIEW = "Landroid/view/View;"
+
 private const val LIST = "Ljava/util/List;"
 private const val OBJECT = "Ljava/lang/Object;"
 private const val NEXT = "Ljava/util/Iterator;->next()Ljava/lang/Object;"
@@ -68,12 +82,18 @@ private const val ITERATOR = "Ljava/util/List;->iterator()Ljava/util/Iterator;"
  * are built as before, and the Threads profile is still a tap away in the menu. Instagram 451 shows
  * Threads as a chip under the bio instead on most profiles, so the method adding that chip asks the
  * extension first too, and the other chips stay.
+ *
+ * Two more switches ride along, each off to start. The same list holds the Create button on your
+ * own profile, which the extension leaves out by its icon (#254). And the two methods building the
+ * row of action buttons under the bio, as text and as icons, hand each button and its model to the
+ * extension, which hides Share profile's and lets the others take its space (#253).
  */
 @Suppress("unused")
 val hideThreadsButtonPatch = bytecodePatch(
     name = "Hide the Threads button",
-    description = "Takes the Threads button off the top of profiles. The menu and the other buttons stay. Starts " +
-        "off. Turn it on in HushGram settings > Profiles.",
+    description = "Takes the Threads button off the top of profiles, with switches for the Create button and Share " +
+        "profile on your own. The menu and the other buttons stay. Each starts off. Turn them on in HushGram " +
+        "settings > Profiles.",
     default = true,
 ) {
     category("Profiles")
@@ -84,8 +104,10 @@ val hideThreadsButtonPatch = bytecodePatch(
         requireStatusMethod("threadsButton")
         val button = findThreadsButton()
         val banner = findThreadsBanner()
+        val share = findShareButton()
         hideThreadsButton(button)
         hideThreadsBanner(banner)
+        hideShareButton(share)
         enableStatus("threadsButton")
     }
 }
@@ -261,6 +283,93 @@ internal fun BytecodePatchContext.hideThreadsBanner(site: ThreadsBannerSite) {
     )
 }
 
+/**
+ * Where Share profile is hidden: [model] is the class of its buttons' models, and [builders] the
+ * methods building the action row's buttons that hand one back.
+ */
+internal class ShareButtonSite(val model: String, val builders: List<ShareBuilder>)
+
+/** A static [name] of [type] taking [parameters] that hands back the button in [view], built from the model in [from], at [returnAt]. */
+internal class ShareBuilder(val type: String, val name: String, val parameters: List<String>, val returnAt: Int, val view: Int, val from: Int)
+
+/**
+ * Finds Share profile's buttons, failing before anything changes when any of it isn't there exactly
+ * once. Its model is the class whose onClick loads both [SHARE_URL] and [SHARE_TRAY], and it's one
+ * kind of action button, the one interface it has. Each button of the row under the bio is built by
+ * a static method taking a model of that kind first and handing back a View. The class building
+ * Share profile as an icon, the one method loading [SHARE_ICON_TAG], builds the text buttons too, in
+ * the one loading [TEXT_TAG]. Each of those two has one return, and neither writes over its model.
+ */
+internal fun BytecodePatchContext.findShareButton(): ShareButtonSite {
+    val models = classesLoadingString(SHARE_URL).filter { candidate ->
+        candidate.methods.any {
+            it.name == "onClick" && it.parameters() == listOf(VIEW) && it.returnType == "V" &&
+                loadsString(it, SHARE_URL) && loadsString(it, SHARE_TRAY)
+        }
+    }
+    val model = models.singleOrNull()
+        ?: refuse("expected one Share profile button loading \"$SHARE_URL\" and \"$SHARE_TRAY\" when tapped, found ${models.size}")
+    val kind = model.interfaces.singleOrNull()
+        ?: refuse("expected Share profile's ${model.type} to be one kind of action button, found ${model.interfaces.size} interfaces")
+    if (!AccessFlags.PUBLIC.isSet(model.accessFlags)) refuse("${model.type} isn't public, so the extension can't check for it")
+
+    val builds = { method: Method ->
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == VIEW && method.parameters().firstOrNull() == kind
+    }
+    val icons = classesLoadingString(SHARE_ICON_TAG).flatMap { owner ->
+        owner.methods.filter { builds(it) && loadsString(it, SHARE_ICON_TAG) }.map { owner to it }
+    }
+    val (owner, icon) = icons.singleOrNull()
+        ?: refuse("expected one method building Share profile as an icon from a $kind, found ${icons.size}")
+    val texts = owner.methods.filter { builds(it) && loadsString(it, TEXT_TAG) }
+    val text = texts.singleOrNull()
+        ?: refuse("expected one method in ${owner.type} building the action row's text buttons from a $kind, found ${texts.size}")
+
+    val extension = classDefByOrNull(SHARE_BUTTON) ?: refuse("the extension has no $SHARE_BUTTON")
+    if (extension.methods.none { it.signature() == SHARE_HOOK && it.publicStatic() }) refuse("the extension has no public static $SHARE_HOOK")
+    if (extension.methods.none { it.isShareStub() }) refuse("$SHARE_BUTTON has no public static Z $SHARE_STUB($OBJECT)")
+    return ShareButtonSite(model.type, listOf(text, icon).map { shareBuilder(owner.type, it) })
+}
+
+private fun shareBuilder(owner: String, builder: Method): ShareBuilder {
+    val where = "$owner->${builder.name}"
+    val code = builder.code()
+    val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
+    val returnAt = returns.singleOrNull() ?: refuse("expected one return in $where, found ${returns.size}")
+    val view = (code[returnAt] as OneRegisterInstruction).registerA
+    val registers = builder.implementation!!.registerCount
+    val from = registers - builder.parameters().sumOf { if (it == "J" || it == "D") 2 else 1 }
+    if (code.any { it.writes(from) }) refuse("$where writes over its model in v$from")
+    if (view == from) refuse("$where hands back its model")
+    if (view > 15 || from > 15) refuse("$where keeps its button or model past v15, out of a plain call's reach")
+    return ShareBuilder(owner, builder.name, builder.parameters(), returnAt, view, from)
+}
+
+/**
+ * Writes the stub that tells Share profile's model, then hands each button and its model to
+ * [SHARE_HOOK] right before its builder gives it back, on the return's own label so every branch
+ * there runs it. Only called once [findShareButton] found everything.
+ */
+internal fun BytecodePatchContext.hideShareButton(site: ShareButtonSite) {
+    replace(mutableClassDefBy(SHARE_BUTTON).methods.single { it.isShareStub() }, 1, """
+        instance-of p0, p0, ${site.model}
+        return p0
+    """)
+    for (builder in site.builders) {
+        val method = mutableClassDefBy(builder.type).methods.single {
+            it.name == builder.name && it.parameters() == builder.parameters && it.returnType == VIEW
+        }
+        val at = method.implementation!!.instructions[builder.returnAt]
+        if (at.opcode != Opcode.RETURN_OBJECT || (at as OneRegisterInstruction).registerA != builder.view) {
+            refuse("${builder.type}->${builder.name} changed before its button could be hooked")
+        }
+        method.addInstructionsAtControlFlowLabel(
+            builder.returnAt,
+            "invoke-static { v${builder.view}, v${builder.from} }, $SHARE_HOOK",
+        )
+    }
+}
+
 private fun BytecodePatchContext.replace(method: MutableMethod, registers: Int, body: String) {
     val replacement = ImmutableMethod(method.definingClass, method.name, method.parameters, method.returnType,
         method.accessFlags, method.annotations, method.hiddenApiRestrictions,
@@ -287,6 +396,8 @@ private fun Instruction.writes(register: Int): Boolean {
 }
 
 private fun Method.isIconStub() = name == ICON_STUB && parameters() == listOf(OBJECT) && returnType == "I" && publicStatic()
+
+private fun Method.isShareStub() = name == SHARE_STUB && parameters() == listOf(OBJECT) && returnType == "Z" && publicStatic()
 
 private fun Method.publicStatic() = AccessFlags.PUBLIC.isSet(accessFlags) && AccessFlags.STATIC.isSet(accessFlags)
 
