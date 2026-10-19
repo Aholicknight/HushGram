@@ -56,6 +56,15 @@ public final class RepostButton {
         return hidden("data tree") ? Boolean.FALSE : eligible;
     }
 
+    /**
+     * Injected where Instagram 452 compares a data tree's value with a Boolean in place: whether
+     * they match as it is, or, while the switch is on, whether the Boolean is FALSE, as if the tree
+     * had answered FALSE.
+     */
+    public static boolean eligibleMatch(boolean matched, @Nullable Object expected) {
+        return hidden("data tree") ? Boolean.FALSE.equals(expected) : matched;
+    }
+
     /** The component-backed Feed renderer checks current settings before mounting either view. */
     public static boolean feedComponent() {
         return hidden("feed component");

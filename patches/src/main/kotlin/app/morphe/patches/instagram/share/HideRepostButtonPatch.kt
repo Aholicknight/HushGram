@@ -52,6 +52,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 private const val PATCH = "Hide the Repost button"
 internal const val HIDE_REPOSTS = "$EXTENSION_PACKAGE/share/RepostButton;->hide()Z"
 internal const val REPOSTS_ELIGIBLE = "$EXTENSION_PACKAGE/share/RepostButton;->eligible(Ljava/lang/Boolean;)Ljava/lang/Boolean;"
+internal const val REPOSTS_ELIGIBLE_MATCH = "$EXTENSION_PACKAGE/share/RepostButton;->eligibleMatch(ZLjava/lang/Object;)Z"
 internal const val REPOSTS_FEED_UFI = "$EXTENSION_PACKAGE/share/RepostButton;->feedUfi(Landroid/view/View;Landroid/view/View;)V"
 internal const val REPOSTS_FEED_COMPONENT = "$EXTENSION_PACKAGE/share/RepostButton;->feedComponent()Z"
 internal const val REPOSTS_FEED_RESTORE = "$EXTENSION_PACKAGE/share/RepostButton;->restoreFeedUfi(Landroid/view/View;Landroid/view/View;)V"
@@ -77,12 +78,13 @@ internal const val REPOSTS_FIELD = "enable_media_notes_production"
 internal val REPOSTS_HASH = REPOSTS_FIELD.hashCode()
 
 private const val BOOLEAN = "Ljava/lang/Boolean;"
+private const val OBJECT = "Ljava/lang/Object;"
 private const val BOUNCY_UFI_BUTTON = "Lcom/instagram/ui/widget/bouncyufibutton/IgBouncyUfiButtonImageView;"
 private const val UFI_COUNT = "Lcom/instagram/common/ui/base/IgTextView;"
 
-/** Feed's inflated repost icon and count in Instagram 451 (`reposts_ufi_icon`, `reposts_ufi_count`), the same ids in all eight builds. */
-internal const val REPOSTS_UFI_ICON_ID = 0x7f0b362e
-internal const val REPOSTS_UFI_COUNT_ID = 0x7f0b362d
+/** Feed's inflated repost icon and count in Instagram 452 (`reposts_ufi_icon`, `reposts_ufi_count`; 0x7f0b362e and 0x7f0b362d in 451), the same ids in all three builds. */
+internal const val REPOSTS_UFI_ICON_ID = 0x7f0b364f
+internal const val REPOSTS_UFI_COUNT_ID = 0x7f0b364e
 
 /**
  * The role the component renderer gives the Repost button. Its label is a string resource, and
@@ -139,7 +141,7 @@ internal fun repostHookMethods(
     feedUfi: FeedUfiSite,
     component: FeedRepostComponent,
 ): Map<String, Set<String>> = mapOf(
-    "the action-row state hook" to state.writes.map { methodKey(state.type, "<init>", it.parameters) }.toSet(),
+    "the action-row state hook" to state.writes.map { methodKey(it.owner, it.name, it.parameters) }.toSet(),
     "the getter guard" to setOf(methodKey(MEDIA, sites.getter, emptyList())),
     "the tree read filter" to sites.reads.map { methodKey(it.type, it.name, it.parameters) }.toSet(),
     "the Feed UFI hook" to setOf(methodKey(feedUfi.type, feedUfi.name, feedUfi.parameters)),
@@ -159,8 +161,19 @@ internal fun requireSeparateMethods(hooks: Map<String, Set<String>>) {
     }
 }
 
-/** A read of the field from a post's data tree: where its move-result-object is and the register it fills. */
-internal class RepostRead(val type: String, val name: String, val parameters: List<String>, val at: Int, val register: Int)
+/**
+ * A read of the field from a post's data tree: where its move-result is and the register it fills.
+ * 451 keeps the Boolean, and 452 compares it in place: a static helper answers whether the tree's
+ * value equals the Boolean in register [expected], and [register] holds that answer.
+ */
+internal class RepostRead(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val at: Int,
+    val register: Int,
+    val expected: Int = -1,
+)
 
 /** The post model's getter of the field, and every tree read of it outside the model. */
 internal class RepostSites(val getter: String, val reads: List<RepostRead>)
@@ -371,14 +384,14 @@ internal fun BytecodePatchContext.findFeedRepostState(): FeedRepostState {
     val enabled = toString.printedFlag(PATCH, state.type, REPOST_ENABLED_LABEL)
     // Read as it is now, so a write Hide comments has already hooked is found where it sits.
     val stored = mutableClassDefBy(state.type)
-    val writes = stored.flagWrites(PATCH, enabled).toMutableList()
+    val writes = flagWrites(PATCH, stored, enabled).toMutableList()
     if (writes.isEmpty()) refuse("${state.type}'s constructor never sets what it prints as \"$REPOST_ENABLED_LABEL\"")
     val flags = mutableListOf(enabled)
     for (label in listOf(REPOST_COUNT_LABEL, REPOST_ANIMATE_LABEL)) {
         if (!toString.holdsString(label)) continue
         // A flag printed some other way, or set anywhere but once in a constructor, is left alone.
         val flag = try { toString.printedFlag(PATCH, state.type, label) } catch (_: PatchException) { continue }
-        val set = try { stored.flagWrites(PATCH, flag) } catch (_: PatchException) { continue }
+        val set = try { flagWrites(PATCH, stored, flag) } catch (_: PatchException) { continue }
         if (set.size == 1 && flags.none { it.sameAs(flag) }) {
             flags += flag
             writes += set
@@ -433,6 +446,10 @@ private fun Method.repostReads(type: String): List<RepostRead> {
     val code = implementation?.instructions?.toList() ?: return emptyList()
     val reads = mutableListOf<RepostRead>()
     for ((at, instruction) in code.withIndex()) {
+        if (instruction.opcode == Opcode.INVOKE_STATIC) {
+            comparedRead(code, at)?.let { reads += RepostRead(type, name, parameterTypes.map(CharSequence::toString), at + 1, it.first, it.second) }
+            continue
+        }
         if (instruction.opcode != Opcode.INVOKE_INTERFACE && instruction.opcode != Opcode.INVOKE_INTERFACE_RANGE) continue
         val called = (instruction as ReferenceInstruction).reference as MethodReference
         if (called.returnType != BOOLEAN || called.parameterTypes.map(CharSequence::toString) != listOf("I")) continue
@@ -448,6 +465,22 @@ private fun Method.repostReads(type: String): List<RepostRead> {
         reads += RepostRead(type, name, parameterTypes.map(CharSequence::toString), at + 1, (result as OneRegisterInstruction).registerA)
     }
     return reads
+}
+
+/**
+ * 452's compare of a tree value: a static call handing a tree, the Boolean to compare with and
+ * [REPOSTS_HASH] to a helper answering whether they match, the answer kept by the next instruction.
+ * Answers the register the answer is in and the one holding the Boolean, or null for any other call.
+ */
+private fun comparedRead(code: List<Instruction>, at: Int): Pair<Int, Int>? {
+    val call = code[at] as? FiveRegisterInstruction ?: return null
+    val called = (call as ReferenceInstruction).reference as MethodReference
+    val parameters = called.parameterTypes.map(CharSequence::toString)
+    if (called.returnType != "Z" || parameters.size != 3 || parameters[1] != OBJECT || parameters[2] != "I") return null
+    if (call.registerCount != 3 || !code.hashLoadedInto(call.registerE, at)) return null
+    val result = code.getOrNull(at + 1)
+    if (result?.opcode != Opcode.MOVE_RESULT) return null
+    return (result as OneRegisterInstruction).registerA to call.registerD
 }
 
 /** Whether [REPOSTS_HASH] is loaded into [register] within [HASH_REACH] instructions before [at], and nothing else writes it between. */
@@ -494,6 +527,19 @@ internal fun BytecodePatchContext.filterRepostReads(reads: List<RepostRead>) {
         it.name == first.name && it.parameterTypes.map(CharSequence::toString) == first.parameters
     }
     for (read in reads.sortedByDescending { it.at }) {
+        if (read.expected >= 0) {
+            if (read.register > 15 || read.expected > 15) {
+                refuse("${first.type}->${first.name} compares the tree read in v${read.expected} and v${read.register}, past what a plain invoke can name")
+            }
+            method.addInstructions(
+                read.at + 1,
+                """
+                    invoke-static { v${read.register}, v${read.expected} }, $REPOSTS_ELIGIBLE_MATCH
+                    move-result v${read.register}
+                """,
+            )
+            continue
+        }
         method.addInstructions(
             read.at + 1,
             """

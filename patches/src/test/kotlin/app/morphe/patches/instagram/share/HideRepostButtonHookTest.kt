@@ -18,6 +18,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -222,7 +223,7 @@ class HideRepostButtonHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                hidesTheButtonIn(bundle, bundle.name, reads = 6, pinned = bundle.name.contains("-385810270."))
+                hidesTheButtonIn(bundle, bundle.name, reads = 5, pinned = bundle.name.contains("-385810270."))
                 checked++
             }
         }
@@ -312,8 +313,18 @@ class HideRepostButtonHookTest {
     /** At each index a read's answer is moved out, then passed through the filter and moved back into the same register. */
     private fun assertReadsFiltered(what: String, method: Method, answers: List<Int>) {
         val code = method.implementation!!.instructions.toList()
-        assertEquals("$what: filters", answers.size, code.count { it.names(REPOSTS_ELIGIBLE) })
+        assertEquals("$what: filters", answers.size, code.count { it.names(REPOSTS_ELIGIBLE) || it.names(REPOSTS_ELIGIBLE_MATCH) })
         for (at in answers) {
+            if (code[at].opcode == Opcode.MOVE_RESULT) {
+                // 452 compares in place: the answer and the Boolean it was compared with go through the filter.
+                val register = (code[at] as OneRegisterInstruction).registerA
+                val filter = code[at + 1]
+                assertTrue("$what: the compare filter at ${at + 1}", filter.names(REPOSTS_ELIGIBLE_MATCH))
+                assertEquals("$what: the filter's answer at $at", register, (filter as FiveRegisterInstruction).registerC)
+                assertEquals("$what: back at ${at + 2}", Opcode.MOVE_RESULT, code[at + 2].opcode)
+                assertEquals("$what: into the same register at ${at + 2}", register, (code[at + 2] as OneRegisterInstruction).registerA)
+                continue
+            }
             assertEquals("$what: the answer at $at", Opcode.MOVE_RESULT_OBJECT, code[at].opcode)
             val register = (code[at] as OneRegisterInstruction).registerA
             val filter = code[at + 1]
@@ -459,11 +470,11 @@ class HideRepostButtonHookTest {
             ),
         )
 
-        /** 073's Repost label, the same on every 451 build. Other versions number it otherwise. */
-        const val LABEL = 0x7f13707b
+        /** 073's Repost label, the same on every 452 build. Other versions number it otherwise. */
+        const val LABEL = 0x7f137268
 
         /** 073's Feed component renderer, a renderer of its own, so its Repost part is the whole of it. */
-        const val RENDERER_073 = "LX/05t2;->A0o"
+        const val RENDERER_073 = "LX/05RD;->A0p"
         const val PART_073 = 0
 
         /** A renderer of its own: the icon, the label, the [role] it gives the button, then null. */

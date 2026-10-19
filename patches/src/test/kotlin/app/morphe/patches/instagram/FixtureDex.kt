@@ -144,6 +144,29 @@ internal object FixtureDex {
     }
 
     /**
+     * Every class with a method that makes a new instance of one of [types]. 452's Redex inlined the
+     * Feed action-row state's constructor into the method that builds it, so a test of the state's
+     * flags carries that class too.
+     */
+    fun classesCreating(bundle: File, types: Set<String>): List<ClassDef> {
+        val found = mutableListOf<ClassDef>()
+        forEachDex(bundle) { dex ->
+            if (dex.typeSection.none { it in types }) return@forEachDex
+            for (classDef in dex.classes) {
+                if (classDef.type in types) continue
+                val creates = classDef.methods.any { method ->
+                    method.implementation?.instructions?.any {
+                        it.opcode == com.android.tools.smali.dexlib2.Opcode.NEW_INSTANCE &&
+                            ((it as com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction).reference as com.android.tools.smali.dexlib2.iface.reference.TypeReference).type in types
+                    } == true
+                }
+                if (creates) found += ImmutableClassDef.of(classDef)
+            }
+        }
+        return found
+    }
+
+    /**
      * [classesHolding] plus every class asking a static `(int)String` pool for [string] by a number
      * loaded right before the call, and the pools. Which strings Redex pools differs from build to
      * build (#77): 451's 385713073 asks a pool for friendship_statuses that 450 held.
