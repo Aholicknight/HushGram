@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -61,7 +62,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The viewer stops above Instagram's own tab bar, which leaves a black strip under the reel (#197).
  * While that bar shows, the reel on screen is copied the same way whether it has bars or not, and the
  * strip shows it mirrored and blurred, so it reads as the reel running on ({@link #drawStrip}). A
- * floating glass pill has the reel itself running on behind it (#221), so it gets no strip.
+ * docked glass pill paints that strip round itself (#258). A floating one has the reel itself running
+ * on behind it (#221), so it gets no strip.
  */
 public final class ReelBlurBars {
     /** The steps a failure is reported under. */
@@ -119,6 +121,10 @@ public final class ReelBlurBars {
     };
 
     static volatile FrameSource source = TEXTURE;
+
+    /** Whether a bar wears the glass, and whether that glass floats. Swapped in tests, since a test bar has none. */
+    static volatile Predicate<View> wearsGlass = GlassTabBar::wearsGlass;
+    static volatile Predicate<View> floatingGlass = GlassTabBar::wearsFloatingGlass;
 
     /** How many times a pager's loop has run, so tests can see it stop. */
     static volatile int rounds;
@@ -226,6 +232,8 @@ public final class ReelBlurBars {
             CONTROLLERS.clear();
         }
         source = TEXTURE;
+        wearsGlass = GlassTabBar::wearsGlass;
+        floatingGlass = GlassTabBar::wearsFloatingGlass;
         rounds = 0;
         logged = false;
         stripOwner = null;
@@ -478,9 +486,9 @@ public final class ReelBlurBars {
         }
 
         /**
-         * Instagram's tab bar when the strip under the reel is this class's to fill: shown, and
-         * Instagram's own. Null under the glass, whose floating pill has the reel running on behind it
-         * (#221) and whose docked bar fills itself with its own colour.
+         * Instagram's tab bar when the strip under the reel is this class's to fill: shown, and not a
+         * floating glass pill, which has the reel running on behind it (#221). A docked pill paints the
+         * strip round itself (#258).
          */
         @Nullable
         private View stripBar(ViewGroup group) {
@@ -490,7 +498,7 @@ public final class ReelBlurBars {
                 bar = id == 0 ? null : group.getRootView().findViewById(id);
                 barRef = bar == null ? null : new WeakReference<>(bar);
             }
-            if (bar == null || !bar.isShown() || GlassTabBar.wearsGlass(bar)) return null;
+            if (bar == null || !bar.isShown() || floatingGlass.test(bar)) return null;
             return bar;
         }
 
@@ -516,7 +524,7 @@ public final class ReelBlurBars {
             }
             stripOwner = this;
             stripFrame = frame;
-            if (!GlassTabBar.wearsGlass(bar)) {
+            if (!wearsGlass.test(bar)) {
                 if (barBackground == null) barBackground = new StripDrawable();
                 if (bar.getBackground() != barBackground) {
                     barBackground.original = bar.getBackground();

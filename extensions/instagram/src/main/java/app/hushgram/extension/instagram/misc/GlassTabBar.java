@@ -55,6 +55,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.reels.FullScreenBars;
+import app.hushgram.extension.instagram.reels.ReelBlurBars;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -661,13 +662,33 @@ public final class GlassTabBar {
 
     /**
      * Whether [bar] wears the glass, whose pill is its background. Blur the bars around a reel then
-     * leaves the bar alone: a floating pill has the reel running on behind it (#221), and one that
-     * doesn't float fills the bar with its own colour (#197).
+     * leaves the bar's background alone, and a docked pill paints the strip round itself ({@link #strip}).
      */
     public static boolean wearsGlass(@Nullable View bar) {
         WeakReference<Glass> held = bar == null ? null : applied.get(bar);
         return held != null && held.get() != null;
     }
+
+    /**
+     * Whether [bar] wears the glass and its pill floats, with the reel running on behind it (#221), so
+     * Blur the bars around a reel has no strip to fill under it.
+     */
+    public static boolean wearsFloatingGlass(@Nullable View bar) {
+        WeakReference<Glass> held = bar == null ? null : applied.get(bar);
+        Glass glass = held == null ? null : held.get();
+        return glass != null && glass.floating;
+    }
+
+    /** Paints a strip of the bar, or says false so the bar's own colour goes there. */
+    interface StripPainter {
+        boolean paint(Canvas canvas, float left, float top, float right, float bottom);
+    }
+
+    /**
+     * What a docked pill shows round itself on Reels: the reel running on, blurred, while Blur the bars
+     * around a reel has one ({@link ReelBlurBars#drawStrip}, #258). Swapped in tests.
+     */
+    static volatile StripPainter strip = ReelBlurBars::drawStrip;
 
     /** The room a floating pill makes under itself for the navigation bar: the height Instagram was answered 0 for. */
     static int navRoom(boolean floating) {
@@ -1981,11 +2002,15 @@ public final class GlassTabBar {
                 }
             }
 
-            /** What shows round the pill: the bar's own colour over Instagram's bar, and nothing round a floating pill. */
+            /**
+             * What shows round the pill: over Instagram's bar, the reel blurred while Blur the bars around
+             * a reel has one ({@link #strip}, #258) or else the bar's own colour, and nothing round a
+             * floating pill.
+             */
             private void underlay(@NonNull Canvas canvas) {
-                // The content stops above the bar, so the bar's own colour fills round the pill. A
-                // floating pill has the screens, Reels included (#221), running on behind it.
-                if (!floating) {
+                // The content stops above the bar, so something has to fill round the pill. A floating
+                // pill has the screens, Reels included (#221), running on behind it.
+                if (!floating && !strip.paint(canvas, 0, 0, bar.getWidth(), bar.getHeight())) {
                     fill.setColor(base);
                     canvas.drawRect(0, 0, bar.getWidth(), bar.getHeight(), fill);
                 }

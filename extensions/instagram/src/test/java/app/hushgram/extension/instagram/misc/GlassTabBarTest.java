@@ -19,6 +19,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
@@ -231,11 +232,52 @@ public class GlassTabBarTest {
         for (boolean floating : new boolean[]{true, false}) {
             try (GlassHost host = new GlassHost(Color.BLACK, floating, GlassHeight.STANDARD, false, false)) {
                 assertFalse("not restyled yet", GlassTabBar.wearsGlass(host.bar));
+                assertFalse(GlassTabBar.wearsFloatingGlass(host.bar));
                 GlassTabBar.apply(host.activity);
                 assertTrue(GlassTabBar.wearsGlass(host.bar));
+                assertEquals(floating, GlassTabBar.wearsFloatingGlass(host.bar));
             }
         }
         assertFalse(GlassTabBar.wearsGlass(null));
+        assertFalse(GlassTabBar.wearsFloatingGlass(null));
+    }
+
+    /**
+     * #258: with Show content behind the tab bar off, Reels stops above the pill, and the bar round it
+     * stayed black with Blur the bars around a reel on. A docked pill shows the reel strip there now, and
+     * its own colour when there's none. A floating pill has the reel itself behind it.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aDockedPillShowsTheReelStripRoundItself() throws Exception {
+        try {
+            for (boolean floating : new boolean[]{false, true}) {
+                try (GlassHost host = new GlassHost(Color.BLACK, floating, GlassHeight.STANDARD, false, false)) {
+                    GlassTabBar.apply(host.activity);
+                    host.layout();
+                    GlassTabBar.strip = (canvas, left, top, right, bottom) -> {
+                        Paint red = new Paint();
+                        red.setColor(Color.RED);
+                        canvas.drawRect(left, top, right, bottom, red);
+                        return true;
+                    };
+                    try (Pixels pixels = host.background()) {
+                        int corner = pixels.bitmap.getPixel(1, 1);
+                        if (floating) assertEquals("nothing round a floating pill", 0, Color.alpha(corner));
+                        else assertEquals("the strip round a docked pill", Color.RED, corner);
+                    }
+                    GlassTabBar.strip = (canvas, left, top, right, bottom) -> false;
+                    try (Pixels pixels = host.background()) {
+                        int corner = pixels.bitmap.getPixel(1, 1);
+                        if (floating) assertEquals(0, Color.alpha(corner));
+                        else assertEquals("no strip leaves the bar's own colour", Color.BLACK, corner);
+                    }
+                }
+            }
+        } finally {
+            GlassTabBar.strip = app.hushgram.extension.instagram.reels.ReelBlurBars::drawStrip;
+        }
     }
 
     /**

@@ -280,6 +280,41 @@ public class ReelBlurBarsTest {
         assertEquals(90, strip.getMinimumHeight());
     }
 
+    /**
+     * #258: a docked glass pill, as with Show content behind the tab bar off, paints the strip round
+     * itself, so it gets the copy and keeps its own background. A floating pill gets no strip.
+     */
+    @Test
+    public void aDockedGlassPillGetsTheStripAndAFloatingOneDoesNot() {
+        fullScreenPage();
+        View bar = tabBar();
+        ReelBlurBars.wearsGlass = view -> view == bar;
+        ReelBlurBars.floatingGlass = view -> false;
+
+        ReelBlurBars.pager(pager);
+        advance(400);
+
+        assertSame("the pill stays the bar's background", barBlack, bar.getBackground());
+        assertNotNull(ReelBlurBars.stripFrame());
+        assertTrue(ReelBlurBars.drawStrip(canvas(), 0, 0, WIDTH, 150));
+
+        ReelBlurBars.reset();
+        ReelBlurBars.source = (view, reuse, width, height) -> {
+            asked++;
+            return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        };
+        ReelBlurBars.tabBarId = BAR;
+        ReelBlurBars.wearsGlass = view -> view == bar;
+        ReelBlurBars.floatingGlass = view -> view == bar;
+        asked = 0;
+        ReelBlurBars.pager(pager);
+        advance(1500);
+
+        assertEquals("no copy for a floating pill", 0, asked);
+        assertSame(barBlack, bar.getBackground());
+        assertNull(ReelBlurBars.stripFrame());
+    }
+
     @Test
     public void aReelWithBarsLendsTheStripItsOwnCopy() {
         View bar = tabBar();
