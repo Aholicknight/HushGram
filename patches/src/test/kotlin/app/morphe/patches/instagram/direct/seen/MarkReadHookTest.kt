@@ -27,6 +27,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
@@ -259,6 +260,30 @@ class MarkReadHookTest {
     @Test fun aBuilderEnteredAtItsCapabilityBranchIsRefused() = changed(M.ROWS, "rows", GATE_REFUSAL) {
         it[4] = ImmutableInstruction21t(Opcode.IF_NEZ, 4, offset(it, 4, 3))
     }
+    @Test fun aBuilderThatBranchesOnTheCapabilityAfterItsOtherChecksIsOfferedPastThatBranch() {
+        val input = M.edit(M.classes(), M.ROWS, "rows") { laterBranch(it) }
+        val context = PatchContexts.of(input)
+        val found = context.findMarkRead(context.findThreadSeen())
+        assertEquals("past the capability branch, after the flag's", 5, found.offerAt)
+        val original = input.single { it.type == M.ROWS }.methods.single().visualCode()
+        context.readWithoutSeenReceipt()
+        val rows = context.mutableClassDefBy(M.ROWS).methods.single { it.name == "rows" }
+        assertRowOffer(rows, 2, M.READ.toString(), original, 5)
+        assertOfferGated(rows, 5)
+        assertEquals(listOf("offer ${M.READ}", "add ${M.UNREAD}"), traceRows(rows, capable = true, flag = false))
+        assertEquals(emptyList<String>(), traceRows(rows, capable = true, flag = true))
+        assertEquals(emptyList<String>(), traceRows(rows, capable = false, flag = false))
+    }
+    @Test fun aCapabilityAnswerAPathCanReplaceBeforeItsBranchIsRefused() =
+        changed(M.ROWS, "rows", "capability answer the chat menu builder branches on can be replaced or bypassed") {
+            // The flag's yes now overwrites the answer and comes back in front of its branch.
+            laterBranch(it)
+            it.add(4, ImmutableInstruction10x(Opcode.NOP))
+            it.add(ImmutableInstruction11n(Opcode.CONST_4, 0, 1))
+            it.add(ImmutableInstruction10x(Opcode.NOP))
+            it[it.size - 1] = ImmutableInstruction10t(Opcode.GOTO, offset(it, it.size - 1, 4))
+            it[3] = ImmutableInstruction21t(Opcode.IF_NEZ, 4, offset(it, 3, it.size - 2))
+        }
     @Test fun aBuilderThatReadsAScratchRegisterPastItsCheckIsRefused() =
         changed(M.ROWS, "rows", "${M.ROWS}->rows has 0 local register(s) up to v15 that nothing reads after instruction 4, needs 1") {
             it.add(4, touch(0))
@@ -370,6 +395,34 @@ class MarkReadHookTest {
         changed(THREAD_KEY, "toString", "chat key's toString doesn't write its own thread id after the label") {
             it[5] = call(Opcode.INVOKE_STATIC, listOf(2, 1, 4, 3, 0), M.TEXT, "join", List(5) { STRING }, STRING)
         }
+    /** 452's toString starts a StringBuilder with the label and appends the thread id next: the bridge still reads that id. */
+    @Test fun aKeyThatStartsAStringBuilderWithItsLabelStillGivesItsThreadId() {
+        val builder = "Ljava/lang/StringBuilder;"
+        val input = M.edit(M.classes(), THREAD_KEY, "toString") {
+            it.subList(3, it.size).clear()
+            it += typed(Opcode.NEW_INSTANCE, 1, builder)
+            it += call(Opcode.INVOKE_DIRECT, listOf(1, 2), builder, "<init>", listOf(STRING), "V")
+            it += call(Opcode.INVOKE_VIRTUAL, listOf(1, 4), builder, "append", listOf(STRING), builder)
+            it += call(Opcode.INVOKE_VIRTUAL, listOf(1), builder, "toString", emptyList(), STRING)
+            it += ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0)
+            it += ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)
+        }
+        val context = PatchContexts.of(input)
+        context.readWithoutSeenReceipt()
+        val bridges = context.mutableClassDefBy(INSTAGRAM_CHATS).methods.associateBy { it.name }
+        assertBridge(bridges, "threadId", listOf(Opcode.CHECK_CAST to THREAD_KEY, Opcode.IGET_OBJECT to M.THREAD_ID.toString(), Opcode.RETURN_OBJECT to null))
+    }
+    @Test fun aKeyThatAppendsSomethingElseAfterItsBuilderLabelIsRefused() {
+        val builder = "Ljava/lang/StringBuilder;"
+        changed(THREAD_KEY, "toString", "chat key's toString doesn't write its own thread id after the label") {
+            it[1] = text(3, "}")
+            it.subList(3, it.size).clear()
+            it += typed(Opcode.NEW_INSTANCE, 1, builder)
+            it += call(Opcode.INVOKE_DIRECT, listOf(1, 2), builder, "<init>", listOf(STRING), "V")
+            it += call(Opcode.INVOKE_VIRTUAL, listOf(1, 3), builder, "append", listOf(STRING), builder)
+            it += ImmutableInstruction11x(Opcode.RETURN_OBJECT, 3)
+        }
+    }
     @Test fun aReceiptWithoutItsChatKeyIsRefused() =
         refuses(M.classes().map { if (it.type == F.MUTATION) M.mutation(withKey = false) else it }, "expected one receipt's chat key, found 0")
 
@@ -437,6 +490,15 @@ class MarkReadHookTest {
     private fun app.morphe.patcher.patch.BytecodePatchContext.callsTo(reference: String, input: List<ClassDef>) =
         input.sumOf { candidate -> mutableClassDefBy(candidate.type).methods.sumOf { method -> method.visualCode().count { it.visualReference()?.toString() == reference } } }
 
+    /**
+     * The builder as 452 lays it out: the flag's check comes between the capability check and the
+     * branch on its answer, which the builder keeps in v0 till then.
+     */
+    private fun laterBranch(code: MutableList<Instruction>) {
+        code[3] = ImmutableInstruction21t(Opcode.IF_NEZ, 4, offset(code, 3, 7))
+        code[4] = ImmutableInstruction21t(Opcode.IF_EQZ, 0, offset(code, 4, 7))
+    }
+
     /** A call that reads [register], so nothing may borrow it there. */
     private fun touch(register: Int) = call(Opcode.INVOKE_STATIC, listOf(register), "Lfixture/Network;", "touch", listOf(OBJECT), "V")
 
@@ -471,15 +533,17 @@ class MarkReadHookTest {
 
         /**
          * Only the yes of the builder's check of the chat's capabilities reaches the offer at [at],
-         * and its no goes past the offer.
+         * and its no goes past the offer. The branch may come straight after the check, as on 451,
+         * or after the builder's other checks, as on 452, with nothing in between naming the answer.
          */
         internal fun assertOfferGated(method: Method, at: Int) {
             val code = method.visualCode()
             val flow = ControlFlow.of(method)
-            assertEquals(CAPABILITIES, (code[at - 3].visualReference() as MethodReference).definingClass)
-            assertEquals(Opcode.MOVE_RESULT, code[at - 2].opcode)
             assertEquals(Opcode.IF_EQZ, code[at - 1].opcode)
-            assertEquals((code[at - 2] as OneRegisterInstruction).registerA, (code[at - 1] as OneRegisterInstruction).registerA)
+            val answer = (code[at - 1] as OneRegisterInstruction).registerA
+            val asked = (at - 2 downTo 1).first { answer in code[it].namedRegisters() }
+            assertEquals(Opcode.MOVE_RESULT, code[asked].opcode)
+            assertEquals(CAPABILITIES, (code[asked - 1].visualReference() as MethodReference).definingClass)
             assertEquals("only the capability check's yes reaches the offer", listOf(at - 1), flow.normal.indices.filter { at in flow.normal[it] })
             assertTrue("a chat without the capability goes past the offer", flow.normal[at - 1].single { it != at } > at + 1)
             assertTrue(flow.exceptional.none { at in it })

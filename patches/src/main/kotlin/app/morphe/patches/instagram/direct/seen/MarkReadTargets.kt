@@ -80,6 +80,7 @@ private const val LIST = "Ljava/util/List;"
 private const val LIST_ADD = "Ljava/util/List;->add(Ljava/lang/Object;)Z"
 private const val ENUM = "Ljava/lang/Enum;"
 private const val STRING_TYPE = "Ljava/lang/String;"
+private const val STRING_BUILDER_TYPE = "Ljava/lang/StringBuilder;"
 
 /** The enum behind a chat's long press menu: its initializer names both read actions. */
 internal object ChatMenuActionsFingerprint : Fingerprint(
@@ -376,8 +377,10 @@ private fun rowBuilder(methods: List<Method>, markAsUnread: FieldReference): Met
 
 /**
  * Where the chat menu builder goes on only for a chat Instagram lets be marked unread: just past the
- * branch on its [MARK_UNREAD_CAPABILITY] check of the capabilities it's handed. Nothing else enters
- * there, so Mark as read is offered only where that check lets Mark as unread be.
+ * branch on its [MARK_UNREAD_CAPABILITY] check of the capabilities it's handed, whether that branch
+ * comes straight after the check or after the builder's other checks, as long as the answer it
+ * branches on is that check's on every path. Nothing else enters there, so Mark as read is offered
+ * only where that check lets Mark as unread be.
  */
 private fun capabilityGate(builder: Method, classes: Map<String, ClassDef>): Int {
     val parameters = builder.parameters()
@@ -404,13 +407,16 @@ private fun capabilityGate(builder: Method, classes: Map<String, ClassDef>): Int
     builder.requireParameterIntact(THREAD_SEEN_PATCH, capabilities, listOf(at))
     val answer = (code.getOrNull(at + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } as? OneRegisterInstruction)?.registerA
         ?: refuse("chat menu builder drops its capability answer")
-    val branch = code.getOrNull(at + 2)
-    if (branch?.opcode != Opcode.IF_EQZ || (branch as OneRegisterInstruction).registerA != answer) {
-        refuse("chat menu builder doesn't stop for a chat that can't be marked unread")
-    }
-    val gate = at + 3
+    // 451 branches on the answer straight away; 452 (0Cjx.A01) keeps it in a local through its other
+    // checks and branches on it further down, so the branch is the first instruction that names it.
+    val stop = "chat menu builder doesn't stop for a chat that can't be marked unread"
+    val branchAt = (at + 2 until code.size).firstOrNull { answer in code[it].namedRegisters() } ?: refuse(stop)
+    val branch = code[branchAt]
+    if (branch.opcode != Opcode.IF_EQZ || (branch as OneRegisterInstruction).registerA != answer) refuse(stop)
+    val gate = branchAt + 1
     val targets = builder.jumpTargets()
-    if (gate >= code.size || at + 2 in targets || gate in targets) refuse("chat menu builder can be entered past its capability check")
+    if (gate >= code.size || branchAt in targets || gate in targets) refuse("chat menu builder can be entered past its capability check")
+    requireOrigin(THREAD_SEEN_PATCH, builder, branchAt, answer, at + 1, "capability answer the chat menu builder branches on")
     return gate
 }
 
@@ -563,9 +569,11 @@ private fun threadIdField(key: ClassDef): FieldReference {
     val code = toString.visualCode()
     val labelAt = code.indices.filter { code[it].visualString() == THREAD_KEY_TEXT }.one("chat key's thread id label")
     val label = (code[labelAt] as OneRegisterInstruction).registerA
+    // 451 hands the label to a call as its first argument. 452 starts a new StringBuilder with it and
+    // appends the id next, so there the id is the append right after that builder's <init>.
     val joined = (labelAt + 1 until code.size).firstOrNull {
         code[it].call() != null && code[it].namedRegisters().firstOrNull() == label
-    } ?: refuse("chat key's toString never uses its thread id label")
+    } ?: builderAppendAfter(code, labelAt, label) ?: refuse("chat key's toString never uses its thread id label")
     val id = code[joined].namedRegisters().getOrNull(1) ?: refuse("chat key's toString writes nothing after its thread id label")
     val read = (joined - 1 downTo 0).firstOrNull { code[it].writes(id) }?.takeIf { at ->
         code[at].opcode == Opcode.IGET_OBJECT && (code[at] as TwoRegisterInstruction).registerB == toString.localRegisterCount() &&
@@ -574,6 +582,27 @@ private fun threadIdField(key: ClassDef): FieldReference {
     requireOrigin(THREAD_SEEN_PATCH, toString, joined, id, read, "chat key's thread id")
     toString.requireThisIntact(THREAD_SEEN_PATCH, listOf(read))
     return code[read].field()!!
+}
+
+/**
+ * 452's toString: a new StringBuilder right after the label, its `<init>(String)` taking the label,
+ * then one `append(String)` on that builder. Answers the append's index, or null for any other shape.
+ */
+private fun builderAppendAfter(code: List<Instruction>, labelAt: Int, label: Int): Int? {
+    val created = code.getOrNull(labelAt + 1)?.takeIf { it.opcode == Opcode.NEW_INSTANCE && it.type() == STRING_BUILDER_TYPE } ?: return null
+    val builder = (created as OneRegisterInstruction).registerA
+    val init = code.getOrNull(labelAt + 2) ?: return null
+    val append = code.getOrNull(labelAt + 3) ?: return null
+    val made = init.call()
+    if (init.opcode != Opcode.INVOKE_DIRECT || made?.definingClass != STRING_BUILDER_TYPE || made.name != "<init>" ||
+        made.parameterTypes.map(CharSequence::toString) != listOf(STRING_TYPE) || init.namedRegisters() != listOf(builder, label)
+    ) return null
+    val added = append.call()
+    if (append.opcode != Opcode.INVOKE_VIRTUAL || added?.definingClass != STRING_BUILDER_TYPE || added.name != "append" ||
+        added.parameterTypes.map(CharSequence::toString) != listOf(STRING_TYPE) || append.namedRegisters().size != 2 ||
+        append.namedRegisters()[0] != builder
+    ) return null
+    return labelAt + 3
 }
 
 /** Refuses unless [type] is a public class and [member], when given, is public too, so the extension can reach it. */
