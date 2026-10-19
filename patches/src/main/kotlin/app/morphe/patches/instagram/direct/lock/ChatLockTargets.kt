@@ -28,10 +28,12 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 internal const val CHAT_LOCKS = "$EXTENSION_PACKAGE/direct/ChatLocks;"
 internal const val CHAT_OPENED = "$CHAT_LOCKS->opened(Ljava/lang/Object;)V"
@@ -63,6 +65,7 @@ internal const val PUSH_RECIPIENT = "mIntendedRecipientUserid"
 private const val NOTIFICATION = "Landroid/app/Notification;"
 private const val MAP = "Ljava/util/Map;"
 private const val STRING = "Ljava/lang/String;"
+private const val STRING_BUILDER = "Ljava/lang/StringBuilder;"
 
 /** The chat screen's onResume: the one method logging [CHAT_RESUME]. */
 internal object ChatResumeFingerprint : Fingerprint(
@@ -272,18 +275,47 @@ internal fun threadIdField(key: ClassDef): FieldReference {
         }
     }
     if (reads.isNotEmpty()) return reads.distinctBy { it.signature() }.one("thread id the chat key writes after its label")
-    // The other shape: the fields are read first and the label and the field go to one concatenation call.
+    // The other shapes: the fields are read first, then the label and the field go to one concatenation
+    // call, or (452) the label starts a StringBuilder and the field is the next thing appended to it.
     val labelRegister = (code[label] as OneRegisterInstruction).registerA
-    val joined = (label + 1 until code.size).firstOrNull { at ->
-        (code[at] as? FiveRegisterInstruction)?.let { it.registerCount >= 2 && it.registerC == labelRegister } == true
-    } ?: refuse("the chat key's label isn't followed by anything that writes its thread id")
-    val idRegister = (code[joined] as FiveRegisterInstruction).registerD
+    val idRegister = concatenatedAfter(code, label, labelRegister) ?: builtAfter(code, label, labelRegister)
+        ?: refuse("the chat key's label isn't followed by anything that writes its thread id")
     val read = (label - 1 downTo 0).firstOrNull { (code[it] as? OneRegisterInstruction)?.registerA == idRegister }?.let { code[it] }
     val field = read?.visualReference() as? FieldReference
     if (read == null || field == null || read.opcode != Opcode.IGET_OBJECT || (read as TwoRegisterInstruction).registerB != self ||
         field.definingClass != key.type || field.type != STRING
     ) refuse("expected one thread id the chat key writes after its label, found 0")
     return field
+}
+
+/** The register a concatenation call takes right after the label in [labelRegister], when one does. */
+private fun concatenatedAfter(code: List<Instruction>, label: Int, labelRegister: Int): Int? =
+    (label + 1 until code.size).firstOrNull { at ->
+        (code[at] as? FiveRegisterInstruction)?.let { it.registerCount >= 2 && it.registerC == labelRegister } == true
+    }?.let { (code[it] as FiveRegisterInstruction).registerD }
+
+/**
+ * 452's toString: the label is the very next instruction's argument to a new StringBuilder's
+ * `<init>(String)` (right after its new-instance), and the next instruction appends one String
+ * register to that builder, the one this answers. Nothing else may come between.
+ */
+private fun builtAfter(code: List<Instruction>, label: Int, labelRegister: Int): Int? {
+    val created = code.getOrNull(label + 1) ?: return null
+    val init = code.getOrNull(label + 2) as? FiveRegisterInstruction ?: return null
+    val append = code.getOrNull(label + 3) as? FiveRegisterInstruction ?: return null
+    val builder = (created as? OneRegisterInstruction)?.registerA ?: return null
+    val initCall = init.visualReference() as? MethodReference ?: return null
+    val appendCall = append.visualReference() as? MethodReference ?: return null
+    if (created.opcode != Opcode.NEW_INSTANCE || (created.visualReference() as? TypeReference)?.type != STRING_BUILDER) return null
+    if (init.opcode != Opcode.INVOKE_DIRECT || initCall.definingClass != STRING_BUILDER || initCall.name != "<init>" ||
+        initCall.parameterTypes.map(CharSequence::toString) != listOf(STRING) || init.registerCount != 2 ||
+        init.registerC != builder || init.registerD != labelRegister
+    ) return null
+    if (append.opcode != Opcode.INVOKE_VIRTUAL || appendCall.definingClass != STRING_BUILDER || appendCall.name != "append" ||
+        appendCall.parameterTypes.map(CharSequence::toString) != listOf(STRING) || append.registerCount != 2 ||
+        append.registerC != builder
+    ) return null
+    return append.registerD
 }
 
 /** The field a push's toString reads right after the string [label]. */
