@@ -40,6 +40,11 @@ internal const val FEED_EMPTY_STUB = "feedEmpty"
 internal const val BUILD_MODELS = "MainfeedAdapter.buildModels"
 internal const val SHIMMER_KEY = "shimmer"
 
+/** The loading row's key is read through a string table on some 452 builds, which leaves this upper case label as its literal. */
+private const val SHIMMER_LABEL = "SHIMMER"
+
+internal fun String.isShimmerKey(): Boolean = this == SHIMMER_KEY || this == SHIMMER_LABEL
+
 internal const val MORE_AFTER_FOLLOWING = "$EXTENSION_PACKAGE/feed/FeedSuggestions;->moreAfterFollowing(I)I"
 internal const val END_CARD_RULE = "$EXTENSION_PACKAGE/feed/FeedSuggestions;->endCardRule(I)I"
 
@@ -80,18 +85,27 @@ internal class FeedEnd(val adapter: String, val flag: FieldReference, val empty:
  * 385713073 the builder copies the feed out of v27 into v6, reads the flag off v6 into v6 and asks
  * v27 (an invoke-virtual/range) whether it's empty.
  */
-internal fun BytecodePatchContext.findFeedEnd(): FeedEnd {
-    val found = mutableListOf<Pair<String, Method>>()
-    classesHolding(BUILD_MODELS, SHIMMER_KEY).forEach { classDef ->
-        classDef.methods.forEach { method ->
-            if (method.holds(BUILD_MODELS) && method.holds(SHIMMER_KEY)) found += classDef.type to method
-        }
+/**
+ * The home feed adapter's list builder (the method holding [BUILD_MODELS]) and the method of the same
+ * class holding [SHIMMER_KEY], the one that adds the loading row. 451 had them in one method. 452 splits
+ * the loading row's work into a static method the builder calls, so the two are told apart, and a
+ * class with several of either gives no candidate.
+ */
+internal fun BytecodePatchContext.feedBuilders(): List<Triple<ClassDef, Method, Method>> =
+    classesHolding(BUILD_MODELS).mapNotNull { classDef ->
+        val builder = classDef.methods.singleOrNull { it.holds(BUILD_MODELS) }
+        val shimmer = classDef.methods.singleOrNull { method -> method.implementation?.instructions?.any { (((it as? ReferenceInstruction)?.reference as? StringReference)?.string)?.isShimmerKey() == true } == true }
+        if (builder == null || shimmer == null) null else Triple(classDef, builder, shimmer)
     }
-    val (adapter, method) = found.singleOrNull()
+
+internal fun BytecodePatchContext.findFeedEnd(): FeedEnd {
+    val found = feedBuilders()
+    val (classDef, _, method) = found.singleOrNull()
         ?: refuse("expected one method holding $BUILD_MODELS and $SHIMMER_KEY, found ${found.size}")
+    val adapter = classDef.type
     val code = method.implementation!!.instructions.toList()
     val where = "$adapter->${method.name}"
-    val shimmer = code.indexOfFirst { (it as? ReferenceInstruction)?.reference.let { r -> r is StringReference && r.string == SHIMMER_KEY } }
+    val shimmer = code.indexOfFirst { (it as? ReferenceInstruction)?.reference.let { r -> r is StringReference && r.string.isShimmerKey() } }
     val read = (shimmer - 1 downTo 0).firstOrNull { code[it].opcode == Opcode.IGET_BOOLEAN }
         ?: refuse("$where reads no flag before its loading row")
     val flagRead = code[read] as TwoRegisterInstruction
