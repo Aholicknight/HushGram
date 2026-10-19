@@ -724,7 +724,7 @@ Rounds the pill and its highlight and puts Search in a glass circle of its own. 
 Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Instagram의 탭 바를 현재 탭이 강조된 둥근 유리 알약 모양으로 띄워 그립니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
 Glass tab bar	유리 탭 바
 Haptics on the tab bar	탭 바 햅틱
-Home and the other tabs run down behind the pill, so the glass has real content to blur. Reels still stops above it.	홈과 다른 탭이 알약 뒤로 이어져 유리가 흐리게 만들 실제 콘텐츠를 갖게 됩니다. 릴스는 계속 그 위에서 끝납니다.
+Home, Reels and the other tabs run down behind the pill, so the glass has real content to blur.	홈, 릴스와 다른 탭이 알약 뒤로 이어져 유리가 흐리게 만들 실제 콘텐츠를 갖게 됩니다.
 Show content behind the tab bar	탭 바 뒤에 콘텐츠 표시
 Tab bar	탭 바
 Saved	저장됨

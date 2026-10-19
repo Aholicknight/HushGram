@@ -1404,8 +1404,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                                 + "or changing tab brings it back. Restart Instagram after changing it.")));
                 glass.addPreference(glassReelsHideRow(context));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
-                        L10n.t("Home and the other tabs run down behind the pill, so the glass has real content to blur. "
-                                + "Reels still stops above it.")));
+                        L10n.t("Home, Reels and the other tabs run down behind the pill, so the glass has real content "
+                                + "to blur.")));
                 glass.addPreference(glassLiftRow(context));
             }
         }

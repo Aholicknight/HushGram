@@ -725,7 +725,7 @@ Rounds the pill and its highlight and puts Search in a glass circle of its own. 
 Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Zeichnet Instagrams Tab-Leiste als schwebende, abgerundete Glaspille mit einer Hervorhebung des aktuellen Tabs. Starte Instagram nach der Änderung neu.
 Glass tab bar	Glas-Tab-Leiste
 Haptics on the tab bar	Haptik der Tab-Leiste
-Home and the other tabs run down behind the pill, so the glass has real content to blur. Reels still stops above it.	Home und die anderen Tabs laufen hinter der Pille weiter, damit das Glas echten Inhalt zum Verwischen hat. Reels endet weiterhin darüber.
+Home, Reels and the other tabs run down behind the pill, so the glass has real content to blur.	Home, Reels und die anderen Tabs laufen hinter der Pille weiter, damit das Glas echten Inhalt zum Verwischen hat.
 Show content behind the tab bar	Inhalt hinter der Tab-Leiste zeigen
 Tab bar	Tab-Leiste
 Saved	Gespeichert

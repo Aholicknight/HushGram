@@ -725,7 +725,7 @@ Rounds the pill and its highlight and puts Search in a glass circle of its own. 
 Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Instagram'ın sekme çubuğunu, bulunduğun sekmeyi vurgulayan yüzen, yuvarlak bir cam hap olarak çizer. Değiştirdikten sonra Instagram'ı yeniden başlat.
 Glass tab bar	Cam sekme çubuğu
 Haptics on the tab bar	Sekme çubuğunda titreşim
-Home and the other tabs run down behind the pill, so the glass has real content to blur. Reels still stops above it.	Ana Sayfa ve diğer sekmeler hapın arkasından devam eder, böylece cam bulanıklaştıracak gerçek içeriğe sahip olur. Reels yine de onun üstünde biter.
+Home, Reels and the other tabs run down behind the pill, so the glass has real content to blur.	Ana Sayfa, Reels ve diğer sekmeler hapın arkasından devam eder, böylece cam bulanıklaştıracak gerçek içeriğe sahip olur.
 Show content behind the tab bar	İçeriği sekme çubuğunun arkasında göster
 Tab bar	Sekme çubuğu
 Saved	Kaydedilenler
