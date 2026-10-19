@@ -205,7 +205,7 @@ public class DownloadSettingsTest {
             assertTrue(convertRow instanceof SwitchPreference);
             assertFalse(((SwitchPreference) convertRow).isChecked());
             assertEquals("Convert to keep the full size", String.valueOf(convertRow.getTitle()));
-            assertEquals("With Save videos other apps can open on, a full size video Instagram only has as VP9 or AV1 "
+            assertEquals("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 "
                     + "is converted to H.264 on your phone instead of saved smaller. Slower, and videos over "
                     + "3 minutes stay smaller.", String.valueOf(convertRow.getSummary()));
         }

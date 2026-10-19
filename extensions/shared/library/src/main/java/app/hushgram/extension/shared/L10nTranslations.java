@@ -1578,6 +1578,8 @@ public final class L10nTranslations {
                 "In der Galerie gespeichert, in geringerer Qualit\u00e4t als auf Instagram");
         table.put("Saved. Restart Instagram to apply this change.",
                 "Gespeichert. Starte Instagram neu, um diese \u00c4nderung zu \u00fcbernehmen.");
+        table.put("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
+                "Speichert Videos, die andere Apps \u00f6ffnen k\u00f6nnen, in voller Gr\u00f6\u00dfe. Ein Video, das Instagram nur als VP9 oder AV1 hat, wird auf deinem Handy in H.264 umgewandelt, statt kleiner gespeichert zu werden. Langsamer, und Videos \u00fcber 3 Minuten bleiben kleiner.");
         table.put("Saving a carousel",
                 "Karussell wird gespeichert");
         table.put("Saving a photo",
@@ -1666,11 +1668,11 @@ public final class L10nTranslations {
                 "Like-Zahlen anzeigen, die der Verfasser verborgen hat");
         table.put("Show profile posts as a list",
                 "Profilbeitr\u00e4ge als Liste zeigen");
-        table.put("Show seconds in a reel's time",
-                "Sekunden in der Zeit eines Reels anzeigen");
     }
 
     private static void fillDe13(Map<String, String> table) {
+        table.put("Show seconds in a reel's time",
+                "Sekunden in der Zeit eines Reels anzeigen");
         table.put("Show settings by category",
                 "Einstellungen nach Kategorie anzeigen");
         table.put("Show the Activity tab",
@@ -1789,11 +1791,11 @@ public final class L10nTranslations {
                 "Die Tabs stehen in dieser Reihenfolge: %1$s. Starte Instagram neu, um die \u00c4nderung zu sehen.");
         table.put("Take Meta AI out of search, your feed, reels and profiles.",
                 "Entferne Meta AI aus der Suche, deinem Feed, Reels und Profilen.");
-        table.put("Take buttons you don't use off posts and the share sheet.",
-                "Entferne Schaltfl\u00e4chen, die du nicht nutzt, von Beitr\u00e4gen und aus dem Teilen-Men\u00fc.");
     }
 
     private static void fillDe14(Map<String, String> table) {
+        table.put("Take buttons you don't use off posts and the share sheet.",
+                "Entferne Schaltfl\u00e4chen, die du nicht nutzt, von Beitr\u00e4gen und aus dem Teilen-Men\u00fc.");
         table.put("Takes Create off the tab bar and closes up the gap. Restart Instagram to see the change.",
                 "Entfernt Erstellen aus der Tab-Leiste, und die L\u00fccke schlie\u00dft sich. Starte Instagram neu, um die \u00c4nderung zu sehen.");
         table.put("Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.",
@@ -1912,11 +1914,11 @@ public final class L10nTranslations {
                 "Die Datei %1$s lie\u00df sich nicht entfernen. L\u00f6sche sie aus %2$s, um HushGram wieder einzuschalten.");
         table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
                 "Das erste Video auf der Startseite spielt mit eingeschaltetem Ton, so als h\u00e4ttest du auf seinen Lautsprecher getippt. Klingelton und Lautst\u00e4rke deines Telefons z\u00e4hlen weiterhin, also bleibt es bei lautlos oder leiser Lautst\u00e4rke stumm.");
-        table.put("The heart plays %1$s when you double tap a post.",
-                "Das Herz spielt %1$s ab, wenn du doppelt auf einen Beitrag tippst.");
     }
 
     private static void fillDe15(Map<String, String> table) {
+        table.put("The heart plays %1$s when you double tap a post.",
+                "Das Herz spielt %1$s ab, wenn du doppelt auf einen Beitrag tippst.");
         table.put("The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.",
                 "Das Herz, das beim Doppeltippen auf einen Beitrag erscheint, spielt die unten gew\u00e4hlte Animation ab. Es sind Animationen, die Instagram f\u00fcr seine Rings-Creator gemacht hat.");
         table.put("The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.",
@@ -2035,11 +2037,11 @@ public final class L10nTranslations {
                 "Stories in voller Qualit\u00e4t hochladen");
         table.put("Use 4 to 8 digits.",
                 "Nimm 4 bis 8 Ziffern.");
-        table.put("Username",
-                "Benutzername");
     }
 
     private static void fillDe16(Map<String, String> table) {
+        table.put("Username",
+                "Benutzername");
         table.put("Username copied",
                 "Benutzername kopiert");
         table.put("Version",
@@ -2100,8 +2102,6 @@ public final class L10nTranslations {
                 "Wer dir entfolgt ist");
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "WLAN bleibt, wie es ist. Schalte das aus, um in jedem Netz Daten zu sparen.");
-        table.put("With Save videos other apps can open on, a full size video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
-                "Ist \u201eVideos speichern, die andere Apps \u00f6ffnen k\u00f6nnen\u201c an, wird ein Video in voller Gr\u00f6\u00dfe, das Instagram nur als VP9 oder AV1 hat, auf deinem Handy in H.264 umgewandelt, statt kleiner gespeichert zu werden. Langsamer, und Videos \u00fcber 3 Minuten bleiben kleiner.");
         table.put("Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.",
                 "W\u00f6rter oder Wortgruppen, getrennt durch ein Komma oder eine neue Zeile. Gro\u00df- und Kleinschreibung spielt keine Rolle, und ein Hashtag funktioniert auch.");
         table.put("Wrong PIN. Try again.",
@@ -3663,6 +3663,8 @@ public final class L10nTranslations {
                 "Se guard\u00f3 en la galer\u00eda con menos calidad que en Instagram");
         table.put("Saved. Restart Instagram to apply this change.",
                 "Guardado. Reinicia Instagram para aplicar este cambio.");
+        table.put("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
+                "Guarda videos que otras apps pueden abrir, en tama\u00f1o completo. Un video que Instagram solo tiene en VP9 o AV1 se convierte a H.264 en tu tel\u00e9fono en vez de guardarse m\u00e1s peque\u00f1o. Es m\u00e1s lento, y los videos de m\u00e1s de 3 minutos se guardan m\u00e1s peque\u00f1os.");
         table.put("Saving a carousel",
                 "Guardando un carrusel");
         table.put("Saving a photo",
@@ -3751,11 +3753,11 @@ public final class L10nTranslations {
                 "Mostrar los Me gusta que el autor ocult\u00f3");
         table.put("Show profile posts as a list",
                 "Mostrar las publicaciones del perfil como lista");
-        table.put("Show seconds in a reel's time",
-                "Mostrar los segundos en la hora de un reel");
     }
 
     private static void fillEs13(Map<String, String> table) {
+        table.put("Show seconds in a reel's time",
+                "Mostrar los segundos en la hora de un reel");
         table.put("Show settings by category",
                 "Mostrar los ajustes por categor\u00eda");
         table.put("Show the Activity tab",
@@ -3874,11 +3876,11 @@ public final class L10nTranslations {
                 "Las pesta\u00f1as van en este orden: %1$s. Reinicia Instagram para ver el cambio.");
         table.put("Take Meta AI out of search, your feed, reels and profiles.",
                 "Quita Meta AI de la b\u00fasqueda, tu feed, los reels y los perfiles.");
-        table.put("Take buttons you don't use off posts and the share sheet.",
-                "Quita de las publicaciones y del men\u00fa para compartir los botones que no usas.");
     }
 
     private static void fillEs14(Map<String, String> table) {
+        table.put("Take buttons you don't use off posts and the share sheet.",
+                "Quita de las publicaciones y del men\u00fa para compartir los botones que no usas.");
         table.put("Takes Create off the tab bar and closes up the gap. Restart Instagram to see the change.",
                 "Quita Crear de la barra de pesta\u00f1as y cierra el hueco. Reinicia Instagram para ver el cambio.");
         table.put("Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.",
@@ -3997,11 +3999,11 @@ public final class L10nTranslations {
                 "No se pudo eliminar el archivo %1$s. B\u00f3rralo de %2$s para volver a activar HushGram.");
         table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
                 "El primer video de Inicio se reproduce con el sonido activado, igual que al tocar su altavoz. El timbre y el volumen del tel\u00e9fono siguen contando, as\u00ed que en silencio o con el volumen bajado se queda mudo.");
-        table.put("The heart plays %1$s when you double tap a post.",
-                "El coraz\u00f3n reproduce %1$s cuando tocas dos veces una publicaci\u00f3n.");
     }
 
     private static void fillEs15(Map<String, String> table) {
+        table.put("The heart plays %1$s when you double tap a post.",
+                "El coraz\u00f3n reproduce %1$s cuando tocas dos veces una publicaci\u00f3n.");
         table.put("The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.",
                 "El coraz\u00f3n que aparece al tocar dos veces una publicaci\u00f3n reproduce la animaci\u00f3n que elijas abajo. Son animaciones que Instagram hizo para sus creadores de Rings.");
         table.put("The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.",
@@ -4120,11 +4122,11 @@ public final class L10nTranslations {
                 "Subir historias en calidad completa");
         table.put("Use 4 to 8 digits.",
                 "Usa de 4 a 8 d\u00edgitos.");
-        table.put("Username",
-                "Nombre de usuario");
     }
 
     private static void fillEs16(Map<String, String> table) {
+        table.put("Username",
+                "Nombre de usuario");
         table.put("Username copied",
                 "Nombre de usuario copiado");
         table.put("Version",
@@ -4185,8 +4187,6 @@ public final class L10nTranslations {
                 "Qui\u00e9n dej\u00f3 de seguirte");
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "El Wi-Fi se queda como est\u00e1. Desactiva este interruptor para ahorrar datos en cualquier red.");
-        table.put("With Save videos other apps can open on, a full size video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
-                "Con Guardar videos que otras apps puedan abrir activado, un video de tama\u00f1o completo que Instagram solo tiene en VP9 o AV1 se convierte a H.264 en tu tel\u00e9fono en vez de guardarse m\u00e1s peque\u00f1o. Es m\u00e1s lento, y los videos de m\u00e1s de 3 minutos se guardan m\u00e1s peque\u00f1os.");
         table.put("Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.",
                 "Palabras o frases, separadas por una coma o un salto de l\u00ednea. Las may\u00fasculas no importan, y un hashtag tambi\u00e9n sirve.");
         table.put("Wrong PIN. Try again.",
@@ -5748,6 +5748,8 @@ public final class L10nTranslations {
                 "Disimpan ke galeri dengan kualitas lebih rendah daripada di Instagram");
         table.put("Saved. Restart Instagram to apply this change.",
                 "Tersimpan. Mulai ulang Instagram untuk menerapkan perubahan ini.");
+        table.put("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
+                "Menyimpan video yang bisa dibuka aplikasi lain, dalam ukuran penuh. Video yang di Instagram hanya ada sebagai VP9 atau AV1 dikonversi ke H.264 di ponselmu, bukan disimpan lebih kecil. Lebih lambat, dan video lebih dari 3 menit tetap lebih kecil.");
         table.put("Saving a carousel",
                 "Menyimpan carousel");
         table.put("Saving a photo",
@@ -5836,11 +5838,11 @@ public final class L10nTranslations {
                 "Tampilkan jumlah suka yang disembunyikan pengunggah");
         table.put("Show profile posts as a list",
                 "Tampilkan postingan profil sebagai daftar");
-        table.put("Show seconds in a reel's time",
-                "Tampilkan detik pada waktu reel");
     }
 
     private static void fillIn13(Map<String, String> table) {
+        table.put("Show seconds in a reel's time",
+                "Tampilkan detik pada waktu reel");
         table.put("Show settings by category",
                 "Tampilkan pengaturan menurut kategori");
         table.put("Show the Activity tab",
@@ -5959,11 +5961,11 @@ public final class L10nTranslations {
                 "Tab diurutkan seperti ini: %1$s. Mulai ulang Instagram untuk melihat perubahannya.");
         table.put("Take Meta AI out of search, your feed, reels and profiles.",
                 "Hapus Meta AI dari pencarian, feed, reel, dan profil.");
-        table.put("Take buttons you don't use off posts and the share sheet.",
-                "Hapus tombol yang tidak kamu pakai dari postingan dan lembar berbagi.");
     }
 
     private static void fillIn14(Map<String, String> table) {
+        table.put("Take buttons you don't use off posts and the share sheet.",
+                "Hapus tombol yang tidak kamu pakai dari postingan dan lembar berbagi.");
         table.put("Takes Create off the tab bar and closes up the gap. Restart Instagram to see the change.",
                 "Menghapus Buat dari bilah tab dan menutup celahnya. Mulai ulang Instagram untuk melihat perubahannya.");
         table.put("Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.",
@@ -6082,11 +6084,11 @@ public final class L10nTranslations {
                 "File %1$s tidak dapat dihapus. Hapus file itu dari %2$s untuk mengaktifkan HushGram lagi.");
         table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
                 "Video pertama di Beranda diputar dengan suara menyala, sama seperti mengetuk speakernya. Mode dering dan volume ponsel tetap berlaku, jadi saat senyap atau volume dimatikan, video tetap tanpa suara.");
-        table.put("The heart plays %1$s when you double tap a post.",
-                "Hati memutar %1$s saat Anda mengetuk dua kali sebuah postingan.");
     }
 
     private static void fillIn15(Map<String, String> table) {
+        table.put("The heart plays %1$s when you double tap a post.",
+                "Hati memutar %1$s saat Anda mengetuk dua kali sebuah postingan.");
         table.put("The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.",
                 "Hati yang muncul saat kamu mengetuk dua kali postingan memainkan animasi yang kamu pilih di bawah. Animasi ini dibuat Instagram untuk kreator Rings.");
         table.put("The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.",
@@ -6205,11 +6207,11 @@ public final class L10nTranslations {
                 "Unggah cerita dengan kualitas penuh");
         table.put("Use 4 to 8 digits.",
                 "Pakai 4 sampai 8 angka.");
-        table.put("Username",
-                "Nama pengguna");
     }
 
     private static void fillIn16(Map<String, String> table) {
+        table.put("Username",
+                "Nama pengguna");
         table.put("Username copied",
                 "Nama pengguna disalin");
         table.put("Version",
@@ -6270,8 +6272,6 @@ public final class L10nTranslations {
                 "Siapa yang berhenti mengikutimu");
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "Wi-Fi tetap seperti semula. Matikan sakelar ini untuk menghemat data di setiap jaringan.");
-        table.put("With Save videos other apps can open on, a full size video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
-                "Saat Simpan video yang bisa dibuka aplikasi lain aktif, video ukuran penuh yang di Instagram hanya ada sebagai VP9 atau AV1 dikonversi ke H.264 di ponselmu, bukan disimpan lebih kecil. Lebih lambat, dan video lebih dari 3 menit tetap lebih kecil.");
         table.put("Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.",
                 "Kata atau frasa, dipisahkan koma atau baris baru. Huruf besar tidak berpengaruh, dan tagar juga bisa.");
         table.put("Wrong PIN. Try again.",
@@ -7833,6 +7833,8 @@ public final class L10nTranslations {
                 "Salvato nella galleria a qualit\u00e0 inferiore rispetto a Instagram");
         table.put("Saved. Restart Instagram to apply this change.",
                 "Salvato. Riavvia Instagram per applicare la modifica.");
+        table.put("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
+                "Salva video apribili da altre app, a dimensione piena. Un video che Instagram ha solo in VP9 o AV1 viene convertito in H.264 sul telefono invece di essere salvato pi\u00f9 piccolo. \u00c8 pi\u00f9 lento, e i video oltre 3 minuti restano pi\u00f9 piccoli.");
         table.put("Saving a carousel",
                 "Salvataggio di un carosello");
         table.put("Saving a photo",
@@ -7921,11 +7923,11 @@ public final class L10nTranslations {
                 "Mostra i Mi piace nascosti da chi ha pubblicato");
         table.put("Show profile posts as a list",
                 "Mostra i post del profilo come elenco");
-        table.put("Show seconds in a reel's time",
-                "Mostra i secondi nell'ora di un reel");
     }
 
     private static void fillIt13(Map<String, String> table) {
+        table.put("Show seconds in a reel's time",
+                "Mostra i secondi nell'ora di un reel");
         table.put("Show settings by category",
                 "Mostra le impostazioni per categoria");
         table.put("Show the Activity tab",
@@ -8044,11 +8046,11 @@ public final class L10nTranslations {
                 "Le schede vanno in quest'ordine: %1$s. Riavvia Instagram per vedere la modifica.");
         table.put("Take Meta AI out of search, your feed, reels and profiles.",
                 "Togli Meta AI dalla ricerca, dal feed, dai reel e dai profili.");
-        table.put("Take buttons you don't use off posts and the share sheet.",
-                "Togli da post e foglio di condivisione i pulsanti che non usi.");
     }
 
     private static void fillIt14(Map<String, String> table) {
+        table.put("Take buttons you don't use off posts and the share sheet.",
+                "Togli da post e foglio di condivisione i pulsanti che non usi.");
         table.put("Takes Create off the tab bar and closes up the gap. Restart Instagram to see the change.",
                 "Toglie Crea dalla barra delle schede e chiude lo spazio. Riavvia Instagram per vedere la modifica.");
         table.put("Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.",
@@ -8167,11 +8169,11 @@ public final class L10nTranslations {
                 "Impossibile rimuovere il file %1$s. Eliminalo da %2$s per riattivare HushGram.");
         table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
                 "Il primo video nella Home parte con l'audio attivo, come toccando il suo altoparlante. La suoneria e il volume del telefono contano comunque, quindi in silenzioso o con il volume basso resta muto.");
-        table.put("The heart plays %1$s when you double tap a post.",
-                "Il cuore riproduce %1$s quando tocchi due volte un post.");
     }
 
     private static void fillIt15(Map<String, String> table) {
+        table.put("The heart plays %1$s when you double tap a post.",
+                "Il cuore riproduce %1$s quando tocchi due volte un post.");
         table.put("The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.",
                 "Il cuore che compare quando tocchi due volte un post riproduce l'animazione che scegli qui sotto. Sono animazioni che Instagram ha creato per i suoi creator Rings.");
         table.put("The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.",
@@ -8290,11 +8292,11 @@ public final class L10nTranslations {
                 "Carica le storie a piena qualit\u00e0");
         table.put("Use 4 to 8 digits.",
                 "Usa da 4 a 8 cifre.");
-        table.put("Username",
-                "Nome utente");
     }
 
     private static void fillIt16(Map<String, String> table) {
+        table.put("Username",
+                "Nome utente");
         table.put("Username copied",
                 "Nome utente copiato");
         table.put("Version",
@@ -8355,8 +8357,6 @@ public final class L10nTranslations {
                 "Chi ha smesso di seguirti");
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "Il Wi-Fi resta com'\u00e8. Disattiva per risparmiare dati su ogni rete.");
-        table.put("With Save videos other apps can open on, a full size video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
-                "Con Salva video apribili da altre app attivo, un video a dimensione piena che Instagram ha solo in VP9 o AV1 viene convertito in H.264 sul telefono invece di essere salvato pi\u00f9 piccolo. \u00c8 pi\u00f9 lento, e i video oltre 3 minuti restano pi\u00f9 piccoli.");
         table.put("Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.",
                 "Parole o frasi, separate da una virgola o da un a capo. Maiuscole e minuscole non contano, e funziona anche un hashtag.");
         table.put("Wrong PIN. Try again.",
@@ -9918,6 +9918,8 @@ public final class L10nTranslations {
                 "Instagram\ubcf4\ub2e4 \ub0ae\uc740 \ud654\uc9c8\ub85c \uac24\ub7ec\ub9ac\uc5d0 \uc800\uc7a5\ub428");
         table.put("Saved. Restart Instagram to apply this change.",
                 "\uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \uc801\uc6a9\ud558\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694");
+        table.put("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
+                "\ub2e4\ub978 \uc571\uc5d0\uc11c \uc5f4 \uc218 \uc788\ub294 \ub3d9\uc601\uc0c1\uc744 \uc6d0\ubcf8 \ud06c\uae30\ub85c \uc800\uc7a5\ud569\ub2c8\ub2e4. Instagram\uc5d0 VP9 \ub610\ub294 AV1\ub85c\ub9cc \uc788\ub294 \ub3d9\uc601\uc0c1\uc740 \uc791\uac8c \uc800\uc7a5\ud558\ub294 \ub300\uc2e0 \ud734\ub300\ud3f0\uc5d0\uc11c H.264\ub85c \ubcc0\ud658\ud569\ub2c8\ub2e4. \ub354 \ub290\ub9ac\uba70, 3\ubd84\uc774 \ub118\ub294 \ub3d9\uc601\uc0c1\uc740 \uc791\uac8c \uc800\uc7a5\ub429\ub2c8\ub2e4.");
         table.put("Saving a carousel",
                 "\uce90\ub7ec\uc140\uc744 \uc800\uc7a5\ud558\ub294 \uc911");
         table.put("Saving a photo",
@@ -10006,11 +10008,11 @@ public final class L10nTranslations {
                 "\uac8c\uc2dc\uc790\uac00 \uc228\uae34 \uc88b\uc544\uc694 \uc218 \ud45c\uc2dc");
         table.put("Show profile posts as a list",
                 "\ud504\ub85c\ud544 \uac8c\uc2dc\ubb3c\uc744 \ubaa9\ub85d\uc73c\ub85c \ubcf4\uae30");
-        table.put("Show seconds in a reel's time",
-                "\ub9b4\uc2a4 \uc2dc\uac04\uc5d0 \ucd08 \ud45c\uc2dc");
     }
 
     private static void fillKo13(Map<String, String> table) {
+        table.put("Show seconds in a reel's time",
+                "\ub9b4\uc2a4 \uc2dc\uac04\uc5d0 \ucd08 \ud45c\uc2dc");
         table.put("Show settings by category",
                 "\uce74\ud14c\uace0\ub9ac\ubcc4\ub85c \uc124\uc815 \ubcf4\uae30");
         table.put("Show the Activity tab",
@@ -10129,11 +10131,11 @@ public final class L10nTranslations {
                 "\ud0ed \uc21c\uc11c: %1$s. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
         table.put("Take Meta AI out of search, your feed, reels and profiles.",
                 "\uac80\uc0c9, \ud53c\ub4dc, \ub9b4\uc2a4, \ud504\ub85c\ud544\uc5d0\uc11c Meta AI\ub97c \uc5c6\uc571\ub2c8\ub2e4.");
-        table.put("Take buttons you don't use off posts and the share sheet.",
-                "\uac8c\uc2dc\ubb3c\uacfc \uacf5\uc720 \uc2dc\ud2b8\uc5d0\uc11c \uc4f0\uc9c0 \uc54a\ub294 \ubc84\ud2bc\uc744 \uc5c6\uc571\ub2c8\ub2e4.");
     }
 
     private static void fillKo14(Map<String, String> table) {
+        table.put("Take buttons you don't use off posts and the share sheet.",
+                "\uac8c\uc2dc\ubb3c\uacfc \uacf5\uc720 \uc2dc\ud2b8\uc5d0\uc11c \uc4f0\uc9c0 \uc54a\ub294 \ubc84\ud2bc\uc744 \uc5c6\uc571\ub2c8\ub2e4.");
         table.put("Takes Create off the tab bar and closes up the gap. Restart Instagram to see the change.",
                 "\ud558\ub2e8\ubc14\uc5d0\uc11c \ub9cc\ub4e4\uae30 \ud0ed\uc744 \uc81c\uac70\ud558\uace0 \ube48 \uc790\ub9ac\ub97c \uba54\uc6c1\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
         table.put("Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.",
@@ -10252,11 +10254,11 @@ public final class L10nTranslations {
                 "%1$s \ud30c\uc77c\uc744 \uc0ad\uc81c\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. HushGram\uc744 \ub2e4\uc2dc \ud65c\uc131\ud654\ud558\ub824\uba74 %2$s\uc5d0\uc11c \ud574\ub2f9 \ud30c\uc77c\uc744 \uc0ad\uc81c\ud558\uc138\uc694");
         table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
                 "\ud648\uc758 \uccab \ubc88\uc9f8 \ub3d9\uc601\uc0c1\uc774 \uc2a4\ud53c\ucee4\ub97c \ub204\ub978 \uac83\ucc98\ub7fc \uc18c\ub9ac\uac00 \ucf1c\uc9c4 \ucc44\ub85c \uc7ac\uc0dd\ub429\ub2c8\ub2e4. \ud734\ub300\uc804\ud654\uc758 \ubca8\uc18c\ub9ac \ubaa8\ub4dc\uc640 \ubcfc\ub968\uc740 \uadf8\ub300\ub85c \uc801\uc6a9\ub418\ubbc0\ub85c \ubb34\uc74c\uc774\uac70\ub098 \ubcfc\ub968\uc774 \uaebc\uc838 \uc788\uc73c\uba74 \uc870\uc6a9\ud55c \uc0c1\ud0dc\ub85c \uc720\uc9c0\ub429\ub2c8\ub2e4.");
-        table.put("The heart plays %1$s when you double tap a post.",
-                "\uac8c\uc2dc\ubb3c\uc744 \ub450 \ubc88 \ud0ed\ud558\uba74 \ud558\ud2b8\uac00 %1$s \uc560\ub2c8\uba54\uc774\uc158\uc744 \uc7ac\uc0dd\ud569\ub2c8\ub2e4.");
     }
 
     private static void fillKo15(Map<String, String> table) {
+        table.put("The heart plays %1$s when you double tap a post.",
+                "\uac8c\uc2dc\ubb3c\uc744 \ub450 \ubc88 \ud0ed\ud558\uba74 \ud558\ud2b8\uac00 %1$s \uc560\ub2c8\uba54\uc774\uc158\uc744 \uc7ac\uc0dd\ud569\ub2c8\ub2e4.");
         table.put("The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.",
                 "\uac8c\uc2dc\ubb3c\uc744 \ub450 \ubc88 \ud0ed\ud558\uba74 \ub098\ud0c0\ub098\ub294 \ud558\ud2b8\uac00 \uc544\ub798\uc5d0\uc11c \uace0\ub978 \uc560\ub2c8\uba54\uc774\uc158\uc73c\ub85c \uc7ac\uc0dd\ub429\ub2c8\ub2e4. Instagram\uc774 Rings \ud06c\ub9ac\uc5d0\uc774\ud130\ub97c \uc704\ud574 \ub9cc\ub4e0 \uc560\ub2c8\uba54\uc774\uc158\uc785\ub2c8\ub2e4.");
         table.put("The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.",
@@ -10375,11 +10377,11 @@ public final class L10nTranslations {
                 "\uc2a4\ud1a0\ub9ac\ub97c \ucd5c\ub300 \ud654\uc9c8\ub85c \uc5c5\ub85c\ub4dc");
         table.put("Use 4 to 8 digits.",
                 "4~8\uc790\ub9ac \uc22b\uc790\ub97c \uc0ac\uc6a9\ud558\uc138\uc694.");
-        table.put("Username",
-                "\uc0ac\uc6a9\uc790 \uc774\ub984");
     }
 
     private static void fillKo16(Map<String, String> table) {
+        table.put("Username",
+                "\uc0ac\uc6a9\uc790 \uc774\ub984");
         table.put("Username copied",
                 "\uc0ac\uc6a9\uc790 \uc774\ub984\uc744 \ubcf5\uc0ac\ud588\uc2b5\ub2c8\ub2e4");
         table.put("Version",
@@ -10440,8 +10442,6 @@ public final class L10nTranslations {
                 "\ub098\ub97c \uc5b8\ud314\ub85c\uc6b0\ud55c \uc0ac\ub78c");
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "Wi-Fi\ub294 \uadf8\ub300\ub85c\uc785\ub2c8\ub2e4. \ubaa8\ub4e0 \ub124\ud2b8\uc6cc\ud06c\uc5d0\uc11c \ub370\uc774\ud130\ub97c \uc544\ub07c\ub824\uba74 \uc774 \uc2a4\uc704\uce58\ub97c \ub044\uc138\uc694.");
-        table.put("With Save videos other apps can open on, a full size video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
-                "\ub2e4\ub978 \uc571\uc5d0\uc11c \uc5f4 \uc218 \uc788\ub3c4\ub85d \ub3d9\uc601\uc0c1 \uc800\uc7a5\uc774 \ucf1c\uc838 \uc788\uc73c\uba74, Instagram\uc5d0 VP9 \ub610\ub294 AV1\ub85c\ub9cc \uc788\ub294 \uc6d0\ubcf8 \ud06c\uae30 \ub3d9\uc601\uc0c1\uc744 \uc791\uac8c \uc800\uc7a5\ud558\ub294 \ub300\uc2e0 \ud734\ub300\ud3f0\uc5d0\uc11c H.264\ub85c \ubcc0\ud658\ud569\ub2c8\ub2e4. \ub354 \ub290\ub9ac\uba70, 3\ubd84\uc774 \ub118\ub294 \ub3d9\uc601\uc0c1\uc740 \uc791\uac8c \uc800\uc7a5\ub429\ub2c8\ub2e4.");
         table.put("Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.",
                 "\ub2e8\uc5b4\ub098 \ubb38\uad6c\ub97c \uc27c\ud45c\ub098 \uc904\ubc14\uafc8\uc73c\ub85c \uad6c\ubd84\ud574 \uc785\ub825\ud558\uc138\uc694. \ub300\uc18c\ubb38\uc790\ub294 \uc0c1\uad00\uc5c6\uace0 \ud574\uc2dc\ud0dc\uadf8\ub3c4 \ub429\ub2c8\ub2e4.");
         table.put("Wrong PIN. Try again.",
@@ -12003,6 +12003,8 @@ public final class L10nTranslations {
                 "Salvo na galeria com qualidade menor que no Instagram");
         table.put("Saved. Restart Instagram to apply this change.",
                 "Salvo. Reinicie o Instagram para aplicar esta altera\u00e7\u00e3o.");
+        table.put("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
+                "Salva v\u00eddeos que outros apps conseguem abrir, em tamanho original. Um v\u00eddeo que o Instagram s\u00f3 tem em VP9 ou AV1 \u00e9 convertido para H.264 no seu celular em vez de ser salvo menor. \u00c9 mais lento, e v\u00eddeos com mais de 3 minutos continuam menores.");
         table.put("Saving a carousel",
                 "Salvando um carrossel");
         table.put("Saving a photo",
@@ -12091,11 +12093,11 @@ public final class L10nTranslations {
                 "Mostrar curtidas que o autor ocultou");
         table.put("Show profile posts as a list",
                 "Mostrar posts do perfil como lista");
-        table.put("Show seconds in a reel's time",
-                "Mostrar os segundos no hor\u00e1rio de um reel");
     }
 
     private static void fillPt_rBR13(Map<String, String> table) {
+        table.put("Show seconds in a reel's time",
+                "Mostrar os segundos no hor\u00e1rio de um reel");
         table.put("Show settings by category",
                 "Mostrar configura\u00e7\u00f5es por categoria");
         table.put("Show the Activity tab",
@@ -12214,11 +12216,11 @@ public final class L10nTranslations {
                 "As abas ficam nesta ordem: %1$s. Reinicie o Instagram para ver a mudan\u00e7a.");
         table.put("Take Meta AI out of search, your feed, reels and profiles.",
                 "Tire a Meta AI da pesquisa, do seu feed, dos reels e dos perfis.");
-        table.put("Take buttons you don't use off posts and the share sheet.",
-                "Tire dos posts e do menu de compartilhamento os bot\u00f5es que voc\u00ea n\u00e3o usa.");
     }
 
     private static void fillPt_rBR14(Map<String, String> table) {
+        table.put("Take buttons you don't use off posts and the share sheet.",
+                "Tire dos posts e do menu de compartilhamento os bot\u00f5es que voc\u00ea n\u00e3o usa.");
         table.put("Takes Create off the tab bar and closes up the gap. Restart Instagram to see the change.",
                 "Tira o Criar da barra de abas e fecha o espa\u00e7o. Reinicie o Instagram para ver a mudan\u00e7a.");
         table.put("Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.",
@@ -12337,11 +12339,11 @@ public final class L10nTranslations {
                 "N\u00e3o foi poss\u00edvel remover o arquivo %1$s. Exclua-o de %2$s para reativar o HushGram.");
         table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
                 "O primeiro v\u00eddeo do In\u00edcio toca com o som ligado, igual a tocar no alto-falante dele. O toque e o volume do celular continuam valendo, ent\u00e3o no silencioso ou com o volume zerado, ele fica mudo.");
-        table.put("The heart plays %1$s when you double tap a post.",
-                "O cora\u00e7\u00e3o toca %1$s quando voc\u00ea toca duas vezes em um post.");
     }
 
     private static void fillPt_rBR15(Map<String, String> table) {
+        table.put("The heart plays %1$s when you double tap a post.",
+                "O cora\u00e7\u00e3o toca %1$s quando voc\u00ea toca duas vezes em um post.");
         table.put("The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.",
                 "O cora\u00e7\u00e3o que aparece quando voc\u00ea toca duas vezes em um post toca a anima\u00e7\u00e3o que voc\u00ea escolher abaixo. S\u00e3o anima\u00e7\u00f5es que o Instagram fez para seus criadores do Rings.");
         table.put("The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.",
@@ -12460,11 +12462,11 @@ public final class L10nTranslations {
                 "Enviar stories em qualidade m\u00e1xima");
         table.put("Use 4 to 8 digits.",
                 "Use de 4 a 8 d\u00edgitos.");
-        table.put("Username",
-                "Nome de usu\u00e1rio");
     }
 
     private static void fillPt_rBR16(Map<String, String> table) {
+        table.put("Username",
+                "Nome de usu\u00e1rio");
         table.put("Username copied",
                 "Nome de usu\u00e1rio copiado");
         table.put("Version",
@@ -12525,8 +12527,6 @@ public final class L10nTranslations {
                 "Quem deixou de seguir voc\u00ea");
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "O Wi-Fi fica como est\u00e1. Desative esta chave para economizar dados em qualquer rede.");
-        table.put("With Save videos other apps can open on, a full size video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
-                "Com Salvar v\u00eddeos que outros apps conseguem abrir ligado, um v\u00eddeo em tamanho original que o Instagram s\u00f3 tem em VP9 ou AV1 \u00e9 convertido para H.264 no seu celular em vez de ser salvo menor. \u00c9 mais lento, e v\u00eddeos com mais de 3 minutos continuam menores.");
         table.put("Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.",
                 "Palavras ou frases, separadas por v\u00edrgula ou por uma nova linha. Mai\u00fasculas n\u00e3o fazem diferen\u00e7a, e uma hashtag tamb\u00e9m funciona.");
         table.put("Wrong PIN. Try again.",
@@ -14088,6 +14088,8 @@ public final class L10nTranslations {
                 "Galeriye Instagram'dakinden d\u00fc\u015f\u00fck kalitede kaydedildi");
         table.put("Saved. Restart Instagram to apply this change.",
                 "Kaydedildi. Bu de\u011fi\u015fikli\u011fi uygulamak i\u00e7in Instagram'u yeniden ba\u015flat.");
+        table.put("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
+                "Videolar\u0131 di\u011fer uygulamalar\u0131n a\u00e7abilece\u011fi bi\u00e7imde, tam boyutta kaydeder. Instagram'da yaln\u0131zca VP9 veya AV1 olarak bulunan bir video, daha k\u00fc\u00e7\u00fck kaydedilmek yerine telefonunda H.264'e d\u00f6n\u00fc\u015ft\u00fcr\u00fcl\u00fcr. Daha yava\u015ft\u0131r ve 3 dakikadan uzun videolar k\u00fc\u00e7\u00fck kal\u0131r.");
         table.put("Saving a carousel",
                 "\u00c7oklu g\u00f6nderi kaydediliyor");
         table.put("Saving a photo",
@@ -14176,11 +14178,11 @@ public final class L10nTranslations {
                 "Payla\u015fan\u0131n gizledi\u011fi be\u011feni say\u0131lar\u0131n\u0131 g\u00f6ster");
         table.put("Show profile posts as a list",
                 "Profil g\u00f6nderilerini liste olarak g\u00f6ster");
-        table.put("Show seconds in a reel's time",
-                "Reel zaman\u0131nda saniyeleri g\u00f6ster");
     }
 
     private static void fillTr13(Map<String, String> table) {
+        table.put("Show seconds in a reel's time",
+                "Reel zaman\u0131nda saniyeleri g\u00f6ster");
         table.put("Show settings by category",
                 "Ayarlar\u0131 kategoriye g\u00f6re g\u00f6ster");
         table.put("Show the Activity tab",
@@ -14299,11 +14301,11 @@ public final class L10nTranslations {
                 "Sekmeler bu s\u0131rada: %1$s. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
         table.put("Take Meta AI out of search, your feed, reels and profiles.",
                 "Meta AI'\u0131 aramadan, ak\u0131\u015f\u0131ndan, reels'ten ve profillerden \u00e7\u0131kar.");
-        table.put("Take buttons you don't use off posts and the share sheet.",
-                "Kullanmad\u0131\u011f\u0131n d\u00fc\u011fmeleri g\u00f6nderilerden ve payla\u015f\u0131m sayfas\u0131ndan kald\u0131r.");
     }
 
     private static void fillTr14(Map<String, String> table) {
+        table.put("Take buttons you don't use off posts and the share sheet.",
+                "Kullanmad\u0131\u011f\u0131n d\u00fc\u011fmeleri g\u00f6nderilerden ve payla\u015f\u0131m sayfas\u0131ndan kald\u0131r.");
         table.put("Takes Create off the tab bar and closes up the gap. Restart Instagram to see the change.",
                 "Olu\u015ftur'u sekme \u00e7ubu\u011fundan kald\u0131r\u0131r ve bo\u015flu\u011fu kapat\u0131r. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
         table.put("Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.",
@@ -14422,11 +14424,11 @@ public final class L10nTranslations {
                 "%1$s dosyas\u0131 kald\u0131r\u0131lamad\u0131. HushGram'u yeniden a\u00e7mak i\u00e7in onu %2$s i\u00e7inden sil.");
         table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
                 "Ana Sayfa'daki ilk video, hoparl\u00f6r\u00fcne dokunmu\u015f gibi sesi a\u00e7\u0131k olarak oynar. Telefonunuzun zil modu ve ses d\u00fczeyi yine ge\u00e7erlidir, bu y\u00fczden sessizde veya ses kapal\u0131yken video sessiz kal\u0131r.");
-        table.put("The heart plays %1$s when you double tap a post.",
-                "Bir g\u00f6nderiye iki kez dokundu\u011funda kalp %1$s oynat\u0131r.");
     }
 
     private static void fillTr15(Map<String, String> table) {
+        table.put("The heart plays %1$s when you double tap a post.",
+                "Bir g\u00f6nderiye iki kez dokundu\u011funda kalp %1$s oynat\u0131r.");
         table.put("The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.",
                 "Bir g\u00f6nderiye \u00e7ift dokundu\u011funda \u00e7\u0131kan kalp, a\u015fa\u011f\u0131dan se\u00e7ti\u011fin animasyonu oynat\u0131r. Bunlar Instagram'\u0131n Rings i\u00e7erik \u00fcreticileri i\u00e7in yapt\u0131\u011f\u0131 animasyonlard\u0131r.");
         table.put("The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.",
@@ -14545,11 +14547,11 @@ public final class L10nTranslations {
                 "Hikayeleri tam kalitede y\u00fckle");
         table.put("Use 4 to 8 digits.",
                 "4 ile 8 rakam kullan.");
-        table.put("Username",
-                "Kullan\u0131c\u0131 ad\u0131");
     }
 
     private static void fillTr16(Map<String, String> table) {
+        table.put("Username",
+                "Kullan\u0131c\u0131 ad\u0131");
         table.put("Username copied",
                 "Kullan\u0131c\u0131 ad\u0131 kopyaland\u0131");
         table.put("Version",
@@ -14610,8 +14612,6 @@ public final class L10nTranslations {
                 "Seni takipten \u00e7\u0131kanlar");
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "Wi-Fi oldu\u011fu gibi kal\u0131r. Her a\u011fda veri tasarrufu i\u00e7in bu anahtar\u0131 kapat.");
-        table.put("With Save videos other apps can open on, a full size video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.",
-                "Videolar\u0131 di\u011fer uygulamalar\u0131n a\u00e7abilece\u011fi bi\u00e7imde kaydet a\u00e7\u0131kken, Instagram'da yaln\u0131zca VP9 veya AV1 olarak bulunan tam boyutlu bir video daha k\u00fc\u00e7\u00fck kaydedilmek yerine telefonunda H.264'e d\u00f6n\u00fc\u015ft\u00fcr\u00fcl\u00fcr. Daha yava\u015ft\u0131r ve 3 dakikadan uzun videolar k\u00fc\u00e7\u00fck kal\u0131r.");
         table.put("Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.",
                 "Aralar\u0131nda virg\u00fcl ya da yeni sat\u0131r olan kelimeler veya ifadeler. B\u00fcy\u00fck k\u00fc\u00e7\u00fck harf fark etmez, hashtag de olur.");
         table.put("Wrong PIN. Try again.",

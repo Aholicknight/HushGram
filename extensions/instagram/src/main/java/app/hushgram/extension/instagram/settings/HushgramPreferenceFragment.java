@@ -1494,7 +1494,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves "
                             + "without sound. May lower quality.")));
             downloads.addPreference(toggle(context, Settings.DOWNLOAD_CONVERT, L10n.t("Convert to keep the full size"),
-                    L10n.t("With Save videos other apps can open on, a full size video Instagram only has as VP9 or AV1 "
+                    L10n.t("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 "
                             + "is converted to H.264 on your phone instead of saved smaller. Slower, and videos over "
                             + "3 minutes stay smaller.")));
             downloads.addPreference(qualityRow(context));

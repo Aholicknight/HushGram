@@ -8,6 +8,7 @@ Every HushGram release, newest first.
 
 * **Instagram - Glass tab bar:** Reels kept changing size as the pill slid away and back, and a paused reel's footer squeezed the video too. Reels stay one size behind the pill now, with the caption and seek bar just above it. Reported in #221 and #260.
 * **Instagram - Hide suggested people on profiles:** A profile's Follow and Message buttons, or Edit profile and Share profile on your own, still twitched for a split second whenever the profile refreshed. They hold still now. Reported in #220.
+* **Instagram - Download any video:** `Convert to keep the full size` did nothing unless `Save videos other apps can open` was on too, so a reel still saved as AV1. It works by itself now. Reported in #236.
 
 ### Improvements
 

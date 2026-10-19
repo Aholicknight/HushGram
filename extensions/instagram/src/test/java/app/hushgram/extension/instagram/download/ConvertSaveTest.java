@@ -163,17 +163,25 @@ public class ConvertSaveTest {
         assertEquals(720, planned.width());
     }
 
-    /** Off, a phone that can't convert, or saves other apps can open off: nothing is converted. */
+    /**
+     * #236: Convert on with Save videos other apps can open left off saved the AV1 as it was, so
+     * the switch looked like it did nothing. It converts on its own now.
+     */
     @Test
-    public void nothingIsConvertedWithoutBothSwitchesAndCodecs() throws Exception {
+    public void convertAloneConvertsTheFullSize() throws Exception {
+        String report = save(false, true, MANIFEST, SD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: " + FULL_AV1
+                + ", instead of mp4 (360p)" + CONVERTED + "\n"));
+        assertFalse(report, report.contains(KEPT));
+        assertTrue(MediaSave.compatibleSaves());
+    }
+
+    /** Off, or a phone that can't convert: nothing is converted. */
+    @Test
+    public void nothingIsConvertedWithoutTheSwitchAndCodecs() throws Exception {
         String report = save(true, false, MANIFEST, SD);
         assertTrue(report, report.contains("saving the video from its DASH manifest: " + H264));
         assertTrue(report, report.contains(KEPT));
-        assertFalse(report, report.contains(CONVERTED));
-
-        report = save(false, true, MANIFEST, SD);
-        assertTrue(report, report.contains("saving the video from its DASH manifest: " + FULL_AV1
-                + ", instead of mp4 (360p)\n"));
         assertFalse(report, report.contains(CONVERTED));
 
         VideoConvert.convertibleForTests = track -> false;

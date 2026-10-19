@@ -1951,9 +1951,10 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_compatible", FALSE);
 
     /**
-     * With {@link #DOWNLOAD_COMPATIBLE} on, a video whose full size Instagram has only as VP9 or AV1
-     * is converted to H.264 on the phone rather than saved at the smaller H.264 size (#236). Slower,
-     * and a picture over three minutes or in HDR keeps the smaller H.264. Starts off.
+     * Saves what {@link #DOWNLOAD_COMPATIBLE} saves, whether that's on or not, and a video whose full
+     * size Instagram has only as VP9 or AV1 is converted to H.264 on the phone rather than saved at
+     * the smaller H.264 size (#236). Slower, and a picture over three minutes or in HDR keeps the
+     * smaller H.264. Starts off.
      */
     public static final BooleanSetting DOWNLOAD_CONVERT =
             new BooleanSetting("hushgram_download_convert", FALSE);

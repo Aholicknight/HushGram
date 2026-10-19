@@ -743,12 +743,13 @@ public final class MediaSave {
 
     /**
      * Whether the save starting now keeps to files other apps can open
-     * ({@link Settings#DOWNLOAD_COMPATIBLE}). Read when the save starts, like the quality. Never
-     * throws: before the settings are ready, or when they can't be read, it's off.
+     * ({@link Settings#DOWNLOAD_COMPATIBLE}, or {@link Settings#DOWNLOAD_CONVERT}, which saves them
+     * at full size). Read when the save starts, like the quality. Never throws: before the settings
+     * are ready, or when they can't be read, it's off.
      */
     static boolean compatibleSaves() {
         try {
-            return Utils.settingsReady() && Settings.DOWNLOAD_COMPATIBLE.get();
+            return Utils.settingsReady() && (Settings.DOWNLOAD_COMPATIBLE.get() || Settings.DOWNLOAD_CONVERT.get());
         } catch (Throwable t) {
             return false;
         }
@@ -756,9 +757,9 @@ public final class MediaSave {
 
     /**
      * Whether the save starting now converts a full size VP9 or AV1 picture to H.264
-     * ({@link Settings#DOWNLOAD_CONVERT}), which acts only beside {@link #compatibleSaves}. Read
-     * when the save starts. Never throws: before the settings are ready, or when they can't be
-     * read, it's off.
+     * ({@link Settings#DOWNLOAD_CONVERT}), which turns on {@link #compatibleSaves} by itself too
+     * (#236). Read when the save starts. Never throws: before the settings are ready, or when they
+     * can't be read, it's off.
      */
     static boolean convertSaves() {
         try {
