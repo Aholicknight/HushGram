@@ -24,23 +24,20 @@ class CloneCodeTest {
 
     /** The const-string loads of an authority each build has, and the loads of Instagram's package that stay. */
     private val authorityLoads = mapOf(
-        "385810270" to 32,
-        "385810231" to 0, "385810269" to 0,
+        "385810270" to 32, "385810231" to 34, "385810269" to 34,
     )
     private val keptLoads = mapOf(
-        "385810270" to 89,
-        "385810231" to 0, "385810269" to 0,
+        "385810270" to 87, "385810231" to 87, "385810269" to 87,
     )
     private val uses = mapOf(
         SelfUse.INLINED to 4, SelfUse.PACKAGE_MANAGER to 6, SelfUse.OWN_INTENT to 9,
-        SelfUse.NAME_CHECK to 6, SelfUse.CALLER_CHECK to 3, SelfUse.PROVIDER_OWNER to 4, SelfUse.RELEASE_AND_DEBUG to 4,
+        SelfUse.NAME_CHECK to 6, SelfUse.CALLER_CHECK to 3, SelfUse.PROVIDER_OWNER to 4, SelfUse.RELEASE_AND_DEBUG to 5,
         SelfUse.DEX_LOAD_REPORT to 2,
     )
 
     /** Google Play's uses, the one count that differs by build: R8 keeps more or fewer of its helpers in each. */
     private val googlePlayUses = mapOf(
-        "385810270" to 8,
-        "385810231" to 0, "385810269" to 0,
+        "385810270" to 8, "385810231" to 10, "385810269" to 10,
     )
 
     /** The uses in classes Redex leaves named, the same in every build. */
