@@ -10,6 +10,8 @@ Every HushGram release, newest first.
 * **Instagram - Glass tab bar:** `Keep the pill full size` stops the liquid pill from shrinking to two tabs as you scroll down, so every tab stays where it was. It starts off. Asked for in #256.
 * **Instagram - Hide the Threads button:** `Hide the Create button` under Profiles takes the plus off the top of your own profile. The menu stays. It starts off. Asked for in #254.
 * **Instagram - Hide the Threads button:** `Hide Share profile` under Profiles takes that button off your profile, and Edit profile stretches to fill the row. It starts off. Asked for in #253.
+* **Instagram - HushGram settings:** `Switches Ghost mode turns` sits under Ghost mode and picks which switches it flips. The settings row, the button on Home and the long presses all follow it, and the rest stay as you set them. Asked for in #251.
+* **Instagram - HushGram settings:** A tab's long press can turn Ghost mode on or off now, with a toast saying which way it went. Choose the tab under Ghost mode. It's off to start. Asked for in #255.
 
 ### Bug Fixes
 

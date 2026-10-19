@@ -59,6 +59,14 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_quality_tab_target", NavigationTarget.OFF, false);
 
     /**
+     * The tab whose long press turns Ghost mode on or off (#255), the switches {@link GhostMode#picked}
+     * names. It rides the same tab hooks as {@link #NAVIGATION_SETTINGS_TARGET}; when another choice
+     * names the same tab, opening HushGram and then the quality picker come first. Off to start.
+     */
+    public static final EnumSetting<NavigationTarget> GHOST_TAB_TARGET =
+            new EnumSetting<>("hushgram_ghost_tab_target", NavigationTarget.OFF, false);
+
+    /**
      * Leaves the HushGram row out of Instagram's own settings menu while a tab long press (#84) or
      * the long press on your profile's menu (#148) opens HushGram. Off to start. The row is left out
      * only while the chosen tab is on a button Instagram built ({@link NavigationSettings#opensFromATab})
@@ -1513,6 +1521,15 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting GHOST_BUTTON_ON_HOME =
             new BooleanSetting("hushgram_ghost_button_on_home", FALSE, true);
+
+    /**
+     * The ghost switches Ghost mode turns, as their keys with a comma between (#251): its settings row,
+     * the button on Home's header and the long presses all flip only these, and the others keep what you
+     * set. Empty, or naming none of the switches in the build, means all of them, which is how it starts.
+     * Read at each flip, so a change needs no restart.
+     */
+    public static final StringSetting GHOST_MODE_PICKS =
+            new StringSetting("hushgram_ghost_mode_picks", "");
 
     /**
      * A Search button on Home's header that opens Instagram's own Search tab, or with Hide the Search tab

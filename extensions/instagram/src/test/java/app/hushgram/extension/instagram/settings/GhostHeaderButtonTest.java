@@ -78,6 +78,7 @@ public class GhostHeaderButtonTest {
         Settings.GHOST_BUTTON_ON_HOME.resetToDefault();
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
         Settings.HIDE_TYPING.resetToDefault();
+        Settings.GHOST_MODE_PICKS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
     }
@@ -175,6 +176,21 @@ public class GhostHeaderButtonTest {
         assertFalse("one of two is not Ghost mode", icon.isOn());
         Settings.HIDE_TYPING.save(true);
         assertTrue(icon.isOn());
+    }
+
+    /** #251: with one switch picked, a tap turns only that one and the icon follows only it. */
+    @Test public void aTapTurnsOnlyThePickedSwitchesAndTheIconFollowsThem() {
+        Settings.GHOST_BUTTON_ON_HOME.save(true);
+        Settings.GHOST_MODE_PICKS.save(Settings.HIDE_TYPING.key);
+        GhostHeaderButton.place(header);
+        ImageView button = ghost();
+        GhostHeaderButton.Ghost icon = (GhostHeaderButton.Ghost) button.getDrawable();
+        button.performClick();
+        assertTrue(Settings.HIDE_TYPING.savedValue());
+        assertFalse("left out, so left alone", Settings.READ_WITHOUT_SEEN_RECEIPT.savedValue());
+        assertTrue(icon.isOn());
+        Settings.GHOST_MODE_PICKS.resetToDefault();
+        assertFalse("picking all again shows it off, since one of the two is off", icon.isOn());
     }
 
     @Test public void pauseTakesTheButtonOutAndStopsATap() {

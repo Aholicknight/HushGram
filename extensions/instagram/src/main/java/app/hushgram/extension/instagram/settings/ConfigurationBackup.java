@@ -109,6 +109,10 @@ public final class ConfigurationBackup {
             settings.put(Settings.BURN_IN_WAIT.key, Settings.BURN_IN_WAIT);
             settings.put(Settings.BURN_IN_STAY_DIM.key, Settings.BURN_IN_STAY_DIM);
         }
+        if (GhostMode.offered(GhostMode.switches(PatchFamily.inThisBuild()))) {
+            settings.put(Settings.GHOST_MODE_PICKS.key, Settings.GHOST_MODE_PICKS);
+            settings.put(Settings.GHOST_TAB_TARGET.key, Settings.GHOST_TAB_TARGET);
+        }
         if (PatchFamily.STORY_TIME.inBuild()) settings.put(Settings.STORY_TIME_MODE.key, Settings.STORY_TIME_MODE);
         if (PatchFamily.FRIENDSHIP_STATUS.inBuild()) settings.put(Settings.FOLLOW_LABEL_PLACE.key, Settings.FOLLOW_LABEL_PLACE);
         if (PatchFamily.FULL_SCREEN_BARS.inBuild()) settings.put(Settings.FULL_SCREEN_HIDES.key, Settings.FULL_SCREEN_HIDES);
@@ -308,6 +312,8 @@ public final class ConfigurationBackup {
         if (setting == Settings.REELS_BLOCKED_WORDS) return blockedWordsAllowed(text);
         // An enum constant name of Instagram's; a name this Instagram lacks keeps its heart.
         if (setting == Settings.LIKE_ANIMATION) return text.matches("[A-Za-z0-9_$]{0,64}");
+        // The ghost switches Ghost mode turns, as their keys with commas between; blank means all of them.
+        if (setting == Settings.GHOST_MODE_PICKS) return text.matches("[a-z0-9_,]{0,2048}");
         return false;
     }
 

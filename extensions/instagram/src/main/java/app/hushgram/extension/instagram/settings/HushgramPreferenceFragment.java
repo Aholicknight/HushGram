@@ -178,6 +178,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** The row that sets or changes the HushGram PIN. */
     static final String CHANGE_PIN_ROW = "hushgram_change_pin_row";
     static final String HIDDEN_ACCOUNTS_ROW = "hushgram_hidden_accounts_row";
+    static final String GHOST_PICKS_ROW = "hushgram_ghost_picks_row";
     private static final String SCREEN_KEY = "hushgram_settings_root";
     /** The keys of category page rows, stable across translations and installed patch combinations. */
     static final String CATEGORY_ROW_KEY = "hushgram_category_page_";
@@ -215,6 +216,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** Ghost mode's switch, and the switches it turns, both set once the page is built. */
     @Nullable private SwitchPreference ghostMode;
     private List<BooleanSetting> ghostSwitches = new ArrayList<>();
+    /** The row under Ghost mode that picks which switches it turns (#251), and each switch's title by key. */
+    @Nullable private Row ghostPicks;
+    private final Map<String, CharSequence> ghostNames = new HashMap<>();
+    /** The row choosing the tab whose long press turns Ghost mode (#255). */
+    @Nullable private NavigationRow ghostTab;
 
     private String searchQuery = "";
     @Nullable private SearchRow search;
@@ -478,6 +484,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (GhostMode.offered(ghostSwitches)) {
             ghostMode = ghostModeRow(context);
             privacy.add(ghostMode);
+            ghostPicks = ghostPicksRow(context);
+            privacy.add(ghostPicks);
+            ghostTab = ghostTabRow(context);
+            privacy.add(ghostTab);
         }
         if (build.contains(PatchFamily.HIDE_ADS)) {
             privacy.add(toggle(context, Settings.HIDE_ADS, L10n.t("Hide ads"),
@@ -1739,7 +1749,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 Preference row = group.getPreference(j);
                 rows.add(row);
                 String key = row.getKey();
-                StringBuilder aliases = new StringBuilder(row == ghostMode ? "ghost mode " : "");
+                StringBuilder aliases = new StringBuilder(
+                        row == ghostMode || row == ghostPicks || row == ghostTab ? "ghost mode " : "");
+                for (BooleanSetting setting : ghostSwitches) {
+                    if (setting.key.equals(key) && row.getTitle() != null) ghostNames.put(key, row.getTitle());
+                }
                 aliases.append(row == clearPositions
                         ? L10n.t("Clear remembered positions")
                         : row.getTitle() == null ? "" : row.getTitle().toString());
@@ -1985,10 +1999,81 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         try { super.updateUIAvailability(); } finally { showGhostMode(); filterSettings(); }
     }
 
-    /** Ghost mode shows on only while every switch it turns is on, whichever way they got there. */
+    /**
+     * Ghost mode shows on only while every switch it turns is on, whichever way they got there, and
+     * the row under it names the ones it turns.
+     */
     private void showGhostMode() {
+        List<BooleanSetting> picked = GhostMode.picked(ghostSwitches);
         SwitchPreference row = ghostMode;
-        if (row != null) row.setChecked(GhostMode.on(ghostSwitches));
+        if (row != null) row.setChecked(GhostMode.on(picked));
+        Row picks = ghostPicks;
+        if (picks == null) return;
+        if (picked.size() == ghostSwitches.size()) {
+            picks.setSummary(L10n.t("All of them. Tap to leave some out, and Ghost mode leaves those as you set them."));
+            return;
+        }
+        StringBuilder names = new StringBuilder();
+        for (BooleanSetting setting : picked) {
+            if (names.length() > 0) names.append(", ");
+            names.append(ghostName(setting));
+        }
+        picks.setSummary(L10n.f("%1$s. The others stay as you set them.", names.toString()));
+    }
+
+    /** [setting]'s title as its own row shows it. */
+    private CharSequence ghostName(BooleanSetting setting) {
+        CharSequence name = ghostNames.get(setting.key);
+        if (name != null) return name;
+        Preference own = findPreference(setting.key);
+        return own == null || own.getTitle() == null ? setting.key : own.getTitle();
+    }
+
+    /** The row under Ghost mode that opens the list of switches it turns (#251). */
+    private Row ghostPicksRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(GHOST_PICKS_ROW);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Switches Ghost mode turns"));
+        row.setOnPreferenceClickListener(tapped -> {
+            pickGhostMode();
+            return true;
+        });
+        return row;
+    }
+
+    /**
+     * Each ghost switch with a check on the ones Ghost mode turns. A change saves at once, and the
+     * Ghost mode row, the Home button and the inbox long press all follow it. The last check can't
+     * come off, since Ghost mode would have nothing to turn.
+     */
+    void pickGhostMode() {
+        Context context = getActivity();
+        List<BooleanSetting> switches = ghostSwitches;
+        if (context == null || switches.isEmpty()) return;
+        Set<String> picked = new LinkedHashSet<>();
+        for (BooleanSetting setting : GhostMode.picked(switches)) picked.add(setting.key);
+        CharSequence[] names = new CharSequence[switches.size()];
+        boolean[] checked = new boolean[switches.size()];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = ghostName(switches.get(i));
+            checked[i] = picked.contains(switches.get(i).key);
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Switches Ghost mode turns"));
+        builder.setMultiChoiceItems(names, checked, (dialog, which, on) -> {
+            String key = switches.get(which).key;
+            if (!on && picked.size() == 1 && picked.contains(key)) {
+                checked[which] = true;
+                setChecked((AlertDialog) dialog, which, true);
+                Utils.showToastShort(L10n.t("Ghost mode needs at least one switch to turn."));
+                return;
+            }
+            if (on) picked.add(key);
+            else picked.remove(key);
+            GhostMode.pick(switches, picked);
+            showGhostMode();
+        });
+        show(builder.setPositiveButton(L10n.t("OK"), null));
     }
 
     /**
@@ -2004,17 +2089,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 + "stories anonymously and Hide that you're typing. Each one keeps its own switch."));
         row.setOnPreferenceChangeListener((preference, value) -> {
             boolean on = Boolean.TRUE.equals(value);
-            for (BooleanSetting setting : ghostSwitches) {
+            List<BooleanSetting> picked = GhostMode.picked(ghostSwitches);
+            for (BooleanSetting setting : picked) {
                 Preference own = findPreference(setting.key);
                 if (own instanceof TwoStatePreference && own.isPersistent()) ((TwoStatePreference) own).setChecked(on);
                 else setting.save(on);
             }
             showGhostMode();
-            Utils.showToastShort(GhostMode.message(ghostSwitches, on,
+            Utils.showToastShort(GhostMode.message(picked, on,
                     L10n.t("Couldn't change every Ghost mode switch. Check them below.")));
             return false;
         });
-        row.setChecked(GhostMode.on(ghostSwitches));
+        row.setChecked(GhostMode.on(GhostMode.picked(ghostSwitches)));
         mark(row, SettingsIcons.HIDDEN);
         return row;
     }
@@ -3569,7 +3655,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      * what the shared page syncs a list by, and the summary says what the choice does.
      */
     static NavigationRow navigationRow(Context context) {
-        return tabRow(context, false);
+        return tabRow(context, NavigationRow.Use.SETTINGS);
     }
 
     /**
@@ -3591,14 +3677,21 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /** The row choosing the tab whose long press opens the playback quality list (#93). */
     static NavigationRow qualityTabRow(Context context) {
-        return tabRow(context, true);
+        return tabRow(context, NavigationRow.Use.QUALITY);
     }
 
-    private static NavigationRow tabRow(Context context, boolean forQuality) {
-        EnumSetting<NavigationTarget> setting = forQuality ? Settings.QUALITY_TAB_TARGET : Settings.NAVIGATION_SETTINGS_TARGET;
-        NavigationRow row = new NavigationRow(context, forQuality);
+    /** The row choosing the tab whose long press turns Ghost mode on or off (#255). */
+    static NavigationRow ghostTabRow(Context context) {
+        return tabRow(context, NavigationRow.Use.GHOST);
+    }
+
+    private static NavigationRow tabRow(Context context, NavigationRow.Use use) {
+        EnumSetting<NavigationTarget> setting = use == NavigationRow.Use.QUALITY ? Settings.QUALITY_TAB_TARGET
+                : use == NavigationRow.Use.GHOST ? Settings.GHOST_TAB_TARGET : Settings.NAVIGATION_SETTINGS_TARGET;
+        NavigationRow row = new NavigationRow(context, use);
         row.setKey(setting.key);
-        row.setTitle(forQuality ? L10n.t("Pick the playback quality with a tab long press")
+        row.setTitle(use == NavigationRow.Use.QUALITY ? L10n.t("Pick the playback quality with a tab long press")
+                : use == NavigationRow.Use.GHOST ? L10n.t("Turn Ghost mode on or off with a tab long press")
                 : L10n.t("Open settings with a tab long press"));
         row.setDialogTitle(L10n.t("Choose a tab"));
         row.setNegativeButtonText(L10n.t("Cancel"));
@@ -5642,13 +5735,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      * shared page syncing it from the setting, or an import.
      */
     static final class NavigationRow extends ListPreference {
+        /** What the chosen tab's long press does: open HushGram, the quality picker (#93) or Ghost mode (#255). */
+        enum Use { SETTINGS, QUALITY, GHOST }
         private String summary;
-        /** The row for the quality picker's tab (#93) rather than the one that opens HushGram. */
-        private final boolean forQuality;
-        NavigationRow(Context context) { this(context, false); }
-        NavigationRow(Context context, boolean forQuality) {
+        private final Use use;
+        NavigationRow(Context context) { this(context, Use.SETTINGS); }
+        NavigationRow(Context context, Use use) {
             super(context);
-            this.forQuality = forQuality;
+            this.use = use;
         }
         /** The tabs take the choice once the setting has it, after this change's own sync (#82). */
         @Override public void setValue(String value) {
@@ -5661,7 +5755,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             for (NavigationTarget candidate : NavigationTarget.values()) {
                 if (candidate.name().equals(getValue())) target = candidate;
             }
-            if (forQuality) {
+            if (use == Use.GHOST) {
+                summary = target == NavigationTarget.OFF
+                        ? L10n.t("Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.")
+                        : L10n.f("Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a "
+                                + "toast says which way it went. Normal taps and other tabs stay the same. If the same tab "
+                                + "opens HushGram or picks the playback quality, that comes first.", navigationLabel(target));
+                setSummary(summary);
+                return;
+            }
+            if (use == Use.QUALITY) {
                 summary = target == NavigationTarget.OFF
                         ? L10n.t("Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.")
                         : L10n.f("Long press %1$s to pick the playback quality instead of that tab's usual action. "

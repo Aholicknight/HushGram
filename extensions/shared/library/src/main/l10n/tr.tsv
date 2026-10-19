@@ -1074,3 +1074,12 @@ Takes the Share profile button off your profile, and Edit profile stretches to f
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	Hapı tam boyutta tut
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	Bir listeyi aşağı kaydırınca sıvı cam hap olduğu gibi kalır, her sekme yerinde durur. Değiştirdikten sonra Instagram'ı yeniden başlat.
+# context: Ghost mode: the row and dialog picking which switches Ghost mode turns (#251). %1$s is a list of switch names
+All of them. Tap to leave some out, and Ghost mode leaves those as you set them.	Hepsi. Bazılarını dışarıda bırakmak için dokun, Hayalet modu onları senin ayarladığın gibi bırakır.
+%1$s. The others stay as you set them.	%1$s. Diğerleri senin ayarladığın gibi kalır.
+Switches Ghost mode turns	Hayalet modunun değiştirdiği anahtarlar
+Ghost mode needs at least one switch to turn.	Hayalet modunun değiştireceği en az bir anahtar olmalı.
+# context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
+Turn Ghost mode on or off with a tab long press	Sekmeye uzun basarak Hayalet modunu aç veya kapat
+Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	Sekmelere uzun basmak Instagram işlemini korur. Bunun yerine Hayalet modunu açıp kapatmak için bir sekme seç.
+Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens HushGram or picks the playback quality, that comes first.	Sekmenin normal işlemi yerine Hayalet modunu açıp kapatmak için %1$s üzerine uzun bas, kısa bir bildirim hangi yöne gittiğini söyler. Normal dokunuşlar ve diğer sekmeler aynı kalır. Aynı sekme HushGram'ı açıyor ya da oynatma kalitesini seçiyorsa o öncelikli olur.

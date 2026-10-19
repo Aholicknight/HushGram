@@ -154,7 +154,8 @@ public final class GhostHeaderButton {
 
     private static ImageView create(Context context, List<BooleanSetting> switches, @Nullable View neighbor) {
         ImageView button = new ImageView(context);
-        BooleanSupplier on = () -> GhostMode.on(switches);
+        // Picked at each draw, so a pick changed in the settings shows without a restart (#251).
+        BooleanSupplier on = () -> GhostMode.on(GhostMode.picked(switches));
         button.setImageDrawable(new Ghost(context.getResources().getDisplayMetrics().density, FeedDownloadButton.iconColor(context), on));
         button.setScaleType(ImageView.ScaleType.CENTER);
         // A neighbor's own padding, Messages' where it's there, sizes the touch target the same as theirs.
@@ -177,7 +178,7 @@ public final class GhostHeaderButton {
     static void press(View view) {
         try {
             if (!Utils.settingsReady() || HushgramPause.isPaused()) return;
-            List<BooleanSetting> switches = GhostMode.switches(PatchFamily.inThisBuild());
+            List<BooleanSetting> switches = GhostMode.picked(GhostMode.switches(PatchFamily.inThisBuild()));
             if (switches.isEmpty()) return;
             boolean on = GhostMode.flip(switches);
             view.invalidate();
