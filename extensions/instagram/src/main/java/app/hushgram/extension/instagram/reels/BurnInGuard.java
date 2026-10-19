@@ -59,7 +59,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * <p>What a touch is: a finger going down on one of the reel's controls ({@link #WAKING_IDS}), on
  * anything that isn't the reel, or moving as a swipe does. A tap on the reel itself (to pause or play,
  * a double tap to like) and a tap on Save or HushGram's Download aren't, so they leave the controls
- * dimmed and the wait running (#162).
+ * dimmed and the wait running (#162). With Stay dim when I tap on ({@link #stayDim}), no finger on the
+ * Reels screen is a touch, swipes to the next reel included: the wait runs from arriving on Reels, and
+ * once dimmed the controls stay dimmed until you leave it (#162).
  *
  * <p>The shift moves the window's content around a small square, {@link #STEP_DP} at a time, every
  * {@link #SHIFT_EVERY_MS}. It's one view's translation, the content frame's, which Instagram doesn't
@@ -75,7 +77,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * listener, which hears the choice turned on once the settings close. While it's on, a layout
  * (a new reel, another screen) asks for a look at most every {@link #LOOK_MS}, and while the controls
  * are dimmed a look comes every {@link #KEEP_MS} to dim what Instagram brought back on its own. A draw
- * listener dims a dimmed view again before the frame that would show Instagram's alpha ({@link #redim}).
+ * listener dims a dimmed view again before the frame that would show Instagram's alpha ({@link #redim}),
+ * and a layout while dimmed dims what it brought in at once, so a reel scrolled to is dimmed before
+ * its first frame.
  */
 public final class BurnInGuard {
     /** The share of Instagram's own opacity the controls dim to. */
@@ -137,6 +141,7 @@ public final class BurnInGuard {
     static final String COUNT_DIMMED = "Reels controls dimmed while idle";
     static final String COUNT_SHIFTED = "Reels screen moved a step";
     static final String COUNT_QUIET = "Reels tap on the video, Save or Download left the controls dimmed";
+    static final String COUNT_STAY_DIM = "Reels touch left the controls dimmed (Stay dim when I tap)";
 
     private static final HashMap<String, Integer> IDS = new HashMap<>();
     private static volatile boolean registered;
@@ -162,6 +167,8 @@ public final class BurnInGuard {
     private static boolean fingerDown;
     /** The last pass found the Reels screen with the choice on. */
     private static boolean guarding;
+    /** The last pass dimmed the controls, and nothing has brought them back since. */
+    private static boolean dimming;
     /** The finger now down went down on the reel itself or on Save or Download, and hasn't swiped. */
     private static boolean quiet;
     /** Where on the screen that finger went down. */
@@ -194,6 +201,11 @@ public final class BurnInGuard {
     static long idleAfter() {
         BurnInWait wait = Settings.BURN_IN_WAIT.get();
         return (wait == null ? BurnInWait.FIVE_SECONDS : wait).millis;
+    }
+
+    /** Stay dim when I tap (#162): no finger on the Reels screen brings the controls back. Off while paused. */
+    static boolean stayDim() {
+        return Settings.BURN_IN_STAY_DIM.get();
     }
 
     /** The place the content is in at [now], in steps of {@link #STEP_DP}. */
@@ -288,8 +300,12 @@ public final class BurnInGuard {
             guarding = on;
             long wait = idleAfter();
             boolean dim = on && !fingerDown && now - touchedAt >= wait;
-            if (dim) dimAll(decor);
-            else undim();
+            if (dim) {
+                dimAll(decor);
+                dimming = true;
+            } else {
+                undim();
+            }
             boolean shifting = on && mode == BurnInMode.DIM_AND_SHIFT;
             place(activity, shifting, now);
             long next = !on || fingerDown ? Long.MAX_VALUE : dim ? now + KEEP_MS : touchedAt + wait;
@@ -368,6 +384,7 @@ public final class BurnInGuard {
 
     /** Brings back each view dimmed here, if its alpha is still the one written here. */
     private static void undim() {
+        dimming = false;
         if (DIMMED.isEmpty()) return;
         for (Map.Entry<View, float[]> entry : DIMMED.entrySet()) {
             View view = entry.getKey();
@@ -444,6 +461,12 @@ public final class BurnInGuard {
      * nothing; the focus coming back still does, which is how a choice made in the settings is seen.
      */
     static void touched(int action) {
+        if (action < 0 && guarding && stayDim()) {
+            // Stay dim: a sheet or the share screen closing leaves the controls as they are, and the
+            // pass still sees a choice changed in the settings.
+            if (front.get() != null) passSoon();
+            return;
+        }
         touchedAt = SystemClock.uptimeMillis();
         boolean lifted = action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL || action < 0;
         if (action == MotionEvent.ACTION_DOWN) fingerDown = true;
@@ -456,9 +479,16 @@ public final class BurnInGuard {
      * A finger event on the window. While the guard is on, one that goes down on the reel itself or
      * on Save or Download isn't a touch ({@link #quietAt}) until it lifts, unless it moves farther than
      * a tap does or a second finger joins: a swipe to the next reel or a pinch counts from then (#162).
+     * With Stay dim when I tap on, no finger on the Reels screen is a touch at all.
      */
     static void seen(MotionEvent event) {
         int action = event.getActionMasked();
+        if (guarding && stayDim()) {
+            quiet = false;
+            fingerDown = false;
+            if (action == MotionEvent.ACTION_DOWN) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_STAY_DIM);
+            return;
+        }
         if (action == MotionEvent.ACTION_DOWN) {
             quiet = guarding && quietAt(event.getRawX(), event.getRawY());
             if (quiet) {
@@ -667,11 +697,23 @@ public final class BurnInGuard {
         }
     }
 
-    /** A layout: a new reel, or another screen, so a look soon. */
+    /**
+     * A layout: a new reel, or another screen, so a look soon. While the controls are dimmed, what the
+     * layout brought in (the next reel's buttons as it scrolls in) is dimmed now, before it's drawn.
+     */
     private static final class Layout implements ViewTreeObserver.OnGlobalLayoutListener {
         private long lastLook = Long.MIN_VALUE / 2;
 
         @Override public void onGlobalLayout() {
+            View decor = observed.get();
+            if (dimming && decor != null) {
+                try {
+                    // Still on Reels: a layout that opened another screen is left to the pass, which brings them back.
+                    if (FullScreenBars.screenOf(decor) == FullScreenBars.Screen.REELS) dimAll(decor);
+                } catch (Throwable failure) {
+                    HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard layout dim", failure);
+                }
+            }
             long now = SystemClock.uptimeMillis();
             long due = Math.max(now, lastLook + LOOK_MS);
             if (tickAt >= 0L && tickAt <= due) return;

@@ -73,6 +73,7 @@ public class BurnInGuardTest {
     @Before public void prepare() {
         Settings.BURN_IN_GUARD.resetToDefault();
         Settings.BURN_IN_WAIT.resetToDefault();
+        Settings.BURN_IN_STAY_DIM.resetToDefault();
         PauseForTests.resume();
         BurnInGuard.resetForTests();
         FullScreenBars.idForTests(FullScreenBars.VIEWER, VIEWER);
@@ -124,6 +125,7 @@ public class BurnInGuardTest {
         controller.close();
         Settings.BURN_IN_GUARD.resetToDefault();
         Settings.BURN_IN_WAIT.resetToDefault();
+        Settings.BURN_IN_STAY_DIM.resetToDefault();
         PauseForTests.resume();
     }
 
@@ -536,6 +538,74 @@ public class BurnInGuardTest {
         assertUp("the wait starts at the lift");
         after(200);
         assertDimmed("the wait after the swipe ran out");
+    }
+
+    /**
+     * Stay dim when I tap (#162, the 0.0.13 video): Like, the caption, a swipe to the next reel and a
+     * sheet closing all leave the controls dimmed, and no tap starts the wait over. Leaving Reels still
+     * brings them back, and with the switch off a tap on Like does again.
+     */
+    @Test public void stayDimKeepsThemDimmedWhateverYouTapOrSwipe() {
+        layOutTheReelsButtons();
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        Settings.BURN_IN_STAY_DIM.save(true);
+        BurnInGuard.resumed(activity);
+        after(IDLE - 1_000);
+        tapOn(like);
+        assertUp("still waiting");
+        after(1_100);
+        assertDimmed("the wait a tap on Like didn't start over ran out");
+
+        tapOn(like);
+        assertDimmed("Like");
+        tapOn(caption);
+        assertDimmed("the caption");
+        float[] at = middleOf(root);
+        sendAt(MotionEvent.ACTION_DOWN, at[0], at[1]);
+        sendAt(MotionEvent.ACTION_MOVE, at[0], at[1] - 150);
+        assertDimmed("a swipe to the next reel");
+        sendAt(MotionEvent.ACTION_UP, at[0], at[1] - 150);
+        after(IDLE * 2);
+        assertDimmed("after the swipe");
+        focusBack();
+        assertDimmed("the comments sheet closing");
+
+        Settings.BURN_IN_STAY_DIM.save(false);
+        tapOn(like);
+        assertUp("switch off, Like brings them back");
+        after(IDLE + 100);
+        assertDimmed("idle again");
+        Settings.BURN_IN_STAY_DIM.save(true);
+
+        root.removeView(viewer);
+        reelsTab.setSelected(false);
+        homeTab.setSelected(true);
+        relayout();
+        assertEquals("leaving Reels brings the tab bar back", 1f, bar.getAlpha(), 0f);
+    }
+
+    /** While dimmed, the next reel's controls are dimmed as the layout that brings them in ends, before they're drawn (#162). */
+    @Test public void aReelScrolledToWhileDimmedIsDimmedBeforeItsFirstFrame() {
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        after(IDLE + 100);
+        assertDimmed("idle");
+
+        FrameLayout next = new FrameLayout(activity);
+        next.setId(OVERLAY);
+        viewer.addView(next, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        layout();
+        activity.getWindow().getDecorView().getViewTreeObserver().dispatchOnGlobalLayout();
+        assertEquals("the next reel's overlay, before any pass", BurnInGuard.IDLE_LEVEL, next.getAlpha(), 0f);
+
+        tap();
+        assertEquals("a touch brings it back", 1f, next.getAlpha(), 0f);
+        next.setAlpha(1f);
+        viewer.removeView(next);
+        viewer.addView(next);
+        layout();
+        activity.getWindow().getDecorView().getViewTreeObserver().dispatchOnGlobalLayout();
+        assertEquals("not dimmed, a layout dims nothing", 1f, next.getAlpha(), 0f);
     }
 
     @Test public void atOnceDimsThemAsSoonAsTheFingerLifts() {

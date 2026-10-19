@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Features
+
+* **Instagram - Clean up Reels:** `Stay dim when I tap` sits under Burn-in guard. Once the buttons fade, they stay faded on Reels whatever you tap or swipe, the next reel too, and come back when you leave Reels. It starts off. Asked for in #162.
+
 ### Bug Fixes
 
 * **Instagram - Glass tab bar:** Reels kept changing size as the pill slid away and back, and a paused reel's footer squeezed the video too. Reels stay one size behind the pill now, with the caption and seek bar just above it. Reported in #221 and #260.

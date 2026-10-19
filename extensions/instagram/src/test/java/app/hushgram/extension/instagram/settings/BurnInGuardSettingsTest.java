@@ -44,6 +44,7 @@ public class BurnInGuardSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.BURN_IN_GUARD.resetToDefault();
         Settings.BURN_IN_WAIT.resetToDefault();
+        Settings.BURN_IN_STAY_DIM.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -55,6 +56,7 @@ public class BurnInGuardSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.BURN_IN_GUARD.resetToDefault();
         Settings.BURN_IN_WAIT.resetToDefault();
+        Settings.BURN_IN_STAY_DIM.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(EnumSet<PatchFamily> build) throws Exception {
@@ -130,11 +132,35 @@ public class BurnInGuardSettingsTest {
 
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.BURN_IN_WAIT.key));
     }
+    /** Stay dim when I tap (#162) is a switch right after Dim after, off to start, and backed up. */
+    @Test public void stayDimFollowsDimAfterAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference found = page.getPreferenceScreen().findPreference(Settings.BURN_IN_STAY_DIM.key);
+        assertTrue(found instanceof android.preference.SwitchPreference);
+        android.preference.SwitchPreference row = (android.preference.SwitchPreference) found;
+        assertEquals("Stay dim when I tap", row.getTitle().toString());
+        assertEquals("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the "
+                + "next reel too. They still work. Leaving Reels brings them back.", row.getSummary().toString());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.BURN_IN_STAY_DIM.defaultValue);
+        PreferenceGroup reels = (PreferenceGroup) row.getParent();
+        int wait = -1;
+        int stay = -1;
+        for (int i = 0; i < reels.getPreferenceCount(); i++) {
+            String key = reels.getPreference(i).getKey();
+            if (Settings.BURN_IN_WAIT.key.equals(key)) wait = i;
+            if (Settings.BURN_IN_STAY_DIM.key.equals(key)) stay = i;
+        }
+        assertEquals("right after Dim after", wait + 1, stay);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.BURN_IN_STAY_DIM.key));
+    }
     @Test public void withoutCleanUpReelsThereIsNoRowAndNothingToBackUp() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.BURN_IN_GUARD.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.BURN_IN_WAIT.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.BURN_IN_STAY_DIM.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.BURN_IN_GUARD.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.BURN_IN_WAIT.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.BURN_IN_STAY_DIM.key));
     }
 }

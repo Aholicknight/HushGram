@@ -107,6 +107,7 @@ public final class ConfigurationBackup {
         if (PatchFamily.REEL_DECLUTTER.inBuild()) {
             settings.put(Settings.BURN_IN_GUARD.key, Settings.BURN_IN_GUARD);
             settings.put(Settings.BURN_IN_WAIT.key, Settings.BURN_IN_WAIT);
+            settings.put(Settings.BURN_IN_STAY_DIM.key, Settings.BURN_IN_STAY_DIM);
         }
         if (PatchFamily.STORY_TIME.inBuild()) settings.put(Settings.STORY_TIME_MODE.key, Settings.STORY_TIME_MODE);
         if (PatchFamily.FRIENDSHIP_STATUS.inBuild()) settings.put(Settings.FOLLOW_LABEL_PLACE.key, Settings.FOLLOW_LABEL_PLACE);

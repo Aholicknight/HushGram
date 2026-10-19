@@ -1338,6 +1338,14 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_burn_in_wait", app.hushgram.extension.instagram.reels.BurnInWait.FIVE_SECONDS);
 
     /**
+     * Burn-in guard's Stay dim when I tap (#162): once dimmed, the controls stay dimmed on the Reels screen
+     * whatever you tap or swipe, the next reel included, and come back when you leave Reels. Read at each
+     * touch, so a change needs no restart. Off to start.
+     */
+    public static final BooleanSetting BURN_IN_STAY_DIM =
+            new BooleanSetting("hushgram_burn_in_stay_dim", FALSE);
+
+    /**
      * Download in every reel's more menu, saving the reel through the save pipeline below instead
      * of Instagram's own save, which only some reels offer and which stamps a watermark on.
      */

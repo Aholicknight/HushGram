@@ -868,6 +868,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "Posts in your feed keep theirs.")));
             reels.add(burnInGuardRow(context));
             reels.add(burnInWaitRow(context));
+            reels.add(toggle(context, Settings.BURN_IN_STAY_DIM, L10n.t("Stay dim when I tap"),
+                    L10n.t("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, "
+                            + "the next reel too. They still work. Leaving Reels brings them back.")));
             reels.add(toggle(context, Settings.KEEP_REEL_CLEAR_MODE, L10n.t("Keep clear mode on"),
                     L10n.t("Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear "
                             + "mode yourself and the next reels show their buttons again.")));
@@ -1738,7 +1741,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DECLUTTER && (Settings.BURN_IN_GUARD.key.equals(key)
-                            || Settings.BURN_IN_WAIT.key.equals(key));
+                            || Settings.BURN_IN_WAIT.key.equals(key) || Settings.BURN_IN_STAY_DIM.key.equals(key));
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && (Settings.TAP_TO_PLAY_SCOPE.key.equals(key)

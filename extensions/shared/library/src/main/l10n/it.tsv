@@ -1063,3 +1063,6 @@ A reel Instagram's auto scroll moves to waits for your tap too. Off, auto scroll
 # context: Stories: the switch that hides the Follow button in a story's header (#237). Follow is Instagram's own button label, as in Hide the Follow button.
 Hide Follow on stories	Nascondi Segui nelle storie
 Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay.	Toglie il pulsante Segui dalla parte alta delle storie degli account che non segui. Nome, ora e menu restano.
+# context: Reels: Burn-in guard's switch that keeps the faded buttons faded while you tap (#162)
+Stay dim when I tap	Resta attenuato quando tocco
+Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	Una volta che la Protezione burn-in attenua i pulsanti, restano attenuati su Reels qualunque cosa tocchi o scorri, anche nel reel successivo. Continuano a funzionare. Uscendo da Reels tornano.

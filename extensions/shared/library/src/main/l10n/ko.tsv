@@ -1062,3 +1062,6 @@ A reel Instagram's auto scroll moves to waits for your tap too. Off, auto scroll
 # context: Stories: the switch that hides the Follow button in a story's header (#237). Follow is Instagram's own button label, as in Hide the Follow button.
 Hide Follow on stories	스토리에서 팔로우 숨기기
 Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay.	팔로우하지 않는 계정의 스토리 상단에서 팔로우 버튼을 없앱니다. 이름, 시간, 메뉴는 그대로 표시됩니다
+# context: Reels: Burn-in guard's switch that keeps the faded buttons faded while you tap (#162)
+Stay dim when I tap	탭해도 어둡게 유지
+Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	번인 방지가 버튼을 흐리게 하면, 무엇을 탭하거나 스와이프해도 릴스에서 계속 흐린 상태로 유지되며 다음 릴스에서도 마찬가지입니다. 버튼은 계속 작동합니다. 릴스를 나가면 원래대로 돌아옵니다.
