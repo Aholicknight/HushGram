@@ -336,7 +336,7 @@ class HidePaidPartnershipReelsHookTest {
             }
             checked++
         }
-        assertEquals("the eight builds of 451 weren't all read", 8, checked)
+        assertEquals("the three builds of 452 weren't all read", 3, checked)
     }
 
     /**
