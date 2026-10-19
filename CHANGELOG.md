@@ -4,10 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
-### Removed
+### Improvements
 
-* **Instagram - Disable analytics:** Removed. It sent Instagram's usage and crash reports to a dead address, which is something Instagram can notice, and no switch is worth an account. The contacts and location setup screens it skipped show again. A settings file that still has this switch imports fine and the switch is ignored.
-* **Instagram - Open developer options:** Removed. It let you change Instagram's server flags, and an account running flags Instagram never sent it stands out. The Developer category is gone with it: the MetaConfig flag names, the Recommended flags page and override import and export. Old settings files still import, and the developer switches in them are ignored.
+* **Instagram:** Disable analytics is gone. It sent Instagram's usage and crash reports to a dead address, which Instagram can notice. The contacts and location setup screens it skipped show again, and old settings files still import.
+* **Instagram:** Open developer options is gone, along with the Developer category and its flag tools. An account running server flags Instagram never sent it stands out. Settings files that still hold the developer switches import fine.
 
 ## 0.0.13 (2026-10-18)
 
