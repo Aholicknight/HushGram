@@ -51,14 +51,16 @@ internal const val BIND = "$REEL_SEEK_BAR->bind(Ljava/lang/Object;I)V"
  * Reels progress controller keeps its limits. The first two read an ad's own minimum in the same
  * place, picked in a branch.
  */
-internal const val ORGANIC_MIN_SECONDS = 0x82091900291476L
+// 451: 0x82091900291476. 452 moved it to 0x82090f00291471 (config index -10, slot -5); same three readers.
+internal const val ORGANIC_MIN_SECONDS = 0x82090f00291471L
 internal const val ORGANIC_MIN_SECONDS_READS = 3
 
 /**
  * Whether a short ordinary reel's bar is the hidden kind, shown only while you hold the reel. 450
  * reads it once, where the seek bar row's state is worked out, in the same place as the ads' flag.
  */
-internal const val ORGANIC_LAZY = 0x8109190010330cL
+// 451: 0x8109190010330c. 452 moved it to 0x81090f00103271, read by the same seek bar row state.
+internal const val ORGANIC_LAZY = 0x81090f00103271L
 internal const val ORGANIC_LAZY_READS = 1
 
 /** The markers, after Instagram's release prefix, of the methods that prove the reads are the seek bar's. */
@@ -204,22 +206,40 @@ internal fun BytecodePatchContext.findBindSite(row: Method, lazy: FlagLoad): Bin
         }
     }
     if (tagging.isEmpty()) refuse("no method tags a view $SCRUBBER_TAG")
-    val binders = tagging.filter { method ->
-        method.implementation!!.instructions.any { it.opcode == Opcode.IGET_OBJECT && makesSeekBar(it.fieldReference()!!.type) }
+    // A tagging is the call setting the tag and the method it is in. 452 folds the binders into the
+    // cases of one shared lambda class's switch, so a method can hold several, and the one for the real
+    // bar is told by the class it casts or reads just before loading the tag: the primitive that makes the bar.
+    val taggings = tagging.flatMap { method ->
+        val code = method.implementation!!.instructions.toList()
+        code.indices.filter { code[it].methodSignature() == SET_TAG }.mapNotNull { call ->
+            val load = (call - 1 downTo maxOf(0, call - 6)).firstOrNull { stringLoadedAt(code, it) == SCRUBBER_TAG } ?: return@mapNotNull null
+            val makesBar = (load - 1 downTo maxOf(0, load - 10)).any { at ->
+                val reference = (code[at] as? ReferenceInstruction)?.reference
+                (code[at].opcode == Opcode.IGET_OBJECT && makesSeekBar(code[at].fieldReference()!!.type)) ||
+                    (code[at].opcode == Opcode.CHECK_CAST && reference != null && makesSeekBar(reference.toString()))
+            }
+            if (makesBar) method to call else null
+        }
     }
-    val binder = binders.singleOrNull() ?: refuse(
+    val binders = taggings.map { it.first }.distinctBy { it.signature() }
+    val tagged = taggings.singleOrNull() ?: refuse(
         "expected one method tagging a view $SCRUBBER_TAG and reading the primitive that makes $SEEK_BAR, " +
-            "found ${binders.size} of ${tagging.size} tagging",
+            "found ${taggings.size} of ${tagging.size} tagging",
     )
+    val binder = binders.single()
     val where = binder.signature()
     val code = binder.implementation!!.instructions.toList()
-    val reads = code.indices.filter { code[it].opcode == Opcode.IGET_BOOLEAN && code[it].fieldReference()?.text() == field }
+    val tagAt = tagged.second
+    val view = code[tagAt].arguments().first()
+    if (view < binder.localRegisterCount()) refuse("$where tags a view of its own, not the one it's handed")
+    // The case runs from where the handed view is cast to where the next case casts it again.
+    fun castsView(at: Int) = code[at].opcode == Opcode.CHECK_CAST && (code[at] as OneRegisterInstruction).registerA == view
+    val start = (tagAt downTo 0).firstOrNull(::castsView) ?: 0
+    val end = (tagAt + 1 until code.size).firstOrNull(::castsView) ?: code.size
+    val reads = (start until end).filter { code[it].opcode == Opcode.IGET_BOOLEAN && code[it].fieldReference()?.text() == field }
     val readAt = reads.singleOrNull() ?: refuse("expected $where to read $field once, found ${reads.size}")
     val flag = (code[readAt] as OneRegisterInstruction).registerA
-    val views = code.filter { it.methodSignature() == SET_TAG }.map { it.arguments().first() }.toSet()
-    val view = views.singleOrNull() ?: refuse("$where tags ${views.size} views, not the one it's handed")
-    if (view < binder.localRegisterCount()) refuse("$where tags a view of its own, not the one it's handed")
-    val overwrites = code.indices.filter { code[it].writes(view) && code[it].opcode != Opcode.CHECK_CAST }
+    val overwrites = (start until end).filter { code[it].writes(view) && code[it].opcode != Opcode.CHECK_CAST }
     if (overwrites.isNotEmpty()) refuse("$where writes over the view it tags at instruction(s) ${overwrites.joinToString()}")
     if (readAt == code.lastIndex || readAt + 1 in binder.jumpTargets()) {
         refuse("$where jumps to just after its read of $field, where the call would go")
