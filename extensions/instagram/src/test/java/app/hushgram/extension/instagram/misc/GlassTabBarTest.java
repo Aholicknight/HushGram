@@ -217,20 +217,18 @@ public class GlassTabBarTest {
     }
 
     /**
-     * #197: Blur the bars around a reel asks which bar wears the glass, so it leaves the pill's background
-     * alone, and whether the pill floats, since only then does the strip under a reel show round it.
+     * #197: Blur the bars around a reel asks which bar wears the glass, so it leaves the pill alone,
+     * floating or not (#221).
      */
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
     @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
-    public void aBarSaysWhetherItWearsTheGlassAndWhetherTheGlassFloats() throws Exception {
+    public void aBarSaysWhetherItWearsTheGlass() throws Exception {
         for (boolean floating : new boolean[]{true, false}) {
             try (GlassHost host = new GlassHost(Color.BLACK, floating, GlassHeight.STANDARD, false, false)) {
                 assertFalse("not restyled yet", GlassTabBar.wearsGlass(host.bar));
-                assertFalse(GlassTabBar.floatsGlass(host.bar));
                 GlassTabBar.apply(host.activity);
                 assertTrue(GlassTabBar.wearsGlass(host.bar));
-                assertEquals(floating, GlassTabBar.floatsGlass(host.bar));
             }
         }
         assertFalse(GlassTabBar.wearsGlass(null));
@@ -254,7 +252,6 @@ public class GlassTabBarTest {
             assertNull(PlainTabSlide.of(host.bar));
             assertSame(wrapped, host.activity.getWindow().getCallback());
         }
-        assertFalse(GlassTabBar.floatsGlass(null));
     }
 
     /**
@@ -1572,14 +1569,12 @@ public class GlassTabBarTest {
     }
 
     /**
-     * A floating pill keeps each Reels viewer above it, so its seek bar, caption and the touch strip
-     * Instagram lays over the bar's top don't sit under the pill and take its taps: the Reels tab's in the
-     * swipe pager and one opened over another tab get the bar's height as their margin. A margin Instagram
-     * set stays, the bar's own branch is never touched, a taller pill moves them with it, and a hidden bar
-     * gives the room back.
+     * Each Reels viewer under a floating pill gets the margin asked for (the navigation bar's room, #221):
+     * the Reels tab's in the swipe pager and one opened over another tab. A margin Instagram set stays,
+     * the bar's own branch is never touched, a new margin moves them with it, and 0 gives the room back.
      */
     @Test
-    public void reelsViewersStopAtAFloatingBarsTopAndGetTheRoomBackWhenItHides() {
+    public void reelsViewersUnderAFloatingBarGetTheMarginAskedForAndInstagramsStays() {
         Context context = RuntimeEnvironment.getApplication();
         int reels = 0x7f0b0010;
         FrameLayout holder = new FrameLayout(context);
@@ -1617,6 +1612,64 @@ public class GlassTabBarTest {
         assertEquals(40, margin(instagrams));
         assertTrue(given.isEmpty());
         assertEquals("no id, nothing found", 0, GlassTabBar.reelsAboveTheBar(holder, bar, 0, 126, given));
+    }
+
+    /**
+     * #221: what's raised clear of a floating pill is the child of a reel's layer of controls that holds
+     * the caption or the seek bar, as in Instagram 451's Reels, never the layer or the reel, so the video,
+     * stickers and play button stay where they are. The footer under the viewer (#260) is found apart
+     * from them, and nothing inside a hidden view is.
+     */
+    @Test
+    public void aReelsCaptionAndSeekBarRiseByTheirOwnBandOfTheControls() {
+        Context context = RuntimeEnvironment.getApplication();
+        int media = 0x7f0b0020, info = 0x7f0b0021, scrubber = 0x7f0b0022, footers = 0x7f0b0023;
+        FrameLayout viewer = new FrameLayout(context);
+        LinearLayout column = new LinearLayout(context);
+        viewer.addView(column);
+        FrameLayout page = new FrameLayout(context);
+        column.addView(page);
+        View video = new View(context);
+        video.setId(media);
+        page.addView(video);
+        FrameLayout layer = new FrameLayout(context);
+        page.addView(layer);
+        FrameLayout infoBand = new FrameLayout(context);
+        layer.addView(infoBand);
+        FrameLayout infoHost = new FrameLayout(context);
+        infoBand.addView(infoHost);
+        View caption = new View(context);
+        caption.setId(info);
+        infoHost.addView(caption);
+        FrameLayout scrubBand = new FrameLayout(context);
+        layer.addView(scrubBand);
+        View seekBar = new View(context);
+        seekBar.setId(scrubber);
+        scrubBand.addView(seekBar);
+        View sticker = new View(context);
+        layer.addView(sticker);
+        LinearLayout footer = new LinearLayout(context);
+        footer.setId(footers);
+        column.addView(footer);
+        View insideFooter = new View(context);
+        insideFooter.setId(scrubber);
+        footer.addView(insideFooter);
+
+        java.util.List<View> anchors = new java.util.ArrayList<>(), found = new java.util.ArrayList<>();
+        GlassTabBar.reelAnchors(viewer, info, scrubber, footers, anchors, found, 0);
+        assertEquals(java.util.Arrays.asList(caption, seekBar), anchors);
+        assertEquals("not looked inside", java.util.Collections.singletonList(footer), found);
+        assertSame("the caption's band", infoBand, GlassTabBar.reelBand(caption, media, viewer));
+        assertSame("the seek bar's", scrubBand, GlassTabBar.reelBand(seekBar, media, viewer));
+        assertSame("a band right in the layer is itself", sticker, GlassTabBar.reelBand(sticker, media, viewer));
+        assertNull("no video id", GlassTabBar.reelBand(caption, 0, viewer));
+        assertNull("no video short of where it stops", GlassTabBar.reelBand(caption, media, layer));
+
+        infoBand.setVisibility(View.GONE);
+        anchors.clear();
+        found.clear();
+        GlassTabBar.reelAnchors(viewer, info, scrubber, footers, anchors, found, 0);
+        assertEquals("a hidden caption isn't raised", java.util.Collections.singletonList(seekBar), anchors);
     }
 
     /**

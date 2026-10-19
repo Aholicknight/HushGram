@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Bug Fixes
+
+* **Instagram - Glass tab bar:** Reels kept changing size as the pill slid away and back, and a paused reel's footer squeezed the video too. Reels stay one size behind the pill now, with the caption and seek bar just above it. Reported in #221 and #260.
+
 ### Improvements
 
 * **Instagram:** Disable analytics is gone. It sent Instagram's usage and crash reports to a dead address, which Instagram can notice. The contacts and location setup screens it skipped show again, and old settings files still import.

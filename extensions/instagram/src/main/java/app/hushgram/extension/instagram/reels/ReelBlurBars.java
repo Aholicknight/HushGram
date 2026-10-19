@@ -58,10 +58,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * bitmaps recycled. The pager and the pages are held weakly, so nothing outlives the viewer. Every
  * failure leaves Instagram's own black.
  *
- * <p>The viewer stops above the tab bar, which leaves a black strip under the reel: Instagram's own
- * bar, or the stretch round a floating glass pill (#197). While that bar shows, the reel on screen is
- * copied the same way whether it has bars or not, and the strip shows it mirrored and blurred, so it
- * reads as the reel running on ({@link #drawStrip}).
+ * <p>The viewer stops above Instagram's own tab bar, which leaves a black strip under the reel (#197).
+ * While that bar shows, the reel on screen is copied the same way whether it has bars or not, and the
+ * strip shows it mirrored and blurred, so it reads as the reel running on ({@link #drawStrip}). A
+ * floating glass pill has the reel itself running on behind it (#221), so it gets no strip.
  */
 public final class ReelBlurBars {
     /** The steps a failure is reported under. */
@@ -148,9 +148,8 @@ public final class ReelBlurBars {
     /**
      * Paints the strip under the tab bar, [left] to [right] and [top] to [bottom] in [canvas]'s
      * coordinates, as the reel on screen running on: its frame mirrored so the bottom row meets the
-     * strip's top edge, blurred, with the same black over it as the bars get (#197). The glass pill calls
-     * this for the stretch under a Reels viewer, and Instagram's own bar draws it through its background
-     * ({@link StripDrawable}). Paints nothing and says false with the switch off, HushGram paused, no
+     * strip's top edge, blurred, with the same black over it as the bars get (#197). Instagram's own bar
+     * draws it through its background ({@link StripDrawable}). Paints nothing and says false with the switch off, HushGram paused, no
      * reel in front or no frame yet, so the caller paints what it would have. Never throws.
      */
     public static boolean drawStrip(Canvas canvas, float left, float top, float right, float bottom) {
@@ -479,9 +478,9 @@ public final class ReelBlurBars {
         }
 
         /**
-         * Instagram's tab bar when the strip under the reel is this class's to fill: shown, and either
-         * Instagram's own or a floating glass pill. Null otherwise, as under glass that doesn't float,
-         * which fills the bar with its own colour.
+         * Instagram's tab bar when the strip under the reel is this class's to fill: shown, and
+         * Instagram's own. Null under the glass, whose floating pill has the reel running on behind it
+         * (#221) and whose docked bar fills itself with its own colour.
          */
         @Nullable
         private View stripBar(ViewGroup group) {
@@ -491,8 +490,7 @@ public final class ReelBlurBars {
                 bar = id == 0 ? null : group.getRootView().findViewById(id);
                 barRef = bar == null ? null : new WeakReference<>(bar);
             }
-            if (bar == null || !bar.isShown()) return null;
-            if (GlassTabBar.wearsGlass(bar) && !GlassTabBar.floatsGlass(bar)) return null;
+            if (bar == null || !bar.isShown() || GlassTabBar.wearsGlass(bar)) return null;
             return bar;
         }
 
@@ -531,7 +529,7 @@ public final class ReelBlurBars {
 
         /**
          * Takes this controller's strip away and recycles its copy: Instagram's own bar gets back the
-         * background it had, and a glass pill paints its black again.
+         * background it had.
          */
         void dropStrip() {
             View bar = barRef == null ? null : barRef.get();
