@@ -59,10 +59,10 @@ internal const val HIDE_CREATE = "$THREADS_BUTTON->hideCreateInBar()Z"
 internal const val USER_DETAIL = "Lcom/instagram/profile/fragment/UserDetailFragment;"
 
 /**
- * Instagram 451's id/profile_header_create_button, the view id of the plus on your own profile,
- * the same in all eight 451 builds (aapt2).
+ * Instagram 452's id/profile_header_create_button (0x7f0b309c on 451), the view id of the plus on your own profile,
+ * the same in all three 452 builds (aapt2).
  */
-internal const val CREATE_BUTTON_ID = 0x7f0b309c
+internal const val CREATE_BUTTON_ID = 0x7f0b30b9
 
 /** The events only the Threads chip under a profile's bio logs, loaded by its constructor. */
 internal const val BANNER_TAP = "tap_threads_banner"
