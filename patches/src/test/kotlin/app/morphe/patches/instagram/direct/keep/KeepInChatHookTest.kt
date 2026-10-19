@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.feed.FeedItemStandIns.instructions
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -203,8 +204,9 @@ class KeepInChatHookTest {
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
         run {
             for (bundle in bundles) {
-                val kept = (FixtureDex.classesHolding(bundle, "url_expire_at_secs") + FixtureDex.classesHolding(bundle, "is_sent_by_viewer") +
-                    FixtureDex.classes(bundle, setOf(USER_SESSION)).values).toMutableList()
+                // 452 asks a string pool for is_sent_by_viewer, so the pool and the classes asking it come too.
+                val kept = (FixtureDex.classesHolding(bundle, "url_expire_at_secs") + FixtureDex.classesLoading(bundle, "is_sent_by_viewer") +
+                    FixtureDex.classesLoading(bundle, MEDIA_ITEM_KEY) + FixtureDex.classes(bundle, setOf(USER_SESSION)).values).toMutableList()
                 fun holds(m: Method, key: String) =
                     m.implementation?.instructions?.any { i -> (i as? ReferenceInstruction)?.reference.let { r -> r is StringReference && r.string == key } } == true
                 fun builtBy(parser: (Method) -> Boolean): String? = kept.flatMap { it.methods }.filter(parser)
@@ -213,7 +215,13 @@ class KeepInChatHookTest {
                     ?.let { ((it as ReferenceInstruction).reference as TypeReference).type }
                 // The message class and its superclasses: the sent flag and the sender live in one of them.
                 // And the media class and its superclasses, which must keep Object's equals and hashCode.
+                // On 452 the message is the first parameter of the static call reading each of its keys.
                 val message = builtBy { m -> m.name == "unsafeParseFromJson" && holds(m, "is_sent_by_viewer") }
+                    ?: kept.flatMap { it.methods }.firstOrNull { m ->
+                        AccessFlags.STATIC.isSet(m.accessFlags) && m.returnType == "V" && m.parameterTypes.size == 3 &&
+                            holds(m, MEDIA_ITEM_KEY) && holds(m, "raven_media")
+                    }?.parameterTypes?.first()?.toString()
+                assertTrue("${bundle.name}: the message class", message != null)
                 val media = builtBy { m ->
                     m.returnType == "Ljava/lang/Object;" && m.parameterTypes.size == 1 && VISUAL_MEDIA_KEYS.all { holds(m, it) }
                 }
@@ -279,7 +287,12 @@ class KeepInChatHookTest {
             assertEquals("$what: the message register", store.registerB, invoke.registerC)
             assertEquals("$what: the reader register", found.reader, invoke.registerD)
         }
-        assertEquals("$what: the reader is the last register", method.implementation!!.registerCount - 1, found.reader)
+        // The builder's one parameter, or on 452 the key reader's second (after the message).
+        val readerParameter = if (AccessFlags.STATIC.isSet(method.accessFlags)) 1 else 0
+        assertEquals("$what: the reader is the parser's reader parameter", method.parameterRegisterNumber(readerParameter), found.reader)
+        if (AccessFlags.STATIC.isSet(method.accessFlags)) {
+            assertEquals("$what: the message is the key reader's first parameter", method.parameterRegisterNumber(0), found.message)
+        }
     }
 
     /** The stubs read and write the fields the patch found. */
