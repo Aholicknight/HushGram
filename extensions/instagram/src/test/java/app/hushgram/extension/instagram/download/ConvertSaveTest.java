@@ -278,6 +278,49 @@ public class ConvertSaveTest {
                         sound("mp4a.40.2", 64_000, "lc"))), true, DownloadQuality.BEST, track -> true));
     }
 
+    /**
+     * A video story as #236's reporter gets them: its 1080p only as VP9 and its only DASH sound
+     * xHE-AAC, beside a 720p single file. The VP9 is converted like the AV1 is.
+     */
+    @Test
+    public void aVp9StoryIsConvertedLikeAnAv1One() throws Exception {
+        String vp9 = "vp09.00.40.08.01.01.01.01.00";
+        String story = manifest(representation(vp9, 1080, 1920, 1_525_000, "1080p", "v1080"),
+                sound("mp4a.40.42", 84_000, "xhe"));
+        String report = save(true, true, story, HD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: video/mp4 " + vp9
+                + " 1080x1920 1525kbps 1080p + the sound of mp4 (720p), instead of mp4 (720p)" + CONVERTED));
+        assertFalse(report, report.contains("not converting"));
+    }
+
+    /** A save that converts says in the report why it passed the largest VP9 or AV1 picture over (#236). */
+    @Test
+    public void theReportSaysWhyNothingWasConverted() throws Exception {
+        VideoConvert.convertibleForTests = track -> false;
+        String report = save(true, true, MANIFEST, SD);
+        assertTrue(report, report.contains("not converting the video's video/mp4 " + AV1
+                + " 1080x1920 1525kbps 1080p: this phone has no AV1 decoder and H.264 encoder for 1080x1920"));
+
+        VideoConvert.convertibleForTests = track -> true;
+        report = save(true, true, AV1_ONLY, FULL);
+        assertTrue(report, report.contains("not converting the video's video/mp4 " + AV1
+                + " 1080x1920 1525kbps 1080p: what's saved suits the quality as well"));
+
+        report = save(true, false, MANIFEST, SD);
+        assertFalse("only a save that converts says so", report.contains("not converting"));
+
+        VideoConvert.convertibleForTests = track -> false;
+        String url = "https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/v.mp4?oh=1&oe=2";
+        assertEquals("it's HDR", VideoConvert.whyNot(
+                new DashManifest.Track("video/mp4", "vp09.02.10.10.01.09.16.09.01", 1080, 1920, 1, url), true));
+        assertEquals("its VP9 isn't in an MP4", VideoConvert.whyNot(
+                new DashManifest.Track("video/webm", "vp09.00.40.08", 1080, 1920, 1, url), true));
+        assertEquals("this phone can't read AV1 tracks", VideoConvert.whyNot(
+                new DashManifest.Track("video/mp4", AV1, 1080, 1920, 1, url), false));
+        VideoConvert.convertibleForTests = track -> true;
+        assertNull(VideoConvert.whyNot(new DashManifest.Track("video/mp4", "vp09.00.40.08", 1080, 1920, 1, url), true));
+    }
+
     /** Before the settings can be read, and while paused, nothing is converted. */
     @Test
     public void beforeTheSettingsAreReadyOrPausedNothingIsConverted() {

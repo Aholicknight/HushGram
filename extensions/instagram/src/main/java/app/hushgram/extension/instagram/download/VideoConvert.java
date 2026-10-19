@@ -94,6 +94,21 @@ final class VideoConvert {
     }
 
     /**
+     * Why a save that converts passes over [track], for the report, or null when nothing on the
+     * phone's side stops it. A save can still keep a smaller file that suits the quality as well.
+     */
+    static String whyNot(DashManifest.Track track, boolean allowAv1) {
+        if (!track.isVideo() || !needsConversion(track.codecs)) return "it isn't VP9 or AV1";
+        if (track.codecs.startsWith("vp09") && !"video/mp4".equals(track.mime)) return "its VP9 isn't in an MP4";
+        if (track.codecs.startsWith("av01") && !allowAv1) return "this phone can't read AV1 tracks";
+        if (canConvert(track)) return null;
+        if (hdr(track.codecs)) return "it's HDR";
+        if (track.width <= 0 || track.height <= 0) return "the manifest gives no size";
+        return "this phone has no " + (track.codecs.startsWith("vp09") ? "VP9" : "AV1")
+            + " decoder and H.264 encoder for " + track.width + "x" + track.height;
+    }
+
+    /**
      * Whether [codecs] names an HDR picture: PQ or HLG (16 or 18) in the transfer field, AV1's
      * eighth and VP9's seventh. A file can leave its colour out of its own boxes, so the manifest's
      * word is taken before a byte is fetched.

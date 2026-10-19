@@ -1026,6 +1026,7 @@ public final class MediaSave {
         // why the single file is saved.
         Dash leftToFile = compatible && usual != null && beatsFile(usual.video, fallback, choice.fallbackQuality, quality)
             ? Dash.SINGLE_FILE_FOR_OTHER_APPS : Dash.SINGLE_FILE;
+        if (convert && !choice.converts) noConversion(label, tracks, allowAv1);
 
         if (choice.taken == null && kept == null && usual != null) {
             info(() -> "the manifest of " + label + " has no H.264 video with AAC-LC or HE-AAC sound, "
@@ -1072,6 +1073,25 @@ public final class MediaSave {
             choice.soundFromFile).run(writer, progress);
         boolean lower = better != null && noticeablyLower(picture(video, quality), better.shortSide());
         return result.ok() && lower ? result.lower() : result;
+    }
+
+    /**
+     * Tells the report why a save that converts didn't convert [tracks]' largest VP9 or AV1 picture
+     * (#236), so a report shows whether the phone or the pick passed it over.
+     */
+    private static void noConversion(String label, List<DashManifest.Track> tracks, boolean allowAv1) {
+        DashManifest.Track largest = null;
+        for (DashManifest.Track track : tracks) {
+            if (track.isVideo() && VideoConvert.needsConversion(track.codecs)
+                    && (largest == null || track.shortSide() > largest.shortSide())) {
+                largest = track;
+            }
+        }
+        if (largest == null) return;
+        DashManifest.Track picture = largest;
+        String why = VideoConvert.whyNot(picture, allowAv1);
+        info(() -> "not converting " + label + "'s " + picture + ": "
+            + (why != null ? why : "what's saved suits the quality as well"));
     }
 
     /**
