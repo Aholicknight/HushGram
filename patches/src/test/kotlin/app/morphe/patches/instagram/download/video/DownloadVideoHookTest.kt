@@ -723,12 +723,18 @@ class DownloadVideoHookTest {
         val rowBuilders = FixtureDex.methodsWhere(bundle, { true }) { method ->
             val loads = method.implementation?.instructions?.filter { it is NarrowLiteralInstruction && it.opcode == Opcode.CONST }
                 ?.map { (it as NarrowLiteralInstruction).narrowLiteral }.orEmpty()
-            !AccessFlags.CONSTRUCTOR.isSet(method.accessFlags) && SAVE_BUTTON_ID in loads && ROW_BUTTONS_ID in loads
+            !AccessFlags.CONSTRUCTOR.isSet(method.accessFlags) && SAVE_BUTTON_ID in loads
         }
         val specs = rowBuilders.flatMap { it.code() }.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
             .filter { it.name == "<init>" && it.parameterTypes.size == 6 && it.parameterTypes[0] == "Landroid/widget/ImageView${'$'}ScaleType;" }
             .map { it.definingClass }
-        val lithoTypes = (rowBuilders.map { it.definingClass } + specs).filter { type -> classes.none { it.type == type } }.toSet()
+        // 452 composes the row in another method of the class that builds Save's spec.
+        val rowComposers = FixtureDex.methodsWhere(bundle, { true }) { method ->
+            !AccessFlags.CONSTRUCTOR.isSet(method.accessFlags) && method.implementation?.instructions?.any {
+                it is NarrowLiteralInstruction && it.opcode == Opcode.CONST && it.narrowLiteral == ROW_BUTTONS_ID
+            } == true
+        }
+        val lithoTypes = (rowBuilders.map { it.definingClass } + rowComposers.map { it.definingClass } + specs).filter { type -> classes.none { it.type == type } }.toSet()
         if (lithoTypes.isNotEmpty()) classes += FixtureDex.classes(bundle, lithoTypes).values
         // Save's modifier and the styles the builder gives it, then what the modifier is made of: its
         // part, its empty one, and the parts and kinds the styles (and the calls they make) build.
@@ -873,8 +879,12 @@ class DownloadVideoHookTest {
         val code = context.method(site.type, site.name, site.parameters).code()
         val hook = code.indexOfFirst { it.referenceText() == LITHO_BUTTON }
         assertEquals("$label: one component hook", 1, code.count { it.referenceText() == LITHO_BUTTON })
-        assertEquals("$label: three moves then the call, right after the constructor", site.at + 3, hook)
-        assertEquals("$label: Save's icon spec", site.specConstructor.toString(), code[site.at - 1].referenceText())
+        assertEquals("$label: three moves then the call, right after Save's spec", site.at + 3, hook)
+        if (code[site.at - 1].opcode == Opcode.MOVE_RESULT_OBJECT) {
+            assertEquals("$label: the spec's register", site.spec, (code[site.at - 1] as OneRegisterInstruction).registerA)
+        } else {
+            assertEquals("$label: Save's icon spec", site.specConstructor.toString(), code[site.at - 1].referenceText())
+        }
         val moves = (0..2).map { code[site.at + it] as TwoRegisterInstruction }
         assertEquals("$label: the list, the spec and the state", listOf(site.list, site.spec, site.state), moves.map { it.registerB })
         assertTrue("$label: low registers of their own", moves.map { it.registerA }.let { it.toSet().size == 3 && it.all { r -> r < 16 } })
@@ -892,7 +902,11 @@ class DownloadVideoHookTest {
             assertEquals("$label: the icon bridge calls $used", 1, icon.count { it == used.toString() })
         }
         assertEquals("$label: the icon never takes Save's modifier whole", 0, icon.count { it == site.modifier.toString() })
-        assertDownloadModifierHasNoneOfSavesOwnParts(context, site, code, label)
+        // 451 builds Save in the hooked method; 452 builds its spec in another method of the class.
+        val saveCode = context.classDefBy(site.type).methods.map { it.code() }.single { instructions ->
+            instructions.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == SAVE_BUTTON_ID }
+        }
+        assertDownloadModifierHasNoneOfSavesOwnParts(context, site, saveCode, label)
     }
 
     /**
