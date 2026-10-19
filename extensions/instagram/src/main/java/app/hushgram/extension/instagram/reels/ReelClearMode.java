@@ -228,7 +228,11 @@ public final class ReelClearMode {
             }
             String id = item == null ? null : access.id(item);
             String was = shown;
-            if (handler == null || id == null || !id.equals(was)) return;
+            if (handler == null || id == null || !id.equals(was)) {
+                Logger.printDebug(() -> "Clear mode: a reel left it that isn't the one put in it, nothing carried"
+                        + " (handler " + (handler != null) + ", reel " + (id != null) + ", one in it " + (was != null) + ")");
+                return;
+            }
             shown = null;
             clearRetry();
             carry(handler, id, 0, false);
@@ -290,6 +294,7 @@ public final class ReelClearMode {
             long until = retryUntil;
             if (until == 0) return;
             if (!on() || access.now() > until) {
+                Logger.printDebug(() -> "Clear mode: the wait for the next reel ran out, the next reels show their buttons");
                 drop();
                 return;
             }
@@ -355,6 +360,7 @@ public final class ReelClearMode {
             if (until == 0 || !wanted) return;
             Object handler = held == null ? null : held.get();
             if (!on() || handler == null || left == null) {
+                Logger.printDebug(() -> "Clear mode: the next try has no handler left, the next reels show their buttons");
                 drop();
                 return;
             }
@@ -397,10 +403,14 @@ public final class ReelClearMode {
             HookStatus.counted(FAMILY, CARRIED);
             Logger.printDebug(() -> "Clear mode: carried to the next reel");
         } else if (waitsOn(found, until, page)) {
+            Logger.printDebug(() -> found == SAME_REEL
+                    ? "Clear mode: the swipe hasn't landed yet, trying again on the next page"
+                    : "Clear mode: the next reel has no exit button yet, trying again when it does");
             waiting = new WeakReference<>(handler);
             retryUntil = until == 0 ? access.now() + RETRY_WINDOW_MS : until;
         } else {
-            Logger.printDebug(() -> "Clear mode: nothing to carry it to, the next reels show their buttons");
+            Logger.printDebug(() -> "Clear mode: nothing to carry it to, the next reels show their buttons ("
+                    + (found == NOTHING ? "Instagram didn't look for a reel" : "found " + found) + ")");
             drop();
         }
     }
