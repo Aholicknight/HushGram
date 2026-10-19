@@ -6,6 +6,8 @@ package app.hushgram.extension.instagram.misc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
@@ -301,6 +303,16 @@ public class LaunchScreenTest {
         assertEquals("nothing to skip", 0, LaunchScreen.instagramLogo(0));
         assertEquals("nothing more counted", Collections.singletonList(counted(LaunchScreen.LOGO_SKIPPED)), HookStatus.report());
         assertTrue("Android is told nothing", splash.told.isEmpty());
+    }
+
+    /** The 452 check answers with an Integer object; skipping is null, and no animation stays null. */
+    @Test
+    public void instagramsBoxedLogoAnswerIsNulledWhileTheSwitchIsOn() {
+        Integer mode = Integer.valueOf(0);
+        assertSame("off, Instagram's answer stands", mode, LaunchScreen.instagramLogo(mode));
+        Settings.LAUNCH_SCREEN.save(true);
+        assertNull(LaunchScreen.instagramLogo(mode));
+        assertNull("nothing to skip", LaunchScreen.instagramLogo((Integer) null));
     }
 
     /** Paused, Instagram's logo follows as it ships, though the switch is on. */

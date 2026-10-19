@@ -48,6 +48,9 @@ internal const val SPLASH_BRANDING = "android:windowSplashScreenBrandingImage"
 internal const val LAUNCH_SCREEN = "$EXTENSION_PACKAGE/misc/LaunchScreen;"
 internal const val INSTAGRAM_LOGO = "$LAUNCH_SCREEN->instagramLogo(I)I"
 
+/** The same hook for a check that answers with a boxed Integer, null meaning no animation (452). */
+internal const val INSTAGRAM_LOGO_MODE = "$LAUNCH_SCREEN->instagramLogo(Ljava/lang/Integer;)Ljava/lang/Integer;"
+
 /** Instagram's main screen, which every launcher alias opens. */
 internal const val MAIN_ACTIVITY = "Lcom/instagram/mainactivity/InstagramMainActivity;"
 
@@ -60,6 +63,7 @@ internal const val POST_SPLASH_EXTRA = "extra_post_splash_screen_animation_enabl
 private const val INTENT = "Landroid/content/Intent;"
 private const val CONTEXT = "Landroid/content/Context;"
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
+private const val BOXED_INT = "Ljava/lang/Integer;"
 
 /**
  * HushGram's mark, drawn from vectors so it's sharp on every screen: the pink to plum tile of the
@@ -161,26 +165,35 @@ private val launchThemePatch = resourcePatch {
 }
 
 /**
- * The one method of [MAIN_ACTIVITY] reading [POST_SPLASH_EXTRA], and the two answers in it the
- * extension filters, by the index of the move-result that takes each one in.
+ * The one method reading [POST_SPLASH_EXTRA], and the two answers in it the extension filters, by
+ * the index of the move-result that takes each one in. [gateBoxed] is true when the check answers
+ * with an Integer object (452), false when it answers with a boolean (451).
  */
-internal class LogoAnswers(val method: MutableMethod, val extra: Int, val gate: Int)
+internal class LogoAnswers(val method: MutableMethod, val extra: Int, val gate: Int, val gateBoxed: Boolean)
 
 /**
- * Finds where Instagram's main screen decides whether its own logo animation follows Android's
- * launch screen, and checks the extension, before anything changes.
+ * Finds where Instagram decides whether its own logo animation follows Android's launch screen, and
+ * checks the extension, before anything changes.
  *
- * The method is the one of [MAIN_ACTIVITY] loading [POST_SPLASH_EXTRA]. It reads that extra with its
- * one Intent.getBooleanExtra, and an answer of true draws Instagram's copy of its launch screen over
- * the app. Otherwise its one static (Context, UserSession) boolean, the check that Android is 12 or
- * newer, animations run and Instagram's flag is on, decides whether Instagram pulses its logo inside
- * Android's screen. Each answer is taken in by a move-result right after its call.
+ * The method is the one loading [POST_SPLASH_EXTRA] and reading it with its one
+ * Intent.getBooleanExtra. 451 kept it in [MAIN_ACTIVITY]; 452 moved it into a helper class that
+ * Redex names, so the method is found by that string and call rather than by its class. An answer of
+ * true draws Instagram's copy of its launch screen over the app. Otherwise its one (Context,
+ * UserSession) check, the test that Android is 12 or newer, animations run and Instagram's flag is
+ * on, decides whether Instagram pulses its logo inside Android's screen. The check is a static
+ * boolean on 451 and an Integer-returning call on 452 (null for no animation). Each answer is taken
+ * in by a move-result right after its call.
  */
 internal fun BytecodePatchContext.findLogoAnswers(): LogoAnswers {
-    val activity = classDefByOrNull(MAIN_ACTIVITY) ?: refuse("no $MAIN_ACTIVITY")
-    val holders = activity.methods.filter { method -> method.code().any { it.loads(POST_SPLASH_EXTRA) } }
+    val holders = mutableListOf<Method>()
+    classDefForEach { type ->
+        type.methods.filterTo(holders) { method ->
+            val code = method.code()
+            code.any { it.loads(POST_SPLASH_EXTRA) } && code.any { it.calls(INTENT, "getBooleanExtra") }
+        }
+    }
     val holder = holders.singleOrNull()
-        ?: refuse("expected one method of $MAIN_ACTIVITY loading \"$POST_SPLASH_EXTRA\", found ${holders.size}")
+        ?: refuse("expected one method loading \"$POST_SPLASH_EXTRA\" and reading an Intent boolean, found ${holders.size}")
     val code = holder.code()
 
     val reads = code.indices.filter { code[it].opcode == Opcode.INVOKE_VIRTUAL && code[it].calls(INTENT, "getBooleanExtra") }
@@ -198,27 +211,31 @@ internal fun BytecodePatchContext.findLogoAnswers(): LogoAnswers {
 
     val gates = code.indices.filter { at ->
         val called = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
-        code[at].opcode == Opcode.INVOKE_STATIC && called != null && called.returnType == "Z" &&
-            called.parameterTypes.map(Any::toString) == listOf(CONTEXT, USER_SESSION)
+        called != null && called.parameterTypes.map(Any::toString) == listOf(CONTEXT, USER_SESSION) &&
+            ((code[at].opcode == Opcode.INVOKE_STATIC && called.returnType == "Z") ||
+                (code[at].opcode == Opcode.INVOKE_VIRTUAL && called.returnType == BOXED_INT))
     }
     val gate = gates.singleOrNull()
-        ?: refuse("expected one static (Context, UserSession) boolean in ${holder.where()}, found ${gates.size}")
+        ?: refuse("expected one (Context, UserSession) check in ${holder.where()}, found ${gates.size}")
+    val boxed = (code[gate] as ReferenceInstruction).reference.let { (it as MethodReference).returnType == BOXED_INT }
 
-    for (at in listOf(read, gate)) {
-        if (code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT) refuse("${holder.where()} takes no answer in after instruction $at")
+    if (code.getOrNull(read + 1)?.opcode != Opcode.MOVE_RESULT) refuse("${holder.where()} takes no answer in after instruction $read")
+    if (code.getOrNull(gate + 1)?.opcode != if (boxed) Opcode.MOVE_RESULT_OBJECT else Opcode.MOVE_RESULT) {
+        refuse("${holder.where()} takes no answer in after instruction $gate")
     }
+    val hook = if (boxed) INSTAGRAM_LOGO_MODE else INSTAGRAM_LOGO
     if (classDefByOrNull(LAUNCH_SCREEN)?.methods?.any {
-            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == INSTAGRAM_LOGO &&
+            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook &&
                 AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
         } != true
     ) {
-        refuse("the extension has no public static $INSTAGRAM_LOGO")
+        refuse("the extension has no public static $hook")
     }
-    val method = mutableClassDefBy(MAIN_ACTIVITY).methods.single {
+    val method = mutableClassDefBy(holder.definingClass).methods.single {
         it.name == holder.name && it.parameterTypes.map(Any::toString) == holder.parameterTypes.map(Any::toString) &&
             it.returnType == holder.returnType
     }
-    return LogoAnswers(method, read + 1, gate + 1)
+    return LogoAnswers(method, read + 1, gate + 1, boxed)
 }
 
 /**
@@ -230,11 +247,12 @@ internal fun BytecodePatchContext.skipInstagramLogo() {
     val found = findLogoAnswers()
     for (at in listOf(found.extra, found.gate).sortedDescending()) {
         val register = (found.method.code()[at] as OneRegisterInstruction).registerA
+        val boxed = found.gateBoxed && at == found.gate
         found.method.addInstructions(
             at + 1,
             """
-                invoke-static/range { v$register .. v$register }, $INSTAGRAM_LOGO
-                move-result v$register
+                invoke-static/range { v$register .. v$register }, ${if (boxed) INSTAGRAM_LOGO_MODE else INSTAGRAM_LOGO}
+                ${if (boxed) "move-result-object" else "move-result"} v$register
             """,
         )
     }

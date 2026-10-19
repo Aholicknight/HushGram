@@ -178,6 +178,14 @@ public final class LaunchScreen {
     }
 
     /**
+     * The same filter for a check that answers with an Integer object, where null means no animation
+     * (452). Skipping the animation answers null; anything else is Instagram's own answer.
+     */
+    public static Integer instagramLogo(Integer shows) {
+        return shows != null && instagramLogo(1) == 0 ? null : shows;
+    }
+
+    /**
      * Whether the next start shows HushGram's logo: the switch as saved, unless that start runs
      * paused by the Pause switch, safe mode or the marker file. It's the next start's answer, not
      * this one's, because that's the start Android draws the screen for.

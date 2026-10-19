@@ -96,13 +96,14 @@ class LaunchScreenHookTest {
         assertEquals("the other builds: ${others.map { it.parentFile.name }}", Fixtures.OTHER_BUILDS, others.size)
         for (bundle in declared + others) {
             val label = if (bundle.extension == "apks") bundle.name else bundle.parentFile.name
-            val context = PatchContexts.of(FixtureDex.classes(bundle, setOf(MAIN_ACTIVITY)).values + extension())
+            val context = PatchContexts.of(FixtureDex.classesHolding(bundle, POST_SPLASH_EXTRA) + extension())
             val found = context.findLogoAnswers()
             val name = found.method.name
             val shape = found.method.parameterTypes.map(Any::toString)
-            assertEquals("$label: the method's shape", listOf(USER_SESSION, "Z"), shape)
+            assertTrue("$label: the method takes the session: $shape", USER_SESSION in shape && shape.last() == "Z")
+            assertTrue("$label: the check answers with an Integer on 452", found.gateBoxed)
             context.skipInstagramLogo()
-            assertHooked("$label $MAIN_ACTIVITY->$name", context.method(name, shape))
+            assertHooked("$label ${found.method.definingClass}->$name", context.method(found.method.definingClass, name, shape))
         }
     }
 
@@ -112,25 +113,28 @@ class LaunchScreenHookTest {
      */
     private fun assertHooked(what: String, method: MutableMethod) {
         val code = method.code()
-        val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == INSTAGRAM_LOGO }
+        val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() in setOf(INSTAGRAM_LOGO, INSTAGRAM_LOGO_MODE) }
         assertEquals("$what: the hooks", 2, hooks.size)
         val calls = hooks.map { at ->
             val call = code[at]
             assertEquals("$what: the hook", Opcode.INVOKE_STATIC_RANGE, call.opcode)
             val register = (call as RegisterRangeInstruction).startRegister
             assertEquals("$what: the answer alone", 1, call.registerCount)
-            assertEquals("$what: the answer taken in first", Opcode.MOVE_RESULT, code[at - 1].opcode)
+            assertTrue("$what: the answer taken in first", code[at - 1].opcode in setOf(Opcode.MOVE_RESULT, Opcode.MOVE_RESULT_OBJECT))
             assertEquals("$what: that answer passed", register, (code[at - 1] as OneRegisterInstruction).registerA)
-            assertEquals("$what: the hook's answer taken in", Opcode.MOVE_RESULT, code[at + 1].opcode)
+            assertEquals("$what: the hook's answer taken in", code[at - 1].opcode, code[at + 1].opcode)
             assertEquals("$what: written over Instagram's", register, (code[at + 1] as OneRegisterInstruction).registerA)
             (code[at - 2] as ReferenceInstruction).reference as MethodReference
         }
-        assertEquals("$what: after the extra's read", "getBooleanExtra", calls[0].name)
-        assertEquals("$what: after the check", listOf(CONTEXT, USER_SESSION), calls[1].parameterTypes.map(Any::toString))
+        assertEquals("$what: after the extra's read", 1, calls.count { it.name == "getBooleanExtra" })
+        assertEquals("$what: after the check", listOf(CONTEXT, USER_SESSION), calls.single { it.name != "getBooleanExtra" }.parameterTypes.map(Any::toString))
     }
 
     private fun BytecodePatchContext.method(name: String, shape: List<String> = listOf(USER_SESSION, "Z")): MutableMethod =
-        mutableClassDefBy(MAIN_ACTIVITY).methods.single { it.name == name && it.parameterTypes.map(Any::toString) == shape }
+        method(MAIN_ACTIVITY, name, shape)
+
+    private fun BytecodePatchContext.method(type: String, name: String, shape: List<String>): MutableMethod =
+        mutableClassDefBy(type).methods.single { it.name == name && it.parameterTypes.map(Any::toString) == shape }
 
     private fun Method.hooks() = code().filter { (it as? ReferenceInstruction)?.reference?.toString() == INSTAGRAM_LOGO }
 
@@ -189,6 +193,7 @@ class LaunchScreenHookTest {
             val other = if (secondHolder) {
                 """
                     const-string v0, "$extra"
+                    invoke-virtual { v3, v1, v2 }, $INTENT->getBooleanExtra(Ljava/lang/String;Z)Z
                     return-void
                 """
             } else {
