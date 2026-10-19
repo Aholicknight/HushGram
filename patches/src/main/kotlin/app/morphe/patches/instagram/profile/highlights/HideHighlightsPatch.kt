@@ -112,7 +112,9 @@ internal fun BytecodePatchContext.findHighlightsRow(): HighlightsRowSite {
     val setup = uniqueMethod(PATCH, "row type setup naming $REEL_TRAY", HighlightsRowTypesFingerprint)
     val field = trayField(setup)
 
-    val readers = header.methods.filter { it.name == BUILD_ROWS }.flatMap { method ->
+    // 451 built the rows in buildRowViewTypes itself. 452 leaves that a bridge and builds them in a method it names A04,
+    // so any method of the binder reading the type does, and only one may.
+    val readers = header.methods.flatMap { method ->
         method.instructions().indices.filter { method.instructions()[it].readsStatic(field) }.map { method to it }
     }
     val (rows, tray) = readers.singleOrNull()
