@@ -1085,8 +1085,9 @@ public final class GlassTabBar {
             this.room = lift;
             this.liquid = Settings.GLASS_TAB_BAR_LIQUID.get();
             boolean hideOnScroll = Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get();
-            // The liquid look shrinks the bar as a list scrolls down, unless a scroll is to take it away altogether.
-            boolean shrinkOnScroll = liquid && !hideOnScroll;
+            // The liquid look shrinks the bar as a list scrolls down, unless a scroll is to take it away altogether
+            // or the pill is to keep its full size (#256).
+            boolean shrinkOnScroll = liquid && !hideOnScroll && !Settings.GLASS_TAB_BAR_KEEP_SIZE.get();
             GlassReelsHide hideOnReels = Settings.GLASS_TAB_BAR_REELS_HIDE.get();
             long reelsMillis = hideOnReels == null ? 0L : hideOnReels.millis;
             this.scrollHide = hideOnScroll || shrinkOnScroll || reelsMillis > 0

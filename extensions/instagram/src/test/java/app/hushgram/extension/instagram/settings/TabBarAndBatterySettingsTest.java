@@ -77,6 +77,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
+        Settings.GLASS_TAB_BAR_KEEP_SIZE.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
@@ -122,9 +123,10 @@ public class TabBarAndBatterySettingsTest {
         assertTrue(Settings.GLASS_TAB_BAR.rebootApp);
         assertEquals(Arrays.asList(Settings.GLASS_TAB_BAR, Settings.GLASS_TAB_BAR_BLUR, Settings.GLASS_TAB_BAR_FLOAT,
                 Settings.GLASS_TAB_BAR_HAPTICS, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, Settings.GLASS_TAB_BAR_SLIDE,
-                Settings.GLASS_TAB_BAR_LIQUID), PatchFamily.GLASS_TAB_BAR.switches);
+                Settings.GLASS_TAB_BAR_LIQUID, Settings.GLASS_TAB_BAR_KEEP_SIZE), PatchFamily.GLASS_TAB_BAR.switches);
         for (String key : List.of(Settings.GLASS_TAB_BAR_BLUR.key, Settings.GLASS_TAB_BAR_HAPTICS.key, Settings.GLASS_TAB_BAR_FLOAT.key,
-                Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.key, Settings.GLASS_TAB_BAR_SLIDE.key, Settings.GLASS_TAB_BAR_LIQUID.key)) {
+                Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.key, Settings.GLASS_TAB_BAR_SLIDE.key, Settings.GLASS_TAB_BAR_LIQUID.key,
+                Settings.GLASS_TAB_BAR_KEEP_SIZE.key)) {
             assertNotNull(key, row(key));
         }
 
@@ -399,6 +401,37 @@ public class TabBarAndBatterySettingsTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse("paused, the floating bar of before", Settings.GLASS_TAB_BAR_LIQUID.get());
         assertTrue(Settings.GLASS_TAB_BAR_LIQUID.savedValue());
+    }
+
+    /**
+     * Keep the pill full size (#256) is a switch right after the liquid look, off to start, offered while the
+     * liquid look is on, backed up, and read as the bar is built, so it asks for a restart.
+     */
+    @Test public void keepThePillFullSizeSitsUnderTheLiquidLookAndStartsOff() throws Exception {
+        open(PatchFamily.GLASS_TAB_BAR);
+        SwitchPreference keep = (SwitchPreference) row(Settings.GLASS_TAB_BAR_KEEP_SIZE.key);
+        assertNotNull(keep);
+        assertEquals("Keep the pill full size", String.valueOf(keep.getTitle()));
+        assertEquals("Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram "
+                + "after changing it.", String.valueOf(keep.getSummary()));
+        assertFalse(keep.isChecked());
+        assertFalse(Settings.GLASS_TAB_BAR_KEEP_SIZE.defaultValue);
+        assertTrue(Settings.GLASS_TAB_BAR_KEEP_SIZE.rebootApp);
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), keep);
+        int liquidAt = -1;
+        int keepAt = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            String key = section.getPreference(i).getKey();
+            if (Settings.GLASS_TAB_BAR_LIQUID.key.equals(key)) liquidAt = i;
+            if (Settings.GLASS_TAB_BAR_KEEP_SIZE.key.equals(key)) keepAt = i;
+        }
+        assertTrue(liquidAt >= 0);
+        assertEquals("right after Liquid glass look", liquidAt + 1, keepAt);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_KEEP_SIZE.key));
+
+        assertFalse("no liquid look, nothing to keep", Settings.GLASS_TAB_BAR_KEEP_SIZE.isAvailable());
+        Settings.GLASS_TAB_BAR_LIQUID.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_KEEP_SIZE.isAvailable());
     }
 
     /** Every wait on the list is a whole number of seconds, shortest first, so the label and the timer agree. */

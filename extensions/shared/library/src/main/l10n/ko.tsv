@@ -1065,3 +1065,6 @@ Takes the Follow button off the top of stories from accounts you don't follow. T
 # context: Reels: Burn-in guard's switch that keeps the faded buttons faded while you tap (#162)
 Stay dim when I tap	탭해도 어둡게 유지
 Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	번인 방지가 버튼을 흐리게 하면, 무엇을 탭하거나 스와이프해도 릴스에서 계속 흐린 상태로 유지되며 다음 릴스에서도 마찬가지입니다. 버튼은 계속 작동합니다. 릴스를 나가면 원래대로 돌아옵니다.
+# context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
+Keep the pill full size	알약 크기 그대로 유지
+Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	목록을 아래로 스크롤해도 리퀴드 글래스 알약이 그대로 유지되고 모든 탭이 제자리에 있습니다. 변경한 뒤에는 Instagram을 다시 시작하세요.

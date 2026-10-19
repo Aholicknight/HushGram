@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.misc;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -80,6 +81,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
+        Settings.GLASS_TAB_BAR_KEEP_SIZE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         GlassTabBar.resetForTests();
@@ -987,6 +989,32 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * Keep the pill full size (#256): with the liquid look on, a scroll down still shrinks the bar unless the
+     * switch is on, and then nothing watches the scroll at all while the slide-away and Reels wait are off.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void keepThePillFullSizeLeavesTheScrollAlone() {
+        GlassTabBar.animationsOnForTests = false;
+        for (boolean keep : new boolean[]{false, true}) {
+            try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+                host.nameSearch(1);
+                Settings.GLASS_TAB_BAR_LIQUID.save(true);
+                Settings.GLASS_TAB_BAR_KEEP_SIZE.save(keep);
+                GlassTabBar.apply(host.activity);
+                host.frame();
+                GlassScrollHide hide = ReflectionHelpers.getField(host.glass(), "scrollHide");
+                if (keep) {
+                    assertNull("kept full size, no scroll watcher", hide);
+                } else {
+                    assertNotNull("liquid, the scroll shrinks the bar", hide);
+                    assertSame(host.glass(), ReflectionHelpers.getField(hide, "shrinker"));
+                }
+            }
+        }
+    }
+
     private static void send(Window.Callback callback, long down, long time, int action, float x, float y) {
         MotionEvent event = MotionEvent.obtain(down, time, action, x, y, 0);
         try {
@@ -1036,6 +1064,7 @@ public class GlassTabBarTest {
             Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(false);
             Settings.GLASS_TAB_BAR_SLIDE.save(false);
             Settings.GLASS_TAB_BAR_LIQUID.save(false);
+            Settings.GLASS_TAB_BAR_KEEP_SIZE.save(false);
             controller = Robolectric.buildActivity(Activity.class).setup();
             activity = controller.get();
             activity.getApplicationInfo().flags |= android.content.pm.ApplicationInfo.FLAG_SUPPORTS_RTL;

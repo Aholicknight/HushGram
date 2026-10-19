@@ -841,6 +841,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_liquid", FALSE, true, parent(GLASS_TAB_BAR));
 
     /**
+     * Under {@link #GLASS_TAB_BAR_LIQUID}: scrolling a list down leaves the liquid pill full size rather than
+     * shrinking it to the tab you're on and Search (#256). Hide the tab bar as you scroll and the Reels wait
+     * still work as set. Read as the bar is built, so a change asks for a restart. Off to start.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_KEEP_SIZE =
+            new BooleanSetting("hushgram_glass_tab_bar_keep_size", FALSE, true, parent(GLASS_TAB_BAR_LIQUID));
+
+    /**
      * Under {@link #GLASS_TAB_BAR_HAPTICS}: which tick plays ({@link app.hushgram.extension.instagram.misc.HapticStyle}).
      * Starts on the phone's own click. A choice because only a hand can say which feels right.
      */
