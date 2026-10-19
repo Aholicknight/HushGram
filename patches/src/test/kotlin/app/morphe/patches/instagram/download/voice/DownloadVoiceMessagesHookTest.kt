@@ -187,7 +187,7 @@ class DownloadVoiceMessagesHookTest {
                     it.name == found.saver.method.name && it.parameterTypes == found.saver.method.parameterTypes
                 }
                 if (bundle.name == "instagram-452.0.0.48.64-385810270.apks") {
-                    // Where it lands on 451's declared build, read off the dex by hand.
+                    // Where it lands on 452's declared build, read off the dex by hand.
                     val at = builder.instructions().indexOfFirst { it.referenceText() == OFFER_VOICE }
                     assertEquals(
                         DECLARED_SITES,
@@ -261,14 +261,16 @@ class DownloadVoiceMessagesHookTest {
 
     private companion object {
         /**
-         * On 451's 385713073: the builder and the ask before the offer, the saver's entry and its
-         * first two reads, then the audio bridge's reads and the view mode bridge's.
+         * On 452's 385810270: the builder and the ask before the offer, the saver's entry and its
+         * first two reads, then the audio bridge's reads and the view mode bridge's. 452 moved the
+         * builder from a lambda's invoke (451's 0909) into the static 0899.A0K, the only caller of
+         * the ask 0WoA.AZZ, and the message is now 08Ai.
          */
         val DECLARED_SITES = listOf(
-            "LX/0909;->invoke", "LX/0Jyv;->AZ2(Lcom/instagram/common/session/UserSession;LX/01pW;)Z",
-            "LX/0Pzs;->A03", "LX/0NOQ;->A00:LX/01pW;", "LX/0Pzs;->A00:Landroid/app/Activity;",
-            "LX/01pW;->A0N:LX/03y8;", "LX/03y8;->A00()LX/00OB;", "LX/00OB;->A08:LX/097a;", "LX/097a;->BUQ()Ljava/lang/String;",
-            "LX/01pW;->A0N:LX/03y8;", "LX/03y8;->A0D:Ljava/lang/String;",
+            "LX/0899;->A0K", "LX/0WoA;->AZZ(Lcom/instagram/common/session/UserSession;LX/08Ai;)Z",
+            "LX/0QAd;->A03", "LX/0N2y;->A00:LX/08Ai;", "LX/0QAd;->A00:Landroid/app/Activity;",
+            "LX/08Ai;->A0L:LX/04Om;", "LX/04Om;->A00()LX/00q5;", "LX/00q5;->A08:LX/09r3;", "LX/09r3;->BVd()Ljava/lang/String;",
+            "LX/08Ai;->A0L:LX/04Om;", "LX/04Om;->A0D:Ljava/lang/String;",
         )
 
         const val MENU = "Lfixture/ThreadFragment;"
