@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.profile;
 
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.LinearLayout;
 
 import java.lang.ref.WeakReference;
@@ -131,6 +132,9 @@ public final class ProfileSuggestions {
     /** The params this class weighted, so replacement native weights aren't taken back. Weak, as {@link #hidden} is. */
     private static final Map<View, LinearLayout.LayoutParams> spread = new WeakHashMap<>();
 
+    /** The buttons whose row is fitted before the next frame, so a second bind before it adds no second listener. */
+    private static final Set<View> waiting = Collections.newSetFromMap(new WeakHashMap<>());
+
     private ProfileSuggestions() {
     }
 
@@ -189,16 +193,42 @@ public final class ProfileSuggestions {
                 }
             }
             // The button isn't in the row yet: Instagram empties the row and adds each button back
-            // after setting it up. A post waits until it's attached there again.
-            if (changed) button.post(() -> fitRow(button));
+            // after setting it up. The fit waits until it's attached there again.
+            if (changed) fitBeforeNextFrame(button);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, CHAINING_BUTTON, failure);
         }
     }
 
     /**
+     * Fits [button]'s row right before the next frame draws. A refresh rebinds the row and asks for a
+     * layout before the button is set up, and that layout holds back anything posted until it has
+     * drawn, so a posted fit let one frame show Instagram's widths each time and the buttons twitched
+     * (#220). A fit that changes a weight skips that frame, and the row is laid out again first.
+     */
+    private static void fitBeforeNextFrame(View button) {
+        synchronized (waiting) {
+            if (!waiting.add(button)) return;
+        }
+        ViewTreeObserver added = button.getViewTreeObserver();
+        added.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                synchronized (waiting) {
+                    waiting.remove(button);
+                }
+                // A button added while detached had its listener moved to the window's observer.
+                ViewTreeObserver observer = added.isAlive() ? added : button.getViewTreeObserver();
+                if (observer.isAlive()) observer.removeOnPreDrawListener(this);
+                return !fitRow(button);
+            }
+        });
+    }
+
+    /**
      * Spreads the action row's other buttons over the space the hidden person-plus button leaves
-     * (#87), or takes that back once the button shows again. Never throws.
+     * (#87), or takes that back once the button shows again. Answers whether a weight changed. Never
+     * throws.
      *
      * <p>Instagram doesn't let the row's buttons share it: it works out a fixed width for each text
      * button (Follow, Message, Edit profile, Share profile) from the row's width, how many there are,
@@ -209,11 +239,11 @@ public final class ProfileSuggestions {
      * Instagram's widths. Where there's no space left over, as in a row with no icon or one whose
      * icon shows, a weight changes nothing, and Instagram's own widths keep working as they did.
      */
-    static void fitRow(View button) {
+    static boolean fitRow(View button) {
         try {
-            if (!(button.getParent() instanceof LinearLayout)) return;
+            if (!(button.getParent() instanceof LinearLayout)) return false;
             LinearLayout row = (LinearLayout) button.getParent();
-            if (row.getOrientation() != LinearLayout.HORIZONTAL) return;
+            if (row.getOrientation() != LinearLayout.HORIZONTAL) return false;
             boolean gone;
             synchronized (hidden) {
                 gone = hidden.containsKey(button) && button.getVisibility() == View.GONE;
@@ -240,11 +270,13 @@ public final class ProfileSuggestions {
                     }
                 }
             }
-            if (moved == 0) return;
+            if (moved == 0) return false;
             row.requestLayout();
             HookStatus.counted(FamilyNames.PROFILE_SUGGESTIONS, gone ? ROW_SPREAD : ROW_PUT_BACK);
+            return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, ROW_SPREAD, failure);
+            return false;
         }
     }
 

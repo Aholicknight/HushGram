@@ -10,8 +10,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
 import android.content.Context;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.LinearLayout;
 
 import org.junit.After;
@@ -19,6 +21,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
@@ -254,6 +257,41 @@ public class ProfileSuggestionsTest {
         ProfileSuggestions.chainingButton(button);
         ProfileSuggestions.fitRow(button);
         assertEquals(List.of(400, 400, 150), measure(row, edit, share, button));
+    }
+
+    /**
+     * #220: a refresh rebinds the row and asks for a layout before the button is set up, and that
+     * layout drew a frame at Instagram's widths before a posted fit ran, so the buttons twitched.
+     * The fit runs before that frame draws now, nothing posted has to run first, and the frame after
+     * it draws as usual. dispatchOnPreDraw answers whether the frame is canceled.
+     */
+    @Test
+    public void aRefreshedRowIsSpreadBeforeItsNextFrameDraws() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        LinearLayout row = row();
+        View edit = add(row, "generic", 400);
+        View share = add(row, "generic", 400);
+        View button = add(row, "chaining_icon", 150);
+        activity.setContentView(row);
+        ViewTreeObserver frame = row.getViewTreeObserver();
+
+        ProfileSuggestions.chainingButton(button);
+        assertTrue("the frame that would show the gap is skipped", frame.dispatchOnPreDraw());
+        assertEquals(List.of(500, 500), measure(row, edit, share));
+        assertFalse("and the next one draws", frame.dispatchOnPreDraw());
+
+        share.setLayoutParams(new LinearLayout.LayoutParams(400, 100));
+        ProfileSuggestions.chainingButton(button);
+        ProfileSuggestions.chainingButton(button);
+        assertTrue(frame.dispatchOnPreDraw());
+        assertEquals("the refresh's new params are spread before they draw", List.of(500, 500), measure(row, edit, share));
+        assertFalse("two binds before a frame skip it once", frame.dispatchOnPreDraw());
+
+        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
+        ProfileSuggestions.chainingButton(button);
+        assertTrue(frame.dispatchOnPreDraw());
+        assertEquals("put back before the button draws again", List.of(400, 400, 150), measure(row, edit, share, button));
+        assertFalse(frame.dispatchOnPreDraw());
     }
 
     /** Replacement native weights belong to Instagram even if they equal the weight we used before. */
