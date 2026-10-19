@@ -22,6 +22,7 @@ import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.preference.LogBufferManager;
 
 /**
@@ -440,7 +441,7 @@ public enum PatchFamily {
             for (BooleanSetting setting : switches) parents.addAll(setting.getParentSettings());
         }
         for (BooleanSetting setting : switches) {
-            anyOn |= setting.savedValue() && setting.isAvailable() && !parents.contains(setting);
+            anyOn |= setting.savedValue() && reachable(setting) && !parents.contains(setting);
         }
         // What a tap on a reel does is a choice beside the switch, and a saved Pause or Mute counts as on.
         anyOn |= this == REEL_TAP_AND_VOLUME
@@ -454,6 +455,22 @@ public enum PatchFamily {
         line.append(')');
         if (staysWhilePaused != null) line.append("; stays in while paused: ").append(staysWhilePaused);
         return line.toString();
+    }
+
+    /**
+     * Whether a switch is reachable all the way up. {@code parent()} only asks the switch right
+     * above, so Keep the pill full size (under Liquid, under Glass tab bar) read as available with
+     * Glass off and Liquid on, and the report called Glass tab bar on.
+     */
+    private static boolean reachable(Setting<?> setting) {
+        if (!setting.isAvailable()) return false;
+        List<Setting<?>> above = setting.getParentSettings();
+        if (above.isEmpty()) return true;
+        for (Setting<?> parent : above) {
+            boolean on = !(parent instanceof BooleanSetting) || ((BooleanSetting) parent).savedValue();
+            if (on && reachable(parent)) return true;
+        }
+        return false;
     }
 
     /**
