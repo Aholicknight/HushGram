@@ -16,6 +16,7 @@ import android.graphics.ColorFilter;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.LinearGradient;
+import android.graphics.Matrix;
 import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -93,9 +94,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * <p>What the pill blurs is Instagram's own screens, the views drawn under the bar, recorded into a render node of its own and blurred
  * on the GPU, never read back from the screen. It's the views as they draw, so photos, text and video
  * in a TextureView come through. A video in a SurfaceView is left out and shows through the tint
- * instead, so the glass stays glass over videos. The glass shows the strip just above the bar, upside down. With the
- * float switch on, the content container also runs to the bottom of the screen, so nothing of
- * Instagram's own colour is left round the pill. Reels run on behind the pill too, at one size whether
+ * instead, so the glass stays glass over videos. A docked bar's glass shows the strip just above it, upside down.
+ * With the float switch on, the content container also runs to the bottom of the screen and the glass shows
+ * what's behind it (#262), so nothing of Instagram's own colour is left round the pill. Reels run on behind the pill too, at one size whether
  * it shows or not, with their caption, buttons and seek bar raised clear of it (#221).
  *
  * <p>Instagram sets the bar's colour, padding and visibility from time to time, so a draw listener
@@ -375,6 +376,22 @@ public final class GlassTabBar {
         for (int i = 0, n = group.getChildCount(); i < n; i++) found |= findSurfaces(group.getChildAt(i), into, depth + 1);
         if (found) into.add(view);
         return found;
+    }
+
+    /**
+     * Sets [into] to map the strip of the bar's parent the glass shows onto the backdrop node, at [scale]
+     * of its size, and returns the strip's top. The strip is [tall] high and starts at [x0]. A floating pill
+     * has the screens running on behind it, so it shows what's right behind it, from [pillTop] less [pad]
+     * (#262). A docked bar has only its own colour behind it, so it shows the strip just above [barTop],
+     * upside down, as if the glass reflected it.
+     */
+    static float backdropSource(Matrix into, boolean floating, float scale, float x0, float barTop, float pillTop,
+            float pad, float tall) {
+        float top = floating ? pillTop - pad : barTop - tall;
+        into.setTranslate(-x0, floating ? -top : -(top + tall));
+        if (!floating) into.postScale(1f, -1f);
+        into.postScale(scale, scale);
+        return top;
     }
 
     /**
@@ -1846,6 +1863,8 @@ public final class GlassTabBar {
             private final Path shapes = new Path();
             /** The pill's bounds as of the last recording, kept apart from what the drawing is using. */
             private final RectF area = new RectF();
+            /** Where the last recording took the glass's backdrop from ({@link #backdropSource}). */
+            private final Matrix source = new Matrix();
             @Nullable private RenderNode node;
             private boolean recorded;
             private float nodeLeft, nodeTop;
@@ -2148,9 +2167,10 @@ public final class GlassTabBar {
              * them, the way a transition draws a view in a second place. The blur and the colour run on that
              * node on the GPU, at a quarter of the size, and nothing is read back. It's called as each frame
              * is about to draw, so it moves with what's under it, and because it records a render node and
-             * not a view, it never asks for a frame of its own. What it shows is the strip of screen just
-             * above the bar, upside down, as if the glass reflected it: Instagram's screens stop above its
-             * bar themselves, so that strip always has what you're looking at.
+             * not a view, it never asks for a frame of its own. A floating pill shows what's right behind it,
+             * since the screens run on under it (#262). A docked bar shows the strip of screen just above it,
+             * upside down, as if the glass reflected it: Instagram's screens stop above that bar, so the strip
+             * has what you're looking at ({@link #backdropSource}).
              */
             void recordBackdrop() {
                 if (drawingBackdrop || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
@@ -2195,20 +2215,18 @@ public final class GlassTabBar {
                     nodeTop = area.top - pad;
 
                     float x0 = bar.getLeft() + area.left - pad;
-                    float edge = bar.getTop();
+                    float top = backdropSource(source, floating, scale, x0, bar.getTop(), bar.getY() + area.top, pad, tall);
                     Canvas recording = backdrop.beginRecording(width, height);
                     try {
-                        recording.scale(scale, scale);
-                        recording.scale(1f, -1f);
-                        recording.translate(-x0, -edge);
-                        recording.clipRect(x0, edge - tall, x0 + wide, edge);
+                        recording.concat(source);
+                        recording.clipRect(x0, top, x0 + wide, top + tall);
                         boolean hadVideo = !leftOut.isEmpty();
                         if (surfacePaths(parent, barIndex, leftOut) && !hadVideo) {
                             HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_VIDEO_LEFT_OUT);
                         }
                         for (int i = 0; i < barIndex; i++) {
                             View sibling = parent.getChildAt(i);
-                            if (sibling.getWidth() <= 0 || sibling.getBottom() <= edge - tall || sibling.getTop() >= edge) continue;
+                            if (sibling.getWidth() <= 0 || sibling.getBottom() <= top || sibling.getTop() >= top + tall) continue;
                             drawLeavingOutSurfaces(recording, sibling, leftOut, 0);
                         }
                     } finally {

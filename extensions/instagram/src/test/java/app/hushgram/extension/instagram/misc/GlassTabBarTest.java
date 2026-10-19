@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.misc;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -16,6 +17,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
@@ -1797,6 +1799,27 @@ public class GlassTabBarTest {
         params.bottomMargin = bottom;
         view.setLayoutParams(params);
         return view;
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29)
+    public void aFloatingPillBlursWhatsBehindItAndADockedBarReflectsTheStripAboveIt() {
+        // A bar at y 2000 whose pill starts 30 px down, 20 px of blur room round it, a 140 px strip, a quarter size.
+        Matrix source = new Matrix();
+        float top = GlassTabBar.backdropSource(source, true, 0.25f, 100f, 2000f, 2030f, 20f, 140f);
+        assertEquals("a floating pill's strip starts behind its own top, less the blur room", 2010f, top, 0f);
+        float[] behind = {100f, 2010f, 100f, 2150f};
+        source.mapPoints(behind);
+        assertArrayEquals("what's behind the pill lands in the node the right way up (#262)",
+                new float[]{0f, 0f, 0f, 35f}, behind, 0.001f);
+
+        top = GlassTabBar.backdropSource(source, false, 0.25f, 100f, 2000f, 2030f, 20f, 140f);
+        assertEquals("a docked bar's strip ends at the bar's top", 1860f, top, 0f);
+        float[] above = {100f, 2000f, 100f, 1860f};
+        source.mapPoints(above);
+        assertArrayEquals("the strip above a docked bar lands upside down",
+                new float[]{0f, 0f, 0f, 35f}, above, 0.001f);
     }
 
     private static int margin(View view) {
