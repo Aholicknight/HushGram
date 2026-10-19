@@ -92,7 +92,7 @@ class HideStorySuggestionsHookTest {
     }
 
     /**
-     * In each of the eight 451 builds the chain (the mapper, its reader and the check, asked from
+     * In each of the three 452 builds the chain (the mapper, its reader and the check, asked from
      * two places) is there once and the check is guarded.
      */
     @Test
@@ -100,7 +100,7 @@ class HideStorySuggestionsHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         // The declared build and the other builds of the version, each compiled on its own.
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("the eight 451 builds: ${bundles.map { it.name }}", 8, bundles.size)
+        assertEquals("the three 452 builds: ${bundles.map { it.name }}", 3, bundles.size)
         val strings = setOf(UNSUPPORTED_NETEGO, SUGGESTED_USERS_NETEGO, INVALID_NETEGO)
         for (bundle in bundles) {
             val holders = mutableListOf<ClassDef>()

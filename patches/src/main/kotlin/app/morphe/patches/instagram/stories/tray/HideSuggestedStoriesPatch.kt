@@ -43,9 +43,11 @@ internal const val MUSIC_CARD = "$EXTENSION_PACKAGE/stories/StoriesTray;->musicC
  * The server flag that lets Instagram's Music for you card into the stories viewer: the
  * `is_enabled` parameter of the `ig_stories_music_midcard` config. On 451's 385713073 it's read
  * once, by a static check of the session, and the check is asked by the code that adds the card to
- * the viewer's list, which casts to the music midcard repository first.
+ * the viewer's list, which casts to the music midcard repository first. 452 renumbered it from
+ * 451's 0x810cc0000146f1; its one static session check there is still asked by the code that
+ * casts to the repository right after.
  */
-internal const val MUSIC_CARD_FLAG = 0x810cc0000146f1L
+internal const val MUSIC_CARD_FLAG = 0x810cae0001460eL
 
 /** The name only the music midcard repository's constructor holds, which it gives its base class. */
 internal const val MUSIC_CARD_REPOSITORY = "MusicMidcardRepository"
@@ -147,14 +149,16 @@ internal fun BytecodePatchContext.findMusicCard(): FlagLoad {
 /**
  * The classes built with the name [MUSIC_CARD_REPOSITORY], which the repository hands its base
  * class: the class whose constructor holds it, as on 450, or the one class a static factory
- * holding it makes and answers, as 451's 385713073 builds `08KQ` in `0QbN.A00`.
+ * holding it makes and answers, as 451's 385713073 builds `08KQ` in `0QbN.A00`. 452's 385810270
+ * inlines the repository's constructor into its factory (`08PT.A00` builds `08PV`), which then
+ * also makes the repository's own java.util lists and set, so those don't count.
  */
 private fun BytecodePatchContext.musicCardRepositories(): Set<String> =
     classesHolding(MUSIC_CARD_REPOSITORY).filterNot { it.type.startsWith(EXTENSION_ROOT) }.flatMapTo(HashSet()) { holder ->
         holder.methods.filter { MUSIC_CARD_REPOSITORY in it.strings() }.mapNotNull { method ->
             val made = method.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
                 ((instruction as? ReferenceInstruction)?.reference as? TypeReference)?.type?.takeIf { instruction.opcode == Opcode.NEW_INSTANCE }
-            }.toSet()
+            }.filterNot { it.startsWith("Ljava/util/") }.toSet()
             when {
                 method.name == "<init>" -> holder.type
                 AccessFlags.STATIC.isSet(method.accessFlags) && made == setOf(method.returnType) -> method.returnType
