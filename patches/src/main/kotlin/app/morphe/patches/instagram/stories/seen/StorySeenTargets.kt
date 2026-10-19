@@ -170,7 +170,7 @@ private class Stories(val field: FieldReference, val add: Int)
 internal fun BytecodePatchContext.findStorySeen(): StorySeenTargets {
     val request = methodLoading("story seen request", SEEN_PATH, FORCE_SEEN_KEY)
     val batch = request.definingClass
-    val storeReader = methodLoading("pending story seen store", PENDING_PREFIX, PENDING_READ)
+    val storeReader = storeReader()
     val store = storeReader.definingClass
     val storeClass = classDefByOrNull(store) ?: refuse("$store isn't in this build")
     val batchClass = classDefByOrNull(batch) ?: refuse("$batch isn't in this build")
@@ -264,6 +264,34 @@ private fun BytecodePatchContext.methodLoading(what: String, vararg strings: Str
     )
     return mutableClassDefBy(method.definingClass).methods.single { it.sameAs(method) }
 }
+
+/**
+ * The pending story store's disk reader: the one method loading [PENDING_READ] whose disk key starts
+ * with [PENDING_PREFIX]. 451 loads the prefix in the reader itself; 452 moved it into a private
+ * `()String` key helper of the store, which the reader calls on its own `this`.
+ */
+private fun BytecodePatchContext.storeReader(): MutableMethod {
+    val found = classesLoadingString(PENDING_READ).flatMap { owner ->
+        owner.methods.filter { method ->
+            !method.isStringPool() && loadsString(method, PENDING_READ) &&
+                (loadsString(method, PENDING_PREFIX) || diskKeyHelpers(owner, method).any { loadsString(it, PENDING_PREFIX) })
+        }
+    }
+    val method = found.singleOrNull() ?: refuse(
+        "expected exactly one pending story seen store in this Instagram build, found " +
+            if (found.isEmpty()) "none" else found.joinToString { "${it.definingClass}->${it.name}" },
+    )
+    return mutableClassDefBy(method.definingClass).methods.single { it.sameAs(method) }
+}
+
+/** The private instance `()String` methods of [owner] that [method] calls directly. */
+private fun diskKeyHelpers(owner: ClassDef, method: Method): List<Method> = method.code().mapNotNull { instruction ->
+    val called = instruction.methodReference()?.takeIf { instruction.opcode in DIRECT_INVOKES } ?: return@mapNotNull null
+    owner.methods.singleOrNull { it.sameAs(called) }?.takeIf {
+        AccessFlags.PRIVATE.isSet(it.accessFlags) && !AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.parameterTypes.isEmpty() && it.returnType == STRING
+    }
+}.distinct()
 
 /** A static `(I)String` method: the shape of Redex's pools of shared strings. */
 private fun Method.isStringPool() = AccessFlags.STATIC.isSet(accessFlags) && returnType == STRING &&

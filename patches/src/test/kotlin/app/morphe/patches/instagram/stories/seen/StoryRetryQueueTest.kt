@@ -226,7 +226,7 @@ class StoryRetryQueueTest {
         val classes = fixtures.standIns()
         val found = PatchContexts.of(classes).findStorySeen()
         val reader = classes.single { it.type == found.store }.methods.single { it.name == "A0L" }
-        refused(changed(classes, reader, 15, "nop"), "disk reader no longer reaches its native cleanup")
+        refused(changed(classes, reader, 10, "nop"), "disk reader no longer reaches its native cleanup")
     }
 
     @Test fun diskCleanupCalleeReceiverAndKeyMustMatchTheNativeRead() {
@@ -502,22 +502,21 @@ class StoryRetryQueueTest {
         }
         val code = reader.code()
         val loop = code.indexOfFirst { it.reference() == "${found.queue!!.owner}->${found.queue.run}()V" }
-        val remove = loop + 4
+        val remove = loop + 3
         val registers = code[remove].namedRegisters()
-        // Obfuscated names differ per build, so take the cleanup call and the key builder from the reader itself.
+        // Obfuscated names differ per build, so take the cleanup call and the key helper from the reader itself.
         val cleanup = code[remove].reference()!!
-        val keyBuilder = code[loop + 2].reference()!!
+        val keyHelper = code[loop + 1].reference()!!
+        val key = code[loop + 2].namedRegisters().single()
         refused(changed(classes, reader, remove, "invoke-virtual { v${registers[0]}, v${registers[1]} }, ${cleanup.substringBefore("->")}->preserve(Ljava/lang/String;)V"), "native cleanup")
-        refused(changed(classes, reader, remove, "invoke-virtual { v${code[loop + 2].namedRegisters()[0]}, v${registers[1]} }, $cleanup"), "native receiver")
-        refused(changed(classes, reader, remove, "invoke-virtual { v${registers[0]}, v${code[loop + 2].namedRegisters()[0]} }, $cleanup"), "native cleanup")
-        val key = code[loop + 2].namedRegisters()
-        refused(changed(classes, reader, loop + 2, "invoke-static { v${key[1]}, v${key[1]} }, $keyBuilder"), "pending-story prefix")
+        refused(changed(classes, reader, remove, "invoke-virtual { v$key, v${registers[1]} }, $cleanup"), "native receiver")
+        refused(changed(classes, reader, remove, "invoke-virtual { v${registers[0]}, v${registers[0]} }, $cleanup"), "native cleanup")
+        refused(changed(classes, reader, loop + 1, "invoke-direct { v${registers[0]} }, $keyHelper"), "store's own account")
         val load = code.indexOfFirst { val ref = it.reference()
             ref != null && ref.startsWith(cleanup.substringBefore("->")) && ref.endsWith("(Ljava/lang/String;Z)Ljava/lang/Object;") }
         refused(changed(classes, reader, load - 1, "const/4 v${code[load - 1].namedRegisters().single()}, 0x0"), "consumes the copy it read")
-        for (register in listOf(registers[0], key[0], code[loop + 1].namedRegisters().last())) {
-            refused(inserted(classes, reader, loop, "const/4 v$register, 0x0"), "changed receiver, prefix or account dataflow")
-        }
+        refused(changed(classes, reader, load - 3, "invoke-direct { v${registers[0]} }, $keyHelper"), "consumes the copy it read")
+        refused(inserted(classes, reader, loop, "const/4 v${registers[0]}, 0x0"), "changed receiver, prefix or account dataflow")
     }
 
     private fun nativeDiskHelpersRefuseChangedKeyCaptureTaskIdentityAndCleanupUntouchedCheck(classes: List<ClassDef>) {
@@ -526,12 +525,14 @@ class StoryRetryQueueTest {
             method.code().any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == "PendingReelSeenStateStore.deserializeFromDisk" }
         }
         val at = reader.code().indexOfFirst { it.reference() == "${found.queue!!.owner}->${found.queue.run}()V" }
-        val key = classes.flatMap { it.methods }.single { it.toString() == reader.code()[at + 2].reference() }
-        val builder = key.code()[0].namedRegisters().single()
-        refused(changed(classes, key, 2, "invoke-virtual { v$builder, p1 }, ${key.code()[2].reference()}"), "ownership registers at 2")
-        refused(changed(classes, key, 6, "return-object p0"), "ownership registers at 6")
+        val key = classes.flatMap { it.methods }.single { it.toString() == reader.code()[at + 1].reference() }
+        val builder = key.code()[4].namedRegisters().single()
+        val prefix = key.code()[3].namedRegisters().single()
+        refused(changed(classes, key, 6, "invoke-virtual { v$builder, v$prefix }, ${key.code()[6].reference()}"), "ownership registers at 6")
+        refused(changed(classes, key, 9, "return-object v$prefix"), "ownership registers at 9")
+        refused(changed(classes, key, 0, "invoke-virtual { p0 }, ${key.code()[0].reference()!!.substringBefore("->")}->other()$USER_SESSION"), "native account")
 
-        val cleanup = classes.flatMap { it.methods }.single { it.toString() == reader.code()[at + 4].reference() }
+        val cleanup = classes.flatMap { it.methods }.single { it.toString() == reader.code()[at + 3].reference() }
         val task = classes.single { it.type == cleanup.code()[3].reference() }
         val constructor = task.methods.single { it.name == "<init>" }
         val run = task.methods.single { it.name == "run" && it.parameterTypes.isEmpty() }

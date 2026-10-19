@@ -78,7 +78,7 @@ class StorySeenHookTest {
         assertSendHooked("the send", patched.methods.single { it.name == "A0O" }, BATCH)
         val retry = patched.methods.single { it.name == "A0J" }
         assertRetryHooked("the retry", retry, BATCH, build = 6)
-        for (name in listOf("A0P", "A0L", "A00")) {
+        for (name in listOf("A0P", "A0L", "A01", "A00")) {
             assertEquals("$name was touched", 0, patched.methods.single { it.name == name }.code().count { it.referenceText() in HOOKS })
         }
         assertEquals("the Reset NUX route was touched", 0, context.mutableClassDefBy(RESET_NUX).methods.sumOf { method -> method.code().count { it.referenceText() in HOOKS } })
@@ -729,6 +729,7 @@ class StorySeenHookTest {
             emptyList(),
             listOfNotNull(
                 if (storeReader) storyQueueReader(STORE, STORE_BASE) else null,
+                storyQueueKey(STORE, STORE_BASE),
                 if (getter) method(STORE, "A00", listOf(USER_SESSION), STORE, 2, """
                     new-instance v0, $STORE
                     return-object v0
