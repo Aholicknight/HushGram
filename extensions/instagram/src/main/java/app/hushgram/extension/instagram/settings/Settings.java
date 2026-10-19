@@ -1064,7 +1064,7 @@ public class Settings extends BaseSettings {
      * The People you don't follow back section under your notifications, accounts that follow you
      * with a Follow back button on each
      * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#followBacks} and
-     * {@link app.hushgram.extension.instagram.profile.ProfileSuggestions#hidesFollowBackSection}). Read each
+     * {@link app.hushgram.extension.instagram.profile.ProfileSuggestions#hidesSuggestionSection}). Read each
      * time the notifications load, so off or paused, the section is back on the next load. Follow
      * notifications stay either way. Off to start (#161).
      */
@@ -1074,9 +1074,11 @@ public class Settings extends BaseSettings {
     /**
      * Notification rows that only suggest something, a thread from an account you don't follow or
      * someone you might know
-     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#keepNotification}). Read each
-     * time the notifications load, so off or paused, the rows are back on the next load. Likes,
-     * comments, mentions and new followers stay either way. Off to start (#181).
+     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#keepNotification}), and the
+     * account sections that only suggest people, such as Suggested for you
+     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#hidesSuggestionSection}, #112).
+     * Read each time the notifications load, so off or paused, they're back on the next load. Likes,
+     * comments, mentions, new followers and follow requests stay either way. Off to start (#181).
      */
     public static final BooleanSetting HIDE_NOTIFICATION_SUGGESTIONS =
             new BooleanSetting("hushgram_hide_notification_suggestions", FALSE);

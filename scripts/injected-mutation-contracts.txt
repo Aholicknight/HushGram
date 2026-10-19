@@ -1393,11 +1393,12 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->followB
 #
 # The newer notifications reply sends the same accounts as a suggestion section typed FOLLOW_BACK, and
 # the notifications' list builder (LX/0BYR.A00 on 385611438), the one method loading
-# FRIENDING_UNIT_FALLBACK, asks ProfileSuggestions.hidesFollowBackSection right after its rows check
-# for that section, before FOLLOW_BACK loads and the header goes in. A yes takes the rows check's own
+# FRIENDING_UNIT_FALLBACK, asks ProfileSuggestions.hidesSuggestionSection right after its rows check
+# for each section, that one and Suggested for you among them (#112), before FOLLOW_BACK loads and the
+# header goes in. A yes takes the rows check's own
 # way past the section. Left out, the section comes back. Twice or elsewhere, it isn't the hook the
 # patch wrote. FollowBacksHookTest checks on all seven 450 builds where the call sits and what it reads.
-once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->hidesFollowBackSection(Ljava/lang/String;)Z in static (Landroid/content/Context;L*;Lcom/instagram/common/session/UserSession;L*;L*;L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZZ)L*; holding FRIENDING_UNIT_FALLBACK FOLLOW_BACK
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->hidesSuggestionSection(Ljava/lang/String;)Z in static (Landroid/content/Context;L*;Lcom/instagram/common/session/UserSession;L*;L*;L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZZ)L*; holding FRIENDING_UNIT_FALLBACK FOLLOW_BACK
 #
 # Hide suggestions in notifications, Hide suggested people on profiles' fifth switch (#181): the
 # notifications' row parser (LX/02F9.unsafeParseFromJson on 385713073), the one method loading

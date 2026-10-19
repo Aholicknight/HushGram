@@ -56,14 +56,16 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Follow back button on each. They come two ways, and the notifications' list builder draws both
  * under the same header. The older reply lists them under their own key, and its parser hands them to
  * {@link #followBacks} before keeping them: a null means there are none, so the section isn't built.
- * The newer reply sends them as one of its suggestion sections with the type FOLLOW_BACK, and the
- * builder asks {@link #hidesFollowBackSection} about each such section that has accounts, before it
- * adds the header: a yes skips the section, header, rows and footer, as if it had none.
+ * The newer reply sends them as one of its account sections with the type FOLLOW_BACK, and the
+ * builder asks {@link #hidesSuggestionSection} about each section that has accounts, before it adds
+ * the header: a yes skips the section, header, rows and footer, as if it had none.
  *
  * <p>Your notifications also get rows that only suggest something, a thread from an account you
  * don't follow or someone you might know (#181). The row parser hands each row and its kind to
  * {@link #notificationParsed}, and the reply's list asks {@link #keepNotification} before adding it:
- * a null there is the list's own check for a row that didn't parse, so the row is never drawn.
+ * a null there is the list's own check for a row that didn't parse, so the row is never drawn. The
+ * same switch takes the account sections that only suggest people, Suggested for you among them, by
+ * {@link #hidesSuggestionSection} (#112).
  *
  * <p>Each hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer stands.
@@ -82,8 +84,17 @@ public final class ProfileSuggestions {
     /** The type the notifications' reply gives the People you don't follow back section. */
     static final String FOLLOW_BACK_TYPE = "FOLLOW_BACK";
 
+    /** The type the notifications' reply gives a section of your follow requests, never a suggestion. */
+    static final String FOLLOW_REQUEST_TYPE = "FOLLOW_REQUEST";
+
     /** The diagnostic count of suggestion sections the notifications' builder asked about, any type. */
     static final String SECTIONS = "notification suggestion sections";
+
+    /** The diagnostic counter route of the notifications' account sections, by the server's name for each. */
+    static final String SECTION_TYPES = "Notification sections";
+
+    /** What's counted when a section other than People you don't follow back goes with Hide suggestions in notifications. */
+    static final String SUGGESTED_SECTIONS = "suggestion sections in notifications";
 
     /** The diagnostic counter route of notification rows, by the server's name for each row's kind. */
     static final String NOTIFICATIONS = "Notification rows";
@@ -332,21 +343,31 @@ public final class ProfileSuggestions {
     }
 
     /**
-     * Injected where the notifications' list builder has a suggestion section from the server with
-     * accounts in it and is about to add its header (#161). True, skip the whole section, when [type]
-     * is People you don't follow back's and Hide People you don't follow back is on. False, Instagram
-     * goes on to draw it, for any other section, with the switch off, paused or unready, or when
-     * anything goes wrong. Follow notifications are stories, not sections, and never pass here.
-     * Never throws.
+     * Injected where the notifications' list builder has an account section from the server with
+     * accounts in it and is about to add its header (#161, #112). True skips the whole section. People
+     * you don't follow back (FOLLOW_BACK) goes with Hide People you don't follow back, and follow
+     * requests (FOLLOW_REQUEST) always stay. Every other section only suggests people and goes with
+     * Hide suggestions in notifications: Suggested for you, which the server types SUGGESTED_USERS or
+     * leaves untyped, SCHOOLMATES, and any type Instagram adds later, since the builder heads those
+     * Suggested for you too. False, Instagram goes on to draw it, with the switch off, paused or
+     * unready, or when anything goes wrong. Counts each type for the diagnostic report. Follow
+     * notifications are stories, not sections, and never pass here. Never throws.
      */
-    public static boolean hidesFollowBackSection(String type) {
-        return hidesFollowBackSection(type, ProfileSuggestions::followBacksOn);
+    public static boolean hidesSuggestionSection(String type) {
+        return hidesSuggestionSection(type, ProfileSuggestions::followBacksOn, ProfileSuggestions::notificationSuggestionsOn);
     }
 
-    static boolean hidesFollowBackSection(String type, BooleanSupplier on) {
+    static boolean hidesSuggestionSection(String type, BooleanSupplier followBacks, BooleanSupplier suggestions) {
         HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
         HookStatus.counted(FamilyNames.PROFILE_SUGGESTIONS, SECTIONS);
-        return FOLLOW_BACK_TYPE.equals(type) && decides(FOLLOW_BACKS, on);
+        try {
+            FeedFilterCounters.sawKind(SECTION_TYPES, type == null ? NO_TYPE : type);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, SUGGESTED_SECTIONS, failure);
+        }
+        if (FOLLOW_BACK_TYPE.equals(type)) return decides(FOLLOW_BACKS, followBacks);
+        if (FOLLOW_REQUEST_TYPE.equals(type)) return false;
+        return decides(SUGGESTED_SECTIONS, suggestions);
     }
 
     /**

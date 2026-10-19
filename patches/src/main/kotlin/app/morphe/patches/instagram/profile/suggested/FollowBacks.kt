@@ -31,7 +31,7 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 private const val PATCH = "Hide suggested people on profiles"
 
 internal const val FOLLOW_BACKS = "$PROFILE_SUGGESTIONS->followBacks(Ljava/util/List;)Ljava/util/List;"
-internal const val FOLLOW_BACK_SECTION = "$PROFILE_SUGGESTIONS->hidesFollowBackSection(Ljava/lang/String;)Z"
+internal const val SUGGESTION_SECTION = "$PROFILE_SUGGESTIONS->hidesSuggestionSection(Ljava/lang/String;)Z"
 
 /**
  * The type the newer notifications reply gives People you don't follow back when it sends them as one
@@ -286,11 +286,11 @@ private fun Method.parameterType(register: Int): String? {
 }
 
 /**
- * Asks [FOLLOW_BACK_SECTION] about the section right after the rows check passes, before the header
- * goes in. A yes takes the rows check's own way past the section, with its answer register holding
- * the same nonzero it would for no rows, so no header, rows or footer are added and nothing is left
- * for a gap. A no leaves that register 0, as the check left it. Other sections and follow notifications
- * go on as they were.
+ * Asks [SUGGESTION_SECTION] about the section right after the rows check passes, before the header
+ * goes in, with its type: People you don't follow back's, Suggested for you's or another (#161, #112).
+ * A yes takes the rows check's own way past the section, with its answer register holding the same
+ * nonzero it would for no rows, so no header, rows or footer are added and nothing is left for a gap.
+ * A no leaves that register 0, as the check left it. Follow notifications go on as they were.
  */
 internal fun BytecodePatchContext.hideFollowBackSection(site: FollowBackSectionSite) {
     val method = mutableClassDefBy(site.type).methods.single {
@@ -303,7 +303,7 @@ internal fun BytecodePatchContext.hideFollowBackSection(site: FollowBackSectionS
     method.addInstructionsWithLabels(
         site.at,
         """
-            invoke-static/range { v${site.section} .. v${site.section} }, $FOLLOW_BACK_SECTION
+            invoke-static/range { v${site.section} .. v${site.section} }, $SUGGESTION_SECTION
             move-result v${site.answer}
             if-nez v${site.answer}, :skip
         """,

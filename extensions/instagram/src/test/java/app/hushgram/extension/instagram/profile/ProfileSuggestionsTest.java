@@ -529,38 +529,81 @@ public class ProfileSuggestionsTest {
      */
     @Test
     public void theFollowBackSectionGoesOnlyWithItsOwnSwitch() {
-        assertFalse("the profile switch alone", ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+        assertFalse("the profile switch alone", ProfileSuggestions.hidesSuggestionSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
         String ran = String.join("\n", HookStatus.report());
         assertTrue(ran, ran.contains(ProfileSuggestions.SECTIONS));
 
         Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.save(true);
-        assertTrue(ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
-        assertFalse("another section", ProfileSuggestions.hidesFollowBackSection("SCHOOLMATES"));
-        assertFalse("follow requests", ProfileSuggestions.hidesFollowBackSection("FOLLOW_REQUEST"));
-        assertFalse("no type", ProfileSuggestions.hidesFollowBackSection(null));
+        assertTrue(ProfileSuggestions.hidesSuggestionSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+        assertFalse("another section", ProfileSuggestions.hidesSuggestionSection("SCHOOLMATES"));
+        assertFalse("follow requests", ProfileSuggestions.hidesSuggestionSection(ProfileSuggestions.FOLLOW_REQUEST_TYPE));
+        assertFalse("no type", ProfileSuggestions.hidesSuggestionSection(null));
         String report = FeedFilterCounters.report().toString();
         assertTrue(report, report.contains(ProfileSuggestions.FOLLOW_BACKS));
         assertTrue("only the follow back section is counted: " + report, report.contains("1 removed"));
         Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
-        assertTrue("with the profile switch off", ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+        assertTrue("with the profile switch off", ProfileSuggestions.hidesSuggestionSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
 
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertFalse("paused", ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+        assertFalse("paused", ProfileSuggestions.hidesSuggestionSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertFalse("unready", ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE)));
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", ProfileSuggestions.hidesSuggestionSection(ProfileSuggestions.FOLLOW_BACK_TYPE)));
 
         Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.save(false);
-        assertFalse("off", ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+        assertFalse("off", ProfileSuggestions.hidesSuggestionSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
     }
 
-    /** A follow back switch that throws while the builder asks leaves the section to Instagram and says which hook threw. */
+    /**
+     * #112: with Hide suggestions in notifications on, the builder skips Suggested for you, typed
+     * SUGGESTED_USERS or untyped, SCHOOLMATES and a type it hasn't seen, and counts each. Follow
+     * requests always stay, and People you don't follow back keeps to its own switch. Off, paused or
+     * unready, Instagram draws them all. Each type shows in the report.
+     */
     @Test
-    public void aThrowingFollowBackSectionSwitchFailsOpenAndIsReported() {
-        assertFalse(ProfileSuggestions.hidesFollowBackSection(ProfileSuggestions.FOLLOW_BACK_TYPE, THROWS));
+    public void suggestionSectionsInNotificationsGoWithTheirSwitch() {
+        assertFalse("off", ProfileSuggestions.hidesSuggestionSection("SUGGESTED_USERS"));
+        assertFalse("off, no type", ProfileSuggestions.hidesSuggestionSection(null));
+
+        Settings.HIDE_NOTIFICATION_SUGGESTIONS.save(true);
+        assertTrue(ProfileSuggestions.hidesSuggestionSection("SUGGESTED_USERS"));
+        assertTrue("no type", ProfileSuggestions.hidesSuggestionSection(null));
+        assertTrue(ProfileSuggestions.hidesSuggestionSection("SCHOOLMATES"));
+        assertTrue("a new type", ProfileSuggestions.hidesSuggestionSection("SOMETHING_NEW"));
+        assertFalse("follow requests", ProfileSuggestions.hidesSuggestionSection(ProfileSuggestions.FOLLOW_REQUEST_TYPE));
+        assertFalse("people you don't follow back", ProfileSuggestions.hidesSuggestionSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.SECTION_TYPES));
+        assertTrue(report, report.contains("SUGGESTED_USERS"));
+        assertTrue(report, report.contains(ProfileSuggestions.NO_TYPE));
+        assertTrue(report, report.contains(ProfileSuggestions.FOLLOW_REQUEST_TYPE));
+        assertTrue(report, report.contains("Removed: " + ProfileSuggestions.SUGGESTED_SECTIONS + " 4"));
+        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
+        assertTrue("with the profile switch off", ProfileSuggestions.hidesSuggestionSection(null));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", ProfileSuggestions.hidesSuggestionSection("SUGGESTED_USERS"));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", ProfileSuggestions.hidesSuggestionSection("SUGGESTED_USERS")));
+
+        Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.save(true);
+        Settings.HIDE_NOTIFICATION_SUGGESTIONS.save(false);
+        assertFalse("off again", ProfileSuggestions.hidesSuggestionSection("SUGGESTED_USERS"));
+        assertTrue("the follow back switch alone", ProfileSuggestions.hidesSuggestionSection(ProfileSuggestions.FOLLOW_BACK_TYPE));
+    }
+
+    /** A section switch that throws while the builder asks leaves the section to Instagram and says which hook threw. */
+    @Test
+    public void aThrowingSectionSwitchFailsOpenAndIsReported() {
+        assertFalse(ProfileSuggestions.hidesSuggestionSection(ProfileSuggestions.FOLLOW_BACK_TYPE, THROWS, () -> true));
         String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.FOLLOW_BACKS + "'"));
+        assertFalse(ProfileSuggestions.hidesSuggestionSection("SUGGESTED_USERS", () -> true, THROWS));
+        missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.SUGGESTED_SECTIONS + "'"));
     }
 
     /**
