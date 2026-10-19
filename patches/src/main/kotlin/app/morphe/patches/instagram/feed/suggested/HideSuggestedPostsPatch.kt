@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.feed.filterParsedFeedItems
 import app.morphe.patches.instagram.feed.home.HomeFeedReads
 import app.morphe.patches.instagram.feed.home.findHomeFeedReads
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.patchLog
@@ -256,7 +257,9 @@ internal fun BytecodePatchContext.exploreStoryPosts(itemType: String, patch: Str
         throw PatchException("$patch: the suggested post unit ${field.type} or its field ${field.name} isn't public")
     }
     fun postUnder(key: String): FieldReference {
-        val found = unit.methods.flatMap { method ->
+        // 451 wrote the unit's map in the unit itself. 452 moves it into serializer classes that read the
+        // unit's fields, so every class holding the key is read for reads off the unit.
+        val found = (listOf(unit) + classesHolding(key)).distinctBy { it.type }.flatMap { it.methods }.flatMap { method ->
             val code = method.implementation?.instructions?.toList().orEmpty()
             code.indices.filter { ((code[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == key }
                 .mapNotNull { at ->
