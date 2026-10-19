@@ -16,7 +16,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The code half on every build of Instagram 451. Each build names its own package by the same
+ * The code half on every build of Instagram 452. Each build names its own package by the same
  * uses, Redex's names aside, and every use that means the running app moves while the rest stay.
  */
 class CloneCodeTest {

@@ -149,7 +149,7 @@ class PureBlackTest {
     }
 
     /**
-     * On every build of Instagram 451, decoded as Manager decodes it: the three dark styles hold
+     * On every build of Instagram 452, decoded as Manager decodes it: the three dark styles hold
      * a sheet's gray (on the two overlays the #ff191c1f a reel's menu showed, #171) and lose it to
      * pure black, and every other style that sets a sheet's color, the light theme's among them,
      * keeps the one it had.
@@ -159,7 +159,7 @@ class PureBlackTest {
         val dark = DARK_SHEETS.map { "values/$it" }
         val light = "values/IgdsPrismSemanticColorsExperimentLight"
         val builds = resourceBuilds()
-        assertEquals("every build of Instagram 451 has a fixture", 8, builds.size)
+        assertEquals("every build of Instagram ${Fixtures.VERSION} has a fixture", Fixtures.BUILDS, builds.size)
         for ((code, build) in builds) {
             val work = Files.createTempDirectory("hushgram-black-$code").toFile()
             try {

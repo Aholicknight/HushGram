@@ -130,14 +130,14 @@ class FontHookTest {
         assertTrue("no fixture of a declared build", checked > 0)
     }
 
-    /** The same in the other seven builds of 451 (#77, #95), where the helper moves class from build to build. */
+    /** The same in the other builds of 452 (#77, #95), where the helper moves class from build to build. */
     @Test
     fun everyOtherBuildSwapsEveryKeptFont() {
         val checked = Fixtures.otherBuilds().map { bundle ->
             checkBuild(bundle.parentFile.name, bundle)
             bundle.parentFile.name
         }
-        assertEquals("the other builds: $checked", 7, checked.size)
+        assertEquals("the other builds: $checked", Fixtures.OTHER_BUILDS, checked.size)
     }
 
     /**

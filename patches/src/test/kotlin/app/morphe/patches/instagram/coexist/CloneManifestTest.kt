@@ -41,7 +41,7 @@ class CloneManifestTest {
         .flatMap { it.getAttribute("android:authorities").split(';') }
 
     /**
-     * Each of the seven builds' manifests moves whole: package, launcher names, every provider
+     * Each build's manifest moves whole: package, launcher names, every provider
      * authority, Instagram's three permissions by full name and their uses, every task affinity,
      * the push category and the custom tab host. Actions, meta-data names, the Pages app's provider
      * Instagram queries and a permission Instagram uses but doesn't declare stay.

@@ -76,7 +76,7 @@ class ComposePalettesTest {
     }
 
     /**
-     * Every build of 451: BasePrismColors and BasePrismColorsV2 store the dark link and Prism's
+     * Every build of 452: BasePrismColors and BasePrismColorsV2 store the dark link and Prism's
      * indigo fill, every blue found is hooked right before its store, and the extension's hook is
      * the one called.
      */
@@ -87,7 +87,7 @@ class ComposePalettesTest {
             Fixtures.otherBuilds()).associateBy { file ->
             (if (file.extension == "apks") file.nameWithoutExtension else file.parentFile.name).substringAfterLast('-')
         }.toSortedMap()
-        assertEquals("every build of Instagram 451 has a fixture", 8, builds.size)
+        assertEquals("every build of Instagram ${Fixtures.VERSION} has a fixture", Fixtures.BUILDS, builds.size)
         val wanted = NEEDED_PALETTE_BLUES.map { 0xff000000L or it.toLong() }.toSet()
         for ((code, bundle) in builds) {
             val setUps = FixtureDex.methodsWhere(bundle, { true }) { method ->

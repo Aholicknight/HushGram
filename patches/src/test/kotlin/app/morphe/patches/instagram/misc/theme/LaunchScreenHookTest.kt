@@ -86,14 +86,14 @@ class LaunchScreenHookTest {
         assertEquals(before, context.method("A0p").code().map { it.opcode })
     }
 
-    /** The declared build and the other seven builds of 451: both answers go through the extension. */
+    /** The declared build and the other builds of 452: both answers go through the extension. */
     @Test
     fun everyBuildPassesBothAnswersThrough() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val declared = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
         assertTrue("no fixture of a declared build", declared.isNotEmpty())
         val others = Fixtures.otherBuilds()
-        assertEquals("the other builds: ${others.map { it.parentFile.name }}", 7, others.size)
+        assertEquals("the other builds: ${others.map { it.parentFile.name }}", Fixtures.OTHER_BUILDS, others.size)
         for (bundle in declared + others) {
             val label = if (bundle.extension == "apks") bundle.name else bundle.parentFile.name
             val context = PatchContexts.of(FixtureDex.classes(bundle, setOf(MAIN_ACTIVITY)).values + extension())

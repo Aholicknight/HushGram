@@ -233,11 +233,11 @@ class AccentThemeTest {
             refused.classDefBy(OVERRIDES).methods.single().implementation!!.instructions.map { it.opcode })
     }
 
-    /** Every build of 451: the setup and the overrides are found by their shape, and each return applies the theme. */
+    /** Every build of 452: the setup and the overrides are found by their shape, and each return applies the theme. */
     @Test
     fun everyBuildAppliesTheThemeAfterTheOverrides() {
         val builds = builds()
-        assertEquals("every build of Instagram 451 has a fixture", 8, builds.size)
+        assertEquals("every build of Instagram ${Fixtures.VERSION} has a fixture", Fixtures.BUILDS, builds.size)
         for ((code, bundle) in builds) {
             val activity = FixtureDex.classes(bundle, setOf(IG_FRAGMENT_ACTIVITY)).getValue(IG_FRAGMENT_ACTIVITY)
             val setup = activity.methods.single { method ->

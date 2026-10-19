@@ -133,7 +133,7 @@ class AccentColorHookTest {
     }
 
     /**
-     * The same in the other seven builds of 451 (#77, #95). The loader, the two reads and the
+     * The same in the other builds of 452 (#77, #95). The loader, the two reads and the
      * resolver they call move class and name from build to build, and each is found by its shape.
      */
     @Test
@@ -142,7 +142,7 @@ class AccentColorHookTest {
             checkBuild(bundle.parentFile.name, bundle)
             bundle.parentFile.name
         }
-        assertEquals("the other builds: $checked", 7, checked.size)
+        assertEquals("the other builds: $checked", Fixtures.OTHER_BUILDS, checked.size)
     }
 
     /** Patches the slice of [bundle] the finder reads and checks each change. */
