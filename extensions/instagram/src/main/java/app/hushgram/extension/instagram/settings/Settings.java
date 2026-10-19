@@ -589,6 +589,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_story_suggestions", FALSE);
 
     /**
+     * The Add Yours cards between the stories you tap through, Popular Add Yours and Join a
+     * trending Add Yours among them: the midcards
+     * {@link app.hushgram.extension.instagram.stories.StoriesTray#midcard} and the netegos
+     * {@link app.hushgram.extension.instagram.stories.StoriesTray#netego} leave out. Off to start.
+     */
+    public static final BooleanSetting HIDE_ADD_YOURS_CARDS =
+            new BooleanSetting("hushgram_hide_add_yours_cards", FALSE);
+
+    /**
      * The rings in the stories row at the top of Home are drawn at the size in
      * {@link #STORY_RING_SCALE}, and the ring of a story that hasn't been watched in the color in
      * {@link #STORY_RING_COLOR} ({@link app.hushgram.extension.instagram.stories.StoryRing}). The

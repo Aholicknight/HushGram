@@ -1023,6 +1023,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             stories.add(toggle(context, Settings.HIDE_STORY_SUGGESTIONS, L10n.t("Hide Suggested for you between stories"),
                     L10n.t("Leaves out the Suggested for you cards of accounts to follow that Instagram puts between "
                             + "the stories you tap through. The stories themselves stay.")));
+            stories.add(toggle(context, Settings.HIDE_ADD_YOURS_CARDS, L10n.t("Hide Add Yours cards between stories"),
+                    L10n.t("Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, "
+                            + "that Instagram puts between the stories you tap through. The stories themselves stay.")));
         }
         if (build.contains(PatchFamily.STORY_RING)) {
             stories.add(toggle(context, Settings.STORY_RING, L10n.t("Story ring size"),

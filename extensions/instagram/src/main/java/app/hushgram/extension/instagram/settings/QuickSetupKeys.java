@@ -42,6 +42,7 @@ final class QuickSetupKeys {
             Settings.HIDE_SUGGESTED_STORIES,
             Settings.HIDE_STORY_SUGGESTIONS,
             Settings.HIDE_MUSIC_CARD,
+            Settings.HIDE_ADD_YOURS_CARDS,
             Settings.HIDE_META_AI_POSTS,
             Settings.HIDE_META_AI_PROFILE_BANNER,
             Settings.HIDE_REEL_CHIPS,

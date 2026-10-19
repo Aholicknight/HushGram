@@ -50,6 +50,10 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * reel first and adds it after, so the patch hands the new reel's type name to {@link #midcard}
  * right after the build, and a yes makes that code answer that it had no card to add.
  *
+ * <p>The Add Yours cards between stories (#111), Popular Add Yours and Join a trending Add Yours
+ * among them, are midcards too, and the trending prompts can also come as a netego. Both answer
+ * yes for them while Hide Add Yours cards between stories is on.
+ *
  * <p>The Music for you card isn't a tray item. Instagram puts it between the stories in the viewer,
  * when a server flag says the card is on, so the patch passes that flag's answer through
  * {@link #musicCard} and a yes becomes a no while Hide the Music for you card is on.
@@ -127,6 +131,20 @@ public final class StoriesTray {
 
     /** The midcard of the full-screen Suggested for you page between stories, by Instagram 451's name. */
     static final Set<String> SUGGESTED_MIDCARDS = Collections.singleton("story_interstitial_suggested_users_midcard");
+
+    /**
+     * The Add Yours midcards between stories, by Instagram 451's names: prompts to add yours to,
+     * Add Yours templates, and the trending Add Yours prompts (#111).
+     */
+    static final Set<String> ADD_YOURS_MIDCARDS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "story_interstitial_add_yours_midcard", "story_interstitial_ayu_midcard",
+            "story_interstitial_trending_midcard")));
+
+    /** The netego type of the trending Add Yours prompts between stories, by Instagram 451's name. */
+    static final Set<String> ADD_YOURS_NETEGOS = Collections.singleton("trending_prompts_in_story");
+
+    /** The diagnostic counter route for Add Yours cards between stories, midcards and netegos alike. */
+    static final String ADD_YOURS_ROUTE = "Add Yours cards between stories";
 
     /** A constant only the reel type enum has among the tray item's enum fields. */
     private static final String REEL_TYPE_MARKER = "USER_REEL";
@@ -206,20 +224,18 @@ public final class StoriesTray {
     /**
      * Injected first thing in the stories viewer's check of an ad or a netego it's about to take
      * in, with the netego's type (null for an ad). Answers true, leave it out, for a Suggested for
-     * you card while Hide Suggested for you between stories is on, and false otherwise, or when
-     * anything goes wrong. Never throws, and never waits for the settings.
+     * you card while Hide Suggested for you between stories is on, a trending Add Yours card while
+     * Hide Add Yours cards between stories is on, and false otherwise, or when anything goes wrong.
+     * Never throws, and never waits for the settings.
      */
     public static boolean netego(String type) {
         try {
             FeedFilterCounters.sawKind(UNITS_ROUTE, type == null ? AD : type);
             if (type == null) return false;
             HookStatus.invoked(FamilyNames.STORIES_TRAY);
-            if (!SUGGESTED_NETEGOS.contains(type)) return false;
-            FeedFilterCounters.sawKind(SUGGESTION_ROUTE, type);
-            if (!Utils.settingsReady() || !Settings.HIDE_STORY_SUGGESTIONS.get()) return false;
-            FeedFilterCounters.removed(SUGGESTION_ROUTE, 1, type);
-            Logger.printDebug(() -> "Stories: left out a " + type + " card");
-            return true;
+            if (SUGGESTED_NETEGOS.contains(type)) return leaveOut(SUGGESTION_ROUTE, Settings.HIDE_STORY_SUGGESTIONS, type);
+            if (ADD_YOURS_NETEGOS.contains(type)) return leaveOut(ADD_YOURS_ROUTE, Settings.HIDE_ADD_YOURS_CARDS, type);
+            return false;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORIES_TRAY, "story netego", failure);
             return false;
@@ -229,24 +245,31 @@ public final class StoriesTray {
     /**
      * Injected right after the stories viewer builds a midcard to add between stories, with the
      * name of its type. Answers true, leave it out, for the Suggested for you page while Hide
-     * Suggested for you between stories is on, and false otherwise, or when anything goes wrong.
-     * Never throws, and never waits for the settings.
+     * Suggested for you between stories is on, an Add Yours card while Hide Add Yours cards between
+     * stories is on, and false otherwise, or when anything goes wrong. Never throws, and never
+     * waits for the settings.
      */
     public static boolean midcard(String kind) {
         if (kind == null) return false;
         try {
             HookStatus.invoked(FamilyNames.STORIES_TRAY);
             FeedFilterCounters.sawKind(MIDCARD_ROUTE, kind);
-            if (!SUGGESTED_MIDCARDS.contains(kind)) return false;
-            FeedFilterCounters.sawKind(SUGGESTION_ROUTE, kind);
-            if (!Utils.settingsReady() || !Settings.HIDE_STORY_SUGGESTIONS.get()) return false;
-            FeedFilterCounters.removed(SUGGESTION_ROUTE, 1, kind);
-            Logger.printDebug(() -> "Stories: left out a " + kind + " card");
-            return true;
+            if (SUGGESTED_MIDCARDS.contains(kind)) return leaveOut(SUGGESTION_ROUTE, Settings.HIDE_STORY_SUGGESTIONS, kind);
+            if (ADD_YOURS_MIDCARDS.contains(kind)) return leaveOut(ADD_YOURS_ROUTE, Settings.HIDE_ADD_YOURS_CARDS, kind);
+            return false;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORIES_TRAY, "story midcard", failure);
             return false;
         }
+    }
+
+    /** Counts a card [kind] a switch covers under [route], and answers whether [flag] leaves it out. */
+    private static boolean leaveOut(String route, BooleanSetting flag, String kind) {
+        FeedFilterCounters.sawKind(route, kind);
+        if (!Utils.settingsReady() || !flag.get()) return false;
+        FeedFilterCounters.removed(route, 1, kind);
+        Logger.printDebug(() -> "Stories: left out a " + kind + " card");
+        return true;
     }
 
     /**
