@@ -555,10 +555,12 @@ public final class SettingsEntry {
      * method that draws the bar, with the same registers, and Instagram makes it again each time
      * the bar draws from a new state.
      *
-     * <p>The title view gets a listener that asks Instagram's first. Instagram's long press there
-     * only does something on some accounts (it can open an app icon sheet), and when it takes the
-     * press, the press stays Instagram's. Otherwise the press opens this screen over the logo's
-     * activity. The logo's tap isn't touched, so it still does what Instagram made it do.
+     * <p>The title view gets a listener that opens this screen over the logo's activity first.
+     * Instagram's long press there only does something on some accounts: on an Instagram Plus
+     * account it opens the Change your app icon sheet, which used to take every press, so the logo
+     * never reached HushGram there. Instagram's listener is asked only when this screen can't open,
+     * the logo no longer being on a screen in front. The logo's tap isn't touched, so it still does
+     * what Instagram made it do.
      *
      * <p>No switch reads this, so Pause leaves it working: it's a way back to the switch that
      * resumes HushGram. Anything that goes wrong leaves the title view with Instagram's listener.
@@ -598,7 +600,7 @@ public final class SettingsEntry {
     /** Whether the logo's long press has been logged this run, so a redraw doesn't log it again. */
     private static volatile boolean logoWatched;
 
-    /** The long press on Home's title view: Instagram's listener first, then this screen. */
+    /** The long press on Home's title view: this screen first, then Instagram's listener. */
     static final class LogoPress implements View.OnLongClickListener {
         /** Instagram's listener for the title view, or null when it passed none. */
         final View.OnLongClickListener instagrams;
@@ -610,9 +612,10 @@ public final class SettingsEntry {
 
         @Override
         public boolean onLongClick(View title) {
-            // Instagram's listener runs as it always did, and a press it takes is its own.
-            if (instagrams != null && instagrams.onLongClick(title)) return true;
-            return openFromLogo(title);
+            // The logo's long press is the way into HushGram, so Instagram's app icon sheet can't
+            // take it first. Instagram's listener gets the press only when this screen can't open.
+            if (openFromLogo(title)) return true;
+            return instagrams != null && instagrams.onLongClick(title);
         }
     }
 

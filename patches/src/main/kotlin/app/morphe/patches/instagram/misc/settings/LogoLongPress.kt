@@ -101,7 +101,7 @@ internal fun BytecodePatchContext.logoLongPressSites(): List<LogoSite> =
  * Sends Instagram's call that gives Home's title view its long press to [LOGO_LONG_PRESS_STAND_IN],
  * on the same registers, so a long press on the Instagram logo at the top of the feed opens the
  * HushGram screen. Instagram's tap on the logo isn't touched, and its own long
- * press there still runs first. Answers false and changes nothing when this build doesn't give the
+ * press there (the app icon sheet on Instagram Plus accounts) runs only when the screen can't open. Answers false and changes nothing when this build doesn't give the
  * title view a long press in exactly one place: the logo then stays as it was, and the icon
  * shortcut and the row in Settings and activity still open the screen.
  */

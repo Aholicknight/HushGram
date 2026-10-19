@@ -13,6 +13,7 @@ Every HushGram release, newest first.
 * **Instagram - Download any video:** Photos from the feed and from profiles failed with `Download failed` on phones with smaller screens, because every size Instagram sent looked like a thumbnail. The largest one saves now. Reported in #261.
 * **Instagram - Hide suggested people on profiles:** `Hide suggestions in notifications` took single rows but left the Suggested for you section at the bottom of your notifications. That goes too now, and follow requests stay. Reported in #112.
 * **Instagram - Hide suggested people on profiles:** The Follow suggestions row in your notifications stayed with `Hide suggestions in notifications` on. It's hidden now. Reported in #112.
+* **Instagram - HushGram settings:** On Instagram Plus accounts, holding the feed logo opened Instagram's app icon picker and never HushGram settings. The logo opens HushGram settings on every account now, and taps still go to Instagram.
 
 ### Improvements
 
