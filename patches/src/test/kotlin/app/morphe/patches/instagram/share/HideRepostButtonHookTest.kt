@@ -222,7 +222,7 @@ class HideRepostButtonHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                hidesTheButtonIn(bundle, bundle.name, reads = 6, pinned = bundle.name.contains("-385713073."))
+                hidesTheButtonIn(bundle, bundle.name, reads = 6, pinned = bundle.name.contains("-385810270."))
                 checked++
             }
         }

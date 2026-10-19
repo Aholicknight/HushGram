@@ -24,12 +24,12 @@ class CloneCodeTest {
 
     /** The const-string loads of an authority each build has, and the loads of Instagram's package that stay. */
     private val authorityLoads = mapOf(
-        "385713073" to 32, "385713078" to 32, "385713082" to 32, "385713109" to 32,
-        "385713111" to 32, "385713116" to 32, "385713117" to 31, "385713118" to 32,
+        "385810270" to 32,
+        "385810231" to 0, "385810269" to 0,
     )
     private val keptLoads = mapOf(
-        "385713073" to 89, "385713078" to 89, "385713082" to 89, "385713109" to 90,
-        "385713111" to 90, "385713116" to 89, "385713117" to 89, "385713118" to 89,
+        "385810270" to 89,
+        "385810231" to 0, "385810269" to 0,
     )
     private val uses = mapOf(
         SelfUse.INLINED to 4, SelfUse.PACKAGE_MANAGER to 6, SelfUse.OWN_INTENT to 9,
@@ -39,8 +39,8 @@ class CloneCodeTest {
 
     /** Google Play's uses, the one count that differs by build: R8 keeps more or fewer of its helpers in each. */
     private val googlePlayUses = mapOf(
-        "385713073" to 8, "385713078" to 8, "385713082" to 8, "385713109" to 7,
-        "385713111" to 7, "385713116" to 8, "385713117" to 10, "385713118" to 8,
+        "385810270" to 8,
+        "385810231" to 0, "385810269" to 0,
     )
 
     /** The uses in classes Redex leaves named, the same in every build. */
@@ -67,7 +67,7 @@ class CloneCodeTest {
         for ((build, file) in builds) {
             val authorities = readCloneManifest(CloneFixtures.manifest(file)).authorities
             val classes = CloneFixtures.classes(file, authorities)
-            if (build == "385713073") {
+            if (build == "385810270") {
                 val withoutAnswer = PatchContexts.of(classes).planClone(clone, authorities)
                 val refusal = assertThrows(PatchException::class.java) { withoutAnswer.requireComplete() }
                 assertTrue(refusal.message, refusal.message!!.contains("OwnPackage.name()"))

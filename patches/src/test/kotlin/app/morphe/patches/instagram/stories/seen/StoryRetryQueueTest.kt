@@ -566,7 +566,7 @@ class StoryRetryQueueTest {
     }
 
     private fun proofInputs(): List<List<ClassDef>> {
-        assertTrue("the authoritative declared 451 build (385713073) is required", nativeProofInputs.isNotEmpty())
+        assertTrue("the authoritative declared 452 build (385810270) is required", nativeProofInputs.isNotEmpty())
         return nativeProofInputs + listOf(fixtures.standIns())
     }
     private fun replace(classes: List<ClassDef>, owner: ClassDef, fields: Iterable<com.android.tools.smali.dexlib2.iface.Field> = owner.fields,
@@ -584,7 +584,7 @@ class StoryRetryQueueTest {
 
     companion object {
         private val nativeProofInputs by lazy {
-            Fixtures.files { it.name == "instagram-451.0.0.53.80-385713073.apks" }
+            Fixtures.files { it.name == "instagram-452.0.0.48.64-385810270.apks" }
                 .map { StorySeenHookTest().fixtureClasses(it) }
         }
         private val otherNativeProofInputs by lazy {

@@ -97,7 +97,7 @@ class NativeBackLeavesHomeTest {
     }
 
     private companion object {
-        val BUILDS = listOf(385713073, 385713078, 385713082, 385713109, 385713111, 385713116, 385713117, 385713118)
+        val BUILDS = listOf(385810270, 385810231, 385810269)
 
         fun bundles(): List<File> {
             val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()

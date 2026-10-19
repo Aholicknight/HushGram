@@ -86,8 +86,8 @@ public class SettingsVisualCaptureTest {
     @Implements(value = Utils.class, isInAndroidSdk = false)
     public static class CaptureMetadata {
         @Implementation public static String getPatchesReleaseVersion() { return "0.0.13"; }
-        @Implementation public static String getAppVersionName() { return "451.0.0.53.80"; }
-        @Implementation public static long getAppVersionCode() { return 385713073L; }
+        @Implementation public static String getAppVersionName() { return "452.0.0.48.64"; }
+        @Implementation public static long getAppVersionCode() { return 385810270L; }
         @Implementation public static String getSourceBuildIdentity() { return "Development preview"; }
     }
 

@@ -195,7 +195,7 @@ class ChangeVersionCodeTest {
      * reporter keeps getLongVersionCode's fallback for Android 8: below API 28 it reads versionCode
      * from the same PackageInfo instead. That's Instagram's own code too, one more own read.
      */
-    private val PRE_28_FALLBACK_BUILD = "instagram-451.0.0.53.80-385713117"
+    private val PRE_28_FALLBACK_BUILD = "instagram-452.0.0.48.64-385810231"
 
     private fun builds(bundle: File, label: String) {
         val code = realVersionCode(label.removeSuffix(".apks").substringAfterLast('-'))
