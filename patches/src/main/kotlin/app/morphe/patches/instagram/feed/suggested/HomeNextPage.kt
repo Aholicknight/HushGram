@@ -181,10 +181,8 @@ internal class HomeNextPageTargets(
  * gets handed over then. Everything the extension reaches has to be public.
  */
 internal fun BytecodePatchContext.findHomeNextPage(): HomeNextPageTargets {
-    val builders = classesHolding(BUILD_MODELS, SHIMMER_KEY).flatMap { classDef ->
-        classDef.methods.filter { it.holdsString(BUILD_MODELS) && it.holdsString(SHIMMER_KEY) }.map { classDef to it }
-    }
-    val (adapterClass, builder) = builders.singleOrNull()
+    val builders = feedBuilders()
+    val (adapterClass, builder, loadingRow) = builders.singleOrNull()
         ?: refuse("expected one method holding $BUILD_MODELS and $SHIMMER_KEY, found ${builders.size}")
     val adapter = adapterClass.type
     val adapterRegister = if (!AccessFlags.STATIC.isSet(builder.accessFlags)) "p0" else {
@@ -193,7 +191,7 @@ internal fun BytecodePatchContext.findHomeNextPage(): HomeNextPageTargets {
             taken.singleOrNull() ?: refuse("$adapter->${builder.name} is static and takes ${taken.size} adapters, not one to hand over"),
         )
     }
-    val feed = builderFeed(builder)
+    val feed = builderFeed(loadingRow)
 
     val (policyClass, shows) = findLoadMoreRow()
     val policy = policyClass.type
@@ -325,7 +323,7 @@ internal fun BytecodePatchContext.homeNextPageOrWarn(): HomeNextPageTargets? = t
 /** The type of the feed [builder] reads its flag from: the last boolean field it reads before [SHIMMER_KEY]. */
 private fun builderFeed(builder: Method): String {
     val code = builder.implementation!!.instructions.toList()
-    val shimmer = code.indexOfFirst { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == SHIMMER_KEY }
+    val shimmer = code.indexOfFirst { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string?.isShimmerKey() == true }
     val read = (shimmer - 1 downTo 0).firstOrNull { code[it].opcode == Opcode.IGET_BOOLEAN }
         ?: refuse("${builder.definingClass}->${builder.name} reads no flag before its loading row")
     return ((code[read] as ReferenceInstruction).reference as FieldReference).definingClass

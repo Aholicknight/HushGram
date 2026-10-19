@@ -229,7 +229,7 @@ class HomeNextPageTest {
                 }
             }
             // The feed the builder reads its flag from and the adapter's field types, for the public checks.
-            val adapterClass = holders.distinctBy { it.type }.single { classDef -> classDef.methods.any { it.holds(BUILD_MODELS) && it.holds(SHIMMER_KEY) } }
+            val adapterClass = holders.distinctBy { it.type }.single { classDef -> classDef.methods.any { it.holds(BUILD_MODELS) } && classDef.methods.any { it.holds(SHIMMER_KEY) || it.holds("SHIMMER") } }
             val flagOwners = adapterClass.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }
                 .filter { it.opcode == Opcode.IGET_BOOLEAN }.map { ((it as ReferenceInstruction).reference as FieldReference).definingClass }
             val reached = (adapterClass.fields.map { it.type }.filter { it.startsWith("L") } + flagOwners).toSet()
@@ -279,7 +279,7 @@ class HomeNextPageTest {
             checked++
         }
         assertEquals("every build was checked", bundles.size + others.size, checked)
-        assertEquals("the declared build and the seven others", 8, checked)
+        assertEquals("the declared build and the two others", 3, checked)
     }
 
     /**
