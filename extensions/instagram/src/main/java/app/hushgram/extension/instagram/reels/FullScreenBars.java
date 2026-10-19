@@ -34,6 +34,7 @@ import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -419,6 +420,8 @@ public final class FullScreenBars {
      */
     static void heightsKept(int status, int nav, boolean bySheet) {
         try {
+            int wasStatus = keptStatus;
+            int wasNav = keptNav;
             boolean changed = status != keptStatus || nav != keptNav;
             keptStatus = status;
             keptNav = nav;
@@ -433,12 +436,33 @@ public final class FullScreenBars {
                     Long at = askedAt.get(each.next());
                     if (at == null || now - at > RECENT_MS) each.remove();
                 }
-                if (listeners.isEmpty()) return;
+                if (listeners.isEmpty()) {
+                    Logger.printDebug(() -> "Full screen bars: a sheet moved the bars' heights to " + status + "/" + nav
+                            + ", no screen was built since it came, none told");
+                    return;
+                }
             }
+            // Telling a screen that shows a video can stop its frames (#222), so each tell is named (#244).
+            int of = held.size();
+            Logger.printDebug(() -> "Full screen bars: telling " + listeners.size() + " of " + of
+                    + " screens in " + activity.getClass().getSimpleName() + " the bars' heights " + status + "/" + nav
+                    + " (were " + wasStatus + "/" + wasNav + (bySheet ? ", a sheet's change" : "") + "): "
+                    + names(listeners));
             new Handler(Looper.getMainLooper()).post(() -> tellAll(listeners));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights kept", failure);
         }
+    }
+
+    /** The listeners' class names without the package, like 0CAb, the screens a debug log can tell apart. */
+    static String names(List<Object> listeners) {
+        StringBuilder names = new StringBuilder();
+        for (Object listener : listeners) {
+            if (names.length() > 0) names.append(", ");
+            String name = listener.getClass().getName();
+            names.append(name.substring(name.lastIndexOf('.') + 1));
+        }
+        return names.toString();
     }
 
     private static void tellAll(List<Object> listeners) {
