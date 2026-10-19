@@ -116,7 +116,7 @@ class HideAiLabeledReelsHookTest {
             checkBuild(bundle.parentFile.name, bundle)
             bundle.parentFile.name
         }
-        assertEquals("the other builds: $checked", 7, checked.size)
+        assertEquals("the other builds: $checked", 2, checked.size)
     }
 
     /**
@@ -161,7 +161,7 @@ class HideAiLabeledReelsHookTest {
         assertTrue("$label: ${sites.reads} reads $READS_LABEL_FIELD", tree.methods.single { it.name == sites.reads && it.parameterTypes.isEmpty() }.loads(READS_LABEL_FIELD.hashCode()))
         assertTrue("$label: ${sites.text} reads $LABEL_TEXT_FIELD", tree.methods.single { it.name == sites.text && it.parameterTypes.isEmpty() }.loads(LABEL_TEXT_FIELD.hashCode()))
 
-        assertEquals("$label: Instagram's tests for showing the AI label under a reel", 2, shows.size)
+        assertEquals("$label: Instagram's tests for showing the AI label under a reel (452 folds the two into one)", 1, shows.size)
         val checks = shows.map { method ->
             for (field in listOf(AI_LABEL_FIELD, READS_LABEL_FIELD, LABEL_TEXT_FIELD)) {
                 assertTrue("$label: ${method.definingClass}->${method.name} doesn't read $field", method.loads(field.hashCode()))
