@@ -176,7 +176,7 @@ class InterestQuestionTest {
             checked++
         }
         assertTrue("no other build", checked > 0)
-        assertEquals("the declared build and these seven make the eight 451 builds", 7, checked)
+        assertEquals("the declared build and these two make the three 452 builds", 2, checked)
     }
 
     /**
@@ -193,13 +193,12 @@ class InterestQuestionTest {
         val before = context.mutableClassDefBy(found.type).methods.single {
             it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
         }.implementation!!.instructions.toList()
-        assertEquals("$label: the add's place", 442, found.rowAt)
-        assertEquals("$label: the builder's return", 65, found.endAt)
+        assertEquals("$label: the add's place", 451, found.rowAt)
+        assertEquals("$label: the builder's return", 67, found.endAt)
         assertEquals("$label: the row type's load", Opcode.SGET_OBJECT, before[found.rowAt].opcode)
-        assertEquals("$label: the binder group", "A06", grouped.name)
-        // 385713117 (x86) compiles the binder group 10 instructions shorter before the load; the
-        // others match the declared build (DexProbe: its second feed_timeline_older at 754, not 764).
-        val load = if (label.endsWith("-385713117")) 769 else 779
+        assertEquals("$label: the binder group", "A05", grouped.name)
+        // 452: the binder group's load is at 823 in all three builds.
+        val load = 823
         assertEquals("$label: the binder group's load", load, grouped.rowAt)
         assertEquals("$label: after the binder group's add", load + 4, grouped.endAt)
         found.write(context)
