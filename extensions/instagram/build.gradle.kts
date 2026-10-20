@@ -288,6 +288,14 @@ tasks.register("verifyAndroidBoundaries") {
                 "instantsAloneStillGetsMessages[28]", "instantsAloneStillGetsMessages[37]",
                 "instantsSwitchStartsOffUnderMessagesPersistsAndHonorsPause[28]",
                 "instantsSwitchStartsOffUnderMessagesPersistsAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.direct.PlusPreviewTest" to listOf(
+                "withTheSwitchOnThePeekFormIsOff", "aMenuInstagramGivesNoPeekFormStaysPlain",
+                "offToStartAndOffLeaveTheFlagToInstagram", "pausedAndUnreadyLeaveTheFlagToInstagram",
+                "aThrowingSwitchLeavesTheFlagToInstagramAndIsReported"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.PlusPreviewSettingsTest" to listOf(
+                "missingPatchHasNoSwitch", "aloneItStillGetsMessages", "switchStartsOffUnderMessagesAndHonorsPause"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.direct.ThreadSeenTest" to listOf(
                 "withTheSwitchOnTheReceiptIsHeld[28]", "withTheSwitchOnTheReceiptIsHeld[37]",
                 "offToStartAndOffSendTheReceipt[28]", "offToStartAndOffSendTheReceipt[37]",

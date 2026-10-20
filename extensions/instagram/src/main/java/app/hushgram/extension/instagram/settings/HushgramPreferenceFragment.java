@@ -743,7 +743,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.INBOX_SUGGESTIONS)
-                || build.contains(PatchFamily.INSTANTS)
+                || build.contains(PatchFamily.INSTANTS) || build.contains(PatchFamily.PLUS_PREVIEW)
                 || build.contains(PatchFamily.THREAD_SEEN) || build.contains(PatchFamily.TYPING)
                 || build.contains(PatchFamily.ACTIVE_STATUS)
                 || build.contains(PatchFamily.LAST_ACTIVE)
@@ -770,6 +770,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 messages.addPreference(toggle(context, Settings.HIDE_INSTANTS, L10n.t("Hide Instants"),
                         L10n.t("Removes the stack of Instants (quick photos from friends) from your messages. "
                                 + "Restart Instagram to see the change.")));
+            }
+            if (build.contains(PatchFamily.PLUS_PREVIEW)) {
+                messages.addPreference(toggle(context, Settings.HIDE_PLUS_PREVIEW,
+                        L10n.t("Hide See preview and Plus in chat menus"),
+                        L10n.t("Takes the See preview and Instagram Plus rows out of the menu you get from long "
+                                + "pressing a chat. Your chat options stay.")));
             }
             if (build.contains(PatchFamily.THREAD_SEEN)) {
                 messages.addPreference(toggle(context, Settings.READ_WITHOUT_SEEN_RECEIPT,
