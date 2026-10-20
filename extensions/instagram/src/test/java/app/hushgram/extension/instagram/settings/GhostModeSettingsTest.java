@@ -41,9 +41,11 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
 public class GhostModeSettingsTest {
-    private static final BooleanSetting[] GHOST = {Settings.VIEW_STORIES_ANONYMOUSLY,
-            Settings.VIEW_LIVE_ANONYMOUSLY, Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.VIEW_DM_MEDIA_ANONYMOUSLY, Settings.HIDE_TYPING,
-            Settings.HIDE_SCREENSHOTS};
+    /** A method, not a static field, so the settings load once the rule has given them a context. */
+    private static BooleanSetting[] ghostSwitches() {
+        return new BooleanSetting[] {Settings.VIEW_STORIES_ANONYMOUSLY, Settings.VIEW_LIVE_ANONYMOUSLY,
+                Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.VIEW_DM_MEDIA_ANONYMOUSLY, Settings.HIDE_TYPING, Settings.HIDE_SCREENSHOTS};
+    }
     private static final EnumSet<PatchFamily> ALL_GHOST = EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.STORY_SEEN,
             PatchFamily.LIVE_SEEN, PatchFamily.THREAD_SEEN, PatchFamily.DM_MEDIA_SEEN, PatchFamily.TYPING, PatchFamily.SCREENSHOT_REPORTS);
 
@@ -53,7 +55,7 @@ public class GhostModeSettingsTest {
 
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
-        for (BooleanSetting setting : GHOST) setting.resetToDefault();
+        for (BooleanSetting setting : ghostSwitches()) setting.resetToDefault();
         Settings.GHOST_MODE_PICKS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -64,7 +66,7 @@ public class GhostModeSettingsTest {
         if (controller != null) controller.close();
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
-        for (BooleanSetting setting : GHOST) setting.resetToDefault();
+        for (BooleanSetting setting : ghostSwitches()) setting.resetToDefault();
         Settings.GHOST_MODE_PICKS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -103,7 +105,7 @@ public class GhostModeSettingsTest {
     }
 
     @Test public void theSwitchListFollowsTheBuild() {
-        assertEquals(Arrays.asList(GHOST), GhostMode.switches(ALL_GHOST));
+        assertEquals(Arrays.asList(ghostSwitches()), GhostMode.switches(ALL_GHOST));
         assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.HIDE_TYPING),
                 GhostMode.switches(EnumSet.of(PatchFamily.TYPING, PatchFamily.NOTES_ROW, PatchFamily.THREAD_SEEN)));
         assertTrue(GhostMode.switches(null).isEmpty());
@@ -168,12 +170,12 @@ public class GhostModeSettingsTest {
         page.pickGhostMode();
         AlertDialog dialog = latest();
         ListView list = dialog.getListView();
-        assertEquals(GHOST.length, list.getCount());
+        assertEquals(ghostSwitches().length, list.getCount());
         assertEquals("View stories anonymously", String.valueOf(list.getAdapter().getItem(0)));
-        for (int i = 0; i < GHOST.length; i++) assertTrue("every one starts checked", list.isItemChecked(i));
+        for (int i = 0; i < ghostSwitches().length; i++) assertTrue("every one starts checked", list.isItemChecked(i));
         // Leave out everything but View stories anonymously and Hide that you're typing.
-        for (int i = 0; i < GHOST.length; i++) {
-            if (GHOST[i] != Settings.VIEW_STORIES_ANONYMOUSLY && GHOST[i] != Settings.HIDE_TYPING) tap(list, i);
+        for (int i = 0; i < ghostSwitches().length; i++) {
+            if (ghostSwitches()[i] != Settings.VIEW_STORIES_ANONYMOUSLY && ghostSwitches()[i] != Settings.HIDE_TYPING) tap(list, i);
         }
         assertEquals(Arrays.asList(Settings.VIEW_STORIES_ANONYMOUSLY, Settings.HIDE_TYPING),
                 GhostMode.picked(GhostMode.switches(ALL_GHOST)));
@@ -203,21 +205,21 @@ public class GhostModeSettingsTest {
         open(ALL_GHOST);
         page.pickGhostMode();
         ListView list = latest().getListView();
-        for (int i = 1; i < GHOST.length; i++) tap(list, i);
-        assertEquals(Arrays.asList(GHOST[0]), GhostMode.picked(GhostMode.switches(ALL_GHOST)));
+        for (int i = 1; i < ghostSwitches().length; i++) tap(list, i);
+        assertEquals(Arrays.asList(ghostSwitches()[0]), GhostMode.picked(GhostMode.switches(ALL_GHOST)));
         tap(list, 0);
         assertTrue("the last check stays", list.isItemChecked(0));
         assertEquals("Ghost mode needs at least one switch to turn.", ShadowToast.getTextOfLatestToast());
-        assertEquals(Arrays.asList(GHOST[0]), GhostMode.picked(GhostMode.switches(ALL_GHOST)));
+        assertEquals(Arrays.asList(ghostSwitches()[0]), GhostMode.picked(GhostMode.switches(ALL_GHOST)));
         tap(list, 3);
-        assertEquals(Arrays.asList(GHOST[0], GHOST[3]), GhostMode.picked(GhostMode.switches(ALL_GHOST)));
+        assertEquals(Arrays.asList(ghostSwitches()[0], ghostSwitches()[3]), GhostMode.picked(GhostMode.switches(ALL_GHOST)));
     }
 
     @Test public void aTapTurnsEverySwitchAndEachRowShowsIt() throws Exception {
         open(ALL_GHOST);
         SwitchPreference row = ghost();
         row.getOnPreferenceChangeListener().onPreferenceChange(row, true);
-        for (BooleanSetting setting : GHOST) {
+        for (BooleanSetting setting : ghostSwitches()) {
             assertTrue(setting.key, setting.savedValue());
             assertTrue(setting.key, own(setting).isChecked());
         }
@@ -226,7 +228,7 @@ public class GhostModeSettingsTest {
         assertEquals("Hide ads isn't a ghost switch", Settings.HIDE_ADS.defaultValue, Settings.HIDE_ADS.savedValue());
 
         row.getOnPreferenceChangeListener().onPreferenceChange(row, false);
-        for (BooleanSetting setting : GHOST) {
+        for (BooleanSetting setting : ghostSwitches()) {
             assertFalse(setting.key, setting.savedValue());
             assertFalse(setting.key, own(setting).isChecked());
         }
@@ -237,7 +239,7 @@ public class GhostModeSettingsTest {
     @Test public void itFollowsTheOwnSwitchesAndPauseStillWins() throws Exception {
         open(ALL_GHOST);
         SwitchPreference row = ghost();
-        for (BooleanSetting setting : GHOST) own(setting).setChecked(true);
+        for (BooleanSetting setting : ghostSwitches()) own(setting).setChecked(true);
         Utils.awaitBackgroundTasksForTests();
         assertTrue("every switch on by hand turns Ghost mode on", row.isChecked());
         own(Settings.HIDE_TYPING).setChecked(false);
@@ -247,13 +249,13 @@ public class GhostModeSettingsTest {
         row.getOnPreferenceChangeListener().onPreferenceChange(row, true);
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        for (BooleanSetting setting : GHOST) {
+        for (BooleanSetting setting : ghostSwitches()) {
             assertFalse(setting.key, setting.get());
             assertTrue(setting.key, setting.savedValue());
         }
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        for (BooleanSetting setting : GHOST) assertTrue(setting.key, setting.get());
+        for (BooleanSetting setting : ghostSwitches()) assertTrue(setting.key, setting.get());
     }
 
     @Test public void searchFindsItByName() throws Exception {
