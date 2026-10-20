@@ -77,7 +77,7 @@ class NativeFindReelOriginTest {
             assertNinePlaceholdersFirst(name, classes, methods)
             checked += name
         }
-        for (code in BUILDS) assertTrue("no fixture of 451 build $code among $checked", checked.any { it.contains("-$code") })
+        for (code in BUILDS) assertTrue("no fixture of build $code among $checked", checked.any { it.contains("-$code") })
     }
 
     /** The media type bridge casts to Media and calls its one getter answering an Integer that loads `media_type`'s key. */

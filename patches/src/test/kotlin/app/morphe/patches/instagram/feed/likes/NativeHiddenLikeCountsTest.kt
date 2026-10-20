@@ -104,7 +104,7 @@ class NativeHiddenLikeCountsTest {
             }
             checked += name
         }
-        for (code in BUILDS) assertTrue("no fixture of 451 build $code among $checked", checked.any { it.contains("-$code") })
+        for (code in BUILDS) assertTrue("no fixture of build $code among $checked", checked.any { it.contains("-$code") })
     }
 
     @Test fun dexBackedInstructionReReadsFindTheSameAnchors() {
