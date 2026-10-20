@@ -18,6 +18,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Field
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
@@ -83,10 +84,13 @@ internal fun BytecodePatchContext.findQuickPromotionBuilder(): QuickPromotionBui
     val (owner, builder) = builders.singleOrNull()
         ?: throw PatchException("Hide Meta AI: ${builders.size} methods turn a quick promotion into its card (${PROMOTION_TEMPLATES.joinToString()}), not one")
 
-    val promotion = builder.implementation?.instructions?.filter { it.opcode == Opcode.CHECK_CAST }
+    // The hook hands the extension p2, the method's last register, so only a cast of p2 names the promotion.
+    val lastParameter = (builder.implementation?.registerCount ?: 0) - 1
+    val promotion = builder.implementation?.instructions
+        ?.filter { it.opcode == Opcode.CHECK_CAST && (it as OneRegisterInstruction).registerA == lastParameter }
         ?.map { ((it as ReferenceInstruction).reference as TypeReference).type }
         ?.firstOrNull { cast -> classDefByOrNull(cast)?.instanceFields()?.any { it.type == PROMOTION_SLOT_TYPE } == true }
-        ?: throw PatchException("Hide Meta AI: the quick promotion method casts nothing to a class holding a slot")
+        ?: throw PatchException("Hide Meta AI: the quick promotion method casts its last parameter to no class holding a slot")
     val promotionClass = classDefBy(promotion)
 
     val slot = promotionClass.instanceFields().filter { it.type == PROMOTION_SLOT_TYPE }.singleOrNull()

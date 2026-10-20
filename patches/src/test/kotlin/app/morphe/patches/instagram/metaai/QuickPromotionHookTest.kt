@@ -77,15 +77,20 @@ class QuickPromotionHookTest {
     @Test
     fun noBuilderOrTwoOrAnOddPromotionFailThePatch() {
         val odd = listOf(
-            classes(templates = PROMOTION_TEMPLATES.drop(1)),
-            classes(builders = 2),
-            classes(slots = 0),
-            classes(slots = 2),
-            classes(texts = 2),
-            classes(creatives = 2),
-            classes(strings = 2),
+            classes(templates = PROMOTION_TEMPLATES.drop(1)) to "methods turn a quick promotion into its card",
+            classes(builders = 2) to "methods turn a quick promotion into its card",
+            classes(slots = 0) to "casts its last parameter to no class holding a slot",
+            // The hook hands over p2, so a cast of the session parameter doesn't name the promotion.
+            classes(castOf = "p1") to "casts its last parameter to no class holding a slot",
+            classes(slots = 2) to "doesn't hold exactly one slot field",
+            classes(texts = 2) to "fields holding three text containers, not one",
+            classes(creatives = 2) to "fields holding three text containers, not one",
+            classes(strings = 2) to "string fields, not one",
         )
-        for (case in odd) assertThrows(PatchException::class.java) { PatchContexts.of(case).findQuickPromotionBuilder() }
+        for ((case, why) in odd) {
+            val refused = assertThrows(PatchException::class.java) { PatchContexts.of(case).findQuickPromotionBuilder() }
+            assertTrue("${refused.message} names $why", refused.message.orEmpty().contains(why))
+        }
     }
 
     @Test
@@ -169,11 +174,12 @@ class QuickPromotionHookTest {
         texts: Int = 3,
         strings: Int = 1,
         registers: Int = 6,
+        castOf: String = "p2",
     ): List<ClassDef> {
         val loads = templates.joinToString("\n") { "const-string v0, \"$it\"" }
         val body = """
             $loads
-            check-cast p2, $promotion
+            check-cast $castOf, $promotion
             const/4 v0, 0x0
             return-object v0
         """
