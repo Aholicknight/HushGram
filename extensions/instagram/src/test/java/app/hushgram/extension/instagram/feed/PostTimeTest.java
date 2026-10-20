@@ -85,6 +85,25 @@ public class PostTimeTest {
         assertTrue(HookStatus.missing(FamilyNames.POST_TIME).toString(), HookStatus.missing(FamilyNames.POST_TIME).isEmpty());
     }
 
+    /**
+     * From 452 a comment header's time comes with the resources and no context, and reads the same
+     * date and time from the app's context. Off, or before the settings are read, it goes on to
+     * Instagram's formatting.
+     */
+    @Test
+    public void aTimeFromTheResourcesGetsTheDateAndTime() {
+        double posted = postedOnOctober2(0);
+        assertEquals("Oct 2, 3:45 PM", plain(PostTime.time(context.getResources(), null, formatter, 0, posted, false)));
+        assertTrue(HookStatus.missing(FamilyNames.POST_TIME).toString(), HookStatus.missing(FamilyNames.POST_TIME).isEmpty());
+
+        assertNull(PostTime.time(context.getResources(), null, formatter, 0, Double.NaN, false));
+        Settings.SHOW_POST_TIME.save(false);
+        assertNull(PostTime.time(context.getResources(), null, formatter, 0, posted, false));
+        Settings.SHOW_POST_TIME.save(true);
+        SettingsContextRule.withoutContext(() -> assertNull(PostTime.time(context.getResources(), null, formatter, 0, posted, false)));
+        assertNotNull("back on", PostTime.time(context.getResources(), null, formatter, 0, posted, false));
+    }
+
     /** A post from another year says which, the way a story's time does. */
     @Test
     public void aPostFromAnotherYearSaysTheYear() {
