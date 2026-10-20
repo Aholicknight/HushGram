@@ -455,6 +455,12 @@ no-call Landroid/view/SurfaceControl$Transaction;->setDesiredHdrHeadroom(Landroi
 no-call Landroid/view/Window;->setDesiredHdrHeadroom(F)V outside Lapp/hushgram/extension/
 no-call Landroid/view/Window;->setColorMode(I)V outside Lapp/hushgram/extension/
 no-call Landroid/view/SurfaceControl$Transaction;->setExtendedRangeBrightness(Landroid/view/SurfaceControl;FF)Landroid/view/SurfaceControl$Transaction; outside Lapp/hushgram/extension/
+# It also puts HdrBoost.optionOff first in Instagram's boolean option read, the one every Java read
+# of a server option ends in (09x7.Bam on 452), in the class whose String read holds the marker
+# below, so SDR super white on HDR content and Ultra HDR always on read as off (#85). Left out, those
+# options keep the server's values; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/media/HdrBoost;->optionOff(JII)Z in instance (L*;JZ)Z class-holding __fbt_null__
+once-call Lapp/hushgram/extension/instagram/media/HdrBoost;->optionOff(JII)Z in instance (L*;JZ)Z class-holding __fbt_null__
 #
 # Not pinned:
 # Sanitize sharing links also sends ClipboardManager.setPrimaryClip and both Intent.createChooser
@@ -1690,14 +1696,14 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in i
 # SwipeToProfile.allow right after it is read, in the one method holding the marker below (05PF.A00
 # on 452). Left out, the switch does nothing; twice or elsewhere, it isn't the hook the patch wrote.
 # SwipeToProfileHookTest checks on the 452 fixture where it lands.
-once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->allow(Z)Z in instance ()Z holding android_purge_26_q3_ClipsViewerSwipeNavigationDelegate_isSwipeFromReelsToActionAllowed
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->allow(I)Z in instance ()Z holding android_purge_26_q3_ClipsViewerSwipeNavigationDelegate_isSwipeFromReelsToActionAllowed
 # It also hands the profile panel's gate to SwipeToProfile.allow in the swipe container's touch check,
 # its one (MotionEvent)Z method calling its panel switch (onInterceptTouchEvent on 452), so a touch
 # doesn't turn the panel off again. The tab host's tab change (00M2.A0O on 452) calls
 # SwipeToProfile.tabChanging first and SwipeToProfile.tabChanged right before each of its two returns,
 # which turn the Reels tab's profile panel on and off. Left out, the panel never shows for an account
 # Instagram's server didn't pick; twice or elsewhere, it isn't the hook the patch wrote.
-once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->allow(Z)Z in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->allow(I)Z in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
 start-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->tabChanging(Ljava/lang/Object;)V in instance (L*;L*;Ljava/lang/Integer;)V holding MainTabController.delegateOnTabChanged MainTabController.updatePagerForTabChanged
 once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->tabChanging(Ljava/lang/Object;)V in instance (L*;L*;Ljava/lang/Integer;)V holding MainTabController.delegateOnTabChanged MainTabController.updatePagerForTabChanged
 once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->tabChanged(Ljava/lang/Object;)V in instance (L*;L*;Ljava/lang/Integer;)V sites 2 holding MainTabController.delegateOnTabChanged MainTabController.updatePagerForTabChanged
@@ -1706,8 +1712,8 @@ once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->tabChanged(Lj
 # call turning the tabs' pager input on, so no pager takes the swipe while the switch is on. Left out,
 # the container gives the swipe to a pager and never slides the profile in; twice or elsewhere, it
 # isn't the hook the patch wrote. SwipeToProfileHookTest checks on the 452 fixtures where both land.
-once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->childScrolls(Landroid/view/View;IIIZZ)Z in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
-sole-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->pagerInput(Ljava/lang/Object;Z)V replacing Landroidx/viewpager2/widget/ViewPager2;->setUserInputEnabled(Z)V in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->childScrolls(Landroid/view/View;IIIII)Z in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
+sole-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->pagerInput(Ljava/lang/Object;I)V replacing Landroidx/viewpager2/widget/ViewPager2;->setUserInputEnabled(Z)V in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
 # Find the reel you came from hands the reel's media to ReelOrigin.opening first thing in the Reels
 # viewer's profile opener (07FC.A03 on 450, the one method holding the marker below), reading the media
 # field of its one argument into v0 on the way, and hands a profile's Reels tab to
