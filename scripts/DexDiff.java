@@ -210,7 +210,8 @@ public class DexDiff {
      *       selected local reaches the native builder, and no branch bypasses selection.
      *   <li>"story-loop-call &lt;native method reference&gt;" with the same selection clauses:
      *       the finished-story guard invokes that exact method with invoke-direct/range on
-     *       p0 and p1. The original handler keeps its own call to the same method.
+     *       p0 and p1. The original handler keeps its own call to the same method. The handler
+     *       takes the finished item as an Object (450, 451) or as the story item itself (452).
      *   <li>"shared-call &lt;method reference&gt; [in [static|instance] &lt;shape&gt;] holding &lt;string&gt;
      *       [&lt;string&gt; ...]": exactly one method outside the bundle's own code loads every one of
      *       the strings and has the shape, as for start-call. That method calls the method reference
@@ -2100,10 +2101,15 @@ public class DexDiff {
     /** The guard's exact native owner, opcode and two adjacent parameter words, plus the stock ask. */
     private static boolean safeStoryLoopCall(Method method, String callee) {
         List<Instruction> body = instructions(method);
-        Opcode[] prefix = { Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_NEZ,
+        // 450 and 451 hand the handler the finished item as an Object, which it casts right after the
+        // guard. 452's handler takes the story item itself, so nothing is cast after the guard returns.
+        boolean typed = method.getParameterTypes().equals(List.of("Lcom/instagram/model/reels/ReelItem;"));
+        Opcode[] guard = { Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_NEZ,
                 Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CHECK_CAST,
-                Opcode.INVOKE_DIRECT_RANGE, Opcode.MOVE_RESULT, Opcode.IF_NEZ, Opcode.RETURN_VOID, Opcode.CHECK_CAST };
-        if (AccessFlags.STATIC.isSet(method.getAccessFlags()) || !method.getParameterTypes().equals(List.of("Ljava/lang/Object;"))
+                Opcode.INVOKE_DIRECT_RANGE, Opcode.MOVE_RESULT, Opcode.IF_NEZ, Opcode.RETURN_VOID };
+        Opcode[] prefix = typed ? guard : Arrays.copyOf(guard, guard.length + 1);
+        if (!typed) prefix[guard.length] = Opcode.CHECK_CAST;
+        if (AccessFlags.STATIC.isSet(method.getAccessFlags()) || !(typed || method.getParameterTypes().equals(List.of("Ljava/lang/Object;")))
                 || !method.getReturnType().equals("V") || body.size() < prefix.length) return false;
         for (int i = 0; i < prefix.length; i++) if (body.get(i).getOpcode() != prefix[i]) return false;
         MethodReference check = calledMethod(body.get(7));
