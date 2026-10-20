@@ -1125,3 +1125,6 @@ Every tab shows on profiles. Untick the ones you don't want. The grid of posts a
 Left off profiles: %1$s. The grid of posts stays.	Profillerden kaldırılanlar: %1$s. Gönderi ızgarası kalır.
 Reposts	Yeniden paylaşımlar
 Tagged	Etiketli
+# context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
+Show all recent searches	Tüm son aramaları göster
+Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Arama çubuğunun altında yalnızca ilk birkaçını değil, tüm son aramaları listeler. Tümünü gör ve her satırdaki x eskisi gibi çalışır.

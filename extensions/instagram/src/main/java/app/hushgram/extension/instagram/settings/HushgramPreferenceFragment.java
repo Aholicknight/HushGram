@@ -714,7 +714,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Removes the Blend invite button from reels. Everything else on a reel stays.")));
         }
 
-        if (build.contains(PatchFamily.EXPLORE_GRID) || build.contains(PatchFamily.RECENT_SEARCHES)) {
+        if (build.contains(PatchFamily.EXPLORE_GRID) || build.contains(PatchFamily.RECENT_SEARCHES)
+                || build.contains(PatchFamily.ALL_RECENT_SEARCHES)) {
             PreferenceCategory explore = category(screen, L10n.t("Explore"), SettingsIcons.EXPLORE,
                     L10n.t("Tidy up the Search tab and what it remembers."));
             if (build.contains(PatchFamily.EXPLORE_GRID)) {
@@ -731,6 +732,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("Don't save recent searches"),
                         L10n.t("What you open from search stays out of Recent, in the app and on Instagram's side. "
                                 + "Searches already there stay until you clear them.")));
+            }
+            if (build.contains(PatchFamily.ALL_RECENT_SEARCHES)) {
+                explore.addPreference(toggle(context, Settings.SHOW_ALL_RECENT_SEARCHES,
+                        L10n.t("Show all recent searches"),
+                        L10n.t("Lists every recent search under the search bar, not just the first few. See all and "
+                                + "the x on each row work as before.")));
             }
         }
 

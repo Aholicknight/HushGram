@@ -1125,3 +1125,6 @@ Every tab shows on profiles. Untick the ones you don't want. The grid of posts a
 Left off profiles: %1$s. The grid of posts stays.	Disembunyikan dari profil: %1$s. Kisi postingan tetap ada.
 Reposts	Postingan ulang
 Tagged	Ditandai
+# context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
+Show all recent searches	Tampilkan semua pencarian terbaru
+Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Menampilkan semua pencarian terbaru di bawah kolom pencarian, bukan hanya beberapa yang pertama. Lihat semua dan tanda x di tiap baris tetap berfungsi seperti biasa.

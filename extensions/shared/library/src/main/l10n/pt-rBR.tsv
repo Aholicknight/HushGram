@@ -1125,3 +1125,6 @@ Every tab shows on profiles. Untick the ones you don't want. The grid of posts a
 Left off profiles: %1$s. The grid of posts stays.	Fora dos perfis: %1$s. A grade de publicações fica.
 Reposts	Reposts
 Tagged	Marcados
+# context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
+Show all recent searches	Mostrar todas as pesquisas recentes
+Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Lista todas as pesquisas recentes abaixo da barra de pesquisa, e não só as primeiras. Ver tudo e o x de cada linha funcionam como antes.

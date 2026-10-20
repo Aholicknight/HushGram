@@ -741,6 +741,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_dont_save_recent_searches", FALSE);
 
     /**
+     * Search's empty screen lists every recent search instead of the first few, with See all still
+     * there ({@link app.hushgram.extension.instagram.explore.RecentSearches#shown}). Read each time
+     * the screen is built. Off to start.
+     */
+    public static final BooleanSetting SHOW_ALL_RECENT_SEARCHES =
+            new BooleanSetting("hushgram_show_all_recent_searches", FALSE);
+
+    /**
      * The row of notes at the top of your messages, its Map bubble included
      * ({@link app.hushgram.extension.instagram.direct.NotesRow}). Read each time Instagram works out
      * your messages again, so a change shows the next time they update. Off to start.

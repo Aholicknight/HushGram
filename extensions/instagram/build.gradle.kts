@@ -903,6 +903,13 @@ tasks.register("verifyAndroidBoundaries") {
                 "missingPatchHasNoTabsRow", "everyTabStartsTickedAndTheGridIsNotOffered", "aChangeSavesAtOnceByKey",
                 "aSavedChoiceShowsAndPauseKeepsIt"
             ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.explore.ShowAllRecentSearchesTest" to listOf(
+                "offToStartKeepsInstagramsLimit", "onListsEverything", "pausedAnswersInstagramsOwnLimit",
+                "dontSaveStillStopsNewSearchesWhileEverythingShows", "nothingThrowsIntoInstagram"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.ShowAllRecentSearchesSettingsTest" to listOf(
+                "missingPatchHasNoShowAllSwitch", "theSwitchSitsUnderExploreAndStartsOff", "theSwitchPersistsAndHonorsPause"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.feed.FeedFollowButtonTest" to listOf(
                 "offToStartLeavesTheButtonsAlone", "onTakesTheButtonsOffAndLeavesTheNameTimeAndMenu",
                 "theSameIdOutsideAFeedPostHeaderStays", "pausedReadsAsOff"
