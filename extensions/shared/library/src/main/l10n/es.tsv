@@ -1128,3 +1128,5 @@ Tagged	Etiquetadas
 # context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
 Show all recent searches	Mostrar todas las búsquedas recientes
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Muestra todas las búsquedas recientes bajo la barra de búsqueda, no solo las primeras. Ver todo y la x de cada fila funcionan como antes.
+Hide the call buttons in chats	Ocultar los botones de llamada en los chats
+Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	Quita los botones de llamada de voz y de video de la parte superior de un chat. El nombre conserva su espacio. Si lo desactivas, vuelven la próxima vez que abras un chat.

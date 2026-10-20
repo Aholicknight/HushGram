@@ -1127,3 +1127,5 @@ Tagged	태그됨
 # context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
 Show all recent searches	최근 검색 모두 표시
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	검색창 아래에 처음 몇 개만이 아니라 최근 검색을 전부 보여 줍니다. 모두 보기와 각 줄의 x는 전과 똑같이 작동합니다.
+Hide the call buttons in chats	채팅에서 통화 버튼 숨기기
+Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	채팅 상단의 음성 통화 및 영상 통화 버튼을 없앱니다. 이름은 자리를 그대로 유지합니다. 끄면 다음에 채팅을 열 때 버튼이 다시 나타납니다.

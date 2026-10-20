@@ -273,6 +273,11 @@ tasks.register("verifyAndroidBoundaries") {
                 "missingPatchHasNoInboxSuggestionsSwitch[28]", "missingPatchHasNoInboxSuggestionsSwitch[37]",
                 "inboxSuggestionsSwitchStartsOffUnderMessagesPersistsAndHonorsPause[28]",
                 "inboxSuggestionsSwitchStartsOffUnderMessagesPersistsAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.direct.CallButtonsTest" to listOf(
+                "withTheSwitchOnEveryCallKindGoesGone", "otherKindsAndOngoingCallsStay", "offToStartLeavesTheButtonsAlone",
+                "turningItOffOrPausingGivesTheButtonBackOnTheNextBind", "aViewInstagramHidSelfIsNotShownByTheSwitchOff",
+                "nothingThrowsIntoInstagram"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.direct.InstantsTest" to listOf(
                 "withTheSwitchOnTheCheckAnswersNo[28]", "withTheSwitchOnTheCheckAnswersNo[37]",
                 "offToStartAndOffLeaveItToInstagram[28]", "offToStartAndOffLeaveItToInstagram[37]",

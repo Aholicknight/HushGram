@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Hide the call buttons in chats:** a new switch in `Ask before a call` takes the voice and video call buttons off the top of a chat, so the name keeps the room. Off to start, under Messages. (#217)
 * **Instagram - Show all recent searches:** new patch. A switch under Explore lists every recent search under the search bar, not just the first few. See all, the x on each row and `Don't save recent searches` work as before. Starts off. Asked for in #257.
 * **Instagram - Hide profile tabs:** new patch. `Tabs on profiles` under Profiles lets you take the Reels, Reposts and Tagged tabs off profiles, yours and other people's. The grid always stays, and every tab shows until you untick it. Asked for in #254.
 * **Instagram - Hide suggested people on profiles:** `Hide Featured in notifications` under Profiles takes the Featured section off the top of your notifications, the posts and threads Instagram picks for you there. Likes, comments and everything else under it stay. It starts off and works apart from `Hide suggestions in notifications`. Asked for in #259.

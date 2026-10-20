@@ -77,7 +77,7 @@ In Expert mode the patches are grouped under Ads, Ghost mode, Privacy, Messages,
 |---|---|---|
 | `Accent color` | Swaps Instagram's blue on Follow buttons, links and other highlights for purple, pink, red, orange, green or teal. Restart Instagram to see a change. Starts off. Turn it on in HushGram settings > Layout. | Included |
 | `Allow screenshots` | Lets you take screenshots and record your screen where Instagram normally blocks it, such as disappearing photos and videos in chats. Starts off. Turn it on in HushGram settings > Messages. | Included |
-| `Ask before a call` | Asks you to confirm before a call starts from a chat, so a stray tap on the call button doesn't ring anyone. Starts off. Turn it on in HushGram settings > Messages. | Included |
+| `Ask before a call` | Asks you to confirm before a call starts from a chat, so a stray tap on the call button doesn't ring anyone, and can take the call buttons off the top of a chat. Both start off. Turn them on in HushGram settings > Messages. | Included |
 | `Ask before a like` | Asks you to confirm before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Starts off. Turn it on in HushGram settings > Feed. | Included |
 | `Ask before a refresh` | Asks you to confirm before pulling down refreshes Home, Reels or another list, so an accidental pull doesn't replace what you were reading. Starts off. Turn it on in HushGram settings > Feed. | Included |
 | `Back leaves Home` | Makes Back on Home leave Instagram at once, instead of first scrolling the feed to the top and reloading it. Starts off. Turn it on in HushGram settings > Feed. | Included |

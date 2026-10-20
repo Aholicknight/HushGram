@@ -447,6 +447,12 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting ASK_BEFORE_CALL = new BooleanSetting("hushgram_ask_before_call", FALSE);
 
     /**
+     * The voice and video call buttons at the top of a chat are taken off the chat's header
+     * ({@link app.hushgram.extension.instagram.direct.CallButtons}, #217). Off to start.
+     */
+    public static final BooleanSetting HIDE_CALL_BUTTONS = new BooleanSetting("hushgram_hide_call_buttons", FALSE);
+
+    /**
      * The Like button under a post asks before it likes or unlikes the post
      * ({@link app.hushgram.extension.instagram.feed.LikeConfirm}). A double tap isn't asked about.
      * Off to start.

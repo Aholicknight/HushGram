@@ -72,7 +72,7 @@ public class AskBeforeCallSettingsTest {
         assertEquals("Messages", section.getTitle().toString());
         assertFalse(row.isChecked());
         assertFalse(Settings.ASK_BEFORE_CALL.get());
-        assertEquals(Collections.singletonList(Settings.ASK_BEFORE_CALL), PatchFamily.ASK_BEFORE_CALL.switches);
+        assertEquals(java.util.Arrays.asList(Settings.ASK_BEFORE_CALL, Settings.HIDE_CALL_BUTTONS), PatchFamily.ASK_BEFORE_CALL.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ASK_BEFORE_CALL.key));
         row.setChecked(true);
         assertTrue(Settings.ASK_BEFORE_CALL.get());

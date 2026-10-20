@@ -814,6 +814,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 messages.addPreference(toggle(context, Settings.ASK_BEFORE_CALL, L10n.t("Ask before a call"),
                         L10n.t("Tapping a call button in a chat asks first, so a stray tap doesn't ring anyone. "
                                 + "Call starts it, Cancel doesn't.")));
+                messages.addPreference(toggle(context, Settings.HIDE_CALL_BUTTONS, L10n.t("Hide the call buttons in chats"),
+                        L10n.t("Takes the voice and video call buttons off the top of a chat. The name keeps its room. "
+                                + "Turn it off and they're back the next time a chat opens.")));
             }
             if (build.contains(PatchFamily.MESSAGES_LOCK)) {
                 messages.addPreference(lockToggle(context, Settings.LOCK_MESSAGES, L10n.t("Lock your messages"),
