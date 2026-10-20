@@ -1164,8 +1164,8 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_highlights", FALSE);
 
     /**
-     * The profile tabs Instagram leaves off, as their names with commas between ({@link app.hushgram.extension.instagram.profile.ProfileTabs}):
-     * any of REELS, REPOSTS and TAGGED. Nothing named is the start, so every tab shows. The grid is
+     * The profile tabs Instagram leaves off, as Instagram's tab keys with commas between ({@link app.hushgram.extension.instagram.profile.ProfileTabs}):
+     * any of profile_clips, profile_reposts and profile_tagged_media_photos_of_you. Nothing named is the start, so every tab shows. The grid is
      * never offered. Read each time Instagram builds a profile's tabs, so it shows on the next profile opened.
      */
     public static final StringSetting HIDDEN_PROFILE_TABS =

@@ -235,7 +235,15 @@ tasks.register("verifyAndroidBoundaries") {
                 "aButtonHiddenEarlierComesBackWhenTheSwitchGoesOff[28]", "aButtonHiddenEarlierComesBackWhenTheSwitchGoesOff[37]",
                 "aButtonThatThrowsIsLeftAndReported[28]", "aButtonThatThrowsIsLeftAndReported[37]",
                 "theFollowListSectionGoesOnlyWithItsOwnSwitch[28]", "theFollowListSectionGoesOnlyWithItsOwnSwitch[37]",
-                "aThrowingFollowListSwitchFailsOpenAndIsReported[28]", "aThrowingFollowListSwitchFailsOpenAndIsReported[37]"),
+                "aThrowingFollowListSwitchFailsOpenAndIsReported[28]", "aThrowingFollowListSwitchFailsOpenAndIsReported[37]",
+                "theFeaturedSectionGoesOnlyWithItsOwnSwitch[28]", "theFeaturedSectionGoesOnlyWithItsOwnSwitch[37]",
+                "aThrowingFeaturedSwitchFailsOpenAndIsReported[28]", "aThrowingFeaturedSwitchFailsOpenAndIsReported[37]"),
+            "app.hushgram.extension.instagram.settings.WaysIntoSettingsTest" to listOf(
+                "theShortcutAndTheLogoPressStartOnWithTheirOwnRows[28]", "theShortcutAndTheLogoPressStartOnWithTheirOwnRows[37]",
+                "theLastWayInStillOnIsGreyedOutAndComesBackWithASecond[28]", "theLastWayInStillOnIsGreyedOutAndComesBackWithASecond[37]",
+                "theHideSwitchSaysWhenNothingElseOpensHushGram[28]", "theHideSwitchSaysWhenNothingElseOpensHushGram[37]",
+                "offTheShortcutLeavesTheLauncherAndInstagramsCallsDontBringItBack[28]", "offTheShortcutLeavesTheLauncherAndInstagramsCallsDontBringItBack[37]",
+                "offTheLogosLongPressIsInstagramsAndAPauseLeavesItThatWay[28]", "offTheLogosLongPressIsInstagramsAndAPauseLeavesItThatWay[37]"),
             "app.hushgram.extension.instagram.profile.ProfileHighlightsTest" to listOf(
                 "withTheSwitchOnTheRowIsLeftOut[28]", "withTheSwitchOnTheRowIsLeftOut[37]",
                 "offToStartAndOffKeepsTheRow[28]", "offToStartAndOffKeepsTheRow[37]",
