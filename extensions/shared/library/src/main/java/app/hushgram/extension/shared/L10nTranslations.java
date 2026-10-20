@@ -2013,8 +2013,8 @@ public final class L10nTranslations {
                 "Entfernt die Reihe mit Schnell-Emojis \u00fcber dem Kommentarfeld. Das Feld selbst bleibt.");
         table.put("Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.",
                 "Entfernt die Reihe mit Story-Highlights von Profilen, auch von deinem. Bios, Zahlen und Beitr\u00e4ge bleiben, ebenso \u201eZu Highlight hinzuf\u00fcgen\u201c in deinen Storys.");
-        table.put("Takes the search bar off the top of your messages, the Meta AI one too. Your chats, notes and requests stay.",
-                "Entfernt die Suchleiste oben in deinen Nachrichten, auch die von Meta AI. Deine Chats, Notizen und Anfragen bleiben.");
+        table.put("Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats, notes and requests stay.",
+                "Entfernt die Suchleiste, auch die von Meta AI, und den Filter-Button oben in deinen Nachrichten. Deine Chats, Notizen und Anfragen bleiben.");
         table.put("Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.",
                 "Nimmt die Sprach- und Videoanruf-Buttons oben aus einem Chat. Der Name beh\u00e4lt seinen Platz. Wenn du es ausschaltest, sind sie beim n\u00e4chsten \u00d6ffnen eines Chats wieder da.");
         table.put("Takes the whole row of stories off the top of Home, Your story included. Stories still open from a profile or a message.",
@@ -4282,8 +4282,8 @@ public final class L10nTranslations {
                 "Quita la fila de emojis r\u00e1pidos que aparece sobre el cuadro de comentarios. El cuadro se queda.");
         table.put("Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.",
                 "Quita la fila de historias destacadas de los perfiles, incluido el tuyo. Las biograf\u00edas, los contadores y las publicaciones se quedan, y tambi\u00e9n A\u00f1adir a destacadas en tus historias.");
-        table.put("Takes the search bar off the top of your messages, the Meta AI one too. Your chats, notes and requests stay.",
-                "Quita la barra de b\u00fasqueda de la parte superior de tus mensajes, tambi\u00e9n la de Meta AI. Tus chats, notas y solicitudes se quedan.");
+        table.put("Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats, notes and requests stay.",
+                "Quita la barra de b\u00fasqueda, tambi\u00e9n la de Meta AI, y el bot\u00f3n Filtrar de la parte superior de tus mensajes. Tus chats, notas y solicitudes se quedan.");
         table.put("Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.",
                 "Quita los botones de llamada de voz y de video de la parte superior de un chat. El nombre conserva su espacio. Si lo desactivas, vuelven la pr\u00f3xima vez que abras un chat.");
         table.put("Takes the whole row of stories off the top of Home, Your story included. Stories still open from a profile or a message.",
@@ -6551,8 +6551,8 @@ public final class L10nTranslations {
                 "Menghapus baris emoji cepat di atas kotak komentar. Kotaknya tetap ada.");
         table.put("Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.",
                 "Menghapus baris sorotan cerita dari profil, termasuk profilmu. Bio, jumlah, dan postingan tetap ada, begitu juga Tambahkan ke sorotan di ceritamu.");
-        table.put("Takes the search bar off the top of your messages, the Meta AI one too. Your chats, notes and requests stay.",
-                "Menghapus bilah pencarian dari bagian atas pesan, termasuk yang dari Meta AI. Chat, catatan, dan permintaan pesan tetap ada.");
+        table.put("Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats, notes and requests stay.",
+                "Menghapus bilah pencarian dan tombol Filter dari bagian atas pesan, termasuk bilah Meta AI. Chat, catatan, dan permintaan pesan tetap ada.");
         table.put("Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.",
                 "Menghapus tombol panggilan suara dan video dari bagian atas chat. Nama tetap punya ruangnya. Matikan, dan tombolnya kembali saat chat dibuka lagi.");
         table.put("Takes the whole row of stories off the top of Home, Your story included. Stories still open from a profile or a message.",
@@ -8820,8 +8820,8 @@ public final class L10nTranslations {
                 "Toglie la riga di emoji rapide sopra la casella dei commenti. La casella resta.");
         table.put("Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.",
                 "Toglie la riga delle storie in evidenza dai profili, compreso il tuo. Bio, conteggi e post restano, e cos\u00ec Aggiungi a In evidenza sulle tue storie.");
-        table.put("Takes the search bar off the top of your messages, the Meta AI one too. Your chats, notes and requests stay.",
-                "Toglie la barra di ricerca dalla parte alta dei tuoi messaggi, anche quella di Meta AI. Le tue chat, le note e le richieste restano.");
+        table.put("Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats, notes and requests stay.",
+                "Toglie la barra di ricerca, anche quella di Meta AI, e il pulsante Filtra dalla parte alta dei tuoi messaggi. Le tue chat, le note e le richieste restano.");
         table.put("Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.",
                 "Toglie i pulsanti di chiamata vocale e video dalla parte alta di una chat. Il nome mantiene il suo spazio. Se lo disattivi, tornano la prossima volta che apri una chat.");
         table.put("Takes the whole row of stories off the top of Home, Your story included. Stories still open from a profile or a message.",
@@ -11089,8 +11089,8 @@ public final class L10nTranslations {
                 "\ub313\uae00 \uc785\ub825\ucc3d \uc704\uc5d0 \uc788\ub294 \ube60\ub978 \uc774\ubaa8\uc9c0 \uc904\uc744 \uc5c6\uc571\ub2c8\ub2e4. \uc785\ub825\ucc3d\uc740 \uadf8\ub300\ub85c \ud45c\uc2dc\ub429\ub2c8\ub2e4");
         table.put("Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.",
                 "\ubaa8\ub4e0 \ud504\ub85c\ud544\uc5d0\uc11c \uc2a4\ud1a0\ub9ac \ud558\uc774\ub77c\uc774\ud2b8 \ubaa9\ub85d\uc744 \uc228\uae41\ub2c8\ub2e4. \ub0b4 \ud504\ub85c\ud544\uc5d0\ub3c4 \uc801\uc6a9\ub429\ub2c8\ub2e4. \ud504\ub85c\ud544 \uc18c\uac1c, \ud314\ub85c\uc6cc & \ud314\ub85c\uc789 \uc218 \ubc0f \uac8c\uc2dc\ubb3c\uc740 \uadf8\ub300\ub85c \uc720\uc9c0\ub418\uba70, \ub0b4 \uc2a4\ud1a0\ub9ac\uc758 \u2018\ud558\uc774\ub77c\uc774\ud2b8\uc5d0 \ucd94\uac00\u2019 \uae30\ub2a5\ub3c4 \uadf8\ub300\ub85c \uc0ac\uc6a9\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4");
-        table.put("Takes the search bar off the top of your messages, the Meta AI one too. Your chats, notes and requests stay.",
-                "\uba54\uc2dc\uc9c0 \uc0c1\ub2e8\uc758 \uac80\uc0c9\ucc3d\uc744 \uc228\uae41\ub2c8\ub2e4. Meta AI \uac80\uc0c9\ucc3d\ub3c4 \ud568\uaed8 \uc228\uaca8\uc9d1\ub2c8\ub2e4. \ucc44\ud305, \uba54\ubaa8 \ubc0f \uba54\uc2dc\uc9c0 \uc694\uccad\uc740 \uadf8\ub300\ub85c \uc720\uc9c0\ub429\ub2c8\ub2e4");
+        table.put("Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats, notes and requests stay.",
+                "\uba54\uc2dc\uc9c0 \uc0c1\ub2e8\uc758 \uac80\uc0c9\ucc3d\uacfc \ud544\ud130 \ubc84\ud2bc\uc744 \uc228\uae41\ub2c8\ub2e4. Meta AI \uac80\uc0c9\ucc3d\ub3c4 \ud568\uaed8 \uc228\uaca8\uc9d1\ub2c8\ub2e4. \ucc44\ud305, \uba54\ubaa8 \ubc0f \uba54\uc2dc\uc9c0 \uc694\uccad\uc740 \uadf8\ub300\ub85c \uc720\uc9c0\ub429\ub2c8\ub2e4");
         table.put("Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.",
                 "\ucc44\ud305 \uc0c1\ub2e8\uc758 \uc74c\uc131 \ud1b5\ud654 \ubc0f \uc601\uc0c1 \ud1b5\ud654 \ubc84\ud2bc\uc744 \uc5c6\uc571\ub2c8\ub2e4. \uc774\ub984\uc740 \uc790\ub9ac\ub97c \uadf8\ub300\ub85c \uc720\uc9c0\ud569\ub2c8\ub2e4. \ub044\uba74 \ub2e4\uc74c\uc5d0 \ucc44\ud305\uc744 \uc5f4 \ub54c \ubc84\ud2bc\uc774 \ub2e4\uc2dc \ub098\ud0c0\ub0a9\ub2c8\ub2e4.");
         table.put("Takes the whole row of stories off the top of Home, Your story included. Stories still open from a profile or a message.",
@@ -13358,8 +13358,8 @@ public final class L10nTranslations {
                 "Tira a linha de emojis r\u00e1pidos acima da caixa de coment\u00e1rios. A caixa continua l\u00e1.");
         table.put("Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.",
                 "Tira a fileira de destaques dos stories dos perfis, incluindo o seu. Bios, contagens e posts continuam l\u00e1, e Adicionar ao destaque nos seus stories tamb\u00e9m.");
-        table.put("Takes the search bar off the top of your messages, the Meta AI one too. Your chats, notes and requests stay.",
-                "Tira a barra de pesquisa da parte superior das suas mensagens, incluindo a da Meta AI. Suas conversas, notas e solicita\u00e7\u00f5es continuam l\u00e1.");
+        table.put("Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats, notes and requests stay.",
+                "Tira a barra de pesquisa, incluindo a da Meta AI, e o bot\u00e3o Filtrar da parte superior das suas mensagens. Suas conversas, notas e solicita\u00e7\u00f5es continuam l\u00e1.");
         table.put("Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.",
                 "Tira os bot\u00f5es de chamada de voz e de v\u00eddeo do topo de uma conversa. O nome mant\u00e9m o seu espa\u00e7o. Se voc\u00ea desativar, eles voltam na pr\u00f3xima vez que abrir uma conversa.");
         table.put("Takes the whole row of stories off the top of Home, Your story included. Stories still open from a profile or a message.",
@@ -15627,8 +15627,8 @@ public final class L10nTranslations {
                 "Yorum kutusunun \u00fcst\u00fcndeki h\u0131zl\u0131 emoji sat\u0131r\u0131n\u0131 kald\u0131r\u0131r. Kutunun kendisi kal\u0131r.");
         table.put("Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.",
                 "Hikaye \u00f6ne \u00e7\u0131kanlar\u0131 sat\u0131r\u0131n\u0131 profillerden, seninki dahil, kald\u0131r\u0131r. Biyografiler, say\u0131lar ve g\u00f6nderiler kal\u0131r, hikayelerindeki \u00d6ne \u00e7\u0131kanlara ekle de kal\u0131r.");
-        table.put("Takes the search bar off the top of your messages, the Meta AI one too. Your chats, notes and requests stay.",
-                "Mesajlar\u0131n\u0131n \u00fcst k\u0131sm\u0131ndaki arama \u00e7ubu\u011funu, Meta AI olan\u0131 da dahil, kald\u0131r\u0131r. Sohbetlerin, notlar\u0131n ve isteklerin kal\u0131r.");
+        table.put("Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats, notes and requests stay.",
+                "Mesajlar\u0131n\u0131n \u00fcst k\u0131sm\u0131ndaki arama \u00e7ubu\u011funu ve Filtre d\u00fc\u011fmesini kald\u0131r\u0131r, Meta AI \u00e7ubu\u011funu da. Sohbetlerin, notlar\u0131n ve isteklerin kal\u0131r.");
         table.put("Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.",
                 "Sohbetin \u00fcst\u00fcndeki sesli ve g\u00f6r\u00fcnt\u00fcl\u00fc arama d\u00fc\u011fmelerini kald\u0131r\u0131r. \u0130sim yerini korur. Kapat\u0131rsan d\u00fc\u011fmeler sohbeti bir sonraki a\u00e7\u0131\u015f\u0131nda geri gelir.");
         table.put("Takes the whole row of stories off the top of Home, Your story included. Stories still open from a profile or a message.",

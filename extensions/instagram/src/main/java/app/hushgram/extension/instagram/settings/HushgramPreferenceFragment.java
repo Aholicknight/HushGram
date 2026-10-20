@@ -766,8 +766,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (build.contains(PatchFamily.INBOX_SEARCH)) {
                 messages.addPreference(toggle(context, Settings.HIDE_INBOX_SEARCH,
                         L10n.t("Hide the search bar in Messages"),
-                        L10n.t("Takes the search bar off the top of your messages, the Meta AI one too. "
-                                + "Your chats, notes and requests stay.")));
+                        L10n.t("Takes the search bar and its Filter button off the top of your messages, the "
+                                + "Meta AI bar too. Your chats, notes and requests stay.")));
             }
             if (build.contains(PatchFamily.INBOX_SUGGESTIONS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_INBOX_SUGGESTIONS,

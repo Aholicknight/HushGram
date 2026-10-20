@@ -31,8 +31,8 @@ internal const val KEEP_SEARCH_SECTIONS = "$INBOX_SEARCH_BAR->sections([Ljava/la
 @Suppress("unused")
 val hideInboxSearchPatch = bytecodePatch(
     name = "Hide the search bar in Messages",
-    description = "Takes the search bar, the Meta AI one too, off the top of your messages. Your chats and " +
-        "notes stay. Starts off. Turn it on in HushGram settings > Messages.",
+    description = "Takes the search bar and its Filter button off the top of your messages, the Meta AI bar " +
+        "too. Your chats and notes stay. Starts off. Turn it on in HushGram settings > Messages.",
     default = true,
 ) {
     category("Messages")
