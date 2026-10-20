@@ -137,5 +137,8 @@ public final class SettingsContextRule extends ExternalResource {
         // for one of its own.
         Utils.setContext(RuntimeEnvironment.getApplication());
         app.hushgram.extension.instagram.settings.Settings.CATEGORY_PAGES.resetToDefault();
+        // The ways into the settings are read by every test that opens them.
+        app.hushgram.extension.instagram.settings.Settings.SETTINGS_SHORTCUT.resetToDefault();
+        app.hushgram.extension.instagram.settings.Settings.SETTINGS_LOGO_PRESS.resetToDefault();
     }
 }

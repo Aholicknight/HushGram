@@ -53,6 +53,7 @@ import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.preference.ReopenSettingsAfterRestart;
 
 /**
@@ -66,7 +67,8 @@ import app.hushgram.extension.shared.settings.preference.ReopenSettingsAfterRest
  * shows only the first few. A launcher that shows no shortcuts leaves the row at the top of
  * Instagram's own Settings and activity screen, which {@link SettingsScreenRow} draws. Inside
  * Instagram, a long press on the Instagram logo at the top of Home opens it too (see
- * {@link #setLogoLongClickListener}).
+ * {@link #setLogoLongClickListener}). The shortcut, the logo's long press and the row each have a
+ * switch, and the last way in still on can't be turned off (HushFacebook#146).
  *
  * <p>The shortcut names the main activity itself rather than a launcher alias: Instagram's icon is
  * one of several aliases it switches between at runtime (its alternate app icons), and whichever
@@ -178,11 +180,17 @@ public final class SettingsEntry {
      */
     static void publishShortcutNow(Context app) {
         try {
+            // Nothing to go by until the settings are read: the next screen asks again.
+            if (!Utils.settingsReady()) return;
             ShortcutManager manager = app.getSystemService(ShortcutManager.class);
             if (manager == null) return;
             String longLabel = L10n.t(app, "HushGram settings");
             // Set before the attempt, so a shortcut that can't be pushed isn't tried on every screen.
             publishedLabel = longLabel;
+            if (!Settings.SETTINGS_SHORTCUT.get()) {
+                removeShortcut(manager);
+                return;
+            }
             ShortcutInfo existing = ours(manager);
             if (existing != null && existing.getRank() == 0
                     && longLabel.contentEquals(existing.getLongLabel())) return;
@@ -200,8 +208,18 @@ public final class SettingsEntry {
      */
     static void keepFirstNow(Context app) {
         try {
+            if (!Utils.settingsReady()) {
+                // The switch can't be read yet, so the next screen checks the shortcut again.
+                publishedLabel = null;
+                return;
+            }
             ShortcutManager manager = app.getSystemService(ShortcutManager.class);
             if (manager == null) return;
+            // Switched off, Instagram's calls neither bring it back nor rank it.
+            if (!Settings.SETTINGS_SHORTCUT.get()) {
+                removeShortcut(manager);
+                return;
+            }
             ShortcutInfo existing = ours(manager);
             if (existing == null) {
                 publishShortcutNow(app);
@@ -234,6 +252,22 @@ public final class SettingsEntry {
             manager.removeDynamicShortcuts(Collections.singletonList(last.getId()));
         }
         manager.addDynamicShortcuts(Collections.singletonList(shortcut));
+    }
+
+    /**
+     * The shortcut switch changed: off takes the shortcut out of the launcher's menu now, on puts it
+     * back in front, both on a background thread. Instagram's own shortcuts stay.
+     */
+    static void shortcutSwitchChanged(Context context) {
+        final Context app = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        Utils.runOnBackgroundThread(() -> publishShortcutNow(app));
+    }
+
+    /** Takes the HushGram shortcut out of the launcher's menu, if it's there. */
+    private static void removeShortcut(ShortcutManager manager) {
+        if (ours(manager) == null) return;
+        manager.removeDynamicShortcuts(Collections.singletonList(SHORTCUT_ID));
+        Logger.printInfo(() -> "Settings entry: launcher shortcut removed, its switch is off");
     }
 
     /** The HushGram shortcut among the dynamic ones, or null. */
@@ -562,8 +596,10 @@ public final class SettingsEntry {
      * the logo no longer being on a screen in front. The logo's tap isn't touched, so it still does
      * what Instagram made it do.
      *
-     * <p>No switch reads this, so Pause leaves it working: it's a way back to the switch that
-     * resumes HushGram. Anything that goes wrong leaves the title view with Instagram's listener.
+     * <p>The press has a switch ({@link Settings#SETTINGS_LOGO_PRESS}) that a pause leaves as it is,
+     * since this is a way back to the switch that resumes HushGram. The listener reads it on every
+     * press, and off, the press is Instagram's. Anything that goes wrong leaves the title view with
+     * Instagram's listener.
      */
     public static void setLogoLongClickListener(View title, View.OnLongClickListener instagrams) {
         View.OnLongClickListener listener = instagrams;
@@ -613,10 +649,19 @@ public final class SettingsEntry {
         @Override
         public boolean onLongClick(View title) {
             // The logo's long press is the way into HushGram, so Instagram's app icon sheet can't
-            // take it first. Instagram's listener gets the press only when this screen can't open.
-            if (openFromLogo(title)) return true;
+            // take it first. Instagram's listener gets the press only when this screen can't open,
+            // or with the switch off.
+            if (logoPressOn() && openFromLogo(title)) return true;
             return instagrams != null && instagrams.onLongClick(title);
         }
+    }
+
+    /**
+     * Whether a long press on the logo opens this screen: its switch, read through Pause. Before the
+     * settings are read the press opens it, as it always did.
+     */
+    static boolean logoPressOn() {
+        return !Utils.settingsReady() || Settings.SETTINGS_LOGO_PRESS.get();
     }
 
     /**
@@ -690,15 +735,13 @@ public final class SettingsEntry {
      * the screen's arguments and the view it made. On the top screen, Settings and activity, it
      * answers that view with the HushGram settings row above it; on every other screen, and when
      * anything goes wrong, the view as it came. With {@link Settings#HIDE_MENU_ROW} on, the row
-     * is left out while the chosen tab long press (#84) or the long press on your profile's menu (#148)
-     * can open HushGram instead.
+     * is left out while another way can open HushGram instead ({@link #menuRowLeftOut}).
      */
     public static View withSettingsRow(Bundle arguments, View screen) {
         try {
             if (screen == null || !SettingsScreenRow.isMainScreen(arguments)) return screen;
-            if (Utils.settingsReady() && Settings.HIDE_MENU_ROW.get()
-                    && (NavigationSettings.opensFromATab() || ProfileMenuPress.opensHushGram())) {
-                Logger.printInfo(() -> "Settings entry: menu row left out, a long press opens HushGram");
+            if (menuRowLeftOut()) {
+                Logger.printInfo(() -> "Settings entry: menu row left out, another way opens HushGram");
                 return screen;
             }
             return SettingsScreenRow.above(screen);
@@ -706,6 +749,44 @@ public final class SettingsEntry {
             Logger.printException(() -> "Settings entry: could not add the row to Instagram's settings", t);
             return screen;
         }
+    }
+
+    /**
+     * Whether Instagram's settings screen leaves the HushGram row out: {@link Settings#HIDE_MENU_ROW}
+     * on while another way in works, which is the launcher shortcut or the logo's long press with its
+     * switch on, the chosen tab long press (#84) on a button Instagram built, or the long press on
+     * your profile's menu (#148) on a button that carries it. With every other way off the row
+     * stays, so there's always a way in (HushFacebook#146). Paused, the switch reads off.
+     */
+    static boolean menuRowLeftOut() {
+        if (!Utils.settingsReady() || !Settings.HIDE_MENU_ROW.get()) return false;
+        return Settings.SETTINGS_SHORTCUT.get() || Settings.SETTINGS_LOGO_PRESS.get()
+                || NavigationSettings.opensFromATab() || ProfileMenuPress.opensHushGram();
+    }
+
+    /**
+     * How many ways into HushGram are on, from the saved values the settings screen shows: the
+     * launcher shortcut, the logo's long press, the menu row (on while its hide switch is off), a
+     * tab long press (a tab chosen) and the long press on your profile's menu.
+     */
+    static int waysInOn() {
+        return (Settings.SETTINGS_SHORTCUT.savedValue() ? 1 : 0)
+                + (Settings.SETTINGS_LOGO_PRESS.savedValue() ? 1 : 0)
+                + (Settings.HIDE_MENU_ROW.savedValue() ? 0 : 1)
+                + (Settings.NAVIGATION_SETTINGS_TARGET.savedValue() != NavigationTarget.OFF ? 1 : 0)
+                + (Settings.PROFILE_MENU_LONG_PRESS.savedValue() ? 1 : 0);
+    }
+
+    /**
+     * Whether [way], the shortcut switch, the logo press switch or the menu row's hide switch, is the
+     * last way in still on, so the settings screen greys it out under a line saying why. The menu
+     * row's way is on while its hide switch is off.
+     */
+    static boolean isLastWayIn(Setting<?> way) {
+        boolean on = way == Settings.SETTINGS_SHORTCUT ? Settings.SETTINGS_SHORTCUT.savedValue()
+                : way == Settings.SETTINGS_LOGO_PRESS ? Settings.SETTINGS_LOGO_PRESS.savedValue()
+                : way == Settings.HIDE_MENU_ROW && !Settings.HIDE_MENU_ROW.savedValue();
+        return on && waysInOn() == 1;
     }
 
     /** A magenta disc with an "H", drawn so the shortcut needs no resource in Instagram's APK. */

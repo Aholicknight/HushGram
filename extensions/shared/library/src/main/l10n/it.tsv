@@ -536,7 +536,13 @@ Nothing in the row of stories at the top of Home loads, your own story included,
 Open categories as pages	Apri le categorie come pagine
 Settings shows a list of its categories, and a tap opens one on its own page. Search still looks through all of them.	Le impostazioni mostrano un elenco delle categorie e un tocco ne apre una nella sua pagina. La ricerca guarda comunque in tutte.
 Hide the HushGram row in Instagram's menu	Nascondi la riga HushGram nel menu di Instagram
-While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.	Finché una pressione lunga su una scheda o sul menu del tuo profilo apre HushGram, la schermata Impostazioni e attività di Instagram esclude la riga HushGram. Disattiva quelle pressioni lunghe e la riga torna.
+Settings shortcut on the app icon	Scorciatoia alle impostazioni sull'icona dell'app
+Open settings from the logo	Apri le impostazioni dal logo
+Puts HushGram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.	Mette le impostazioni di HushGram nel menu che compare tenendo premuta l'icona di Instagram. Disattivata, esce da quel menu.
+A long press on the Instagram logo at the top of Home opens these settings. Off, the long press goes back to Instagram.	Una pressione lunga sul logo di Instagram in cima alla Home apre queste impostazioni. Disattivata, la pressione lunga torna a Instagram.
+The last way into these settings stays on.	L'ultimo modo per aprire queste impostazioni resta attivo.
+No other way into HushGram is on, so the row stays in Instagram's menu.	Nessun altro modo per aprire HushGram è attivo, quindi la riga resta nel menu di Instagram.
+Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	Finché un altro modo per arrivare qui apre HushGram, la schermata Impostazioni e attività di Instagram esclude la riga HushGram. Con tutti gli altri modi disattivati, la riga torna.
 Stop loading stories	Blocca il caricamento delle storie
 Takes the Comment button and the comment count off the posts in your feed.	Toglie il pulsante Commenta e il conteggio dei commenti dai post nel tuo feed.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.

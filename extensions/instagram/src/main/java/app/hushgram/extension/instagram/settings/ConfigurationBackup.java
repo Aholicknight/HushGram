@@ -168,6 +168,9 @@ public final class ConfigurationBackup {
         settings.put(Settings.NAVIGATION_SETTINGS_TARGET.key, Settings.NAVIGATION_SETTINGS_TARGET);
         settings.put(Settings.HIDE_MENU_ROW.key, Settings.HIDE_MENU_ROW);
         settings.put(Settings.PROFILE_MENU_LONG_PRESS.key, Settings.PROFILE_MENU_LONG_PRESS);
+        // A backup with every way in off still leaves the menu row ({@link SettingsEntry#menuRowLeftOut}).
+        settings.put(Settings.SETTINGS_SHORTCUT.key, Settings.SETTINGS_SHORTCUT);
+        settings.put(Settings.SETTINGS_LOGO_PRESS.key, Settings.SETTINGS_LOGO_PRESS);
         settings.put(Settings.CATEGORY_PAGES.key, Settings.CATEGORY_PAGES);
         return settings;
     }

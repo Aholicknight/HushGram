@@ -67,14 +67,36 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_ghost_tab_target", NavigationTarget.OFF, false);
 
     /**
-     * Leaves the HushGram row out of Instagram's own settings menu while a tab long press (#84) or
-     * the long press on your profile's menu (#148) opens HushGram. Off to start. The row is left out
-     * only while the chosen tab is on a button Instagram built ({@link NavigationSettings#opensFromATab})
-     * or a profile menu button carries the long press ({@link ProfileMenuPress#opensHushGram}), so
-     * turning the long presses off, or Pause, brings the row back and there's always a way in.
+     * Leaves the HushGram row out of Instagram's own settings menu while another way in works
+     * ({@link SettingsEntry#menuRowLeftOut}): the launcher shortcut or the logo's long press with its
+     * switch on, the chosen tab on a button Instagram built ({@link NavigationSettings#opensFromATab}),
+     * or a profile menu button carrying the long press ({@link ProfileMenuPress#opensHushGram}). Off
+     * to start. With every other way off, or paused, the row comes back, so there's always a way in.
      */
     public static final BooleanSetting HIDE_MENU_ROW =
             new BooleanSetting("hushgram_hide_menu_row", FALSE);
+
+    /**
+     * HushGram settings in the menu you get by holding Instagram's icon ({@link SettingsEntry}). On
+     * to start. Off, the shortcut is taken out and neither a start nor Instagram's own shortcut calls
+     * put it back; Instagram's own stay (HushFacebook#146).
+     */
+    public static final BooleanSetting SETTINGS_SHORTCUT =
+            new BooleanSetting("hushgram_settings_shortcut", TRUE);
+
+    /**
+     * A long press on the Instagram logo at the top of Home opens HushGram
+     * ({@link SettingsEntry#setLogoLongClickListener}). On to start. Off, the press is Instagram's
+     * again. Read on every press, so no restart (HushFacebook#146).
+     */
+    public static final BooleanSetting SETTINGS_LOGO_PRESS =
+            new BooleanSetting("hushgram_settings_logo_press", TRUE);
+
+    static {
+        // Both are ways back to the switch that resumes HushGram, so a pause neither takes them
+        // away nor brings them back. Here, after both fields, since a static block runs in order.
+        Setting.keepWhenPaused(SETTINGS_SHORTCUT, SETTINGS_LOGO_PRESS);
+    }
 
     /**
      * A long press on the menu button, the three lines at the top right of your own profile, opens

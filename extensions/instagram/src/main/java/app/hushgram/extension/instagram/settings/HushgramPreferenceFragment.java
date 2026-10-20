@@ -471,10 +471,19 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 L10n.t("How you open HushGram, and how this screen is laid out."));
         entry.addPreference(navigationRow(context));
         entry.addPreference(profileMenuRow(context));
+        // Each way in has a switch, and the last one still on stays on (HushFacebook#146).
+        SwitchPreference shortcut = toggle(context, Settings.SETTINGS_SHORTCUT,
+                L10n.t("Settings shortcut on the app icon"), wayInSummary(Settings.SETTINGS_SHORTCUT));
+        shortcut.setOnPreferenceChangeListener((preference, value) -> {
+            // Posted, so the shortcut follows the value this change saves.
+            Utils.runOnMainThread(() -> SettingsEntry.shortcutSwitchChanged(context));
+            return true;
+        });
+        entry.addPreference(shortcut);
+        entry.addPreference(toggle(context, Settings.SETTINGS_LOGO_PRESS, L10n.t("Open settings from the logo"),
+                wayInSummary(Settings.SETTINGS_LOGO_PRESS)));
         entry.addPreference(toggle(context, Settings.HIDE_MENU_ROW, L10n.t("Hide the HushGram row in Instagram's menu"),
-                L10n.t("While a tab long press or the long press on your profile's menu opens HushGram, Instagram's "
-                        + "Settings and activity screen leaves out the HushGram row. Turn those long presses off and "
-                        + "the row comes back.")));
+                wayInSummary(Settings.HIDE_MENU_ROW)));
         entry.addPreference(toggle(context, Settings.CATEGORY_PAGES, L10n.t("Open categories as pages"),
                 L10n.t("Settings shows a list of its categories, and a tap opens one on its own page. "
                         + "Search still looks through all of them.")));
@@ -3662,6 +3671,25 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
+     * What a way-in switch does, for the shortcut, the logo press and the menu row's hide switch.
+     * The hide switch says when it can't hide the row because nothing else opens HushGram.
+     */
+    static String wayInSummary(Setting<?> setting) {
+        if (setting == Settings.SETTINGS_SHORTCUT) {
+            return L10n.t("Puts HushGram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.");
+        }
+        if (setting == Settings.SETTINGS_LOGO_PRESS) {
+            return L10n.t("A long press on the Instagram logo at the top of Home opens these settings. Off, the long "
+                    + "press goes back to Instagram.");
+        }
+        if (Settings.HIDE_MENU_ROW.savedValue() && SettingsEntry.waysInOn() == 0) {
+            return L10n.t("No other way into HushGram is on, so the row stays in Instagram's menu.");
+        }
+        return L10n.t("Instagram's Settings and activity screen leaves out the HushGram row while another way here "
+                + "opens HushGram. With every other way off, the row comes back.");
+    }
+
+    /**
      * The switch for opening HushGram with a long press on your profile's menu button (#84). The
      * button already on screen takes the change once the setting has it, after this change's own
      * sync, so no restart.
@@ -4824,7 +4852,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     protected void updatePreferenceAvailability(Preference preference, Setting<?> setting) {
         super.updatePreferenceAvailability(preference, setting);
         if (resumingFromOverview && setting == BaseSettings.PAUSED) preference.setEnabled(false);
-        if (setting == Settings.ONLY_FOLLOWING) {
+        if (setting == Settings.SETTINGS_SHORTCUT || setting == Settings.SETTINGS_LOGO_PRESS
+                || setting == Settings.HIDE_MENU_ROW) {
+            // The last way into HushGram still on stays on, greyed out under a line saying why.
+            boolean last = SettingsEntry.isLastWayIn(setting);
+            if (last) preference.setEnabled(false);
+            preference.setSummary(last ? L10n.t("The last way into these settings stays on.") : wayInSummary(setting));
+        } else if (setting == Settings.ONLY_FOLLOWING) {
             preference.setSummary(setting.isAvailable()
                     ? L10n.t("Removes For you from the choices at the top of Home, so it stays on Following or "
                             + "Favorites. Needs Start Home on Following. Restart Instagram to see the change.")

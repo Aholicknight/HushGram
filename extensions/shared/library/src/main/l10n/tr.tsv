@@ -536,7 +536,13 @@ Nothing in the row of stories at the top of Home loads, your own story included,
 Open categories as pages	Kategorileri sayfa olarak aç
 Settings shows a list of its categories, and a tap opens one on its own page. Search still looks through all of them.	Ayarlar kategorilerinin bir listesini gösterir ve bir dokunuş birini kendi sayfasında açar. Arama yine hepsinde arar.
 Hide the HushGram row in Instagram's menu	Instagram menüsündeki HushGram satırını gizle
-While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.	Bir sekmeye ya da profilinin menüsüne uzun basmak HushGram'ı açtığı sürece Instagram'ın Ayarlar ve hareketler ekranında HushGram satırı gösterilmez. Uzun basmaları kapatınca satır geri gelir.
+Settings shortcut on the app icon	Uygulama simgesinde ayarlar kısayolu
+Open settings from the logo	Ayarları logodan aç
+Puts HushGram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.	Instagram simgesine basılı tutunca açılan menüye HushGram ayarlarını koyar. Kapalıyken bu menüden çıkar.
+A long press on the Instagram logo at the top of Home opens these settings. Off, the long press goes back to Instagram.	Ana sayfanın üstündeki Instagram logosuna basılı tutmak bu ayarları açar. Kapalıyken basılı tutma yeniden Instagram'a ait olur.
+The last way into these settings stays on.	Bu ayarlara giden son yol açık kalır.
+No other way into HushGram is on, so the row stays in Instagram's menu.	HushGram'ı açan başka bir yol açık değil, bu yüzden satır Instagram'ın menüsünde kalır.
+Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	Buraya gelen başka bir yol HushGram'ı açtığı sürece Instagram'ın Ayarlar ve hareketler ekranında HushGram satırı gösterilmez. Diğer bütün yollar kapalıyken satır geri gelir.
 Stop loading stories	Hikayeleri yükleme
 Takes the Comment button and the comment count off the posts in your feed.	Akışındaki gönderilerden Yorum yap düğmesini ve yorum sayısını kaldırır.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.

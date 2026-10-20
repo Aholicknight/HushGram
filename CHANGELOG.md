@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - HushGram settings:** Each way into HushGram has its own switch under Settings entry. `Settings shortcut on the app icon` takes HushGram out of the menu you get by holding Instagram's icon, and `Open settings from the logo` gives the logo's long press back to Instagram. Both start on. `Hide the HushGram row in Instagram's menu` now steps aside for any of them, and whichever way is the last one still on stays on, greyed out. Asked for in SysAdminDoc/HushFacebook#146.
 * **Instagram - Clean up Reels:** `Stay dim when I tap` sits under Burn-in guard. Once the buttons fade, they stay faded on Reels whatever you tap or swipe, the next reel too, and come back when you leave Reels. It starts off. Asked for in #162.
 * **Instagram - Glass tab bar:** `Keep the pill full size` stops the liquid pill from shrinking to two tabs as you scroll down, so every tab stays where it was. It starts off. Asked for in #256.
 * **Instagram - Hide the Threads button:** `Hide the Create button` under Profiles takes the plus off the top of your own profile. The menu stays. It starts off. Asked for in #254.

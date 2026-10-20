@@ -536,7 +536,13 @@ Nothing in the row of stories at the top of Home loads, your own story included,
 Open categories as pages	Kategorien als Seiten öffnen
 Settings shows a list of its categories, and a tap opens one on its own page. Search still looks through all of them.	Die Einstellungen zeigen eine Liste ihrer Kategorien, und ein Tippen öffnet eine davon auf eigener Seite. Die Suche durchsucht weiterhin alle.
 Hide the HushGram row in Instagram's menu	HushGram-Zeile in Instagrams Menü ausblenden
-While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.	Solange langes Drücken auf einen Tab oder auf das Menü deines Profils HushGram öffnet, fehlt die HushGram-Zeile auf Instagrams Seite Einstellungen und Aktivität. Schaltest du das lange Drücken aus, ist die Zeile wieder da.
+Settings shortcut on the app icon	Einstellungsverknüpfung am App-Symbol
+Open settings from the logo	Einstellungen über das Logo öffnen
+Puts HushGram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.	Zeigt die HushGram-Einstellungen im Menü, das beim langen Drücken des Instagram-Symbols erscheint. Aus verschwinden sie aus diesem Menü.
+A long press on the Instagram logo at the top of Home opens these settings. Off, the long press goes back to Instagram.	Langes Drücken des Instagram-Logos oben auf der Startseite öffnet diese Einstellungen. Aus gehört das lange Drücken wieder Instagram.
+The last way into these settings stays on.	Der letzte Weg zu diesen Einstellungen bleibt eingeschaltet.
+No other way into HushGram is on, so the row stays in Instagram's menu.	Kein anderer Weg zu HushGram ist eingeschaltet, deshalb bleibt die Zeile in Instagrams Menü.
+Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	Solange ein anderer Weg HushGram öffnet, fehlt die HushGram-Zeile auf Instagrams Seite Einstellungen und Aktivität. Sind alle anderen Wege aus, ist die Zeile wieder da.
 Stop loading stories	Stories nicht laden
 Takes the Comment button and the comment count off the posts in your feed.	Entfernt den Kommentieren-Button und die Kommentarzahl von den Beiträgen in deinem Feed.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
