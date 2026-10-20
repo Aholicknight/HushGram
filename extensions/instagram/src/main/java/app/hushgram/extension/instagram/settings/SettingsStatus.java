@@ -145,6 +145,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean inboxSearch() {
+        return false;
+    }
+
     public static boolean inboxSuggestions() {
         return false;
     }

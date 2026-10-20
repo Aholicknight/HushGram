@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 ### Features
 
 * **Instagram - Swipe left to open the profile:** new patch. A switch under Reels, off to start, makes a left swipe on a reel open the creator's profile again, like Instagram used to. Tap Friends at the top for your friends' reels. (#245)
+* **Instagram - Hide the search bar in Messages:** new patch. A switch under Messages, off to start, takes the search bar off the top of your messages, the Meta AI one too, and the rest moves up with no gap. Notes, requests and your chats stay, and it works alone or with `Hide the notes row`.
 * **Instagram - Hide Plus preview in chat menus:** new patch. A switch under Messages, off to start, takes the See preview and Instagram Plus rows out of the menu you get from long pressing a chat. Your other chat options stay. (#249)
 * **Instagram - Message box buttons:** new patch. `Buttons in the message box` under Messages lets you untick Gallery, Stickers or Voice message to take them off the box you type in. Every button shows to start, and the text box and Send always stay. (#217)
 * **Instagram - Ask before a call:** a new switch, `Hide the call buttons in chats`, takes the voice and video call buttons off the top of a chat, so the name keeps the room. Off to start, under Messages. (#217)

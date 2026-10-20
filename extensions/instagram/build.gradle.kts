@@ -262,6 +262,20 @@ tasks.register("verifyAndroidBoundaries") {
                 "missingPatchHasNoNotesRowSwitch[28]", "missingPatchHasNoNotesRowSwitch[37]",
                 "notesRowSwitchStartsOffUnderMessagesPersistsAndHonorsPause[28]",
                 "notesRowSwitchStartsOffUnderMessagesPersistsAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.direct.InboxSearchBarTest" to listOf(
+                "withTheSwitchOnTheSearchBarIsLeftOut[28]", "withTheSwitchOnTheSearchBarIsLeftOut[37]",
+                "offToStartAndOffKeepTheSearchBar[28]", "offToStartAndOffKeepTheSearchBar[37]",
+                "offPausedAndUnreadyKeepTheSearchBar[28]", "offPausedAndUnreadyKeepTheSearchBar[37]",
+                "eachSwitchTakesOnlyItsOwnSectionAndBothTogetherTakeBoth[28]",
+                "eachSwitchTakesOnlyItsOwnSectionAndBothTogetherTakeBoth[37]",
+                "aListWithoutTheSearchBarGoesThroughAsItCame[28]", "aListWithoutTheSearchBarGoesThroughAsItCame[37]",
+                "aThrowingSwitchKeepsTheSearchBarAndIsReported[28]", "aThrowingSwitchKeepsTheSearchBarAndIsReported[37]"),
+            "app.hushgram.extension.instagram.settings.InboxSearchSettingsTest" to listOf(
+                "missingPatchHasNoSearchBarSwitch[28]", "missingPatchHasNoSearchBarSwitch[37]",
+                "searchBarSwitchStartsOffUnderMessagesPersistsAndHonorsPause[28]",
+                "searchBarSwitchStartsOffUnderMessagesPersistsAndHonorsPause[37]",
+                "withTheNotesRowBothSitTogetherAtTheTopOfMessages[28]",
+                "withTheNotesRowBothSitTogetherAtTheTopOfMessages[37]"),
             "app.hushgram.extension.instagram.direct.InboxSuggestionsTest" to listOf(
                 "withTheSwitchOnAccountsToFollowAreLeftOut[28]", "withTheSwitchOnAccountsToFollowAreLeftOut[37]",
                 "offToStartAndOffKeepTheSection[28]", "offToStartAndOffKeepTheSection[37]",

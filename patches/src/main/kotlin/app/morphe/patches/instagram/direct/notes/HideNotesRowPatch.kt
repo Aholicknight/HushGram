@@ -66,8 +66,6 @@ val hideNotesRowPatch = bytecodePatch(
     }
 }
 
-private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
-
 /** The inbox generator's diff update, found by its trace name. */
 internal object InboxDiffFingerprint : Fingerprint(
     strings = listOf(INBOX_DIFF),
@@ -99,10 +97,13 @@ internal class NotesSectionsSite(
  * [INBOX_SECTION_MARKER]) takes first, and the set has to be the one it checks: the set's class
  * keeps a [BIT_SET] its constructor fills, and the lookup's class reads one to decide each section.
  * Nothing after the construction may read the register holding the names, since the hook hands
- * the set a copy in that register.
+ * the set a copy in that register. Every other patch that drops an inbox section finds it the same
+ * way, refusing under its own [patch] name.
  */
-internal fun BytecodePatchContext.findNotesSections(): NotesSectionsSite {
-    val inboxDiff = uniqueMethod(PATCH, "inbox generator holding \"$INBOX_DIFF\"", InboxDiffFingerprint)
+internal fun BytecodePatchContext.findNotesSections(patch: String = PATCH): NotesSectionsSite {
+    fun refuse(detail: String): Nothing = throw PatchException("$patch: $detail")
+
+    val inboxDiff = uniqueMethod(patch, "inbox generator holding \"$INBOX_DIFF\"", InboxDiffFingerprint)
     // 451 builds the set in the diff update itself. 452 moved it into a static factory the diff
     // update calls with the inbox's mode (07SN.A00(05Ok)07SY), whose every mode jumps to the one
     // construction, so when the diff update builds none the one method it calls that does is used.
@@ -131,7 +132,7 @@ internal fun BytecodePatchContext.findNotesSections(): NotesSectionsSite {
     val sections = made.parameterTypes.single().toString().removePrefix("[")
     val set = classDefByOrNull(made.definingClass) ?: refuse("${made.definingClass} isn't in this build")
 
-    val lookup = uniqueMethod(PATCH, "inbox section lookup holding \"$INBOX_SECTION_MARKER\"", InboxSectionLookupFingerprint)
+    val lookup = uniqueMethod(patch, "inbox section lookup holding \"$INBOX_SECTION_MARKER\"", InboxSectionLookupFingerprint)
     val lookupClass = classDefBy(lookup.definingClass)
     if (!AccessFlags.STATIC.isSet(lookup.accessFlags) || lookup.parameterTypes.firstOrNull()?.toString() != sections) {
         refuse("${lookupClass.type}->${lookup.name} doesn't look a section up by $sections")
@@ -174,12 +175,17 @@ private fun BytecodePatchContext.namesNotes(enum: String): Boolean {
     return setup.instructions().count { it.stringLoaded() == NOTES_SECTION } == 1
 }
 
+/** Hands the sections to [KEEP_SECTIONS], see [askForSections]. */
+internal fun BytecodePatchContext.hideNotesRow(site: NotesSectionsSite) = askForSections(site, KEEP_SECTIONS)
+
 /**
- * Hands the sections to [KEEP_SECTIONS] right before the set is built from them, at the
- * construction's own label so whatever jumps there asks too, and casts the answer back to the
- * array type the constructor takes.
+ * Hands the sections to [hook], a static `([Ljava/lang/Object;)[Ljava/lang/Object;` method, right
+ * before the set is built from them, at the construction's own label so whatever jumps there asks
+ * too, and casts the answer back to the array type the constructor takes. A second hook found at
+ * the same site afterwards lands between the first one and the construction, so both run, whichever
+ * goes in first.
  */
-internal fun BytecodePatchContext.hideNotesRow(site: NotesSectionsSite) {
+internal fun BytecodePatchContext.askForSections(site: NotesSectionsSite, hook: String) {
     val diff = mutableClassDefBy(site.type).methods.single {
         it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
     }
@@ -187,7 +193,7 @@ internal fun BytecodePatchContext.hideNotesRow(site: NotesSectionsSite) {
     diff.addInstructionsAtControlFlowLabel(
         site.construction,
         """
-            invoke-static/range { v$register .. v$register }, $KEEP_SECTIONS
+            invoke-static/range { v$register .. v$register }, $hook
             move-result-object v$register
             check-cast v$register, [${site.sections}
         """,

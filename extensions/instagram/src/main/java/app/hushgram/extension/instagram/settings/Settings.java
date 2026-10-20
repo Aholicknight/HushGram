@@ -774,6 +774,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_notes_row", FALSE);
 
     /**
+     * The search bar at the top of your messages, the Meta AI one included
+     * ({@link app.hushgram.extension.instagram.direct.InboxSearchBar}). Read each time Instagram
+     * works out your messages again, so a change shows the next time they update. Off to start.
+     */
+    public static final BooleanSetting HIDE_INBOX_SEARCH =
+            new BooleanSetting("hushgram_hide_inbox_search", FALSE);
+
+    /**
      * The Accounts to follow section under your chats
      * ({@link app.hushgram.extension.instagram.direct.InboxSuggestions}). Read each time your
      * messages build that section. Its row tells you to restart Instagram to see the change, so

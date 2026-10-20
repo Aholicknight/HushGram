@@ -745,8 +745,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
         }
 
-        if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.INBOX_SUGGESTIONS)
-                || build.contains(PatchFamily.INSTANTS) || build.contains(PatchFamily.PLUS_PREVIEW)
+        if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.INBOX_SEARCH)
+                || build.contains(PatchFamily.INBOX_SUGGESTIONS) || build.contains(PatchFamily.INSTANTS) || build.contains(PatchFamily.PLUS_PREVIEW)
                 || build.contains(PatchFamily.THREAD_SEEN) || build.contains(PatchFamily.TYPING)
                 || build.contains(PatchFamily.ACTIVE_STATUS)
                 || build.contains(PatchFamily.LAST_ACTIVE)
@@ -762,6 +762,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 messages.addPreference(toggle(context, Settings.HIDE_NOTES_ROW, L10n.t("Hide the notes row"),
                         L10n.t("Takes the row of notes off the top of your messages, the Map bubble in it too. "
                                 + "Your chats, search and requests stay.")));
+            }
+            if (build.contains(PatchFamily.INBOX_SEARCH)) {
+                messages.addPreference(toggle(context, Settings.HIDE_INBOX_SEARCH,
+                        L10n.t("Hide the search bar in Messages"),
+                        L10n.t("Takes the search bar off the top of your messages, the Meta AI one too. "
+                                + "Your chats, notes and requests stay.")));
             }
             if (build.contains(PatchFamily.INBOX_SUGGESTIONS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_INBOX_SUGGESTIONS,
