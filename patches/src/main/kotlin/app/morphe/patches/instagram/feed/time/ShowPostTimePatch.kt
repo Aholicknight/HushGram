@@ -56,8 +56,10 @@ internal const val TIME_AS_LONG = "$POST_TIME->time($OBJECT${CONTEXT}J)$STRING"
 /**
  * The hook for a time Instagram writes from the resources rather than a context, on the static
  * call's own arguments: the resources, the unit, the formatter, the style, the time and a flag.
+ * The flag is taken as an int, never a boolean: a register Instagram's code types as int fails
+ * verification handed to a Z parameter, and the stub hands it on as Instagram's boolean.
  */
-internal const val TIME_FROM_RESOURCES = "$POST_TIME->time($RESOURCES$OBJECT$OBJECT${INTEGER}DZ)$STRING"
+internal const val TIME_FROM_RESOURCES = "$POST_TIME->time($RESOURCES$OBJECT$OBJECT${INTEGER}DI)$STRING"
 
 /** The stubs the patch fills with Instagram's own call, one for each of the three shapes. */
 internal const val INSTAGRAM_TIME = "instagramTime"

@@ -52,7 +52,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 private const val PATCH = "Hide the Repost button"
 internal const val HIDE_REPOSTS = "$EXTENSION_PACKAGE/share/RepostButton;->hide()Z"
 internal const val REPOSTS_ELIGIBLE = "$EXTENSION_PACKAGE/share/RepostButton;->eligible(Ljava/lang/Boolean;)Ljava/lang/Boolean;"
-internal const val REPOSTS_ELIGIBLE_MATCH = "$EXTENSION_PACKAGE/share/RepostButton;->eligibleMatch(ZLjava/lang/Object;)Z"
+internal const val REPOSTS_ELIGIBLE_MATCH = "$EXTENSION_PACKAGE/share/RepostButton;->eligibleMatch(ILjava/lang/Object;)Z"
 internal const val REPOSTS_FEED_UFI = "$EXTENSION_PACKAGE/share/RepostButton;->feedUfi(Landroid/view/View;Landroid/view/View;)V"
 internal const val REPOSTS_FEED_COMPONENT = "$EXTENSION_PACKAGE/share/RepostButton;->feedComponent()Z"
 internal const val REPOSTS_FEED_RESTORE = "$EXTENSION_PACKAGE/share/RepostButton;->restoreFeedUfi(Landroid/view/View;Landroid/view/View;)V"

@@ -89,14 +89,15 @@ public final class PostTime {
 
     /**
      * In place of Instagram's static call for a comment header's time, given with the resources
-     * rather than a context, on the same arguments. The date is written with the app's context,
-     * which is there once the settings are.
+     * rather than a context, on the same arguments. Instagram's flag comes as an int, non-zero for
+     * yes, since a register its code types as int fails verification handed to a boolean. The date
+     * is written with the app's context, which is there once the settings are.
      */
     public static String time(Resources resources, Object unit, Object formatter, Integer style,
-                              double seconds, boolean flag) {
+                              double seconds, int flag) {
         String exact = Double.isNaN(seconds) ? null
                 : exact(Utils.settingsReady() ? Utils.getContext() : null, (long) seconds);
-        return exact != null ? exact : instagramTime(resources, unit, formatter, style, seconds, flag);
+        return exact != null ? exact : instagramTime(resources, unit, formatter, style, seconds, flag != 0);
     }
 
     /**
