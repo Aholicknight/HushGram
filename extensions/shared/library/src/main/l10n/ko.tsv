@@ -1118,3 +1118,9 @@ LINE	LINE
 KakaoTalk	KakaoTalk
 Discord	Discord
 Band	Band
+# context: Tabs on profiles row under Profiles; Reposts and Tagged are the names of Instagram's own profile tabs
+Tabs on profiles	프로필의 탭
+Every tab shows on profiles. Untick the ones you don't want. The grid of posts always stays.	프로필에 모든 탭이 표시됩니다. 원하지 않는 탭은 체크를 해제하세요. 게시물 그리드는 항상 남아 있습니다.
+Left off profiles: %1$s. The grid of posts stays.	프로필에서 숨긴 탭: %1$s. 게시물 그리드는 그대로 남습니다.
+Reposts	리포스트
+Tagged	태그됨

@@ -894,6 +894,15 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.settings.CommentKeyboardSettingsTest" to listOf(
                 "missingPatchHasNoSwitch", "aloneItStillGetsComments", "switchStartsOffUnderCommentsAndHonorsPause"
             ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.profile.ProfileTabsTest" to listOf(
+                "nothingPickedLeavesInstagramsListAlone", "eachPickedTabGoesByItsKey", "allThreePickedLeavesTheGrid",
+                "aProfileWithFewerTabsWorksToo", "otherTabsAndOrderDontMatter", "theGridIsNeverDropped",
+                "pausedReadsAsNothingPicked", "nothingThrowsIntoInstagram", "aDroppedTabIsCounted", "savedTextIsTidied"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.ProfileTabsSettingsTest" to listOf(
+                "missingPatchHasNoTabsRow", "everyTabStartsTickedAndTheGridIsNotOffered", "aChangeSavesAtOnceByKey",
+                "aSavedChoiceShowsAndPauseKeepsIt"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.feed.FeedFollowButtonTest" to listOf(
                 "offToStartLeavesTheButtonsAlone", "onTakesTheButtonsOffAndLeavesTheNameTimeAndMenu",
                 "theSameIdOutsideAFeedPostHeaderStays", "pausedReadsAsOff"

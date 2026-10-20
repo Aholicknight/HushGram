@@ -1119,3 +1119,9 @@ LINE	LINE
 KakaoTalk	KakaoTalk
 Discord	Discord
 Band	Band
+# context: Tabs on profiles row under Profiles; Reposts and Tagged are the names of Instagram's own profile tabs
+Tabs on profiles	Profillerdeki sekmeler
+Every tab shows on profiles. Untick the ones you don't want. The grid of posts always stays.	Profillerde tüm sekmeler görünür. İstemediklerinin işaretini kaldır. Gönderi ızgarası her zaman kalır.
+Left off profiles: %1$s. The grid of posts stays.	Profillerden kaldırılanlar: %1$s. Gönderi ızgarası kalır.
+Reposts	Yeniden paylaşımlar
+Tagged	Etiketli

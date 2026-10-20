@@ -1119,3 +1119,9 @@ LINE	LINE
 KakaoTalk	KakaoTalk
 Discord	Discord
 Band	Band
+# context: Tabs on profiles row under Profiles; Reposts and Tagged are the names of Instagram's own profile tabs
+Tabs on profiles	Tab di profil
+Every tab shows on profiles. Untick the ones you don't want. The grid of posts always stays.	Semua tab tampil di profil. Hapus centang pada tab yang tidak Anda inginkan. Kisi postingan selalu tetap ada.
+Left off profiles: %1$s. The grid of posts stays.	Disembunyikan dari profil: %1$s. Kisi postingan tetap ada.
+Reposts	Postingan ulang
+Tagged	Ditandai

@@ -1119,3 +1119,9 @@ LINE	LINE
 KakaoTalk	KakaoTalk
 Discord	Discord
 Band	Band
+# context: Tabs on profiles row under Profiles; Reposts and Tagged are the names of Instagram's own profile tabs
+Tabs on profiles	Pestañas en los perfiles
+Every tab shows on profiles. Untick the ones you don't want. The grid of posts always stays.	En los perfiles se muestran todas las pestañas. Desmarca las que no quieras. La cuadrícula de publicaciones siempre se queda.
+Left off profiles: %1$s. The grid of posts stays.	Quitadas de los perfiles: %1$s. La cuadrícula de publicaciones se queda.
+Reposts	Republicaciones
+Tagged	Etiquetadas

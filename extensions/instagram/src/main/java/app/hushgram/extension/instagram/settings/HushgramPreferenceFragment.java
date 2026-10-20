@@ -99,6 +99,7 @@ import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.profile.FollowLabelPlace;
+import app.hushgram.extension.instagram.profile.ProfileTabs;
 import app.hushgram.extension.instagram.misc.GlassCorners;
 import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
@@ -1214,6 +1215,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (build.contains(PatchFamily.FRIENDSHIP_STATUS) || build.contains(PatchFamily.PROFILE_SUGGESTIONS)
                 || build.contains(PatchFamily.PROFILE_HIGHLIGHTS) || build.contains(PatchFamily.THREADS_BUTTON)
                 || build.contains(PatchFamily.PROFILE_NOTES)
+                || build.contains(PatchFamily.PROFILE_TABS)
                 || build.contains(PatchFamily.SAVED_ON_PROFILE) || build.contains(PatchFamily.PROFILE_POSTS_LIST)) {
             PreferenceCategory profiles = category(screen, L10n.t("Profiles"), SettingsIcons.PERSON,
                     L10n.t("See who follows you back, and clear extras off profiles."));
@@ -1283,6 +1285,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 profiles.addPreference(toggle(context, Settings.HIDE_HIGHLIGHTS, L10n.t("Hide highlights"),
                         L10n.t("Takes the row of story highlights off profiles, yours included. Bios, counts and "
                                 + "posts stay, and so does Add to highlight on your stories.")));
+            }
+            if (build.contains(PatchFamily.PROFILE_TABS)) {
+                profiles.addPreference(profileTabsRow(context));
             }
             if (build.contains(PatchFamily.SAVED_ON_PROFILE)) {
                 profiles.addPreference(toggle(context, Settings.SAVED_ON_PROFILE, L10n.t("Saved tab on your profile"),
@@ -1809,6 +1814,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
                     belongs |= family == PatchFamily.SHARE_SHEET && Settings.HIDDEN_SHARE_SHEET_BUTTONS.key.equals(key);
+                    belongs |= family == PatchFamily.PROFILE_TABS && Settings.HIDDEN_PROFILE_TABS.key.equals(key);
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
@@ -2051,6 +2057,71 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (name != null) return name;
         Preference own = findPreference(setting.key);
         return own == null || own.getTitle() == null ? setting.key : own.getTitle();
+    }
+
+    /** The row under Profiles that opens the list of profile tabs to show (#254). */
+    private Row profileTabsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(Settings.HIDDEN_PROFILE_TABS.key);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Tabs on profiles"));
+        row.setSummary(profileTabsSummary(Settings.HIDDEN_PROFILE_TABS.savedValue()));
+        row.setOnPreferenceClickListener(tapped -> {
+            pickProfileTabs(row);
+            return true;
+        });
+        return row;
+    }
+
+    /** What the tabs left off in [saved] do, for the row's summary. */
+    static String profileTabsSummary(String saved) {
+        Set<String> hidden = ProfileTabs.parse(saved);
+        if (hidden.isEmpty()) {
+            return L10n.t("Every tab shows on profiles. Untick the ones you don't want. The grid of posts always stays.");
+        }
+        List<String> labels = new ArrayList<>();
+        for (String key : ProfileTabs.OFFERED) {
+            if (hidden.contains(key)) labels.add(L10n.isolate(profileTabLabel(key)));
+        }
+        String left = String.join(", ", labels);
+        return L10n.f("Left off profiles: %1$s. The grid of posts stays.", left);
+    }
+
+    /** What the profile tabs list calls the tab Instagram keys [key]. */
+    static String profileTabLabel(String key) {
+        switch (key) {
+            case "profile_clips":
+                return L10n.t("Reels");
+            case "profile_reposts":
+                return L10n.t("Reposts");
+            default:
+                return L10n.t("Tagged");
+        }
+    }
+
+    /**
+     * Each tab Instagram can show on a profile, ticked while it shows. A change saves at once and
+     * shows the next time a profile opens. The grid of posts isn't listed, since it's what stays.
+     */
+    void pickProfileTabs(Row row) {
+        Context context = getActivity();
+        if (context == null) return;
+        Set<String> hidden = new LinkedHashSet<>(ProfileTabs.parse(Settings.HIDDEN_PROFILE_TABS.savedValue()));
+        List<String> keys = ProfileTabs.OFFERED;
+        CharSequence[] names = new CharSequence[keys.size()];
+        boolean[] checked = new boolean[keys.size()];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = profileTabLabel(keys.get(i));
+            checked[i] = !hidden.contains(keys.get(i));
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Tabs on profiles"));
+        builder.setMultiChoiceItems(names, checked, (dialog, which, on) -> {
+            if (on) hidden.remove(keys.get(which));
+            else hidden.add(keys.get(which));
+            Settings.HIDDEN_PROFILE_TABS.save(ProfileTabs.join(hidden));
+            row.setSummary(profileTabsSummary(Settings.HIDDEN_PROFILE_TABS.savedValue()));
+        });
+        show(builder.setPositiveButton(L10n.t("OK"), null));
     }
 
     /** The row under Ghost mode that opens the list of switches it turns (#251). */

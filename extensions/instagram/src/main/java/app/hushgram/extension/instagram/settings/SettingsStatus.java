@@ -224,6 +224,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean profileTabs() {
+        return false;
+    }
+
     public static boolean threadsButton() {
         return false;
     }

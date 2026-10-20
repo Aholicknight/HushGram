@@ -135,6 +135,7 @@ public enum PatchFamily {
             Settings.HIDE_FOLLOW_LIST_SUGGESTIONS, Settings.HIDE_PROFILE_COMPLETION, Settings.HIDE_FOLLOW_BACK_SUGGESTIONS,
             Settings.HIDE_NOTIFICATION_SUGGESTIONS, Settings.HIDE_NOTIFICATION_FEATURED),
     PROFILE_HIGHLIGHTS(FamilyNames.PROFILE_HIGHLIGHTS, "profileHighlights", null, Settings.HIDE_HIGHLIGHTS),
+    PROFILE_TABS(FamilyNames.PROFILE_TABS, "profileTabs", null),
     THREADS_BUTTON(FamilyNames.THREADS_BUTTON, "threadsButton", null, Settings.HIDE_THREADS_BUTTON,
             Settings.HIDE_CREATE_BUTTON, Settings.HIDE_SHARE_PROFILE_BUTTON),
     PROFILE_NOTES(FamilyNames.PROFILE_NOTES, "profileNotes", null, Settings.HIDE_PROFILE_NOTES),
@@ -488,6 +489,8 @@ public enum PatchFamily {
         switch (this) {
             case FONT:
                 return Collections.singletonList(Settings.FONT);
+            case PROFILE_TABS:
+                return Collections.singletonList(Settings.HIDDEN_PROFILE_TABS);
             case PLAYBACK_QUALITY:
                 return Collections.singletonList(Settings.PLAYBACK_QUALITY);
             case SHARE_SHEET:
