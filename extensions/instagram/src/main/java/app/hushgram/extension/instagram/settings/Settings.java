@@ -716,7 +716,8 @@ public class Settings extends BaseSettings {
 
     /**
      * The Meet Muse card (Try Muse button) among a profile's banners, built from the profile's data
-     * each time the profile or Edit featured opens. Off to start, like every part added to Hide
+     * each time the profile or Edit featured opens, and the same card as a quick promotion at the
+     * top of Home's feed or your profile. Off to start, like every part added to Hide
      * Meta AI after its first two, so an update never takes the card away unasked.
      */
     public static final BooleanSetting HIDE_META_AI_PROFILE_BANNER =

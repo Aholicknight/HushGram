@@ -706,8 +706,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as "
                             + "Muse.")));
             metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_PROFILE_BANNER, L10n.t("Hide the Muse card on profiles"),
-                    L10n.t("Removes the Meet Muse card, with its Try Muse button, from profiles. Your other profile "
-                            + "cards stay.")));
+                    L10n.t("Removes the Meet Muse card, with its Try Muse button, from Home and your profile. "
+                            + "Your other cards stay.")));
             metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_PROFILE_BUTTON, L10n.t("Hide the Muse button on your profile"),
                     L10n.t("Removes the Muse button from the top bar of your profile. Your username and the menu "
                             + "stay.")));

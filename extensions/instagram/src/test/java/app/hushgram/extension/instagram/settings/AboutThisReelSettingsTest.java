@@ -117,7 +117,7 @@ public class AboutThisReelSettingsTest {
         assertFalse("the share sheet switch starts off", share.isChecked());
         SwitchPreference banner = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_PROFILE_BANNER.key);
         assertEquals("Hide the Muse card on profiles", String.valueOf(banner.getTitle()));
-        assertEquals("Removes the Meet Muse card, with its Try Muse button, from profiles. Your other profile cards stay.",
+        assertEquals("Removes the Meet Muse card, with its Try Muse button, from Home and your profile. Your other cards stay.",
                 String.valueOf(banner.getSummary()));
         assertFalse("the Muse card switch starts off", banner.isChecked());
         SwitchPreference button = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_PROFILE_BUTTON.key);
