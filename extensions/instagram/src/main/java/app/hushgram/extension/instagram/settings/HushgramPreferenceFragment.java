@@ -1026,6 +1026,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("When the reel isn't on the first screen, the profile shows a Find the reel button "
                             + "instead of scrolling on its own.")));
         }
+        if (build.contains(PatchFamily.REEL_DOWNLOAD)) {
+            reels.add(toggle(context, Settings.REEL_NOT_INTERESTED_BUTTON, L10n.t("Not interested button on reels"),
+                    L10n.t("Puts a Not interested icon beside a reel, so one tap does what Not interested in its "
+                            + "menu does.")));
+        }
         if (!reels.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Reels"), SettingsIcons.REELS,
                     L10n.t("Choose what reels show, and how they play and scroll."));
@@ -1832,6 +1837,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.FEED_DOWNLOAD_BUTTON.key.equals(key) || Settings.FEED_DOWNLOAD_ALL_PAGES.key.equals(key)
                             || Settings.DOWNLOAD_CHOOSE_PAGES.key.equals(key));
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_DOWNLOAD_BUTTON.key.equals(key);
+                    belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_NOT_INTERESTED_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
                     belongs |= family == PatchFamily.SHARE_SHEET && Settings.HIDDEN_SHARE_SHEET_BUTTONS.key.equals(key);

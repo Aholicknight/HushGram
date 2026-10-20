@@ -85,6 +85,7 @@ public class DownloadSettingsTest {
         Settings.FEED_DOWNLOAD_BUTTON.resetToDefault();
         Settings.FEED_DOWNLOAD_ALL_PAGES.resetToDefault();
         Settings.REEL_DOWNLOAD_BUTTON.resetToDefault();
+        Settings.REEL_NOT_INTERESTED_BUTTON.resetToDefault();
         Settings.HOLD_TO_DOWNLOAD.resetToDefault();
         Settings.HOLD_FINGERS.resetToDefault();
         Settings.HOLD_TIME.resetToDefault();
@@ -124,6 +125,32 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.REEL_DOWNLOAD_BUTTON.key));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.REEL_DOWNLOAD_BUTTON.key));
+        }
+    }
+
+    /**
+     * Not interested button on reels (#191) sits under Reels with the reel download in the build. It
+     * starts off, has its own switch and goes in a settings file. A build without the reel download has none.
+     */
+    @Test
+    public void theNotInterestedButtonSitsUnderReelsWithItsOwnSwitch() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup reels = section(page.getPreferenceScreen(), "Reels");
+            Preference row = reels.findPreference(Settings.REEL_NOT_INTERESTED_BUTTON.key);
+            assertTrue("the Not interested button isn't under Reels", row instanceof SwitchPreference);
+            assertEquals("Not interested button on reels", String.valueOf(row.getTitle()));
+            assertFalse("it starts off", ((SwitchPreference) row).isChecked());
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_REELS.key)).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertTrue("it doesn't wait for Download on reels", row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_NOT_INTERESTED_BUTTON.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.REEL_NOT_INTERESTED_BUTTON.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.REEL_NOT_INTERESTED_BUTTON.key));
         }
     }
 

@@ -255,11 +255,28 @@ public final class ReelDownloadButton {
     }
 
     /**
+     * Whether {@link #litho} would add the icon to [column] now: the switches, an ordinary reel, and
+     * something to save. The Not interested icon (#191) goes in before this one and asks, since only
+     * the last icon over More needs the margin More takes back. Never throws.
+     */
+    static boolean shows(@Nullable Object column) {
+        try {
+            if (column == null || !enabled()) return false;
+            Object item = bridge.item(column);
+            if (item == null || !ORGANIC.equals(bridge.kind(item))) return false;
+            Object media = bridge.media(item);
+            return media != null && actions.savable(media);
+        } catch (Throwable failure) {
+            return false;
+        }
+    }
+
+    /**
      * The icon's bottom margin over More. When More's top can't be read, an Error from the bridge
      * included, or Save's [margin] isn't in pixels, the icon still goes in with Save's margin and
      * the case is counted under its own name, since the button itself works.
      */
-    private static long underAboveMore(Object column, Context context, long margin) {
+    static long underAboveMore(Object column, Context context, long margin) {
         int moreTop;
         try {
             moreTop = bridge.moreTop(column, context);

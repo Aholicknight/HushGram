@@ -1895,6 +1895,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reel_download_button", FALSE, parent(DOWNLOAD_REELS));
 
     /**
+     * A Not interested icon in the column beside a reel (#191), so one tap runs Instagram's own Not
+     * interested for that reel without opening its menu. Starts off, so the column stays Instagram's own.
+     */
+    public static final BooleanSetting REEL_NOT_INTERESTED_BUTTON =
+            new BooleanSetting("hushgram_reel_not_interested_button", FALSE);
+
+    /**
      * Hold to download: two fingers (or three) held still on a feed post's picture or video, or on a reel,
      * save what's under them with the same save as Download in the menu
      * ({@link app.hushgram.extension.instagram.download.HoldDownload}). Instagram's one-finger long press

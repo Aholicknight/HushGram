@@ -4,13 +4,10 @@
  */
 package app.morphe.patches.instagram.download.reel
 
-import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
-import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.feed.requireOneKindField
@@ -36,8 +33,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
-import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 
@@ -173,6 +168,7 @@ internal fun BytecodePatchContext.addReelDownloadButtonWhereItFits() {
         return
     }
     addReelDownloadButton(site)
+    addNotInterestedButtonWhereItFits(site)
 }
 
 /**
@@ -614,19 +610,8 @@ internal fun BytecodePatchContext.addReelDownloadButton(site: ReelButtonSite) {
     val moreTopOf = stub("moreTop", "I", OBJECT)
     val iconOf = stub("lithoIcon", OBJECT, OBJECT, CHAR_SEQUENCE, OBJECT, "J", "J")
 
-    /** Swaps [stub] for the same method with [locals] locals and [body]. */
-    fun rewrite(stub: MutableMethod, locals: Int, body: String) {
-        val parameters = stub.types().sumOf { if (it == "J" || it == "D") 2 else 1 }
-        bridges.methods.remove(stub)
-        bridges.methods.add(
-            ImmutableMethod(
-                stub.definingClass, stub.name, stub.parameters, stub.returnType, stub.accessFlags, stub.annotations,
-                stub.hiddenApiRestrictions, ImmutableMethodImplementation(locals + parameters, emptyList(), null, null),
-            ).toMutable().apply { addInstructions(0, body) },
-        )
-    }
-    rewrite(
-        itemOf, 0,
+    rewriteStub(
+        bridges, itemOf, 0,
         """
             check-cast p0, ${site.column}
             iget-object p0, p0, ${site.state}
@@ -635,8 +620,8 @@ internal fun BytecodePatchContext.addReelDownloadButton(site: ReelButtonSite) {
             return-object p0
         """,
     )
-    rewrite(
-        mediaOf, 0,
+    rewriteStub(
+        bridges, mediaOf, 0,
         """
             check-cast p0, ${site.itemType}
             iget-object p0, p0, ${site.media}
@@ -644,8 +629,8 @@ internal fun BytecodePatchContext.addReelDownloadButton(site: ReelButtonSite) {
         """,
     )
     // More's own check: no top margin while the share count shows, else the dimension it loads.
-    rewrite(
-        moreTopOf, 0,
+    rewriteStub(
+        bridges, moreTopOf, 0,
         """
             check-cast p0, ${site.column}
             iget-object p0, p0, ${site.state}
@@ -667,8 +652,8 @@ internal fun BytecodePatchContext.addReelDownloadButton(site: ReelButtonSite) {
     val dimensions = (1..slots).joinToString("\n") { slot ->
         if (slot == site.marginSlot) "move-object/from16 v$slot, v${slots + 1}" else "const/4 v$slot, 0x0"
     }
-    rewrite(
-        iconOf, maxOf(9, slots + 2),
+    rewriteStub(
+        bridges, iconOf, maxOf(9, slots + 2),
         """
             sget-object v0, ${site.empty}
             move-wide/from16 v1, p3
