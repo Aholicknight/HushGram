@@ -464,9 +464,9 @@ public enum PatchFamily {
     }
 
     /**
-     * Whether a switch is reachable all the way up. {@code parent()} only asks the switch right
-     * above, so Keep the pill full size (under Liquid, under Glass tab bar) read as available with
-     * Glass off and Liquid on, and the report called Glass tab bar on.
+     * Whether a switch is reachable all the way up. {@code parent()} walks the chain itself now, but
+     * a hand-written availability (Tab bar corners) may name a parent without asking whether that
+     * parent is reachable, so the report still climbs the listed parents.
      */
     private static boolean reachable(Setting<?> setting) {
         if (!setting.isAvailable()) return false;

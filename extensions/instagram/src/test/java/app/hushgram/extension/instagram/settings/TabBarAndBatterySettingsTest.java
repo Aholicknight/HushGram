@@ -251,6 +251,8 @@ public class TabBarAndBatterySettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_LIFT.key));
 
         Settings.GLASS_TAB_BAR_FLOAT.save(true);
+        assertFalse("the pill floats, but there's no glass bar", Settings.GLASS_TAB_BAR_LIFT.isAvailable());
+        Settings.GLASS_TAB_BAR.save(true);
         assertTrue(Settings.GLASS_TAB_BAR_LIFT.isAvailable());
         Settings.GLASS_TAB_BAR_FLOAT.save(false);
         assertFalse("nothing floats, so there's no space to choose", Settings.GLASS_TAB_BAR_LIFT.isAvailable());
@@ -431,7 +433,30 @@ public class TabBarAndBatterySettingsTest {
 
         assertFalse("no liquid look, nothing to keep", Settings.GLASS_TAB_BAR_KEEP_SIZE.isAvailable());
         Settings.GLASS_TAB_BAR_LIQUID.save(true);
+        assertFalse("the liquid switch is on, but the glass bar above it is off",
+                Settings.GLASS_TAB_BAR_KEEP_SIZE.isAvailable());
+        Settings.GLASS_TAB_BAR.save(true);
         assertTrue(Settings.GLASS_TAB_BAR_KEEP_SIZE.isAvailable());
+    }
+
+    /**
+     * A choice two levels under the glass bar rests while the bar is off, even with the switch right
+     * above it on, so settings search doesn't offer it (found 2026-10-19: parent() asked one level up).
+     */
+    @Test public void aChoiceTwoLevelsDownRestsWhileTheGlassBarIsOff() throws Exception {
+        assertTrue("Haptics starts on", Settings.GLASS_TAB_BAR_HAPTICS.savedValue());
+        assertFalse(Settings.GLASS_TAB_BAR.savedValue());
+        assertFalse(Settings.GLASS_TAB_BAR_HAPTICS.isAvailable());
+        assertFalse("its switch is on, but the glass bar is off", Settings.GLASS_TAB_BAR_HAPTIC_STYLE.isAvailable());
+        open(PatchFamily.GLASS_TAB_BAR);
+        Preference style = row(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key);
+        assertNotNull(style);
+        assertFalse(style.isEnabled());
+
+        Settings.GLASS_TAB_BAR.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.isAvailable());
+        Settings.GLASS_TAB_BAR_HAPTICS.save(false);
+        assertFalse(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.isAvailable());
     }
 
     /** Every wait on the list is a whole number of seconds, shortest first, so the label and the timer agree. */

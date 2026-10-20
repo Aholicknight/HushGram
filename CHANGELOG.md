@@ -16,6 +16,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - HushGram settings:** A setting two levels under a switch that's off now greys out like the rest. `Keep the pill full size` and the haptic style stayed tappable with the glass tab bar off, as long as the switch right above them was on.
 * **Instagram - Hide suggested stories:** With `Hide Suggested for you between stories` on, a full-screen Suggested for you page still came up between stories and after the last one. Instagram builds that page a different way, and it's left out now too. Reported in #154.
 * **Instagram - Install next to Instagram:** The copy now also gives its own package name to the report Instagram sends the system about which app loaded its code, on phones that make that report. It was still naming Instagram. Seen while chasing #205.
 * **Instagram - Glass tab bar:** Reels kept changing size as the pill slid away and back, and a paused reel's footer squeezed the video too. Reels stay one size behind the pill now, with the caption and seek bar just above it. Reported in #221 and #260.
