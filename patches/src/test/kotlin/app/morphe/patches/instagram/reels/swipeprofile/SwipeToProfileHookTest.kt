@@ -7,9 +7,14 @@ package app.morphe.patches.instagram.reels.swipeprofile
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.SETTINGS_STATUS
+import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -23,15 +28,21 @@ import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21t
 import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction35c
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -76,8 +87,8 @@ class SwipeToProfileHookTest {
     }
 
     @Test
-    fun theWholePatchHooksTheGateAndTurnsTheStatusOn() {
-        val context = PatchContexts.of(listOf(check(), ExtensionDex.classDef(SETTINGS_STATUS)))
+    fun theWholePatchHooksTheGateAndThePanelAndTurnsTheStatusOn() {
+        val context = PatchContexts.of(listOf(check(), ExtensionDex.classDef(SETTINGS_STATUS), ExtensionDex.classDef(SWIPE_TARGETS)) + panelClasses())
 
         swipeToProfilePatch.execute(context)
 
@@ -85,6 +96,57 @@ class SwipeToProfileHookTest {
         assertEquals(1, method.implementation!!.instructions.count { (it as? ReferenceInstruction)?.reference?.toString() == SWIPE_ALLOWED_HOOK })
         val status = context.mutableClassDefBy(SETTINGS_STATUS).methods.single { it.name == "swipeToProfile" }
         assertEquals(Opcode.CONST_4, status.implementation!!.instructions.first().opcode)
+    }
+
+    @Test
+    fun theTabHooksAndTheStubsAreInTheExtension() {
+        val declared = ExtensionDex.classDef(SWIPE_TO_PROFILE).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        for (hook in listOf(TAB_CHANGING_HOOK, TAB_CHANGED_HOOK)) assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        val stubs = ExtensionDex.classDef(SWIPE_TARGETS).methods.filter { AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.name }.toSet()
+        assertEquals(setOf("controller", "container", "tab", "reelsTab", "panel", "panelOn", "turn"), stubs)
+    }
+
+    /** The touch check's gate answer goes through the extension, each tab change is bracketed by the two calls, and the stubs read the panel. */
+    @Test
+    fun thePanelIsTurnedOnForReelsAndKeptOnUnderATouch() {
+        val context = PatchContexts.of(panelClasses() + ExtensionDex.classDef(SWIPE_TARGETS))
+
+        val panel = context.findProfilePanel()
+        context.hookProfilePanel(panel)
+
+        assertEquals("$SWIPE_CONTAINER->A0F:$PANEL_TYPE", panel.panel.toString())
+        assertEquals("$PANEL_TYPE->A00:Z", panel.panelOn.toString())
+        assertEquals("$PANEL_TYPE->A01:F", panel.position.toString())
+        assertEquals("$TAB->A08:$TAB", panel.reelsTab.toString())
+        assertEquals("$HOST->A03:$CONTROLLER", panel.controller.toString())
+        assertEquals("$CONTROLLER->A0E:$SWIPE_CONTAINER", panel.container.toString())
+        assertPanelHooked("stand-in", context, panel, returns = 2)
+        val turn = context.mutableClassDefBy(SWIPE_TARGETS).methods.single { it.name == "turn" }.implementation!!.instructions.toList()
+        assertEquals(panel.toggle.toString(), (turn[3] as ReferenceInstruction).reference.toString())
+        val reels = context.mutableClassDefBy(SWIPE_TARGETS).methods.single { it.name == "reelsTab" }.implementation!!.instructions.first()
+        assertEquals(panel.reelsTab.toString(), (reels as ReferenceInstruction).reference.toString())
+    }
+
+    @Test
+    fun aBuildWithoutTheContainerFailsThePatch() {
+        refuses("has no $SWIPE_CONTAINER") { PatchContexts.of(panelClasses().filterNot { it.type == SWIPE_CONTAINER }).findProfilePanel() }
+    }
+
+    @Test
+    fun aTouchCheckHandingTheSwitchTwoGatesFailsThePatch() {
+        refuses("found 2") { PatchContexts.of(panelClasses(gates = 2)).findProfilePanel() }
+    }
+
+    @Test
+    fun aSecondCallerOfTheGateFailsThePatch() {
+        refuses("found 2") { PatchContexts.of(panelClasses(secondCaller = true)).findProfilePanel() }
+    }
+
+    @Test
+    fun aPanelFlagTheExtensionCantReadFailsThePatch() {
+        refuses("isn't public") { PatchContexts.of(panelClasses(publicFlag = false)).findProfilePanel() }
     }
 
     @Test
@@ -150,14 +212,87 @@ class SwipeToProfileHookTest {
                 if (classDef.methods.any { SWIPE_ALLOWED in it.markers() }) found += ImmutableClassDef.of(classDef)
             }
         }
-        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, found) + ExtensionDex.classDef(SETTINGS_STATUS))
+        val context = PatchContexts.of(
+            FixtureDex.withStringPools(bundle, found + fixturePanelClasses(bundle)) +
+                ExtensionDex.classDef(SETTINGS_STATUS) + ExtensionDex.classDef(SWIPE_TARGETS),
+        )
 
         val gate = context.findSwipeGate()
+        val panel = context.findProfilePanel()
+        val returns = panel.tabChange.implementation!!.instructions.count { it.opcode == Opcode.RETURN_VOID }
         swipeToProfilePatch.execute(context)
 
         val method = context.mutableClassDefBy(gate.type).methods.single { it.name == gate.name && SWIPE_ALLOWED in it.markers() }
         assertHooked("$label ${gate.type}->${gate.name}", method, gate)
+        assertPanelHooked("$label ${panel.tabChange.definingClass}->${panel.tabChange.name}", context, panel, returns)
     }
+
+    /**
+     * The container, the classes of the methods calling a session gate its touch check calls, and
+     * the classes those and the container keep in fields or take as parameters, as [bundle] has them.
+     */
+    private fun fixturePanelClasses(bundle: File): List<ClassDef> {
+        val container = FixtureDex.classes(bundle, setOf(SWIPE_CONTAINER)).values.single()
+        val touch = container.methods.single { it.name == "onInterceptTouchEvent" && it.implementation != null }
+        val gates = touch.implementation!!.instructions.mapNotNull { it.called() }
+            .filter { it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == listOf(SESSION) }
+        val owners = gates.map { it.definingClass }.toSet()
+        val asked = gates.map { it.toString() }.toSet()
+        val callers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it in owners } }) { method ->
+            method.implementation?.instructions?.any { it.called()?.toString() in asked } == true
+        }
+        val hosts = FixtureDex.classes(bundle, callers.map { it.definingClass }.toSet() - SWIPE_CONTAINER).values
+        val kept = (hosts + container).flatMap { holder -> holder.fields.map { it.type } } +
+            callers.flatMap { method -> method.parameterTypes.map(CharSequence::toString) }
+        val have = hosts.map { it.type }.toSet() + SWIPE_CONTAINER
+        return listOf(container) + hosts + FixtureDex.classes(bundle, kept.filter { it.startsWith("L") }.toSet() - have).values
+    }
+
+    /**
+     * The touch check's gate answer handed to [SWIPE_ALLOWED_HOOK] and on to the panel switch; the
+     * tab change opening with [TAB_CHANGING_HOOK] on this and each of its [returns] right after
+     * [TAB_CHANGED_HOOK] on this, with nothing jumping past the call.
+     */
+    private fun assertPanelHooked(what: String, context: BytecodePatchContext, panel: ProfilePanel, returns: Int) {
+        val code = context.mutated(panel.touch).implementation!!.instructions.toList()
+        assertEquals("$what: touch hooks", 1, code.count { it.names(SWIPE_ALLOWED_HOOK) })
+        assertEquals("$what: the gate's answer", Opcode.MOVE_RESULT, code[panel.gateResult].opcode)
+        val call = code[panel.gateResult + 1]
+        assertEquals("$what: the touch call", Opcode.INVOKE_STATIC_RANGE, call.opcode)
+        assertTrue("$what: the touch hook", call.names(SWIPE_ALLOWED_HOOK))
+        assertEquals("$what: the touch call's register", panel.gateRegister, (call as RegisterRangeInstruction).startRegister)
+        assertEquals("$what: one register", 1, call.registerCount)
+        val back = code[panel.gateResult + 2]
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, back.opcode)
+        assertEquals("$what: into the same register", panel.gateRegister, (back as OneRegisterInstruction).registerA)
+        val handed = code[panel.gateResult + 3]
+        assertTrue("$what: the panel switch", handed.names(panel.toggle.toString()))
+        assertEquals("$what: handed the same register", panel.gateRegister, (handed as FiveRegisterInstruction).registerD)
+
+        val change = context.mutated(panel.tabChange)
+        val body = change.implementation!!.instructions.toList()
+        val self = panel.tabChange.localRegisterCount()
+        assertEquals("$what: tab hooks first", 1, body.count { it.names(TAB_CHANGING_HOOK) })
+        assertTrue("$what: the first instruction", body[0].names(TAB_CHANGING_HOOK))
+        assertEquals("$what: on this", self, (body[0] as RegisterRangeInstruction).startRegister)
+        val ends = body.indices.filter { body[it].opcode == Opcode.RETURN_VOID }
+        assertEquals("$what: returns", returns, ends.size)
+        assertEquals("$what: tab hooks last", returns, body.count { it.names(TAB_CHANGED_HOOK) })
+        val targets = change.jumpTargets()
+        for (end in ends) {
+            assertTrue("$what: the call before the return at $end", body[end - 1].names(TAB_CHANGED_HOOK))
+            assertEquals("$what: on this before the return at $end", self, (body[end - 1] as RegisterRangeInstruction).startRegister)
+            assertFalse("$what: something jumps past the call to the return at $end", end in targets)
+        }
+    }
+
+    private fun BytecodePatchContext.mutated(method: Method) = mutableClassDefBy(method.definingClass).methods.single {
+        it.name == method.name && it.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
+    }
+
+    private fun Instruction.called() = (this as? ReferenceInstruction)?.reference as? MethodReference
+
+    private fun Instruction.names(reference: String) = (this as? ReferenceInstruction)?.reference?.toString() == reference
 
     /** The gate read, the hook taking its answer as a range of one, the answer back in the same register and the branch still on it; one hook in all. */
     private fun assertHooked(what: String, method: Method, gate: SwipeGate) {
@@ -190,6 +325,151 @@ class SwipeToProfileHookTest {
     private companion object {
         const val CHECK = "Lfixture/SwipeCheck;"
         const val SESSION = "Lcom/instagram/common/session/UserSession;"
+        const val PANEL_TYPE = "Lfixture/Panel;"
+        const val TAB = "Lfixture/Tab;"
+        const val HOST = "Lfixture/Host;"
+        const val CONTROLLER = "Lfixture/Controller;"
+        const val PANEL_GATE = "Lfixture/PanelGate;->A08($SESSION)Z"
+        const val TOGGLE = "$SWIPE_CONTAINER->A05(ZF)V"
+
+        /** A method whose body is [smali], assembled the way the patches assemble what they add. */
+        fun assembled(owner: String, name: String, parameters: List<String>, returns: String, flags: Int, registers: Int, smali: String): ImmutableMethod =
+            ImmutableMethod.of(
+                ImmutableMethod(
+                    owner, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, flags, null, null,
+                    ImmutableMethodImplementation(registers, emptyList(), null, null),
+                ).toMutable().apply { addInstructions(0, smali) },
+            )
+
+        fun field(owner: String, name: String, type: String, flags: Int = AccessFlags.PUBLIC.value) =
+            ImmutableField(owner, name, type, flags, null, null, null)
+
+        /**
+         * Shaped like 452's: the container's panel switch saying [CENTER_PANEL] and reading the
+         * panel's position, its touch check handing the switch the panel gate's answer for the
+         * panel at -1.0 while it's on, and the tab host's tab change asking the same gate when it
+         * reaches the Reels tab and fetching the container after, its two returns both jumped to.
+         * [gates] repeats the touch check's gate, [secondCaller] gives the host another method
+         * asking the gate and [publicFlag] false hides the panel's on flag.
+         */
+        fun panelClasses(gates: Int = 1, secondCaller: Boolean = false, publicFlag: Boolean = true): List<ClassDef> {
+            val public = AccessFlags.PUBLIC.value
+            val publicFinal = public or AccessFlags.FINAL.value
+            val handOver = """
+                const/4 v4, 0x0
+                const/4 v5, 0x0
+                invoke-virtual { v4, v5 }, $PANEL_GATE
+                move-result v2
+                invoke-virtual { p0, v2, v3 }, $TOGGLE
+            """
+            val container = ImmutableClassDef(
+                SWIPE_CONTAINER, public, "Landroid/view/ViewGroup;", null, null, null,
+                listOf(field(SWIPE_CONTAINER, "A0F", PANEL_TYPE)),
+                listOf(
+                    assembled(
+                        SWIPE_CONTAINER, "A05", listOf("Z", "F"), "V", public, 5,
+                        """
+                            const-string v1, "$CENTER_PANEL"
+                            iget-object v0, p0, $SWIPE_CONTAINER->A0F:$PANEL_TYPE
+                            iget v1, v0, $PANEL_TYPE->A01:F
+                            iput-boolean p1, v0, $PANEL_TYPE->A00:Z
+                            return-void
+                        """,
+                    ),
+                    assembled(
+                        SWIPE_CONTAINER, "onInterceptTouchEvent", listOf("Landroid/view/MotionEvent;"), "Z", public, 8,
+                        """
+                            sget-object v0, $TAB->A08:$TAB
+                            iget-object v1, p0, $SWIPE_CONTAINER->A0F:$PANEL_TYPE
+                            if-eqz v1, :done
+                            iget-boolean v1, v1, $PANEL_TYPE->A00:Z
+                            if-eqz v1, :done
+                            const/high16 v3, -0x40800000
+                        """ + handOver.repeat(gates) + """
+                            :done
+                            const/4 v0, 0x0
+                            return v0
+                        """,
+                    ),
+                ),
+            )
+            val panel = ImmutableClassDef(
+                PANEL_TYPE, publicFinal, "Ljava/lang/Object;", null, null, null,
+                listOf(
+                    field(PANEL_TYPE, "A00", "Z", if (publicFlag) public else 0),
+                    field(PANEL_TYPE, "A01", "F", publicFinal),
+                    field(PANEL_TYPE, "A02", "Landroid/view/View;"),
+                ),
+                emptyList(),
+            )
+            val tab = ImmutableClassDef(
+                TAB, publicFinal, "Ljava/lang/Enum;", null, null, null,
+                listOf(field(TAB, "A08", TAB, publicFinal or AccessFlags.STATIC.value)),
+                emptyList(),
+            )
+            val controller = ImmutableClassDef(
+                CONTROLLER, publicFinal, "Ljava/lang/Object;", null, null, null,
+                listOf(field(CONTROLLER, "A0E", SWIPE_CONTAINER)),
+                listOf(
+                    assembled(
+                        CONTROLLER, "A05", listOf(CONTROLLER), SWIPE_CONTAINER, public or AccessFlags.STATIC.value, 1,
+                        """
+                            iget-object v0, p0, $CONTROLLER->A0E:$SWIPE_CONTAINER
+                            return-object v0
+                        """,
+                    ),
+                ),
+            )
+            val host = ImmutableClassDef(
+                HOST, publicFinal, "Ljava/lang/Object;", null, null, null,
+                listOf(field(HOST, "A03", CONTROLLER)),
+                listOfNotNull(
+                    assembled(
+                        HOST, "A09", emptyList(), TAB, publicFinal, 2,
+                        """
+                            sget-object v0, $TAB->A08:$TAB
+                            return-object v0
+                        """,
+                    ),
+                    assembled(
+                        HOST, "A0O", listOf(TAB, TAB, "Ljava/lang/Integer;"), "V", publicFinal, 8,
+                        """
+                            if-eq p1, p2, :same
+                            sget-object v0, $TAB->A08:$TAB
+                            invoke-virtual { p0 }, $HOST->A09()$TAB
+                            move-result-object v1
+                            if-ne v1, v0, :done
+                            const/4 v2, 0x0
+                            const/4 v3, 0x0
+                            invoke-virtual { v2, v3 }, $PANEL_GATE
+                            move-result v2
+                            iget-object v3, p0, $HOST->A03:$CONTROLLER
+                            invoke-static { v3 }, $CONTROLLER->A05($CONTROLLER)$SWIPE_CONTAINER
+                            move-result-object v3
+                            :done
+                            return-void
+                            :same
+                            return-void
+                        """,
+                    ),
+                    if (secondCaller) {
+                        assembled(
+                            HOST, "A0P", emptyList(), "V", publicFinal, 3,
+                            """
+                                const/4 v0, 0x0
+                                const/4 v1, 0x0
+                                invoke-virtual { v0, v1 }, $PANEL_GATE
+                                move-result v0
+                                return-void
+                            """,
+                        )
+                    } else {
+                        null
+                    },
+                ),
+            )
+            return listOf(container, panel, tab, controller, host)
+        }
 
         /**
          * Shaped like 452's check: its marker loaded first, then [gates] calls taking the session and

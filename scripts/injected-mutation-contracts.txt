@@ -1691,6 +1691,16 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in i
 # on 452). Left out, the switch does nothing; twice or elsewhere, it isn't the hook the patch wrote.
 # SwipeToProfileHookTest checks on the 452 fixture where it lands.
 once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->allow(Z)Z in instance ()Z holding android_purge_26_q3_ClipsViewerSwipeNavigationDelegate_isSwipeFromReelsToActionAllowed
+# It also hands the profile panel's gate to SwipeToProfile.allow in the swipe container's touch check,
+# its one (MotionEvent)Z method calling its panel switch (onInterceptTouchEvent on 452), so a touch
+# doesn't turn the panel off again. The tab host's tab change (00M2.A0O on 452) calls
+# SwipeToProfile.tabChanging first and SwipeToProfile.tabChanged right before each of its two returns,
+# which turn the Reels tab's profile panel on and off. Left out, the panel never shows for an account
+# Instagram's server didn't pick; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->allow(Z)Z in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
+start-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->tabChanging(Ljava/lang/Object;)V in instance (L*;L*;Ljava/lang/Integer;)V holding MainTabController.delegateOnTabChanged MainTabController.updatePagerForTabChanged
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->tabChanging(Ljava/lang/Object;)V in instance (L*;L*;Ljava/lang/Integer;)V holding MainTabController.delegateOnTabChanged MainTabController.updatePagerForTabChanged
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->tabChanged(Ljava/lang/Object;)V in instance (L*;L*;Ljava/lang/Integer;)V sites 2 holding MainTabController.delegateOnTabChanged MainTabController.updatePagerForTabChanged
 # Find the reel you came from hands the reel's media to ReelOrigin.opening first thing in the Reels
 # viewer's profile opener (07FC.A03 on 450, the one method holding the marker below), reading the media
 # field of its one argument into v0 on the way, and hands a profile's Reels tab to
