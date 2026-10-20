@@ -111,6 +111,9 @@ public class CallButtonsTest {
         assertEquals(View.VISIBLE, view.getVisibility());
         CallButtons.bound(view, "AUDIO_CALL");
         assertEquals(View.GONE, view.getVisibility());
+        CallButtons.bound(view, null);
+        assertEquals("no model", View.VISIBLE, view.getVisibility());
+        CallButtons.bound(view, "AUDIO_CALL");
         CallButtons.access = model -> null;
         CallButtons.bound(view, "AUDIO_CALL");
         assertEquals("a model with no kind", View.VISIBLE, view.getVisibility());
