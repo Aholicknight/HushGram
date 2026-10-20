@@ -98,6 +98,7 @@ class SaveProfilePictureHookTest {
         assertEquals(6, adds.registerCount)
         assertEquals("no icon, as the newer menu's own rows", -1, stub.literal(adds.startRegister + 4))
         assertEquals("the plain text color, not Report's red", 0, stub.literal(adds.startRegister + 5))
+        assertEquals("every argument is set before the call", emptyList<Int>(), stub.unsetArguments(adds))
         assertEquals("the stub says the row went in", Opcode.RETURN, stub.last().opcode)
 
         // The fixture's item stores its eleventh and sixteenth arguments in each other's field, as 450 does.
@@ -225,6 +226,7 @@ class SaveProfilePictureHookTest {
                     (adds.reference() as com.android.tools.smali.dexlib2.iface.reference.MethodReference).definingClass)
                 assertEquals("${bundle.name}: the plain text color, not Report's red", 0,
                     stub.literal((adds as RegisterRangeInstruction).startRegister + 5))
+                assertEquals("${bundle.name}: every argument is set before the call", emptyList<Int>(), stub.unsetArguments(adds))
                 for (bridge in PICTURE_BRIDGES) {
                     assertEquals("${bundle.name}: $bridge", Opcode.CHECK_CAST, context.method(INSTAGRAM_MEDIA, bridge).instructions().first().opcode)
                 }
@@ -303,6 +305,16 @@ class SaveProfilePictureHookTest {
     private fun List<Instruction>.literal(register: Int): Int =
         last { it is NarrowLiteralInstruction && (it as com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction).registerA == register }
             .let { (it as NarrowLiteralInstruction).narrowLiteral }
+
+    /**
+     * The registers [call] passes that nothing before it sets. The inline assembler drops a move it can't
+     * encode (a plain move-object from v16) without a word, and ART then rejects the whole class.
+     */
+    private fun List<Instruction>.unsetArguments(call: RegisterRangeInstruction): List<Int> {
+        val set = take(indexOf(call as Instruction)).filter { it.opcode.setsRegister() }
+            .map { (it as com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction).registerA }.toSet()
+        return (call.startRegister until call.startRegister + call.registerCount).filterNot { it in set }
+    }
 
     private companion object {
         const val HOST = "Lfixture/ProfileFragment;"

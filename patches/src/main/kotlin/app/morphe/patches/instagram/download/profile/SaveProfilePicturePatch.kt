@@ -390,14 +390,15 @@ internal fun BytecodePatchContext.applyProfileMenus(menus: ProfileMenus) {
     // Six locals for the adder's arguments in a row, then the stub's four parameters. No icon (-1), and
     // false for the plain text color: true draws the row in the red Instagram gives Report.
     // The general adder takes the plain adder's defaults after the label: no second listener or subtitle, full
-    // opacity, the icon -1, and the flags the plain one passed (only the fourth set).
+    // opacity, the icon -1, and the flags the plain one passed (only the fourth set). p2 and p3 are v16 and v17
+    // there, past a plain move's four bits, and the assembler drops a plain move-object from them without a word.
     val call = if (wide) """
         check-cast p0, ${menus.sheetType}
         move-object v0, p0
         move-object v1, p1
-        move-object v2, p2
+        move-object/from16 v2, p2
         const/4 v3, 0x0
-        move-object v4, p3
+        move-object/from16 v4, p3
         const/4 v5, 0x0
         const/high16 v6, 0x3f800000
         const/4 v7, -0x1
