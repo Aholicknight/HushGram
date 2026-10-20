@@ -487,14 +487,20 @@ shared-call Lapp/hushgram/extension/instagram/stories/StoryMentions;->bind(Ljava
 # out, the pill shows but tapping it does nothing (#125).
 once-call Lapp/hushgram/extension/instagram/stories/StoryMentions;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
 # Show a post's exact time puts PostTime.time() in place of Instagram's relative formatter call,
-# on the same registers, wherever a post's or a comment's time is written: twice in the feed post
-# footer's builder (04vZ.A02 on 450), once in the Compose comment header, and twice in the older
-# comment row's time lambda (0I5B.invoke), the one ()Object method reading the row's time field
-# 0ZUO.A08. Left out, a time stays relative; elsewhere, it isn't the call the patch wrote.
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance (Landroid/content/Context;Lcom/instagram/feed/media/Media;L*;L*;L*;Z)L*; sites 2 holding CoalescedFooterUseCase#getUiState
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;J)Ljava/lang/String; in static (*)V holding com.instagram.comments.mvvm.view.compose.CommentAuthorHeader\s(CommentAuthorHeader.kt:77)
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance ()Ljava/lang/Object; holding LX/*;->*(Landroid/content/Context;J)Ljava/lang/String; LX/*;->*:Ljava/lang/Long;
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;J)Ljava/lang/String; in instance ()Ljava/lang/Object; holding LX/*;->*(Landroid/content/Context;J)Ljava/lang/String; LX/*;->*:Ljava/lang/Long;
+# on the same registers, wherever a post's or a comment's time is written. On 452's arm64 build:
+# once in the feed post footer's builder (04fS.A02), once in the label below the comments
+# (06gX.A00), once in each of the two merged lambdas the Compose comment header's callers hand it
+# (0BTE.invoke and 0BWB.A02, the only callers of the formatter's static resources overload outside
+# its class, both reading the header state's Resources field 0Heq.A01), and twice in the older
+# comment row's time lambda (0BVV.invoke), the one ()Object method reading the row's time field
+# 0Fn2.A08 and loading the row's string resource. Left out, a time stays relative; elsewhere, it
+# isn't the call the patch wrote.
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance (Landroid/content/Context;Lcom/instagram/feed/media/Media;L*;L*;L*;Z)L*; holding CoalescedFooterUseCase#getUiState
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance (Landroid/content/Context;Lcom/instagram/feed/media/Media;L*;L*;Ljava/lang/String;)L*; holding LabelBelowCommentUseCase#getUiState
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DZ)Ljava/lang/String; in instance (Ljava/lang/Object;)Ljava/lang/Object; holding LX/*;->A01:Landroid/content/res/Resources; android_purge_26_q3_ClipsViewerViewpointHelper_addConsiderationMidcardAction
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DZ)Ljava/lang/String; in static (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; holding LX/*;->A01:Landroid/content/res/Resources; LX/*;->A05(Ljava/lang/Object;)J
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance ()Ljava/lang/Object; holding LX/*;->A08:Ljava/lang/Long; const:0x7f133839
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;J)Ljava/lang/String; in instance ()Ljava/lang/Object; holding LX/*;->A08:Ljava/lang/Long; const:0x7f133839
 # Show when someone was last active asks LastActive.exact() with the time a person was last on, in the one
 # method that turns it into Active 5m ago, Active 3h ago or Active yesterday: an instance (Resources, List)
 # method answering a String, the one holding the eight hour and one week limits in minutes (0x1e0, 0x2760).
