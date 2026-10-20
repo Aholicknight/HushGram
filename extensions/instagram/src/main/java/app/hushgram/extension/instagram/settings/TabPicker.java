@@ -24,6 +24,7 @@ import java.util.Set;
 
 import app.hushgram.extension.instagram.reels.TabOrder;
 import app.hushgram.extension.shared.L10n;
+import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * The Show and reorder tabs list (#207): every tab Instagram's bar can hold, with a box for whether
@@ -33,9 +34,9 @@ import app.hushgram.extension.shared.L10n;
  * already has under Tab bar or Reels, and the order is {@link Settings#TAB_ORDER}, with the hidden
  * tabs in it too, so one turned back on comes back where it was put. Only what changed is saved, on
  * OK. Everything is read as saved, so while HushGram is paused, and Instagram gets its own bar, the
- * list still shows the user's choice and OK doesn't save over it. Two boxes can't change and read in the summary's colour: Messages on a bar Instagram put it
- * on, since nothing takes it off, and a tab Instagram left off with only a hide switch (Create on
- * most 451 accounts), since nothing adds it.
+ * list still shows the user's choice and OK doesn't save over it. Two boxes can't change and read
+ * in the summary's colour: Messages on a bar Instagram put it on, since nothing takes it off, and a
+ * tab Instagram left off with only a hide switch (Create on most 451 accounts), since nothing adds it.
  */
 final class TabPicker {
     static final String HOME = "FEED";
@@ -151,11 +152,14 @@ final class TabPicker {
 
     /**
      * Saves the list: [order] as the tab order, or Instagram's when it's the list's own order with
-     * nothing saved, and each tab in [ticked] or not that changed from how it was.
+     * nothing saved, and each tab in [ticked] or not that changed from how it was. [reset] says
+     * Reset was pressed since the list opened.
      */
-    static void save(List<String> order, Set<String> ticked) {
+    static void save(List<String> order, Set<String> ticked, boolean reset) {
         // Instagram's order as Reset showed it, before a switch below changes which tabs it holds.
-        String chosen = order.equals(rows("")) ? "" : TabOrder.join(order);
+        // Paused, no bar is kept, so the list's own order is only a guess at Instagram's, and an
+        // order that happens to match it is the user's, saved as it is unless Reset asked for none.
+        String chosen = order.equals(rows("")) && (reset || !HushgramPause.isPaused()) ? "" : TabOrder.join(order);
         for (String tab : order) {
             boolean on = ticked.contains(tab);
             if (on != shown(tab) && !fixed(tab)) setShown(tab, on);

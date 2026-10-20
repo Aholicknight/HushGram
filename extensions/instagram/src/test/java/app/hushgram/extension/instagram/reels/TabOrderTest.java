@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.reels;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -103,6 +104,22 @@ public class TabOrderTest {
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertSame(BUILT, ReelsTab.tabs(BUILT));
+    }
+
+    /**
+     * The settings list goes by the bar as last built, but a paused bar is Instagram's own, with no
+     * switch applied, so it isn't kept. Unpaused it is.
+     */
+    @Test public void onlyAnUnpausedBarIsKeptForTheSettingsList() {
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        ReelsTab.tabs(BUILT);
+        assertNull(TabOrder.lastBuilt());
+
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        ReelsTab.tabs(BUILT);
+        assertEquals(Arrays.asList("FEED", "SEARCH", "CLIPS", "DIRECT", "PROFILE"), TabOrder.lastBuilt());
     }
 
     @Test public void aListHoldingSomethingElseOrNothingGoesThroughAsItCame() {

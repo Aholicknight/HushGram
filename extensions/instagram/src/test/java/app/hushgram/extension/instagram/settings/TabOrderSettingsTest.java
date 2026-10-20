@@ -306,6 +306,28 @@ public class TabOrderSettingsTest {
         assertTrue("Activity stays on", Settings.SHOW_ACTIVITY_TAB.savedValue());
     }
 
+    /**
+     * Paused, an order that happens to match the list's own is still the user's, so a change keeps it
+     * as it is. Only Reset saves Instagram's order as none.
+     */
+    @Test public void pausedOnlyResetSavesInstagramsOrderAsNone() throws Exception {
+        Settings.TAB_ORDER.save("FEED,SEARCH,CLIPS,DIRECT,CREATION,PROFILE,NEWS");
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        open(PatchFamily.REELS_TAB);
+        AlertDialog dialog = openList();
+        box(list(dialog), TabPicker.SEARCH).setChecked(false);
+        press(dialog, DialogInterface.BUTTON_POSITIVE);
+        assertEquals("FEED,SEARCH,CLIPS,DIRECT,CREATION,PROFILE,NEWS", Settings.TAB_ORDER.savedValue());
+        assertTrue(Settings.HIDE_SEARCH_TAB.savedValue());
+
+        dialog = openList();
+        press(dialog, DialogInterface.BUTTON_NEUTRAL);
+        press(dialog, DialogInterface.BUTTON_POSITIVE);
+        assertEquals("", Settings.TAB_ORDER.savedValue());
+        assertFalse(Settings.HIDE_SEARCH_TAB.savedValue());
+    }
+
     /** Activity is listed by its own name, ticked once Show the Activity tab puts it on the bar (#156). */
     @Test public void anAddedActivityTabIsListedAsActivity() throws Exception {
         Settings.SHOW_ACTIVITY_TAB.save(true);

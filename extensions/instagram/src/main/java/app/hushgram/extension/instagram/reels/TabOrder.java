@@ -64,8 +64,11 @@ public final class TabOrder {
     static List<?> apply(List<?> tabs) {
         try {
             reordered = false;
-            remember(tabs);
-            if (!Utils.settingsReady() || HushgramPause.isPaused()) return tabs;
+            // Paused, the bar is Instagram's own, with no hide or show switch applied, so it isn't kept:
+            // the settings list then goes by the saved switches, as it does before any bar is built.
+            boolean paused = HushgramPause.isPaused();
+            if (!paused) remember(tabs);
+            if (!Utils.settingsReady() || paused) return tabs;
             List<?> shown = ordered(tabs, parse(Settings.TAB_ORDER.get()));
             reordered = shown != tabs;
             if (shown != tabs) {

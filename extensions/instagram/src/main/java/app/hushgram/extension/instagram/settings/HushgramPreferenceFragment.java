@@ -4767,6 +4767,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         LinearLayout list = TabPicker.list(context, order, ticked);
         ScrollView scroll = new ScrollView(context);
         scroll.addView(list);
+        boolean[] reset = {false};
         AlertDialog dialog = show(new AlertDialog.Builder(context)
                 .setTitle(L10n.t("Show and reorder tabs"))
                 .setView(scroll)
@@ -4774,7 +4775,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 .setNegativeButton(L10n.t("Cancel"), null)
                 .setPositiveButton(L10n.t("OK"), (shown, which) -> {
                     AbstractPreferenceFragment.restartNoteOnce(context,
-                            () -> TabPicker.save(TabPicker.orderOf(list), TabPicker.tickedOf(list)));
+                            () -> TabPicker.save(TabPicker.orderOf(list), TabPicker.tickedOf(list), reset[0]));
                     row.setSummary(tabOrderSummary(Settings.TAB_ORDER.savedValue()));
                 }));
         if (dialog == null) return;
@@ -4786,6 +4787,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (TabPicker.shownByDefault(tab)) defaults.add(tab);
             }
             TabPicker.fill(list, instagrams, defaults);
+            reset[0] = true;
         });
     }
 
