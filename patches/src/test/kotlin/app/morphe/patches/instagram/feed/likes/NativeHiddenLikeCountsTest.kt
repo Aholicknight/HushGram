@@ -44,11 +44,11 @@ class NativeHiddenLikeCountsTest {
             val context = PatchContexts.of(classes.values + ExtensionDex.classDef(HIDDEN_LIKE_COUNTS))
             val anchors = context.findHiddenLikeCounts()
 
-            assertEquals(name, DECIDE, anchors.decider.parameterTypes.map(Any::toString))
+            assertTrue("$name: the decider takes the session, then the poster's id and the flag (452 adds a surface before them)", isDecide(anchors.decider.parameterTypes.map(Any::toString)))
             assertEquals(name, "Z", anchors.decider.returnType)
             assertEquals("$name: the flag is the decider's last register", anchors.decider.implementation!!.registerCount - 1, anchors.flag)
             assertEquals("$name: the poster's id is the register before it", anchors.flag - 1, anchors.poster)
-            assertEquals("$name: the decider's second parameter is the id", "Ljava/lang/String;", anchors.decider.parameterTypes[1].toString())
+            assertEquals("$name: the decider's second to last parameter is the id", "Ljava/lang/String;", anchors.decider.parameterTypes[anchors.decider.parameterTypes.size - 2].toString())
             assertEquals("$name: the poster is read with the interface the flag is", anchors.treeFlagRead.definingClass,
                 anchors.childRead.definingClass)
             assertEquals("$name: a poster's data is the same interface", anchors.treeFlagRead.definingClass, anchors.childRead.returnType)
@@ -132,7 +132,8 @@ class NativeHiddenLikeCountsTest {
     private companion object {
         val BUILDS = listOf(385810270, 385810231, 385810269)
         const val SESSION = "Lcom/instagram/common/session/UserSession;"
-        val DECIDE = listOf(SESSION, "Ljava/lang/String;", "Z")
+        fun isDecide(types: List<String>) =
+            types.size in 3..4 && types.first() == SESSION && types[types.size - 2] == "Ljava/lang/String;" && types.last() == "Z"
         val CONSTS = setOf(Opcode.CONST, Opcode.CONST_16, Opcode.CONST_HIGH16, Opcode.CONST_4)
         val cached = FixtureCache<Map<String, ClassDef>>()
 
@@ -157,7 +158,7 @@ class NativeHiddenLikeCountsTest {
                     for (method in classDef.methods) {
                         for (instruction in method.code()) {
                             val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: continue
-                            if (called.returnType == "Z" && called.parameterTypes.map(Any::toString) == DECIDE) asked += called.definingClass
+                            if (called.returnType == "Z" && isDecide(called.parameterTypes.map(Any::toString))) asked += called.definingClass
                         }
                     }
                 }
