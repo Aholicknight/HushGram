@@ -62,6 +62,16 @@ public class ShareSheetActionsTest {
         assertEquals(Arrays.asList("add_to_your_story", "whatsapp", "download_media", "hatch"), ShareSheetActions.filter(ROW));
     }
 
+    /** A downloadable reel's Download, sent in a chat or not, goes by clips_download, and unticking Download hides it too. */
+    @Test
+    public void downloadHidesAReelsOwnDownloadToo() {
+        List<String> chatReel = Arrays.asList("user_sms", "whatsapp", "barcelona", "clips_download");
+        Settings.HIDDEN_SHARE_SHEET_BUTTONS.save("download_media");
+        assertEquals(Arrays.asList("user_sms", "whatsapp", "barcelona"), ShareSheetActions.filter(chatReel));
+        Settings.HIDDEN_SHARE_SHEET_BUTTONS.save("user_sms");
+        assertEquals(Arrays.asList("whatsapp", "barcelona", "clips_download"), ShareSheetActions.filter(chatReel));
+    }
+
     /** A name the choice doesn't know is dropped on reading, so a stray one never hides a button. */
     @Test
     public void unknownNamesHideNothing() {

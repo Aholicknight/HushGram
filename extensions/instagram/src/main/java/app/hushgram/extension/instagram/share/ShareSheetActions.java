@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -45,6 +46,13 @@ public final class ShareSheetActions {
             "whatsapp_status", "reply_to_author", "watch_on_tv", "profile_card_download", "line", "kakaotalk",
             "discord", "band"));
 
+    /**
+     * Names a button goes by on some sheets, and the choice in [ACTIONS] that hides it. A reel the
+     * poster lets people download gets its Download as clips_download, on a reel sent in a chat too,
+     * and download_media elsewhere. Both are Download in the list.
+     */
+    private static final Map<String, String> ALSO_CALLED = Collections.singletonMap("clips_download", "download_media");
+
     /** What a row with buttons taken off is counted under. */
     static final String APPLIED = "Share sheet buttons hidden";
 
@@ -65,7 +73,7 @@ public final class ShareSheetActions {
             if (hidden.isEmpty()) return names;
             List<Object> shown = new ArrayList<>(names.size());
             for (Object name : names) {
-                if (!(name instanceof String) || !hidden.contains(name)) shown.add(name);
+                if (!(name instanceof String) || !hidden.contains(choiceOf((String) name))) shown.add(name);
             }
             if (shown.size() == names.size()) return names;
             HookStatus.counted(FamilyNames.SHARE_SHEET, APPLIED);
@@ -78,6 +86,12 @@ public final class ShareSheetActions {
             HookStatus.threw(FamilyNames.SHARE_SHEET, "buttons", failure);
             return names;
         }
+    }
+
+    /** The name in [ACTIONS] whose tick decides the button the sheet calls [name]. */
+    static String choiceOf(String name) {
+        String choice = ALSO_CALLED.get(name);
+        return choice != null ? choice : name;
     }
 
     /** The button names in [saved], without blanks, repeats or names the choice doesn't know. */

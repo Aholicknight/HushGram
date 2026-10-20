@@ -17,6 +17,7 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -118,6 +119,13 @@ class ShareSheetActionsHookTest {
         val method = context.mutableClassDefBy(site.type).methods
             .single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
         assertFiltered("$label ${site.type}->${site.name}", method, site.moveResult)
+        // Download hides the button under both names it goes by (ShareSheetActions.ALSO_CALLED), so both
+        // must still be cases of the builder's switch on the name's hash.
+        val cases = method.implementation!!.instructions.filterIsInstance<SwitchPayload>()
+            .flatMap { payload -> payload.switchElements.map { it.key } }.toSet()
+        for (name in listOf("download_media", "clips_download")) {
+            assertTrue("$label: the builder has no case for $name", name.hashCode() in cases)
+        }
     }
 
     /** The picker's answer is taken, then handed to the filter, whose answer takes its place; one call in all. */
