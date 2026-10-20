@@ -57,16 +57,16 @@ private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 private const val ANY = "Ljava/lang/Object;"
 
 /**
- * Lets a left swipe on a reel open its creator's profile, as older Instagram builds did. Included in
- * the default selection with its switch initially off, so Instagram's own swipe is what you get
- * until it is turned on.
+ * Lets a left swipe on a reel open its creator's profile, as older Instagram builds did. Kept out of
+ * the default selection until a device shows the swipe opening the profile: on the accounts tried so
+ * far the swipe container never starts its own drag, even with the panel on (#245).
  */
 @Suppress("unused")
 val swipeToProfilePatch = bytecodePatch(
     name = "Swipe left to open the profile",
     description = "Makes a left swipe on a reel open the profile of the person who posted it, like Instagram used " +
         "to. Tap Friends at the top to reach your friends' reels. Starts off. Turn it on in HushGram settings > Reels.",
-    default = true,
+    default = false,
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)

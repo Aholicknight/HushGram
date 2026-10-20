@@ -209,7 +209,6 @@ class DefaultCatalogTest {
         startOnFollowingPatch,
         stopHeartbeatPatch,
         stopReelsScrollingPatch,
-        swipeToProfilePatch,
         stopStoryAutoAdvancePatch,
         stopSwipeToCreatePatch,
         stopTabSwipingPatch,
@@ -254,6 +253,7 @@ class DefaultCatalogTest {
         changeVersionCodePatch,
         installNextToInstagramPatch,
         pureBlackPatch,
+        swipeToProfilePatch,
         viewDmMediaAnonymouslyPatch,
     )
 
@@ -263,12 +263,12 @@ class DefaultCatalogTest {
     }
 
     @Test fun initiallyNeutralControlsAreAvailableInSimpleMode() {
-        assertEquals(94, neutral.size)
+        assertEquals(93, neutral.size)
         neutral.forEach { assertEquals(it.name, true, it.use) }
     }
 
-    @Test fun patchTimeChangesAndUnacceptedDmReceiptsStayOptIn() {
-        assertEquals(4, optIn.size)
+    @Test fun patchTimeChangesAndUnreadyFeaturesStayOptIn() {
+        assertEquals(5, optIn.size)
         optIn.forEach { assertEquals(it.name, false, it.use) }
     }
 
