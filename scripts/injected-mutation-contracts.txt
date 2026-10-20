@@ -716,6 +716,13 @@ once-call Lapp/hushgram/extension/instagram/direct/MessageBox;->button(Ljava/lan
 once-call Lapp/hushgram/extension/instagram/direct/MessageBox;->composerCreated(Landroid/view/View;Landroid/view/View;Landroid/view/View;)V in instance (Landroid/app/Activity;Landroid/view/View;Landroid/view/ViewGroup;Lcom/instagram/common/session/UserSession;LX/*;)V holding const:0x7f0b3891 const:0x7f0b389b const:0x7f0b38b5
 start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in static (Landroid/content/Context;L*;)L*; holding impression_muse_banner tap_muse_banner
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in static (Landroid/content/Context;L*;)L*; holding impression_muse_banner tap_muse_banner
+# The same switch asks MetaAi.dropsPromotion first in the method that turns a quick promotion into
+# its card's controller (01hF.A06 on 452), the one instance (session, promotion) method naming all
+# three templates, and a yes answers null like a null promotion, so Home's Meet Muse card is never
+# built. Left out, that card stays with the switch on; twice or elsewhere, it isn't the guard the
+# patch wrote.
+start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->dropsPromotion(Ljava/lang/Object;)Z in instance (Lcom/instagram/common/session/UserSession;L*;)L*; holding fixed_banner_ig social_context_condensed_megaphone_ig inline_editing_standard_megaphone_ig
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->dropsPromotion(Ljava/lang/Object;)Z in instance (Lcom/instagram/common/session/UserSession;L*;)L*; holding fixed_banner_ig social_context_condensed_megaphone_ig inline_editing_standard_megaphone_ig
 # Hide Blend on reels asks MetaAi.blendButton() first in the one static method that logs
 # android_purge_26_q2_BlendButtonVisibilityUtils_computeBlendInviteButtonVisibility (0362.A00 on 450).
 # No rule here, like the Muse card's: BlendButtonHookTest proves the hook on every Instagram 450
@@ -903,6 +910,14 @@ once-call Lapp/hushgram/extension/instagram/download/ReelDownload;->addTo(Ljava/
 once-call Lapp/hushgram/extension/instagram/download/ReelDownloadButton;->on()Z in instance (L*;)L*; sites 2 holding android_purge_26_q2_ClipsUfiComponent_render
 once-call Lapp/hushgram/extension/instagram/download/ReelDownloadButton;->litho(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object; in instance (L*;)L*; holding android_purge_26_q2_ClipsUfiComponent_render
 once-call Lapp/hushgram/extension/instagram/download/ReelDownloadButton;->lithoAboveMore(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object; in instance (L*;)L*; holding android_purge_26_q2_ClipsUfiComponent_render
+# The Not interested button beside a reel (#191) goes in front of each Download block in the same
+# render, so its on() is there twice too and its litho() and lithoAboveMore() once each. The Reels
+# viewer's binder delegate reports itself with the viewer's config once, where its constructor
+# returns; the constructor is the one method holding its init marker.
+once-call Lapp/hushgram/extension/instagram/download/ReelNotInterestedButton;->on()Z in instance (L*;)L*; sites 2 holding android_purge_26_q2_ClipsUfiComponent_render
+once-call Lapp/hushgram/extension/instagram/download/ReelNotInterestedButton;->litho(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object; in instance (L*;)L*; holding android_purge_26_q2_ClipsUfiComponent_render
+once-call Lapp/hushgram/extension/instagram/download/ReelNotInterestedButton;->lithoAboveMore(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object; in instance (L*;)L*; holding android_purge_26_q2_ClipsUfiComponent_render
+once-call Lapp/hushgram/extension/instagram/download/ReelNotInterestedButton;->remember(Ljava/lang/Object;Ljava/lang/Object;)Z in instance (*Lcom/instagram/clips/intf/ClipsViewerConfig;*)V holding android_purge_26_q2_ClipsMediaItemViewBinderDelegate_init
 #
 # Download any story: the story menu's builders hand their labels to labels() where they return,
 # and its handlers of a tapped label ask save() first. Several builders and handlers call each, so
@@ -1116,6 +1131,12 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryFollowButton;->bind(Lja
 # nux_story take a view or two ints. Left out, every story you watch greys and moves to the end of
 # the tray; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StorySeenRings;->seen(Ljava/lang/Object;Ljava/lang/Object;JLjava/lang/Object;)V in instance (Lcom/instagram/model/reels/ReelItem;LX/*;)V holding LX/*;->*(LX/*;LX/*;I)V
+# And it hands StoryTrayOrder the reel store's list for Home's feed adapter right before that list
+# returns (03sa.A0a on 452, the synchronized (list) list method calling the store's static
+# (session, list) filter), so watched stories go behind unwatched ones while their rings stay new
+# (#241). Left out, the tray keeps the server's order; twice or elsewhere, it isn't the hook the
+# patch wrote.
+once-call Lapp/hushgram/extension/instagram/stories/StoryTrayOrder;->order(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;)Ljava/util/List; calling static LX/*;->*(Lcom/instagram/common/session/UserSession;Ljava/util/List;)Ljava/util/ArrayList; holding const:0x8113970001674b
 #
 # Turn off double tap to like asks the extension first thing in the feed's double-tap like, the one
 # method every kind of post's gesture delegate hands a double tap to, and returns there before the
