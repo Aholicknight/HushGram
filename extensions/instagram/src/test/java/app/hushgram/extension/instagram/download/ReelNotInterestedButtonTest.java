@@ -13,9 +13,12 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.ColorFilter;
+import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 
 import java.util.ArrayList;
@@ -240,6 +243,69 @@ public class ReelNotInterestedButtonTest {
         ColorFilter instagrams = new PorterDuffColorFilter(0xFF262626, PorterDuff.Mode.SRC_IN);
         assertSame(bridge.made, ReelNotInterestedButton.litho(column, instagrams, 120, 30));
         assertSame("Instagram's own tint where it has one", instagrams, bridge.drawable.getColorFilter());
+        assertTrue("drawn in the middle of the box, not filling it", bridge.drawable instanceof ReelNotInterestedButton.Centered);
+        float density = app.hushgram.extension.shared.Utils.getContext().getResources().getDisplayMetrics().density;
+        assertEquals(Math.round(26 * density), ((ReelNotInterestedButton.Centered) bridge.drawable).side);
+    }
+
+    @Test
+    public void theGlyphTakesTheMiddleOfTheColumnsBoxAtItsOwnSize() {
+        Recording glyph = new Recording();
+        ReelNotInterestedButton.Centered centered = new ReelNotInterestedButton.Centered(glyph, 52);
+        assertEquals("no size of its own, so the column hands it the box unscaled", -1, centered.getIntrinsicWidth());
+        assertEquals(-1, centered.getIntrinsicHeight());
+
+        centered.setBounds(616, 1004, 704, 1092);
+        assertEquals(new Rect(634, 1022, 686, 1074), glyph.getBounds());
+        centered.setBounds(0, 0, 40, 30);
+        assertEquals("a box smaller than the glyph", new Rect(5, 0, 35, 30), glyph.getBounds());
+
+        ColorFilter white = new PorterDuffColorFilter(0xFFFFFFFF, PorterDuff.Mode.SRC_IN);
+        centered.setColorFilter(white);
+        assertSame(white, glyph.getColorFilter());
+        assertSame(white, centered.getColorFilter());
+        centered.setAlpha(77);
+        assertEquals(77, glyph.alpha);
+
+        int[] redrawn = {0};
+        centered.setCallback(new Drawable.Callback() {
+            @Override public void invalidateDrawable(Drawable who) {
+                if (who == centered) redrawn[0]++;
+            }
+
+            @Override public void scheduleDrawable(Drawable who, Runnable what, long when) {
+            }
+
+            @Override public void unscheduleDrawable(Drawable who, Runnable what) {
+            }
+        });
+        glyph.invalidateSelf();
+        assertEquals("a glyph that redraws itself redraws the box", 1, redrawn[0]);
+    }
+
+    /** A glyph that remembers what it was given. */
+    private static final class Recording extends Drawable {
+        int alpha = 255;
+        ColorFilter filter;
+
+        @Override public void draw(Canvas canvas) {
+        }
+
+        @Override public void setAlpha(int alpha) {
+            this.alpha = alpha;
+        }
+
+        @Override public void setColorFilter(ColorFilter filter) {
+            this.filter = filter;
+        }
+
+        @Override public ColorFilter getColorFilter() {
+            return filter;
+        }
+
+        @Override public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
+        }
     }
 
     @Test

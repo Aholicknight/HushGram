@@ -6,11 +6,15 @@ package app.hushgram.extension.instagram.download;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Canvas;
 import android.graphics.ColorFilter;
+import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -51,7 +55,9 @@ public final class ReelNotInterestedButton {
     static final String COUNT_REFUSED = "reel not interested button not placed";
     static final String COUNT_NO_HELPER = "reel not interested button skipped, Instagram's helper not found";
     /** Instagram's eye-off glyphs, by name since the numbers change from build to build. */
-    static final String[] ICON_NAMES = {"instagram_eye_off_outline_32", "instagram_eye_off_outline_24"};
+    static final String[] ICON_NAMES = {"instagram_eye_off_outline_24", "instagram_eye_off_outline_32"};
+    /** The square a column glyph is drawn in, which shows it about as big as Comment, Save and Download. */
+    static final int GLYPH_DP = 26;
     private static final int ON_MEDIA = 0xFFFFFFFF;
     /** How many viewers' delegates are remembered at once. */
     private static final int REMEMBERED = 8;
@@ -257,7 +263,76 @@ public final class ReelNotInterestedButton {
         }
         if (drawable == null) return null;
         drawable.setColorFilter(filter != null ? filter : new PorterDuffColorFilter(ON_MEDIA, PorterDuff.Mode.SRC_IN));
-        return drawable;
+        return centered(resources, drawable);
+    }
+
+    /** [glyph] drawn {@link #GLYPH_DP} square in the middle of the box the column gives it. */
+    static Drawable centered(Resources resources, Drawable glyph) {
+        return new Centered(glyph, Math.round(GLYPH_DP * resources.getDisplayMetrics().density));
+    }
+
+    /**
+     * A glyph drawn [side] pixels square in the middle of its bounds. Handed over as they are, Instagram's
+     * glyphs fill the whole 44dp box the column gives each icon, about twice the size of Save's. With no
+     * size of its own the column hands this the whole box unscaled, and the glyph takes its middle.
+     */
+    static final class Centered extends Drawable implements Drawable.Callback {
+        final Drawable glyph;
+        final int side;
+
+        Centered(Drawable glyph, int side) {
+            this.glyph = glyph;
+            this.side = side;
+            glyph.setCallback(this);
+        }
+
+        @Override protected void onBoundsChange(@NonNull Rect bounds) {
+            int square = Math.max(0, Math.min(side, Math.min(bounds.width(), bounds.height())));
+            int left = bounds.left + (bounds.width() - square) / 2;
+            int top = bounds.top + (bounds.height() - square) / 2;
+            glyph.setBounds(left, top, left + square, top + square);
+        }
+
+        @Override public void draw(@NonNull Canvas canvas) {
+            glyph.draw(canvas);
+        }
+
+        @Override public void setAlpha(int alpha) {
+            glyph.setAlpha(alpha);
+        }
+
+        @Override public void setColorFilter(@Nullable ColorFilter filter) {
+            glyph.setColorFilter(filter);
+        }
+
+        @Nullable
+        @Override public ColorFilter getColorFilter() {
+            return glyph.getColorFilter();
+        }
+
+        @Override public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
+        }
+
+        @Override protected boolean onStateChange(@NonNull int[] state) {
+            return glyph.setState(state);
+        }
+
+        @Override public boolean isStateful() {
+            return glyph.isStateful();
+        }
+
+        @Override public void invalidateDrawable(@NonNull Drawable who) {
+            invalidateSelf();
+        }
+
+        @Override public void scheduleDrawable(@NonNull Drawable who, @NonNull Runnable what, long when) {
+            scheduleSelf(what, when);
+        }
+
+        @Override public void unscheduleDrawable(@NonNull Drawable who, @NonNull Runnable what) {
+            unscheduleSelf(what);
+        }
     }
 
     /** The first of {@link #ICON_NAMES} that [packageName] has, or -1 when it has none of them. */

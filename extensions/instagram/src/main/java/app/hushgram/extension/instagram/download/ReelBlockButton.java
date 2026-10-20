@@ -205,7 +205,7 @@ public final class ReelBlockButton {
         }
         if (drawable == null) return null;
         drawable.setColorFilter(filter != null ? filter : new PorterDuffColorFilter(ON_MEDIA, PorterDuff.Mode.SRC_IN));
-        return drawable;
+        return ReelNotInterestedButton.centered(resources, drawable);
     }
 
     /** Back to how a fresh start finds it. */
