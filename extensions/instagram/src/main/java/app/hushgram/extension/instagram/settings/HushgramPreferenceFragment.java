@@ -1030,6 +1030,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.REEL_NOT_INTERESTED_BUTTON, L10n.t("Not interested button on reels"),
                     L10n.t("Puts a Not interested icon beside a reel, so one tap does what Not interested in its "
                             + "menu does.")));
+            reels.add(toggle(context, Settings.REEL_BLOCK_BUTTON, L10n.t("Block button on reels"),
+                    L10n.t("Puts a Block icon beside someone else's reel. A tap opens Instagram's own block "
+                            + "screen for that account, so you still confirm it there.")));
         }
         if (!reels.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Reels"), SettingsIcons.REELS,
@@ -1838,6 +1841,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.DOWNLOAD_CHOOSE_PAGES.key.equals(key));
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_DOWNLOAD_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_NOT_INTERESTED_BUTTON.key.equals(key);
+                    belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_BLOCK_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
                     belongs |= family == PatchFamily.SHARE_SHEET && Settings.HIDDEN_SHARE_SHEET_BUTTONS.key.equals(key);

@@ -74,22 +74,29 @@ internal class NotInterestedSite(
 
 private fun refuseNotInterested(detail: String): Nothing = throw PatchException("$NI_PATCH, the Not interested button beside a reel: $detail")
 
-private fun Method.parameterNames() = parameterTypes.map(CharSequence::toString)
+internal fun Method.parameterNames() = parameterTypes.map(CharSequence::toString)
 
 private fun methodReference(method: Method) =
     ImmutableMethodReference(method.definingClass, method.name, method.parameterNames(), method.returnType)
 
 /**
  * Adds the Not interested button beside a reel (#191) next to the Download one when both columns
- * are as this patch knows them. It is a step of its own: a build where it doesn't fit gets a warning
- * and keeps Download any reel and the Download button without it.
+ * are as this patch knows them, then the Block button in front of it, which borrows its delegate.
+ * Each is a step of its own: a build where one doesn't fit gets a warning and keeps Download any
+ * reel and the Download button without it, and without the Block button when Not interested is the
+ * one that doesn't fit.
  */
 internal fun BytecodePatchContext.addNotInterestedButtonWhereItFits(site: ReelButtonSite) {
-    try {
-        val found = findNotInterestedSite(site)
-        addNotInterestedButton(site, found)
+    val found = try {
+        findNotInterestedSite(site).also { addNotInterestedButton(site, it) }
     } catch (unknown: PatchException) {
-        patchLog.warning("${unknown.message}. $NI_PATCH goes in without the Not interested button beside a reel.")
+        patchLog.warning("${unknown.message}. $NI_PATCH goes in without the Not interested or Block buttons beside a reel.")
+        return
+    }
+    try {
+        addBlockButton(site, found, findBlockSite(found))
+    } catch (unknown: PatchException) {
+        patchLog.warning("${unknown.message}. $NI_PATCH goes in without the Block button beside a reel.")
     }
 }
 
@@ -174,7 +181,6 @@ internal fun BytecodePatchContext.addNotInterestedButton(site: ReelButtonSite, f
         it.name == site.render.name && it.parameterNames() == site.render.parameterTypes.map(CharSequence::toString) &&
             it.returnType == site.render.returnType
     }
-    val tint = if (site.tintPrivate) "invoke-direct/range" else "invoke-virtual/range"
     // Everything that can refuse is checked before anything changes.
     val bridges = mutableClassDefBy(NOT_INTERESTED_TYPE)
     fun stub(name: String, returns: String, vararg parameters: String) = bridges.methods.singleOrNull {
@@ -197,27 +203,10 @@ internal fun BytecodePatchContext.addNotInterestedButton(site: ReelButtonSite, f
     }
 
     starts.sortedByDescending { it.second }.forEach { (place, start) ->
-        val w = place.window
-        val s = place.first
         val litho = if (place.aboveMore) NOT_INTERESTED_LITHO_ABOVE_MORE else NOT_INTERESTED_LITHO
         render.addInstructionsWithLabels(
             start,
-            """
-                invoke-static {}, $NOT_INTERESTED_ON
-                move-result v$w
-                if-eqz v$w, :skip
-                $tint { v$s .. v${s + 1} }, ${site.tint}
-                move-result-object v${w + 1}
-                move-object/from16 v$w, v$s
-                move-wide/from16 v${w + 2}, v${s + 2}
-                move-wide/from16 v${w + 4}, v${s + 4}
-                invoke-static/range { v$w .. v${w + 5} }, $litho
-                move-result-object v${w + 1}
-                if-eqz v${w + 1}, :skip
-                move-object/from16 v$w, v${place.list}
-                check-cast v${w + 1}, ${site.addType}
-                invoke-virtual/range { v$w .. v${w + 1} }, ${site.add}
-            """,
+            columnIconBlock(site, place, NOT_INTERESTED_ON, litho),
             ExternalLabel("skip", render.getInstruction(start)),
         )
     }
@@ -264,6 +253,34 @@ internal fun BytecodePatchContext.addNotInterestedButton(site: ReelButtonSite, f
             return-object p0
         """,
     )
+}
+
+/**
+ * The fourteen instructions that add an extension's icon to the column at [place]: ask [on], and
+ * when it answers yes hand [litho] the column, the column's color filter and the size and margin Save
+ * was handed, and add what it answers with the column's own add. Each jumps to `:skip`, the
+ * instruction the block goes in front of.
+ */
+internal fun columnIconBlock(site: ReelButtonSite, place: ReelSaveSite, on: String, litho: String): String {
+    val w = place.window
+    val s = place.first
+    val tint = if (site.tintPrivate) "invoke-direct/range" else "invoke-virtual/range"
+    return """
+        invoke-static {}, $on
+        move-result v$w
+        if-eqz v$w, :skip
+        $tint { v$s .. v${s + 1} }, ${site.tint}
+        move-result-object v${w + 1}
+        move-object/from16 v$w, v$s
+        move-wide/from16 v${w + 2}, v${s + 2}
+        move-wide/from16 v${w + 4}, v${s + 4}
+        invoke-static/range { v$w .. v${w + 5} }, $litho
+        move-result-object v${w + 1}
+        if-eqz v${w + 1}, :skip
+        move-object/from16 v$w, v${place.list}
+        check-cast v${w + 1}, ${site.addType}
+        invoke-virtual/range { v$w .. v${w + 1} }, ${site.add}
+    """
 }
 
 /** Swaps [stub] of [bridges] for the same method with [locals] locals and [body]. */

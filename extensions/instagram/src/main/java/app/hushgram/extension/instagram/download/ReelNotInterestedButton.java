@@ -214,6 +214,22 @@ public final class ReelNotInterestedButton {
         }
     }
 
+    /**
+     * Whether {@link #litho} would add the icon to [column] now: its switch, an ordinary reel and the
+     * viewer's delegate. The Block icon (#191) goes in before this one and asks, since only the last
+     * icon over More needs the margin More takes back. Never throws.
+     */
+    static boolean shows(@Nullable Object column) {
+        try {
+            if (column == null || !enabled() || glyph < 0) return false;
+            Object item = ReelDownloadButton.bridge.item(column);
+            if (item == null || !ReelDownloadButton.ORGANIC.equals(ReelDownloadButton.bridge.kind(item))) return false;
+            return delegateFor(bridge.config(column)) != null;
+        } catch (Throwable failure) {
+            return false;
+        }
+    }
+
     /** Whether the icon shows: its switch. Paused answers no. */
     static boolean enabled() {
         return Utils.settingsReady() && Settings.REEL_NOT_INTERESTED_BUTTON.get();
@@ -246,7 +262,12 @@ public final class ReelNotInterestedButton {
 
     /** The first of {@link #ICON_NAMES} that [packageName] has, or -1 when it has none of them. */
     static int glyphId(Resources resources, String packageName) {
-        for (String name : ICON_NAMES) {
+        return glyphId(resources, packageName, ICON_NAMES);
+    }
+
+    /** The first of [names] that [packageName] has, or -1 when it has none of them. */
+    static int glyphId(Resources resources, String packageName, String[] names) {
+        for (String name : names) {
             int id = resources.getIdentifier(name, "drawable", packageName);
             if (id != 0) return id;
         }

@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.download.reel
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
@@ -20,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import java.io.File
@@ -32,7 +34,8 @@ import org.junit.Test
  * delegate that binds the viewer's items is found by its two markers, the column's state hands back
  * the reel's state and the viewer's config, the icon's block goes in front of the Download one at both
  * places Save is added, the delegate's constructor reports itself with the config, and the bridges
- * run Instagram's own Not interested.
+ * run Instagram's own Not interested. The Block icon (#191) then goes in front of that block, and its
+ * bridge opens Instagram's own block sheet with the delegate's activity and session.
  */
 class ReelNotInterestedHookTest {
     @Test
@@ -49,6 +52,15 @@ class ReelNotInterestedHookTest {
             "notInterestedState(Ljava/lang/Object;)Ljava/lang/Object;",
             "notInterestedRun(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         )) assertTrue("$NOT_INTERESTED_TYPE has no public static $needed", needed in declared)
+        val blocks = ExtensionDex.classDef(BLOCK_TYPE).methods
+            .filter { AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }.toSet()
+        for (needed in listOf(
+            BLOCK_ON.substringAfter("->"),
+            BLOCK_LITHO.substringAfter("->"),
+            BLOCK_LITHO_ABOVE_MORE.substringAfter("->"),
+            "blockRun(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;",
+        )) assertTrue("$BLOCK_TYPE has no public static $needed", needed in blocks)
     }
 
     @Test
@@ -70,9 +82,12 @@ class ReelNotInterestedHookTest {
             val holds = dex.stringSection.any { string ->
                 string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in markers
             }
-            if (!holds) return@forEach
+            val anchors = dex.stringSection.any { it == BLOCK_HELPER_ANCHOR }
+            if (!holds && !anchors) return@forEach
             for (classDef in dex.classes) {
-                if (classDef.methods.any { method -> method.markers().any { it in markers } }) classes[classDef.type] = ImmutableClassDef.of(classDef)
+                if (classDef.methods.any { method -> method.markers().any { it in markers } } ||
+                    anchors && classDef.methods.any { it.loads(BLOCK_HELPER_ANCHOR) }
+                ) classes[classDef.type] = ImmutableClassDef.of(classDef)
             }
         }
         val marked = classes.values.flatMap { it.methods }.filter { method -> method.markers().any { it in markers } }
@@ -84,6 +99,7 @@ class ReelNotInterestedHookTest {
         }
         classes[REEL_BUTTON_TYPE] = ExtensionDex.classDef(REEL_BUTTON_TYPE)
         classes[NOT_INTERESTED_TYPE] = ExtensionDex.classDef(NOT_INTERESTED_TYPE)
+        classes[BLOCK_TYPE] = ExtensionDex.classDef(BLOCK_TYPE)
         val context = PatchContexts.of(classes.values.toList())
 
         val site = context.findReelButtonSite()
@@ -135,6 +151,40 @@ class ReelNotInterestedHookTest {
         assertEquals("$name: the run bridge",
             listOf(found.delegate, found.itemType, found.stateType, found.run.toString(), null, null),
             body("notInterestedRun"))
+
+        // The Block icon goes in front of Not interested's block and opens Instagram's own block sheet.
+        val block = context.findBlockSite(found)
+        assertEquals("$name: the delegate's activity", "Landroidx/fragment/app/FragmentActivity;", block.activity.type)
+        assertEquals("$name: the delegate's session", "Lcom/instagram/common/session/UserSession;", block.session.type)
+        assertEquals("$name: the helper's one instance", block.helper, block.instance.type)
+        val withoutHelper = PatchContexts.of(classes.values.filter { it.type != block.helper })
+        val refused = runCatching { withoutHelper.findBlockSite(found) }.exceptionOrNull()
+        assertTrue("$name: a build without the helper is refused before anything changes", refused is PatchException)
+
+        context.addBlockButton(site, found, block)
+        val blocked = renderOf().instructions()
+        assertEquals("$name: fourteen more at each place", code.size + 28, blocked.size)
+        val blockAsks = blocked.indices.filter { blocked[it].names(BLOCK_ON) }
+        assertEquals("$name: the Block on() at both places", 2, blockAsks.size)
+        blockAsks.zip(site.sites.sortedBy { it.at }).forEach { (at, place) ->
+            assertTrue("$name: Not interested's block follows right after", blocked[at + 14].names(NOT_INTERESTED_ON))
+            assertTrue("$name: and Download's after that", blocked[at + 28].names(REEL_BUTTON_ON))
+            val litho = if (place.aboveMore) BLOCK_LITHO_ABOVE_MORE else BLOCK_LITHO
+            assertTrue("$name: $litho eight after on()", blocked[at + 8].names(litho))
+            assertTrue("$name: the Block icon is added by the column's own add", blocked[at + 13].names(site.add.toString()))
+        }
+        val run = context.mutableClassDefBy(BLOCK_TYPE).methods.single { it.name == "blockRun" }.instructions()
+            .map { (it as? ReferenceInstruction)?.reference?.toString() }
+        assertEquals("$name: the block bridge",
+            listOf(
+                found.delegate, "Lcom/instagram/user/model/User;", block.instance.toString(), block.activity.toString(), null,
+                block.session.toString(), null, null, null, block.open.toString(), null, null,
+            ),
+            run)
+    }
+
+    private fun Method.loads(string: String) = instructions().any {
+        ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == string
     }
 
     /** The types [method]'s code names: the classes of what it calls and reads, their types, and the types it checks or makes. */
