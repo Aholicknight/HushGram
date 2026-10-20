@@ -174,6 +174,32 @@ public class HdrBoostTest {
         assertTrue(report, !report.contains(HdrBoost.SCREEN_CHECKS) && !report.contains(HdrBoost.SRGB_LAYERS));
     }
 
+    /**
+     * Instagram's boolean read of "SDR super white on HDR content" or "Ultra HDR always on", named by
+     * the table index in the specifier's bits 32 to 47, answers no while the switch is on (#85). Other
+     * options, an index the patch didn't find (-1), and the switch off or paused keep Instagram's.
+     */
+    @Test
+    public void onInstagramsHdrOptionsReadAsOff() {
+        long superWhite = 0x0081_051D_0000_1234L;
+        long ultraHdr = 0x0081_1099_0000_5986L;
+        long another = 0x0081_109A_0000_5986L;
+        assertTrue(HdrBoost.optionOff(superWhite, 1309, 4249));
+        assertTrue(HdrBoost.optionOff(ultraHdr, 1309, 4249));
+        assertTrue(HdrBoost.optionOff(ultraHdr, -1, 4249));
+        assertEquals(false, HdrBoost.optionOff(another, 1309, 4249));
+        assertEquals(false, HdrBoost.optionOff(superWhite, -1, 4249));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(HdrBoost.OPTIONS_OFF + " 3"));
+
+        Settings.TURN_OFF_HDR_BOOSTS.save(false);
+        assertEquals(false, HdrBoost.optionOff(ultraHdr, 1309, 4249));
+        Settings.TURN_OFF_HDR_BOOSTS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(false, HdrBoost.optionOff(superWhite, 1309, 4249));
+    }
+
     /** The screen stand-ins read the display Instagram asked about and answer for it. */
     @Test
     public void theDisplayStandInsAnswerForTheDisplay() {

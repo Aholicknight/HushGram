@@ -46,6 +46,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * of those reads answers no HDR, so Instagram chooses SDR. The HDR recording helper the camera uses
  * keeps the real answers. The layer above is also told its frames are plain sRGB rather than
  * extended range sRGB, so Android doesn't treat it as an HDR layer (#85).
+ *
+ * <p>Two of Instagram's own server options light HDR content on top of all that: "SDR super white
+ * on HDR content", which gives ordinary reels a white brighter than the screen's, and "Ultra HDR
+ * always on". With the switch on, Instagram's boolean read of either answers no (#85).
  */
 public final class HdrBoost {
     private HdrBoost() {
@@ -69,6 +73,9 @@ public final class HdrBoost {
 
     /** What the diagnostic report counts each time an extended range layer is sent as plain sRGB. */
     static final String SRGB_LAYERS = "HDR layers sent as sRGB";
+
+    /** What the diagnostic report counts each time one of Instagram's own HDR options is read as off. */
+    static final String OPTIONS_OFF = "Instagram HDR options read as off";
 
     /** A dataspace's range bits, and the full and extended ranges (Android's DataSpace.RANGE_*). */
     static final int RANGE_MASK = 7 << 27;
@@ -135,6 +142,19 @@ public final class HdrBoost {
             SurfaceControl control, int dataSpace) {
         if (Build.VERSION.SDK_INT >= 33) return transaction.setDataSpace(control, layerDataSpace(dataSpace));
         return transaction;
+    }
+
+    /**
+     * Whether Instagram's boolean read of the option [specifier] names answers no in place of its
+     * own (#85). The specifier's bits 32 to 47 are the option's index in Instagram's option table, and
+     * [superWhite] and [ultraHdr] are the indexes the patch found for "SDR super white on HDR
+     * content" and "Ultra HDR always on", -1 when it found none.
+     */
+    public static boolean optionOff(long specifier, int superWhite, int ultraHdr) {
+        int option = (int) ((specifier >>> 32) & 0xffff);
+        if ((option != superWhite && option != ultraHdr) || !on()) return false;
+        HookStatus.counted(FamilyNames.HDR_BOOST, OPTIONS_OFF);
+        return true;
     }
 
     /** Whether to say the screen is HDR in place of [reported], the screen's answer. */

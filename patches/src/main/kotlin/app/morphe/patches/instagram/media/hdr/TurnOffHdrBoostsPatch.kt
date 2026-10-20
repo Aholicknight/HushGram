@@ -4,14 +4,22 @@
  */
 package app.morphe.patches.instagram.media.hdr
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.sendToStandIn
@@ -21,6 +29,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.formats.ArrayPayload
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Turn off HDR brightness boosts"
@@ -95,8 +104,98 @@ val turnOffHdrBoostsPatch = bytecodePatch(
     execute {
         requireStatusMethod("hdrBoost")
         holdBackHdrBoosts()
+        holdHdrOptionsOff()
         enableStatus("hdrBoost")
     }
+}
+
+/**
+ * "SDR super white on HDR content" (ig_android_clips_sdr_super_white_on_hdr_content), the option that
+ * gives ordinary reels a white brighter than the screen's (#85).
+ */
+internal const val SUPER_WHITE_OPTION = 68885
+
+/** "Ultra HDR always on" (ig_android_uhdr_always_on) (#85). */
+internal const val ULTRA_HDR_OPTION = 109125
+
+/**
+ * Loaded by the String read of the class Instagram's Java code reads its server options through. That
+ * read's first parameter type is the boolean read's first too.
+ */
+internal const val OPTION_READER_MARKER = "__fbt_null__"
+
+/** The fewest option ids the table lists. Instagram's lists nearly 6000. */
+private const val OPTION_TABLE_MIN = 1000
+
+/** The HdrBoost method the boolean option read asks first: the specifier and the two indexes. */
+internal const val OPTION_OFF = "$HDR_BOOST->optionOff(JII)Z"
+
+/**
+ * Where [ids] sit in Instagram's option table: the class initializer whose int arrays list every
+ * option id the app knows, one after another, so that an option's place among them is the index its
+ * specifiers carry in bits 32 to 47. Every index is -1 when no table lists them all.
+ */
+internal fun BytecodePatchContext.optionIndexes(vararg ids: Int): List<Int> {
+    var table: List<Int>? = null
+    classDefForEach { classDef ->
+        if (table != null) return@classDefForEach
+        val initializer = classDef.methods.firstOrNull { it.name == "<clinit>" } ?: return@classDefForEach
+        val listed = initializer.implementation?.instructions
+            ?.filterIsInstance<ArrayPayload>()?.filter { it.elementWidth == 4 }
+            ?.flatMap { payload -> payload.arrayElements.map { it.toInt() } }.orEmpty()
+        if (listed.size >= OPTION_TABLE_MIN && ids.all { it in listed }) table = listed
+    }
+    return ids.map { id -> table?.indexOf(id) ?: -1 }
+}
+
+/**
+ * Puts HdrBoost in front of Instagram's boolean option read, the one every Java read of a server
+ * switch ends in, so "SDR super white on HDR content" and "Ultra HDR always on" read as off while
+ * the switch is on (#85). The read sits in the class holding [OPTION_READER_MARKER] and takes that
+ * class's reader type, the specifier and the default. Answers the read it changed, or null when the
+ * table or the read can't be found, which leaves the rest of the patch working and says so in the log.
+ */
+internal fun BytecodePatchContext.holdHdrOptionsOff(): MutableMethod? {
+    val (superWhite, ultraHdr) = optionIndexes(SUPER_WHITE_OPTION, ULTRA_HDR_OPTION)
+    if (superWhite < 0 && ultraHdr < 0) {
+        patchLog.warning("$PATCH: found no option table listing $SUPER_WHITE_OPTION and $ULTRA_HDR_OPTION, so Instagram's HDR options keep their values.")
+        return null
+    }
+    val reads = classesLoadingString(OPTION_READER_MARKER).flatMap { classDef ->
+        val readerTypes = classDef.methods.filter { method ->
+            method.returnType == "Ljava/lang/String;" && method.parameterTypes.isNotEmpty() && loadsString(method, OPTION_READER_MARKER)
+        }.mapTo(HashSet()) { it.parameterTypes[0].toString() }
+        classDef.methods.filter { method ->
+            val parameters = method.parameterTypes.map { it.toString() }
+            method.returnType == "Z" && method.implementation != null &&
+                parameters.size == 3 && parameters[0] in readerTypes && parameters[1] == "J" && parameters[2] == "Z"
+        }
+    }
+    val read = reads.singleOrNull() ?: run {
+        patchLog.warning("$PATCH: found ${reads.size} boolean option reads by \"$OPTION_READER_MARKER\", so Instagram's HDR options keep their values.")
+        return null
+    }
+    val shape = read.parameterTypes.map { it.toString() }
+    val method = mutableClassDefBy(read.definingClass).methods.first { it.name == read.name && it.parameterTypes.map { type -> type.toString() } == shape }
+    val specifier = method.parameterRegisterNumber(1)
+    if (method.localRegisterCount() < 2 || 0 in method.jumpTargets() || specifier + 1 > 15) {
+        patchLog.warning("$PATCH: ${method.definingClass}->${method.name} can't take the option hook, so Instagram's HDR options keep their values.")
+        return null
+    }
+    method.addInstructionsWithLabels(
+        0,
+        """
+            const v0, $superWhite
+            const v1, $ultraHdr
+            invoke-static { v$specifier, v${specifier + 1}, v0, v1 }, $OPTION_OFF
+            move-result v0
+            if-eqz v0, :instagram
+            const/4 v0, 0x0
+            return v0
+        """,
+        ExternalLabel("instagram", method.getInstruction(0)),
+    )
+    return method
 }
 
 /** The HDR call this instruction makes, or null. */

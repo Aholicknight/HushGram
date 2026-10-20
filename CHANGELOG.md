@@ -51,6 +51,7 @@ Every HushGram release, newest first.
 * **Instagram - Tap to play:** Tapping a feed video itself, not its play button, started it with the play icon still drawn over it on some posts. The icon goes away while it plays and comes back when it stops. Reported in #229.
 * **Instagram - Blur the bars around Reels:** With `Show content behind the tab bar` off, the glass pill sat on a black strip on Reels. The reel shows blurred round it now, like on Instagram's own tab bar. Reported in #258.
 * **Instagram - Hide suggested posts:** After a while away or an account switch, Home could flash the Welcome to Instagram card for a few seconds before the posts from people you follow showed up. Home keeps its loading row while that next page comes now, for up to six seconds. Reported in #126.
+* **Instagram - Turn off HDR brightness boosts:** The switch also turns off two of Instagram's own options, SDR super white on HDR content and Ultra HDR always on, which can make some reels brighter than the rest of the screen. The diagnostic report counts each time it turns one off. Reported in #85.
 
 ### Improvements
 
