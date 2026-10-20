@@ -49,6 +49,7 @@ Every HushGram release, newest first.
 * **Instagram - Tap to play:** Dragging the slider in the Notes or story music picker stopped the song for good, since Tap to play took the slider's pause for yours. The song keeps playing from the new spot now. Reported in #263.
 * **Instagram - Tap to play:** Tapping a feed video itself, not its play button, started it with the play icon still drawn over it on some posts. The icon goes away while it plays and comes back when it stops. Reported in #229.
 * **Instagram - Blur the bars around Reels:** With `Show content behind the tab bar` off, the glass pill sat on a black strip on Reels. The reel shows blurred round it now, like on Instagram's own tab bar. Reported in #258.
+* **Instagram - Hide suggested posts:** After a while away or an account switch, Home could flash the Welcome to Instagram card for a few seconds before the posts from people you follow showed up. Home keeps its loading row while that next page comes now, for up to six seconds. Reported in #126.
 
 ### Improvements
 

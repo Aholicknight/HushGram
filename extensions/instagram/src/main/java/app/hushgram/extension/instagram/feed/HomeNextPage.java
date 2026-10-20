@@ -52,11 +52,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>A page the switches emptied leaves Home empty, and {@link FeedSuggestions#feedEnded} ends it so
  * Instagram draws its empty feed card rather than a loading placeholder nothing would ever fill. It
- * still asks for For you's next page then, within the same cap: the card shows until that page comes,
- * and the posts it brings take its place. Before, nothing asked, and the card stayed until something
- * else loaded Home (#28). An account that follows nobody reaches suggested posts
- * only, which it doesn't ask for while Hide suggested posts is on, so its Home stays on the card
- * (#105).
+ * still asks for For you's next page then, within the same cap, and the posts it brings take the
+ * card's place. Before, nothing asked, and the card stayed until something else loaded Home (#28).
+ * While that page is on its way, Home keeps Instagram's loading row instead of the card for up to
+ * {@link #HOLD_NANOS} ({@link #holdsEnd}): after a while away or an account switch, For you's first
+ * page can be all suggestions with the followed posts a page behind, and the Welcome to Instagram
+ * card showed for a few seconds before them (#126). An account that follows nobody reaches suggested
+ * posts only, which it doesn't ask for while Hide suggested posts is on, so its Home ends on the card
+ * at once (#105).
  *
  * <p>It never asks while a page is loading, once the feed has no next page, or for a feed that isn't
  * For you, so Following and Favorites page as they did. For you's suggested posts past the ones from
@@ -101,6 +104,22 @@ public final class HomeNextPage {
 
     /** The report's count of chains that reached their cap with pages still short. */
     static final String CAPPED = "chain stopped at its cap";
+
+    /** How long an emptied Home keeps Instagram's loading row while its next page is on its way, in nanoseconds. */
+    static final long HOLD_NANOS = 6_000_000_000L;
+
+    /** The report's count of empty Homes that kept the loading row for their next page. */
+    static final String HELD = "empty Home kept the loading row for its next page";
+
+    /**
+     * When the current hold on an empty Home's end began, by {@link #clock}: 0 when there's none, and
+     * -1 once a hold ran out, until a page keeps something or another feed is read. Tests clear it.
+     */
+    static volatile long holdSince;
+
+    /** The feed {@link #holdSince} is about, held weakly. Tests clear it. */
+    @Nullable
+    static volatile WeakReference<Object> holdFeed;
 
     /** How many pages of Home's response that held items have been parsed. Tests clear it. */
     static volatile long pages;
@@ -214,13 +233,15 @@ public final class HomeNextPage {
      * ends the chain. A shorter one the switches took items out of becomes the page the next build
      * decides about, and starts a new chain unless it answers a request made here, and
      * {@link #settle} checks on it later. A short page the switches took nothing out of is
-     * Instagram's own and is left to it. Never throws.
+     * Instagram's own and is left to it. A page that keeps anything lets the next empty Home hold
+     * its end again ({@link #holdsEnd}). Never throws.
      */
     static void pageParsed(int read, int lost) {
         try {
             boolean ours = waitingForOurs;
             waitingForOurs = false;
             if (ours) answered = requests;
+            if (read > lost) holdSince = 0;
             long number = ++pages;
             if (read - lost >= SHORT_PAGE) {
                 chain = 0;
@@ -461,6 +482,61 @@ public final class HomeNextPage {
     /** Posts [check] to the main thread {@link #ANSWER_MS} from now. */
     static void watchLater(Runnable check) {
         Utils.runOnMainThreadDelayed(check, ANSWER_MS);
+    }
+
+    /**
+     * Asked by {@link FeedSuggestions#feedEnded} once the switches have left Home empty, with the feed
+     * the flag is read from: whether Home keeps Instagram's loading row a little longer rather than
+     * end on the empty feed card (#126). That's while For you's next page is on its way: a page loads
+     * now, a request made here waits for its answer, or a short page still waits for the request
+     * {@link #askIfShort} makes for it, within the same caps. Each brings a page and a new build of
+     * Home that asks again.
+     *
+     * <p>A hold lasts {@link #HOLD_NANOS} from its first yes. Past that, or once no page is coming,
+     * Home ends, and the hold stays spent until a page keeps something or another feed is read, so a
+     * Home whose pages bring nothing shows the card after one wait. A list that isn't For you's (or
+     * its suggested posts while they show), a feed other than the latest build's, one with no next
+     * page, or anything it can't read ends Home as before. Never throws.
+     */
+    static boolean holdsEnd(@Nullable Object feed) {
+        if (feed == null) return false;
+        try {
+            WeakReference<Object> heldFor = holdFeed;
+            if (heldFor == null || heldFor.get() != feed) {
+                holdFeed = new WeakReference<>(feed);
+                holdSince = 0;
+            }
+            long since = holdSince;
+            if (since < 0) return false;
+            Build build = home;
+            Object adapter = build == null || build.feed() != feed ? null : build.adapter.get();
+            if (adapter == null || !asksFor(sources.apply(feed))) return false;
+            Object policy = policies.apply(adapter);
+            if (policy == null) return false;
+            int busy = loading.applyAsInt(policy);
+            long page = shortPage;
+            boolean asking = page != 0 && page != decided
+                    && (chain < CHAIN_CAP || (chain < END_CAP && ends.applyAsInt(adapter) == 1));
+            boolean coming = busy == 1 || (busy == 0 && more.applyAsInt(policy) == 1 && (waitingForOurs || asking));
+            long now = clock.getAsLong();
+            long age = now - since;
+            if (!coming || (since > 0 && (age < 0 || age > HOLD_NANOS))) {
+                if (since > 0) {
+                    holdSince = -1;
+                    Logger.printDebug(() -> "Home next page: no page filled the empty Home in time, so it ends");
+                }
+                return false;
+            }
+            if (since == 0) {
+                holdSince = now;
+                HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, HELD);
+                Logger.printDebug(() -> "Home next page: Home is empty with its next page on the way, so the loading row stays");
+            }
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "empty Home hold", failure);
+            return false;
+        }
     }
 
     /** Whether [source], a feed's paging source, is For you's. For you's first pages may name none. */

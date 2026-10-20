@@ -160,6 +160,8 @@ public class HomeNextPageTest {
         HomeNextPage.posted = false;
         HomeNextPage.latest = null;
         HomeNextPage.home = null;
+        HomeNextPage.holdSince = 0;
+        HomeNextPage.holdFeed = null;
     }
 
     /** One build of Home's list: the builder starts, reads its flag off the feed, and the posted request runs. */
@@ -324,12 +326,12 @@ public class HomeNextPageTest {
 
     /**
      * #28: Hide suggested posts is off and Hide videos took every post of For you's page. Home is
-     * empty, so it ends and Instagram
-     * draws its empty feed card, but For you has more, and that page is asked for. Before, nothing
-     * asked and the card stayed. A next page that keeps posts fills Home and keeps Instagram's answer.
+     * empty, but For you has more, and that page is asked for. Before, nothing asked and the card
+     * stayed. While it comes Home keeps the loading row (#126), and a next page that keeps posts
+     * fills Home and keeps Instagram's answer.
      */
     @Test
-    public void aHomeHideVideosEmptiedEndsAndAsksForItsNextPage() {
+    public void aHomeHideVideosEmptiedAsksForItsNextPage() {
         FeedSuggestions.homeReadsForTests = true;
         Settings.HIDE_SUGGESTED_POSTS.save(false);
         FeedSuggestions.tookOut = false;
@@ -343,7 +345,7 @@ public class HomeNextPageTest {
 
         HomeNextPage.buildStarts(adapter);
         FeedSuggestions.homeFeedRead(feed);
-        assertEquals("the card shows while the next page comes", 1, FeedSuggestions.feedEnded(0));
+        assertEquals("the loading row stays while the next page comes", 0, FeedSuggestions.feedEnded(0));
         runPosted();
         assertEquals(1, asks.size());
 
@@ -380,6 +382,165 @@ public class HomeNextPageTest {
             runPosted();
         }
         assertTrue(asks.isEmpty());
+        assertEquals("no hold for a list it doesn't ask for", 0, counted(HomeNextPage.HELD));
+    }
+
+    /**
+     * #126: after a while away or an account switch, For you's first page was one suggested post and
+     * the followed posts came a page later, so the Welcome card showed for a few seconds before them.
+     * Home keeps the loading row while that page comes, and the posts it brings fill Home.
+     */
+    @Test
+    public void anEmptyHomeKeepsTheLoadingRowWhileItsNextPageComes() {
+        FeedSuggestions.homeReadsForTests = true;
+        empty = 1;
+        homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY);
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals("no Welcome card", 0, FeedSuggestions.feedEnded(0));
+        runPosted();
+        assertEquals("the next page is asked for", 1, asks.size());
+        assertEquals(1, counted(HomeNextPage.HELD));
+
+        now[0] += HomeNextPage.HOLD_NANOS / 2;
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals("a build before the answer still holds", 0, FeedSuggestions.feedEnded(0));
+        runPosted();
+        assertEquals(1, asks.size());
+
+        homePage(FeedSuggestionsTest.Kind.MEDIA, FeedSuggestionsTest.Kind.MEDIA, FeedSuggestionsTest.Kind.EXPLORE_STORY,
+                FeedSuggestionsTest.Kind.MEDIA, FeedSuggestionsTest.Kind.MEDIA, FeedSuggestionsTest.Kind.MEDIA);
+        empty = 0;
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals("the followed posts", 0, FeedSuggestions.feedEnded(0));
+        assertEquals("a page that kept posts frees the hold", 0, HomeNextPage.holdSince);
+        assertEquals("counted once", 1, counted(HomeNextPage.HELD));
+        String report = String.join("\n", FeedFilterCounters.report());
+        assertFalse(report, report.contains(FeedSuggestions.HOME_ENDED));
+    }
+
+    /**
+     * A hold lasts HOLD_NANOS, and past it Home ends on the card. It stays spent while pages bring
+     * nothing, so the card doesn't wait again, until a page keeps something or another feed is read.
+     */
+    @Test
+    public void theHoldEndsAfterItsTimeAndStaysSpentUntilAPageKeepsSomething() {
+        FeedSuggestions.homeReadsForTests = true;
+        empty = 1;
+        homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY, FeedSuggestionsTest.Kind.EXPLORE_STORY);
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals(0, FeedSuggestions.feedEnded(0));
+        runPosted();
+
+        now[0] += HomeNextPage.HOLD_NANOS + 1;
+        homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY);
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals("past its time Home ends", 1, FeedSuggestions.feedEnded(0));
+        runPosted();
+        assertEquals(-1, HomeNextPage.holdSince);
+
+        homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY);
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals("spent", 1, FeedSuggestions.feedEnded(0));
+        runPosted();
+        assertEquals(3, asks.size());
+
+        // A page that keeps something lets the next empty page hold again.
+        homePage(FeedSuggestionsTest.Kind.MEDIA, FeedSuggestionsTest.Kind.EXPLORE_STORY);
+        assertEquals(0, HomeNextPage.holdSince);
+        homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY);
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals("held again", 0, FeedSuggestions.feedEnded(0));
+        runPosted();
+
+        // Spent once more, then another account's Home gets a hold of its own.
+        now[0] += HomeNextPage.HOLD_NANOS + 1;
+        homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY);
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals(1, FeedSuggestions.feedEnded(0));
+        runPosted();
+        Object other = new Object();
+        homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY);
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(other);
+        assertEquals("another feed", 0, FeedSuggestions.feedEnded(0));
+        assertEquals(3, counted(HomeNextPage.HELD));
+    }
+
+    /**
+     * No hold once no page is coming: no next page, a short page already decided or past the cap
+     * with no request waiting, a list that isn't For you's, a feed other than the latest build's, or
+     * a policy it can't read. A page loading or a request waiting for its answer holds even at the
+     * cap, and a list at its end holds within {@link HomeNextPage#END_CAP}.
+     */
+    @Test
+    public void anEmptyHomeEndsAtOnceWhenNoPageIsComing() {
+        FeedSuggestions.homeReadsForTests = true;
+        empty = 1;
+        int capped = HomeNextPage.CHAIN_CAP;
+        int[][] cases = {
+                // more, loading, chain, waiting (a request of ours), at its end, decided, expected feedEnded
+                {1, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 0, 1},
+                {-1, 0, 0, 0, 0, 0, 1},
+                {1, -1, 0, 0, 0, 0, 1},
+                {1, 0, 0, 0, 0, 1, 1},
+                {1, 0, 0, 1, 0, 1, 0},
+                {1, 0, capped, 0, 0, 0, 1},
+                {1, 0, capped, 1, 0, 0, 0},
+                {1, 1, capped, 0, 0, 0, 0},
+                {1, 0, capped, 0, 1, 0, 0},
+                {1, 0, HomeNextPage.END_CAP, 0, 1, 0, 1},
+        };
+        for (int[] c : cases) {
+            String name = "more " + c[0] + ", loading " + c[1] + ", chain " + c[2] + ", waiting " + c[3]
+                    + ", at its end " + c[4] + ", decided " + c[5];
+            clear();
+            homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY);
+            more = c[0];
+            loading = c[1];
+            HomeNextPage.chain = c[2];
+            HomeNextPage.waitingForOurs = c[3] == 1;
+            end = c[4];
+            if (c[5] == 1) HomeNextPage.decided = HomeNextPage.shortPage;
+            HomeNextPage.buildStarts(adapter);
+            FeedSuggestions.homeFeedRead(feed);
+            assertEquals(name, c[6], FeedSuggestions.feedEnded(0));
+            posted.clear();
+        }
+        more = 1;
+        loading = 0;
+        end = 0;
+
+        clear();
+        source = "homecoming_following";
+        homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY);
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals("Following's list", 1, FeedSuggestions.feedEnded(0));
+        source = null;
+
+        clear();
+        homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY);
+        HomeNextPage.buildStarts(adapter);
+        HomeNextPage.feedRead(new Object());
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals("not the latest build's feed", 1, FeedSuggestions.feedEnded(0));
+
+        clear();
+        HomeNextPage.policies = adapter -> null;
+        homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY);
+        HomeNextPage.buildStarts(adapter);
+        FeedSuggestions.homeFeedRead(feed);
+        assertEquals("no policy", 1, FeedSuggestions.feedEnded(0));
+        assertFalse(HomeNextPage.holdsEnd(null));
     }
 
     @Test
@@ -463,7 +624,7 @@ public class HomeNextPageTest {
      * #28 as reported on 2026-10-17: Hide suggested posts off, Hide videos on, and For you's
      * suggested posts page from feed_recs. Hide videos alone takes a page of them down to two posts
      * under a loading row that never moved, or to none, leaving the Welcome card. Either way the
-     * next page is asked for.
+     * next page is asked for, and an emptied Home keeps the loading row while it comes (#126).
      */
     @Test
     public void hideVideosAloneAsksAfterASuggestedPostPageItShortenedOrEmptied() {
@@ -491,7 +652,7 @@ public class HomeNextPageTest {
 
             HomeNextPage.buildStarts(adapter);
             FeedSuggestions.homeFeedRead(feed);
-            assertEquals("kept " + kept, kept == 0 ? 1 : 0, FeedSuggestions.feedEnded(0));
+            assertEquals("kept " + kept, 0, FeedSuggestions.feedEnded(0));
             runPosted();
             assertEquals("kept " + kept, 1, asks.size());
         }

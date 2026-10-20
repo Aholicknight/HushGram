@@ -272,7 +272,8 @@ public final class FeedSuggestions {
      * for that page while the feed is empty, so a Home emptied of suggestions kept the placeholder for
      * good. Saying there's no next page gets Instagram's own empty feed card instead, and
      * {@link HomeNextPage} still asks for For you's next page (#28), so posts it brings replace the
-     * card. A feed with posts left, or one waiting on a page, draws what it did.
+     * card. While that page is on its way the card waits a few seconds, so it doesn't flash before
+     * the posts (#126). A feed with posts left, or one waiting on a page, draws what it did.
      */
     public static int feedEnded(int noMorePages) {
         Object feed = READING.get();
@@ -329,8 +330,10 @@ public final class FeedSuggestions {
      * suggestions with an item or two Instagram keeps and then draws elsewhere or not at all (#105).
      * Instagram itself only ends a feed it finds empty, and the feed is asked here too, so a Home
      * showing posts keeps Instagram's answer and the report counts {@link #HOME_ENDED} only for a
-     * Home that really is empty. Without Home's reads in the build, it's once anything's been taken
-     * out.
+     * Home that really is empty. An empty Home whose next page is on its way keeps Instagram's
+     * loading row a few seconds longer ({@link HomeNextPage#holdsEnd}), since that page usually
+     * brings the followed posts (#126). Without Home's reads in the build, it's once anything's been
+     * taken out.
      */
     private static boolean suggestionsEmptiedHome(@Nullable Object feed) {
         Boolean forced = homeReadsForTests;
@@ -344,6 +347,7 @@ public final class FeedSuggestions {
         }
         int empty = feedIsEmpty(feed);
         if (empty == 0) return false;
+        if (HomeNextPage.holdsEnd(feed)) return false;
         if (empty == 1 && !homePageEndCounted) {
             homePageEndCounted = true;
             FeedFilterCounters.sawKind(ROUTE, HOME_ENDED);
