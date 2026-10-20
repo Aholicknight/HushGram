@@ -753,24 +753,46 @@ public final class SettingsEntry {
 
     /**
      * Whether Instagram's settings screen leaves the HushGram row out: {@link Settings#HIDE_MENU_ROW}
-     * on while another way in works, which is the launcher shortcut or the logo's long press with its
-     * switch on, the chosen tab long press (#84) on a button Instagram built, or the long press on
-     * your profile's menu (#148) on a button that carries it. With every other way off the row
-     * stays, so there's always a way in (HushFacebook#146). Paused, the switch reads off.
+     * on while another way in works, which is the launcher shortcut (on a launcher that shows it) or
+     * the logo's long press with its switch on, the chosen tab long press (#84) on a button Instagram
+     * built, or the long press on your profile's menu (#148) on a button that carries it. With every
+     * other way off the row stays, so there's always a way in (HushFacebook#146). Paused, the switch
+     * reads off.
      */
     static boolean menuRowLeftOut() {
         if (!Utils.settingsReady() || !Settings.HIDE_MENU_ROW.get()) return false;
-        return Settings.SETTINGS_SHORTCUT.get() || Settings.SETTINGS_LOGO_PRESS.get()
+        return (Settings.SETTINGS_SHORTCUT.get() && launcherShowsShortcuts()) || Settings.SETTINGS_LOGO_PRESS.get()
                 || NavigationSettings.opensFromATab() || ProfileMenuPress.opensHushGram();
     }
 
     /**
+     * Whether the shortcut switch opens anything: the home screen app takes pinned shortcuts, the
+     * sign it shows the menu you get by holding an icon, or ours is already pinned there. A launcher
+     * with neither (some third-party ones, Android Go) never shows it, so it isn't a way in.
+     */
+    static boolean launcherShowsShortcuts() {
+        try {
+            ShortcutManager manager = Utils.getContext().getSystemService(ShortcutManager.class);
+            if (manager == null) return false;
+            if (manager.isRequestPinShortcutSupported()) return true;
+            for (ShortcutInfo pinned : manager.getPinnedShortcuts()) {
+                if (SHORTCUT_ID.equals(pinned.getId())) return true;
+            }
+            return false;
+        } catch (Exception ex) {
+            Logger.printException(() -> "Settings entry: could not tell whether the launcher shows shortcuts", ex);
+            return false;
+        }
+    }
+
+    /**
      * How many ways into HushGram are on, from the saved values the settings screen shows: the
-     * launcher shortcut, the logo's long press, the menu row (on while its hide switch is off), a
-     * tab long press (a tab chosen) and the long press on your profile's menu.
+     * launcher shortcut (on a launcher that shows it), the logo's long press, the menu row (on while
+     * its hide switch is off), a tab long press (a tab chosen) and the long press on your profile's
+     * menu.
      */
     static int waysInOn() {
-        return (Settings.SETTINGS_SHORTCUT.savedValue() ? 1 : 0)
+        return (Settings.SETTINGS_SHORTCUT.savedValue() && launcherShowsShortcuts() ? 1 : 0)
                 + (Settings.SETTINGS_LOGO_PRESS.savedValue() ? 1 : 0)
                 + (Settings.HIDE_MENU_ROW.savedValue() ? 0 : 1)
                 + (Settings.NAVIGATION_SETTINGS_TARGET.savedValue() != NavigationTarget.OFF ? 1 : 0)
@@ -780,10 +802,10 @@ public final class SettingsEntry {
     /**
      * Whether [way], the shortcut switch, the logo press switch or the menu row's hide switch, is the
      * last way in still on, so the settings screen greys it out under a line saying why. The menu
-     * row's way is on while its hide switch is off.
+     * row's way is on while its hide switch is off. A shortcut the launcher never shows is no way in.
      */
     static boolean isLastWayIn(Setting<?> way) {
-        boolean on = way == Settings.SETTINGS_SHORTCUT ? Settings.SETTINGS_SHORTCUT.savedValue()
+        boolean on = way == Settings.SETTINGS_SHORTCUT ? Settings.SETTINGS_SHORTCUT.savedValue() && launcherShowsShortcuts()
                 : way == Settings.SETTINGS_LOGO_PRESS ? Settings.SETTINGS_LOGO_PRESS.savedValue()
                 : way == Settings.HIDE_MENU_ROW && !Settings.HIDE_MENU_ROW.savedValue();
         return on && waysInOn() == 1;

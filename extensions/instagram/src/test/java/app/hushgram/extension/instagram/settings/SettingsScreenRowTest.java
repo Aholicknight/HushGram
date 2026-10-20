@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.content.pm.ShortcutManager;
 import android.os.Bundle;
 import android.os.Looper;
 import android.view.View;
@@ -239,6 +240,10 @@ public class SettingsScreenRowTest {
         Settings.SETTINGS_SHORTCUT.save(true);
         assertFalse("the shortcut opens HushGram and the row stayed", SettingsEntry.withSettingsRow(
                 arguments(Screen.MAIN_SETTINGS_SCREEN), new FrameLayout(activity)) instanceof LinearLayout);
+        // A launcher that takes no shortcuts never shows it, so the row is the way in again.
+        shadowOf(activity.getSystemService(ShortcutManager.class)).setIsRequestPinShortcutSupported(false);
+        assertRow("a shortcut the launcher never shows took the row's place", activity);
+        shadowOf(activity.getSystemService(ShortcutManager.class)).setIsRequestPinShortcutSupported(true);
         Settings.SETTINGS_SHORTCUT.save(false);
         Settings.SETTINGS_LOGO_PRESS.save(true);
         assertFalse("the logo opens HushGram and the row stayed", SettingsEntry.withSettingsRow(

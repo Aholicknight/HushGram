@@ -10,6 +10,7 @@ import static org.robolectric.Shadows.shadowOf;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ShortcutInfo;
 import android.content.pm.ShortcutManager;
 import android.os.Looper;
@@ -164,6 +165,33 @@ public class WaysIntoSettingsTest {
         Activity activity = controller.get();
         assertTrue("nothing else opens HushGram, yet the row went",
                 SettingsEntry.withSettingsRow(SettingsScreenRowTest.mainScreen(), new FrameLayout(activity))
+                        instanceof android.widget.LinearLayout);
+    }
+
+    @Test public void aShortcutTheLauncherNeverShowsIsNoWayIn() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ShortcutManager manager = context.getSystemService(ShortcutManager.class);
+        shadowOf(manager).setIsRequestPinShortcutSupported(false);
+        Settings.SETTINGS_LOGO_PRESS.save(false);
+        Settings.HIDE_MENU_ROW.save(true);
+        open();
+        SwitchPreference shortcut = switchRow(Settings.SETTINGS_SHORTCUT.key);
+        SwitchPreference hide = switchRow(Settings.HIDE_MENU_ROW.key);
+        assertTrue("a shortcut the launcher never shows was kept on as the last way in", shortcut.isEnabled());
+        assertEquals("No other way into HushGram is on, so the row stays in Instagram's menu.",
+                String.valueOf(hide.getSummary()));
+        assertTrue("the row went with only a shortcut nobody sees left",
+                SettingsEntry.withSettingsRow(SettingsScreenRowTest.mainScreen(), new FrameLayout(controller.get()))
+                        instanceof android.widget.LinearLayout);
+
+        // Pinned to the home screen, the shortcut opens HushGram from there, so it counts again.
+        manager.requestPinShortcut(new ShortcutInfo.Builder(context, SettingsEntry.SHORTCUT_ID)
+                .setShortLabel("HushGram").setIntent(new Intent(Intent.ACTION_VIEW)).build(), null);
+        page.updateUIAvailability();
+        assertFalse("the pinned shortcut is the last way in, and it can still be turned off", shortcut.isEnabled());
+        assertEquals(LAST, String.valueOf(shortcut.getSummary()));
+        assertFalse("the pinned shortcut opens HushGram and the row stayed",
+                SettingsEntry.withSettingsRow(SettingsScreenRowTest.mainScreen(), new FrameLayout(controller.get()))
                         instanceof android.widget.LinearLayout);
     }
 
