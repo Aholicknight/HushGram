@@ -40,11 +40,11 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodRefere
 
 private const val PATCH = "Swipe left to open the profile"
 internal const val SWIPE_TO_PROFILE = "$EXTENSION_PACKAGE/reels/SwipeToProfile;"
-internal const val SWIPE_ALLOWED_HOOK = "$SWIPE_TO_PROFILE->allow(Z)Z"
+internal const val SWIPE_ALLOWED_HOOK = "$SWIPE_TO_PROFILE->allow(I)Z"
 internal const val TAB_CHANGING_HOOK = "$SWIPE_TO_PROFILE->tabChanging(Ljava/lang/Object;)V"
 internal const val TAB_CHANGED_HOOK = "$SWIPE_TO_PROFILE->tabChanged(Ljava/lang/Object;)V"
-internal const val CHILD_SCROLLS_HOOK = "$SWIPE_TO_PROFILE->childScrolls(Landroid/view/View;IIIZZ)Z"
-internal const val PAGER_INPUT_HOOK = "$SWIPE_TO_PROFILE->pagerInput(Ljava/lang/Object;Z)V"
+internal const val CHILD_SCROLLS_HOOK = "$SWIPE_TO_PROFILE->childScrolls(Landroid/view/View;IIIII)Z"
+internal const val PAGER_INPUT_HOOK = "$SWIPE_TO_PROFILE->pagerInput(Ljava/lang/Object;I)V"
 internal const val SWIPE_TARGETS = "$EXTENSION_PACKAGE/reels/SwipeToProfileTargets;"
 
 /** The marker, less its release, of the Reels viewer's check of whether a swipe may go from a reel to its side panel. */

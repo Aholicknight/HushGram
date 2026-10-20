@@ -265,7 +265,7 @@ public class NeutralDefaultsSettingsTest {
                 app.hushgram.extension.instagram.reels.ReelClearMode.current(pagerReel));
         assertFalse(Instants.hide());
         assertTrue("a chat menu keeps its peek form", app.hushgram.extension.instagram.direct.PlusPreview.peek(1));
-        assertFalse("a swipe on a reel keeps Instagram's answer", app.hushgram.extension.instagram.reels.SwipeToProfile.allow(false));
+        assertFalse("a swipe on a reel keeps Instagram's answer", app.hushgram.extension.instagram.reels.SwipeToProfile.allow(0));
         assertTrue(app.hushgram.extension.instagram.feed.CommentsButton.feedState(1));
         assertTrue(app.hushgram.extension.instagram.share.ShareButton.feedState(1));
         assertFalse(app.hushgram.extension.instagram.direct.CallConfirm.hold(new Object(), null, null, null, 0));

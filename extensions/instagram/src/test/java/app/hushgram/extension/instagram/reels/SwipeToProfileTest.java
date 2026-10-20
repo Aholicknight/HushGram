@@ -169,8 +169,8 @@ public class SwipeToProfileTest {
 
     @Test
     public void withTheSwitchOnTheSwipeIsAllowed() {
-        assertTrue(SwipeToProfile.allow(false));
-        assertTrue(SwipeToProfile.allow(true));
+        assertTrue(SwipeToProfile.allow(0));
+        assertTrue(SwipeToProfile.allow(1));
         assertTrue(HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString(), HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).isEmpty());
     }
 
@@ -178,25 +178,25 @@ public class SwipeToProfileTest {
     public void offToStartAndOffLeaveTheAnswerToInstagram() {
         Settings.REEL_SWIPE_TO_PROFILE.resetToDefault();
         assertFalse(Settings.REEL_SWIPE_TO_PROFILE.get());
-        assertFalse(SwipeToProfile.allow(false));
-        assertTrue(SwipeToProfile.allow(true));
+        assertFalse(SwipeToProfile.allow(0));
+        assertTrue(SwipeToProfile.allow(1));
         Settings.REEL_SWIPE_TO_PROFILE.save(false);
-        assertFalse(SwipeToProfile.allow(false));
-        assertTrue(SwipeToProfile.allow(true));
+        assertFalse(SwipeToProfile.allow(0));
+        assertTrue(SwipeToProfile.allow(1));
     }
 
     @Test
     public void pausedAndUnreadyLeaveTheAnswerToInstagram() {
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertFalse(SwipeToProfile.allow(false));
-        assertTrue(SwipeToProfile.allow(true));
+        assertFalse(SwipeToProfile.allow(0));
+        assertTrue(SwipeToProfile.allow(1));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
 
-        SettingsContextRule.withoutContext(() -> assertFalse(SwipeToProfile.allow(false)));
+        SettingsContextRule.withoutContext(() -> assertFalse(SwipeToProfile.allow(0)));
 
-        assertTrue(SwipeToProfile.allow(false));
+        assertTrue(SwipeToProfile.allow(0));
     }
 
     @Test
@@ -271,8 +271,8 @@ public class SwipeToProfileTest {
     public void unpatchedStubsLeaveTheTabsAlone() {
         SwipeToProfile.tabChanged(HOST);
         SwipeToProfile.tabChanging(HOST);
-        SwipeToProfile.pagerInput(new Object(), true);
-        assertFalse(SwipeToProfile.childScrolls(container(), 10, 50, 50, false, false));
+        SwipeToProfile.pagerInput(new Object(), 1);
+        assertFalse(SwipeToProfile.childScrolls(container(), 10, 50, 50, 0, 0));
         assertTrue(HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString(), HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).isEmpty());
     }
 

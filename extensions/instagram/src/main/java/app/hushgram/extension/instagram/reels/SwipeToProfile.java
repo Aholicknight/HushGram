@@ -157,11 +157,11 @@ public final class SwipeToProfile {
     }
 
     /**
-     * Called with Instagram's answer to whether this swipe may go on to the side panel. Returns true
-     * while the switch is on, otherwise the answer as it came. Never throws.
+     * Called with Instagram's answer to whether this swipe may go on to the side panel, non-zero for
+     * yes. Returns true while the switch is on, otherwise the answer as it came. Never throws.
      */
-    public static boolean allow(boolean stock) {
-        return allow(stock, SwipeToProfile::switchedOn);
+    public static boolean allow(int stock) {
+        return allow(stock != 0, SwipeToProfile::switchedOn);
     }
 
     static boolean allow(boolean stock, BooleanSupplier on) {
@@ -239,10 +239,11 @@ public final class SwipeToProfile {
      * walks them the same way but passes over every sideways pager and the list inside it, and holds
      * a passed pager that still takes swipes. An up-and-down pager and what's inside it get
      * Instagram's walk. Otherwise Instagram walks them all, and a pager HushGram held gets its input
-     * back. Never throws on HushGram's account.
+     * back. Never throws on HushGram's account. {@code checkView} and {@code skipOff} come as Instagram's
+     * registers hold them, non-zero for yes.
      */
-    public static boolean childScrolls(View view, int dx, int x, int y, boolean checkView, boolean skipOff) {
-        return childScrolls(view, dx, x, y, checkView, skipOff, INSTAGRAM, SwipeToProfile::reelsOpen);
+    public static boolean childScrolls(View view, int dx, int x, int y, int checkView, int skipOff) {
+        return childScrolls(view, dx, x, y, checkView != 0, skipOff != 0, INSTAGRAM, SwipeToProfile::reelsOpen);
     }
 
     static boolean childScrolls(View view, int dx, int x, int y, boolean checkView, boolean skipOff, Panels panels, BooleanSupplier on) {
@@ -307,10 +308,11 @@ public final class SwipeToProfile {
      * Called in place of the swipe container's own call turning the tabs' pager input on or off as a
      * touch starts. On Reels with the switch on, input Instagram turns on stays off until the next tab
      * change. Otherwise the pager gets what Instagram asked for. The call to the pager is Instagram's
-     * own, so it fails the way Instagram's would; nothing else here throws.
+     * own, so it fails the way Instagram's would; nothing else here throws. {@code wanted} is non-zero
+     * for on.
      */
-    public static void pagerInput(Object pager, boolean wanted) {
-        pagerInput(pager, wanted, INSTAGRAM, SwipeToProfile::reelsOpen);
+    public static void pagerInput(Object pager, int wanted) {
+        pagerInput(pager, wanted != 0, INSTAGRAM, SwipeToProfile::reelsOpen);
     }
 
     static void pagerInput(Object pager, boolean wanted, Panels panels, BooleanSupplier on) {
