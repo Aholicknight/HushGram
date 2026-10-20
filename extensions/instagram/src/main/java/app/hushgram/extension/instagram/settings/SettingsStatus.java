@@ -398,6 +398,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean swipeToProfile() {
+        return false;
+    }
+
     public static boolean reelOrigin() {
         return false;
     }

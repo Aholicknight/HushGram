@@ -108,6 +108,7 @@ public final class FamilyNames {
     public static final String REEL_TAP_AND_VOLUME = "Control taps and volume on Reels";
     public static final String REEL_AUTO_SCROLL = "Keep Reels auto scroll on";
     public static final String REEL_SCROLLING = "Stop Reels scrolling";
+    public static final String SWIPE_TO_PROFILE = "Swipe left to open the profile";
     public static final String REEL_ORIGIN = "Find the reel you came from";
     public static final String STORY_DOWNLOAD = "Download any story";
     public static final String VIDEO_DOWNLOAD = "Download any video";

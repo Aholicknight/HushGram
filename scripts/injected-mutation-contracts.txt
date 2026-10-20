@@ -1672,6 +1672,11 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in in
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onInterceptTouchEvent
 start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
+# Swipe left to open the profile hands the answer of the Reels viewer's last swipe gate to
+# SwipeToProfile.allow right after it is read, in the one method holding the marker below (05PF.A00
+# on 452). Left out, the switch does nothing; twice or elsewhere, it isn't the hook the patch wrote.
+# SwipeToProfileHookTest checks on the 452 fixture where it lands.
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->allow(Z)Z in instance ()Z holding android_purge_26_q3_ClipsViewerSwipeNavigationDelegate_isSwipeFromReelsToActionAllowed
 # Find the reel you came from hands the reel's media to ReelOrigin.opening first thing in the Reels
 # viewer's profile opener (07FC.A03 on 450, the one method holding the marker below), reading the media
 # field of its one argument into v0 on the way, and hands a profile's Reels tab to

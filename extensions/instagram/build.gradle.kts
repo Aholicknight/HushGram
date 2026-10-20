@@ -296,6 +296,13 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.settings.PlusPreviewSettingsTest" to listOf(
                 "missingPatchHasNoSwitch", "aloneItStillGetsMessages", "switchStartsOffUnderMessagesAndHonorsPause"
             ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.reels.SwipeToProfileTest" to listOf(
+                "withTheSwitchOnTheSwipeIsAllowed", "offToStartAndOffLeaveTheAnswerToInstagram",
+                "pausedAndUnreadyLeaveTheAnswerToInstagram", "aThrowingSwitchLeavesTheAnswerToInstagramAndIsReported"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.SwipeToProfileSettingsTest" to listOf(
+                "missingPatchHasNoSwitch", "aloneItStillGetsReels", "switchStartsOffUnderReelsAndHonorsPause"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.direct.ThreadSeenTest" to listOf(
                 "withTheSwitchOnTheReceiptIsHeld[28]", "withTheSwitchOnTheReceiptIsHeld[37]",
                 "offToStartAndOffSendTheReceipt[28]", "offToStartAndOffSendTheReceipt[37]",

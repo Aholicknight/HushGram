@@ -1795,6 +1795,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_reels_scrolling", FALSE, true);
 
     /**
+     * A left swipe on a reel opens its creator's profile ({@link app.hushgram.extension.instagram.reels.SwipeToProfile}),
+     * as older Instagram builds did. Read at each swipe, so a change needs no restart. Off to start.
+     */
+    public static final BooleanSetting REEL_SWIPE_TO_PROFILE =
+            new BooleanSetting("hushgram_reel_swipe_to_profile", FALSE);
+
+    /**
      * After 20 reels in a session, swiping in Reels stops until Instagram has been in the
      * background for 15 minutes ({@link app.hushgram.extension.instagram.reels.ReelScrolling}). Read
      * at each new reel. Off to start.
