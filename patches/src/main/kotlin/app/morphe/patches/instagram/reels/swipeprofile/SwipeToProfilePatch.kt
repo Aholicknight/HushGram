@@ -30,6 +30,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -41,6 +43,8 @@ internal const val SWIPE_TO_PROFILE = "$EXTENSION_PACKAGE/reels/SwipeToProfile;"
 internal const val SWIPE_ALLOWED_HOOK = "$SWIPE_TO_PROFILE->allow(Z)Z"
 internal const val TAB_CHANGING_HOOK = "$SWIPE_TO_PROFILE->tabChanging(Ljava/lang/Object;)V"
 internal const val TAB_CHANGED_HOOK = "$SWIPE_TO_PROFILE->tabChanged(Ljava/lang/Object;)V"
+internal const val CHILD_SCROLLS_HOOK = "$SWIPE_TO_PROFILE->childScrolls(Landroid/view/View;IIIZZ)Z"
+internal const val PAGER_INPUT_HOOK = "$SWIPE_TO_PROFILE->pagerInput(Ljava/lang/Object;Z)V"
 internal const val SWIPE_TARGETS = "$EXTENSION_PACKAGE/reels/SwipeToProfileTargets;"
 
 /** The marker, less its release, of the Reels viewer's check of whether a swipe may go from a reel to its side panel. */
@@ -52,14 +56,25 @@ internal const val SWIPE_CONTAINER = "Lcom/instagram/ui/swipenavigation/containe
 /** What the container's panel switch throws when it's asked to turn the middle panel off. */
 internal const val CENTER_PANEL = "No support for disabling center panel"
 
+/** The container's setter of whether its walk passes over a pager whose input is off. Instagram keeps its name. */
+internal const val PAGER_CHECK_SETTER = "setShouldCheckViewPagerInputEnabledForScroll"
+
+/** The pager the main tabs and the Reels and Friends tabs slide in. androidx keeps its name. */
+internal const val VIEW_PAGER = "Landroidx/viewpager2/widget/ViewPager2;"
+private const val SET_USER_INPUT = "setUserInputEnabled"
+
 private const val SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 private const val ANY = "Ljava/lang/Object;"
+private val WALK = listOf("Landroid/view/View;", "I", "I", "I", "Z", "Z")
+private val MOVES = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
 
 /**
  * Lets a left swipe on a reel open its creator's profile, as older Instagram builds did. Kept out of
  * the default selection until a device shows the swipe opening the profile: on the accounts tried so
- * far the swipe container never starts its own drag, even with the panel on (#245).
+ * far the swipe container never started its own drag, even with the panel on, because its walk of
+ * the views under the finger gave the swipe to a pager (#245). The walk and the call turning the
+ * tabs' pager input on go through the extension too.
  */
 @Suppress("unused")
 val swipeToProfilePatch = bytecodePatch(
@@ -76,7 +91,9 @@ val swipeToProfilePatch = bytecodePatch(
         requireStatusMethod("swipeToProfile")
         val gate = findSwipeGate()
         val panel = findProfilePanel()
+        val pagers = findPagerHandling(panel.touch)
         hookSwipeGate(gate)
+        hookPagerHandling(panel.touch, pagers)
         hookProfilePanel(panel)
         enableStatus("swipeToProfile")
     }
@@ -341,6 +358,138 @@ internal fun BytecodePatchContext.hookProfilePanel(found: ProfilePanel) {
             return-void
         """,
     )
+}
+
+/**
+ * How the container's touch check deals with pagers. On 452: at [walkCall] it walks the views under
+ * the finger with [walk] (09bV.A00), handing it the container's flag of whether to pass over a pager
+ * whose input is off (A0R) last, and yields the swipe to any that can scroll sideways. At [inputCall]
+ * it turns the tabs' pager input on or off (setUserInputEnabled) as a touch starts. A pager keeps
+ * whether it takes swipes in [pagerInput] (ViewPager2.A09).
+ */
+internal class PagerHandling(
+    val walkCall: Int,
+    val walk: MethodReference,
+    val inputCall: Int,
+    val pagerInput: FieldReference,
+)
+
+/**
+ * Finds how the touch check deals with pagers. Everything here is checked against something else,
+ * and the walk and the pager's input flag have to be public, since the extension's stubs reach them.
+ *
+ * - The flag is the one boolean field of the container its setter [PAGER_CHECK_SETTER] writes, read
+ *   once in the touch check.
+ * - The walk is the touch check's one static call taking a view, three ints and two booleans and
+ *   answering a boolean. It comes after the flag's read, in straight code, and is handed the flag
+ *   last, as read or through moves. It calls itself and asks whether a view is a [VIEW_PAGER].
+ * - The input call is the touch check's one call of the pager's setUserInputEnabled.
+ * - The pager's input flag is the one boolean field of the pager setUserInputEnabled writes, and the
+ *   walk reads it.
+ */
+internal fun BytecodePatchContext.findPagerHandling(touch: Method): PagerHandling {
+    val container = classDefBy(SWIPE_CONTAINER)
+    val setter = container.methods.singleOrNull {
+        it.name == PAGER_CHECK_SETTER && it.returnType == "V" && it.parameterTypes.map(CharSequence::toString) == listOf("Z")
+    } ?: refuse("$SWIPE_CONTAINER has no $PAGER_CHECK_SETTER(Z)V")
+    val flags = setter.implementation!!.instructions.filter {
+        it.opcode == Opcode.IPUT_BOOLEAN && it.field()?.definingClass == SWIPE_CONTAINER
+    }.mapNotNull { it.field() }
+    val flag = flags.singleOrNull()
+        ?: refuse("expected $PAGER_CHECK_SETTER to write one boolean field of the container, found ${flags.size}")
+
+    val where = "$SWIPE_CONTAINER's onInterceptTouchEvent"
+    val code = touch.implementation!!.instructions.toList()
+    val reads = code.indices.filter { code[it].opcode == Opcode.IGET_BOOLEAN && code[it].field()?.matches(flag) == true }
+    val read = reads.singleOrNull() ?: refuse("expected $where to read $flag once, found ${reads.size}")
+    val walks = code.indices.filter { at ->
+        code[at].opcode.let { it == Opcode.INVOKE_STATIC || it == Opcode.INVOKE_STATIC_RANGE } &&
+            code[at].called()?.let { it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == WALK } == true
+    }
+    val walkCall = walks.singleOrNull() ?: refuse("expected $where to walk the views under the finger once, found ${walks.size}")
+    val call = code[walkCall] as? RegisterRangeInstruction ?: refuse("$where doesn't hand the walk a register range")
+    if (walkCall < read) refuse("$where walks the views before it reads $flag")
+    if (touch.jumpTargets().any { it in read + 1..walkCall }) refuse("something in $where jumps between the read of $flag and the walk")
+    if (!holds(code, read, walkCall, call.startRegister + call.registerCount - 1)) refuse("$where doesn't hand the walk $flag last")
+
+    val walk = code[walkCall].called()!!
+    val walkClass = classDefByOrNull(walk.definingClass) ?: refuse("the walk's class ${walk.definingClass} isn't in the app")
+    val walkMethod = walkClass.methods.singleOrNull { it.matches(walk) } ?: refuse("${walk.definingClass} doesn't declare $walk")
+    requirePublic(walkClass)
+    if (!AccessFlags.PUBLIC.isSet(walkMethod.accessFlags) || !AccessFlags.STATIC.isSet(walkMethod.accessFlags)) {
+        refuse("the walk $walk isn't a public static method")
+    }
+    val body = walkMethod.implementation!!.instructions.toList()
+    if (body.none { it.called()?.matches(walk) == true }) refuse("the walk $walk never calls itself for the children")
+    if (body.none { it.opcode == Opcode.INSTANCE_OF && (it as ReferenceInstruction).reference.toString() == VIEW_PAGER }) {
+        refuse("the walk $walk never asks whether a view is a $VIEW_PAGER")
+    }
+
+    val inputs = code.indices.filter { at ->
+        code[at].opcode == Opcode.INVOKE_VIRTUAL && code[at].called()?.let {
+            it.definingClass == VIEW_PAGER && it.name == SET_USER_INPUT && it.returnType == "V" &&
+                it.parameterTypes.map(CharSequence::toString) == listOf("Z")
+        } == true
+    }
+    val inputCall = inputs.singleOrNull() ?: refuse("expected $where to call $VIEW_PAGER->$SET_USER_INPUT once, found ${inputs.size}")
+    val pagerClass = classDefByOrNull(VIEW_PAGER) ?: refuse("this Instagram build has no $VIEW_PAGER")
+    val setInput = pagerClass.methods.singleOrNull {
+        it.name == SET_USER_INPUT && it.returnType == "V" && it.parameterTypes.map(CharSequence::toString) == listOf("Z")
+    } ?: refuse("$VIEW_PAGER has no $SET_USER_INPUT(Z)V")
+    requirePublicInstance(setInput)
+    val inputFlags = setInput.implementation!!.instructions.filter {
+        it.opcode == Opcode.IPUT_BOOLEAN && it.field()?.definingClass == VIEW_PAGER
+    }.mapNotNull { it.field() }
+    val pagerInput = inputFlags.singleOrNull()
+        ?: refuse("expected $VIEW_PAGER->$SET_USER_INPUT to write one boolean field of the pager, found ${inputFlags.size}")
+    if (body.none { it.opcode == Opcode.IGET_BOOLEAN && it.field()?.matches(pagerInput) == true }) {
+        refuse("the walk $walk doesn't read the pager's input flag $pagerInput")
+    }
+    requirePublic(pagerInput)
+
+    return PagerHandling(walkCall, walk, inputCall, pagerInput)
+}
+
+/**
+ * Whether [register] holds, at [call], what the read at [read] filled: the read's own register, or
+ * one a move copied it to, with nothing in between writing over it. A wide write covers two
+ * registers. The code between is straight.
+ */
+private fun holds(code: List<Instruction>, read: Int, call: Int, register: Int): Boolean {
+    val holders = mutableSetOf((code[read] as OneRegisterInstruction).registerA)
+    for (at in read + 1 until call) {
+        val instruction = code[at]
+        if (!instruction.opcode.setsRegister()) continue
+        val target = (instruction as? OneRegisterInstruction)?.registerA ?: continue
+        val from = (instruction as? TwoRegisterInstruction)?.registerB
+        if (instruction.opcode in MOVES && from in holders) holders += target else holders -= target
+        if (instruction.opcode.setsWideRegister()) holders -= target + 1
+    }
+    return register in holders
+}
+
+/**
+ * Puts [CHILD_SCROLLS_HOOK] in the walk's place and [PAGER_INPUT_HOOK] in the input call's, each on
+ * the registers the call it replaces read, so a jump to either still lands on the hook. Then writes
+ * the stubs: Instagram's own walk, whether a view is a pager, whether it takes swipes, and the call
+ * turning that on or off. The walk takes six registers, always a range; the input call takes two,
+ * never above v15.
+ */
+internal fun BytecodePatchContext.hookPagerHandling(touch: Method, found: PagerHandling) {
+    val method = mutable(touch)
+    val code = method.implementation!!.instructions
+    val walk = code[found.walkCall] as RegisterRangeInstruction
+    method.replaceInstruction(
+        found.walkCall,
+        "invoke-static/range { v${walk.startRegister} .. v${walk.startRegister + walk.registerCount - 1} }, $CHILD_SCROLLS_HOOK",
+    )
+    val input = code[found.inputCall] as FiveRegisterInstruction
+    method.replaceInstruction(found.inputCall, "invoke-static { v${input.registerC}, v${input.registerD} }, $PAGER_INPUT_HOOK")
+
+    stub("childScrolls", WALK, "Z", "invoke-static/range { p0 .. p5 }, ${found.walk}\nmove-result p0\nreturn p0")
+    stub("pager", listOf(ANY), "Z", "instance-of p0, p0, $VIEW_PAGER\nreturn p0")
+    stub("inputOn", listOf(ANY), "Z", "check-cast p0, $VIEW_PAGER\niget-boolean p0, p0, ${found.pagerInput}\nreturn p0")
+    stub("input", listOf(ANY, "Z"), "V", "check-cast p0, $VIEW_PAGER\ninvoke-virtual { p0, p1 }, $VIEW_PAGER->$SET_USER_INPUT(Z)V\nreturn-void")
 }
 
 private fun BytecodePatchContext.mutable(method: Method): MutableMethod =

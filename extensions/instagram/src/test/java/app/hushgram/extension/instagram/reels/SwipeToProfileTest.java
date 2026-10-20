@@ -9,14 +9,24 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.content.Context;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -50,6 +60,10 @@ public class SwipeToProfileTest {
         boolean on;
         int turns;
         RuntimeException failure;
+        final Set<Object> pagers = Collections.newSetFromMap(new IdentityHashMap<>());
+        final Map<Object, Boolean> inputs = new IdentityHashMap<>();
+        boolean stockAnswer;
+        int stockWalks;
 
         @Override public Object controller(Object host) { return host == HOST ? controller : null; }
         @Override public Object container(Object of) { return of == controller ? container : null; }
@@ -66,6 +80,74 @@ public class SwipeToProfileTest {
             on = value;
             turns++;
         }
+
+        @Override
+        public boolean stockScrolls(View view, int dx, int x, int y, boolean checkView, boolean skipOff) {
+            stockWalks++;
+            return stockAnswer;
+        }
+
+        @Override
+        public boolean pager(Object view) {
+            if (pagerFailure != null) throw pagerFailure;
+            return view != null && pagers.contains(view);
+        }
+
+        @Override public boolean inputOn(Object pager) { return !Boolean.FALSE.equals(inputs.get(pager)); }
+        @Override public void input(Object pager, boolean value) { inputs.put(pager, value); }
+
+        RuntimeException pagerFailure;
+
+        /** A view group standing in for a sideways pager, filling its parent. */
+        FrameLayout addPager(ViewGroup parent) {
+            FrameLayout pager = add(parent, new SidewaysGroup(parent.getContext()), 0, 100);
+            pagers.add(pager);
+            return pager;
+        }
+
+        /** A view group standing in for an up-and-down pager like the reels' own, filling its parent. */
+        FrameLayout addUprightPager(ViewGroup parent) {
+            FrameLayout pager = add(parent, new FrameLayout(parent.getContext()), 0, 100);
+            pagers.add(pager);
+            return pager;
+        }
+    }
+
+    /** A view that can always scroll sideways, like a pager's list or a carousel. */
+    private static final class Sideways extends View {
+        Sideways(Context context) {
+            super(context);
+        }
+
+        @Override
+        public boolean canScrollHorizontally(int direction) {
+            return true;
+        }
+    }
+
+    /** A view group that can always scroll sideways, like a sideways pager. */
+    private static final class SidewaysGroup extends FrameLayout {
+        SidewaysGroup(Context context) {
+            super(context);
+        }
+
+        @Override
+        public boolean canScrollHorizontally(int direction) {
+            return true;
+        }
+    }
+
+    /** Adds [child] to [parent], laid out from [left] to [right] across and the full 100 down. */
+    private static <T extends View> T add(ViewGroup parent, T child, int left, int right) {
+        parent.addView(child);
+        child.layout(left, 0, right, 100);
+        return child;
+    }
+
+    private static FrameLayout container() {
+        FrameLayout container = new FrameLayout(RuntimeEnvironment.getApplication());
+        container.layout(0, 0, 100, 100);
+        return container;
     }
 
     @Before
@@ -189,6 +271,200 @@ public class SwipeToProfileTest {
     public void unpatchedStubsLeaveTheTabsAlone() {
         SwipeToProfile.tabChanged(HOST);
         SwipeToProfile.tabChanging(HOST);
+        SwipeToProfile.pagerInput(new Object(), true);
+        assertFalse(SwipeToProfile.childScrolls(container(), 10, 50, 50, false, false));
         assertTrue(HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString(), HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).isEmpty());
+    }
+
+    /** The tabs' pager and the list inside it can scroll, but with the switch on the swipe stays the container's. */
+    @Test
+    public void withTheSwitchOnThePagerAndItsListAreWalkedPastAndThePagerIsHeld() {
+        FakePanels panels = new FakePanels();
+        FrameLayout container = container();
+        FrameLayout pager = panels.addPager(container);
+        add(pager, new Sideways(container.getContext()), 0, 100);
+
+        assertFalse(SwipeToProfile.childScrolls(container, 10, 50, 50, false, true, panels, () -> true));
+
+        assertEquals(Boolean.FALSE, panels.inputs.get(pager));
+        assertEquals(0, panels.stockWalks);
+        SwipeToProfile.tabChanging(panels);
+        assertEquals(Boolean.TRUE, panels.inputs.get(pager));
+        assertTrue(HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString(), HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).isEmpty());
+    }
+
+    /** Inside a pager's page, a carousel under the finger still takes the swipe, and the pager above it isn't held. */
+    @Test
+    public void aSidewaysViewInsideAPageStillTakesTheSwipe() {
+        FakePanels panels = new FakePanels();
+        FrameLayout container = container();
+        FrameLayout pager = panels.addPager(container);
+        FrameLayout list = add(pager, new FrameLayout(container.getContext()), 0, 100);
+        FrameLayout page = add(list, new FrameLayout(container.getContext()), 0, 100);
+        add(page, new Sideways(container.getContext()), 0, 100);
+
+        assertTrue(SwipeToProfile.childScrolls(container, 10, 50, 50, false, true, panels, () -> true));
+        assertFalse(panels.inputs.containsKey(pager));
+    }
+
+    /** Only the views under the finger count, in each one's own coordinates, and a hidden one doesn't. */
+    @Test
+    public void onlyVisibleViewsUnderTheFingerCount() {
+        FakePanels panels = new FakePanels();
+        FrameLayout container = container();
+        FrameLayout half = add(container, new FrameLayout(container.getContext()), 50, 100);
+        View carousel = add(half, new Sideways(container.getContext()), 10, 50);
+
+        assertFalse(SwipeToProfile.childScrolls(container, 10, 40, 50, false, true, panels, () -> true));
+        assertFalse(SwipeToProfile.childScrolls(container, 10, 55, 50, false, true, panels, () -> true));
+        assertTrue(SwipeToProfile.childScrolls(container, 10, 70, 50, false, true, panels, () -> true));
+        carousel.setVisibility(View.INVISIBLE);
+        assertFalse(SwipeToProfile.childScrolls(container, 10, 70, 50, false, true, panels, () -> true));
+    }
+
+    /** A pager Instagram turned off stays Instagram's: not held, and not turned on at the next tab change. */
+    @Test
+    public void aPagerInstagramTurnedOffIsLeftAlone() {
+        FakePanels panels = new FakePanels();
+        FrameLayout container = container();
+        FrameLayout pager = panels.addPager(container);
+        panels.inputs.put(pager, false);
+
+        assertFalse(SwipeToProfile.childScrolls(container, 10, 50, 50, false, true, panels, () -> true));
+        SwipeToProfile.tabChanging(panels);
+
+        assertEquals(Boolean.FALSE, panels.inputs.get(pager));
+    }
+
+    /** The reels' own up-and-down pager and what's inside it get Instagram's walk, and that pager is never held. */
+    @Test
+    public void theReelsUprightPagerGoesToInstagramsWalkAndIsNeverHeld() {
+        FakePanels panels = new FakePanels();
+        FrameLayout container = container();
+        FrameLayout outer = panels.addPager(container);
+        FrameLayout reels = panels.addUprightPager(outer);
+        add(reels, new Sideways(container.getContext()), 0, 100);
+        panels.stockAnswer = true;
+
+        assertTrue(SwipeToProfile.childScrolls(container, 10, 50, 50, false, true, panels, () -> true));
+        assertEquals(1, panels.stockWalks);
+        assertFalse(panels.inputs.containsKey(reels));
+        assertFalse(panels.inputs.containsKey(outer));
+
+        panels.stockAnswer = false;
+        assertFalse(SwipeToProfile.childScrolls(container, 10, 50, 50, false, true, panels, () -> true));
+        assertFalse(panels.inputs.containsKey(reels));
+        assertEquals(Boolean.FALSE, panels.inputs.get(outer));
+    }
+
+    /** A walk that throws is reported, gives a held pager back and leaves the swipe to Instagram. */
+    @Test
+    public void aThrowingWalkGivesHeldPagersBackAndIsReported() {
+        FakePanels panels = new FakePanels();
+        FrameLayout container = container();
+        FrameLayout pager = panels.addPager(container);
+        SwipeToProfile.childScrolls(container, 10, 50, 50, false, true, panels, () -> true);
+        assertEquals(Boolean.FALSE, panels.inputs.get(pager));
+        panels.pagerFailure = new IllegalStateException("boom");
+        panels.stockAnswer = true;
+
+        assertTrue(SwipeToProfile.childScrolls(container, 10, 50, 50, false, true, panels, () -> true));
+
+        assertEquals(1, panels.stockWalks);
+        assertEquals(Boolean.TRUE, panels.inputs.get(pager));
+        String missing = HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString();
+        assertTrue(missing, missing.contains("'" + SwipeToProfile.PAGER + "'"));
+    }
+
+    /** The walk and the pager hold are open only after a tab change to Reels, with the switch on. */
+    @Test
+    public void onlyATabChangeToReelsOpensTheWalk() {
+        FakePanels panels = new FakePanels();
+        assertFalse(SwipeToProfile.reelsOpen(() -> true));
+
+        SwipeToProfile.tabChanged(HOST, panels, () -> false);
+        assertTrue(SwipeToProfile.reelsOpen(() -> true));
+        assertFalse(SwipeToProfile.reelsOpen(() -> false));
+
+        SwipeToProfile.tabChanging(panels);
+        assertFalse(SwipeToProfile.reelsOpen(() -> true));
+
+        panels.tab = panels.home;
+        SwipeToProfile.tabChanged(HOST, panels, () -> true);
+        assertFalse(SwipeToProfile.reelsOpen(() -> true));
+    }
+
+    /** With the switch off Instagram walks the views, and the pagers HushGram held get their input back. */
+    @Test
+    public void offLeavesTheWalkToInstagramAndGivesHeldPagersBack() {
+        FakePanels panels = new FakePanels();
+        FrameLayout container = container();
+        FrameLayout pager = panels.addPager(container);
+        add(pager, new Sideways(container.getContext()), 0, 100);
+        SwipeToProfile.childScrolls(container, 10, 50, 50, false, true, panels, () -> true);
+        panels.stockAnswer = true;
+
+        assertTrue(SwipeToProfile.childScrolls(container, 10, 50, 50, false, true, panels, () -> false));
+
+        assertEquals(1, panels.stockWalks);
+        assertEquals(Boolean.TRUE, panels.inputs.get(pager));
+    }
+
+    @Test
+    public void aThrowingSwitchLeavesTheWalkToInstagramAndIsReported() {
+        FakePanels panels = new FakePanels();
+        panels.stockAnswer = true;
+
+        assertTrue(SwipeToProfile.childScrolls(container(), 10, 50, 50, false, true, panels, THROWS));
+
+        assertEquals(1, panels.stockWalks);
+        String missing = HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString();
+        assertTrue(missing, missing.contains("'" + SwipeToProfile.SWITCH + "'"));
+    }
+
+    /** The tabs' pager stays off while the switch is on, until the next tab change. */
+    @Test
+    public void theTabsPagerStaysOffUntilTheNextTabChange() {
+        FakePanels panels = new FakePanels();
+        Object pager = new Object();
+
+        SwipeToProfile.pagerInput(pager, true, panels, () -> true);
+        assertEquals(Boolean.FALSE, panels.inputs.get(pager));
+        SwipeToProfile.pagerInput(pager, true, panels, () -> true);
+        assertEquals(Boolean.FALSE, panels.inputs.get(pager));
+
+        SwipeToProfile.tabChanging(panels);
+        assertEquals(Boolean.TRUE, panels.inputs.get(pager));
+    }
+
+    /** What Instagram asks for goes through with the switch off, or when it turns the input off itself, which the next tab change keeps. */
+    @Test
+    public void offOrInstagramTurningItOffPassesThrough() {
+        FakePanels panels = new FakePanels();
+        Object pager = new Object();
+
+        SwipeToProfile.pagerInput(pager, true, panels, () -> false);
+        assertEquals(Boolean.TRUE, panels.inputs.get(pager));
+
+        SwipeToProfile.pagerInput(pager, true, panels, () -> true);
+        SwipeToProfile.pagerInput(pager, false, panels, () -> true);
+        assertEquals(Boolean.FALSE, panels.inputs.get(pager));
+        SwipeToProfile.tabChanging(panels);
+        assertEquals(Boolean.FALSE, panels.inputs.get(pager));
+
+        SwipeToProfile.pagerInput(null, true, panels, () -> true);
+        assertFalse(panels.inputs.containsKey(null));
+    }
+
+    @Test
+    public void aThrowingSwitchPassesThePagerInputThroughAndIsReported() {
+        FakePanels panels = new FakePanels();
+        Object pager = new Object();
+
+        SwipeToProfile.pagerInput(pager, true, panels, THROWS);
+
+        assertEquals(Boolean.TRUE, panels.inputs.get(pager));
+        String missing = HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString();
+        assertTrue(missing, missing.contains("'" + SwipeToProfile.SWITCH + "'"));
     }
 }

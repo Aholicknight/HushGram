@@ -1701,6 +1701,13 @@ once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->allow(Z)Z in 
 start-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->tabChanging(Ljava/lang/Object;)V in instance (L*;L*;Ljava/lang/Integer;)V holding MainTabController.delegateOnTabChanged MainTabController.updatePagerForTabChanged
 once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->tabChanging(Ljava/lang/Object;)V in instance (L*;L*;Ljava/lang/Integer;)V holding MainTabController.delegateOnTabChanged MainTabController.updatePagerForTabChanged
 once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->tabChanged(Ljava/lang/Object;)V in instance (L*;L*;Ljava/lang/Integer;)V sites 2 holding MainTabController.delegateOnTabChanged MainTabController.updatePagerForTabChanged
+# In the same touch check it puts SwipeToProfile.childScrolls in the place of the container's walk of
+# the views under the finger (09bV.A00 on 452), and SwipeToProfile.pagerInput in the place of its one
+# call turning the tabs' pager input on, so no pager takes the swipe while the switch is on. Left out,
+# the container gives the swipe to a pager and never slides the profile in; twice or elsewhere, it
+# isn't the hook the patch wrote. SwipeToProfileHookTest checks on the 452 fixtures where both land.
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->childScrolls(Landroid/view/View;IIIZZ)Z in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
+sole-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->pagerInput(Ljava/lang/Object;Z)V replacing Landroidx/viewpager2/widget/ViewPager2;->setUserInputEnabled(Z)V in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
 # Find the reel you came from hands the reel's media to ReelOrigin.opening first thing in the Reels
 # viewer's profile opener (07FC.A03 on 450, the one method holding the marker below), reading the media
 # field of its one argument into v0 on the way, and hands a profile's Reels tab to

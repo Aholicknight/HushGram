@@ -103,9 +103,49 @@ class SwipeToProfileHookTest {
         val declared = ExtensionDex.classDef(SWIPE_TO_PROFILE).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(TAB_CHANGING_HOOK, TAB_CHANGED_HOOK)) assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        for (hook in listOf(TAB_CHANGING_HOOK, TAB_CHANGED_HOOK, CHILD_SCROLLS_HOOK, PAGER_INPUT_HOOK)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
         val stubs = ExtensionDex.classDef(SWIPE_TARGETS).methods.filter { AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.name }.toSet()
-        assertEquals(setOf("controller", "container", "tab", "reelsTab", "panel", "panelOn", "turn"), stubs)
+        assertEquals(setOf("controller", "container", "tab", "reelsTab", "panel", "panelOn", "turn", "childScrolls", "pager", "inputOn", "input"), stubs)
+    }
+
+    /** The walk and the tabs' pager input call go through the extension on the registers they read, and the stubs reach the walk and the pager. */
+    @Test
+    fun theWalkAndThePagerInputGoThroughTheExtension() {
+        val context = PatchContexts.of(panelClasses() + ExtensionDex.classDef(SWIPE_TARGETS))
+
+        val panel = context.findProfilePanel()
+        val pagers = context.findPagerHandling(panel.touch)
+        context.hookPagerHandling(panel.touch, pagers)
+        context.hookProfilePanel(panel)
+
+        assertEquals(WALK_REF, pagers.walk.toString())
+        assertEquals("$VIEW_PAGER->A09:Z", pagers.pagerInput.toString())
+        assertPagersHooked("stand-in", context, panel, pagers)
+        assertPanelHooked("stand-in", context, panel, returns = 2)
+    }
+
+    @Test
+    fun aContainerWithoutThePagerFlagSetterFailsThePatch() {
+        refuses("has no $PAGER_CHECK_SETTER") { PatchContexts.of(panelClasses(pagerSetter = false)).let { it.findPagerHandling(it.findProfilePanel().touch) } }
+    }
+
+    @Test
+    fun aWalkNotHandedTheFlagFailsThePatch() {
+        refuses("doesn't hand the walk") { PatchContexts.of(panelClasses(walkHanded = false)).let { it.findPagerHandling(it.findProfilePanel().touch) } }
+    }
+
+    @Test
+    fun aWideWriteOverTheHandedFlagFailsThePatch() {
+        refuses("doesn't hand the walk") {
+            PatchContexts.of(panelClasses(afterMove = "const-wide/16 v6, 0x0")).let { it.findPagerHandling(it.findProfilePanel().touch) }
+        }
+    }
+
+    @Test
+    fun twoPagerInputCallsFailThePatch() {
+        refuses("found 2") { PatchContexts.of(panelClasses(inputCalls = 2)).let { it.findPagerHandling(it.findProfilePanel().touch) } }
     }
 
     /** The touch check's gate answer goes through the extension, each tab change is bracketed by the two calls, and the stubs read the panel. */
@@ -219,21 +259,27 @@ class SwipeToProfileHookTest {
 
         val gate = context.findSwipeGate()
         val panel = context.findProfilePanel()
+        val pagers = context.findPagerHandling(panel.touch)
         val returns = panel.tabChange.implementation!!.instructions.count { it.opcode == Opcode.RETURN_VOID }
         swipeToProfilePatch.execute(context)
 
         val method = context.mutableClassDefBy(gate.type).methods.single { it.name == gate.name && SWIPE_ALLOWED in it.markers() }
         assertHooked("$label ${gate.type}->${gate.name}", method, gate)
         assertPanelHooked("$label ${panel.tabChange.definingClass}->${panel.tabChange.name}", context, panel, returns)
+        assertPagersHooked("$label $SWIPE_CONTAINER->onInterceptTouchEvent", context, panel, pagers)
     }
 
     /**
-     * The container, the classes of the methods calling a session gate its touch check calls, and
-     * the classes those and the container keep in fields or take as parameters, as [bundle] has them.
+     * The container, the classes of the methods calling a session gate its touch check calls, the
+     * classes those and the container keep in fields or take as parameters, the walk's class and
+     * the pager, as [bundle] has them.
      */
     private fun fixturePanelClasses(bundle: File): List<ClassDef> {
         val container = FixtureDex.classes(bundle, setOf(SWIPE_CONTAINER)).values.single()
         val touch = container.methods.single { it.name == "onInterceptTouchEvent" && it.implementation != null }
+        val walks = touch.implementation!!.instructions.mapNotNull { it.called() }
+            .filter { it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == WALK_SHAPE }
+            .map { it.definingClass }
         val gates = touch.implementation!!.instructions.mapNotNull { it.called() }
             .filter { it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == listOf(SESSION) }
         val owners = gates.map { it.definingClass }.toSet()
@@ -245,7 +291,42 @@ class SwipeToProfileHookTest {
         val kept = (hosts + container).flatMap { holder -> holder.fields.map { it.type } } +
             callers.flatMap { method -> method.parameterTypes.map(CharSequence::toString) }
         val have = hosts.map { it.type }.toSet() + SWIPE_CONTAINER
-        return listOf(container) + hosts + FixtureDex.classes(bundle, kept.filter { it.startsWith("L") }.toSet() - have).values
+        val wanted = kept.filter { it.startsWith("L") }.toSet() + walks + VIEW_PAGER
+        return listOf(container) + hosts + FixtureDex.classes(bundle, wanted - have).values
+    }
+
+    /**
+     * The walk and the tabs' pager input call replaced, in their places, by [CHILD_SCROLLS_HOOK] and
+     * [PAGER_INPUT_HOOK] on the registers they read, and the stubs reaching the walk and the pager.
+     */
+    private fun assertPagersHooked(what: String, context: BytecodePatchContext, panel: ProfilePanel, pagers: PagerHandling) {
+        val before = panel.touch.implementation!!.instructions.toList()
+        val code = context.mutated(panel.touch).implementation!!.instructions.toList()
+        val setInput = "$VIEW_PAGER->setUserInputEnabled(Z)V"
+        assertEquals("$what: walks left", 0, code.count { it.names(pagers.walk.toString()) })
+        assertEquals("$what: input calls left", 0, code.count { it.names(setInput) })
+
+        val walks = code.indices.filter { code[it].names(CHILD_SCROLLS_HOOK) }
+        assertEquals("$what: the walk in its place", listOf(pagers.walkCall), walks)
+        val walk = code[pagers.walkCall] as RegisterRangeInstruction
+        assertEquals("$what: the walk's registers", (before[pagers.walkCall] as RegisterRangeInstruction).startRegister, walk.startRegister)
+        assertEquals("$what: six of them", 6, walk.registerCount)
+
+        val inputs = code.indices.filter { code[it].names(PAGER_INPUT_HOOK) }
+        assertEquals("$what: one input hook", 1, inputs.size)
+        val input = code[inputs.single()] as FiveRegisterInstruction
+        val asked = before[pagers.inputCall] as FiveRegisterInstruction
+        assertEquals("$what: a static call", Opcode.INVOKE_STATIC, input.opcode)
+        assertEquals("$what: two registers", 2, input.registerCount)
+        assertEquals("$what: the pager", asked.registerC, input.registerC)
+        assertEquals("$what: the input", asked.registerD, input.registerD)
+
+        val stubs = context.mutableClassDefBy(SWIPE_TARGETS).methods
+        fun at(name: String, index: Int) = stubs.single { it.name == name }.implementation!!.instructions.toList()[index] as ReferenceInstruction
+        assertEquals("$what: the stub walks as Instagram does", pagers.walk.toString(), at("childScrolls", 0).reference.toString())
+        assertEquals("$what: the stub asks for a pager", VIEW_PAGER, at("pager", 0).reference.toString())
+        assertEquals("$what: the stub reads the pager's input", pagers.pagerInput.toString(), at("inputOn", 1).reference.toString())
+        assertEquals("$what: the stub turns the pager's input", setInput, at("input", 1).reference.toString())
     }
 
     /**
@@ -331,6 +412,9 @@ class SwipeToProfileHookTest {
         const val CONTROLLER = "Lfixture/Controller;"
         const val PANEL_GATE = "Lfixture/PanelGate;->A08($SESSION)Z"
         const val TOGGLE = "$SWIPE_CONTAINER->A05(ZF)V"
+        const val WALK_TYPE = "Lfixture/Walk;"
+        const val WALK_REF = "$WALK_TYPE->A00(Landroid/view/View;IIIZZ)Z"
+        val WALK_SHAPE = listOf("Landroid/view/View;", "I", "I", "I", "Z", "Z")
 
         /** A method whose body is [smali], assembled the way the patches assemble what they add. */
         fun assembled(owner: String, name: String, parameters: List<String>, returns: String, flags: Int, registers: Int, smali: String): ImmutableMethod =
@@ -350,9 +434,22 @@ class SwipeToProfileHookTest {
          * panel at -1.0 while it's on, and the tab host's tab change asking the same gate when it
          * reaches the Reels tab and fetching the container after, its two returns both jumped to.
          * [gates] repeats the touch check's gate, [secondCaller] gives the host another method
-         * asking the gate and [publicFlag] false hides the panel's on flag.
+         * asking the gate and [publicFlag] false hides the panel's on flag. Before the panel, the
+         * touch check reads the container's pager flag and hands it last, through a move, to its
+         * walk of the views under the finger, then turns the tabs' pager input on [inputCalls]
+         * times after the panel switch; [pagerSetter] false drops the flag's setter and
+         * [walkHanded] false hands the walk a constant instead. [afterMove] goes right after the
+         * move.
          */
-        fun panelClasses(gates: Int = 1, secondCaller: Boolean = false, publicFlag: Boolean = true): List<ClassDef> {
+        fun panelClasses(
+            gates: Int = 1,
+            secondCaller: Boolean = false,
+            publicFlag: Boolean = true,
+            pagerSetter: Boolean = true,
+            walkHanded: Boolean = true,
+            inputCalls: Int = 1,
+            afterMove: String = "",
+        ): List<ClassDef> {
             val public = AccessFlags.PUBLIC.value
             val publicFinal = public or AccessFlags.FINAL.value
             val handOver = """
@@ -362,10 +459,15 @@ class SwipeToProfileHookTest {
                 move-result v2
                 invoke-virtual { p0, v2, v3 }, $TOGGLE
             """
+            val inputOn = """
+                const/4 v2, 0x0
+                const/4 v1, 0x1
+                invoke-virtual { v2, v1 }, $VIEW_PAGER->setUserInputEnabled(Z)V
+            """
             val container = ImmutableClassDef(
                 SWIPE_CONTAINER, public, "Landroid/view/ViewGroup;", null, null, null,
-                listOf(field(SWIPE_CONTAINER, "A0F", PANEL_TYPE)),
-                listOf(
+                listOf(field(SWIPE_CONTAINER, "A0F", PANEL_TYPE), field(SWIPE_CONTAINER, "A0R", "Z")),
+                listOfNotNull(
                     assembled(
                         SWIPE_CONTAINER, "A05", listOf("Z", "F"), "V", public, 5,
                         """
@@ -376,19 +478,73 @@ class SwipeToProfileHookTest {
                             return-void
                         """,
                     ),
+                    if (pagerSetter) {
+                        assembled(
+                            SWIPE_CONTAINER, PAGER_CHECK_SETTER, listOf("Z"), "V", public, 2,
+                            """
+                                iput-boolean p1, p0, $SWIPE_CONTAINER->A0R:Z
+                                return-void
+                            """,
+                        )
+                    } else {
+                        null
+                    },
                     assembled(
-                        SWIPE_CONTAINER, "onInterceptTouchEvent", listOf("Landroid/view/MotionEvent;"), "Z", public, 8,
+                        SWIPE_CONTAINER, "onInterceptTouchEvent", listOf("Landroid/view/MotionEvent;"), "Z", public, 12,
                         """
+                            iget-boolean v0, p0, $SWIPE_CONTAINER->A0R:Z
+                            const/4 v3, 0x1
+                            const/4 v4, 0x0
+                            const/4 v5, 0x0
+                            const/4 v6, 0x0
+                            ${if (walkHanded) "move v7, v0" else "const/4 v7, 0x0"}
+                            $afterMove
+                            move-object v2, p0
+                            invoke-static/range { v2 .. v7 }, $WALK_REF
+                            move-result v0
+                            if-nez v0, :done
                             sget-object v0, $TAB->A08:$TAB
                             iget-object v1, p0, $SWIPE_CONTAINER->A0F:$PANEL_TYPE
                             if-eqz v1, :done
                             iget-boolean v1, v1, $PANEL_TYPE->A00:Z
                             if-eqz v1, :done
                             const/high16 v3, -0x40800000
-                        """ + handOver.repeat(gates) + """
+                        """ + handOver.repeat(gates) + inputOn.repeat(inputCalls) + """
                             :done
                             const/4 v0, 0x0
                             return v0
+                        """,
+                    ),
+                ),
+            )
+            val walk = ImmutableClassDef(
+                WALK_TYPE, public, "Ljava/lang/Object;", null, null, null, emptyList(),
+                listOf(
+                    assembled(
+                        WALK_TYPE, "A00", WALK_SHAPE, "Z", public or AccessFlags.STATIC.value, 8,
+                        """
+                            instance-of v0, p0, $VIEW_PAGER
+                            if-eqz v0, :plain
+                            move-object v1, p0
+                            check-cast v1, $VIEW_PAGER
+                            iget-boolean v0, v1, $VIEW_PAGER->A09:Z
+                            :plain
+                            invoke-static/range { p0 .. p5 }, $WALK_REF
+                            move-result v0
+                            return v0
+                        """,
+                    ),
+                ),
+            )
+            val pager = ImmutableClassDef(
+                VIEW_PAGER, public, "Landroid/view/ViewGroup;", null, null, null,
+                listOf(field(VIEW_PAGER, "A09", "Z")),
+                listOf(
+                    assembled(
+                        VIEW_PAGER, "setUserInputEnabled", listOf("Z"), "V", public, 2,
+                        """
+                            iput-boolean p1, p0, $VIEW_PAGER->A09:Z
+                            return-void
                         """,
                     ),
                 ),
@@ -468,7 +624,7 @@ class SwipeToProfileHookTest {
                     },
                 ),
             )
-            return listOf(container, panel, tab, controller, host)
+            return listOf(container, panel, tab, controller, host, walk, pager)
         }
 
         /**

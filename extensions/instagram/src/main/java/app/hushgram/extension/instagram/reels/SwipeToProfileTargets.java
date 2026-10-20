@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import android.view.View;
+
 /**
  * Stubs the "Swipe left to open the profile" patch writes, so {@link SwipeToProfile} can reach the
  * Reels tab's profile panel without naming Instagram's renamed classes. Unpatched, each one answers
@@ -45,5 +47,24 @@ public final class SwipeToProfileTargets {
 
     /** Turns the panel on or off, by the panel's own position in the container. */
     public static void turn(Object container, Object panel, boolean on) {
+    }
+
+    /** Instagram's own walk: whether a view under the point, or the view itself, can scroll sideways against dx. */
+    public static boolean childScrolls(View view, int dx, int x, int y, boolean checkView, boolean skipOff) {
+        return false;
+    }
+
+    /** Whether the view is a pager. */
+    public static boolean pager(Object view) {
+        return false;
+    }
+
+    /** Whether the pager takes swipes. */
+    public static boolean inputOn(Object pager) {
+        return false;
+    }
+
+    /** Turns the pager's swipes on or off. */
+    public static void input(Object pager, boolean on) {
     }
 }
