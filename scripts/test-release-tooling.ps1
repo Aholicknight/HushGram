@@ -109,6 +109,16 @@ $manifestLines = @(
     '          A: http://schemas.android.com/apk/res/android:exported(0x01010010)=true'
 )
 
+# The inline assembler's dropped-instruction errors, and nothing else the CLI prints.
+$dropped = @(Select-DroppedSmali -Lines @(
+    'INFO: Saved to C:\out\patched.apk',
+    '[7,0] Invalid register: v16. Must be between v0 and v15, inclusive.',
+    'WARNING: [2,0] not at the start of the line',
+    '[12,4] Invalid register: v17. Must be between v0 and v15, inclusive.'))
+Assert-True ($dropped.Count -eq 2 -and $dropped[0].StartsWith('[7,0] ') -and $dropped[1].StartsWith('[12,4] ')) `
+    "The assembler's dropped instructions were not picked out: $($dropped -join ' | ')"
+Assert-True (@(Select-DroppedSmali -Lines @()).Count -eq 0) 'No output was read as a dropped instruction.'
+
 $facts = ConvertFrom-ManifestXmlTree -Lines $manifestLines -Source 'fixture'
 Assert-True ($facts.package -eq 'com.example.host') 'The manifest package was not read.'
 Assert-True ($facts.versionName -eq '46.7.3') 'The manifest version name was not read.'

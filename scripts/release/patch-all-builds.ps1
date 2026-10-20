@@ -204,6 +204,12 @@ foreach ($build in $builds) {
                 $name = if ($failure.patch) { [string]$failure.patch.name } else { '(unnamed)' }
                 [ordered]@{ name = $name; reason = (([string]$failure.reason) -split "`n" | Select-Object -First 1).Trim() }
             })
+            # A gate run kept from earlier passed this same check, so only a fresh log is read.
+            if (-not $kept) {
+                foreach ($line in (Select-DroppedSmali -Lines @(Get-Content -LiteralPath $log))) {
+                    $entry.failed += [ordered]@{ name = '(inline assembler)'; reason = "an instruction was left out, and ART would reject the class: $line" }
+                }
+            }
             $entry.broken = $entry.cliExit -ne 0
             $entry.ok = -not $entry.broken -and $entry.failed.Count -eq 0 -and $entry.applied -eq $names.Count
         } else {

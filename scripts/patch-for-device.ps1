@@ -47,6 +47,9 @@ param(
     # Patch with the release bundle even when a source file is newer than it, for replaying
     # an earlier build on purpose. Without it a stale bundle stops the run.
     [switch]$AllowStaleBundle,
+    # After the install, run ART's verifier over the installed APK and fail on any HushGram class it
+    # rejects. Takes a few minutes on the phone.
+    [switch]$VerifyClasses,
     [string]$Apk,
     [string]$DesktopJar,
     [string]$Java,
@@ -185,15 +188,20 @@ try {
     try {
         $ErrorActionPreference = 'Continue'
         $global:LASTEXITCODE = -1
+        $dropped = [System.Collections.Generic.List[string]]::new()
         & $Java -jar $DesktopJar "@$argumentFile" 2>&1 | ForEach-Object {
             $line = [string]$_
-            if ($ShowPatchLog -or $line -match 'SEVERE|ERROR|WARNING|Exception|Saved to') { Write-Host "[device] $line" }
+            if (Select-DroppedSmali -Lines $line) { $dropped.Add($line) }
+            if ($ShowPatchLog -or $line -match 'SEVERE|ERROR|WARNING|Exception|Saved to|^\[\d+,\d+\] ') { Write-Host "[device] $line" }
         }
         $cliExitCode = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $preference
     }
     if ($cliExitCode -ne 0) { throw "The desktop CLI exited with $cliExitCode" }
+    if ($dropped.Count) {
+        throw "The inline assembler left $($dropped.Count) instruction(s) out, and ART would reject the class: $($dropped -join '; ')"
+    }
 } finally {
     Remove-Item -LiteralPath $argumentFile -Force -ErrorAction SilentlyContinue
     # The CLI unpacks the whole APK here and a run against Instagram leaves gigabytes behind.
@@ -235,4 +243,26 @@ $installedPackage = if ($Clone) { 'com.instagram.android.hush' } else { $target.
 $facts = Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'shell', 'dumpsys', 'package', $installedPackage) -DeviceLease $deviceLease
 if ($facts.ExitCode -ne 0) { throw 'The install finished, but installed build verification failed.' }
 $facts.Output | Select-String 'versionName' | Out-Host
+if ($VerifyClasses) {
+    # ART's own verifier over the installed APK, the one no JVM test runs. A class it rejects throws
+    # VerifyError the first time Instagram touches it: a String stub returning a merged Object and a
+    # move the inline assembler dropped each took the app down on a chat or profile that way.
+    $paths = Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'shell', 'pm', 'path', $installedPackage) -DeviceLease $deviceLease
+    $apkOnDevice = (@($paths.Output | ForEach-Object { [string]$_ } | Where-Object { $_ -like 'package:*base.apk' }) | Select-Object -First 1) -replace '^package:', ''
+    if (-not $apkOnDevice) { throw "No installed APK path for $installedPackage." }
+    Write-Host "[device] verifying every class of $apkOnDevice with dex2oat"
+    [void](Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'logcat', '-G', '16M') -DeviceLease $deviceLease)
+    [void](Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'logcat', '-c') -DeviceLease $deviceLease)
+    $oat = '/data/local/tmp/hushgram-verify'
+    $verify = Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'shell',
+        "/apex/com.android.art/bin/dex2oat64 --dex-file=$apkOnDevice --dex-location=$apkOnDevice --oat-file=$oat.odex " +
+        "--compiler-filter=verify -j2 --runtime-arg -verbose:verifier; status=`$?; rm -f $oat.odex $oat.vdex; exit `$status") -DeviceLease $deviceLease
+    if ($verify.ExitCode -ne 0) { throw "dex2oat could not verify the APK on $Serial (exit $($verify.ExitCode))." }
+    $log = Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'logcat', '-d') -DeviceLease $deviceLease
+    $rejected = @($log.Output | ForEach-Object { [string]$_ } | Where-Object { $_ -match 'Verification failed on class|Verifier rejected class' })
+    $ours = @($rejected | Where-Object { $_ -match 'app[./]hushgram' })
+    Write-Host "[device] classes rejected: $($ours.Count) of HushGram's, $($rejected.Count - $ours.Count) of Instagram's"
+    $ours | Select-Object -First 20 | ForEach-Object { Write-Host "[device] $_" }
+    if ($ours.Count) { throw "ART rejects $($ours.Count) HushGram class(es), and the app crashes when it reaches one." }
+}
 } finally { Exit-HushgramDeviceLease $deviceLease }

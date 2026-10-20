@@ -181,7 +181,7 @@ try {
     # the build lacks there, and still applies.
     $cliOutput | ForEach-Object {
         $line = [string]$_
-        if ($line -match 'SEVERE|ERROR|WARNING|Exception|result saved|Saved to') { Write-Host "[verify] $line" }
+        if ($line -match 'SEVERE|ERROR|WARNING|Exception|result saved|Saved to|^\[\d+,\d+\] ') { Write-Host "[verify] $line" }
     }
 
     $report = $null
@@ -192,6 +192,11 @@ try {
     $validation = Test-PatchingReport -Report $report -ExpectedNames $names `
         -AllowedDependencyNames $dependencyNames -OutputPath $out `
         -ExpectedPackageName $expectedTarget.PackageName -ExpectedPackageVersion $expectedVersion
+    $dropped = Select-DroppedSmali -Lines $cliOutput
+    if ($dropped.Count -and $validation.Valid) {
+        $validation = [pscustomobject]@{ Valid = $false; Reason = ("the inline assembler left $($dropped.Count) " +
+            "instruction(s) out, and ART would reject the class: $($dropped -join '; ')") }
+    }
     $reportApplied = if ($null -ne $report) { @($report.appliedPatches).Count } else { 0 }
     $reportFailed = if ($null -ne $report) { @($report.failedPatches).Count } else { 0 }
     $target = if ($null -ne $report) { "$($report.packageName) $($report.packageVersion)" } else { 'unknown target' }
