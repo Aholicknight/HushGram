@@ -453,6 +453,8 @@ public enum PatchFamily {
         // What a tap on a reel does is a choice beside the switch, and a saved Pause or Mute counts as on.
         anyOn |= this == REEL_TAP_AND_VOLUME
                 && Settings.REEL_TAP_CHOICE.savedValue() != app.hushgram.extension.instagram.reels.ReelTapChoice.DEFAULT;
+        // Share sheet buttons picked to hide act with the group switch off (#252).
+        anyOn |= this == SHARE_SHEET && !Settings.HIDDEN_SHARE_SHEET_BUTTONS.savedValue().trim().isEmpty();
         line.append(paused ? "disabled while paused (saved " : anyOn ? "on (" : "disabled by its switch (");
         for (int i = 0; i < switches.size(); i++) {
             if (i > 0) line.append(", ");

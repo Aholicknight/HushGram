@@ -63,6 +63,22 @@ public class ChoiceReportTest {
                 line(PatchFamily.REEL_TAP_AND_VOLUME));
     }
 
+    /** Buttons picked to hide work with the group switch off, so the line says on (#252). */
+    @Test
+    public void theShareSheetLineCountsThePickedButtons() {
+        try {
+            Settings.HIDDEN_SHARE_SHEET_BUTTONS.save("copy_link");
+            assertEquals("Hide group buttons on the share sheet: on (hushgram_hide_share_sheet_group=off,"
+                    + " hushgram_hidden_share_sheet_buttons=copy_link)", line(PatchFamily.SHARE_SHEET));
+
+            Settings.HIDDEN_SHARE_SHEET_BUTTONS.save("");
+            assertEquals("Hide group buttons on the share sheet: disabled by its switch (hushgram_hide_share_sheet_group=off,"
+                    + " hushgram_hidden_share_sheet_buttons=)", line(PatchFamily.SHARE_SHEET));
+        } finally {
+            Settings.HIDDEN_SHARE_SHEET_BUTTONS.resetToDefault();
+        }
+    }
+
     @Test
     public void familiesWithoutAChoiceKeepTheirLine() {
         Settings.TURN_OFF_HDR_BOOSTS.save(true);

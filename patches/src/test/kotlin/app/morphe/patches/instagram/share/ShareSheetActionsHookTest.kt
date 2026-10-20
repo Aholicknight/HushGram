@@ -29,6 +29,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -56,24 +57,30 @@ class ShareSheetActionsHookTest {
         assertFiltered("stand-in", context.mutableClassDefBy(BUILDER).methods.single { it.name == "A00" }, site.moveResult)
     }
 
-    /** Two builders asking would leave one row unfiltered, so the patch refuses. */
+    /**
+     * Two builders asking would leave one row unfiltered, so the picker is refused. The patch then
+     * goes in without it, the group buttons still hidden.
+     */
     @Test
-    fun aSecondBuilderFailsThePatch() {
+    fun aSecondBuilderLeavesThePickerOut() {
         val context = PatchContexts.of(rowClasses(second = true))
         assertThrows(PatchException::class.java) { context.findActionList() }
+        assertNull(context.findActionListOrWarn())
     }
 
     @Test
-    fun noBuilderFailsThePatch() {
+    fun noBuilderLeavesThePickerOut() {
         val context = PatchContexts.of(rowClasses(builds = false))
         assertThrows(PatchException::class.java) { context.findActionList() }
+        assertNull(context.findActionListOrWarn())
     }
 
     /** A call the picker answers to something that isn't the names list (no copy_link in its class) isn't the row. */
     @Test
-    fun aPickerWithoutCopyLinkFailsThePatch() {
+    fun aPickerWithoutCopyLinkLeavesThePickerOut() {
         val context = PatchContexts.of(rowClasses(picksCopyLink = false))
         assertThrows(PatchException::class.java) { context.findActionList() }
+        assertNull(context.findActionListOrWarn())
     }
 
     @Test

@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -82,11 +83,11 @@ val hideShareSheetGroupPatch = bytecodePatch(
         requireStatusMethod("shareSheet")
         val sheet = findShareSheet()
         val send = findGroupSend()
-        val actions = findActionList()
+        val actions = findActionListOrWarn()
         guardGroupButton(sheet.build)
         guardGroupAction(sheet.reveals)
         guardGroupSend(send)
-        filterActionList(actions)
+        actions?.let { filterActionList(it) }
         enableStatus("shareSheet")
     }
 }
@@ -256,6 +257,14 @@ private fun Instruction.isPickerCall(): Boolean {
     val types = call.parameterTypes.map(CharSequence::toString)
     return call.returnType == "Ljava/util/List;" && types.size == 6 && types[0] == GEN_AI_PARAMS &&
         types[2] == "Ljava/lang/String;" && types.drop(3).all { it == "Z" }
+}
+
+/** The row's list of button names, or null with a warning, so the group buttons still go in. */
+internal fun BytecodePatchContext.findActionListOrWarn(): ActionListSite? = try {
+    findActionList()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without the share sheet button picker.")
+    null
 }
 
 /**
