@@ -182,17 +182,25 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     if (like.localRegisterCount() < 1) refuse("the feed's double-tap like ${like.text()} has no local register")
 
     val reel = reels.singleOrNull() ?: refuse("expected one method marked $HANDLE_DOUBLE_TAP, found ${reels.size}")
-    // 451 files a setter for the like action next to the handler. 452 inlines the handler into the
-    // gesture listener's onDoubleTap and files no setter, so there the action is the one field the
-    // double tap reads, tests for null and calls with four values.
-    val action = if (setters.isEmpty()) {
-        reelLikeAction(reel)
-    } else {
-        val setter = setters.singleOrNull() ?: refuse("expected one method marked $SET_LIKE_ACTION, found ${setters.size}")
-        if (setter.definingClass != reel.definingClass) refuse("$SET_LIKE_ACTION isn't in ${reel.definingClass}")
-        val written = setter.code().filter { it.opcode == Opcode.IPUT_OBJECT }.mapNotNull { it.fieldReference() }
-            .filter { it.definingClass == reel.definingClass }.distinctBy { it.toString() }
-        written.singleOrNull() ?: refuse("$SET_LIKE_ACTION writes ${written.size} fields of ${reel.definingClass}, expected one")
+    // 451 filed a setter for the like action next to the handler, so the action was the one field of
+    // the handler's class the setter stores. 452 inlines the handler into the gesture listener's
+    // onDoubleTap and the setter into the clips viewer's action setup, so there the action is the one
+    // field the double tap reads off its actions holder, tests for null and calls with four values,
+    // and the setup has to store that same field. A build filing no setter at all is read the same way.
+    val setter = if (setters.isEmpty()) null else setters.singleOrNull()
+        ?: refuse("expected one method marked $SET_LIKE_ACTION, found ${setters.size}")
+    val action = when {
+        setter == null -> reelLikeAction(reel)
+        setter.definingClass == reel.definingClass -> {
+            val written = setter.code().filter { it.opcode == Opcode.IPUT_OBJECT }.mapNotNull { it.fieldReference() }
+                .filter { it.definingClass == reel.definingClass }.distinctBy { it.toString() }
+            written.singleOrNull() ?: refuse("$SET_LIKE_ACTION writes ${written.size} fields of ${reel.definingClass}, expected one")
+        }
+        else -> reelLikeAction(reel).also { field ->
+            if (setter.code().none { it.opcode == Opcode.IPUT_OBJECT && it.fieldReference()?.toString() == field.toString() }) {
+                refuse("$SET_LIKE_ACTION in ${setter.definingClass} never stores the like action ${reel.definingClass}->${reel.name} reads, $field")
+            }
+        }
     }
 
     // The handler reads its like action once and skips the like when it's null.
