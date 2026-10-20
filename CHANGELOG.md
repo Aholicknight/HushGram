@@ -38,6 +38,7 @@ Every HushGram release, newest first.
 * **Instagram:** Open developer options is gone, along with the Developer category and its flag tools. An account running server flags Instagram never sent it stands out. Settings files that still hold the developer switches import fine.
 * **Instagram - HushGram settings:** The diagnostic report shows the playback quality, font and reel tap choice you picked, not just whether their switches are on. Asked for in #85.
 * **Instagram - Download any video:** When `Convert to keep the full size` leaves a VP9 or AV1 video unconverted, the diagnostic report now says why. Asked about in #236.
+* **Instagram:** HushGram now patches Instagram 452.0.0.48.64 instead of 451.0.0.53.80. Get APKMirror's (arm64-v8a) (640dpi) (Android 9.0+) variant, build 385810270. The two armeabi-v7a builds, 385810231 and 385810269, patch too.
 
 ## 0.0.13 (2026-10-18)
 
