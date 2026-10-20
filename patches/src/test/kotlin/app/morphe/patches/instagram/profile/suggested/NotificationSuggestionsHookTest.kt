@@ -54,7 +54,7 @@ class NotificationSuggestionsHookTest {
         val declared = ExtensionDex.classDef(NOTIFICATION_PARSED.substringBefore("->")).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(NOTIFICATION_PARSED, KEEP_NOTIFICATION)) {
+        for (hook in listOf(NOTIFICATION_PARSED, KEEP_NOTIFICATION, FEATURED_ROWS, FEATURED_HEADER)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -85,11 +85,15 @@ class NotificationSuggestionsHookTest {
 
             val rows = context.findNotificationRows()
             val reply = context.findNotificationLists(rows)
+            val featured = context.findFeaturedSectionOrWarn(reply)
+            assertNotNull("${bundle.name}: the Featured section", featured)
             context.noteNotificationRows(rows)
             context.keepNotificationRows(reply)
+            context.hideFeaturedSection(reply)
 
             assertMarked(bundle.name, context.parser(rows.type, rows.parameters), rows)
             assertDropped(bundle.name, context.parser(reply.type, reply.parameters), rows.type, reply.checks.size)
+            assertFeaturedHidden(bundle.name, context.parser(reply.type, reply.parameters), featured!!)
             lists[bundle.name] = reply.checks.size
         }
         // New and old rows and three more lists of the same rows, as the contract's sites 5 holds.
@@ -124,6 +128,9 @@ class NotificationSuggestionsHookTest {
         val replies = context.parser(reply, listOf(json))
         assertDropped("stand-in", replies, rowParser, 2)
         assertEquals("what else went in the reply", repliesBefore + 4, replies.code().size)
+        // The stand-in has no Featured section, so that switch alone stays out and nothing more is written.
+        assertNull("no Featured section", context.findFeaturedSectionOrWarn(lists))
+        assertFalse(replies.code().any { it.referenceText() == FEATURED_ROWS || it.referenceText() == FEATURED_HEADER })
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
@@ -199,6 +206,39 @@ class NotificationSuggestionsHookTest {
             assertEquals("$what: of the answer at $call", register, (code[call + 2] as OneRegisterInstruction).registerA)
             assertFalse("$what: a jump lands in the call at $call", call in targets || call + 1 in targets || call + 2 in targets)
         }
+    }
+
+    /**
+     * The Featured rows' list and its header each go to the extension right before the reply keeps
+     * them, the answer back in the same register, the header's cast back to its type, and nothing
+     * jumps past a call into the store. The list's field is the one the reply names [FEATURED_ROWS_KEY]
+     * by at the end, and its loop's way out now lands on the call.
+     */
+    private fun assertFeaturedHidden(what: String, method: MutableMethod, site: FeaturedSite) {
+        val code = method.code()
+        val targets = method.jumpTargets()
+        val rows = code.indices.single { code[it].referenceText() == FEATURED_ROWS }
+        assertEquals("$what: the rows' call", Opcode.INVOKE_STATIC_RANGE, code[rows].opcode)
+        assertEquals("$what: the rows' register", site.rows, (code[rows] as RegisterRangeInstruction).startRegister)
+        assertEquals("$what: the rows' answer", site.rows, (code[rows + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: kept", Opcode.IPUT_OBJECT, code[rows + 2].opcode)
+        assertEquals("$what: kept from the answer", site.rows, (code[rows + 2] as TwoRegisterInstruction).registerA)
+        val field = (code[rows + 2] as ReferenceInstruction).reference.fieldText()
+        val tag = code.indices.single { code[it].string() == FEATURED_ROWS_KEY && code[it - 1].opcode == Opcode.IGET_OBJECT }
+        assertEquals("$what: the field named $FEATURED_ROWS_KEY", field, (code[tag - 1] as ReferenceInstruction).reference.fieldText())
+        assertTrue("$what: the loop's way out lands on the rows' call", rows in targets)
+        assertFalse("$what: a jump lands past the rows' call", rows + 1 in targets || rows + 2 in targets)
+
+        val header = code.indices.single { code[it].referenceText() == FEATURED_HEADER }
+        assertEquals("$what: the header's register", site.header, (code[header] as RegisterRangeInstruction).startRegister)
+        assertEquals("$what: the header's answer", Opcode.MOVE_RESULT_OBJECT, code[header + 1].opcode)
+        assertEquals("$what: cast back", Opcode.CHECK_CAST, code[header + 2].opcode)
+        assertEquals("$what: to the header's type", site.headerType, ((code[header + 2] as ReferenceInstruction).reference as com.android.tools.smali.dexlib2.iface.reference.TypeReference).type)
+        assertEquals("$what: the header kept", Opcode.IPUT_OBJECT, code[header + 3].opcode)
+        assertEquals("$what: kept from the answer", site.header, (code[header + 3] as TwoRegisterInstruction).registerA)
+        val key = code.indices.single { code[it].string() == FEATURED_HEADER_KEY }
+        assertTrue("$what: the header's store follows its key", header in key + 1..key + 16)
+        assertFalse("$what: a jump lands past the header's call", (header + 1..header + 3).any { it in targets })
     }
 
     /**

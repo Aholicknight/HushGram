@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.profile;
 import android.view.View;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -63,6 +64,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * same switch takes the account sections that only suggest people, Suggested for you among them, by
  * {@link #hidesSuggestionSection} (#112).
  *
+ * <p>The reply also has a Featured section at the top, rows the server picks with a header of their own
+ * (#259). It keeps that section's rows in a list of their own and its header beside them, and hands
+ * each to {@link #featuredRows} and {@link #featuredHeader} as it keeps them: an empty list and no
+ * header leave nothing of the section to draw.
+ *
  * <p>Each hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer stands.
  */
@@ -96,6 +102,9 @@ public final class ProfileSuggestions {
     static final String NOTIFICATIONS = "Notification rows";
     static final String NO_TYPE = "no type";
     static final String SUGGESTION_ROWS = "suggestion rows in notifications";
+
+    /** What's counted when Hide Featured in notifications takes the Featured section's rows off. */
+    static final String FEATURED = "Featured in notifications";
 
     /**
      * The server's names for notification rows that only suggest something to you, read off the
@@ -309,6 +318,39 @@ public final class ProfileSuggestions {
         return decides(SUGGESTION_ROWS, on) ? null : row;
     }
 
+    /**
+     * Injected where the notifications' reply keeps the rows of its Featured section (#259). Answers an
+     * empty list while Hide Featured in notifications is on, so the section has no rows to draw, and
+     * [rows] as they came with the switch off, paused or unready, or anything going wrong. Never throws.
+     */
+    public static List<?> featuredRows(List<?> rows) {
+        return featuredRows(rows, ProfileSuggestions::featuredOn);
+    }
+
+    static List<?> featuredRows(List<?> rows, BooleanSupplier on) {
+        if (rows == null || rows.isEmpty()) return rows;
+        return hides(FEATURED, on) ? new ArrayList<>() : rows;
+    }
+
+    /**
+     * Injected where the notifications' reply keeps its Featured section's header. Answers null while
+     * Hide Featured in notifications is on, the same as a reply that sends no header, and [header] as it
+     * came otherwise. Never throws.
+     */
+    public static Object featuredHeader(Object header) {
+        return featuredHeader(header, ProfileSuggestions::featuredOn);
+    }
+
+    static Object featuredHeader(Object header, BooleanSupplier on) {
+        if (header == null) return null;
+        try {
+            return on.getAsBoolean() ? null : header;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, FEATURED, failure);
+            return header;
+        }
+    }
+
     /** Whether to hide this part now, counting the call and the part either way. False when anything goes wrong. */
     private static boolean hides(String part, BooleanSupplier on) {
         HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
@@ -347,5 +389,9 @@ public final class ProfileSuggestions {
 
     private static boolean notificationSuggestionsOn() {
         return Utils.settingsReady() && Settings.HIDE_NOTIFICATION_SUGGESTIONS.get();
+    }
+
+    private static boolean featuredOn() {
+        return Utils.settingsReady() && Settings.HIDE_NOTIFICATION_FEATURED.get();
     }
 }

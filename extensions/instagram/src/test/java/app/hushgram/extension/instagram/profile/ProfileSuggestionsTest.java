@@ -69,6 +69,7 @@ public class ProfileSuggestionsTest {
         Settings.HIDE_PROFILE_COMPLETION.resetToDefault();
         Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.resetToDefault();
         Settings.HIDE_NOTIFICATION_SUGGESTIONS.resetToDefault();
+        Settings.HIDE_NOTIFICATION_FEATURED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -696,5 +697,57 @@ public class ProfileSuggestionsTest {
         assertSame(suggestion, ProfileSuggestions.keepNotification(suggestion, THROWS));
         String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.SUGGESTION_ROWS + "'"));
+    }
+
+    /**
+     * #259: with Hide Featured in notifications on, the Featured section's rows come back as an empty
+     * list, never the one Instagram filled, and its header as none. Off, paused or unready, both stay
+     * as Instagram kept them. A missing or empty list goes through as it came.
+     */
+    @Test
+    public void theFeaturedSectionGoesOnlyWithItsOwnSwitch() {
+        List<Object> rows = new ArrayList<>(Arrays.asList(new Object(), new Object()));
+        Object header = new Object();
+        Settings.HIDE_NOTIFICATION_SUGGESTIONS.save(true);
+        assertSame("the suggestions switch alone", rows, ProfileSuggestions.featuredRows(rows));
+        assertSame(header, ProfileSuggestions.featuredHeader(header));
+
+        Settings.HIDE_NOTIFICATION_FEATURED.save(true);
+        List<?> left = ProfileSuggestions.featuredRows(rows);
+        assertTrue(String.valueOf(left), left.isEmpty());
+        assertEquals("Instagram's list is left as it was", 2, rows.size());
+        assertNull(ProfileSuggestions.featuredHeader(header));
+        assertNull("no list", ProfileSuggestions.featuredRows(null));
+        List<Object> none = new ArrayList<>();
+        assertSame("an empty list", none, ProfileSuggestions.featuredRows(none));
+        assertNull("no header", ProfileSuggestions.featuredHeader(null));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.FEATURED + " 1"));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", rows, ProfileSuggestions.featuredRows(rows));
+        assertSame("paused", header, ProfileSuggestions.featuredHeader(header));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> {
+            assertSame("unready", rows, ProfileSuggestions.featuredRows(rows));
+            assertSame("unready", header, ProfileSuggestions.featuredHeader(header));
+        });
+
+        Settings.HIDE_NOTIFICATION_FEATURED.save(false);
+        assertSame("off", rows, ProfileSuggestions.featuredRows(rows));
+        assertSame("off", header, ProfileSuggestions.featuredHeader(header));
+    }
+
+    /** A Featured switch that throws leaves the rows and the header and says which hook threw. */
+    @Test
+    public void aThrowingFeaturedSwitchFailsOpenAndIsReported() {
+        List<Object> rows = new ArrayList<>(Collections.singletonList(new Object()));
+        Object header = new Object();
+        assertSame(rows, ProfileSuggestions.featuredRows(rows, THROWS));
+        assertSame(header, ProfileSuggestions.featuredHeader(header, THROWS));
+        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.FEATURED + "'"));
     }
 }

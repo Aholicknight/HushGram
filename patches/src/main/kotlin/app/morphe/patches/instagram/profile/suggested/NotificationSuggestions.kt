@@ -29,6 +29,12 @@ private const val PATCH = "Hide suggested people on profiles"
 
 internal const val NOTIFICATION_PARSED = "$PROFILE_SUGGESTIONS->notificationParsed(Ljava/lang/Object;Ljava/lang/String;)V"
 internal const val KEEP_NOTIFICATION = "$PROFILE_SUGGESTIONS->keepNotification(Ljava/lang/Object;)Ljava/lang/Object;"
+internal const val FEATURED_ROWS = "$PROFILE_SUGGESTIONS->featuredRows(Ljava/util/List;)Ljava/util/List;"
+internal const val FEATURED_HEADER = "$PROFILE_SUGGESTIONS->featuredHeader(Ljava/lang/Object;)Ljava/lang/Object;"
+
+/** The reply's keys of the Featured section at the top of the notifications (#259): its rows, and its header. */
+internal const val FEATURED_ROWS_KEY = "priority_stories"
+internal const val FEATURED_HEADER_KEY = "priority_header"
 
 /**
  * The keys of a notification row's kind in the server's reply: the name of the kind, and its number.
@@ -48,6 +54,11 @@ private const val STRING = "Ljava/lang/String;"
 
 /** How far after the name key's load its value's read may land. */
 private const val NAME_READ_REACH = 6
+
+/** How far after the Featured header's key the reply may keep the header. */
+private const val HEADER_KEEP_REACH = 16
+
+private const val LIST = "Ljava/util/List;"
 
 /**
  * The row parser's last steps: its class and parameters, where it hands the row back, the register
@@ -217,6 +228,90 @@ internal fun BytecodePatchContext.keepNotificationRows(site: NotificationListSit
         )
     }
 }
+
+/**
+ * Where the reply keeps its Featured section: the store of its rows' list and of its header, each with
+ * the register it stores, and the header's type.
+ */
+internal class FeaturedSite(val rowsAt: Int, val rows: Int, val headerAt: Int, val header: Int, val headerType: String)
+
+/**
+ * Finds where the notifications' reply keeps its Featured section (#259), on 452's 385810270 the
+ * stores into `LX/01Z1.A0V` and `A0G`. Once it has read every key, the reply names each list of rows
+ * it kept, reading the list's field right before loading its key, so the field read before
+ * [FEATURED_ROWS_KEY] is the Featured rows', and the one store into that field is where the list is
+ * kept, at the end of its loop. The header is the reply's first object store after it compares the
+ * key with [FEATURED_HEADER_KEY], with no goto between, into a field nothing else stores into. Reads
+ * [reply] as it stands, so the hook can read it again after the row hooks moved its indexes.
+ */
+internal fun BytecodePatchContext.featuredSectionIn(reply: Method): FeaturedSite {
+    val where = "${reply.definingClass}->$PARSE"
+    val code = reply.implementation!!.instructions.toList()
+    val tags = code.indices.filter { at ->
+        val read = code.getOrNull(at - 1)
+        stringLoadedAt(code, at) == FEATURED_ROWS_KEY && read?.opcode == Opcode.IGET_OBJECT &&
+            (read.reference() as FieldReference).type == LIST
+    }
+    val tag = tags.singleOrNull() ?: refuse("expected one read of a list right before \"$FEATURED_ROWS_KEY\" in $where, found ${tags.size}")
+    val rowsField = (code[tag - 1].reference() as FieldReference).text()
+    val rowsAt = code.indices.filter { code[it].stores(rowsField) }.singleOrNull()
+        ?: refuse("expected one store of the Featured rows in $where")
+    val store = code[rowsAt] as TwoRegisterInstruction
+
+    val key = code.indices.filter { stringLoadedAt(code, it) == FEATURED_HEADER_KEY }.singleOrNull()
+        ?: refuse("$where doesn't load \"$FEATURED_HEADER_KEY\" once")
+    val headerAt = (key + 1 until minOf(code.size, key + HEADER_KEEP_REACH)).asSequence()
+        .takeWhile { code[it].opcode !in GOTOS }
+        .firstOrNull { code[it].opcode == Opcode.IPUT_OBJECT && (code[it] as TwoRegisterInstruction).registerB == store.registerB }
+        ?: refuse("$where doesn't keep the Featured header right after \"$FEATURED_HEADER_KEY\"")
+    val headerField = code[headerAt].reference() as FieldReference
+    if (code.indices.count { code[it].stores(headerField.text()) } != 1) refuse("$where keeps the Featured header more than once")
+    if (!headerField.type.startsWith("L")) refuse("$where keeps the Featured header as a ${headerField.type}")
+    val header = (code[headerAt] as TwoRegisterInstruction).registerA
+    if (store.registerA > 255 || header > 255) refuse("$where keeps the Featured section past v255")
+    return FeaturedSite(rowsAt, store.registerA, headerAt, header, headerField.type)
+}
+
+/** The Featured section in the reply [lists] were found in, or null with a warning, so the rest still goes in. */
+internal fun BytecodePatchContext.findFeaturedSectionOrWarn(lists: NotificationListSite): FeaturedSite? = try {
+    featuredSectionIn(classDefBy(lists.type).methods.single { it.isReply(lists) })
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without hiding Featured in notifications.")
+    null
+}
+
+/**
+ * Hands the Featured rows' list to [FEATURED_ROWS] and the header to [FEATURED_HEADER] right before
+ * the reply keeps each, the answer back in the same register, on each store's own label so the loop's
+ * way out runs it too. The header's answer is cast back to its type, a null passing as the reply's own
+ * no header. Reads the reply again first, since the row hooks went in ahead of it.
+ */
+internal fun BytecodePatchContext.hideFeaturedSection(lists: NotificationListSite) {
+    val method = mutableClassDefBy(lists.type).methods.single { it.isReply(lists) }
+    val site = featuredSectionIn(method)
+    val rows = site.rowsAt to """
+        invoke-static/range { v${site.rows} .. v${site.rows} }, $FEATURED_ROWS
+        move-result-object v${site.rows}
+    """
+    val header = site.headerAt to """
+        invoke-static/range { v${site.header} .. v${site.header} }, $FEATURED_HEADER
+        move-result-object v${site.header}
+        check-cast v${site.header}, ${site.headerType}
+    """
+    for ((at, smali) in listOf(rows, header).sortedByDescending { it.first }) {
+        method.addInstructionsAtControlFlowLabel(at, smali)
+    }
+}
+
+private fun Method.isReply(lists: NotificationListSite) =
+    name == PARSE && returnType == OBJECT && parameterTypes.map(CharSequence::toString) == lists.parameters
+
+private val GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
+
+private fun FieldReference.text() = "$definingClass->$name:$type"
+
+private fun Instruction.stores(field: String) =
+    opcode == Opcode.IPUT_OBJECT && (reference() as FieldReference).text() == field
 
 /**
  * The row parser and the reply's lists, or null with a warning in the patch log when the build isn't

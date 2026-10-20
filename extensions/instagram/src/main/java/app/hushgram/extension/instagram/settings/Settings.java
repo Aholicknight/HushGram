@@ -1139,6 +1139,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_notification_suggestions", FALSE);
 
     /**
+     * The Featured section at the top of your notifications, header and rows: posts and threads the
+     * server picks to show you there
+     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#featuredRows}, #259). Read
+     * each time the notifications load, so off or paused, it's back on the next load. Off to start.
+     */
+    public static final BooleanSetting HIDE_NOTIFICATION_FEATURED =
+            new BooleanSetting("hushgram_hide_notification_featured", FALSE);
+
+    /**
      * The row of story highlights on profiles
      * ({@link app.hushgram.extension.instagram.profile.ProfileHighlights}). Read each time Instagram
      * lays out a profile's header, so a change shows on the next profile opened. Off to start.
