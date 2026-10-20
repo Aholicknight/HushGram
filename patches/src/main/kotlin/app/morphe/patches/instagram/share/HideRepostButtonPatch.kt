@@ -117,7 +117,7 @@ val hideRepostButtonPatch = bytecodePatch(
         val sites = findRepostSites()
         val feedUfi = findFeedUfiSite()
         val component = findFeedRepostComponent()
-        requireSeparateMethods(repostHookMethods(feedState, sites, feedUfi, component))
+        requireSeparateMethods(repostHookMethods(feedState, sites, feedUfi, component), readsBeforeWrites(feedState, sites))
         val hideState = prepareFeedState(feedState)
         val hideUfi = prepareFeedUfi(feedUfi)
         val hideComponent = prepareFeedComponent(component)
@@ -134,6 +134,10 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 
 private fun methodKey(type: String, name: String, parameters: List<String>) = "$type->$name(${parameters.joinToString("")})"
 
+/** The two hooks that may share a method, when [readsBeforeWrites] says so. */
+internal const val STATE_HOOK = "the action-row state hook"
+internal const val READ_FILTER = "the tree read filter"
+
 /** The methods each of this patch's hooks changes, by hook. */
 internal fun repostHookMethods(
     state: FeedRepostState,
@@ -141,9 +145,9 @@ internal fun repostHookMethods(
     feedUfi: FeedUfiSite,
     component: FeedRepostComponent,
 ): Map<String, Set<String>> = mapOf(
-    "the action-row state hook" to state.writes.map { methodKey(it.owner, it.name, it.parameters) }.toSet(),
+    STATE_HOOK to state.writes.map { methodKey(it.owner, it.name, it.parameters) }.toSet(),
     "the getter guard" to setOf(methodKey(MEDIA, sites.getter, emptyList())),
-    "the tree read filter" to sites.reads.map { methodKey(it.type, it.name, it.parameters) }.toSet(),
+    READ_FILTER to sites.reads.map { methodKey(it.type, it.name, it.parameters) }.toSet(),
     "the Feed UFI hook" to setOf(methodKey(feedUfi.type, feedUfi.name, feedUfi.parameters)),
     "the Feed component hook" to setOf(
         methodKey(component.method.definingClass, component.method.name, component.method.parameterTypes.map(CharSequence::toString)),
@@ -151,13 +155,29 @@ internal fun repostHookMethods(
 )
 
 /**
+ * The methods where [STATE_HOOK] and [READ_FILTER] may both land: every tree read there sits before
+ * every state write. 452 inlines the action-row state's constructor into the builder that reads the
+ * post's tree, so one method holds both. The state hook goes first and inserts at the writes, past
+ * the reads, so the reads' positions still hold when the filter inserts right after each of them.
+ */
+internal fun readsBeforeWrites(state: FeedRepostState, sites: RepostSites): Set<String> {
+    val writes = state.writes.groupBy { methodKey(it.owner, it.name, it.parameters) }
+    return sites.reads.groupBy { methodKey(it.type, it.name, it.parameters) }
+        .filter { (method, reads) -> writes[method]?.let { stores -> reads.maxOf { it.at } < stores.minOf { it.at } } == true }
+        .keys
+}
+
+/**
  * Fails before any change when two hooks would change the same method. Each one places its lines
  * by instruction positions found in the untouched method, so another hook's lines would move them.
+ * The one exception is [STATE_HOOK] with [READ_FILTER] in a method of [readsFirst].
  */
-internal fun requireSeparateMethods(hooks: Map<String, Set<String>>) {
+internal fun requireSeparateMethods(hooks: Map<String, Set<String>>, readsFirst: Set<String> = emptySet()) {
     val owners = mutableMapOf<String, String>()
     for ((hook, methods) in hooks) for (method in methods) {
-        owners.put(method, hook)?.let { other -> refuse("$other and $hook would both change $method") }
+        val other = owners.put(method, hook) ?: continue
+        if (setOf(other, hook) != setOf(STATE_HOOK, READ_FILTER)) refuse("$other and $hook would both change $method")
+        if (method !in readsFirst) refuse("$other and $hook would both change $method, and a tree read there follows a state write")
     }
 }
 
