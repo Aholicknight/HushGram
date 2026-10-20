@@ -706,6 +706,14 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->shareTarget(I)Z in s
 # switches on; twice or elsewhere, it isn't the guard the patch wrote.
 start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->composerButton(Ljava/lang/Object;I)Z in instance (LX/*;LX/*;Z)V holding const:0x1ce57a65
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->composerButton(Ljava/lang/Object;I)Z in instance (LX/*;LX/*;Z)V holding const:0x1ce57a65
+# Message box buttons (#217) filters the same (button, show) pair in that dispatcher, right after
+# Meta AI's hook (02VZ.HlM on 452), and hands the gallery, sticker and voice views to
+# MessageBox.composerCreated right before the composer's constructor returns, the one instance
+# (Activity, View, ViewGroup, session, controller) method loading the three button ids. Left out,
+# the buttons stay with their switches on; twice or elsewhere, it isn't the call the patch wrote.
+# MessageBoxHookTest checks both places, alone and with Meta AI's hook in either order.
+once-call Lapp/hushgram/extension/instagram/direct/MessageBox;->button(Ljava/lang/Object;I)Z in instance (LX/*;LX/*;Z)V holding const:0x1ce57a65
+once-call Lapp/hushgram/extension/instagram/direct/MessageBox;->composerCreated(Landroid/view/View;Landroid/view/View;Landroid/view/View;)V in instance (Landroid/app/Activity;Landroid/view/View;Landroid/view/ViewGroup;Lcom/instagram/common/session/UserSession;LX/*;)V holding const:0x7f0b3891 const:0x7f0b389b const:0x7f0b38b5
 start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in static (Landroid/content/Context;L*;)L*; holding impression_muse_banner tap_muse_banner
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in static (Landroid/content/Context;L*;)L*; holding impression_muse_banner tap_muse_banner
 # Hide Blend on reels asks MetaAi.blendButton() first in the one static method that logs
@@ -1728,6 +1736,16 @@ once-call Lapp/hushgram/extension/instagram/misc/MediaCache;->beforeVideoCache(L
 # where it lands on each declared build.
 start-call Lapp/hushgram/extension/instagram/direct/CallConfirm;->hold(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)Z in instance (L*;L*;Lcom/instagram/model/rtc/cowatch/RtcStartCoWatchPlaybackArguments;Z)V holding ig4a-instagram-schema
 once-call Lapp/hushgram/extension/instagram/direct/CallConfirm;->hold(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)Z in instance (L*;L*;Lcom/instagram/model/rtc/cowatch/RtcStartCoWatchPlaybackArguments;Z)V holding ig4a-instagram-schema
+# Its second switch hands each call button's view and model to CallButtons.bound first thing in
+# the chat header's two binders (03My.A03 and A04 on 452): the pill one, the instance (View, model)
+# method setting a PulsingPillButton's text and icon, and the icon one, the instance (View, model,
+# color) method casting its child to an ImageView and setting the drawable's level. Left out, the
+# buttons stay with the switch on; twice or elsewhere, it isn't the call the patch wrote.
+# HideCallButtonsHookTest checks both binders on each declared build.
+start-call Lapp/hushgram/extension/instagram/direct/CallButtons;->bound(Landroid/view/View;Ljava/lang/Object;)V in instance (Landroid/view/View;LX/*;)V holding Lcom/instagram/ui/widget/pulsingbutton/PulsingPillButton;->setButtonText(I)V Lcom/instagram/ui/widget/pulsingbutton/PulsingPillButton;->setButtonResource(I)V
+once-call Lapp/hushgram/extension/instagram/direct/CallButtons;->bound(Landroid/view/View;Ljava/lang/Object;)V in instance (Landroid/view/View;LX/*;)V holding Lcom/instagram/ui/widget/pulsingbutton/PulsingPillButton;->setButtonText(I)V Lcom/instagram/ui/widget/pulsingbutton/PulsingPillButton;->setButtonResource(I)V
+start-call Lapp/hushgram/extension/instagram/direct/CallButtons;->bound(Landroid/view/View;Ljava/lang/Object;)V in instance (Landroid/view/View;LX/*;I)V holding null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView Landroid/graphics/drawable/Drawable;->setLevel(I)Z Landroid/widget/ImageView;->setColorFilter(Landroid/graphics/ColorFilter;)V
+once-call Lapp/hushgram/extension/instagram/direct/CallButtons;->bound(Landroid/view/View;Ljava/lang/Object;)V in instance (Landroid/view/View;LX/*;I)V holding null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView Landroid/graphics/drawable/Drawable;->setLevel(I)Z Landroid/widget/ImageView;->setColorFilter(Landroid/graphics/ColorFilter;)V
 # Ask before a like hands LikeConfirm.hold the Like button handler's own arguments first thing in it
 # (06zU.FdS on 450), the one instance (post, position, module, callback, index) method filing
 # like_media, and returns there while it answers true. Left out, the Like button never asks; twice or
@@ -1943,3 +1961,9 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/la
 # patch wrote. HideCommentEmojiRowPatchTest checks the call, its register and the branch on all
 # the three 452 builds.
 once-call Lapp/hushgram/extension/instagram/feed/CommentEmojiRow;->hidesRow(I)Z holding replying_to_bar group_mention_banner
+# Hide Plus preview in chat menus (#249) filters the flag that puts a chat's long press menu in
+# peek mode, right after its booleanValue() in the menu's one builder (07EC.A00 on 452), the method
+# holding the dialog controller's name, long_press and the overlay failure event. Left out, the
+# See preview and Instagram Plus rows stay with the switch on; twice or elsewhere, it isn't the
+# call the patch wrote. HidePlusPreviewHookTest checks the call and its register on each build.
+once-call Lapp/hushgram/extension/instagram/direct/PlusPreview;->peek(I)Z holding DirectInboxThreadDialogController long_press_overlay_creation_failed long_press
