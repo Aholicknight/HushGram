@@ -111,7 +111,7 @@ internal fun BytecodePatchContext.findNotInterestedSite(site: ReelButtonSite): N
     val run = one(NOT_INTERESTED_MARKER)
     val init = one(BINDER_INIT_MARKER)
     val delegate = run.definingClass
-    val delegateClass = classDefBy(delegate)
+    val delegateClass = classDefByOrNull(delegate) ?: refuseNotInterested("the delegate $delegate is missing")
     val arguments = run.parameterNames()
     if (!AccessFlags.PUBLIC.isSet(delegateClass.accessFlags) || !AccessFlags.PUBLIC.isSet(run.accessFlags) ||
         AccessFlags.STATIC.isSet(run.accessFlags) || run.returnType != "V" || arguments.size != 2 ||
@@ -143,7 +143,8 @@ internal fun BytecodePatchContext.findNotInterestedSite(site: ReelButtonSite): N
         ?: refuseNotInterested("expected one $VIEWER_CONFIG parameter in the constructor of $delegate")
     val register = 1 + parameters.take(configAt).sumOf { if (it == "J" || it == "D") 2 else 1 }
 
-    val body = mutableClassDefBy(delegate).methods.single { it.name == "<init>" && it.parameterNames() == parameters }
+    val body = mutableClassDefBy(delegate).methods.singleOrNull { it.name == "<init>" && it.parameterNames() == parameters }
+        ?: refuseNotInterested("expected one constructor of $delegate taking ${parameters.joinToString()}")
     val code = body.implementation?.instructions?.toList() ?: refuseNotInterested("the constructor of $delegate has no body")
     val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_VOID }
     val returnAt = returns.singleOrNull()
