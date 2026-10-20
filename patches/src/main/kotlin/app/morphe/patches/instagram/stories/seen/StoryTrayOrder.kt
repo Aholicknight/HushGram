@@ -106,9 +106,11 @@ private fun trayLister(store: String, methods: Iterable<Method>, reelClass: Stri
     if (!filter) return null
 
     val sortCode = sort.implementation?.instructions?.toList() ?: return null
-    val checks = sortCode.mapNotNull { it.trayCall() }
+    val checks = sortCode.filter { it.opcode == Opcode.INVOKE_VIRTUAL || it.opcode == Opcode.INVOKE_VIRTUAL_RANGE }
+        .mapNotNull { it.trayCall() }
         .filter { it.definingClass == reelClass && it.returnType == "Z" && it.parameterTypes.map(Any::toString) == listOf(USER_SESSION) }
         .map { it.name }.distinct()
+    // Only a virtual call: the stub makes the same call with invoke-virtual.
     val seenCheck = checks.singleOrNull() ?: return null
     val session = sortCode.mapNotNull { (it as? ReferenceInstruction)?.reference as? FieldReference }
         .filter { it.definingClass == store && it.type == USER_SESSION }.map { it.name }.distinct().singleOrNull() ?: return null
@@ -118,6 +120,8 @@ private fun trayLister(store: String, methods: Iterable<Method>, reelClass: Stri
     if (at == 0 || code[at - 1].opcode != Opcode.MONITOR_EXIT) return null
     val result = (code[at] as OneRegisterInstruction).registerA
     val self = method.implementation!!.registerCount - 1 - 1
+    // The monitor-exit lets go of the store itself, so its register still holds the store at the return.
+    if ((code[at - 1] as OneRegisterInstruction).registerA != self) return null
     if (result > 15 || self > 15 || result == self) return null
     return TrayShape(
         store = store, lister = method.name, parameters = listOf(JAVA_LIST), at = at, result = result, self = self,
