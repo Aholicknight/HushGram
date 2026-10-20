@@ -1179,7 +1179,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         if (build.contains(PatchFamily.COMMENT_COPY) || build.contains(PatchFamily.COMMENT_PHOTO)
-                || build.contains(PatchFamily.HIDE_COMMENTS) || build.contains(PatchFamily.COMMENT_EMOJI_ROW)) {
+                || build.contains(PatchFamily.HIDE_COMMENTS) || build.contains(PatchFamily.COMMENT_EMOJI_ROW)
+                || build.contains(PatchFamily.COMMENT_KEYBOARD)) {
             PreferenceCategory comments = category(screen, L10n.t("Comments"), SettingsIcons.COMMENTS,
                     L10n.t("Copy, save or hide comments."));
             if (build.contains(PatchFamily.COMMENT_COPY)) {
@@ -1201,6 +1202,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (build.contains(PatchFamily.COMMENT_EMOJI_ROW)) {
                 comments.addPreference(toggle(context, Settings.HIDE_COMMENT_EMOJI_ROW, L10n.t("Hide the emoji row"),
                         L10n.t("Takes the row of quick emoji off above the comment box. The box itself stays.")));
+            }
+            if (build.contains(PatchFamily.COMMENT_KEYBOARD)) {
+                comments.addPreference(toggle(context, Settings.COMMENT_KEYBOARD_DOWN, L10n.t("Open comments without the keyboard"),
+                        L10n.t("Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up.")));
             }
         }
 

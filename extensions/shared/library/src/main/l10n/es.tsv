@@ -548,6 +548,8 @@ Takes the Comment button and the comment count off the posts in your feed.	Quita
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Ocultar la fila de emojis
 Takes the row of quick emoji off above the comment box. The box itself stays.	Quita la fila de emojis rápidos que aparece sobre el cuadro de comentarios. El cuadro se queda.
+Open comments without the keyboard	Abrir los comentarios sin el teclado
+Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up.	Los comentarios se abren con el teclado oculto. Tocar el cuadro de comentario, o Responder, lo sigue mostrando.
 # context: Feed: the switch that hides the Follow and Subscribe buttons beside the author's name on a post (#248). Follow and Subscribe are the labels Instagram uses on those buttons.
 Hide Follow on posts	Ocultar Seguir en las publicaciones
 Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.	Quita los botones Seguir y Suscribirse de la parte superior de las publicaciones de tu feed. El nombre, la hora y el menú se quedan.

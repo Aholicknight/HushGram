@@ -1301,6 +1301,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_comment_emoji_row", FALSE);
 
     /**
+     * The comment sheet opens without bringing the keyboard up on its own
+     * ({@link app.hushgram.extension.instagram.feed.CommentKeyboard}). A tap in the box still brings
+     * it up. Read each time a sheet opens, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting COMMENT_KEYBOARD_DOWN =
+            new BooleanSetting("hushgram_comment_keyboard_down", FALSE);
+
+    /**
      * The Follow and Subscribe buttons beside the author's name on a feed post
      * ({@link app.hushgram.extension.instagram.feed.FeedFollowButton}). Read before each frame of a
      * resumed screen, so it needs no restart. Off to start.
