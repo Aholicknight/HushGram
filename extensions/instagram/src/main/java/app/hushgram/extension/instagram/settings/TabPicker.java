@@ -32,7 +32,8 @@ import app.hushgram.extension.shared.L10n;
  * <p>Nothing here keeps a choice of its own. A box stands for the hide or show switch its tab
  * already has under Tab bar or Reels, and the order is {@link Settings#TAB_ORDER}, with the hidden
  * tabs in it too, so one turned back on comes back where it was put. Only what changed is saved, on
- * OK. Two boxes can't change and read in the summary's colour: Messages on a bar Instagram put it
+ * OK. Everything is read as saved, so while HushGram is paused, and Instagram gets its own bar, the
+ * list still shows the user's choice and OK doesn't save over it. Two boxes can't change and read in the summary's colour: Messages on a bar Instagram put it
  * on, since nothing takes it off, and a tab Instagram left off with only a hide switch (Create on
  * most 451 accounts), since nothing adds it.
  */
@@ -65,7 +66,7 @@ final class TabPicker {
         if (built == null) return !ACTIVITY.equals(tab);
         if (built.contains(tab)) return true;
         app.hushgram.extension.shared.settings.BooleanSetting hide = REELS.equals(tab) ? Settings.HIDE_REELS_TAB : hideOnly(tab);
-        return hide != null && hide.get();
+        return hide != null && hide.savedValue();
     }
 
     /** [tab]'s hide switch, for the tabs that only have one, or null. */
@@ -88,14 +89,14 @@ final class TabPicker {
     /** Whether [tab] is on the bar by its switches and what Instagram's bar holds. */
     static boolean shown(String tab) {
         app.hushgram.extension.shared.settings.BooleanSetting hide = hideOnly(tab);
-        if (hide != null) return !hide.get() && instagramHas(tab);
+        if (hide != null) return !hide.savedValue() && instagramHas(tab);
         switch (tab) {
             case REELS:
-                return !Settings.HIDE_REELS_TAB.get() && (instagramHas(REELS) || Settings.SHOW_REELS_TAB.get());
+                return !Settings.HIDE_REELS_TAB.savedValue() && (instagramHas(REELS) || Settings.SHOW_REELS_TAB.savedValue());
             case MESSAGES:
-                return Settings.SHOW_MESSAGES_TAB.get() || instagramHas(MESSAGES);
+                return Settings.SHOW_MESSAGES_TAB.savedValue() || instagramHas(MESSAGES);
             case ACTIVITY:
-                return Settings.SHOW_ACTIVITY_TAB.get();
+                return Settings.SHOW_ACTIVITY_TAB.savedValue();
             default:
                 return false;
         }
@@ -107,7 +108,7 @@ final class TabPicker {
      * nothing can add.
      */
     static boolean fixed(String tab) {
-        if (MESSAGES.equals(tab)) return !Settings.SHOW_MESSAGES_TAB.get() && instagramHas(MESSAGES);
+        if (MESSAGES.equals(tab)) return !Settings.SHOW_MESSAGES_TAB.savedValue() && instagramHas(MESSAGES);
         return hideOnly(tab) != null && !instagramHas(tab);
     }
 
@@ -133,7 +134,7 @@ final class TabPicker {
                 break;
             case REELS:
                 // Turned on where Instagram's bar has no Reels, Show the Reels tab adds it.
-                boolean add = on && !Settings.SHOW_REELS_TAB.get() && !instagramHas(REELS);
+                boolean add = on && !Settings.SHOW_REELS_TAB.savedValue() && !instagramHas(REELS);
                 Settings.HIDE_REELS_TAB.save(!on);
                 if (add) Settings.SHOW_REELS_TAB.save(true);
                 break;
@@ -159,7 +160,7 @@ final class TabPicker {
             boolean on = ticked.contains(tab);
             if (on != shown(tab) && !fixed(tab)) setShown(tab, on);
         }
-        if (!chosen.equals(Settings.TAB_ORDER.get())) Settings.TAB_ORDER.save(chosen);
+        if (!chosen.equals(Settings.TAB_ORDER.savedValue())) Settings.TAB_ORDER.save(chosen);
     }
 
     // ------------------------------------------------------------------ the list

@@ -44,6 +44,8 @@ import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.BooleanSetting;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
 import app.hushgram.extension.shared.settings.preference.LogBufferManager;
 
 /** Tab order's row under Tab bar: every tab with a box to show it and a handle to drag it (#207). */
@@ -51,9 +53,6 @@ import app.hushgram.extension.shared.settings.preference.LogBufferManager;
 @SuppressWarnings("deprecation")
 public class TabOrderSettingsTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
-    private static final BooleanSetting[] SWITCHES = {Settings.HIDE_HOME_TAB, Settings.HIDE_SEARCH_TAB,
-            Settings.HIDE_REELS_TAB, Settings.SHOW_REELS_TAB, Settings.HIDE_CREATE_TAB, Settings.HIDE_PROFILE_TAB,
-            Settings.SHOW_MESSAGES_TAB, Settings.SHOW_ACTIVITY_TAB};
     private ActivityController<Activity> controller;
     private HushgramPreferenceFragment page;
 
@@ -69,12 +68,18 @@ public class TabOrderSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
         reset();
     }
 
     private static void reset() {
         Settings.TAB_ORDER.resetToDefault();
-        for (BooleanSetting setting : SWITCHES) setting.resetToDefault();
+        // Listed here, not in a static field, so the settings load once the rule has given them a context.
+        BooleanSetting[] switches = {Settings.HIDE_HOME_TAB, Settings.HIDE_SEARCH_TAB, Settings.HIDE_REELS_TAB,
+                Settings.SHOW_REELS_TAB, Settings.HIDE_CREATE_TAB, Settings.HIDE_PROFILE_TAB, Settings.SHOW_MESSAGES_TAB,
+                Settings.SHOW_ACTIVITY_TAB};
+        for (BooleanSetting setting : switches) setting.resetToDefault();
         // The list shows the bar as Instagram last built it, which other tests in this JVM may have built.
         TabOrder.forgetForTests();
     }
@@ -274,6 +279,31 @@ public class TabOrderSettingsTest {
             assertEquals(String.valueOf(name.getText()), name.isEnabled() ? colors.title : colors.summary,
                     name.getCurrentTextColor());
         }
+    }
+
+    /**
+     * Paused, Instagram gets its own bar, but the row and list still show the saved order and tabs,
+     * so a change saves on top of them instead of over them.
+     */
+    @Test public void pausedTheRowAndListKeepTheChoice() throws Exception {
+        Settings.TAB_ORDER.save("PROFILE,DIRECT");
+        Settings.HIDE_CREATE_TAB.save(true);
+        Settings.SHOW_ACTIVITY_TAB.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("", Settings.TAB_ORDER.get());
+        open(PatchFamily.REELS_TAB);
+        assertTrue(String.valueOf(row().getSummary()).replaceAll("[⁦-⁩]", "").startsWith("Tabs go in this order: Profile, Messages"));
+        AlertDialog dialog = openList();
+        assertEquals(Arrays.asList("[x] Profile", "[x] Messages (fixed)", "[x] Home", "[x] Search", "[x] Reels",
+                "[x] Activity", "[ ] Create"), shown(list(dialog)));
+
+        box(list(dialog), TabPicker.SEARCH).setChecked(false);
+        press(dialog, DialogInterface.BUTTON_POSITIVE);
+        assertTrue(Settings.TAB_ORDER.savedValue().startsWith("PROFILE,DIRECT,"));
+        assertTrue(Settings.HIDE_SEARCH_TAB.savedValue());
+        assertTrue("Create stays off", Settings.HIDE_CREATE_TAB.savedValue());
+        assertTrue("Activity stays on", Settings.SHOW_ACTIVITY_TAB.savedValue());
     }
 
     /** Activity is listed by its own name, ticked once Show the Activity tab puts it on the bar (#156). */

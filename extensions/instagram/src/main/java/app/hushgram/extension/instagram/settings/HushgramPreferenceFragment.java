@@ -4602,7 +4602,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setKey(Settings.HIDDEN_SHARE_SHEET_BUTTONS.key);
         row.setPersistent(false);
         row.setTitle(L10n.t("Buttons on the share sheet"));
-        row.setSummary(shareSheetButtonsSummary(Settings.HIDDEN_SHARE_SHEET_BUTTONS.get()));
+        row.setSummary(shareSheetButtonsSummary(Settings.HIDDEN_SHARE_SHEET_BUTTONS.savedValue()));
         row.setOnPreferenceClickListener(tapped -> {
             showShareSheetButtons(row);
             return true;
@@ -4680,7 +4680,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     void showShareSheetButtons(Row row) {
         Context context = getActivity();
         if (context == null) return;
-        Set<String> hidden = new LinkedHashSet<>(ShareSheetActions.hidden(Settings.HIDDEN_SHARE_SHEET_BUTTONS.get()));
+        Set<String> hidden = new LinkedHashSet<>(ShareSheetActions.hidden(Settings.HIDDEN_SHARE_SHEET_BUTTONS.savedValue()));
         List<String> actions = ShareSheetActions.ACTIONS;
         CharSequence[] names = new CharSequence[actions.size()];
         boolean[] shown = new boolean[actions.size()];
@@ -4693,7 +4693,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (on) hidden.remove(actions.get(which));
             else hidden.add(actions.get(which));
             Settings.HIDDEN_SHARE_SHEET_BUTTONS.save(ShareSheetActions.join(hidden));
-            row.setSummary(shareSheetButtonsSummary(Settings.HIDDEN_SHARE_SHEET_BUTTONS.get()));
+            row.setSummary(shareSheetButtonsSummary(Settings.HIDDEN_SHARE_SHEET_BUTTONS.savedValue()));
         });
         AlertDialog dialog = show(builder.setNeutralButton(L10n.t("Show all"), null)
                 .setPositiveButton(L10n.t("OK"), null));
@@ -4713,7 +4713,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setKey(Settings.TAB_ORDER.key);
         row.setPersistent(false);
         row.setTitle(L10n.t("Tab order"));
-        row.setSummary(tabOrderSummary(Settings.TAB_ORDER.get()));
+        row.setSummary(tabOrderSummary(Settings.TAB_ORDER.savedValue()));
         row.setOnPreferenceClickListener(tapped -> {
             showTabOrder(row);
             return true;
@@ -4759,7 +4759,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     void showTabOrder(Row row) {
         Context context = getActivity();
         if (context == null) return;
-        List<String> order = TabPicker.rows(Settings.TAB_ORDER.get());
+        List<String> order = TabPicker.rows(Settings.TAB_ORDER.savedValue());
         Set<String> ticked = new LinkedHashSet<>();
         for (String tab : order) {
             if (TabPicker.shown(tab)) ticked.add(tab);
@@ -4775,7 +4775,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 .setPositiveButton(L10n.t("OK"), (shown, which) -> {
                     AbstractPreferenceFragment.restartNoteOnce(context,
                             () -> TabPicker.save(TabPicker.orderOf(list), TabPicker.tickedOf(list)));
-                    row.setSummary(tabOrderSummary(Settings.TAB_ORDER.get()));
+                    row.setSummary(tabOrderSummary(Settings.TAB_ORDER.savedValue()));
                 }));
         if (dialog == null) return;
         // A click listener of its own, so Reset changes the list without closing it.

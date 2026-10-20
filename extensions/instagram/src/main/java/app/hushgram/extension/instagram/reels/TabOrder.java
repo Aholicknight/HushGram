@@ -149,7 +149,8 @@ public final class TabOrder {
             }
         }
         if (base.isEmpty()) {
-            boolean activity = Utils.settingsReady() && Settings.SHOW_ACTIVITY_TAB.get();
+            // Read as saved, so a paused process lists the user's tabs, not Instagram's.
+            boolean activity = Utils.settingsReady() && Settings.SHOW_ACTIVITY_TAB.savedValue();
             for (String name : TABS) {
                 if (activity || !ReelsTab.ACTIVITY.equals(name)) base.add(name);
             }
