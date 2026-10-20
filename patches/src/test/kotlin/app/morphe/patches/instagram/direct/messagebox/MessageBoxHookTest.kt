@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.metaai.COMPOSER_BUTTON
 import app.morphe.patches.instagram.metaai.COMPOSER_BUTTON_IDS
 import app.morphe.patches.instagram.metaai.COMPOSER_BUTTON_NAMES
 import app.morphe.patches.instagram.metaai.findComposerButtonVisibility
@@ -35,8 +36,9 @@ import java.io.File
 /**
  * The message box buttons switch (#217): the composer's show-or-hide method hands the button and the
  * flag to the extension first, and its constructor hands the gallery, sticker and voice views over
- * as it returns. Checked on every declared build and every other build of the version, and together
- * with Hide Meta AI's own hook on the same method, in either order.
+ * as it returns. Checked on every declared build and every other build of the version, alone and
+ * together with Hide Meta AI's own hook on the same method in both orders: Meta AI's call ends up first
+ * either way, then this one, then the method's own code.
  */
 class MessageBoxHookTest {
     @Test
@@ -98,15 +100,19 @@ class MessageBoxHookTest {
 
     private fun builds(bundle: File, label: String) {
         val kept = holders(bundle)
-        // Alone, and then after Hide Meta AI's hook went first on the same method.
-        for (afterMetaAi in listOf(false, true)) {
+        for (order in listOf("alone", "after Meta AI", "before Meta AI")) {
             val context = PatchContexts.of(kept + ExtensionDex.classDef(MESSAGE_BOX))
-            if (afterMetaAi) context.holdComposerButtons(context.findComposerButtonVisibility())
+            if (order == "after Meta AI") context.holdComposerButtons(context.findComposerButtonVisibility())
             val site = context.findMessageBox()
             val holder = kept.single { it.type == site.type }
             val before = holder.methods.single { it.name == "<init>" && it.code().any { i -> (i as? NarrowLiteralInstruction)?.narrowLiteral == BOX_BUTTON_IDS[0] } }
             val beforeCode = before.code()
+            val ownCode = holder.methods.single {
+                it.name == site.dispatcher && it.parameterTypes.map(CharSequence::toString) == site.dispatcherParameters
+            }.code()
             context.hideMessageBoxButtons(site)
+            // Morphe applies patches by name, so Hide Meta AI goes first, but neither may depend on it.
+            if (order == "before Meta AI") context.holdComposerButtons(context.findComposerButtonVisibility())
 
             val patched = context.mutableClassDefBy(site.type)
             val constructor = patched.methods.single { it.name == "<init>" && it.code().any { i -> (i as? NarrowLiteralInstruction)?.narrowLiteral == BOX_BUTTON_IDS[0] } }
@@ -133,14 +139,21 @@ class MessageBoxHookTest {
             val body = dispatcher.code()
             val first = dispatcher.implementation!!.registerCount - 2
             val guard = body.indexOfFirst { it.reference() == BUTTON_HOOK }
-            assertTrue("$label: the button hook is in the first two instructions", guard in 0..2)
+            val metaAi = order != "alone"
+            assertEquals("$label $order: the button hook's place", if (metaAi) 2 else 0, guard)
+            assertEquals("$label $order: Meta AI's hook", if (metaAi) 0 else -1, body.indexOfFirst { it.reference() == COMPOSER_BUTTON })
+            assertEquals("$label $order: one Meta AI hook", if (metaAi) 1 else 0, body.count { it.reference() == COMPOSER_BUTTON })
+            if (metaAi) assertEquals("$label $order: Meta AI's answer replaces the flag", first + 1, (body[1] as OneRegisterInstruction).registerA)
+            assertEquals(
+                "$label $order: the method's own code follows the hooks unchanged",
+                ownCode.map { it.opcode }, body.drop(guard + 2).map { it.opcode },
+            )
             assertEquals("$label: range call", Opcode.INVOKE_STATIC_RANGE, body[guard].opcode)
             assertEquals("$label: button then flag", first, (body[guard] as RegisterRangeInstruction).startRegister)
             assertEquals("$label: two registers", 2, (body[guard] as RegisterRangeInstruction).registerCount)
             assertEquals("$label: the answer replaces the flag", Opcode.MOVE_RESULT, body[guard + 1].opcode)
             assertEquals("$label: into the flag", first + 1, (body[guard + 1] as OneRegisterInstruction).registerA)
             assertEquals("$label: one button hook", 1, body.count { it.reference() == BUTTON_HOOK })
-            if (afterMetaAi) assertEquals("$label: Meta AI's hook is still there", 2, body.take(4).count { it.opcode == Opcode.INVOKE_STATIC_RANGE })
         }
     }
 

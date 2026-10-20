@@ -8,6 +8,8 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patches.instagram.metaai.COMPOSER_BUTTON
+import app.morphe.patches.instagram.metaai.leadingHookPair
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.classesLoading
@@ -136,15 +138,18 @@ internal fun BytecodePatchContext.findMessageBox(): MessageBoxSite {
 }
 
 /**
- * Hands the pair to [BUTTON_HOOK] first in the show-or-hide method, and the three views to
- * [CREATED_HOOK] right before the constructor returns. The constructor's last register is its
- * first parameter, an Activity nothing reads after the return.
+ * Hands the pair to [BUTTON_HOOK] first in the show-or-hide method, right after Hide Meta AI's own
+ * hook when that patch already put it first (Meta AI's stays first whichever runs first), and the
+ * three views to [CREATED_HOOK] right before the constructor returns. The constructor's last
+ * register is its first parameter, an Activity nothing reads after the return.
  */
 internal fun BytecodePatchContext.hideMessageBoxButtons(site: MessageBoxSite) {
     val holder = mutableClassDefBy(site.type)
     val dispatcher = holder.methods.single {
         it.name == site.dispatcher && it.returnType == "V" && it.parameterTypes.map(CharSequence::toString) == site.dispatcherParameters
     }
+    val flag = dispatcher.implementation!!.registerCount - 1
+    val first = leadingHookPair(boxCode(dispatcher), COMPOSER_BUTTON, flag)
     val constructor = holder.methods.single { it.name == "<init>" && boxLookups(site.type, it) != null }
     constructor.addInstructions(
         site.returnAt,
@@ -156,7 +161,7 @@ internal fun BytecodePatchContext.hideMessageBoxButtons(site: MessageBoxSite) {
         """,
     )
     dispatcher.addInstructions(
-        0,
+        first,
         """
             invoke-static/range { p2 .. p3 }, $BUTTON_HOOK
             move-result p3
