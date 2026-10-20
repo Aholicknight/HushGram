@@ -33,7 +33,7 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * through {@link #filter}, which answers null for a suggested one while Hide suggested stories is
  * on, a rewind card while Hide story rewinds is on, and a card Instagram made from what's been
  * posted before while Hide memories and recaps is on. The parser skips it the way it skips an item
- * that didn't parse. With Stop loading stories on, every item goes, and {@link #remaining} empties
+ * that didn't parse. With Stop loading stories and highlights on, every item goes, and {@link #remaining} empties
  * the list of reels the tray would fetch after them, so nothing in the row loads.
  *
  * <p>Instagram also puts cards of accounts to follow between the stories you tap through, two ways.
@@ -101,7 +101,7 @@ public final class StoriesTray {
     static final String ROUTE = "Suggested stories";
     static final String REWIND_ROUTE = "Story rewinds";
     static final String RECAP_ROUTE = "Memories and recaps";
-    static final String STOP_ROUTE = "Stop loading stories";
+    static final String STOP_ROUTE = "Stop loading stories and highlights";
     static final String SUGGESTION_ROUTE = "Suggested for you between stories";
 
     /** The diagnostic counter route for Music for you card checks answered no, one for each time Instagram asked. */
@@ -205,7 +205,7 @@ public final class StoriesTray {
 
     /**
      * Injected where the tray's parser reads the ids of the reels it fetches after the tray's items.
-     * Answers an empty list while Stop loading stories is on, and [ids] itself otherwise, or when
+     * Answers an empty list while Stop loading stories and highlights is on, and [ids] itself otherwise, or when
      * anything goes wrong. Never throws.
      */
     public static ArrayList<?> remaining(ArrayList<?> ids) {

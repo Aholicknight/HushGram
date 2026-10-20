@@ -296,7 +296,7 @@ internal class TrayRemainingRead(val site: MethodSite, val moveResult: Int, val 
 /**
  * In the tray parser at [site], the one read of [TRAY_REMAINING]'s value between that key and the
  * next: a call answering an ArrayList, and its move-result-object. Fails when there isn't exactly
- * one, since then Stop loading stories would leave those reels to load.
+ * one, since then Stop loading stories and highlights would leave those reels to load.
  */
 internal fun BytecodePatchContext.findTrayRemaining(site: MethodSite): TrayRemainingRead {
     val method = classDefBy(site.type).methods.single {

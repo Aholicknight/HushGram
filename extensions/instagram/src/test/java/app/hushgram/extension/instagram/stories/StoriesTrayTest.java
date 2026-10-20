@@ -105,7 +105,7 @@ public class StoriesTrayTest {
         }
     }
 
-    /** Stop loading stories drops every item, yours included, and the reels left to fetch, while it's on. */
+    /** Stop loading stories and highlights drops every item, yours included, and the reels left to fetch, while it's on. */
     @Test
     public void stopLoadingStoriesDropsEveryItemAndTheReelsLeftToFetch() {
         ArrayList<Object> ids = new ArrayList<>(Arrays.asList("1", "2"));

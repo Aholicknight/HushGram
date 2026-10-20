@@ -540,7 +540,7 @@ Wi-Fi stays as it is. Turn this off to save data on every network.	El Wi-Fi se q
 Hide comments	Ocultar comentarios
 Hide memories and recaps	Ocultar recuerdos y resúmenes
 Hide story rewinds	Ocultar rewinds de historias
-Nothing in the row of stories at the top of Home loads, your own story included, which saves data. A story ring on a profile or in a chat still opens its stories.	No se carga nada en la fila de historias de arriba de Inicio, ni siquiera tu propia historia, lo que ahorra datos. Un anillo de historia en un perfil o en un chat sigue abriendo sus historias.
+Nothing in the row of stories at the top of Home loads, your own story included, and highlights on profiles stay empty too. Saves data. A story ring on a profile or in a chat still opens its stories.	No se carga nada en la fila de historias de arriba de Inicio, ni siquiera tu propia historia, y las historias destacadas de los perfiles también quedan vacías. Ahorra datos. Un anillo de historia en un perfil o en un chat sigue abriendo sus historias.
 Open categories as pages	Abrir categorías como páginas
 Settings shows a list of its categories, and a tap opens one on its own page. Search still looks through all of them.	Los ajustes muestran una lista de sus categorías, y al tocar una se abre en su propia página. La búsqueda sigue buscando en todas.
 Hide the HushGram row in Instagram's menu	Ocultar la fila de HushGram en el menú de Instagram
@@ -551,7 +551,7 @@ A long press on the Instagram logo at the top of Home opens these settings. Off,
 The last way into these settings stays on.	La última forma de llegar a esta configuración sigue activada.
 No other way into HushGram is on, so the row stays in Instagram's menu.	No hay otra forma de abrir HushGram activada, así que la fila se queda en el menú de Instagram.
 Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	Mientras otra forma de llegar aquí abra HushGram, la pantalla Configuración y actividad de Instagram no muestra la fila de HushGram. Con todas las demás formas desactivadas, la fila vuelve.
-Stop loading stories	No cargar historias
+Stop loading stories and highlights	No cargar historias ni destacadas
 Takes the Comment button and the comment count off the posts in your feed.	Quita el botón Comentar y el número de comentarios de las publicaciones de tu feed.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Ocultar la fila de emojis
