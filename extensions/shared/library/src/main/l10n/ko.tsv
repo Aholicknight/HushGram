@@ -399,6 +399,8 @@ Last carousel save	마지막 캐러셀 저장
 Comments	댓글
 Copy comment	댓글 복사
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	선택한 댓글의 메뉴에 복사를 추가합니다. 줄바꿈을 포함한 원본 텍스트를 그대로 복사합니다
+Copy without the @names at the start	앞부분의 @이름 없이 복사
+When a comment starts with @names, like most replies do, Copy leaves them out. The comment in Instagram stays the same.	대부분의 답글처럼 댓글이 @이름으로 시작하면 복사할 때 빼고 복사합니다. Instagram의 댓글은 그대로입니다.
 Copy the commenter's username	댓글 작성자의 사용자 이름 복사
 Adds Copy username to a selected comment's menu, for the account that wrote it.	선택한 댓글의 메뉴에 그 댓글을 쓴 계정의 사용자 이름 복사를 추가합니다.
 Comment copied	댓글이 복사됨

@@ -398,6 +398,8 @@ Last carousel save	Penyimpanan carousel terakhir
 Comments	Komentar
 Copy comment	Salin komentar
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	Menambahkan Salin ke menu komentar yang dipilih. Menyalin teks asli, termasuk pergantian baris.
+Copy without the @names at the start	Salin tanpa @nama di awal
+When a comment starts with @names, like most replies do, Copy leaves them out. The comment in Instagram stays the same.	Jika komentar diawali @nama, seperti kebanyakan balasan, Salin tidak menyertakannya. Komentar di Instagram tetap sama.
 Copy the commenter's username	Salin nama pengguna pemberi komentar
 Adds Copy username to a selected comment's menu, for the account that wrote it.	Menambahkan Salin nama pengguna ke menu komentar yang dipilih, untuk akun yang menulisnya.
 Comment copied	Komentar disalin

@@ -46,6 +46,7 @@ public class CommentCopyTest {
 
     @After public void restore() {
         Settings.COPY_COMMENTS.resetToDefault();
+        Settings.COPY_COMMENTS_WITHOUT_MENTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -120,6 +121,40 @@ public class CommentCopyTest {
         assertEquals("no original-text getter or native row callback", 0, nativeRows.inspected);
         assertEquals(0, nativeRows.created);
         assertFalse(clipboard().hasPrimaryClip());
+    }
+
+    /** #270: with the switch on, a reply's leading @names stay out of the copy, read when Copy is tapped. */
+    @Test public void theMentionSwitchLeavesOutTheNamesAReplyStartsWith() {
+        String reply = "@user1 It's Breaking Bad";
+        List<?> rows = CommentCopy.rows(stock, new String[]{reply}, context, nativeRows);
+        ((Row) rows.get(1)).callback.invoke();
+        assertEquals("off to start, the copy is verbatim", reply, clipboard().getPrimaryClip().getItemAt(0).getText().toString());
+        Settings.COPY_COMMENTS_WITHOUT_MENTIONS.save(true);
+        ((Row) rows.get(1)).callback.invoke();
+        assertEquals("It's Breaking Bad", clipboard().getPrimaryClip().getItemAt(0).getText().toString());
+        assertEquals("the menu keeps the original", reply, ((CommentCopy.CopyAction) ((Row) rows.get(1)).callback).text);
+        assertSame("an open menu isn't rebuilt", rows, CommentCopy.rows(rows, new String[]{reply}, context, nativeRows));
+    }
+
+    @Test public void onlyTheLeadingNamesGoAndATextOfNamesStaysWhole() {
+        String[][] cases = {
+                {"@user1 It's Breaking Bad", "It's Breaking Bad"},
+                {"  @a.b_c @d9\n@e, Dark\nseason 2 ", "Dark\nseason 2 "},
+                {"@name: the second one", "the second one"},
+                {"@name" + (char) 0xA0 + "nbsp after", "nbsp after"},
+                {"Ask @user1 about it", "Ask @user1 about it"},
+                {"@user1's pick is better", "@user1's pick is better"},
+                {"@a @b's pick", "@b's pick"},
+                {"@ alone", "@ alone"},
+                {"email@example.com", "email@example.com"},
+                {"@user1", "@user1"},
+                {"@user1 @user2  \n", "@user1 @user2  \n"},
+                {"#tag @user1 text", "#tag @user1 text"},
+                {"", ""},
+        };
+        for (String[] each : cases) {
+            assertEquals(each[0], each[1], CommentCopy.withoutLeadingMentions(each[0]));
+        }
     }
 
     @Test public void emptyTextGetsNoRowAndWhitespaceIsNeverTrimmed() {

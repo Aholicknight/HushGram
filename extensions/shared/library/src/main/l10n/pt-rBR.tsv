@@ -398,6 +398,8 @@ Last carousel save	Último carrossel salvo
 Comments	Comentários
 Copy comment	Copiar comentário
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	Adiciona Copiar ao menu de um comentário selecionado. Copia o texto original, incluindo quebras de linha.
+Copy without the @names at the start	Copiar sem os @nomes do início
+When a comment starts with @names, like most replies do, Copy leaves them out. The comment in Instagram stays the same.	Quando um comentário começa com @nomes, como a maioria das respostas, Copiar deixa eles de fora. O comentário no Instagram continua igual.
 Copy the commenter's username	Copiar o nome de usuário de quem comentou
 Adds Copy username to a selected comment's menu, for the account that wrote it.	Adiciona Copiar nome de usuário ao menu de um comentário selecionado, para a conta que o escreveu.
 Comment copied	Comentário copiado

@@ -398,6 +398,8 @@ Last carousel save	Son çoklu gönderi kaydı
 Comments	Yorumlar
 Copy comment	Yorumu kopyala
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	Seçilen yorumun menüsüne Kopyala seçeneğini ekler. Satır sonları dahil özgün metni kopyalar.
+Copy without the @names at the start	Baştaki @adlar olmadan kopyala
+When a comment starts with @names, like most replies do, Copy leaves them out. The comment in Instagram stays the same.	Bir yorum çoğu yanıt gibi @adlarla başlıyorsa Kopyala bunları dışarıda bırakır. Instagram'daki yorum aynı kalır.
 Copy the commenter's username	Yorum yapanın kullanıcı adını kopyala
 Adds Copy username to a selected comment's menu, for the account that wrote it.	Seçilen bir yorumun menüsüne, yorumu yazan hesap için Kullanıcı adını kopyala seçeneğini ekler.
 Comment copied	Yorum kopyalandı

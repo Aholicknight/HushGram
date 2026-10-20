@@ -1320,6 +1320,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_copy_comments", FALSE);
 
     /**
+     * Copy comment leaves out the @names a comment starts with, the way a reply begins (#270).
+     * The comment in Instagram is untouched. Off until enabled.
+     */
+    public static final BooleanSetting COPY_COMMENTS_WITHOUT_MENTIONS =
+            new BooleanSetting("hushgram_copy_comments_without_mentions", FALSE, parent(COPY_COMMENTS));
+
+    /**
      * A selected comment's menu gets Copy username, for the account that wrote it
      * ({@link app.hushgram.extension.instagram.comment.CommentAuthor}). Off until enabled.
      */

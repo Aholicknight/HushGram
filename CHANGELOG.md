@@ -28,6 +28,7 @@ Every HushGram release, newest first.
 * **Instagram - Download any reel:** `Block button on reels` under Reels puts a Block icon beside someone else's reel. A tap opens Instagram's own block screen for that account, so you still confirm there. It starts off. Asked for in #191.
 * **Instagram - Download any reel:** `Hide reels by sound` under Reels puts a music icon beside a reel. Tap it and the Reels tab skips other reels with that sound. `Hidden sounds` lists them so you can bring one back. It starts off. Asked for in #191.
 * **Instagram - Hide suggested stories:** `Hide Add Yours cards between stories` sits under Stories and leaves out the Popular Add Yours and Join a trending Add Yours cards between stories. The Music for you card keeps its own switch. It starts off. Asked for in #111.
+* **Instagram - Copy comment:** `Copy without the @names at the start` sits under Copy comment. When a reply starts with someone's @name, Copy leaves it out and copies only what they wrote. Names in the middle stay, and so does the comment in Instagram. It starts off. Asked for in #270.
 
 ### Bug Fixes
 
