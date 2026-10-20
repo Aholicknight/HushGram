@@ -92,8 +92,9 @@ internal fun BytecodePatchContext.findSoundStarts(site: ReelButtonSite): List<Pa
 }
 
 /**
- * Adds the sound icon at each of [starts] ([addSoundIcons]), then fills the filter's item stub,
- * writes the sound bridges and hands each Reels page to [SOUND_PAGE_FILTER].
+ * Fills the filter's item stub, writes the sound bridges and hands each Reels page to
+ * [SOUND_PAGE_FILTER], then adds the sound icon at each of [starts] ([addSoundIcons]), so an icon
+ * never goes in with nothing behind it.
  */
 internal fun BytecodePatchContext.addSoundButton(
     site: ReelButtonSite,
@@ -101,10 +102,10 @@ internal fun BytecodePatchContext.addSoundButton(
     page: ReelsPageSites,
     writeSound: () -> Unit,
 ) {
-    addSoundIcons(site, starts)
     fillReelsItemMedia(HIDDEN_SOUNDS, page)
     writeSound()
     filterReelsPage(page, SOUND_PAGE_FILTER)
+    addSoundIcons(site, starts)
 }
 
 /**

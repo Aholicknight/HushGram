@@ -194,7 +194,7 @@ public final class ReelSoundButton {
                 return;
             }
             Context context = Utils.getContext();
-            String name = label(context, sound);
+            String name = L10n.isolate(label(context, sound));
             if (HiddenSounds.hides(sound.id)) {
                 HiddenSounds.remove(sound.id);
                 Utils.showToastShort(L10n.f(context, "Showing reels with %1$s again", name));

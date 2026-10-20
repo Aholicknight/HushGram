@@ -37,6 +37,7 @@ import kotlin.jvm.functions.Function1;
 
 import app.hushgram.extension.instagram.reels.HiddenSounds;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -259,12 +260,12 @@ public class ReelSoundButtonTest {
         assertNotNull(bridge.click);
 
         assertNull(bridge.click.invoke(new Object()));
-        assertEquals("Hiding reels with Espresso by Sabrina Carpenter", toast());
+        assertEquals("Hiding reels with " + L10n.isolate("Espresso by Sabrina Carpenter"), toast());
         assertTrue(HiddenSounds.hides("111"));
         assertEquals("111\tEspresso\tSabrina Carpenter", Settings.HIDDEN_SOUNDS.savedValue());
 
         bridge.click.invoke(new Object());
-        assertEquals("Showing reels with Espresso by Sabrina Carpenter again", toast());
+        assertEquals("Showing reels with " + L10n.isolate("Espresso by Sabrina Carpenter") + " again", toast());
         assertFalse(HiddenSounds.hides("111"));
         assertEquals("", Settings.HIDDEN_SOUNDS.savedValue());
     }
@@ -280,7 +281,7 @@ public class ReelSoundButtonTest {
         assertEquals("this sound", ReelSoundButton.label(null, new HiddenSounds.Sound("1", "", "")));
 
         ReelSoundButton.tap(new Column(new Item(Kind.ORGANIC, new HiddenSounds.Sound("222", "", ""))));
-        assertEquals("Hiding reels with this sound", toast());
+        assertEquals("Hiding reels with " + L10n.isolate("this sound"), toast());
         assertEquals(Collections.singletonList("222"), ids());
     }
 
