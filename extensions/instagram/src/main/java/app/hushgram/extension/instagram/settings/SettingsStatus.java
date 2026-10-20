@@ -228,6 +228,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean messageBox() {
+        return false;
+    }
+
     public static boolean profileTabs() {
         return false;
     }

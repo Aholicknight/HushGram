@@ -916,6 +916,16 @@ tasks.register("verifyAndroidBoundaries") {
                 "missingPatchHasNoTabsRow", "everyTabStartsTickedAndTheGridIsNotOffered", "aChangeSavesAtOnceByKey",
                 "aSavedChoiceShowsAndPauseKeepsIt"
             ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.direct.MessageBoxTest" to listOf(
+                "nothingPickedShowsEveryButton", "aPickedButtonIsHiddenAndTheRestShow", "aHideStaysAHide",
+                "buttonsNotOfferedAlwaysShow", "pausedShowsEveryButton", "anythingElseShows",
+                "aNewMessageBoxHidesThePickedViews", "nothingPickedOrPausedLeavesTheViewsAlone",
+                "aButtonLeftOffIsCounted", "savedTextIsTidied"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.MessageBoxSettingsTest" to listOf(
+                "missingPatchHasNoMessageBoxRow", "everyButtonStartsTicked", "aChangeSavesAtOnceByKey",
+                "showAllPutsEveryButtonBack", "aSavedChoiceShowsAndPauseKeepsIt"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.explore.ShowAllRecentSearchesTest" to listOf(
                 "offToStartKeepsInstagramsLimit", "onListsEverything", "pausedAnswersInstagramsOwnLimit",
                 "dontSaveStillStopsNewSearchesWhileEverythingShows", "nothingThrowsIntoInstagram"

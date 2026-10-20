@@ -80,6 +80,7 @@ import app.hushgram.extension.instagram.direct.ChatAccounts;
 import app.hushgram.extension.instagram.direct.ChatLocks;
 import app.hushgram.extension.instagram.direct.HiddenChats;
 import app.hushgram.extension.instagram.direct.LockDelay;
+import app.hushgram.extension.instagram.direct.MessageBox;
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.direct.PinLock;
 import app.hushgram.extension.instagram.direct.UnlockWith;
@@ -750,7 +751,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 || build.contains(PatchFamily.SCREENSHOT_REPORTS)
                 || build.contains(PatchFamily.SCREENSHOT_BLOCK)
                 || build.contains(PatchFamily.KEEP_IN_CHAT)
-                || build.contains(PatchFamily.ASK_BEFORE_CALL)) {
+                || build.contains(PatchFamily.ASK_BEFORE_CALL)
+                || build.contains(PatchFamily.MESSAGE_BOX)) {
             PreferenceCategory messages = category(screen, L10n.t("Messages"), SettingsIcons.CHATS,
                     L10n.t("Keep your chats private and your inbox clear of extras."));
             if (build.contains(PatchFamily.NOTES_ROW)) {
@@ -817,6 +819,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 messages.addPreference(toggle(context, Settings.HIDE_CALL_BUTTONS, L10n.t("Hide the call buttons in chats"),
                         L10n.t("Takes the voice and video call buttons off the top of a chat. The name keeps its room. "
                                 + "Turn it off and they're back the next time a chat opens.")));
+            }
+            if (build.contains(PatchFamily.MESSAGE_BOX)) {
+                messages.addPreference(messageBoxRow(context));
             }
             if (build.contains(PatchFamily.MESSAGES_LOCK)) {
                 messages.addPreference(lockToggle(context, Settings.LOCK_MESSAGES, L10n.t("Lock your messages"),
@@ -1825,6 +1830,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
                     belongs |= family == PatchFamily.SHARE_SHEET && Settings.HIDDEN_SHARE_SHEET_BUTTONS.key.equals(key);
                     belongs |= family == PatchFamily.PROFILE_TABS && Settings.HIDDEN_PROFILE_TABS.key.equals(key);
+                    belongs |= family == PatchFamily.MESSAGE_BOX && Settings.HIDDEN_MESSAGE_BOX_BUTTONS.key.equals(key);
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
@@ -2067,6 +2073,80 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (name != null) return name;
         Preference own = findPreference(setting.key);
         return own == null || own.getTitle() == null ? setting.key : own.getTitle();
+    }
+
+    /** The row under Messages that opens the list of message box buttons to show (#217). */
+    private Row messageBoxRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.key);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Buttons in the message box"));
+        row.setSummary(messageBoxSummary(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.savedValue()));
+        row.setOnPreferenceClickListener(tapped -> {
+            pickMessageBoxButtons(row);
+            return true;
+        });
+        return row;
+    }
+
+    /** What the buttons left off in [saved] do, for the row's summary. */
+    static String messageBoxSummary(String saved) {
+        Set<String> hidden = MessageBox.parse(saved);
+        if (hidden.isEmpty()) {
+            return L10n.t("Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.");
+        }
+        List<String> labels = new ArrayList<>();
+        for (String name : MessageBox.OFFERED) {
+            if (hidden.contains(name)) labels.add(L10n.isolate(messageBoxLabel(name)));
+        }
+        String left = String.join(", ", labels);
+        return L10n.f("Left off the message box: %1$s. The text box and Send stay.", left);
+    }
+
+    /** What the message box list calls the button Instagram names [name]. */
+    static String messageBoxLabel(String name) {
+        switch (name) {
+            case "GALLERY":
+                return L10n.t("Gallery");
+            case "STICKER":
+                return L10n.t("Stickers");
+            default:
+                return L10n.t("Voice message");
+        }
+    }
+
+    /**
+     * Each button Instagram can show in a chat's message box, ticked while it shows. A change saves
+     * at once and shows the next time a chat opens. The text box and Send aren't listed.
+     */
+    void pickMessageBoxButtons(Row row) {
+        Context context = getActivity();
+        if (context == null) return;
+        Set<String> hidden = new LinkedHashSet<>(MessageBox.parse(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.savedValue()));
+        List<String> names = MessageBox.OFFERED;
+        CharSequence[] labels = new CharSequence[names.size()];
+        boolean[] shown = new boolean[names.size()];
+        for (int i = 0; i < labels.length; i++) {
+            labels[i] = messageBoxLabel(names.get(i));
+            shown[i] = !hidden.contains(names.get(i));
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Buttons in the message box"));
+        builder.setMultiChoiceItems(labels, shown, (dialog, which, on) -> {
+            if (on) hidden.remove(names.get(which));
+            else hidden.add(names.get(which));
+            Settings.HIDDEN_MESSAGE_BOX_BUTTONS.save(MessageBox.join(hidden));
+            row.setSummary(messageBoxSummary(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.savedValue()));
+        });
+        AlertDialog dialog = show(builder.setNeutralButton(L10n.t("Show all"), null)
+                .setPositiveButton(L10n.t("OK"), null));
+        if (dialog == null) return;
+        // A click listener of its own, so Show all ticks every button without closing the list.
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(tapped -> {
+            hidden.clear();
+            Settings.HIDDEN_MESSAGE_BOX_BUTTONS.save("");
+            row.setSummary(messageBoxSummary(""));
+            for (int i = 0; i < names.size(); i++) dialog.getListView().setItemChecked(i, true);
+        });
     }
 
     /** The row under Profiles that opens the list of profile tabs to show (#254). */

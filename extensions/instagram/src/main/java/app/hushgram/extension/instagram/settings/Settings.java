@@ -447,6 +447,16 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting ASK_BEFORE_CALL = new BooleanSetting("hushgram_ask_before_call", FALSE);
 
     /**
+     * The buttons the message box of a chat leaves off, as the names of Instagram's button enum with
+     * commas between ({@link app.hushgram.extension.instagram.direct.MessageBox}, #217): any of
+     * GALLERY, STICKER and VOICE_MESSAGE. Nothing named is the start, so every button shows. The text
+     * box and Send are never offered. Read each time Instagram shows or hides a button and when a
+     * chat's message box is made, so a change shows the next time a chat opens.
+     */
+    public static final StringSetting HIDDEN_MESSAGE_BOX_BUTTONS =
+            new StringSetting("hushgram_hidden_message_box_buttons", "");
+
+    /**
      * The voice and video call buttons at the top of a chat are taken off the chat's header
      * ({@link app.hushgram.extension.instagram.direct.CallButtons}, #217). Off to start.
      */
