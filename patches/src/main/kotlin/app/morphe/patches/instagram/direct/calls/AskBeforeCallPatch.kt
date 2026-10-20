@@ -271,7 +271,9 @@ internal fun BytecodePatchContext.findCallButtons(): CallButtonTargets {
 
 /**
  * Fills the extension's kind stub with a read of the model's kind name (null when the model has no
- * kind), then hands the view and the model to [BOUND] first thing in both binders.
+ * kind), then hands the view and the model to [BOUND] first thing in both binders. Each path returns
+ * on its own: one return after the branch would merge the enum and the String into an Object, and
+ * ART rejects the whole class for returning that from a String method.
  */
 internal fun BytecodePatchContext.hideCallButtons(found: CallButtonTargets = findCallButtons()) {
     found.kindOf.addInstructions(
@@ -282,7 +284,9 @@ internal fun BytecodePatchContext.hideCallButtons(found: CallButtonTargets = fin
             if-eqz p0, :none
             invoke-virtual { p0 }, $ENUM->name()Ljava/lang/String;
             move-result-object p0
+            return-object p0
             :none
+            const/4 p0, 0x0
             return-object p0
         """,
     )

@@ -104,6 +104,10 @@ class HideCallButtonsHookTest {
         val stub = context.mutableClassDefBy(CALL_BUTTONS).methods.single { it.name == KIND_OF_STUB }.implementation!!.instructions.toList()
         assertEquals("$label: the kind field", found.kind.toString(), stub.first { it.opcode == Opcode.IGET_OBJECT }.let { (it as ReferenceInstruction).reference.toString() })
         assertTrue("$label: the kind's name", stub.any { (it as? ReferenceInstruction)?.reference?.toString() == "Ljava/lang/Enum;->name()Ljava/lang/String;" })
+        // One return after a merge would hand back the enum or the String as an Object, and ART rejects the class for it.
+        // The stub's own return null stays after both, never reached.
+        val returns = stub.indices.filter { stub[it].opcode == Opcode.RETURN_OBJECT }
+        assertEquals("$label: the name, then null", listOf(Opcode.MOVE_RESULT_OBJECT, Opcode.CONST_4), returns.take(2).map { stub[it - 1].opcode })
     }
 
     private companion object {
