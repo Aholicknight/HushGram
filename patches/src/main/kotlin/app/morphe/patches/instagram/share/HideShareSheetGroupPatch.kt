@@ -10,9 +10,12 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -31,6 +34,15 @@ private const val PATCH = "Hide group buttons on the share sheet"
 internal const val HIDE_GROUP_BUTTON = "$EXTENSION_PACKAGE/share/ShareSheet;->hideGroupButton()Z"
 internal const val HIDE_GROUP_ACTION = "$EXTENSION_PACKAGE/share/ShareSheet;->hideGroupAction()Z"
 internal const val HIDE_GROUP_SEND = "$EXTENSION_PACKAGE/share/ShareSheet;->hideGroupSend()Z"
+internal const val FILTER_ACTIONS = "$EXTENSION_PACKAGE/share/ShareSheetActions;->filter(Ljava/util/List;)Ljava/util/List;"
+
+/**
+ * Names the share sheet gives its round buttons that only the code naming its row holds: the row's
+ * builder loads them all, and so does the class that picks the names. Kept strings.
+ */
+internal val ACTION_NAMES = listOf("add_to_your_story", "whatsapp_status", "screenshot_preview")
+internal const val ACTION_PICKER_NAME = "copy_link"
+private const val GEN_AI_PARAMS = "Lcom/instagram/direct/model/genai/GenAIParamsMetadata;"
 
 /** The share sheet, and the fields it keeps its New group button and its search box in. All kept names. */
 internal const val SHARE_SHEET = "Linstagram/features/direct/fragment/sharesheet/DirectShareSheetFragment;"
@@ -59,8 +71,8 @@ private const val LAYOUT_PARAMS = "Landroid/view/ViewGroup\$LayoutParams;"
 val hideShareSheetGroupPatch = bytecodePatch(
     name = "Hide group buttons on the share sheet",
     description = "Takes the New group button and the button that sends to several people as a group off the " +
-        "share sheet. You can still start a group from your messages. Starts off. Turn it on in HushGram settings " +
-        "> Sharing.",
+        "share sheet, and lets you pick which of the round buttons under the people it shows. You can still start " +
+        "a group from your messages. Both start off. Find them in HushGram settings > Sharing.",
 ) {
     category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -70,9 +82,11 @@ val hideShareSheetGroupPatch = bytecodePatch(
         requireStatusMethod("shareSheet")
         val sheet = findShareSheet()
         val send = findGroupSend()
+        val actions = findActionList()
         guardGroupButton(sheet.build)
         guardGroupAction(sheet.reveals)
         guardGroupSend(send)
+        filterActionList(actions)
         enableStatus("shareSheet")
     }
 }
@@ -182,6 +196,81 @@ internal fun BytecodePatchContext.findGroupSend(): GroupSendSites {
     }
     val hide = hides.singleOrNull() ?: refuse("expected one method of $COMPOSER hiding its $GROUP_SEND_BUTTON, found ${hides.size}")
     return GroupSendSites(show.site(COMPOSER), session, hide.site(COMPOSER))
+}
+
+/**
+ * Where the row of round buttons asks for its button names: the builder, and the index and register
+ * of the move-result that takes the list of names.
+ */
+internal class ActionListSite(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val returnType: String,
+    val moveResult: Int,
+    val register: Int,
+)
+
+/**
+ * Finds where the share sheet's row of round buttons (Add to story, Share to, WhatsApp, Copy link,
+ * Download and the rest) gets its list of button names. One method builds the row: it loads the
+ * [ACTION_NAMES] and asks a picker for the names, a call returning a list that takes the sheet's
+ * Gen AI metadata, a sheet type, a string and three booleans, and it makes one button for each name it
+ * knows. The picker's own class loads [ACTION_PICKER_NAME]. The two other places that ask the picker
+ * only look up where a tapped button stood, for Instagram's logging, and load none of the names.
+ * Fails unless exactly one call in the builder fits, with its result taken by a move-result-object.
+ */
+internal fun BytecodePatchContext.findActionList(): ActionListSite {
+    val sites = mutableListOf<ActionListSite>()
+    classesHolding(*ACTION_NAMES.toTypedArray()).forEach { classDef ->
+        classDef.methods.forEach { method ->
+            val code = method.implementation?.instructions?.toList() ?: return@forEach
+            val asks = code.indices.filter { at -> code[at].isPickerCall() }
+            if (asks.isEmpty() || !ACTION_NAMES.all { loadsString(method, it) }) return@forEach
+            for (at in asks) {
+                val take = code.getOrNull(at + 1)
+                if (take?.opcode != Opcode.MOVE_RESULT_OBJECT) continue
+                val picker = ((code[at] as ReferenceInstruction).reference as MethodReference).definingClass
+                val pickerClass = classDefByOrNull(picker) ?: continue
+                if (pickerClass.methods.none { loadsString(it, ACTION_PICKER_NAME) }) continue
+                sites += ActionListSite(
+                    classDef.type, method.name, method.parameters(), method.returnType, at + 1,
+                    (take as OneRegisterInstruction).registerA,
+                )
+            }
+        }
+    }
+    val site = sites.singleOrNull() ?: refuse("expected one call asking for the share sheet's button names, found ${sites.size}")
+    val where = "${site.type}->${site.name}"
+    if (site.register > 255) refuse("$where keeps the names past v255, out of reach of a move-result")
+    val method = classDefByOrNull(site.type)!!.methods.single { it.name == site.name && it.parameters() == site.parameters }
+    // The filter goes in right after the move-result, so no branch may enter between the two.
+    if (site.moveResult + 1 in method.jumpTargets()) refuse("a branch enters $where right after it takes the button names")
+    return site
+}
+
+/** Whether this is the call that asks for the share sheet's button names. */
+private fun Instruction.isPickerCall(): Boolean {
+    if (opcode != Opcode.INVOKE_VIRTUAL && opcode != Opcode.INVOKE_VIRTUAL_RANGE) return false
+    val call = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    val types = call.parameterTypes.map(CharSequence::toString)
+    return call.returnType == "Ljava/util/List;" && types.size == 6 && types[0] == GEN_AI_PARAMS &&
+        types[2] == "Ljava/lang/String;" && types.drop(3).all { it == "Z" }
+}
+
+/**
+ * Hands the list of button names to [FILTER_ACTIONS] the moment it comes back, and goes on with
+ * what it answers: the same list, or a copy without the buttons the user hid. The builder makes
+ * one button for each name left, so a hidden one takes no room.
+ */
+internal fun BytecodePatchContext.filterActionList(site: ActionListSite) {
+    mutableMethod(SheetMethod(site.type, site.name, site.parameters)).addInstructions(
+        site.moveResult + 1,
+        """
+            invoke-static/range { v${site.register} .. v${site.register} }, $FILTER_ACTIONS
+            move-result-object v${site.register}
+        """,
+    )
 }
 
 /**

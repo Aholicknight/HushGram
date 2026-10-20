@@ -490,6 +490,8 @@ public enum PatchFamily {
                 return Collections.singletonList(Settings.FONT);
             case PLAYBACK_QUALITY:
                 return Collections.singletonList(Settings.PLAYBACK_QUALITY);
+            case SHARE_SHEET:
+                return Collections.singletonList(Settings.HIDDEN_SHARE_SHEET_BUTTONS);
             case REEL_TAP_AND_VOLUME:
                 return Collections.singletonList(Settings.REEL_TAP_CHOICE);
             default:

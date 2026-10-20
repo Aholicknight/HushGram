@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Hide group buttons on the share sheet:** `Buttons on the share sheet` under Sharing lists the round buttons under the people (Add to story, Share to, WhatsApp, Copy link, Download and the rest). Untick the ones you never use and they're gone from the row, with no gap left behind. Every button starts ticked, and a button Instagram adds later still shows. Asked for in #252.
 * **Instagram - Open comments without the keyboard:** New patch. Comments open with the keyboard down instead of popping it up on its own. A tap in the comment box, or on Reply, still brings it up. The switch is under Comments and starts off. Asked for in #248.
 * **Instagram - HushGram settings:** Each way into HushGram has its own switch under Settings entry. `Settings shortcut on the app icon` takes HushGram out of the menu you get by holding Instagram's icon, and `Open settings from the logo` gives the logo's long press back to Instagram. Both start on. `Hide the HushGram row in Instagram's menu` now steps aside for any of them, and whichever way is the last one still on stays on, greyed out. Asked for in SysAdminDoc/HushFacebook#146.
 * **Instagram - Clean up Reels:** `Stay dim when I tap` sits under Burn-in guard. Once the buttons fade, they stay faded on Reels whatever you tap or swipe, the next reel too, and come back when you leave Reels. It starts off. Asked for in #162.

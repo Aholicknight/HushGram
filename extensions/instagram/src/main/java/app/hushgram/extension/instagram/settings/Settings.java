@@ -773,6 +773,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_share_sheet_group", FALSE);
 
     /**
+     * The buttons the share sheet leaves out of its row of round buttons under the people, by the
+     * name the sheet gives each, comma separated ({@link app.hushgram.extension.instagram.share.ShareSheetActions},
+     * #252). Empty hides none, so every button shows to start.
+     */
+    public static final StringSetting HIDDEN_SHARE_SHEET_BUTTONS =
+            new StringSetting("hushgram_hidden_share_sheet_buttons", "");
+
+    /**
      * The Repost button under posts and beside reels, with its count: every post and reel reads as
      * one that can't be reposted ({@link app.hushgram.extension.instagram.share.RepostButton}).
      * Nothing Instagram stores is written, so off or paused, Repost is back on the next post drawn.

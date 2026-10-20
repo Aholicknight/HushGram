@@ -93,6 +93,7 @@ import app.hushgram.extension.instagram.feed.LikeAnimation;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.NotificationGroups;
 import app.hushgram.extension.instagram.misc.SpoofLocation;
+import app.hushgram.extension.instagram.share.ShareSheetActions;
 import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
@@ -1166,6 +1167,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 sharing.addPreference(toggle(context, Settings.HIDE_SHARE_SHEET_GROUP, L10n.t("Hide group buttons"),
                         L10n.t("Leaves New group out of the share sheet, and the button that sends to the people you "
                                 + "picked as a group. Send separately stays, and you can still start a group from your messages.")));
+                sharing.addPreference(shareSheetButtonsRow(context));
             }
             if (build.contains(PatchFamily.REPOST_BUTTON)) {
                 sharing.addPreference(toggle(context, Settings.HIDE_REPOST_BUTTON, L10n.t("Hide the Repost button"),
@@ -1802,6 +1804,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_DOWNLOAD_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
+                    belongs |= family == PatchFamily.SHARE_SHEET && Settings.HIDDEN_SHARE_SHEET_BUTTONS.key.equals(key);
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
@@ -4420,6 +4423,117 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setEntryValues(values);
         row.setValue(Settings.HOLD_TIME.savedValue().name());
         return row;
+    }
+
+    /** The row that opens the list of the share sheet's round buttons. Its summary names the ones left off. */
+    private Row shareSheetButtonsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(Settings.HIDDEN_SHARE_SHEET_BUTTONS.key);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Buttons on the share sheet"));
+        row.setSummary(shareSheetButtonsSummary(Settings.HIDDEN_SHARE_SHEET_BUTTONS.get()));
+        row.setOnPreferenceClickListener(tapped -> {
+            showShareSheetButtons(row);
+            return true;
+        });
+        return row;
+    }
+
+    /** What the buttons left off in [saved] mean, for the row's summary. */
+    static String shareSheetButtonsSummary(String saved) {
+        Set<String> hidden = ShareSheetActions.hidden(saved);
+        if (hidden.isEmpty()) return L10n.t("Every button under the people on the share sheet shows. Untick the ones you don't use.");
+        List<String> labels = new ArrayList<>();
+        for (String action : ShareSheetActions.ACTIONS) {
+            if (hidden.contains(action)) labels.add(L10n.isolate(shareSheetButtonLabel(action)));
+        }
+        String left = String.join(", ", labels);
+        return L10n.f("Left off the share sheet: %1$s.", left);
+    }
+
+    /** What the list calls the share sheet button Instagram names [action]. */
+    static String shareSheetButtonLabel(String action) {
+        switch (action) {
+            case "add_to_your_story":
+                return L10n.t("Add to story");
+            case "system_share_sheet":
+                return L10n.t("Share to");
+            case "whatsapp":
+                return L10n.t("WhatsApp");
+            case "copy_link":
+                return L10n.t("Copy link");
+            case "download_media":
+                return L10n.t("Download");
+            case "user_sms":
+                return L10n.t("SMS");
+            case "messenger":
+                return L10n.t("Messenger");
+            case "facebook":
+                return L10n.t("Facebook");
+            case "snapchat":
+                return L10n.t("Snapchat");
+            case "twitter":
+                return L10n.t("X");
+            case "barcelona":
+                return L10n.t("Threads");
+            case "add_to_channel":
+                return L10n.t("Add to channel");
+            case "save":
+                return L10n.t("Save");
+            case "qr_code":
+                return L10n.t("QR code");
+            case "whatsapp_status":
+                return L10n.t("WhatsApp status");
+            case "reply_to_author":
+                return L10n.t("Reply to author");
+            case "watch_on_tv":
+                return L10n.t("Watch on TV");
+            case "profile_card_download":
+                return L10n.t("Download profile card");
+            case "line":
+                return L10n.t("LINE");
+            case "kakaotalk":
+                return L10n.t("KakaoTalk");
+            case "discord":
+                return L10n.t("Discord");
+            default:
+                return L10n.t("Band");
+        }
+    }
+
+    /**
+     * Every share sheet button with a check, ticked while it shows. A change saves at once, so the
+     * next share sheet Instagram opens has the row without the buttons left unticked. A button an
+     * Instagram update adds to the row isn't listed, and shows.
+     */
+    void showShareSheetButtons(Row row) {
+        Context context = getActivity();
+        if (context == null) return;
+        Set<String> hidden = new LinkedHashSet<>(ShareSheetActions.hidden(Settings.HIDDEN_SHARE_SHEET_BUTTONS.get()));
+        List<String> actions = ShareSheetActions.ACTIONS;
+        CharSequence[] names = new CharSequence[actions.size()];
+        boolean[] shown = new boolean[actions.size()];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = shareSheetButtonLabel(actions.get(i));
+            shown[i] = !hidden.contains(actions.get(i));
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Buttons on the share sheet"));
+        builder.setMultiChoiceItems(names, shown, (dialog, which, on) -> {
+            if (on) hidden.remove(actions.get(which));
+            else hidden.add(actions.get(which));
+            Settings.HIDDEN_SHARE_SHEET_BUTTONS.save(ShareSheetActions.join(hidden));
+            row.setSummary(shareSheetButtonsSummary(Settings.HIDDEN_SHARE_SHEET_BUTTONS.get()));
+        });
+        AlertDialog dialog = show(builder.setNeutralButton(L10n.t("Show all"), null)
+                .setPositiveButton(L10n.t("OK"), null));
+        if (dialog == null) return;
+        // A click listener of its own, so Show all ticks every button without closing the list.
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(tapped -> {
+            hidden.clear();
+            Settings.HIDDEN_SHARE_SHEET_BUTTONS.save("");
+            row.setSummary(shareSheetButtonsSummary(""));
+            for (int i = 0; i < actions.size(); i++) dialog.getListView().setItemChecked(i, true);
+        });
     }
 
     /** The row that opens the tab order list. Its summary names the order chosen. */
