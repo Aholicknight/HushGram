@@ -18,14 +18,17 @@ import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.MUSIC_CONSUMPTION
 import app.morphe.patches.instagram.download.MUSIC_INFO
+import app.morphe.patches.instagram.download.ORIGINAL_SOUND
 import app.morphe.patches.instagram.download.PANDO_MUSIC_CONSUMPTION
 import app.morphe.patches.instagram.download.PANDO_MUSIC_INFO
+import app.morphe.patches.instagram.download.PANDO_ORIGINAL_SOUND
 import app.morphe.patches.instagram.download.PANDO_TRACK_DATA
 import app.morphe.patches.instagram.download.PANDO_IMAGE_INFO
 import app.morphe.patches.instagram.download.PANDO_VIDEO_VERSION
 import app.morphe.patches.instagram.download.TRACK_DATA
 import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.VIDEO_VERSION
+import app.morphe.patches.instagram.download.soundBridges
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -435,6 +438,7 @@ class DownloadReelHookTest {
         val types = setOf(
             MEDIA, USER, VIDEO_VERSION, PANDO_VIDEO_VERSION, IMAGE_INFO, PANDO_IMAGE_INFO, IMAGE_URL, OPTION,
             MUSIC_INFO, PANDO_MUSIC_INFO, TRACK_DATA, PANDO_TRACK_DATA, MUSIC_CONSUMPTION, PANDO_MUSIC_CONSUMPTION,
+            ORIGINAL_SOUND, PANDO_ORIGINAL_SOUND,
         )
         val markers = setOf(HANDLER_MARKER, ELIGIBLE_MARKER, REDUCED_MARKER, ROW_MARKER)
         // The types a post keeps its music in: interfaces whose getter answers the music.
@@ -536,7 +540,22 @@ class DownloadReelHookTest {
         bridges.forEach { assertEquals("$label: ${it.name}", Opcode.CHECK_CAST, it.code().first().opcode) }
         assertEquals("$label: reelOption", DOWNLOAD, context.method(INSTAGRAM_MEDIA, "reelOption").code().first().referenceText())
         assertTrue("$label: addReelRow", context.method(INSTAGRAM_MEDIA, "addReelRow").code().any { it.opcode == Opcode.INVOKE_VIRTUAL_RANGE })
+
+        // Hide reels by sound (#191) reads a reel's track, or its own sound, through these.
+        context.soundBridges("Download any reel")()
+        soundBridgeNames.forEach { bridge ->
+            val code = context.method(INSTAGRAM_MEDIA, bridge).code()
+            assertEquals("$label: $bridge", Opcode.CHECK_CAST, code.first().opcode)
+            val answers = ((code[1] as ReferenceInstruction).reference as MethodReference).returnType
+            if (bridge != "originalSound") assertEquals("$label: $bridge answers a String", "Ljava/lang/String;", answers)
+            else assertEquals("$label: the reel's own sound", ORIGINAL_SOUND, answers)
+        }
     }
+
+    /** The bridges Hide reels by sound adds to the music's. */
+    private val soundBridgeNames = listOf(
+        "originalSound", "trackAudioId", "trackTitle", "trackArtist", "originalSoundAudioId", "originalSoundTitle",
+    )
 
     /**
      * The bridges this patch writes: the video's, and the picture's, which Download any story writes

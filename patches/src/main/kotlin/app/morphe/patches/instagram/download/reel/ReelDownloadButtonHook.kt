@@ -169,6 +169,7 @@ internal fun BytecodePatchContext.addReelDownloadButtonWhereItFits() {
     }
     addReelDownloadButton(site)
     addNotInterestedButtonWhereItFits(site)
+    addSoundButtonWhereItFits(site)
 }
 
 /**

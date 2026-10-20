@@ -1916,6 +1916,21 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting REEL_BLOCK_BUTTON = new BooleanSetting("hushgram_reel_block_button", FALSE);
 
     /**
+     * Hide reels by sound (#191): a sound icon in the column beside a reel, whose tap hides that
+     * reel's sound, and the Reels tab leaving out the reels using a hidden sound
+     * ({@link app.hushgram.extension.instagram.reels.HiddenSounds}). Starts off, so the column and
+     * the tab stay Instagram's own.
+     */
+    public static final BooleanSetting HIDE_SOUND_REELS = new BooleanSetting("hushgram_hide_sound_reels", FALSE);
+
+    /**
+     * The sounds Hide reels by sound hides, a line for each: the sound's id, a tab, its title, a tab
+     * and who made it. Empty to start. It reads empty while HushGram is paused, and a backup leaves it
+     * out, like Hidden accounts.
+     */
+    public static final StringSetting HIDDEN_SOUNDS = new StringSetting("hushgram_hidden_sounds", "", false, false);
+
+    /**
      * Hold to download: two fingers (or three) held still on a feed post's picture or video, or on a reel,
      * save what's under them with the same save as Download in the menu
      * ({@link app.hushgram.extension.instagram.download.HoldDownload}). Instagram's one-finger long press

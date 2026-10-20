@@ -114,6 +114,7 @@ import app.hushgram.extension.instagram.reels.BurnInMode;
 import app.hushgram.extension.instagram.reels.BurnInWait;
 import app.hushgram.extension.instagram.reels.CaptionWordReels;
 import app.hushgram.extension.instagram.reels.HiddenBars;
+import app.hushgram.extension.instagram.reels.HiddenSounds;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.StartTab;
 import app.hushgram.extension.instagram.reels.TabOrder;
@@ -122,6 +123,7 @@ import app.hushgram.extension.instagram.profile.Unfollowers;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.HoldFingers;
 import app.hushgram.extension.instagram.download.HoldTime;
+import app.hushgram.extension.instagram.download.ReelSoundButton;
 import app.hushgram.extension.instagram.download.SaveControl;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.download.SaveFolder;
@@ -181,6 +183,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** The row that sets or changes the HushGram PIN. */
     static final String CHANGE_PIN_ROW = "hushgram_change_pin_row";
     static final String HIDDEN_ACCOUNTS_ROW = "hushgram_hidden_accounts_row";
+    static final String HIDDEN_SOUNDS_ROW = "hushgram_hidden_sounds_row";
     static final String GHOST_PICKS_ROW = "hushgram_ghost_picks_row";
     private static final String SCREEN_KEY = "hushgram_settings_root";
     /** The keys of category page rows, stable across translations and installed patch combinations. */
@@ -1038,6 +1041,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.REEL_BLOCK_BUTTON, L10n.t("Block button on reels"),
                     L10n.t("Puts a Block icon beside someone else's reel. A tap opens Instagram's own block "
                             + "screen for that account, so you still confirm it there.")));
+            reels.add(toggle(context, Settings.HIDE_SOUND_REELS, L10n.t("Hide reels by sound"),
+                    L10n.t("Puts a music icon beside a reel. Tap it and the Reels tab skips other reels using that "
+                            + "sound. Tap it again to bring them back.")));
+            reels.add(hiddenSoundsRow(context));
         }
         if (!reels.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Reels"), SettingsIcons.REELS,
@@ -1847,6 +1854,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_DOWNLOAD_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_NOT_INTERESTED_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_BLOCK_BUTTON.key.equals(key);
+                    belongs |= family == PatchFamily.REEL_DOWNLOAD && (Settings.HIDE_SOUND_REELS.key.equals(key)
+                            || HIDDEN_SOUNDS_ROW.equals(key));
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
                     belongs |= family == PatchFamily.SHARE_SHEET && Settings.HIDDEN_SHARE_SHEET_BUTTONS.key.equals(key);
@@ -3783,6 +3792,55 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         show(builder.setNeutralButton(L10n.t("Add a username"), (dialog, which) -> askHiddenAccount())
                 .setPositiveButton(L10n.t("OK"), null));
+    }
+
+    /** The row that opens the list of sounds whose reels the Reels tab leaves out. */
+    private Row hiddenSoundsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(HIDDEN_SOUNDS_ROW);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Hidden sounds"));
+        row.setSummary(L10n.t("The sounds you hid with the music icon. Uncheck one to see its reels again."));
+        row.setOnPreferenceClickListener(tapped -> {
+            showHiddenSounds();
+            return true;
+        });
+        return row;
+    }
+
+    /**
+     * The hidden sounds, each with a check. Unchecking one brings its reels back to the Reels tab at
+     * once, and checking it again hides them. Paused, the list still shows what you chose, though the
+     * tab shows every reel.
+     */
+    void showHiddenSounds() {
+        Context context = getActivity();
+        if (context == null) return;
+        List<HiddenSounds.Sound> sounds = HiddenSounds.saved();
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Hidden sounds"));
+        if (sounds.isEmpty()) {
+            builder.setMessage(L10n.t("No sounds are hidden yet. Turn on Hide reels by sound, then tap the music "
+                    + "icon beside a reel."));
+        } else {
+            CharSequence[] shown = new CharSequence[sounds.size()];
+            boolean[] hidden = new boolean[sounds.size()];
+            for (int i = 0; i < shown.length; i++) {
+                shown[i] = L10n.isolate(ReelSoundButton.label(context, sounds.get(i)));
+                hidden[i] = true;
+            }
+            builder.setMultiChoiceItems(shown, hidden, (dialog, which, checked) -> {
+                HiddenSounds.Sound sound = sounds.get(which);
+                String name = L10n.isolate(ReelSoundButton.label(context, sound));
+                if (checked) {
+                    HiddenSounds.add(sound);
+                    Utils.showToastShort(L10n.f("Hiding reels with %1$s", name));
+                } else {
+                    HiddenSounds.remove(sound.id);
+                    Utils.showToastShort(L10n.f("Showing reels with %1$s again", name));
+                }
+            });
+        }
+        show(builder.setPositiveButton(L10n.t("OK"), null));
     }
 
     /**

@@ -23,6 +23,7 @@ import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
 import android.view.WindowManager;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import java.nio.charset.StandardCharsets;
@@ -34,6 +35,7 @@ import java.util.List;
 import app.hushgram.extension.instagram.download.DownloadHistory;
 import app.hushgram.extension.instagram.download.DownloadQuality;
 import app.hushgram.extension.instagram.download.SavesForTests;
+import app.hushgram.extension.instagram.reels.HiddenSounds;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
@@ -46,8 +48,10 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
@@ -87,6 +91,8 @@ public class DownloadSettingsTest {
         Settings.REEL_DOWNLOAD_BUTTON.resetToDefault();
         Settings.REEL_NOT_INTERESTED_BUTTON.resetToDefault();
         Settings.REEL_BLOCK_BUTTON.resetToDefault();
+        Settings.HIDE_SOUND_REELS.resetToDefault();
+        Settings.HIDDEN_SOUNDS.resetToDefault();
         Settings.HOLD_TO_DOWNLOAD.resetToDefault();
         Settings.HOLD_FINGERS.resetToDefault();
         Settings.HOLD_TIME.resetToDefault();
@@ -181,6 +187,78 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.REEL_BLOCK_BUTTON.key));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.REEL_BLOCK_BUTTON.key));
+        }
+    }
+
+    /**
+     * Hide reels by sound (#191) sits right after the Block button under Reels, with the Hidden sounds
+     * row under it. The switch starts off and goes in a settings file, the list stays out of one, and
+     * a build without the reel download has neither.
+     */
+    @Test
+    public void hideReelsBySoundSitsAfterBlockWithItsListUnderIt() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup reels = section(page.getPreferenceScreen(), "Reels");
+            Preference row = reels.findPreference(Settings.HIDE_SOUND_REELS.key);
+            assertTrue("Hide reels by sound isn't under Reels", row instanceof SwitchPreference);
+            assertEquals("Hide reels by sound", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()).contains("music icon"));
+            assertFalse("it starts off", ((SwitchPreference) row).isChecked());
+            Preference list = reels.findPreference(HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW);
+            assertNotNull("no Hidden sounds row", list);
+            assertEquals("Hidden sounds", String.valueOf(list.getTitle()));
+            List<Preference> rows = rowsOf(page);
+            assertEquals(indexOfKey(rows, Settings.REEL_BLOCK_BUTTON.key) + 1, indexOfKey(rows, Settings.HIDE_SOUND_REELS.key));
+            assertEquals(indexOfKey(rows, Settings.HIDE_SOUND_REELS.key) + 1, indexOfKey(rows, HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW));
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_REELS.key)).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertTrue("it doesn't wait for Download on reels", row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SOUND_REELS.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDDEN_SOUNDS.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            assertEquals(-1, indexOfKey(rows, Settings.HIDE_SOUND_REELS.key));
+            assertEquals(-1, indexOfKey(rows, HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SOUND_REELS.key));
+        }
+    }
+
+    /** Hidden sounds lists each sound by title and artist, checked; unchecking one brings its reels back and checking it hides them again. */
+    @Test
+    public void hiddenSoundsListsEachSoundAndUncheckingOneBringsItsReelsBack() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            Preference row = page.findPreference(HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW);
+            assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
+            ShadowLooper.idleMainLooper();
+            AlertDialog empty = ShadowAlertDialog.getLatestAlertDialog();
+            assertTrue(String.valueOf(Shadows.shadowOf(empty).getMessage()).startsWith("No sounds are hidden yet."));
+            empty.dismiss();
+
+            HiddenSounds.add(new HiddenSounds.Sound("111", "Espresso", "Sabrina Carpenter"));
+            HiddenSounds.add(new HiddenSounds.Sound("222", "Original audio", "@nasa"));
+            page.showHiddenSounds();
+            ShadowLooper.idleMainLooper();
+            ListView list = ShadowAlertDialog.getLatestAlertDialog().getListView();
+            assertEquals(2, list.getCount());
+            assertEquals(L10n.isolate("Espresso by Sabrina Carpenter"), list.getItemAtPosition(0).toString());
+            assertTrue(list.isItemChecked(0));
+
+            assertTrue(list.performItemClick(list.getAdapter().getView(0, null, list), 0, list.getItemIdAtPosition(0)));
+            ShadowLooper.idleMainLooper();
+            assertTrue(String.valueOf(ShadowToast.getTextOfLatestToast()).startsWith("Showing reels with"));
+            assertFalse(HiddenSounds.hides("111"));
+            assertTrue(HiddenSounds.hides("222"));
+
+            assertTrue(list.performItemClick(list.getAdapter().getView(0, null, list), 0, list.getItemIdAtPosition(0)));
+            ShadowLooper.idleMainLooper();
+            assertTrue(String.valueOf(ShadowToast.getTextOfLatestToast()).startsWith("Hiding reels with"));
+            assertTrue(HiddenSounds.hides("111"));
         }
     }
 

@@ -172,6 +172,23 @@ public final class ReelBlockButton {
         }
     }
 
+    /**
+     * Whether the icon shows on the reel [column] holds, which an icon over it asks to tell whether
+     * it's the last one over More. Never throws.
+     */
+    static boolean shows(@Nullable Object column) {
+        try {
+            if (column == null || !enabled() || glyph < 0) return false;
+            Object item = ReelDownloadButton.bridge.item(column);
+            if (item == null || !ReelDownloadButton.ORGANIC.equals(ReelDownloadButton.bridge.kind(item))) return false;
+            if (ReelNotInterestedButton.delegateFor(ReelNotInterestedButton.bridge.config(column)) == null) return false;
+            String id = bridge.ownerId(item);
+            return id != null && bridge.owner(item) != null && !yours(id);
+        } catch (Throwable failure) {
+            return false;
+        }
+    }
+
     /** Whether [ownerId] is the account in front, whose own reels get no Block icon. */
     private static boolean yours(String ownerId) {
         String mine = DownloadHistory.accounts.get();

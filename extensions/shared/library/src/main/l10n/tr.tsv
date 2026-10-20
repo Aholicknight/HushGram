@@ -1146,3 +1146,13 @@ Puts a Block icon beside someone else's reel. A tap opens Instagram's own block 
 Block	Engelle
 Swipe left to open the profile	Profili açmak için sola kaydır
 A left swipe on a reel opens the creator's profile, like Instagram used to. Tap Friends at the top to reach your friends' reels.	Bir reel üzerinde sola kaydırmak, Instagram'ın eskiden yaptığı gibi içeriği oluşturanın profilini açar. Arkadaşlarının reel'lerine ulaşmak için üstteki Arkadaşlar'a dokun.
+Hide this sound	Bu sesi gizle
+Showing reels with %1$s again	%1$s kullanan reel'ler yeniden gösteriliyor
+Hiding reels with %1$s	%1$s kullanan reel'ler gizleniyor
+%1$s by %2$s	%1$s (%2$s)
+this sound	bu ses
+Hide reels by sound	Reels'i sese göre gizle
+Puts a music icon beside a reel. Tap it and the Reels tab skips other reels using that sound. Tap it again to bring them back.	Bir reel'in yanına müzik simgesi koyar. Dokunduğunda Reels sekmesi o sesi kullanan diğer reel'leri atlar. Geri getirmek için yeniden dokun.
+Hidden sounds	Gizli sesler
+The sounds you hid with the music icon. Uncheck one to see its reels again.	Müzik simgesiyle gizlediğin sesler. Reel'lerini yeniden görmek için birinin işaretini kaldır.
+No sounds are hidden yet. Turn on Hide reels by sound, then tap the music icon beside a reel.	Henüz gizli ses yok. Reels'i sese göre gizle'yi aç, sonra bir reel'in yanındaki müzik simgesine dokun.

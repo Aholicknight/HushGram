@@ -35,7 +35,8 @@ import org.junit.Test
  * the reel's state and the viewer's config, the icon's block goes in front of the Download one at both
  * places Save is added, the delegate's constructor reports itself with the config, and the bridges
  * run Instagram's own Not interested. The Block icon (#191) then goes in front of that block, and its
- * bridge opens Instagram's own block sheet with the delegate's activity and session.
+ * bridge opens Instagram's own block sheet with the delegate's activity and session. The sound icon
+ * of Hide reels by sound (#191) goes in front of all three.
  */
 class ReelNotInterestedHookTest {
     @Test
@@ -61,6 +62,16 @@ class ReelNotInterestedHookTest {
             BLOCK_LITHO_ABOVE_MORE.substringAfter("->"),
             "blockRun(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;",
         )) assertTrue("$BLOCK_TYPE has no public static $needed", needed in blocks)
+        val sounds = ExtensionDex.classDef(SOUND_TYPE).methods
+            .filter { AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }.toSet()
+        for (needed in listOf(SOUND_ON, SOUND_LITHO, SOUND_LITHO_ABOVE_MORE).map { it.substringAfter("->") }) {
+            assertTrue("$SOUND_TYPE has no public static $needed", needed in sounds)
+        }
+        val list = ExtensionDex.classDef(HIDDEN_SOUNDS).methods
+            .filter { AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }.toSet()
+        assertTrue("$HIDDEN_SOUNDS has no public static page", SOUND_PAGE_FILTER.substringAfter("->") in list)
     }
 
     @Test
@@ -100,6 +111,8 @@ class ReelNotInterestedHookTest {
         classes[REEL_BUTTON_TYPE] = ExtensionDex.classDef(REEL_BUTTON_TYPE)
         classes[NOT_INTERESTED_TYPE] = ExtensionDex.classDef(NOT_INTERESTED_TYPE)
         classes[BLOCK_TYPE] = ExtensionDex.classDef(BLOCK_TYPE)
+        classes[SOUND_TYPE] = ExtensionDex.classDef(SOUND_TYPE)
+        classes[HIDDEN_SOUNDS] = ExtensionDex.classDef(HIDDEN_SOUNDS)
         val context = PatchContexts.of(classes.values.toList())
 
         val site = context.findReelButtonSite()
@@ -118,6 +131,8 @@ class ReelNotInterestedHookTest {
         val initOf = { context.mutableClassDefBy(found.delegate).methods.single { it.name == "<init>" && it.markers().contains(BINDER_INIT_MARKER) } }
         context.addReelDownloadButton(site)
         val before = renderOf().instructions()
+        assertEquals("$name: alone, the sound icon's block goes in front of Download's",
+            before.indices.filter { before[it].names(REEL_BUTTON_ON) }, context.findSoundStarts(site).map { it.second })
         val constructorBefore = initOf().instructions()
         context.addNotInterestedButton(site, found)
         val code = renderOf().instructions()
@@ -181,6 +196,27 @@ class ReelNotInterestedHookTest {
                 block.session.toString(), null, null, null, block.open.toString(), null, null,
             ),
             run)
+
+        // The sound icon (#191) goes in front of Block's block, the first at each place.
+        val starts = context.findSoundStarts(site)
+        assertEquals("$name: the sound icon starts where the Block icon does", blockAsks, starts.map { it.second })
+        context.addSoundIcons(site, starts)
+        val sounded = renderOf().instructions()
+        assertEquals("$name: fourteen more again at each place", blocked.size + 28, sounded.size)
+        val soundAsks = sounded.indices.filter { sounded[it].names(SOUND_ON) }
+        assertEquals("$name: the sound on() at both places", 2, soundAsks.size)
+        assertEquals("$name: its lithoAboveMore() over More alone", 1, sounded.count { it.names(SOUND_LITHO_ABOVE_MORE) })
+        soundAsks.zip(site.sites.sortedBy { it.at }).forEach { (at, place) ->
+            assertTrue("$name: Block's block follows right after", sounded[at + 14].names(BLOCK_ON))
+            assertTrue("$name: then Not interested's", sounded[at + 28].names(NOT_INTERESTED_ON))
+            assertTrue("$name: then Download's", sounded[at + 42].names(REEL_BUTTON_ON))
+            val litho = if (place.aboveMore) SOUND_LITHO_ABOVE_MORE else SOUND_LITHO
+            assertTrue("$name: $litho eight after on()", sounded[at + 8].names(litho))
+            assertTrue("$name: the sound icon is added by the column's own add", sounded[at + 13].names(site.add.toString()))
+        }
+        val withoutList = PatchContexts.of(classes.values.filter { it.type != HIDDEN_SOUNDS })
+        val noList = runCatching { withoutList.findSoundStarts(site) }.exceptionOrNull()
+        assertTrue("$name: an extension without the list is refused before anything changes", noList is PatchException)
     }
 
     private fun Method.loads(string: String) = instructions().any {
