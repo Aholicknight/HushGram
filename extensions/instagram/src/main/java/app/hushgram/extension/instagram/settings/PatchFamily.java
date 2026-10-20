@@ -59,6 +59,7 @@ public enum PatchFamily {
     BACK_LEAVES_HOME(FamilyNames.BACK_LEAVES_HOME, "backLeavesHome", null, Settings.BACK_LEAVES_HOME),
     STORY_LOOP(FamilyNames.STORY_LOOP, "storyLoop", null, Settings.LOOP_STORIES),
     STORY_SOUND(FamilyNames.STORY_SOUND, "storySound", null, Settings.START_STORIES_WITH_SOUND),
+    STORY_SWIPE_REPLY(FamilyNames.STORY_SWIPE_REPLY, "storySwipeReply", null, Settings.STOP_STORY_SWIPE_REPLY),
     STORY_UPLOAD_QUALITY(FamilyNames.STORY_UPLOAD_QUALITY, "storyUploadQuality", null, Settings.UPLOAD_STORIES_AT_FULL_QUALITY),
     FEED_SOUND(FamilyNames.FEED_SOUND, "feedSound", null, Settings.START_FEED_VIDEOS_WITH_SOUND),
     FEED_TAP_PAUSE(FamilyNames.FEED_TAP_PAUSE, "feedTapPause", null, Settings.TAP_FEED_VIDEO_TO_PAUSE),

@@ -80,6 +80,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storySwipeReply() {
+        return false;
+    }
+
     public static boolean storyUploadQuality() {
         return false;
     }

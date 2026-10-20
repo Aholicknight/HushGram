@@ -832,6 +832,8 @@ Keep reels muted on the volume keys	Mantieni i reel muti con i tasti del volume
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	Alzare il volume aumenta comunque il volume del telefono, ma un reel muto resta muto finché non riattivi l'audio.
 Start stories with sound	Avvia le storie con l'audio
 Stories open with their sound on, the same as tapping Instagram's speaker. Your phone's ringer and volume still count, so on silent or with the volume down, stories stay quiet.	Le storie si aprono con l'audio attivo, come toccando l'altoparlante di Instagram. La suoneria e il volume del telefono contano comunque, quindi in silenzioso o con il volume basso le storie restano mute.
+Stop swipe up to reply	Disattiva scorri in su per rispondere
+A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.	Scorrere verso l'alto sulla storia di qualcuno non apre più la casella di risposta e le sue reazioni. Tocca Invia messaggio per rispondere.
 # context: toast when Download all is tapped while another post is still saving; it waits its turn
 Queued. It starts once the post before it is saved.	In coda. Parte quando il post precedente è stato salvato.
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting

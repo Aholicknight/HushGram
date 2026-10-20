@@ -236,6 +236,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_stories_with_sound", FALSE);
 
     /**
+     * A swipe up on someone's story leaves the reply box closed
+     * ({@link app.hushgram.extension.instagram.stories.StorySwipeReply}). Read at each swipe, so a
+     * change applies at once. Off to start.
+     */
+    public static final BooleanSetting STOP_STORY_SWIPE_REPLY =
+            new BooleanSetting("hushgram_stop_story_swipe_reply", FALSE);
+
+    /**
      * A video story is prepared the way Instagram prepares it with its own "Upload at highest quality"
      * setting on, up to 1080 wide instead of 720 ({@link app.hushgram.extension.instagram.stories.StoryUploadQuality}).
      * Read as each upload is prepared, so a change applies to the next story posted. Off to start.

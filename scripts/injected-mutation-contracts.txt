@@ -1870,6 +1870,16 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->keepMuted(I
 # the class that calls a superclass onCreate. Left out, stories open as the ringer and volume
 # alone say; twice or elsewhere, it isn't the call the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StorySound;->startWithSound(Ljava/lang/Object;)I in instance (Landroid/os/Bundle;)V calling instance L*;->onCreate(Landroid/os/Bundle;)V class-holding ReelViewerFragment.onCurrentActiveItemBound
+# Stop swipe up to reply asks StorySwipeReply.keepsSwipe() first thing in the reply composer's
+# swipe listener, the one instance ()Z method that reads a Redex class's EditText field and focuses
+# it (0Axw.GKf on 452, 0BfY.GKr on its other build 385810231), and once in the story viewer's item delegate,
+# right before it opens the reply sheet (0ASJ.GKg, the gesture handler holding both strings below).
+# Left out, a swipe up opens the reply box whatever the switch says; twice or elsewhere, it isn't
+# the guard the patch wrote. StopSwipeReplyHookTest checks on the 452 fixtures that each rule picks
+# that one method.
+start-call Lapp/hushgram/extension/instagram/stories/StorySwipeReply;->keepsSwipe()Z in instance ()Z holding Landroid/view/View;->requestFocus()Z LX/*;->*:Landroid/widget/EditText;
+once-call Lapp/hushgram/extension/instagram/stories/StorySwipeReply;->keepsSwipe()Z in instance ()Z holding Landroid/view/View;->requestFocus()Z LX/*;->*:Landroid/widget/EditText;
+once-call Lapp/hushgram/extension/instagram/stories/StorySwipeReply;->keepsSwipe()Z in instance (Landroid/view/MotionEvent;Landroid/view/MotionEvent;Ljava/lang/Object;FFZ)Z holding reelViewerListenerManager camera_entry_point
 # Start feed videos with sound asks FeedSound.startWithSound() once, in the feed video controller's video
 # start, the one instance (Media, x, y, z, int, int, int, boolean, boolean, boolean) void method of the class
 # that loads the volume key handler's crash string. Left out, feed videos start as Instagram's own settings

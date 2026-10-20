@@ -110,7 +110,7 @@ public class NeutralDefaultsSettingsTest {
                 Settings.ALLOW_SCREENSHOTS,
                 Settings.KEEP_IN_CHAT,
                 Settings.VIEW_LIVE_ANONYMOUSLY, Settings.NOTO_EMOJI, Settings.ACCENT_COLOR, Settings.LAUNCH_SCREEN,
-                Settings.DONT_SEND_REEL_WATCH_HISTORY, Settings.BLOCK_STORY_AUTO_ADVANCE, Settings.START_STORIES_WITH_SOUND, Settings.UPLOAD_STORIES_AT_FULL_QUALITY, Settings.START_FEED_VIDEOS_WITH_SOUND, Settings.TAP_FEED_VIDEO_TO_PAUSE, Settings.LONG_PRESS_TO_ZOOM, Settings.ROUNDED_POST_CORNERS, Settings.FULL_SCREEN_REELS, Settings.FULL_SCREEN_HOME, Settings.SHOW_STORY_TIME,
+                Settings.DONT_SEND_REEL_WATCH_HISTORY, Settings.BLOCK_STORY_AUTO_ADVANCE, Settings.START_STORIES_WITH_SOUND, Settings.STOP_STORY_SWIPE_REPLY, Settings.UPLOAD_STORIES_AT_FULL_QUALITY, Settings.START_FEED_VIDEOS_WITH_SOUND, Settings.TAP_FEED_VIDEO_TO_PAUSE, Settings.LONG_PRESS_TO_ZOOM, Settings.ROUNDED_POST_CORNERS, Settings.FULL_SCREEN_REELS, Settings.FULL_SCREEN_HOME, Settings.SHOW_STORY_TIME,
                 Settings.SHOW_STORY_MENTIONS, Settings.HIDE_STORY_FOLLOW, Settings.SHOW_POST_TIME, Settings.SHOW_HIDDEN_LIKE_COUNTS, Settings.BACK_LEAVES_HOME, Settings.LOOP_STORIES, Settings.VIEW_STORIES_ANONYMOUSLY,
                 Settings.SPOOF_LOCATION, Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.HIDE_TYPING, Settings.HIDE_ACTIVE_STATUS, Settings.SHOW_LAST_ACTIVE,
                 Settings.HIDE_FEED_REELS, Settings.START_ON_FOLLOWING, Settings.HIDE_EXPLORE_GRID,
@@ -129,7 +129,7 @@ public class NeutralDefaultsSettingsTest {
                 PatchFamily.REEL_SCROLLING, PatchFamily.SWIPE_TO_PROFILE, PatchFamily.REEL_ORIGIN, PatchFamily.STORY_RING, PatchFamily.FULL_RESOLUTION, PatchFamily.HOME_FEED, PatchFamily.FEED_SUGGESTIONS,
                 PatchFamily.TAB_SWIPE, PatchFamily.HDR_BOOST, PatchFamily.RECENT_SEARCHES, PatchFamily.DATA_SAVER, PatchFamily.MEDIA_CACHE, PatchFamily.NOTIFICATION_GROUPS, PatchFamily.MESSAGES_LOCK, PatchFamily.SCREENSHOT_REPORTS, PatchFamily.SCREENSHOT_BLOCK, PatchFamily.KEEP_IN_CHAT, PatchFamily.LIVE_SEEN,
                 PatchFamily.EMOJI_STYLE, PatchFamily.ACCENT_COLOR, PatchFamily.LAUNCH_SCREEN, PatchFamily.FONT,
-                PatchFamily.REEL_WATCH_HISTORY, PatchFamily.STORY_AUTO_ADVANCE, PatchFamily.STORY_SOUND, PatchFamily.STORY_UPLOAD_QUALITY, PatchFamily.FEED_SOUND, PatchFamily.FEED_TAP_PAUSE, PatchFamily.LONG_PRESS_ZOOM, PatchFamily.ROUNDED_POST_CORNERS, PatchFamily.FULL_SCREEN_BARS, PatchFamily.STORY_TIME, PatchFamily.STORY_MENTIONS, PatchFamily.STORY_FOLLOW,
+                PatchFamily.REEL_WATCH_HISTORY, PatchFamily.STORY_AUTO_ADVANCE, PatchFamily.STORY_SOUND, PatchFamily.STORY_SWIPE_REPLY, PatchFamily.STORY_UPLOAD_QUALITY, PatchFamily.FEED_SOUND, PatchFamily.FEED_TAP_PAUSE, PatchFamily.LONG_PRESS_ZOOM, PatchFamily.ROUNDED_POST_CORNERS, PatchFamily.FULL_SCREEN_BARS, PatchFamily.STORY_TIME, PatchFamily.STORY_MENTIONS, PatchFamily.STORY_FOLLOW,
                 PatchFamily.POST_TIME, PatchFamily.HIDDEN_LIKE_COUNTS, PatchFamily.BACK_LEAVES_HOME, PatchFamily.STORY_LOOP, PatchFamily.STORY_SEEN, PatchFamily.SPOOF_LOCATION,
                 PatchFamily.THREAD_SEEN, PatchFamily.TYPING, PatchFamily.ACTIVE_STATUS, PatchFamily.LAST_ACTIVE, PatchFamily.FEED_REELS, PatchFamily.FOLLOWING_FEED,
                 PatchFamily.EXPLORE_GRID, PatchFamily.SHARE_SHEET, PatchFamily.REPOST_BUTTON, PatchFamily.BOTTOM_SPACE,
@@ -313,6 +313,7 @@ public class NeutralDefaultsSettingsTest {
         assertFalse(app.hushgram.extension.instagram.reels.ReelWatchHistory.holdBack());
         assertFalse(app.hushgram.extension.instagram.stories.StoryAdvance.hold());
         assertFalse(app.hushgram.extension.instagram.stories.StoryLoop.loop(0));
+        assertTrue(app.hushgram.extension.instagram.stories.StorySwipeReply.keepsSwipe());
         assertFalse(app.hushgram.extension.instagram.stories.StoryUploadQuality.fullQuality(StockShareType.STORY));
         Object batch = new Object();
         assertSame(batch, app.hushgram.extension.instagram.stories.StorySeen.toSend(null, batch));
