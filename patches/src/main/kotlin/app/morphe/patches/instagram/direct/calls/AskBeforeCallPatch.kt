@@ -88,8 +88,11 @@ val askBeforeCallPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("askBeforeCall")
-        askBeforeCall()
-        hideCallButtons()
+        // Both finders refuse before either switch changes any code.
+        val chatCall = findChatCall()
+        val callButtons = findCallButtons()
+        askBeforeCall(chatCall)
+        hideCallButtons(callButtons)
         enableStatus("askBeforeCall")
     }
 }
@@ -155,8 +158,7 @@ internal fun BytecodePatchContext.findChatCall(): ChatCallTargets {
  * extension first in the call start, with its own arguments. A yes returns before Instagram does
  * anything.
  */
-internal fun BytecodePatchContext.askBeforeCall() {
-    val found = findChatCall()
+internal fun BytecodePatchContext.askBeforeCall(found: ChatCallTargets = findChatCall()) {
     val start = found.start
     val starter = start.definingClass
     val parameters = start.parameterTypes.map(Any::toString)
@@ -268,18 +270,19 @@ internal fun BytecodePatchContext.findCallButtons(): CallButtonTargets {
 }
 
 /**
- * Fills the extension's kind stub with a read of the model's kind name, then hands the view and the
- * model to [BOUND] first thing in both binders.
+ * Fills the extension's kind stub with a read of the model's kind name (null when the model has no
+ * kind), then hands the view and the model to [BOUND] first thing in both binders.
  */
-internal fun BytecodePatchContext.hideCallButtons() {
-    val found = findCallButtons()
+internal fun BytecodePatchContext.hideCallButtons(found: CallButtonTargets = findCallButtons()) {
     found.kindOf.addInstructions(
         0,
         """
             check-cast p0, ${found.model}
             iget-object p0, p0, ${found.kind}
+            if-eqz p0, :none
             invoke-virtual { p0 }, $ENUM->name()Ljava/lang/String;
             move-result-object p0
+            :none
             return-object p0
         """,
     )

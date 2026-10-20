@@ -78,8 +78,9 @@ public final class CallButtons {
             HookStatus.invoked(FamilyNames.ASK_BEFORE_CALL);
             if (view == null || model == null) return;
             String kind = access.kindOf(model);
-            if (kind == null || !CALL_KINDS.contains(kind)) return;
-            boolean hide = Utils.settingsReady() && !HushgramPause.isPaused() && Settings.HIDE_CALL_BUTTONS.get();
+            // A recycled view this hid can come back bound to another kind of button, which shows again.
+            boolean hide = kind != null && CALL_KINDS.contains(kind) &&
+                    Utils.settingsReady() && !HushgramPause.isPaused() && Settings.HIDE_CALL_BUTTONS.get();
             if (hide) {
                 view.setVisibility(View.GONE);
                 hidden.put(view, Boolean.TRUE);
