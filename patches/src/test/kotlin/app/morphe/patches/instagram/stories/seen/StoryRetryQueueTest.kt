@@ -347,7 +347,7 @@ class StoryRetryQueueTest {
         val mutable = MutableMethod(ImmutableMethod.of(method))
         mutable.addInstructionsWithLabels(at, body)
         // Mutate an executed path. Native labels otherwise stay on the old instruction and skip
-        // an inserted overwrite, which would be an inert counterexample on the declared 451 build.
+        // an inserted overwrite, which would be an inert counterexample on the declared build.
         val code = mutable.code().toMutableList()
         val added = code.size - method.code().size
         val addresses = addresses(code)

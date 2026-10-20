@@ -46,7 +46,7 @@ class HideFeedFollowPatchTest {
         assertEquals("another patch's status is still off", 0, (other.first() as NarrowLiteralInstruction).narrowLiteral)
     }
 
-    /** On each declared 451 build the patch applies, and the build declares the ids the extension looks for. */
+    /** On each declared build the patch applies, and the build declares the ids the extension looks for. */
     @Test
     fun eachDeclaredBuildHasTheButtons() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()

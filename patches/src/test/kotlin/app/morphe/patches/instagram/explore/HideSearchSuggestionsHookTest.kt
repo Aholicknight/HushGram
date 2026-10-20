@@ -98,7 +98,7 @@ class HideSearchSuggestionsHookTest {
     }
 
     /**
-     * In each of the eight 451 builds both builders (the older section and the newer builder) are
+     * In each of the three 452 builds both builders (the older section and the newer builder) are
      * there once and hooked.
      */
     @Test

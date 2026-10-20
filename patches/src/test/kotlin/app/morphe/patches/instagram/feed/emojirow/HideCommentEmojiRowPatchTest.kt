@@ -58,7 +58,7 @@ class HideCommentEmojiRowPatchTest {
         assertEquals("another patch's status is still off", 0, (other.first() as NarrowLiteralInstruction).narrowLiteral)
     }
 
-    /** On each declared 451 build the patch applies, and the build declares the ids the extension looks for. */
+    /** On each declared build the patch applies, and the build declares the ids the extension looks for. */
     @Test
     fun eachDeclaredBuildHasTheRow() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -87,7 +87,7 @@ class HideCommentEmojiRowPatchTest {
     }
 
     /**
-     * In each 451 build the comment sheet's above-the-box component is the one method loading both
+     * In each declared build the comment sheet's above-the-box component is the one method loading both
      * keys, and the hook goes right before the branch its emoji check takes past the strip: the
      * check's answer in, the answer back in its register, and nothing jumping into the call. The ids
      * the extension hides aren't on this sheet, which is why the row stayed with only those. On 451's
