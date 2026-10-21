@@ -74,6 +74,7 @@ if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $OutDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutDir)
 . (Join-Path $PSScriptRoot 'patch-target.ps1')
 . (Join-Path $PSScriptRoot 'patch-report.ps1')
+. (Join-Path $PSScriptRoot 'patch-record.ps1')
 . (Join-Path $PSScriptRoot 'common.ps1')
 . (Join-Path $PSScriptRoot 'Resolve-Java.ps1')
 . (Join-Path $PSScriptRoot 'apk-facts.ps1')
@@ -223,6 +224,9 @@ foreach ($entry in $coverage) {
     Write-Host "[device] $($entry.family): $($entry.matched)/$($entry.expected) targets; missing: $($entry.missing -join ', ')"
 }
 Write-Host "[device] applied $(@($report.appliedPatches).Count), failed $(@($report.failedPatches).Count), target $($report.packageName) $($report.packageVersion)"
+# Ties result.json to this APK's content, which signing again with another key keeps. The native
+# runner takes the patch selection from a result only through this record.
+Write-PatchRecord -Apk $out -Result $result -Path (Join-Path $OutDir 'patch-record.json')
 Write-Host "[device] $out"
 
 if (-not $Serial) { return }
