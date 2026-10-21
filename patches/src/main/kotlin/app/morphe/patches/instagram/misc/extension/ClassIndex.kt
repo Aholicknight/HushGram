@@ -174,13 +174,62 @@ internal fun BytecodePatchContext.classesTouching(definingClass: String, name: S
 
 /**
  * The types of the classes outside the extension holding a purge marker (see [markers]) named one
- * of [names]. A marker named X is a string ending in `_X`, so a class this leaves out holds none.
- * Filter a class walk by it to keep the app's order.
+ * of [names]. A marker named X is an android_purge_ string ending in `_X`, so a class this leaves
+ * out holds none. Filter a class walk by it to keep the app's order.
  */
 internal fun BytecodePatchContext.typesMarked(vararg names: String): Set<String> {
     require(names.isNotEmpty()) { "no marker to look for" }
-    return names.flatMapTo(HashSet()) { name -> classDefByStrings("_$name", StringComparisonType.ENDS_WITH).map { it.type } }
+    val index = purgeIndex()
+    return names.flatMapTo(HashSet()) { name -> index.typesEnding("_$name") }
         .filterNotTo(HashSet()) { it.startsWith(EXTENSION_ROOT) }
+}
+
+/**
+ * Every android_purge_ string the app's code loads, by the part after its last underscore, with the
+ * types of the classes loading it. A string ends in `_X` only when that part is X's own, so a name
+ * reads one short list. Asking the patcher's string index for an ending tests each of the app's
+ * 400,000 strings, once per name, and the Reels patches ask for dozens (#173). It holds strings
+ * only, never the app's classes.
+ */
+private class PurgeIndex {
+    private val byLastPart = HashMap<String, MutableList<Pair<String, String>>>()
+
+    /** How many of the patcher's classes with strings this has read. */
+    var read = 0
+
+    fun add(classDef: ClassDef) {
+        for (method in classDef.methods) {
+            for (instruction in method.implementation?.instructions ?: continue) {
+                if (instruction.opcode != Opcode.CONST_STRING && instruction.opcode != Opcode.CONST_STRING_JUMBO) continue
+                val string = ((instruction as ReferenceInstruction).reference as StringReference).string
+                if (string.startsWith("android_purge_")) {
+                    byLastPart.getOrPut(string.substringAfterLast('_')) { ArrayList(1) } += string to classDef.type
+                }
+            }
+        }
+    }
+
+    fun typesEnding(ending: String): List<String> =
+        byLastPart[ending.substringAfterLast('_')].orEmpty().filter { it.first.endsWith(ending) }.map { it.second }
+}
+
+private val purgeIndexes = java.util.WeakHashMap<BytecodePatchContext, PurgeIndex>()
+
+/**
+ * This context's [PurgeIndex]. The first ask reads the classes the patcher's string index names
+ * for an android_purge_ string. The patcher indexes a class merged in later, an extension's, by
+ * adding it to the end of its classes with strings, so each ask reads the ones added since.
+ */
+private fun BytecodePatchContext.purgeIndex(): PurgeIndex = synchronized(purgeIndexes) {
+    val withStrings = getAllClassesWithStrings()
+    val index = purgeIndexes[this] ?: PurgeIndex().also { index ->
+        classDefByStrings("android_purge_", StringComparisonType.STARTS_WITH).forEach(index::add)
+        index.read = withStrings.size
+        purgeIndexes[this] = index
+    }
+    withStrings.subList(index.read, withStrings.size).forEach(index::add)
+    index.read = withStrings.size
+    index
 }
 
 /** The classes outside the extension holding a method [fingerprint] matches, in the app's order. */
