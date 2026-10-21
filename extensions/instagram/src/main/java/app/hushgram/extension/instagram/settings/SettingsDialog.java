@@ -320,6 +320,7 @@ public final class SettingsDialog extends DialogFragment {
     public void onStart() {
         super.onStart();
         watchLock();
+        ShortcutCover.offOnceDrawn(getDialog());
     }
 
     @Override

@@ -353,7 +353,7 @@ public final class SettingsEntry {
     /** Injected at the start of the main activity's {@code onNewIntent}. */
     public static void onNewIntent(Activity activity, Intent intent) {
         try {
-            noteIntent(intent);
+            if (noteIntent(intent)) ShortcutCover.show(activity);
             if (openPending) OpenWhenResumed.openWhenSettled(activity);
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: onNewIntent failure", ex);
@@ -400,7 +400,7 @@ public final class SettingsEntry {
             try {
                 // A screen put back after the process died carries its old intent; the request it
                 // held was spent the first time.
-                if (state == null) noteIntent(activity.getIntent());
+                if (state == null && noteIntent(activity.getIntent())) ShortcutCover.show(activity);
                 if (activity.getFragmentManager().findFragmentByTag(DIALOG_TAG) instanceof SettingsDialog) {
                     host = new WeakReference<>(activity);
                     closedByUser = false;
@@ -449,9 +449,12 @@ public final class SettingsEntry {
         @Override
         public void onActivityPaused(Activity activity) {
             if (resumed != null && resumed.get() == activity) resumed = null;
+            ShortcutCover.offIfOver(activity);
         }
 
-        @Override public void onActivityStarted(Activity activity) { }
+        @Override public void onActivityStarted(Activity activity) {
+            ShortcutCover.onStarted(activity);
+        }
         @Override public void onActivityStopped(Activity activity) { }
         @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) {
             Fragment dialog = activity.getFragmentManager().findFragmentByTag(DIALOG_TAG);
@@ -718,7 +721,8 @@ public final class SettingsEntry {
         requestedPage = null;
     }
 
-    private static void noteIntent(Intent intent) {
+    /** Whether [intent] is the launcher shortcut's, which is then a pending request. */
+    private static boolean noteIntent(Intent intent) {
         if (intent != null && intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false)) {
             intent.removeExtra(EXTRA_OPEN_SETTINGS);
             requestedPage = null;
@@ -727,7 +731,9 @@ public final class SettingsEntry {
             // A new request looks for itself; a look an old one left scheduled may never run.
             themeRetryPending = false;
             Logger.printInfo(() -> "Settings requested by the launcher shortcut");
+            return true;
         }
+        return false;
     }
 
     /**
