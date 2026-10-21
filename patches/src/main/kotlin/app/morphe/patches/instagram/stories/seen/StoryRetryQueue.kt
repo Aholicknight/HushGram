@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.pooledString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
@@ -15,13 +16,17 @@ import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
+import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.util.ControlFlow
 import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.dexbacked.DexBackedClassDef
+import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.android.tools.smali.dexlib2.iface.Annotation as DexAnnotation
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.MethodImplementation
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
@@ -38,6 +43,7 @@ import com.android.tools.smali.dexlib2.iface.value.ArrayEncodedValue
 import com.android.tools.smali.dexlib2.iface.value.EncodedValue
 import com.android.tools.smali.dexlib2.iface.value.MethodEncodedValue
 import com.android.tools.smali.dexlib2.iface.value.MethodHandleEncodedValue
+import java.util.IdentityHashMap
 
 /** The native queue location before ownership changes, proved before any patch is written. */
 internal class StoryRetryQueue(
@@ -87,14 +93,29 @@ internal fun BytecodePatchContext.findStoryRetryQueue(store: ClassDef, retry: St
         !AccessFlags.PUBLIC.isSet(bridge.accessFlags) || !AccessFlags.PUBLIC.isSet(build.accessFlags)) refuseQueue("bridge has an unsupported type")
 
     val callers = mutableListOf<Pair<Method, Int>>()
+    // Reading every method of the app was a measured share of patching (#173). A call to the bridge or
+    // the builder names its class and name, which the patcher's index keeps, but a call site or method
+    // handle isn't indexed. So code is read only in the classes the index names, the extension, classes
+    // a patch replaced and any dex holding call sites or method handles. Declarations are read in all.
+    val calling = listOf(store.type, base.type, OBJECT).flatMapTo(HashSet()) { owner -> classesCalling(owner, bridge.name).map { it.type } }
+    val indirect = IdentityHashMap<DexBackedDexFile, Boolean>()
+    fun readsCode(type: ClassDef) = type.type in calling || type.type.startsWith(EXTENSION_ROOT) ||
+        (type as? DexBackedClassDef)?.dexFile?.let { dex ->
+            indirect.getOrPut(dex) { dex.callSiteSection.isNotEmpty() || dex.methodHandleSection.isNotEmpty() }
+        } ?: true
     classDefForEach { type ->
         if (type.superclass == store.type) refuseQueue("final story store has a subclass ${type.type}")
         if (type.annotations.callsQueue(bridge, build) || type.fields.any {
                 it.initialValue?.callsQueue(bridge, build) == true || it.annotations.callsQueue(bridge, build)
             }) refuseQueue("encoded story builder reference bypasses the protected queue")
+        val reads = readsCode(type)
         for (method in type.methods) {
             if (method.annotations.callsQueue(bridge, build) || method.parameters.any { it.annotations.callsQueue(bridge, build) }) {
                 refuseQueue("encoded story builder reference bypasses the protected queue")
+            }
+            if (!reads) {
+                method.executableBody()
+                continue
             }
             for ((at, instruction) in method.code().withIndex()) {
                 if (instruction.indirectlyCalls(bridge, build)) refuseQueue("indirect story builder reference bypasses the protected queue")
@@ -758,10 +779,13 @@ private fun Method.nativeMethod(parameters: List<String>, result: String) {
 }
 private fun ClassDef.method(reference: MethodReference): Method = methods.singleOrNull { it.same(reference) }
     ?: refuseQueue("can't resolve ${reference.name} in the owner")
-private fun Method.code(): List<Instruction> {
-    val body = implementation ?: return emptyList()
+private fun Method.code(): List<Instruction> = executableBody()?.instructions?.toList() ?: emptyList()
+
+/** This method's body, refusing one a native or abstract method carries, which never runs. */
+private fun Method.executableBody(): MethodImplementation? {
+    val body = implementation ?: return null
     if (AccessFlags.NATIVE.isSet(accessFlags) || AccessFlags.ABSTRACT.isSet(accessFlags)) refuseQueue("$name has no executable DEX body")
-    return body.instructions.toList()
+    return body
 }
 private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
 private fun Instruction.call() = reference() as? MethodReference

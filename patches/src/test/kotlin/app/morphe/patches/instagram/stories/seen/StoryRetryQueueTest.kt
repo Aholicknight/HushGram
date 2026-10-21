@@ -17,6 +17,8 @@ import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.MethodHandleType
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.Opcodes
+import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -42,6 +44,9 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodProtoR
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.value.ImmutableArrayEncodedValue
 import com.android.tools.smali.dexlib2.immutable.value.ImmutableMethodHandleEncodedValue
+import com.android.tools.smali.dexlib2.writer.io.MemoryDataStore
+import com.android.tools.smali.dexlib2.writer.pool.DexPool
+import java.nio.ByteBuffer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -201,6 +206,22 @@ class StoryRetryQueueTest {
 
     @Test fun encodedStaticHandlesCannotBypassAnyBridgeOnNativeOnEachOtherBuildToo() {
         forOtherInputs(::encodedStaticHandlesCannotBypassAnyBridgeOnNativeCheck)
+    }
+
+    /**
+     * The proof reads code only where the patcher's index, the extension or a dex's call sites and
+     * method handles say a call can be (#173). Here every class is read back from a written dex, as
+     * the app's are, so none is read just for being made by hand.
+     */
+    @Test fun callersInClassesReadFromADexStillRefuse() {
+        val classes = fixtures.standIns()
+        verify(dexBacked(classes))
+        concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeCheck(classes, ::dexBacked)
+        methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeCheck(classes, ::dexBacked)
+        val route = assertThrows(PatchException::class.java) {
+            PatchContexts.of(dexBacked(fixtures.standIns(otherRoute = true))).holdBackStoryViews()
+        }
+        assertTrue(route.message, "builds the seen request at instruction 4 from a batch that doesn't go through" in route.message!!)
     }
 
     @Test fun missingMonitorHandlerRefusesUntouched() {
@@ -378,7 +399,10 @@ class StoryRetryQueueTest {
         refused(changed(classes, claim, 0, "const/4 v${claim.code()[0].namedRegisters().single()}, 0x1"), "native literal at 0")
     }
 
-    private fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeCheck(classes: List<ClassDef>) {
+    private fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeCheck(
+        classes: List<ClassDef>,
+        written: (List<ClassDef>) -> List<ClassDef> = { it },
+    ) {
         val found = PatchContexts.of(classes).findStorySeen()
         val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
         for (owner in listOf(found.store, found.queue!!.owner, "Ljava/lang/Object;"))
@@ -389,7 +413,7 @@ class StoryRetryQueueTest {
                 return-object v0
             """)
             val extra = ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(caller))
-            refused(classes + extra, if (owner == found.queue.owner) "expected one request-builder call" else "concrete story builder has a caller")
+            refused(written(classes + extra), if (owner == found.queue.owner) "expected one request-builder call" else "concrete story builder has a caller")
         }
     }
 
@@ -415,7 +439,10 @@ class StoryRetryQueueTest {
             "claim aliases its live ownership registers")
     }
 
-    private fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeCheck(classes: List<ClassDef>) {
+    private fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeCheck(
+        classes: List<ClassDef>,
+        written: (List<ClassDef>) -> List<ClassDef> = { it },
+    ) {
         val found = PatchContexts.of(classes).findStorySeen()
         val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
         for (owner in listOf(found.store, found.queue!!.owner, "Ljava/lang/Object;")) {
@@ -431,7 +458,7 @@ class StoryRetryQueueTest {
             )) for (type in listOf("Lfixture/IndirectQueueCaller;", "Lapp/hushgram/extension/instagram/stories/IndirectQueueCaller;")) {
                 val caller = storyQueueMethod(type, "capture", emptyList(), "V", 1, "const/4 v0, 0x0\nreturn-void", static = true)
                 val extra = ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(caller))
-                refused(changed(classes + extra, caller, 0, instruction), "indirect story builder reference")
+                refused(written(changed(classes + extra, caller, 0, instruction)), "indirect story builder reference")
             }
         }
     }
@@ -569,6 +596,15 @@ class StoryRetryQueueTest {
     private fun proofInputs(): List<List<ClassDef>> {
         assertTrue("the authoritative declared 452 build (385810270) is required", nativeProofInputs.isNotEmpty())
         return nativeProofInputs + listOf(fixtures.standIns())
+    }
+
+    /** [classes] written to a dex and read back, the way the patcher gets the app's classes. */
+    private fun dexBacked(classes: List<ClassDef>): List<ClassDef> {
+        val pool = DexPool(Opcodes.forApi(28))
+        classes.forEach(pool::internClass)
+        val dex = MemoryDataStore()
+        pool.writeTo(dex)
+        return DexBackedDexFile(Opcodes.forApi(28), ByteBuffer.wrap(dex.data)).classes.toList()
     }
     private fun replace(classes: List<ClassDef>, owner: ClassDef, fields: Iterable<com.android.tools.smali.dexlib2.iface.Field> = owner.fields,
         methods: Iterable<Method> = owner.methods): List<ClassDef> = classes.map { if (it.type != owner.type) it else

@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
@@ -620,8 +621,12 @@ private fun BytecodePatchContext.requireEveryRouteToTheRequest(
             }
         }) refuse("retry bridge has no executable DEX body")
     val callers = mutableListOf<Pair<Method, Int>>()
+    // A call to the request names its class and name, which the patcher's index keeps, so only the
+    // classes it names are read, in the app's order. Reading every class was a measured share of
+    // patching (#173).
+    val calling = classesCalling(request.definingClass, request.name).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.type.startsWith(EXTENSION_ROOT) || classDef.type !in calling) return@classDefForEach
         for (method in classDef.methods) {
             method.implementation?.instructions?.forEachIndexed { index, instruction ->
                 if (instruction.methodReference()?.sameAs(request) == true) callers += method to index
