@@ -228,7 +228,8 @@ try {
             'class FixtureTest {', '    @Test public void keepsItsName() {',
             '        assertEquals("Stop after 20 reels", label(20));',
             '        assertEquals("a message no source has", "Hide the " + "row", row());',
-            '        assertTrue(summary().contains("Verstecke die Zeile"));', '    }', '}') -join "`n")
+            '        assertTrue(summary().contains("Verstecke die Zeile"));',
+            '        assertEquals("Hide the row: on (hushgram_hide_row=on)", report());', '    }', '}') -join "`n")
         Write-Text (Join-Path $At "extensions/instagram/src/main/java/$settingsPackage/Fixture.java") (@(
             'class Fixture {', '    static final String ANY = "%s";', '    static final String LIMIT = "Stop after %1$d reels";',
             '    static final String ROW = "Hide the "', '            + "row";', '}') -join "`n")
@@ -262,6 +263,9 @@ try {
     $run = Invoke-Python $staleTool '--root' $staleRoot
     Assert-True ($run.Exit -eq 1 -and $run.Output -like "*FixtureTest.java:4 expects text no source or table has: 'Hide the row'*" -and
         $run.Output -notlike '*a message no source has*') "A rewritten joined string passed, or an assert message was read as text: $($run.Output)"
+    # A report line is read piece by piece, so the patch name still has to be in the sources.
+    Assert-True ($run.Output -like "*FixtureTest.java:6 expects text no source or table has: 'Hide the row: on (hushgram_hide_row=on)'*") `
+        "A report line whose patch name was rewritten passed the stale check: $($run.Output)"
     Write-Host '[release-helpers] stale test check passed'
 
     # --- patch-all-builds.ps1 --------------------------------------------------------------------
