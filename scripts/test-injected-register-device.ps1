@@ -234,6 +234,11 @@ try {
     $deviceLease.Record.expiresUtc = '2026-01-01T00:00:00Z'
     Update-HushgramDeviceLease $deviceLease
     Assert-True ([DateTimeOffset]::Parse($deviceLease.Record.expiresUtc) -gt [DateTimeOffset]::UtcNow.AddMinutes(10)) 'An owned lease was not renewed.'
+    # Read back the way another session reads it: ConvertFrom-Json turns an offset time into a
+    # local DateTime, which compared with UTC looks hours away from its real expiry.
+    $written = [Text.Encoding]::UTF8.GetString((Read-LeaseBytes $leasePath)) | ConvertFrom-Json
+    Assert-True ($written.expiresUtc -is [DateTime] -and $written.expiresUtc.Kind -eq [DateTimeKind]::Utc -and
+        $written.acquiredUtc.Kind -eq [DateTimeKind]::Utc) 'The lease times read back as local times.'
     $denied = $false
     try { [void](Invoke-HushgramAdbCommand -Adb (Join-Path $leaseDirectory 'missing-adb.exe') -Arguments @('-s','SERIAL','get-state') -DeviceLease $deviceLease) }
     catch { $denied = $true }
