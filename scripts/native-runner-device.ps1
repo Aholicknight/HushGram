@@ -36,8 +36,9 @@ $NativeRunnerAbsentHook = 'app.hushgram.extension.nativerunner.AbsentHook'
 # Every run proves the controls first.
 $NativeRunnerControlCases = @('bind', 'control-positive', 'control-negative')
 # Then, only once they hold, the feature cases in this order, each with the case it builds on:
-# presence-paused needs the settings presence saves, so it runs only after presence passed.
-$NativeRunnerFeatureCases = [ordered]@{ 'presence' = $null; 'presence-paused' = 'presence' }
+# presence-paused needs the settings presence saves, so it runs only after presence passed, and
+# visual-paused the same for visual.
+$NativeRunnerFeatureCases = [ordered]@{ 'presence' = $null; 'presence-paused' = 'presence'; 'visual' = $null; 'visual-paused' = 'visual' }
 # What every result carries. Anything else a case reports is what it observed.
 $NativeRunnerResultKeys = @('case', 'verdict', 'package', 'versionName', 'versionCode', 'signerSha256', 'baseApkSha256', 'user',
     'process', 'network', 'missingHook', 'prerequisite', 'buildIdentity', 'error', 'detail')

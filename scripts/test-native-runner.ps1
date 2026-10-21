@@ -162,6 +162,10 @@ function New-FakeDevice {
                         'INSTRUMENTATION_RESULT: hushgram.presence.on=ACTIVE>IDLE,IDLE>IDLE,OFFLINE>OFFLINE,DISABLED>DISABLED')
                 } elseif ($case -ceq 'presence-paused') {
                     $out += 'INSTRUMENTATION_RESULT: hushgram.presence.paused=ACTIVE>ACTIVE'
+                } elseif ($case -ceq 'visual') {
+                    $out += @('INSTRUMENTATION_RESULT: hushgram.visual.off=native', 'INSTRUMENTATION_RESULT: hushgram.visual.on=held')
+                } elseif ($case -ceq 'visual-paused') {
+                    $out += 'INSTRUMENTATION_RESULT: hushgram.visual.paused=native'
                 }
                 if ($case -ceq $FailCase) {
                     $pass = $false
@@ -281,7 +285,7 @@ try {
     Assert-True ($null -eq $run.Error) "A clean run failed: $($run.Error)"
     $session = $run.Session
     Assert-True ($session.ControlsProven -and $session.FeaturesPassed -and $session.IsolatedUser -and $session.NetworkOff -and $session.User -ceq '10') 'A clean run did not prove the controls and pass the features in its own user.'
-    Assert-True ((@($session.Cases | ForEach-Object { "$($_.Case)=$($_.Verdict)" }) -join ',') -ceq 'bind=pass,control-positive=pass,control-negative=fail,presence=pass,presence-paused=pass') 'The cases ran out of order or with the wrong verdicts.'
+    Assert-True ((@($session.Cases | ForEach-Object { "$($_.Case)=$($_.Verdict)" }) -join ',') -ceq 'bind=pass,control-positive=pass,control-negative=fail,presence=pass,presence-paused=pass,visual=pass,visual-paused=pass') 'The cases ran out of order or with the wrong verdicts.'
     Assert-True ($session.Cases[2].MissingHook -ceq $NativeRunnerAbsentHook) 'The negative control did not name its missing hook.'
     Assert-True ($session.Cases[3].Observed['presence.on'] -ceq 'ACTIVE>IDLE,IDLE>IDLE,OFFLINE>OFFLINE,DISABLED>DISABLED' -and
         $session.Cases[3].Observed.Count -eq 2 -and $session.Cases[0].Observed.Count -eq 0) 'What a case observed was lost, or a bound fact was taken for an observation.'
@@ -291,7 +295,7 @@ try {
     $networkOffAt = [Array]::IndexOf($calls, 'shell cmd connectivity airplane-mode enable')
     $networkSeenAt = [Array]::IndexOf($calls, 'shell dumpsys connectivity')
     Assert-True ($networkOffAt -ge 0 -and $networkSeenAt -gt $networkOffAt -and $networkSeenAt -lt $created) 'The test user existed before the network was seen off.'
-    Assert-True (@($calls | Where-Object { $_ -like 'shell timeout 120 am instrument *' }).Count -eq 5) 'A case ran without its time limit.'
+    Assert-True (@($calls | Where-Object { $_ -like 'shell timeout 120 am instrument *' }).Count -eq 7) 'A case ran without its time limit.'
     Assert-True ($device.State.Stopped.Count -eq 0) 'A run that finished in time stopped the target.'
     Assert-True ($calls[-3] -ceq 'shell pm uninstall --user 10 app.hushgram.nativerunner' -and $calls[-2] -ceq 'shell pm remove-user 10' -and
         $calls[-1] -ceq 'shell cmd connectivity airplane-mode disable') "The cleanup ran out of order: $($calls[-3..-1] -join '; ')"
@@ -357,12 +361,20 @@ try {
     $failing = New-FakeDevice -FailCase 'presence'
     $run = Invoke-FakeSession $failing
     $seen = (@($run.Session.Cases | ForEach-Object { "$($_.Case)=$($_.Verdict)" }) -join ',')
-    Assert-True ($null -eq $run.Error -and $seen -ceq 'bind=pass,control-positive=pass,control-negative=fail,presence=fail,presence-paused=skipped' -and
+    Assert-True ($null -eq $run.Error -and $seen -ceq 'bind=pass,control-positive=pass,control-negative=fail,presence=fail,presence-paused=skipped,visual=pass,visual-paused=pass' -and
         $run.Session.ControlsProven -and -not $run.Session.FeaturesPassed) "A failed feature case gave $seen."
     Assert-True ($run.Session.Cases[3].Detail -ceq 'on: ACTIVE was stored as ACTIVE, expected IDLE' -and
         $run.Session.Cases[4].Problems[0] -like '*builds on presence*') 'A failed feature case lost its reason, or the skip gave none.'
     Assert-True (@($failing.State.Calls | Where-Object { $_ -like '*-e case presence-paused *' }).Count -eq 0) 'A case ran on settings its basis never saved.'
     Assert-NothingLeft $failing 'A failed feature case'
+    # A later case's basis is its own: visual failing skips only visual-paused.
+    $failingLater = New-FakeDevice -FailCase 'visual'
+    $run = Invoke-FakeSession $failingLater
+    $seen = (@($run.Session.Cases | ForEach-Object { "$($_.Case)=$($_.Verdict)" }) -join ',')
+    Assert-True ($null -eq $run.Error -and $seen -ceq 'bind=pass,control-positive=pass,control-negative=fail,presence=pass,presence-paused=pass,visual=fail,visual-paused=skipped' -and
+        -not $run.Session.FeaturesPassed -and $run.Session.Cases[6].Problems[0] -like '*builds on visual*') "A failed later feature case gave $seen."
+    Assert-True (@($failingLater.State.Calls | Where-Object { $_ -like '*-e case visual-paused *' }).Count -eq 0) 'visual-paused ran on settings visual never saved.'
+    Assert-NothingLeft $failingLater 'A failed later feature case'
 
     # The network was already off: it stays off and nothing turns it on.
     $offline = New-FakeDevice -Airplane 'enabled'
@@ -384,7 +396,7 @@ try {
         Assert-True ($null -eq $run.Error) "$($case.Name) threw instead of failing the controls: $($run.Error)"
         $seen = (@($run.Session.Cases | ForEach-Object { "$($_.Case)=$($_.Verdict)" }) -join ',')
         Assert-True (-not $run.Session.ControlsProven -and -not $run.Session.FeaturesPassed -and $seen -ceq $case.Cases) "$($case.Name) gave $seen."
-        Assert-True (@($case.Device.State.Calls | Where-Object { $_ -like '*-e case presence*' }).Count -eq 0) "$($case.Name) still ran a feature case."
+        Assert-True (@($case.Device.State.Calls | Where-Object { $_ -match '-e case (\S+)' -and $NativeRunnerFeatureCases.Contains($Matches[1]) }).Count -eq 0) "$($case.Name) still ran a feature case."
         Assert-NothingLeft $case.Device $case.Name
     }
 
@@ -405,7 +417,7 @@ try {
     try { [void](Invoke-NativeRunnerSession -Adb 'fake-adb' -DeviceLease $null -RunnerApk 'runner.apk' -Target $target -AdbInvoker $unleased.Invoker) }
     catch { $denied = $true }
     Assert-True ($denied -and $unleased.State.Calls.Count -eq 0) 'A run reached a device without a lease.'
-    Write-Host "[native] device session: $($refusals.Count + $controlCases.Count + 11) cases passed"
+    Write-Host "[native] device session: $($refusals.Count + $controlCases.Count + 12) cases passed"
 
     # The build identity read off the target APK's dex: exactly one, or a refusal.
     New-Item -ItemType Directory -Force -Path $work | Out-Null
@@ -553,8 +565,9 @@ try {
     $written = Get-Content -LiteralPath $wholeVerdict -Raw | ConvertFrom-Json
     Assert-True ($written.controlsProven -eq $true -and $written.networkOff -eq $true -and $written.isolatedUser -eq $true -and
         [string]$written.user -ceq '10' -and $written.serial -ceq 'emulator-5554' -and $written.target.Sha256 -ceq $boundTarget.Sha256 -and
-        $written.target.SelectionSha256 -ceq $boundTarget.SelectionSha256 -and @($written.cases).Count -eq 5 -and $written.featuresPassed -eq $true -and
-        $written.cases[3].Observed.'presence.paused' -ceq $null -and $written.cases[4].Observed.'presence.paused' -ceq 'ACTIVE>ACTIVE') 'The verdict file does not record the run.'
+        $written.target.SelectionSha256 -ceq $boundTarget.SelectionSha256 -and @($written.cases).Count -eq 7 -and $written.featuresPassed -eq $true -and
+        $written.cases[3].Observed.'presence.paused' -ceq $null -and $written.cases[4].Observed.'presence.paused' -ceq 'ACTIVE>ACTIVE' -and
+        $written.cases[5].Observed.'visual.on' -ceq 'held' -and $written.cases[6].Observed.'visual.paused' -ceq 'native') 'The verdict file does not record the run.'
     Assert-True ($device.State.RunnerUsers.Count -eq 0 -and $device.State.Airplane -ceq 'disabled' -and -not (Test-Path -LiteralPath $leaseFile)) 'A whole run left the runner, the network switch or its lease.'
     $device = New-FakeDevice -ReportedSigner $runnerSignerDigest -Fixture $boundTarget
     $whole = Invoke-WholeRun $device $boundTarget -Install -Gate { param($Tools, $Apk) $false }

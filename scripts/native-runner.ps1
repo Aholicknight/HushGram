@@ -19,7 +19,11 @@
     presence write requests for Active, Idle, Offline and Disabled and reads back the status each
     keeps: before the settings are ready, then with Hide your active status off and on. Only
     Active may become Idle, and only while the switch is on. presence-paused builds one in a start
-    the Pause switch paused. Nothing is sent. The run fails unless every feature case passed.
+    the Pause switch paused. visual calls Instagram's view-once receipt handlers with a receipt
+    that carries no message, so no request can be built: switched on, View DM photos and videos
+    anonymously completes the visual receipt on the phone, and off, not ready or for the voice
+    receipt, Instagram's own guard is reached. visual-paused does the same in a paused start.
+    Nothing is sent. The run fails unless every feature case passed.
 
     The cases run in a new Android user created for the run, which has never signed in, and that
     user is removed afterwards along with the runner. The target app and its data in every other
