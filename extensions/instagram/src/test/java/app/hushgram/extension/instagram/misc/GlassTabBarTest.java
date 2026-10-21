@@ -402,20 +402,29 @@ public class GlassTabBarTest {
     }
 
     /**
-     * #209: a bottom sheet over a floating pill, such as a reel's comments, sits its comment field by
-     * the navigation bar's height Instagram keeps. While Instagram's sheet holder shows a sheet the real
-     * height goes through, and the insets go round again as a sheet comes up and goes. The pill keeps its
-     * room under the sheet, so it doesn't drop onto the navigation bar as the sheet slides away.
+     * #209, #222: a bottom sheet over a floating pill, such as a reel's comments, sat its comment field
+     * by the navigation bar's height Instagram keeps, so it went under the navigation bar. Giving
+     * Instagram the real height under a sheet moved every screen under it, and the Reels viewer's video
+     * stopped on its cover. Now Instagram keeps the 0, the insets don't go round for a sheet, and the
+     * sheet holder and its footer stop the navigation bar's height above the edge while the dimmed
+     * backdrop still covers the window. The keyboard over a sheet keeps the 0 too. A margin Instagram
+     * gives them itself stays, and anything that hands Instagram the real height takes the room back.
      */
     @Test
     @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
-    public void aBottomSheetOverTheFloatingPillGetsTheNavigationBarsHeight() {
+    public void aBottomSheetOverTheFloatingPillStopsAboveTheNavigationBarAndMovesNothingUnder() {
         GlassTabBar.resetForTests();
         HookStatus.clear();
         int holderId = 0x7f0b0122;
+        int dimmerId = 0x7f0b0124;
+        int full = ViewGroup.LayoutParams.MATCH_PARENT;
         Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
-        Integer previous;
-        synchronized (ids) { previous = ids.put(GlassTabBar.SHEET_HOLDER, holderId); }
+        Integer previousHolder;
+        Integer previousDimmer;
+        synchronized (ids) {
+            previousHolder = ids.put(GlassTabBar.SHEET_HOLDER, holderId);
+            previousDimmer = ids.put(GlassTabBar.SHEET_DIMMER, dimmerId);
+        }
         try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
             int nav = host.dp(24);
             AtomicInteger insets = new AtomicInteger();
@@ -430,54 +439,76 @@ public class GlassTabBarTest {
             host.frame();
             int height = host.bar.getLayoutParams().height;
 
-            // Instagram's holder, laid over the screens and the bar, with no sheet in it yet.
+            // Instagram's sheets container, laid over the screens and the bar: the dimmed backdrop, the
+            // holder with no sheet in it yet, and a footer at the bottom.
+            FrameLayout sheets = new FrameLayout(host.activity);
+            View dimmer = new View(host.activity);
+            dimmer.setId(dimmerId);
+            sheets.addView(dimmer, new FrameLayout.LayoutParams(full, full));
             FrameLayout holder = new FrameLayout(host.activity);
             holder.setId(holderId);
-            host.root.addView(holder, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            sheets.addView(holder, new FrameLayout.LayoutParams(full, full));
+            View footer = new View(host.activity);
+            sheets.addView(footer, new FrameLayout.LayoutParams(full, host.dp(40), Gravity.BOTTOM));
+            host.root.addView(sheets, new FrameLayout.LayoutParams(full, full));
             for (int i = 0; i < 4; i++) host.frame();
-            assertEquals("an empty holder", 0, GlassTabBar.navBarHeight(nav));
+            assertEquals("the holder stops above the navigation bar ahead of a sheet", nav, bottomMargin(holder));
+            assertEquals("so does the footer", nav, bottomMargin(footer));
+            assertEquals("the backdrop covers the window", 0, bottomMargin(dimmer));
 
             int asked = insets.get();
             View sheet = new View(host.activity);
-            holder.addView(sheet, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, host.dp(80), Gravity.BOTTOM));
+            holder.addView(sheet, new FrameLayout.LayoutParams(full, host.dp(80), Gravity.BOTTOM));
             host.frame();
             host.frame();
-            assertTrue("a sheet came up, the insets went round again", insets.get() > asked);
-            assertEquals("under a sheet", nav, GlassTabBar.navBarHeight(nav));
-            assertTrue("and the answer says a sheet gave it", GlassTabBar.answeredForASheet());
-            assertEquals("Instagram keeps the screens above the handle itself", 0, GlassTabBar.reelsRoomWhileAway());
+            assertEquals("a sheet came up, and the insets didn't go round", asked, insets.get());
+            assertEquals("under a sheet Instagram keeps the 0", 0, GlassTabBar.navBarHeight(nav));
+            assertEquals("the keyboard over the sheet too", 0, GlassTabBar.navBarHeightOverTheKeyboard(nav));
+            assertEquals("the Reels viewer under the sheet keeps its size", nav, GlassTabBar.reelsRoomWhileAway());
             host.frame();
+            assertEquals("the sheet still stops above the navigation bar", nav, bottomMargin(holder));
             assertEquals("the pill keeps its room under the sheet", height, host.bar.getLayoutParams().height);
 
-            asked = insets.get();
             holder.removeView(sheet);
             host.frame();
-            assertTrue("the sheet went, the insets went round again", insets.get() > asked);
-            assertEquals("the sheet went", 0, GlassTabBar.navBarHeight(nav));
-            assertFalse("no sheet gave that one", GlassTabBar.answeredForASheet());
+            assertEquals("the sheet went, and the insets didn't go round", asked, insets.get());
+            assertEquals("the keyboard with no sheet gets the height", nav, GlassTabBar.navBarHeightOverTheKeyboard(nav));
+            host.frame();
+            assertEquals("and Instagram keeps the sheets above it itself", 0, bottomMargin(holder));
+            assertEquals(0, bottomMargin(footer));
+            assertEquals("the keyboard closed", 0, GlassTabBar.navBarHeight(nav));
+            host.frame();
+            assertEquals(nav, bottomMargin(holder));
 
-            holder.addView(sheet);
+            // A margin Instagram gives the footer itself is left alone.
+            ViewGroup.MarginLayoutParams own = (ViewGroup.MarginLayoutParams) footer.getLayoutParams();
+            own.bottomMargin = host.dp(7);
+            footer.setLayoutParams(own);
             host.frame();
+            assertEquals("Instagram's own margin", host.dp(7), bottomMargin(footer));
+
+            host.bar.setVisibility(View.GONE);
             host.frame();
-            assertEquals("another sheet", nav, GlassTabBar.navBarHeight(nav));
-            sheet.setVisibility(View.GONE);
+            assertEquals("a screen without the bar gets the height", nav, GlassTabBar.navBarHeight(nav));
             host.frame();
-            assertEquals("a sheet set to GONE", 0, GlassTabBar.navBarHeight(nav));
-            sheet.setVisibility(View.VISIBLE);
-            holder.setVisibility(View.GONE);
-            host.frame();
-            assertEquals("the holder set to GONE", 0, GlassTabBar.navBarHeight(nav));
+            assertEquals("and the sheets give the room back", 0, bottomMargin(holder));
             assertEquals("full screen, no navigation bar to stop above", 0, GlassTabBar.navBarHeight(0));
             assertEquals(0, GlassTabBar.reelsRoomWhileAway());
 
             String report = String.join("\n", HookStatus.report());
-            assertTrue(report, report.contains(GlassTabBar.COUNT_NAV_UNDER_SHEET));
+            assertTrue(report, report.contains(GlassTabBar.COUNT_SHEETS_LIFTED));
         } finally {
             synchronized (ids) {
-                if (previous == null) ids.remove(GlassTabBar.SHEET_HOLDER);
-                else ids.put(GlassTabBar.SHEET_HOLDER, previous);
+                if (previousHolder == null) ids.remove(GlassTabBar.SHEET_HOLDER);
+                else ids.put(GlassTabBar.SHEET_HOLDER, previousHolder);
+                if (previousDimmer == null) ids.remove(GlassTabBar.SHEET_DIMMER);
+                else ids.put(GlassTabBar.SHEET_DIMMER, previousDimmer);
             }
         }
+    }
+
+    private static int bottomMargin(View view) {
+        return ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).bottomMargin;
     }
 
     /**

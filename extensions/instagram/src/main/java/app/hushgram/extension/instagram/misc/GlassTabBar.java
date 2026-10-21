@@ -132,6 +132,11 @@ public final class GlassTabBar {
      * It has a child only while a sheet is up (#209).
      */
     static final String SHEET_HOLDER = "layout_container_bottom_sheet";
+    /**
+     * The dimmed backdrop beside the sheet holder, which covers the whole window. The holder's other
+     * neighbours, such as a sheet's footer, keep clear of the navigation bar with it ({@link Glass#liftSheets}).
+     */
+    static final String SHEET_DIMMER = "background_dimmer";
     /** How often the sheet holder is looked for again while there isn't one. */
     static final long SHEET_LOOK_MS = 250L;
     /**
@@ -217,6 +222,34 @@ public final class GlassTabBar {
         ViewGroup group = (ViewGroup) view;
         int changed = 0;
         for (int i = 0; i < group.getChildCount(); i++) changed += liftReels(group.getChildAt(i), bar, id, wanted, given, seen, depth + 1);
+        return changed;
+    }
+
+    /**
+     * Gives each child of [sheets], Instagram's sheet holder and its neighbours, a bottom margin of
+     * [wanted], all but the dimmed backdrop ([dimmer]), so a sheet stops above the navigation bar while
+     * Instagram is answered 0 for it (#209, #222). As with the Reels viewers, a margin that is neither 0
+     * nor one this gave, which [given] remembers, is Instagram's and stays. Returns how many changed.
+     */
+    static int sheetsAboveTheNavigationBar(ViewGroup sheets, int dimmer, int wanted, java.util.Map<View, Integer> given) {
+        int changed = 0;
+        for (int i = 0; i < sheets.getChildCount(); i++) {
+            View view = sheets.getChildAt(i);
+            if (dimmer != 0 && view.getId() == dimmer) continue;
+            if (!(view.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) continue;
+            ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+            Integer ours = given.get(view);
+            if (margins.bottomMargin == wanted) {
+                if (wanted != 0) given.put(view, wanted);
+                continue;
+            }
+            if (margins.bottomMargin != 0 && (ours == null || ours != margins.bottomMargin)) continue;
+            margins.bottomMargin = wanted;
+            view.setLayoutParams(margins);
+            if (wanted == 0) given.remove(view);
+            else given.put(view, wanted);
+            changed++;
+        }
         return changed;
     }
 
@@ -512,8 +545,8 @@ public final class GlassTabBar {
     static final String COUNT_NAV_BEHIND = "Screens run behind the gesture handle";
     /** Counted each time the pill shows or hides and the window's insets are asked for again. */
     static final String COUNT_INSETS_AGAIN = "Insets asked again for the pill";
-    /** Counted each time the navigation bar's height goes through as it came because a bottom sheet covers the pill (#209). */
-    static final String COUNT_NAV_UNDER_SHEET = "Navigation bar's height given to a sheet over the pill";
+    /** Counted each time Instagram's bottom sheets are moved to stop the navigation bar's height above the edge, or back (#209, #222). */
+    static final String COUNT_SHEETS_LIFTED = "Sheets kept above the navigation bar";
     /** Counted each time the bar, left showing by Instagram over a story, is hidden for it (#224). */
     static final String COUNT_STORY_ASIDE = "Bar hidden over a story";
     /** Counted once for each bar whose Search tab the liquid look puts in a circle of its own (#65). */
@@ -602,33 +635,51 @@ public final class GlassTabBar {
      * the front window the answer is 0, so the screens run to the bottom edge, and the pill keeps itself
      * above the handle by [height] ({@link #navRoom}). Screens without the bar showing (a chat's
      * composer, settings, the camera), another activity in front, the float switch off, Pause or
-     * settings not ready all get [height] as it came. So does a bottom sheet over the pill, such as a
-     * reel's comments, whose comment field sits by it (#209), while the pill keeps its room.
+     * settings not ready all get [height] as it came. A bottom sheet over the pill, such as a reel's
+     * comments, keeps the 0 and stops above the navigation bar by its own room instead
+     * ({@link Glass#liftSheets}, #209): Instagram moves its screens by the height it keeps, the Reels
+     * viewer under the sheet among them, and a reel moved by every sheet that came and went stopped on
+     * its cover (#222).
      */
     public static int navBarHeight(int height) {
-        answeredForASheet = false;
         Glass glass = height <= 0 ? null : floatingGlassInFront();
         if (glass == null) {
             navTaken = 0;
+            sheetRoom = 0;
             return height;
         }
         navTaken = height;
-        if (glass.underASheet()) {
-            answeredForASheet = true;
-            HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_NAV_UNDER_SHEET);
-            return height;
-        }
+        sheetRoom = height;
         HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_NAV_BEHIND);
         return 0;
     }
 
-    /** Whether the last {@link #navBarHeight} answer went through as it came because a bottom sheet covers the pill. Main thread. */
-    private static boolean answeredForASheet;
-
-    /** Whether the last {@link #navBarHeight} answer was the sheet's (#222, #232). */
-    public static boolean answeredForASheet() {
-        return answeredForASheet;
+    /**
+     * Called through FullScreenBars in place of {@link #navBarHeight} while the keyboard shows. Instagram
+     * lifts a text box above the keyboard by the keyboard's height less the navigation bar's, then pads
+     * it by the height it keeps, so [height] goes through as it came (#209). A sheet over a floating pill
+     * keeps the 0, since it already stops [height] above the edge ({@link Glass#liftSheets}) and its
+     * comment box lands on the keys the same way, and nothing under it moves as the keyboard comes and
+     * goes (#222).
+     */
+    public static int navBarHeightOverTheKeyboard(int height) {
+        Glass glass = height <= 0 ? null : floatingGlassInFront();
+        if (glass == null || !glass.underASheet()) {
+            sheetRoom = 0;
+            return height;
+        }
+        navTaken = height;
+        sheetRoom = height;
+        HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_NAV_BEHIND);
+        return 0;
     }
+
+    /**
+     * The room Instagram's bottom sheets keep under themselves for the navigation bar: the height
+     * Instagram was last answered 0 for, or 0 when it was given the height and keeps its screens,
+     * sheets included, above the bar itself. Main thread.
+     */
+    private static int sheetRoom;
 
     /** Whether the front activity shows a floating glass bar: restyled, floating, and shown. */
     static boolean floatingBarInFront() {
@@ -702,7 +753,12 @@ public final class GlassTabBar {
      * screens above it itself.
      */
     static int reelsRoomWhileAway() {
-        return answeredForASheet ? 0 : navTaken;
+        return navTaken;
+    }
+
+    /** {@link #sheetRoom} for a pill that floats, 0 for one that doesn't. */
+    static int sheetRoom(boolean floating) {
+        return floating ? sheetRoom : 0;
     }
 
     /** The activity in front, or null: where FullScreenBars looks for the keyboard (#209). */
@@ -723,7 +779,7 @@ public final class GlassTabBar {
     static void resetForTests() {
         front = new WeakReference<>(null);
         navTaken = 0;
-        answeredForASheet = false;
+        sheetRoom = 0;
     }
 
     static void diagnose(String what, @Nullable Throwable failure) {
@@ -1003,6 +1059,8 @@ public final class GlassTabBar {
         /** Instagram's bottom sheet holder in the bar's window, as last found, and when it was last looked for. */
         private WeakReference<View> sheetHolder = new WeakReference<>(null);
         private long sheetLookedAt = -SHEET_LOOK_MS;
+        /** The bottom margin {@link #liftSheets} gave the sheet holder and each of its neighbours. */
+        private final WeakHashMap<View, Integer> sheetLifts = new WeakHashMap<>();
         /** Instagram's story viewer in the bar's window, as last found, and when it was last looked for (#224). */
         private WeakReference<View> storyRoot = new WeakReference<>(null);
         private long storyLookedAt = -SHEET_LOOK_MS;
@@ -1338,21 +1396,9 @@ public final class GlassTabBar {
             return floating && bar.isShown() && ownedBy(bar, activity);
         }
 
-        /**
-         * Whether Instagram's bottom sheet holder in the bar's window shows a sheet. The sheet's own box
-         * (a reel's comment field) sits by the navigation bar's height Instagram was told, so it went
-         * under the navigation bar while a pill had that answered 0 (#209).
-         */
+        /** Whether Instagram's bottom sheet holder in the bar's window shows a sheet. */
         boolean underASheet() {
-            View root = bar.getRootView();
-            View holder = sheetHolder.get();
-            if (holder == null || holder.getRootView() != root) {
-                long now = SystemClock.uptimeMillis();
-                if (holder == null && now - sheetLookedAt < SHEET_LOOK_MS) return false;
-                sheetLookedAt = now;
-                holder = find(root, SHEET_HOLDER);
-                sheetHolder = new WeakReference<>(holder);
-            }
+            View holder = sheetHolder();
             if (!(holder instanceof ViewGroup) || !holder.isShown()) return false;
             ViewGroup sheets = (ViewGroup) holder;
             for (int i = 0; i < sheets.getChildCount(); i++) {
@@ -1360,6 +1406,46 @@ public final class GlassTabBar {
                 if (sheet.getVisibility() == View.VISIBLE && sheet.getHeight() > 0) return true;
             }
             return false;
+        }
+
+        /**
+         * Instagram's bottom sheet holder in the bar's window, or null. Instagram adds it with the first
+         * sheet and keeps it, hidden, from then on, so it's looked for at most every {@link #SHEET_LOOK_MS}
+         * while there isn't one.
+         */
+        @Nullable
+        private View sheetHolder() {
+            View root = bar.getRootView();
+            View holder = sheetHolder.get();
+            if (holder == null || holder.getRootView() != root) {
+                long now = SystemClock.uptimeMillis();
+                if (holder == null && now - sheetLookedAt < SHEET_LOOK_MS) return null;
+                sheetLookedAt = now;
+                holder = find(root, SHEET_HOLDER);
+                sheetHolder = new WeakReference<>(holder);
+            }
+            return holder;
+        }
+
+        /**
+         * Keeps Instagram's bottom sheets (comments, share, a post's menu) the navigation bar's height
+         * above the edge while Instagram is answered 0 for it ({@link #sheetRoom}). A sheet's own box,
+         * like a reel's comment field, sat by the height Instagram kept, so it went under the navigation
+         * bar (#209). Giving Instagram the real height while a sheet showed moved every screen under it,
+         * and the Reels viewer's video stopped on its cover (#222), so the room goes on the sheet holder
+         * and its neighbours, such as a sheet's footer, as a bottom margin. The dimmed backdrop still
+         * covers the window. Set ahead of the next sheet, since the holder stays once Instagram adds it.
+         * Returns whether anything moved.
+         */
+        private boolean liftSheets() {
+            if (!floating && sheetLifts.isEmpty()) return false;
+            View holder = sheetHolder();
+            if (holder == null || !(holder.getParent() instanceof ViewGroup)) return false;
+            int wanted = HushgramPause.isPaused() ? 0 : sheetRoom(floating);
+            int dimmer = id(holder.getContext(), SHEET_DIMMER);
+            if (sheetsAboveTheNavigationBar((ViewGroup) holder.getParent(), dimmer, wanted, sheetLifts) == 0) return false;
+            HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_SHEETS_LIFTED);
+            return true;
         }
 
         /** Whether Instagram's story viewer shows on top in the bar's window ({@link #storyOnTop}, #224). */
@@ -1409,14 +1495,14 @@ public final class GlassTabBar {
         }
 
         /**
-         * Sends the window's insets round again when this floating pill shows or hides in front, a bottom
-         * sheet comes up over it or goes, or its activity came back, so Instagram reads the navigation
-         * bar's height again ({@link #navBarHeight}).
+         * Sends the window's insets round again when this floating pill shows or hides in front, or its
+         * activity came back, so Instagram reads the navigation bar's height again ({@link #navBarHeight}).
+         * A bottom sheet coming up over it or going changes nothing Instagram reads (#222).
          */
         private void askForInsetsWhenShownChanges() {
             if (!floating) return;
             Activity now = front.get();
-            boolean shown = now != null && !HushgramPause.isPaused() && floatsShownIn(now) && !underASheet();
+            boolean shown = now != null && !HushgramPause.isPaused() && floatsShownIn(now);
             if (insetsShown != null && insetsShown == shown) return;
             insetsShown = shown;
             View root = bar.getRootView();
@@ -1811,6 +1897,9 @@ public final class GlassTabBar {
                     }
                 }
                 askForInsetsWhenShownChanges();
+                // Moved sheets hold the frame back for their new layout too, so a sheet never shows on the
+                // navigation bar first. They move once when the holder first turns up and when the room changes.
+                if (liftSheets()) layOutAgain = true;
                 // A tab's own selected state redraws that tab, not the bar behind it, so the capsule would
                 // wait for something else to redraw the bar. Look at it every frame instead.
                 View selected = selectedTab();

@@ -392,49 +392,6 @@ public class FullScreenBarsTest {
         }
     }
 
-    /**
-     * #222, #232: a comments, share or more sheet over a reel moves the navigation bar's height the pill
-     * answers, and every kept listener was told, the Reels viewer's too. Its video stopped drawing frames
-     * while the audio played. A sheet coming or going tells only the screens built since it came, which
-     * is where the sheet's own comment box is (#209); any other change still tells every screen.
-     */
-    @Test public void aSheetOverTheGlassPillTellsOnlyTheScreensBuiltSinceItCame() {
-        List<String> told = new ArrayList<>();
-        java.util.concurrent.atomic.AtomicLong now = new java.util.concurrent.atomic.AtomicLong(1_000);
-        FullScreenBars.resetHeightsForTests((listener, status, nav) -> told.add(listener + " " + status + " " + nav));
-        FullScreenBars.clockForTests(now::get);
-        FullScreenBars.registeredForTests(true);
-        try {
-            Settings.GLASS_TAB_BAR.save(true);
-            Settings.GLASS_TAB_BAR_FLOAT.save(true);
-            FullScreenBars.nowResumed(activity);
-            FullScreenBars.heightsAsked(activity, "reels");
-            FullScreenBars.heightsKept(75, 0, false);
-            shadowOf(Looper.getMainLooper()).idle();
-            assertEquals(Collections.singletonList("reels 75 0"), told);
-
-            now.set(60_000);
-            FullScreenBars.heightsAsked(activity, "comments");
-            now.set(60_400);
-            FullScreenBars.heightsKept(75, 135, true);
-            shadowOf(Looper.getMainLooper()).idle();
-            assertEquals("the viewer under the sheet isn't told", Arrays.asList("reels 75 0", "comments 75 135"), told);
-
-            now.set(90_000);
-            FullScreenBars.heightsKept(75, 0, true);
-            shadowOf(Looper.getMainLooper()).idle();
-            assertEquals("nothing built since the sheet came, so nobody", 2, told.size());
-
-            FullScreenBars.heightsKept(75, 135, false);
-            shadowOf(Looper.getMainLooper()).idle();
-            assertEquals("a change that isn't a sheet's tells every screen",
-                    Arrays.asList("reels 75 0", "comments 75 135", "reels 75 135", "comments 75 135"), told);
-        } finally {
-            FullScreenBars.registeredForTests(false);
-            FullScreenBars.resetHeightsForTests(null);
-        }
-    }
-
     /** An activity keeps its newest listeners only, so a screen built again and again doesn't pile them up. */
     @Test public void anActivityKeepsItsNewestListeners() {
         FullScreenBars.registeredForTests(true);
