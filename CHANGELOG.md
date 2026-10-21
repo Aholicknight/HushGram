@@ -11,12 +11,12 @@ Every HushGram release, newest first.
 
 ### Improvements
 
-* **Instagram - Find the reel you came from:** Trial reels, the ones Instagram shows to people who don't follow the creator, aren't on the creator's profile, so the search could only give up. Tapping the creator of a trial reel now shows a short note saying so and skips the search. Reported in #225.
+* **Instagram - Find the reel you came from:** Trial reels (shown to people who don't follow the creator) aren't on the creator's profile, so the search could only give up. Tapping the creator of one now shows a short note and skips the search. Reported in #225.
 * **Instagram - Download any video:** Skip what's already saved reads its history file in small, fixed amounts now. A damaged file can't slow a save down, and it gets written out fresh at the next save, so newer saves aren't lost behind the damage. (#150)
 * **Instagram - Turn off double tap to like:** Patching takes about 4% less time with every patch on. The patch reads code only in the places its targets can be, instead of every method in the app. The patched app comes out the same. Refs #173.
-* **Instagram - View stories anonymously:** Patching with every patch on takes about 3% less time and 5% less processor work. Its checks for other callers read code only in the classes that can hold one, instead of every method in the app. The patched app comes out the same. Refs #173.
-* **Instagram - HushGram launch screen and Emoji style:** Both now ask the patcher's index where their code is instead of reading every method in the app. With every patch on, that's about 3% less processor work and a slightly quicker patch. Nothing changes in the patched app. Refs #173.
-* **Instagram - Patching speed:** Almost every patch that finds its code by a piece of text now looks that text up directly, instead of checking every string in the app for it. The ones that need two or three pieces look up one and check the rest only in the code it leads to. With every patch on, a patch run finishes about 2% sooner. The patched app comes out the same. Refs #173.
+* **Instagram - View stories anonymously:** Patching with every patch on takes about 3% less time and 5% less processor work. Its checks for other callers now read only the classes that can hold one. The patched app comes out the same. Refs #173.
+* **Instagram:** HushGram launch screen and Emoji style now ask the patcher's index where their code is, instead of reading every method in the app. With every patch on, that's about 3% less processor work. The patched app comes out the same. Refs #173.
+* **Instagram:** Patches that find their code by a piece of text, or by Instagram's internal labels, now look it up directly instead of checking every string in the app. Patching is about 2% quicker. The patched app is the same. Refs #173.
 
 ## 0.0.14 (2026-10-20)
 
