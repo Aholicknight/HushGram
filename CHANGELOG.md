@@ -4,10 +4,12 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+## 0.0.14 (2026-10-20)
+
 ### Features
 
-* **Instagram - Stop swipe up to reply:** new patch. A switch under Stories, off to start, stops a swipe up on someone's story from opening the reply box with its row of reactions, so a sloppy swipe doesn't start a message. Tap Send message when you do want to reply.
-* **Instagram - Hide the search bar in Messages:** new patch. A switch under Messages, off to start, takes the search bar and its Filter button off the top of your messages, the Meta AI bar too, and the rest moves up with no gap. Notes, requests and your chats stay, and it works alone or with `Hide the notes row`. Leave Messages and come back to see a change.
+* **Instagram - Stop swipe up to reply:** New patch. A switch under Stories, off to start, stops a swipe up on someone's story from opening the reply box and its reactions. Tap Send message when you do want to reply.
+* **Instagram - Hide the search bar in Messages:** New patch. A switch under Messages, off to start, takes the search bar, its Filter button and the Meta AI bar off the top of your messages. Notes, requests and chats stay. Reopen Messages to see it.
 * **Instagram - Hide Plus preview in chat menus:** new patch. A switch under Messages, off to start, takes the See preview and Instagram Plus rows out of the menu you get from long pressing a chat. Your other chat options stay. (#249)
 * **Instagram - Message box buttons:** new patch. `Buttons in the message box` under Messages lets you untick Gallery, Stickers or Voice message to take them off the box you type in. Every button shows to start, and the text box and Send always stay. (#217)
 * **Instagram - Ask before a call:** a new switch, `Hide the call buttons in chats`, takes the voice and video call buttons off the top of a chat, so the name keeps the room. Off to start, under Messages. (#217)
@@ -28,7 +30,7 @@ Every HushGram release, newest first.
 * **Instagram - Download any reel:** `Block button on reels` under Reels puts a Block icon beside someone else's reel. A tap opens Instagram's own block screen for that account, so you still confirm there. It starts off. Asked for in #191.
 * **Instagram - Download any reel:** `Hide reels by sound` under Reels puts a music icon beside a reel. Tap it and the Reels tab skips other reels with that sound. `Hidden sounds` lists them so you can bring one back. It starts off. Asked for in #191.
 * **Instagram - Hide suggested stories:** `Hide Add Yours cards between stories` sits under Stories and leaves out the Popular Add Yours and Join a trending Add Yours cards between stories. The Music for you card keeps its own switch. It starts off. Asked for in #111.
-* **Instagram - Copy comment:** `Copy without the @names at the start` sits under Copy comment. When a reply starts with someone's @name, Copy leaves it out and copies only what they wrote. Names in the middle stay, and so does the comment in Instagram. It starts off. Asked for in #270.
+* **Instagram - Copy comment:** `Copy without the @names at the start` sits under Copy comment. When a reply opens with someone's @name, Copy skips it and copies just what they wrote. Names further in stay. It starts off. Asked for in #270.
 
 ### Bug Fixes
 
@@ -39,7 +41,7 @@ Every HushGram release, newest first.
 * **Instagram - Install next to Instagram:** The copy now also gives its own package name to the report Instagram sends the system about which app loaded its code, on phones that make that report. It was still naming Instagram. Seen while chasing #205.
 * **Instagram - Glass tab bar:** Reels kept changing size as the pill slid away and back, and a paused reel's footer squeezed the video too. Reels stay one size behind the pill now, with the caption and seek bar just above it. Reported in #221 and #260.
 * **Instagram - Glass tab bar:** A reel's buttons and caption fell back behind the pill once a sheet over the reel closed, like the More menu. They stay above it now. Reported in #221 and #260.
-* **Instagram - Glass tab bar:** With `Show content behind the tab bar` on, a reel's comments, Share or More made Instagram resize Reels twice, once as the sheet came up and again as it went, and reels were getting stuck on their cover after one. Sheets stop above the navigation bar by themselves now, so the reel underneath keeps its size, and the comment box still sits right on the keyboard. Reported in #222.
+* **Instagram - Glass tab bar:** With `Show content behind the tab bar` on, a reel's comments, Share or More resized Reels twice, and reels could get stuck on their cover. Sheets sit above the navigation bar now, so the reel keeps its size. Reported in #222.
 * **Instagram - Hide suggested people on profiles:** A profile's Follow and Message buttons, or Edit profile and Share profile on your own, still twitched for a split second whenever the profile refreshed. They hold still now. Reported in #220.
 * **Instagram - Download any video:** `Convert to keep the full size` did nothing unless `Save videos other apps can open` was on too, so a reel still saved as AV1. It works by itself now. Reported in #236.
 * **Instagram - Download any video:** Photos from the feed and from profiles failed with `Download failed` on phones with smaller screens, because every size Instagram sent looked like a thumbnail. The largest one saves now. Reported in #261.
@@ -51,8 +53,8 @@ Every HushGram release, newest first.
 * **Instagram - Tap to play:** Dragging the slider in the Notes or story music picker stopped the song for good, since Tap to play took the slider's pause for yours. The song keeps playing from the new spot now. Reported in #263.
 * **Instagram - Tap to play:** Tapping a feed video itself, not its play button, started it with the play icon still drawn over it on some posts. The icon goes away while it plays and comes back when it stops. Reported in #229.
 * **Instagram - Blur the bars around Reels:** With `Show content behind the tab bar` off, the glass pill sat on a black strip on Reels. The reel shows blurred round it now, like on Instagram's own tab bar. Reported in #258.
-* **Instagram - Hide suggested posts:** After a while away or an account switch, Home could flash the Welcome to Instagram card for a few seconds before the posts from people you follow showed up. Home keeps its loading row while that next page comes now, for up to six seconds. Reported in #126.
-* **Instagram - Turn off HDR brightness boosts:** The switch also turns off two of Instagram's own options, SDR super white on HDR content and Ultra HDR always on, which can make some reels brighter than the rest of the screen. The diagnostic report counts each time it turns one off. Reported in #85.
+* **Instagram - Hide suggested posts:** Home could flash the Welcome to Instagram card for a few seconds after a while away or an account switch. It keeps its loading row while the posts from people you follow load now, up to six seconds. Reported in #126.
+* **Instagram - Turn off HDR brightness boosts:** The switch also turns off two of Instagram's own options, SDR super white on HDR content and Ultra HDR always on, which can make some reels brighter than everything else. The diagnostic report counts each time. Reported in #85.
 
 ### Improvements
 
@@ -61,7 +63,7 @@ Every HushGram release, newest first.
 * **Instagram - HushGram settings:** The diagnostic report shows the playback quality, font and reel tap choice you picked, not just whether their switches are on. Asked for in #85.
 * **Instagram - Download any video:** When `Convert to keep the full size` leaves a VP9 or AV1 video unconverted, the diagnostic report now says why. Asked about in #236.
 * **Instagram - Hide Meta AI:** `Hide the Muse card on profiles` is now `Hide the Muse card`, and it takes the Meet Muse card, with its Try Muse button, off Home too. Your other cards stay.
-* **Instagram - Stories:** `Stop loading stories` is now `Stop loading stories and highlights`, and its description says highlights on profiles stay empty while it's on. Searching settings for highlights finds it. From #244.
+* **Instagram - Hide suggested stories:** `Stop loading stories` is now `Stop loading stories and highlights`, and its description says highlights on profiles stay empty while it's on. Searching settings for highlights finds it. From #244.
 * **Instagram:** HushGram now patches Instagram 452.0.0.48.64 instead of 451.0.0.53.80. Get APKMirror's (arm64-v8a) (640dpi) (Android 9.0+) variant, build 385810270. The two armeabi-v7a builds, 385810231 and 385810269, patch too.
 
 ## 0.0.13 (2026-10-18)
