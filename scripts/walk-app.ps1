@@ -43,7 +43,7 @@ param(
     [string]$Package = 'com.instagram.android',
     # The patched screens to open, each a deep link. The Hush settings page is always walked too,
     # unless -SkipSettings. A link that won't open is a problem, so the walk fails rather than skips.
-    [string[]]$Visit = @('instagram://feed', 'instagram://explore', 'instagram://reels_home', 'instagram://direct-inbox'),
+    [string[]]$Visit = @('instagram://mainfeed', 'instagram://explore', 'instagram://reels_home', 'instagram://direct-inbox'),
     # Walk the app that's already installed instead of patching and installing a fresh one. The
     # installed build must have been patched from the release bundle; the receipt still names the
     # bundle's hash, so an install from any other build would make a receipt publish won't honor.
@@ -167,8 +167,10 @@ function Invoke-WalkApp {
             $launch = Invoke-WalkAdb $step.Arguments
             Start-Sleep -Seconds $SettleSeconds
             $launched = ($launch.Stdout -join "`n") -match '(?m)^Status:\s*ok\r?$'
+            # The resumed-activity line is named differently by Android version: mResumedActivity=
+            # (older), and topResumedActivity= / "ResumedActivity:" on API 36. Match the shared stem.
             $resumed = @((Invoke-WalkAdb @('shell', 'dumpsys', 'activity', 'activities')).Stdout |
-                Where-Object { $_ -match 'mResumedActivity' }) -join ' '
+                Where-Object { $_ -match 'ResumedActivity' }) -join ' '
             $foreground = $resumed -match [regex]::Escape($Package)
             if ($launched -and $foreground) {
                 $screens++
