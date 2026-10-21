@@ -556,7 +556,8 @@ class DownloadStoryHookTest {
                 // A builder whose labels end up above v15.
                 method(helper, "A0m", listOf("Lfixture/Kind;", helper, "Lfixture/Logger;"), labels, 24, static = true, body = """
                     const/4 v0, 0x0
-                    new-array v20, v0, $labels
+                    new-array v0, v0, $labels
+                    move-object/from16 v20, v0
                     return-object v20
                 """),
                 // The new sheet's handler: the menu seventh of thirteen, the label last.
