@@ -2039,9 +2039,3 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/la
 # patch wrote. HideCommentEmojiRowPatchTest checks the call, its register and the branch on all
 # the three 452 builds.
 once-call Lapp/hushgram/extension/instagram/feed/CommentEmojiRow;->hidesRow(I)Z holding replying_to_bar group_mention_banner
-# Hide Plus preview in chat menus (#249) filters the flag that puts a chat's long press menu in
-# peek mode, right after its booleanValue() in the menu's one builder (07EC.A00 on 452), the method
-# holding the dialog controller's name, long_press and the overlay failure event. Left out, the
-# See preview and Instagram Plus rows stay with the switch on; twice or elsewhere, it isn't the
-# call the patch wrote. HidePlusPreviewHookTest checks the call and its register on each build.
-once-call Lapp/hushgram/extension/instagram/direct/PlusPreview;->peek(I)Z holding DirectInboxThreadDialogController long_press_overlay_creation_failed long_press

@@ -161,10 +161,6 @@ public final class SettingsStatus {
         return false;
     }
 
-    public static boolean plusPreview() {
-        return false;
-    }
-
     /** Rewritten by the Show when someone was last active patch. */
     public static boolean lastActive() {
         return false;

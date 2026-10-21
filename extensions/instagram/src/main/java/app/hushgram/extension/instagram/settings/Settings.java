@@ -807,14 +807,6 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_instants", FALSE, true);
 
     /**
-     * The See preview and Instagram Plus rows (and the preview overlay) in the menu a long press on
-     * a chat opens ({@link app.hushgram.extension.instagram.direct.PlusPreview}). Read each time the
-     * menu opens, so a change needs no restart. Off to start.
-     */
-    public static final BooleanSetting HIDE_PLUS_PREVIEW =
-            new BooleanSetting("hushgram_hide_plus_preview", FALSE);
-
-    /**
      * The New group button beside the share sheet's search bar, whichever form Instagram gives it,
      * and the button that sends to the people you picked there as a group. Off to start.
      */
