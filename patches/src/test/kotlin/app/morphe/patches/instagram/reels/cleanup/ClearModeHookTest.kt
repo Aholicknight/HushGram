@@ -150,6 +150,14 @@ class ClearModeHookTest {
         assertEquals("$rowState->reel:$reelState", scrubberRow[asks - 5].referenceText())
         assertEquals("no reel state isn't caught", asks - 1, scrubberRow.target(asks - 4))
         assertEquals("the flag isn't the one the toString names", "$reelState->fullscreen:Z", scrubberRow[asks - 3].referenceText())
+        assertEquals(Opcode.IGET_BOOLEAN, scrubberRow[asks - 3].opcode)
+        for (at in listOf(asks - 7, asks - 5, asks - 3)) {
+            val read = scrubberRow[at] as TwoRegisterInstruction
+            assertEquals("the read ${at - asks} isn't from and into the free local", listOf(0, 0), listOf(read.registerA, read.registerB))
+        }
+        for (at in listOf(asks - 6, asks - 4)) {
+            assertEquals("the null test ${at - asks} isn't of the free local", 0, (scrubberRow[at] as OneRegisterInstruction).registerA)
+        }
         assertEquals("a read flag skips the no", asks, scrubberRow.target(asks - 2))
         assertEquals(Opcode.CONST_4, scrubberRow[asks - 1].opcode)
         assertEquals(0, (scrubberRow[asks - 1] as OneRegisterInstruction).registerA)
@@ -237,6 +245,14 @@ class ClearModeHookTest {
             Shape(flagFromCall = true) to "move-result, not a field it read",
             Shape(flagJump = true) to "jumps between reading the clear mode flag and appending it",
             Shape(flagPrivate = true) to "can't read $reelState->fullscreen:Z",
+            Shape(rowReelStates = 2) to "holds a reel state naming its clear mode flag through 2 fields, expected one",
+            Shape(reelStatePrivate = true) to "can't read $rowState->reel:$reelState",
+            Shape(farState = true) to "can't read Lfixture/far/ReelState;->fullscreen:Z",
+            Shape(flagOtherClass = true) to "appends Lfixture/OtherState;'s flag, not its own",
+            Shape(nameThenOther = true) to "names something else before appending the clear mode flag",
+            Shape(flagAppended = false) to "appends no yes or no after naming the clear mode flag",
+            Shape(flagUnfilled = true) to "appends the clear mode flag from a register nothing filled",
+            Shape(flagFieldMissing = true) to "$reelState has no boolean field fullscreen",
             Shape(childTakesState = false) to "builds nothing from the reel and its state",
             Shape(scrubberUnboxed = false) to "tests whether to draw the scrubber 0 times, expected once",
             Shape(scrubberTests = 2) to "tests whether to draw the scrubber 2 times, expected once",
@@ -418,6 +434,18 @@ class ClearModeHookTest {
         val flagField = (newRow[asks - 3] as ReferenceInstruction).reference as FieldReference
         assertEquals("$name: the flag is the reel state's", reelStateField.type, flagField.definingClass)
         assertEquals("$name: the flag is a yes or no", "Z", flagField.type)
+        assertTrue("$name: the flag goes in the answer's register", flag != shown)
+        assertEquals("$name: the flag's read", Opcode.IGET_BOOLEAN, newRow[asks - 3].opcode)
+        for (at in listOf(asks - 7, asks - 5, asks - 3)) {
+            val read = newRow[at] as TwoRegisterInstruction
+            assertEquals("$name: the read ${at - asks} isn't from and into v$flag", listOf(flag, flag), listOf(read.registerA, read.registerB))
+        }
+        for (at in listOf(asks - 6, asks - 4)) {
+            assertEquals("$name: the null test ${at - asks} isn't of v$flag", flag, (newRow[at] as OneRegisterInstruction).registerA)
+            assertEquals("$name: a missing state at ${at - asks} isn't a no", asks - 1, newRow.target(at))
+        }
+        assertEquals("$name: a read flag skips the no", asks, newRow.target(asks - 2))
+        assertEquals("$name: the no goes in v$flag", flag, (newRow[asks - 1] as OneRegisterInstruction).registerA)
         assertEquals("$name: the hook hands over the answer and the flag", listOf(shown, flag), newRow[asks].registers())
         assertEquals("$name: the answer goes back where it was", shown, (newRow[asks + 1] as OneRegisterInstruction).registerA)
         assertEquals("$name: Instagram's own test follows", Opcode.IF_EQZ, newRow[asks + 2].opcode)
@@ -466,6 +494,14 @@ class ClearModeHookTest {
         val flagFromCall: Boolean = false,
         val flagJump: Boolean = false,
         val flagPrivate: Boolean = false,
+        val rowReelStates: Int = 1,
+        val reelStatePrivate: Boolean = false,
+        val farState: Boolean = false,
+        val flagOtherClass: Boolean = false,
+        val nameThenOther: Boolean = false,
+        val flagAppended: Boolean = true,
+        val flagUnfilled: Boolean = false,
+        val flagFieldMissing: Boolean = false,
         val childTakesState: Boolean = true,
         val scrubberUnboxed: Boolean = true,
         val scrubberTests: Int = 1,
@@ -485,6 +521,9 @@ class ClearModeHookTest {
      * the reel and that state past a test of an unboxed yes or no.
      */
     private fun classes(shape: Shape = Shape()): List<ClassDef> {
+        // The far shape moves the reel state to another package, where the row can't see a class that isn't public.
+        val reelState = if (shape.farState) "Lfixture/far/ReelState;" else this.reelState
+        val otherState = "Lfixture/OtherState;"
         val handed = if (shape.enableHandsReason) "p1" else "p0"
         val enableCalls = "invoke-interface { v0, $handed }, $function1->invoke($anyType)$anyType\n".repeat(shape.enableActions)
         val enableBody = if (shape.enableEndsAtCall) {
@@ -669,13 +708,30 @@ class ClearModeHookTest {
                 field(row, "state", rowState), field(row, "visible", stateHook), field(row, "thumb", stateHook), field(row, "shown", "Z"),
             ),
         )
+        val reelField = if (shape.reelStatePrivate) {
+            ImmutableField(rowState, "reel", reelState, AccessFlags.PRIVATE.value or AccessFlags.FINAL.value, null, null, null)
+        } else {
+            field(rowState, "reel", reelState)
+        }
         val rowStateClass = classDef(
             rowState, emptyList(),
-            fields = listOf(field(rowState, "item", item), field(rowState, "reel", reelState), field(rowState, "count", "I")),
+            fields = listOf(field(rowState, "item", item), reelField, field(rowState, "count", "I")) +
+                (if (shape.rowReelStates == 2) listOf(field(rowState, "previous", reelState)) else emptyList()),
         )
         val flagName = if (shape.flagNames == 0) ", isOtherViewActive=" else CLEAR_MODE_FLAG_NAME
+        val flagRead = when {
+            shape.flagFromCall -> "invoke-virtual { p0 }, $reelState->isFullscreen()Z\nmove-result v0"
+            shape.flagOtherClass -> "iget-object v1, p0, $reelState->other:$otherState\niget-boolean v0, v1, $otherState->fullscreen:Z"
+            else -> "iget-boolean v0, p0, $reelState->fullscreen:Z"
+        }
+        // v3 is p0: a parameter, so no instruction fills it.
+        val flagAppend = when {
+            !shape.flagAppended -> ""
+            shape.flagUnfilled -> "invoke-virtual { v1, v3 }, $builder->append(Z)$builder"
+            else -> "move v0, v2\ninvoke-virtual { v1, v0 }, $builder->append(Z)$builder"
+        }
         val toString = method(reelState, "toString", emptyList(), stringType, 4, """
-            ${if (shape.flagFromCall) "invoke-virtual { p0 }, $reelState->isFullscreen()Z\nmove-result v0" else "iget-boolean v0, p0, $reelState->fullscreen:Z"}
+            $flagRead
             move v2, v0
             new-instance v1, $builder
             invoke-direct { v1 }, $builder-><init>()V
@@ -686,25 +742,27 @@ class ClearModeHookTest {
             invoke-virtual { v1, v0 }, $builder->append(Z)$builder
             const-string v0, "$flagName"
             invoke-virtual { v1, v0 }, $builder->append($stringType)$builder
+            ${if (shape.nameThenOther) "const-string v0, \", isMuted=\"\ninvoke-virtual { v1, v0 }, $builder->append($stringType)$builder" else ""}
             ${if (shape.flagJump) ":flag" else ""}
-            move v0, v2
-            invoke-virtual { v1, v0 }, $builder->append(Z)$builder
+            $flagAppend
             ${if (shape.flagNames == 2) "const-string v0, \"$flagName\"\ninvoke-virtual { v1, v0 }, $builder->append($stringType)$builder" else ""}
             invoke-virtual { v1 }, $builder->toString()$stringType
             move-result-object v0
             return-object v0
         """)
-        val reelStateClass = classDef(
-            reelState, listOf(toString),
-            fields = listOf(
-                field(reelState, "playing", "Z"),
-                if (shape.flagPrivate) {
-                    ImmutableField(reelState, "fullscreen", "Z", AccessFlags.PRIVATE.value or AccessFlags.FINAL.value, null, null, null)
-                } else {
-                    field(reelState, "fullscreen", "Z")
-                },
-            ),
+        val reelStateFields = listOf(
+            field(reelState, "playing", "Z"),
+            when {
+                shape.flagPrivate -> ImmutableField(reelState, "fullscreen", "Z", AccessFlags.PRIVATE.value or AccessFlags.FINAL.value, null, null, null)
+                shape.flagFieldMissing -> field(reelState, "fullscreen", "I")
+                else -> field(reelState, "fullscreen", "Z")
+            },
         )
+        val reelStateClass = if (shape.farState) {
+            ImmutableClassDef(reelState, AccessFlags.FINAL.value, anyType, null, null, null, reelStateFields, listOf(toString))
+        } else {
+            classDef(reelState, listOf(toString), fields = reelStateFields)
+        }
         val childClass = classDef(
             scrubberChild,
             listOf(
