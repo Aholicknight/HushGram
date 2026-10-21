@@ -136,6 +136,14 @@ internal fun BytecodePatchContext.classesCalling(definingClass: String, name: St
     classesMatching(Fingerprint(filters = listOf(methodCall(definingClass = definingClass, name = name))))
 
 /**
+ * Every method calling [name] on [definingClass], the extension's included, in the app's order. The
+ * same index picks the classes to read, and a walk over every class would decode each one's type.
+ */
+internal fun BytecodePatchContext.methodsCalling(definingClass: String, name: String): List<Method> =
+    Fingerprint(filters = listOf(methodCall(definingClass = definingClass, name = name))).matchAllOrNull().orEmpty()
+        .map { it.originalMethod }
+
+/**
  * The classes outside the extension whose code calls any method of [definingClass], in the app's
  * order, by the same index of the types each class refers to.
  */

@@ -14,6 +14,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.methodsCalling
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -185,13 +186,9 @@ internal class LogoAnswers(val method: MutableMethod, val extra: Int, val gate: 
  * in by a move-result right after its call.
  */
 internal fun BytecodePatchContext.findLogoAnswers(): LogoAnswers {
-    val holders = mutableListOf<Method>()
-    classDefForEach { type ->
-        type.methods.filterTo(holders) { method ->
-            val code = method.code()
-            code.any { it.loads(POST_SPLASH_EXTRA) } && code.any { it.calls(INTENT, "getBooleanExtra") }
-        }
-    }
+    // Only methods calling Intent.getBooleanExtra are read, which the patcher's index names. Reading
+    // every method in the app was a measured share of patching (#173).
+    val holders = methodsCalling(INTENT, "getBooleanExtra").filter { method -> method.code().any { it.loads(POST_SPLASH_EXTRA) } }
     val holder = holders.singleOrNull()
         ?: refuse("expected one method loading \"$POST_SPLASH_EXTRA\" and reading an Intent boolean, found ${holders.size}")
     val code = holder.code()
