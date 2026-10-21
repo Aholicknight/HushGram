@@ -13,12 +13,15 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
+import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -127,29 +130,7 @@ internal class DoubleTaps(
 )
 
 internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
-    val posts = mutableListOf<Method>()
-    val reels = mutableListOf<Method>()
-    val setters = mutableListOf<Method>()
-    val listeners = mutableListOf<Method>()
-    val messages = mutableListOf<Method>()
-    // Every method called with a post's view and the post, and the methods that call it.
-    val likeShapes = mutableMapOf<String, MethodReference>()
-    val likeCallers = mutableMapOf<String, MutableMap<String, Method>>()
-    classDefForEach { classDef ->
-        classDef.methods.forEach { method ->
-            val code = method.code()
-            if (code.any { it.stringLoaded() == FEED_DOUBLE_TAP }) posts += method
-            val markers = method.markers()
-            if (HANDLE_DOUBLE_TAP in markers) reels += method
-            if (SET_LIKE_ACTION in markers) setters += method
-            if (classDef.superclass == GESTURE_LISTENER && method.isDoubleTapListener()) listeners += method
-            if (isMessageDoubleTap(method, code)) messages += method
-            code.mapNotNull { it.likeShapedCall() }.forEach { call ->
-                likeShapes.putIfAbsent(call.text(), call)
-                likeCallers.getOrPut(call.text()) { mutableMapOf() }[method.text()] = method
-            }
-        }
-    }
+    val posts = classesHolding(FEED_DOUBLE_TAP).flatMap { it.methods }.filter { method -> method.code().any { it.stringLoaded() == FEED_DOUBLE_TAP } }
     val post = posts.singleOrNull() ?: refuse("expected one feed double tap holding \"$FEED_DOUBLE_TAP\", found ${posts.size}")
 
     // Each kind of post (a photo, a carousel, a video, a map, ...) has its own gesture delegate,
@@ -168,15 +149,46 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     // photo's and two other kinds of post's calling the like means the others like somewhere the
     // guard doesn't reach, and so does a delegate calling a second method shaped exactly like it.
     val carried = like.parameterTypes.drop(1).map(Any::toString)
-    val carries = { method: Method -> method.parameterTypes.map(Any::toString).toMutableList().let { left -> carried.all(left::remove) } }
-    val delegates = likeCallers[like.text()].orEmpty().values.count(carries)
+    val carries = { method: Method ->
+        method.parameterTypes.size >= carried.size &&
+            method.parameterTypes.map(Any::toString).toMutableList().let { left -> carried.all(left::remove) }
+    }
+
+    // One walk over the app reads what each class declares, and the code of only the methods it
+    // keeps: those in the classes the patcher's indexes name for the Reels handler, its setter and
+    // the chat's double tap, the gesture listeners' double taps, and the methods handed what the like
+    // takes. Reading every method's code here was a measured share of patching (#173).
+    val marked = typesMarked(HANDLE_DOUBLE_TAP, SET_LIKE_ACTION)
+    val chats = classesLoadingString(MESSAGE_TIP_COUNT).mapTo(HashSet()) { it.type }
+        .apply { retainAll(classesLoadingString(MESSAGE_DOUBLE_TAP).mapTo(HashSet()) { it.type }) }
+    val reels = mutableListOf<Method>()
+    val setters = mutableListOf<Method>()
+    val listeners = mutableListOf<Method>()
+    val messages = mutableListOf<Method>()
+    val carriers = mutableListOf<Method>()
+    classDefForEach { classDef ->
+        val isMarked = classDef.type in marked
+        val isChat = classDef.type in chats
+        val isListener = classDef.superclass == GESTURE_LISTENER
+        classDef.methods.forEach { method ->
+            if (isMarked) {
+                val markers = method.markers()
+                if (HANDLE_DOUBLE_TAP in markers) reels += method
+                if (SET_LIKE_ACTION in markers) setters += method
+            }
+            if (isListener && method.isDoubleTapListener()) listeners += method
+            if (isChat && isMessageDoubleTap(method)) messages += method
+            if (carries(method)) carriers += method
+        }
+    }
+    val carrierCalls = carriers.map { method -> method.code().mapNotNull { it.likeShapedCall() } }
+    val delegates = carrierCalls.count { calls -> calls.any { it.text() == like.text() } }
     if (delegates < MIN_LIKE_DELEGATES) {
         refuse("the feed's double-tap like ${like.text()} is called by $delegates posts' delegates, expected at least $MIN_LIKE_DELEGATES, so other posts like elsewhere")
     }
     val likeParameters = like.parameterTypes.map(Any::toString)
-    likeShapes.values.firstOrNull { other ->
-        other.text() != like.text() && other.parameterTypes.map(Any::toString) == likeParameters &&
-            likeCallers[other.text()].orEmpty().values.any(carries)
+    carrierCalls.flatten().firstOrNull { other ->
+        other.text() != like.text() && other.parameterTypes.map(Any::toString) == likeParameters
     }?.let { refuse("a post's delegate calls ${it.text()}, a second like shaped as ${like.text()} is, so its posts like where the guard doesn't reach") }
     // The guard borrows v0 at index 0.
     if (like.localRegisterCount() < 1) refuse("the feed's double-tap like ${like.text()} has no local register")

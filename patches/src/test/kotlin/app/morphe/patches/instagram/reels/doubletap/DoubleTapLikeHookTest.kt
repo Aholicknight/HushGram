@@ -171,6 +171,20 @@ class DoubleTapLikeHookTest {
         )
     }
 
+    /** 452 asks a pool of shared strings for the chat's tip count, and its double tap is still the one guarded. */
+    @Test
+    fun aMessageDoubleTapAskingAPoolForItsTipCountIsGuarded() {
+        val context = PatchContexts.of(classes(pooledTip = true) + pool(answer = MESSAGE_TIP_COUNT))
+
+        context.turnOffDoubleTapLikes()
+
+        assertGuardFirst("the message double tap", context.mutableClassDefBy(messageTap).methods.single().code(), HOLD_BACK_MESSAGE)
+        assertTrue(
+            "the tip's own read of its count was touched",
+            context.mutableClassDefBy(messageTip).methods.single().code().none { it.referenceText() == HOLD_BACK_MESSAGE },
+        )
+    }
+
     /**
      * Every build's three comment rows, two filing fb_comment_double_tap and one filing like_comment
      * or unlike_comment, are found, wherever Redex left their names: 385611439 asks a pool for
@@ -214,6 +228,7 @@ class DoubleTapLikeHookTest {
             classes(commentRows = false) to "no comment row's double tap",
             classes(messages = 0) to "\"$MESSAGE_DOUBLE_TAP\", found 0",
             classes(messages = 2) to "\"$MESSAGE_DOUBLE_TAP\", found 2",
+            classes(pooledTip = true) to "\"$MESSAGE_DOUBLE_TAP\", found 0",
             classes(messageAnswers = true) to "doesn't return nothing",
             classes(messageReactions = 0) to "to 0 reactions",
             classes(messageReactions = 2) to "to 2 reactions",
@@ -389,6 +404,7 @@ class DoubleTapLikeHookTest {
         messageAnswers: Boolean = false,
         messageReactions: Int = 1,
         messageLocals: Int = 2,
+        pooledTip: Boolean = false,
     ): List<ClassDef> {
         val invoke = if (likeStatic) "invoke-static { v0, v0, p1, v2 }" else "invoke-virtual { v0, v0, v0, p1, v2 }"
         val likeCall = listOf("like", "likeAgain").take(likeCalls).joinToString("\n") { "$invoke, $liker->$it$likeShape" }
@@ -507,7 +523,13 @@ class DoubleTapLikeHookTest {
             else rowOf(commentRow, listOf(LIKE_COMMENT, UNLIKE_COMMENT)),
         ) else emptyList()
         // The chat's double tap on a message loads the tip count and its source, then hands the
-        // message's id to a reaction. The tip's own read of the count loads no source.
+        // message's id to a reaction. The tip's own read of the count loads no source. With
+        // [pooledTip] the double tap asks [pool] for the tip count, as 452 does.
+        val tipCount = if (pooledTip) {
+            "const/16 v0, 0x$POOLED\ninvoke-static { v0 }, $POOL->A00(I)Ljava/lang/String;\nmove-result-object v0"
+        } else {
+            "const-string v0, \"$MESSAGE_TIP_COUNT\""
+        }
         val react = "invoke-interface { v1, v1, v1 }, Lfixture/Reactions;->react(Ljava/lang/Object;$messageId)V"
         val messageParameters = listOf("Lfixture/Reactions;", "Ljava/util/List;")
         val messageFlags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value
@@ -516,7 +538,7 @@ class DoubleTapLikeHookTest {
             (0 until messages).map { copy ->
                 method(messageTap, if (copy == 0) "react" else "reactAgain", messageParameters, if (messageAnswers) "Z" else "V",
                     messageLocals + messageParameters.size, """
-                        const-string v0, "$MESSAGE_TIP_COUNT"
+                        $tipCount
                         const-string v0, "$MESSAGE_DOUBLE_TAP"
                         const/4 v1, 0x0
                         ${List(messageReactions) { react }.joinToString("\n")}
