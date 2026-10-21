@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Features
+
+* **Instagram - Downloads:** new switch, `Add the source to saved photos`, off to start. With it on, a saved photo carries where it came from in its EXIF details, the kind a gallery or exiftool reads: the account that posted it, the post date and a link to the post. JPEG photos only, and only what the save already knows, so a profile picture carries just the account. The picture itself is unchanged.
+
 ### Bug Fixes
 
 * **Instagram - Clean up Reels:** With `Keep clear mode on`, a long reel in clear mode no longer keeps its seek bar along the bottom. The bar comes back once you leave clear mode. (#277)

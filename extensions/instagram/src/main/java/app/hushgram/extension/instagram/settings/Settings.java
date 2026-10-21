@@ -2110,6 +2110,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_save_name_by_post", FALSE);
 
     /**
+     * A saved photo carries where it came from in its EXIF: the account that posted it, when the
+     * post went up and a link to the post. Written only into a JPEG, after the file is saved, and
+     * only what the save knows, so a profile picture carries just the account. The picture's pixels
+     * are untouched. Starts off, so a save adds nothing to the file.
+     */
+    public static final BooleanSetting SAVE_PHOTO_METADATA =
+            new BooleanSetting("hushgram_save_photo_metadata", FALSE);
+
+    /**
      * The quality a video save asks for: the best the player streams, a ceiling, or the smallest
      * file. Every video save reads it when it starts, and one that finds nothing at or under a
      * ceiling takes the nearest above it. Photos always save whole. Like the folder, it isn't a

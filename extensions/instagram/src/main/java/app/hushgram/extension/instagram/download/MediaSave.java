@@ -1406,7 +1406,11 @@ public final class MediaSave {
                 boolean cancelled = result.status == Downloader.Status.CANCELLED;
                 if (result.ok() || cancelled) info(() -> "save finished: " + result);
                 else failure(() -> "save finished: " + result, null);
-                if (result.ok()) DownloadHistory.record(application, key, writer, known);
+                if (result.ok()) {
+                    DownloadHistory.record(application, key, writer, known);
+                    // A photo only, after the file is published: tag it with where it came from.
+                    if (!video && !audio) PostMetadata.tag(application, writer, known);
+                }
                 Feedback.show(application, message(application, result.status, writer.savedLocation(), result.lower),
                         !result.ok() && !cancelled);
             } finally {

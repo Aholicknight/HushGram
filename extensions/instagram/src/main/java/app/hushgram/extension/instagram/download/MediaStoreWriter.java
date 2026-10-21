@@ -80,6 +80,9 @@ final class MediaStoreWriter implements Downloader.Sink {
     /** The gallery entry the last commit published, as text, or null before one is. */
     private String published;
 
+    /** The MIME {@link #open} settled on for the file being written, or null before one is opened. */
+    private String savedMime;
+
     /** Android 9 only: the folder, the hidden file being written, and the name it takes when done. */
     private File legacyFolder;
     private File legacyWork;
@@ -136,6 +139,11 @@ final class MediaStoreWriter implements Downloader.Sink {
         return published;
     }
 
+    /** The MIME the save wrote, as {@link #open} settled it, or null before a file is opened. */
+    String savedMime() {
+        return savedMime;
+    }
+
     /** Whether this phone's MediaStore is the one without RELATIVE_PATH and IS_PENDING. For tests too. */
     static boolean legacyStorage() {
         return Build.VERSION.SDK_INT < 29;
@@ -144,6 +152,7 @@ final class MediaStoreWriter implements Downloader.Sink {
     @Override
     public OutputStream open(String mimeFromServer) throws IOException {
         String mime = mime(mimeFromServer);
+        savedMime = mime;
         String directory = audio ? audioDirectory()
             : video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES;
         // One folder name for both kinds, so a story's photos and its videos land side by side.
