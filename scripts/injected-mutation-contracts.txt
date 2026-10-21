@@ -759,15 +759,16 @@ once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->hide(Ljava/uti
 once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->track(Ljava/lang/Object;)V in instance (Landroid/os/Bundle;)V holding ExploreFragment.setupGrid loadMoreInterface
 once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->loadMoreRow(Ljava/lang/Object;I)I in instance (L*;L*;)V holding INDEX_NO_ITEMS INDEX_LOAD_MORE
 #
-# Its second switch, Hide suggested accounts in search, asks the extension first thing in both
-# builders of what shows when you tap the search bar, the two methods loading
-# "null_state_suggested_users" and "search_follow_chaining_unit". The older one adds the Suggested
-# for you section and answers nothing (an instance method taking one object on 452, 0E6X.A03); it
-# returns at once on SearchSuggestions.hideSection()'s yes. The newer one builds the screen out of the list of items it's
-# handed, and also loads "show_more_recents"; its list goes through SearchSuggestions.items(List)
-# first. Left out, the suggested accounts stay under the search bar; twice or elsewhere, it isn't
-# the guard the patch wrote. HideSearchSuggestionsHookTest checks both on the declared builds.
-start-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->hideSection()Z in instance (L*;)V holding null_state_suggested_users search_follow_chaining_unit
+# Its second switch, Hide suggested accounts in search, asks the extension in both builders of what
+# shows when you tap the search bar, the two methods loading "null_state_suggested_users" and
+# "search_follow_chaining_unit". The older one adds the recent searches and then the Suggested for
+# you section, and answers nothing (an instance method taking one object on 452, 0E6X.A03).
+# SearchSuggestions.hideSection() sits at Instagram's own checks for the Suggested block, past the
+# recents, and its yes jumps to the exit those checks use (#272), so it isn't first and has no
+# start-call rule. The newer one builds the screen out of the list of items it's handed, and also
+# loads "show_more_recents"; its list goes through SearchSuggestions.items(List) first. Left out,
+# the suggested accounts stay under the search bar; twice or elsewhere, it isn't the guard the
+# patch wrote. HideSearchSuggestionsHookTest checks both on the declared builds.
 once-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->hideSection()Z in instance (L*;)V holding null_state_suggested_users search_follow_chaining_unit
 start-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->items(Ljava/util/List;)Ljava/util/List; in static (L*;L*;Ljava/util/List;Z)L*; holding null_state_suggested_users show_more_recents
 once-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->items(Ljava/util/List;)Ljava/util/List; in static (L*;L*;Ljava/util/List;Z)L*; holding null_state_suggested_users show_more_recents
