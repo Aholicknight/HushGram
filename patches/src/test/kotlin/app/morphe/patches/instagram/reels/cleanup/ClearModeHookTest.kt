@@ -283,6 +283,9 @@ class ClearModeHookTest {
             Shape(chromes = 0) to "expected one method marked $CLEAR_MODE_CHROME, found 0",
             Shape(chromes = 2) to "expected one method marked $CLEAR_MODE_CHROME, found 2",
             Shape(chromeTakesAlpha = false) to "isn't an instance method taking the alpha",
+            Shape(chromeStatic = true) to "isn't an instance method taking the alpha",
+            Shape(chromeReturns = "Z") to "isn't an instance method taking the alpha",
+            Shape(chromeEndsAtRead = true) to "ends at reading the alpha it holds",
             Shape(alphaReads = 0) to "reads the alpha it holds 0 times, expected once",
             Shape(alphaReads = 2) to "reads the alpha it holds 2 times, expected once",
             Shape(alphaKept = false) to "doesn't keep the alpha it holds",
@@ -557,6 +560,9 @@ class ClearModeHookTest {
         val rowLocalsFree: Boolean = true,
         val chromes: Int = 1,
         val chromeTakesAlpha: Boolean = true,
+        val chromeStatic: Boolean = false,
+        val chromeReturns: String = "V",
+        val chromeEndsAtRead: Boolean = false,
         val alphaReads: Int = 1,
         val alphaKept: Boolean = true,
         val jumpToHold: Boolean = false,
@@ -836,7 +842,8 @@ class ClearModeHookTest {
         val alphaRead = "iget-object v0, v2, $cell->value:$anyType\ncheck-cast v0, Ljava/lang/Number;\n" +
             "invoke-virtual { v0 }, $floatValue\n" + (if (shape.alphaKept) "move-result v1\n" else "const/4 v1, 0x0\n")
         val chromeMarker = if (shape.chromes == 0) "LithoClipsItemDefinition_Holder_bind" else CLEAR_MODE_CHROME
-        val chromeBody = """
+        val chromeMarked = "const-string v0, \"${marker(chromeMarker, "q2")}\"\ninvoke-static { v0 }, $purge\n"
+        val fullChrome = """
             ${if (high) "move-object/from16 v3, p0" else ""}
             const-string v0, "${marker(chromeMarker, "q2")}"
             invoke-static { v0 }, $purge
@@ -864,12 +871,20 @@ class ClearModeHookTest {
             }}
             move-result-object v0
             invoke-virtual { v2, v0 }, $cell->set($anyType)V
-            return-void
+            ${if (shape.chromeReturns == "V") "return-void" else "const/4 v0, 0x0\nreturn v0"}
         """
+        val chromeBody = when {
+            // A static setter can't name p1, so it holds the marker alone.
+            shape.chromeStatic -> chromeMarked + "return-void"
+            shape.chromeEndsAtRead -> chromeMarked + "iget-object v2, p0, $holder->alpha:$cell\n" + alphaRead
+            else -> fullChrome
+        }
+        val chromeFlags = AccessFlags.PUBLIC.value or (if (shape.chromeStatic) AccessFlags.STATIC.value else AccessFlags.FINAL.value)
         val chromes = (0 until maxOf(shape.chromes, 1)).map { copy ->
             method(
                 holder, if (copy == 0) "updateChrome" else "updateChromeAgain",
-                if (shape.chromeTakesAlpha) listOf("F") else listOf("I"), "V", if (high) 19 else 5, chromeBody,
+                if (shape.chromeTakesAlpha) listOf("F") else listOf("I"), shape.chromeReturns, if (high) 19 else 5, chromeBody,
+                chromeFlags,
             )
         }
         val holderClass = classDef(holder, chromes, fields = listOf(field(holder, "alpha", cell), field(holder, "locked", function0)))
