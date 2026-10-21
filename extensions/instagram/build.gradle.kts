@@ -693,7 +693,7 @@ tasks.register("verifyAndroidBoundaries") {
                 "aSwipeThatHasntLandedWaitsForThePagersNextPageOnce[28]", "aSwipeThatHasntLandedWaitsForThePagersNextPageOnce[37]",
                 "aSecondTryOnTheSameReelEndsIt[28]", "aSecondTryOnTheSameReelEndsIt[37]",
                 "closingTheViewerCarriesNothingIntoTheNextOne[28]", "closingTheViewerCarriesNothingIntoTheNextOne[37]",
-                "aPageWithNoExitButtonEndsIt[28]", "aPageWithNoExitButtonEndsIt[37]",
+                "aPageWithNoExitButtonEndsItWhenTheWaitRunsOut[28]", "aPageWithNoExitButtonEndsItWhenTheWaitRunsOut[37]",
                 "onlyTheReelYouPutInClearModeHandsItOn[28]", "onlyTheReelYouPutInClearModeHandsItOn[37]",
                 "withoutATurnOnOfYoursNothingIsAsked[28]", "withoutATurnOnOfYoursNothingIsAsked[37]",
                 "offPausedAndUnreadyLeaveEveryReelAsInstagramHasIt[28]", "offPausedAndUnreadyLeaveEveryReelAsInstagramHasIt[37]",
