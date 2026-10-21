@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
     Exercises the release helpers in scripts/release: the notes builder, the test counter, the
-    all-builds patch run and the preflight.
+    all-builds patch run, the preflight and the publish step's walk check.
 
 .DESCRIPTION
-    Nothing is built or patched. The JDK, aapt2, the desktop CLI, the build queue and the Gradle
-    wrapper are stand-ins that log what they were asked, the fixtures are small zip files carrying
+    Nothing is built, patched or published. The JDK, aapt2, the desktop CLI, the build queue, the
+    Gradle wrapper and gh are stand-ins that log what they were asked, the fixtures are small zip files carrying
     a manifest dump, and git runs in a throwaway repository in the temporary folder. The pre-push
     hook runs this suite when a release helper or a script they load changes.
 
@@ -25,7 +25,7 @@ $passed = 0
 $variables = @('HUSHGRAM_FIXTURE_DIR', 'HUSHGRAM_DESKTOP_JAR', 'HUSHGRAM_WORKDIR', 'HUSHGRAM_JAVA', 'HUSHGRAM_AAPT2',
     'HUSHGRAM_ALLOW_RELEASE', 'HUSHGRAM_BUILD_WRAPPER', 'HUSHGRAM_GATE_CACHE', 'BUILD_QUEUE_SCRIPT', 'BUILD_QUEUE_PRIORITY',
     'BUILD_QUEUE_TICKET', 'HUSHGRAM_HELPERS_LOG', 'HUSHGRAM_HELPERS_STALE', 'HUSHGRAM_HELPERS_GRADLE_EXIT',
-    'HUSHGRAM_HELPERS_NO_BUNDLE', 'HUSHGRAM_HELPERS_VERIFY_EXIT')
+    'HUSHGRAM_HELPERS_NO_BUNDLE', 'HUSHGRAM_HELPERS_VERIFY_EXIT', 'PATH')
 $saved = @{}
 foreach ($name in $variables) { $saved[$name] = [Environment]::GetEnvironmentVariable($name, [EnvironmentVariableTarget]::Process) }
 # Run from the machine's queue, this process inherits that slot's ticket, and the all-builds checks
@@ -585,6 +585,77 @@ exit [int]$env:HUSHGRAM_HELPERS_GRADLE_EXIT
         @(Read-Log | Where-Object { $_ -like 'gradle *' }).Count -eq 0) "A renamed boundary case passed the preflight: $($run.Output)"
     Invoke-RepoGit reset -q --hard $preflightHead | Out-Null
     Write-Host '[release-helpers] preflight passed'
+
+    # --- publish-release.ps1 ---------------------------------------------------------------------
+
+    # The checkout after steps 2 to 6: the bundle, its SBOM and SHA256SUMS.txt in the release folder,
+    # the receipt in the root and the notes. gh is a stand-in that logs what it was asked.
+    $publishRoot = Join-Path $scratch 'publish'
+    $publishRelease = Join-Path $publishRoot 'patches/build/release'
+    $publishBundle = Join-Path $publishRelease 'patches-0.0.1.mpp'
+    $publishFiles = @($publishBundle, (Join-Path $publishRelease 'patches-0.0.1.cdx.json'),
+        (Join-Path $publishRoot 'release-receipt-0.0.1.json'), (Join-Path $publishRelease 'SHA256SUMS.txt'))
+    foreach ($file in $publishFiles) { Write-Text $file "stand-in $(Split-Path -Leaf $file)" }
+    Write-Text (Join-Path $publishRoot '.gitignore') "patches/build/`nrelease-receipt-*.json`n"
+    & git -C $publishRoot init -q -b main 2>&1 | Out-Null
+    & git -C $publishRoot add -A 2>&1 | Out-Null
+    & git -C $publishRoot -c user.name=SysAdminDoc -c user.email=matt_parker@outlook.com commit -q -m base 2>&1 | Out-Null
+    $publishHead = "$(& git -C $publishRoot rev-parse HEAD)".Trim()
+    $publishNotes = Join-Path $scratch 'notes.md'
+    Write-Text $publishNotes "## 0.0.1`n"
+    $ghTools = Join-Path $scratch 'gh-tools'
+    Write-Text (Join-Path $ghTools 'gh.ps1') "Add-Content -LiteralPath `$env:HUSHGRAM_HELPERS_LOG -Value ('gh ' + (`$args -join ' '))`nexit 0`n"
+    $env:PATH = "$ghTools$([IO.Path]::PathSeparator)$env:PATH"
+    . (Join-Path $Root 'scripts/walk-receipt.ps1')
+    $bundleHash = (Get-FileHash -LiteralPath $publishBundle -Algorithm SHA256).Hash
+    function Write-Walk([string]$Name, [hashtable]$Change = @{}) {
+        $fields = @{ Result = 'PASS'; Full = $true; Serial = 'TESTPHONE01'; Device = 'SM-S908U1'; AppVersion = $declared
+            BundleSha256 = $bundleHash; Started = [DateTimeOffset]::UtcNow.AddMinutes(-20); Finished = [DateTimeOffset]::UtcNow
+            Screens = 40; Crashes = 0 }
+        foreach ($key in $Change.Keys) { $fields[$key] = $Change[$key] }
+        $path = Join-Path $scratch "walk-$Name.json"
+        Write-Text $path ((New-WalkReceipt @fields) | ConvertTo-Json -Depth 4)
+        return $path
+    }
+    function Invoke-Publish([string[]]$Extra = @()) {
+        Clear-Log
+        $run = Invoke-Script (Join-Path $releaseDir 'publish-release.ps1') (@('-Version', '0.0.1', '-Notes', $publishNotes, '-Root', $publishRoot) + $Extra)
+        # pwsh wraps a long error at the console width behind "| ", which would split the text matched.
+        return [pscustomobject]@{ Exit = $run.Exit; Output = $run.Output -replace '\s*\n\s*\|\s*', ' ' }
+    }
+
+    $refusals = @(
+        @{ Name = 'no walk'; Extra = @(); Pattern = '*-Walk names the walk-receipt.json*' },
+        @{ Name = 'a missing receipt'; Extra = @('-Walk', (Join-Path $scratch 'no-walk.json')); Pattern = "*there's no walk receipt at*" },
+        @{ Name = 'a partial walk'; Extra = @('-Walk', (Write-Walk 'partial' @{ Result = 'PARTIAL'; Full = $false })); Pattern = '*ended PARTIAL, not PASS*' },
+        @{ Name = 'a pass that skipped screens'; Extra = @('-Walk', (Write-Walk 'skipped' @{ Full = $false })); Pattern = '*not the whole app*' },
+        @{ Name = 'a crash'; Extra = @('-Walk', (Write-Walk 'crash' @{ Crashes = 1 })); Pattern = '*an Instagram crash*' },
+        @{ Name = 'another phone'; Extra = @('-Walk', (Write-Walk 'phone' @{ Device = 'SM-A515F' })); Pattern = "*SM-A515F isn't one of the release walk phones*" },
+        @{ Name = 'another bundle'; Extra = @('-Walk', (Write-Walk 'bundle' @{ BundleSha256 = '1' * 64 })); Pattern = "*patched with bundle '$('1' * 64)'*" })
+    foreach ($case in $refusals) {
+        $run = Invoke-Publish $case.Extra
+        Assert-True ($run.Exit -ne 0 -and $run.Output -like $case.Pattern -and $run.Output -like '*nothing was published*' -and
+            @(Read-Log | Where-Object { $_ -like 'gh *' }).Count -eq 0) "Publish went ahead with $($case.Name): $($run.Output)"
+    }
+    # A receipt saying emulator for a phone's serial is no emulator walk.
+    $posing = Get-Content -LiteralPath (Write-Walk 'posing' @{ Device = 'sdk_gphone64_x86_64' }) -Raw | ConvertFrom-Json
+    $posing.emulator = $true
+    $posingPath = Join-Path $scratch 'walk-posing.json'
+    Write-Text $posingPath ($posing | ConvertTo-Json -Depth 4)
+    Assert-True (-not (Test-WalkReceipt -Path $posingPath -BundlePath $publishBundle).Valid) 'A phone serial passed as an emulator walk.'
+    Remove-Item -LiteralPath $publishFiles[1]
+    $run = Invoke-Publish @('-Walk', (Write-Walk 'no-sbom'))
+    Assert-True ($run.Exit -ne 0 -and $run.Output -like '*patches-0.0.1.cdx.json is missing, so nothing was published*' -and
+        @(Read-Log | Where-Object { $_ -like 'gh *' }).Count -eq 0) "Publish went ahead without the SBOM: $($run.Output)"
+    Write-Text $publishFiles[1] 'stand-in patches-0.0.1.cdx.json'
+
+    $expected = "gh release create v0.0.1 --repo SysAdminDoc/HushGram --target $publishHead --title v0.0.1 --notes-file $publishNotes $($publishFiles -join ' ')"
+    foreach ($walk in @((Write-Walk 'phone-pass'), (Write-Walk 'emulator-pass' @{ Serial = 'emulator-5554'; Device = 'sdk_gphone64_x86_64' }))) {
+        $run = Invoke-Publish @('-Walk', $walk)
+        Assert-True ($run.Exit -eq 0 -and @(Read-Log) -ccontains $expected -and $run.Output -like '*screens, no crash*') `
+            "A full passing walk of this bundle did not publish it with its four files: $($run.Output) / $(Read-Log)"
+    }
+    Write-Host '[release-helpers] publish passed'
 
     . (Join-Path $PSScriptRoot 'script-wiring.ps1')
     Assert-True (Test-PushGateRunsSuite (Join-Path $Root 'scripts/pre-push.ps1') 'scripts/test-release-helpers.ps1') `

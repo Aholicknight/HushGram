@@ -593,6 +593,7 @@ if (@($changed | Where-Object {
 }
 if (@($changed | Where-Object {
     $_ -like 'scripts/release/*' -or $_ -in @('scripts/test-release-helpers.ps1', 'scripts/test-release-notes.py', 'scripts/common.ps1', 'scripts/patch-target.ps1',
+        'scripts/walk-receipt.ps1',
         'scripts/patch-report.ps1', 'scripts/apk-facts.ps1', 'scripts/build-jobs.ps1', 'scripts/gate-evidence.ps1',
         'scripts/Resolve-Java.ps1', 'scripts/pre-push.ps1', 'scripts/script-wiring.ps1')
 }).Count -gt 0) {

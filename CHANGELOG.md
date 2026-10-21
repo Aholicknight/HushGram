@@ -21,6 +21,7 @@ Every HushGram release, newest first.
 * **Tooling:** `scripts/native-runner.ps1` runs checks inside the installed patched Instagram on an offline emulator, as a throwaway signed-out Android user. Each verdict names the exact APK it ran on. Two controls (build identity, a missing hook) must hold before feature checks count.
 * **Tooling:** The native runner's first feature checks cover Hide your active status. They build Instagram's own presence requests without sending them, and only Active may turn Idle, only while the switch is on and HushGram isn't paused.
 * **Tooling:** The native runner checks View DM photos and videos anonymously on Instagram's receipt handler. Switched on, the handler finishes a stand-in receipt on the phone without building its request. Voice receipts, a paused HushGram and the switch off stay Instagram's.
+* **Tooling:** Nothing goes public until the whole app has been walked with that exact bundle on a release phone or an emulator. `publish-release.ps1` stops before GitHub without a full, crash-free walk of that bundle.
 
 ## 0.0.14 (2026-10-20)
 
