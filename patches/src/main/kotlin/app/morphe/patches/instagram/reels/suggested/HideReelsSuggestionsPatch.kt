@@ -108,7 +108,7 @@ internal object FriendsTabPageFingerprint : Fingerprint(
 internal object NetegoDispatchFingerprint : Fingerprint(
     returnType = "L",
     parameters = listOf("L", "I"),
-    strings = listOf(CREATORS_TO_FOLLOW, FRIENDS_TO_FOLLOW),
+    filters = listOf(string(FRIENDS_TO_FOLLOW)),
     custom = { method, _ -> method.holdsString(CREATORS_TO_FOLLOW) && method.holdsString(FRIENDS_TO_FOLLOW) },
 )
 

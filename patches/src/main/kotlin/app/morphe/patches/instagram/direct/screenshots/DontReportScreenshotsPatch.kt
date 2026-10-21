@@ -18,6 +18,7 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.direct.ghost.ghostModeEntryPatch
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsConstString
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
@@ -41,7 +42,8 @@ internal val FOUND_PARAMETERS = listOf("J", "Ljava/lang/String;", "Ljava/util/Li
 
 /** The media detector's session starter, the one method writing both of its log lines. */
 internal object ContentDetectorFingerprint : Fingerprint(
-    strings = listOf(CONTENT_DETECTOR, DETECTOR_SESSION),
+    filters = listOf(string(CONTENT_DETECTOR)),
+    custom = { method, _ -> method.loadsConstString(DETECTOR_SESSION) },
 )
 
 /** The folder detector's static (detector, path, list) report, the one method logging [FOLDER_REPORT]. */

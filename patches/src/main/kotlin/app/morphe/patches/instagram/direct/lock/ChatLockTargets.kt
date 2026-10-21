@@ -20,6 +20,8 @@ import app.morphe.patches.instagram.direct.seen.visualReference
 import app.morphe.patches.instagram.direct.seen.visualString
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsConstString
+import app.morphe.patches.instagram.misc.extension.loadsConstStringContaining
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.requireLocals
@@ -85,15 +87,17 @@ internal object ChatPauseFingerprint : Fingerprint(
 /** The method that hands a push's notifications to Android: it logs both the display and the alert-once flag. */
 internal object PushDisplayFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(PUSH_ALERT_ONCE, PUSH_DISPLAYED),
-    custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.isNotEmpty() },
+    filters = listOf(string(PUSH_ALERT_ONCE)),
+    custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.isNotEmpty() &&
+        method.loadsConstStringContaining(PUSH_DISPLAYED) },
 )
 
 /** A push's toString, whose labels name the fields the push keeps its link and chat ids in. */
 internal object PushLabelsFingerprint : Fingerprint(
     returnType = STRING,
-    strings = listOf(PUSH_ACTION, PUSH_THREAD, PUSH_THREAD_IG),
-    custom = { method, _ -> method.name == "toString" && method.parameterTypes.isEmpty() },
+    filters = listOf(string(PUSH_ACTION)),
+    custom = { method, _ -> method.name == "toString" && method.parameterTypes.isEmpty() &&
+        method.loadsConstStringContaining(PUSH_THREAD) && method.loadsConstString(PUSH_THREAD_IG) },
 )
 
 /**

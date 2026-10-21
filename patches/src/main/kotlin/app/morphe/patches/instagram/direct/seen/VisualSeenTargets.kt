@@ -7,12 +7,14 @@ package app.morphe.patches.instagram.direct.seen
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsConstString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireFreeAt
@@ -48,9 +50,10 @@ private const val OBJECT = "Ljava/lang/Object;"
 /** Voice receipts share the endpoint, so both native strings are required. */
 internal object VisualSeenFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(VISUAL_ENDPOINT, VISUAL_KIND),
+    filters = listOf(string(VISUAL_ENDPOINT)),
     custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) &&
-        method.parameterTypes.size == 3 && method.parameterTypes.all { it.startsWith("L") } },
+        method.parameterTypes.size == 3 && method.parameterTypes.all { it.startsWith("L") } &&
+        method.loadsConstString(VISUAL_KIND) },
 )
 
 internal data class VisualSeenTargets(

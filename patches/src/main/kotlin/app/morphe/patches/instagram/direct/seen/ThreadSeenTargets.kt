@@ -7,11 +7,13 @@ package app.morphe.patches.instagram.direct.seen
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCallingInto
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsConstString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireFreeAt
@@ -48,9 +50,10 @@ private const val JAVA_OBJECT = "Ljava/lang/Object;"
 /** The queue's handler for the receipt: the one method holding both names of its mutation. */
 internal object ThreadSeenFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(THREAD_SEEN_QUERY, THREAD_SEEN_ROOT),
+    filters = listOf(string(THREAD_SEEN_QUERY)),
     custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) &&
-        method.parameterTypes.size == 3 && method.parameterTypes.all { it.startsWith("L") } },
+        method.parameterTypes.size == 3 && method.parameterTypes.all { it.startsWith("L") } &&
+        method.loadsConstString(THREAD_SEEN_ROOT) },
 )
 
 internal data class ThreadSeenTargets(
