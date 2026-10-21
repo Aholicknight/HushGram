@@ -226,7 +226,8 @@ public class SettingsSearchTest {
      */
     @Test public void searchTextDropsAccentsAndMarksAndWorksEachStringOutOnce() {
         String once = HushgramPreferenceFragment.searchText("Configuración DE Ubicación​");
-        assertEquals("configuracion de ubicacion", once);
+        String folded = "configuracion de ubicacion";
+        assertEquals(folded, once);
         assertSame(once, HushgramPreferenceFragment.searchText(new StringBuilder("Configuración DE Ubicación​")));
         assertEquals("", HushgramPreferenceFragment.searchText(null));
     }
