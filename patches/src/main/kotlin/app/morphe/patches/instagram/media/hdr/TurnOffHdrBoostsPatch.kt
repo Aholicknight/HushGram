@@ -27,7 +27,9 @@ import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.ArrayPayload
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -133,19 +135,51 @@ internal const val OPTION_OFF = "$HDR_BOOST->optionOff(JII)Z"
 /**
  * Where [ids] sit in Instagram's option table: the class initializer whose int arrays list every
  * option id the app knows, one after another, so that an option's place among them is the index its
- * specifiers carry in bits 32 to 47. Every index is -1 when no table lists them all.
+ * specifiers carry in bits 32 to 47. The ARMv7 builds keep the first 5000 ids in a same-class `()[I`
+ * helper the initializer calls before it fills the rest, so the ids are read in the order the
+ * initializer builds them. Every index is -1 when no table lists them all.
  */
 internal fun BytecodePatchContext.optionIndexes(vararg ids: Int): List<Int> {
     var table: List<Int>? = null
     classDefForEach { classDef ->
         if (table != null) return@classDefForEach
         val initializer = classDef.methods.firstOrNull { it.name == "<clinit>" } ?: return@classDefForEach
-        val listed = initializer.implementation?.instructions
-            ?.filterIsInstance<ArrayPayload>()?.filter { it.elementWidth == 4 }
-            ?.flatMap { payload -> payload.arrayElements.map { it.toInt() } }.orEmpty()
+        if (initializer.implementation?.instructions?.none { it is ArrayPayload && it.elementWidth == 4 } != false) return@classDefForEach
+        val listed = classDef.listedIds(initializer, helpers = true)
         if (listed.size >= OPTION_TABLE_MIN && ids.all { it in listed }) table = listed
     }
     return ids.map { id -> table?.indexOf(id) ?: -1 }
+}
+
+/**
+ * The int ids [method] builds, in order: a same-class `()[I` helper's ids where it calls one (when
+ * [helpers]), each int array where it's filled, then the int arrays nothing fills.
+ */
+private fun ClassDef.listedIds(method: Method, helpers: Boolean): List<Int> {
+    val instructions = method.implementation?.instructions?.toList() ?: return emptyList()
+    var address = 0
+    val addresses = instructions.map { instruction -> address.also { address += instruction.codeUnits } }
+    val payloads = sortedMapOf<Int, ArrayPayload>()
+    instructions.forEachIndexed { index, instruction ->
+        if (instruction is ArrayPayload && instruction.elementWidth == 4) payloads[addresses[index]] = instruction
+    }
+    val listed = ArrayList<Int>()
+    instructions.forEachIndexed { index, instruction ->
+        when (instruction.opcode) {
+            Opcode.FILL_ARRAY_DATA -> payloads.remove(addresses[index] + (instruction as OffsetInstruction).codeOffset)
+                ?.let { payload -> payload.arrayElements.mapTo(listed) { it.toInt() } }
+            Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE -> if (helpers) {
+                val called = (instruction as ReferenceInstruction).reference as MethodReference
+                if (called.definingClass == type && called.parameterTypes.isEmpty() && called.returnType == "[I") {
+                    methods.firstOrNull { it.name == called.name && it.parameterTypes.isEmpty() && it.returnType == "[I" }
+                        ?.let { helper -> listed += listedIds(helper, helpers = false) }
+                }
+            }
+            else -> Unit
+        }
+    }
+    payloads.values.forEach { payload -> payload.arrayElements.mapTo(listed) { it.toInt() } }
+    return listed
 }
 
 /**

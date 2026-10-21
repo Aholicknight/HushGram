@@ -31,6 +31,9 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction12x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31t
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -52,10 +55,53 @@ class TurnOffHdrOptionsHookTest {
      * at 1100, the second array's hundredth.
      */
     private fun table(type: String = "Lfixture/Options;"): ClassDef {
+        val ids = tableIds()
+        return initializerListing(type, ids.take(1000), ids.drop(1000))
+    }
+
+    private fun tableIds(): List<Int> {
         val ids = (0 until 1200).map { 200000 + it }.toMutableList()
         ids[7] = SUPER_WHITE_OPTION
         ids[1100] = ULTRA_HDR_OPTION
-        return initializerListing(type, ids.take(1000), ids.drop(1000))
+        return ids
+    }
+
+    /**
+     * The same table as the ARMv7 builds lay it out: the initializer calls a same-class helper that
+     * fills and answers the first 1000 ids, then fills the last 200 itself, so its own array is too
+     * short to be the table and comes second.
+     */
+    private fun helperTable(type: String = "Lfixture/Options;"): ClassDef {
+        val ids = tableIds()
+        fun static(name: String, returnType: String, code: List<Instruction>) = ImmutableMethod(
+            type, name, emptyList(), returnType,
+            AccessFlags.STATIC.value or (if (name == "<clinit>") AccessFlags.CONSTRUCTOR.value else 0), null, null,
+            ImmutableMethodImplementation(2, code, null, null),
+        )
+        val helper = ImmutableMethodReference(type, "A01", emptyList<String>(), "[I")
+        return ImmutableClassDef(
+            type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+            listOf(
+                static(
+                    "A01", "[I",
+                    listOf(
+                        ImmutableInstruction31t(Opcode.FILL_ARRAY_DATA, 0, 4),
+                        ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+                        ImmutableArrayPayload(4, ids.take(1000)),
+                    ),
+                ),
+                static(
+                    "<clinit>", "V",
+                    listOf(
+                        ImmutableInstruction35c(Opcode.INVOKE_STATIC, 0, 0, 0, 0, 0, 0, helper),
+                        ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+                        ImmutableInstruction31t(Opcode.FILL_ARRAY_DATA, 0, 4),
+                        ImmutableInstruction10x(Opcode.RETURN_VOID),
+                        ImmutableArrayPayload(4, ids.drop(1000)),
+                    ),
+                ),
+            ),
+        )
     }
 
     private fun initializerListing(type: String, vararg arrays: List<Int>): ClassDef = ImmutableClassDef(
@@ -107,6 +153,12 @@ class TurnOffHdrOptionsHookTest {
         assertEquals(listOf(-1), PatchContexts.of(listOf(table())).optionIndexes(68886))
     }
 
+    /** On the ARMv7 builds the helper's ids come first, then the ones the initializer fills. */
+    @Test
+    fun aHelpersIdsComeFirst() {
+        assertEquals(listOf(7, 1100), PatchContexts.of(listOf(helperTable())).optionIndexes(SUPER_WHITE_OPTION, ULTRA_HDR_OPTION))
+    }
+
     @Test
     fun theBooleanReadAsksHdrBoostFirst() {
         val context = PatchContexts.of(listOf(table(), optionReader()))
@@ -148,7 +200,7 @@ class TurnOffHdrOptionsHookTest {
     }
 
     /**
-     * On the declared build the table lists both options, a boolean specifier in the build names
+     * On each declared build, ARMv7 ones too, the table lists both options, a boolean specifier in the build names
      * Ultra HDR always on's index, which shows the index is the one specifiers carry, and the hook
      * goes into the one boolean read, the one at least two of its class's other boolean reads end in.
      */
@@ -163,6 +215,7 @@ class TurnOffHdrOptionsHookTest {
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+        for (base in Fixtures.otherBuilds()) build(base, base.parentFile.name)
     }
 
     private fun build(bundle: File, label: String) {
@@ -183,11 +236,9 @@ class TurnOffHdrOptionsHookTest {
                             is ReferenceInstruction -> if ((instruction.reference as? StringReference)?.string == OPTION_READER_MARKER) keep = true
                         }
                     }
-                    if (method.name == "<clinit>") {
-                        val listed = method.instructions().filterIsInstance<ArrayPayload>().filter { it.elementWidth == 4 }.sumOf { it.arrayElements.size }
-                        if (listed >= 1000) keep = true
-                    }
                 }
+                val listed = classDef.methods.sumOf { method -> method.instructions().filterIsInstance<ArrayPayload>().filter { it.elementWidth == 4 }.sumOf { it.arrayElements.size } }
+                if (listed >= 1000 && classDef.methods.any { it.name == "<clinit>" }) keep = true
                 if (keep) kept += ImmutableClassDef.of(classDef)
             }
         }
