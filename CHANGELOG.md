@@ -11,6 +11,7 @@ Every HushGram release, newest first.
 ### Improvements
 
 * **Instagram - Find the reel you came from:** Trial reels, the ones Instagram shows to people who don't follow the creator, aren't on the creator's profile, so the search could only give up. Tapping the creator of a trial reel now shows a short note saying so and skips the search. Reported in #225.
+* **Instagram - Download any video:** Skip what's already saved reads its history file in small, fixed amounts now. A damaged file can't slow a save down, and it gets written out fresh at the next save, so newer saves aren't lost behind the damage. (#150)
 
 ## 0.0.14 (2026-10-20)
 
