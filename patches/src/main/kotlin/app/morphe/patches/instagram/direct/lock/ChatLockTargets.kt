@@ -10,6 +10,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.direct.seen.THREAD_KEY
@@ -70,14 +71,14 @@ private const val STRING_BUILDER = "Ljava/lang/StringBuilder;"
 /** The chat screen's onResume: the one method logging [CHAT_RESUME]. */
 internal object ChatResumeFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(CHAT_RESUME),
+    filters = listOf(string(CHAT_RESUME)),
     custom = { method, _ -> method.name == "onResume" && method.parameterTypes.isEmpty() && !AccessFlags.STATIC.isSet(method.accessFlags) },
 )
 
 /** The chat screen's onPause: the one method logging [CHAT_PAUSE]. */
 internal object ChatPauseFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(CHAT_PAUSE),
+    filters = listOf(string(CHAT_PAUSE)),
     custom = { method, _ -> method.name == "onPause" && method.parameterTypes.isEmpty() && !AccessFlags.STATIC.isSet(method.accessFlags) },
 )
 

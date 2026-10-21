@@ -8,6 +8,7 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patches.instagram.metaai.INBOX_SECTION_MARKER
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -68,13 +69,13 @@ val hideNotesRowPatch = bytecodePatch(
 
 /** The inbox generator's diff update, found by its trace name. */
 internal object InboxDiffFingerprint : Fingerprint(
-    strings = listOf(INBOX_DIFF),
+    filters = listOf(string(INBOX_DIFF)),
     custom = { method, classDef -> !classDef.type.startsWith(EXTENSION_ROOT) && method.holdsString(INBOX_DIFF) },
 )
 
 /** The inbox's lookup of a section's generator, found by the message it fails with. */
 internal object InboxSectionLookupFingerprint : Fingerprint(
-    strings = listOf(INBOX_SECTION_MARKER),
+    filters = listOf(string(INBOX_SECTION_MARKER)),
     custom = { method, classDef -> !classDef.type.startsWith(EXTENSION_ROOT) && method.holdsString(INBOX_SECTION_MARKER) },
 )
 

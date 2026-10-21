@@ -5,6 +5,7 @@
 package app.morphe.patches.instagram.stories.seen
 
 import app.morphe.patcher.Fingerprint
+import app.morphe.patcher.string
 
 /**
  * The strings of the method that builds Instagram's request telling it which stories you've seen, a
@@ -37,7 +38,7 @@ internal const val STORY_BINDER_TRACE = "ReelViewerItemBinder.bindToolbarViews"
  */
 internal object StoryHeaderBinderFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(STORY_BINDER_TRACE),
+    filters = listOf(string(STORY_BINDER_TRACE)),
 )
 
 /**
@@ -47,5 +48,5 @@ internal object StoryHeaderBinderFingerprint : Fingerprint(
 internal object ViewHolderFingerprint : Fingerprint(
     returnType = "V",
     parameters = listOf("Landroid/view/View;"),
-    strings = listOf("itemView may not be null"),
+    filters = listOf(string("itemView may not be null")),
 )

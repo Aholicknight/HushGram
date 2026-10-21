@@ -12,6 +12,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
@@ -114,21 +115,21 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 
 /** The profile's action row, found by the message only it throws. */
 internal object ProfileActionsFingerprint : Fingerprint(
-    strings = listOf(NO_SUGGESTED_BINDER),
+    filters = listOf(string(NO_SUGGESTED_BINDER)),
     custom = { method, _ -> method.holdsString(NO_SUGGESTED_BINDER) },
 )
 
 /** The profile header's binder, found by its trace name. */
 internal object ProfileHeaderBindFingerprint : Fingerprint(
     name = "bindView",
-    strings = listOf(HEADER_BIND),
+    filters = listOf(string(HEADER_BIND)),
     custom = { method, _ -> method.holdsString(HEADER_BIND) },
 )
 
 /** The setup of the header's row types, the one enum setup naming the standalone row of suggestions. */
 internal object HeaderRowTypesFingerprint : Fingerprint(
     name = "<clinit>",
-    strings = listOf(STANDALONE_CHAINING),
+    filters = listOf(string(STANDALONE_CHAINING)),
     custom = { method, classDef -> classDef.superclass == "Ljava/lang/Enum;" && method.holdsString(STANDALONE_CHAINING) },
 )
 

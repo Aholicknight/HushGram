@@ -11,6 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -92,7 +93,7 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 /** The method that sets the Reels pager up, by the trace name of that setup, whichever class holds it. */
 internal object ReelsViewerSetupFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(PAGER_SETUP),
+    filters = listOf(string(PAGER_SETUP)),
     custom = { method, _ -> method.holdsString(PAGER_SETUP) },
 )
 
@@ -100,7 +101,7 @@ internal object ReelsViewerSetupFingerprint : Fingerprint(
 internal object ReelsPagerEnableFingerprint : Fingerprint(
     returnType = "V",
     parameters = emptyList(),
-    strings = listOf(ENABLE_SCROLLING),
+    filters = listOf(string(ENABLE_SCROLLING)),
     custom = { method, _ -> method.holdsString(ENABLE_SCROLLING) },
 )
 

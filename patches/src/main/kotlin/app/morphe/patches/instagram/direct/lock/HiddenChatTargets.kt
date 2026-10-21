@@ -10,6 +10,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.direct.seen.THREAD_KEY
 import app.morphe.patches.instagram.direct.seen.visualCode
@@ -78,7 +79,7 @@ private const val UNMODIFIABLE_LIST = "Ljava/util/Collections;->unmodifiableList
 /** The store's readers of the sorted thread summaries: each logs [THREAD_SUMMARIES] and answers a new list. */
 internal object ThreadSummariesFingerprint : Fingerprint(
     returnType = ARRAY_LIST,
-    strings = listOf(THREAD_SUMMARIES),
+    filters = listOf(string(THREAD_SUMMARIES)),
     custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) },
 )
 
@@ -327,7 +328,7 @@ private fun BytecodePatchContext.rowsWrite(native: Method, at: Int, starter: Met
 /** The inbox's row factory: a runnable logging [INBOX_ROWS]. */
 internal object InboxRowsFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(INBOX_ROWS),
+    filters = listOf(string(INBOX_ROWS)),
     custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.isEmpty() },
 )
 
@@ -437,7 +438,7 @@ internal const val SEE_ALL_SCREEN = "Linstagram/features/direct/inbox/fragment/D
 internal object SearchRowsFingerprint : Fingerprint(
     returnType = "V",
     parameters = listOf(STRING, STRING, LIST, LIST),
-    strings = listOf("ibc_chats_context_lines"),
+    filters = listOf(string("ibc_chats_context_lines")),
     custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) },
 )
 

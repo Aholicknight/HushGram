@@ -9,6 +9,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.feed.requireOneKindField
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
@@ -89,13 +90,13 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 
 /** The converter that makes a clips item from the server's Reels item, by its trace marker. */
 internal object ClipsItemConverterFingerprint : Fingerprint(
-    strings = listOf(TO_CLIPS_ITEM),
+    filters = listOf(string(TO_CLIPS_ITEM)),
     custom = { method, _ -> method.holdsString(TO_CLIPS_ITEM) },
 )
 
 /** The method that makes the friends tab's page of people to follow into a clips item, by its trace marker. */
 internal object FriendsTabPageFingerprint : Fingerprint(
-    strings = listOf(TO_FRIENDS_TAB_PAGE),
+    filters = listOf(string(TO_FRIENDS_TAB_PAGE)),
     custom = { method, _ -> method.holdsString(TO_FRIENDS_TAB_PAGE) },
 )
 

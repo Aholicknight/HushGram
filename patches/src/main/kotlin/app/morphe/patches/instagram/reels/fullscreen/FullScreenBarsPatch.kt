@@ -10,6 +10,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -49,7 +50,7 @@ internal const val NAV_BAR_CHANGED =
 
 /** Instagram's window insets listener on each activity's window, by the two lines it logs. */
 internal object BarHeightsFingerprint : Fingerprint(
-    strings = listOf(STATUS_BAR_CHANGED),
+    filters = listOf(string(STATUS_BAR_CHANGED)),
     custom = { method, _ -> method.holdsString(STATUS_BAR_CHANGED) && method.holdsString(NAV_BAR_CHANGED) },
 )
 
