@@ -11,6 +11,7 @@ Every HushGram release, newest first.
 * **Instagram - Hide the Explore grid:** Turning on `Hide suggested accounts in search` no longer takes your recent searches away with the suggestions. Only the Suggested for you accounts go now, and your recent searches stay where they were. (#272)
 * **Instagram - Turn off HDR brightness boosts:** On Instagram's armeabi-v7a builds (for 32-bit phones) the switch now turns off SDR super white and Ultra HDR always on too. Before, only the arm64 build had those two options turned off. (#85)
 * **Instagram - HushGram settings:** The settings shortcut on the app icon no longer shows a second of Reels (or whatever tab Instagram opens on) before the settings come up. The screen stays black until they're drawn. (#55)
+* **Instagram - Download any video:** Saved reels play with sound in more apps now. Some reels only carry a newer kind of sound (xHE-AAC) that a lot of galleries and players turn silent. When that happens and the post also has a plain video file, a normal save keeps the best picture and takes the sound from that file, which plays everywhere. No re-encoding, and no new setting to touch. Reels without a plain file save just as before. Refs #242.
 
 ### Improvements
 

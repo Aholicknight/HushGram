@@ -256,6 +256,45 @@ public class ConvertSaveTest {
     }
 
     /**
+     * #242: the same reel with both switches off. A default save would mux the manifest's only
+     * sound, xHE-AAC, which many gallery apps play silent. The best picture is kept as it is and
+     * joined with the 720p file's AAC sound, no transcode and no new switch. Refused before it
+     * connects here, it falls back to the single file, which carries that same sound anyway.
+     */
+    @Test
+    public void defaultSavesTakeTheFilesSoundWhenTheManifestsIsOnlyXheAac() throws Exception {
+        String xheOnly = manifest(representation(AV1, 1080, 1920, 1_525_000, "1080p", "v1080"),
+                sound("mp4a.40.42", 84_000, "xhe"));
+        String report = save(false, false, xheOnly, HD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: video/mp4 " + AV1
+                + " 1080x1920 1525kbps 1080p + the sound of mp4 (720p), instead of mp4 (720p)"
+                + ", the manifest's sound being only xHE-AAC\n"));
+        assertFalse(report, report.contains(CONVERTED));
+        assertFalse(report, report.contains(KEPT));
+        assertFalse(report, report.contains("in a format other apps can open"));
+        assertTrue(report, report.contains(", saving mp4 (720p)"));
+
+        MediaSave.DashChoice choice = MediaSave.DashChoice.of(DashManifest.parse(xheOnly),
+                SavesForTests.renditions(HD), DownloadQuality.BEST, false, true);
+        assertFalse("the picture is kept as it is, not converted", choice.converts);
+        assertTrue(choice.soundFromFile);
+        assertNull("the xHE-AAC track isn't joined", choice.taken.audio);
+        assertEquals(AV1, choice.taken.video.codecs);
+        assertTrue("a single file is the sound source", choice.fallback != null);
+
+        // A manifest that offers AAC-LC takes that, not the file's sound.
+        choice = MediaSave.DashChoice.of(DashManifest.parse(MANIFEST), SavesForTests.renditions(SD),
+                DownloadQuality.BEST, false, true);
+        assertFalse("the manifest's AAC-LC is used where there is one", choice.soundFromFile);
+
+        // A 1080p single file ties, so the default saves it whole, as it always did.
+        report = save(false, false, xheOnly, FULL);
+        assertFalse(report, report.contains("+ the sound of"));
+        assertFalse(report, report.contains(CONVERTED));
+        assertTrue(report, report.contains("saving video mp4 (1080p)"));
+    }
+
+    /**
      * A conversion keeps the sound as it is, so with no single file to take the sound from, a
      * picture whose only sound is xHE-AAC isn't converted.
      */

@@ -147,8 +147,9 @@ final class DashSave {
 
     /**
      * As above. With [soundFrom] and no [audio], the sound is the one in the single file at
-     * [soundFrom], fetched whole: the join takes its sound track and leaves its picture (#236). Only a
-     * converted picture is joined that way, so a conversion that fails ends the save.
+     * [soundFrom], fetched whole: the join takes its sound track and leaves its picture (#236, #242).
+     * On the [convert] path a conversion that fails ends the save, since only the converted picture is
+     * joined with that sound; with [convert] off the picture is joined as it is, with no transcode.
      */
     static Downloader.Result save(
         Context application,

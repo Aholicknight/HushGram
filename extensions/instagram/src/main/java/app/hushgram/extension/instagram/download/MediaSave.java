@@ -1046,7 +1046,7 @@ public final class MediaSave {
             return saveSingleVideo(application, renditions, offered, Dash.SINGLE_FILE, null, kept.video, quality,
                 writer, progress);
         }
-        if (choice.taken != kept && !choice.converts) {
+        if (choice.taken != kept && !choice.converts && !choice.soundFromFile) {
             info(() -> "nothing of " + label + " is in a format other apps can open, saving it as the switch "
                 + "off would: " + usual.video + (usual.audio == null ? "" : " + " + usual.audio));
         }
@@ -1140,8 +1140,9 @@ public final class MediaSave {
         /** Whether [taken]'s picture is converted to H.264 before the join. */
         final boolean converts;
         /**
-         * Whether the converted picture takes its sound from [fallback]: the manifest's sound is all
-         * xHE-AAC, which apps that take AAC refuse, and the single file's is the sound a save of it keeps.
+         * Whether the picture takes its sound from [fallback], converted ([converts]) or as it is
+         * (#242): the manifest's sound is all xHE-AAC, which apps that take AAC refuse, and the single
+         * file's is the sound a save of it keeps.
          */
         final boolean soundFromFile;
 
@@ -1171,7 +1172,9 @@ public final class MediaSave {
          * As above. With saves other apps can open on and [convertible] given, a VP9 or AV1 picture
          * it passes is converted to H.264 (#236) when it suits [quality] better than the H.264 pair,
          * or with no such pair, better than the single file. With only xHE-AAC sound, a picture that
-         * beats the single file is converted and joined with that file's sound.
+         * beats the single file is converted and joined with that file's sound. With both switches
+         * off, that same join keeps the picture as it is and takes the file's sound, with no
+         * transcode, so a default save of such a reel isn't silent in apps that take AAC (#242).
          */
         static DashChoice of(List<DashManifest.Track> tracks, List<Rendition> renditions, DownloadQuality quality,
                 boolean compatible, boolean allowAv1, Predicate<DashManifest.Track> convertible) {
@@ -1190,6 +1193,15 @@ public final class MediaSave {
             boolean keptCompatible = kept != null && compatible;
             DashManifest.Pick taken = pick != null && (keptCompatible || beatsFile(pick.video, fallback, fallbackQuality, quality))
                 ? pick : null;
+            // The picture to keep beats the single file, but the manifest's only sound is xHE-AAC,
+            // which apps that take AAC play silent, and a single file is offered. Keep the picture as
+            // it is and take that file's sound, the join the convert path uses but with no transcode
+            // (#242). Only when the two switches are off: with saves other apps can open on, [kept] is
+            // null for such a manifest and the single file is saved whole instead.
+            if (taken != null && fallback != null && taken.audio != null
+                    && DashManifest.bestCompatibleAudio(tracks) == null && DashManifest.hasSound(tracks)) {
+                return new DashChoice(fallback, kept, usual, new DashManifest.Pick(taken.video, null), false, true);
+            }
             return new DashChoice(fallback, kept, usual, taken, false, false);
         }
     }
