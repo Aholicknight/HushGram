@@ -16,6 +16,7 @@ Every HushGram release, newest first.
 * **Instagram - Turn off double tap to like:** Patching takes about 4% less time with every patch on. The patch reads code only in the places its targets can be, instead of every method in the app. The patched app comes out the same. Refs #173.
 * **Instagram - View stories anonymously:** Patching with every patch on takes about 3% less time and 5% less processor work. Its checks for other callers read code only in the classes that can hold one, instead of every method in the app. The patched app comes out the same. Refs #173.
 * **Instagram - HushGram launch screen and Emoji style:** Both now ask the patcher's index where their code is instead of reading every method in the app. With every patch on, that's about 3% less processor work and a slightly quicker patch. Nothing changes in the patched app. Refs #173.
+* **Instagram - Patching speed:** Twenty-nine patches now look up the one piece of text their code holds directly, instead of checking every string in the app for it. With every patch on, a patch run finishes about 2% sooner. The patched app comes out the same. Refs #173.
 
 ## 0.0.14 (2026-10-20)
 
