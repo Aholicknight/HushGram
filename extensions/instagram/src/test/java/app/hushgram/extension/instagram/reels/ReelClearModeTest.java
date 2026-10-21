@@ -609,4 +609,54 @@ public class ReelClearModeTest {
         SettingsContextRule.withoutContext(() -> assertTrue("unready, it stays", ReelClearMode.scrubber(1, 1)));
         assertFalse("and goes again once resumed and ready", ReelClearMode.scrubber(1, 1));
     }
+
+    /**
+     * Every reel page shares one alpha for its buttons, and Instagram resets it to shown when it
+     * binds a page at rest. While a reel you put in clear mode is in it, that reset keeps the alpha
+     * as it is. The fade out, a raise short of shown, a reel waiting for its turn and your own way
+     * out all go through (#233).
+     */
+    @Test
+    public void aResetToShownKeepsTheButtonsOfAReelInClearModeHidden() {
+        Reel first = reel("first");
+        Reel second = reel("second");
+        Reel third = reel("third");
+        assertEquals("before any turn-on, Instagram's reset stands", 1f, ReelClearMode.chrome(1f, 0f), 0f);
+
+        viewer.page = first;
+        tapClearMode();
+        assertEquals("the fade out goes through", 0.4f, ReelClearMode.chrome(0.4f, 0.5f), 0f);
+        assertEquals("to its end", 0f, ReelClearMode.chrome(0f, 0.1f), 0f);
+        assertEquals("a reset to shown keeps the buttons hidden", 0f, ReelClearMode.chrome(1f, 0f), 0f);
+        assertEquals("or as far as the fade got", 0.3f, ReelClearMode.chrome(1f, 0.3f), 0f);
+        assertEquals("a raise short of shown goes through", 0.6f, ReelClearMode.chrome(0.6f, 0f), 0f);
+        assertEquals("shown stays shown", 1f, ReelClearMode.chrome(1f, 1f), 0f);
+
+        swipe(first, second);
+        assertEquals("the reel clear mode is carried to keeps it too", 0f, ReelClearMode.chrome(1f, 0f), 0f);
+
+        // The pager still names the reel that left, so it waits for the next page, and no reel is in clear mode until then.
+        ReelClearMode.left(viewer.handler, second, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
+        assertTrue(ReelClearMode.waiting());
+        assertEquals("nothing is held while the next reel waits", 1f, ReelClearMode.chrome(1f, 0f), 0f);
+        viewer.page = third;
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals("and the reel it lands on keeps it", 0f, ReelClearMode.chrome(1f, 0f), 0f);
+
+        Settings.KEEP_REEL_CLEAR_MODE.save(false);
+        assertEquals("off, Instagram's reset stands", 1f, ReelClearMode.chrome(1f, 0f), 0f);
+        Settings.KEEP_REEL_CLEAR_MODE.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused, it stands", 1f, ReelClearMode.chrome(1f, 0f), 0f);
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertEquals("unready, it stands", 1f, ReelClearMode.chrome(1f, 0f), 0f));
+        assertEquals("and is held again once on, resumed and ready", 0f, ReelClearMode.chrome(1f, 0f), 0f);
+
+        ReelClearMode.left(viewer.handler, third, Reason.EXIT_BUTTON);
+        assertEquals("leaving clear mode yourself, Instagram's fade back in goes through", 1f, ReelClearMode.chrome(1f, 0.9f), 0f);
+        assertEquals("and so does a reset", 1f, ReelClearMode.chrome(1f, 0f), 0f);
+    }
 }

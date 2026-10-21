@@ -41,6 +41,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * decides whether to draw it, with the reel's own clear mode flag, and while the switch is on a reel
  * in clear mode draws no seek bar. That is the only thing this class hides.
  *
+ * <p>Every reel page shares one alpha for its buttons, author row and top bar. Clear mode's fade
+ * animates it to hidden, and Instagram resets it to shown when it binds a page at rest, behind the
+ * fade's back, which brought every button back on a reel still in clear mode several swipes in
+ * (#233). The patch asks {@link #chrome} each time a page writes that alpha, and while a reel you
+ * put in clear mode is in it, asking for fully shown keeps the alpha as it is. The fade out never
+ * asks for fully shown, and leaving clear mode yourself forgets it before Instagram's fade back in
+ * starts, so both go through.
+ *
  * <p>Instagram's turn-on acts on whatever reel the pager is on, so {@link #current} looks at that
  * reel first and holds the turn-on back when it would be the wrong one: the reel that just left
  * clear mode, which is what the pager still names when the viewer is closing or the swipe hasn't
@@ -354,6 +362,25 @@ public final class ReelClearMode {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "clear mode seek bar", failure);
             return true;
+        }
+    }
+
+    /**
+     * The hook, where a reel page writes the alpha its buttons, author row and top bar share, with
+     * the alpha asked for and the one held now. While a reel you put in clear mode is in it, asking
+     * for fully shown from anything less keeps the alpha held (#233). Anything else, or a failure
+     * here, keeps what was asked for.
+     */
+    public static float chrome(float asked, float now) {
+        if (asked < 1f || now >= 1f || shown == null || !wanted) return asked;
+        try {
+            HookStatus.invoked(FAMILY);
+            if (!on()) return asked;
+            Logger.printDebug(() -> "Clear mode: kept the buttons hidden when Instagram reset them");
+            return now;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "clear mode buttons", failure);
+            return asked;
         }
     }
 

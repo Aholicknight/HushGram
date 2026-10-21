@@ -48,6 +48,7 @@ internal const val CLEAR_MODE_CURRENT = "$CLEAR_MODE->current(Ljava/lang/Object;
 internal const val CLEAR_MODE_PAGED = "$CLEAR_MODE->paged()V"
 internal const val CLEAR_MODE_BUILT = "$CLEAR_MODE->built(Ljava/lang/Object;)V"
 internal const val CLEAR_MODE_SCRUBBER = "$CLEAR_MODE->scrubber(II)Z"
+internal const val CLEAR_MODE_CHROME_ALPHA = "$CLEAR_MODE->chrome(FF)F"
 internal const val CLEAR_MODE_ENTER_STUB = "enter"
 internal const val CLEAR_MODE_ID_STUB = "reelId"
 
@@ -57,7 +58,9 @@ internal const val CLEAR_MODE_ID_STUB = "reelId"
  * and off, each through an action the Reels viewer hands it, and the viewer's turn-on action is the
  * one that reads the reel the pager is on. The exit button a reel in clear mode draws is a
  * component of its own, and the pager's listener reports each page it lands on. The seek bar row
- * under a reel draws Instagram's scrubber on long reels, clear mode or not (#277).
+ * under a reel draws Instagram's scrubber on long reels, clear mode or not (#277). Every reel page
+ * writes the one alpha its buttons, author row and top bar share through its holder's setter,
+ * which clear mode's fade animates and Instagram resets to shown when it binds a page (#233).
  */
 internal const val CLEAR_MODE_ENABLE = "FullscreenViewActionHandler_handleFullscreenViewEnable"
 internal const val CLEAR_MODE_DISMISS = "FullscreenViewActionHandler_handleFullscreenViewDismiss"
@@ -65,9 +68,12 @@ internal const val CLEAR_MODE_ENABLED = "ClipsViewerNavigatorProvider_handleFull
 internal const val CLEAR_MODE_BUTTON = "ClipsFullscreenViewComponent_render"
 internal const val REEL_PAGE_SELECTED = "ClipsViewerViewPagerListener_onPageSelected"
 internal const val CLEAR_MODE_SCRUBBER_ROW = "ClipsScrubberRowComponent_render"
+internal const val CLEAR_MODE_CHROME = "LithoClipsItemDefinition_Holder_updateChromeAlpha"
 
-internal val CLEAR_MODE_MARKERS =
-    listOf(CLEAR_MODE_ENABLE, CLEAR_MODE_DISMISS, CLEAR_MODE_ENABLED, CLEAR_MODE_BUTTON, REEL_PAGE_SELECTED, CLEAR_MODE_SCRUBBER_ROW)
+internal val CLEAR_MODE_MARKERS = listOf(
+    CLEAR_MODE_ENABLE, CLEAR_MODE_DISMISS, CLEAR_MODE_ENABLED, CLEAR_MODE_BUTTON, REEL_PAGE_SELECTED, CLEAR_MODE_SCRUBBER_ROW,
+    CLEAR_MODE_CHROME,
+)
 
 /** The reason Instagram turns clear mode off with when a reel leaves the screen, which its enum has to name. */
 internal const val CLEAR_MODE_SWIPED_AWAY = "REELS_VIEWER_SWIPE_OR_EXIT"
@@ -89,8 +95,10 @@ private const val STRING = "Ljava/lang/String;"
  * takes as nothing to do. The pager's listener tells the extension first thing about each page, and
  * the exit button's render hands over its reel first thing. The seek bar row's render asks the
  * extension at its test of whether to draw the scrubber, with the answer and the reel state's clear
- * mode flag, and tests what comes back. The extension's two stubs are filled with the handler's
- * turn-on and the reel's getId.
+ * mode flag, and tests what comes back. The reel holder's chrome alpha setter passes the alpha it
+ * was asked for through the extension, with the one it holds, right after reading that one, and
+ * stores what comes back. The extension's two stubs are filled with the handler's turn-on and the
+ * reel's getId.
  *
  * Everything is found by Instagram's own markers and checked before anything changes, so a build
  * that differs stops the patch saying what it couldn't find, and nothing is half done.
@@ -135,7 +143,11 @@ internal class ClearModeHooks(
     val rowState: String,
     val reelState: String,
     val flag: String,
-    /** How many instructions the turn-on, the turn-off, the viewer's turn-on and the row had when their places were found. */
+    /** The reel holder's chrome alpha setter, the index after it read the alpha it holds, and the register that alpha is in. */
+    val chrome: Method,
+    val hold: Int,
+    val alpha: Int,
+    /** How many instructions the turn-on, the turn-off, the viewer's turn-on, the row and the chrome setter had when their places were found. */
     val lengths: List<Int>,
 )
 
@@ -285,14 +297,47 @@ internal fun BytecodePatchContext.findClearMode(): ClearModeHooks {
     row.requireThisIntact(KEEP, listOf(scrubber))
     val borrowed = row.freeLocalsAt(KEEP, scrubber, 1, except = listOf(shown)).single()
 
-    val every = listOf(enable, dismiss, enabled, paged, button, row).map { it.describe() }
+    // The reel holder's chrome alpha setter: an instance method taking the alpha, which reads the
+    // alpha it holds once, compares and stores the asked one. The hook goes right after the read,
+    // where both are in hand, and answers the alpha to store in the asked one's register.
+    val chrome = single(CLEAR_MODE_CHROME)
+    if (chrome.isStatic() || chrome.returnType != "V" || chrome.parameterTypes.map(Any::toString) != listOf("F") ||
+        chrome.implementation == null
+    ) {
+        stop("${chrome.describe()}, marked $CLEAR_MODE_CHROME, isn't an instance method taking the alpha")
+    }
+    val chromeCode = chrome.body()
+    val heldReads = chromeCode.indices.filter { at ->
+        val call = chromeCode[at].methodReference()
+        call?.definingClass == NUMBER && call.name == "floatValue" && call.parameterTypes.isEmpty() && call.returnType == "F"
+    }
+    val heldRead = heldReads.singleOrNull()
+        ?: stop("${chrome.describe()} reads the alpha it holds ${heldReads.size} times, expected once")
+    val heldKept = chromeCode.getOrNull(heldRead + 1) as? OneRegisterInstruction
+    if (heldKept == null || heldKept.opcode != Opcode.MOVE_RESULT) stop("${chrome.describe()} doesn't keep the alpha it holds")
+    val hold = heldRead + 2
+    if (hold >= chromeCode.size) stop("${chrome.describe()} ends at reading the alpha it holds")
+    if (hold in chrome.jumpTargets()) stop("${chrome.describe()} jumps past its read of the alpha it holds, so the hook would be skipped")
+    val asked = chrome.parameterRegisterNumber(0)
+    val alpha = heldKept.registerA
+    if (asked > 15 || alpha > 15) stop("${chrome.describe()} keeps the alphas in v$asked and v$alpha, which the hook's call can't name")
+    chrome.requireParameterIntact(KEEP, 0, listOf(hold))
+    val stored = (hold until chromeCode.size).any { at ->
+        val call = chromeCode[at].methodReference()
+        call?.definingClass == FLOAT && call.name == "valueOf" && call.parameterTypes.map(Any::toString) == listOf("F") &&
+            chromeCode[at].registers() == listOf(asked)
+    }
+    if (!stored) stop("${chrome.describe()} doesn't store the alpha it was asked for")
+
+    val every = listOf(enable, dismiss, enabled, paged, button, row, chrome).map { it.describe() }
     if (every.toSet().size != every.size) stop("two hooks would go in one method: $every")
 
     return ClearModeHooks(
         enable, entered, dismiss, left, enabled, current, kept.registerA, paged, button,
         buttonReel.describe(), handler, reason, item,
         row, scrubber, shown, borrowed, rowState.describe(), reelState.describe(), flag.describe(),
-        listOf(enable, dismiss, enabled, row).map { it.body().size },
+        chrome, hold, alpha,
+        listOf(enable, dismiss, enabled, row, chrome).map { it.body().size },
     )
 }
 
@@ -355,6 +400,8 @@ private fun ControlFlow.reachedFrom(start: Int): BitSet {
 }
 
 private const val BUILDER = "Ljava/lang/StringBuilder;"
+private const val NUMBER = "Ljava/lang/Number;"
+private const val FLOAT = "Ljava/lang/Float;"
 
 /**
  * The index after the one action [this] handler method runs: an interface call named invoke that
@@ -409,16 +456,17 @@ private val THROWS = setOf(Opcode.THROW)
  * Each hook reads registers the find phase checked and borrows none but the exit button's, which
  * goes in first where no local holds anything yet, and the seek bar row's, a local nothing reads
  * past its test. The two handler hooks and the viewer's go in with a plain insert on purpose: the
- * handler's own branch around a missing action keeps landing past the hook. Those three and the
- * row's go in by the index the find phase read, which holds only while each method is as long as
- * it was, so one that changed in between stops the patch before any hook is in.
+ * handler's own branch around a missing action keeps landing past the hook. Those three, the row's
+ * and the chrome setter's go in by the index the find phase read, which holds only while each
+ * method is as long as it was, so one that changed in between stops the patch before any hook is in.
  */
 internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
     val enable = changing(found.enable)
     val dismiss = changing(found.dismiss)
     val enabled = changing(found.enabled)
     val row = changing(found.row)
-    listOf(enable, dismiss, enabled, row).forEachIndexed { at, method ->
+    val chrome = changing(found.chrome)
+    listOf(enable, dismiss, enabled, row, chrome).forEachIndexed { at, method ->
         if (method.body().size != found.lengths[at]) stop("${method.describe()} changed after its hook's place was found")
     }
     enable.addInstructions(found.entered, "invoke-static/range { p0 .. p1 }, $CLEAR_MODE_ENTERED")
@@ -460,6 +508,14 @@ internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
             :ask
             invoke-static { v$shown, v$flag }, $CLEAR_MODE_SCRUBBER
             move-result v$shown
+        """,
+    )
+    // The alpha asked for and the one held go in, and what comes back is what Instagram compares and stores.
+    chrome.addInstructions(
+        found.hold,
+        """
+            invoke-static { p1, v${found.alpha} }, $CLEAR_MODE_CHROME_ALPHA
+            move-result p1
         """,
     )
 }
