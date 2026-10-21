@@ -18,6 +18,7 @@ Every HushGram release, newest first.
 * **Instagram:** HushGram launch screen and Emoji style now ask the patcher's index where their code is, instead of reading every method in the app. With every patch on, that's about 3% less processor work. The patched app comes out the same. Refs #173.
 * **Instagram:** Patches that find their code by a piece of text, or by Instagram's internal labels, now look it up directly instead of checking every string in the app. Patching is about 2% quicker. The patched app is the same. Refs #173.
 * **Tooling:** `scripts/native-runner.ps1` runs checks inside the installed patched Instagram on an offline emulator, as a throwaway signed-out Android user. Each verdict names the exact APK it ran on. Two controls (build identity, a missing hook) must hold before feature checks count.
+* **Tooling:** The native runner's first feature checks cover Hide your active status. They build Instagram's own presence requests without sending them, and only Active may turn Idle, only while the switch is on and HushGram isn't paused.
 
 ## 0.0.14 (2026-10-20)
 

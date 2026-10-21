@@ -33,8 +33,14 @@
 $NativeRunnerPackage = 'app.hushgram.nativerunner'
 $NativeRunnerUserName = 'hushgram-native-runner'
 $NativeRunnerAbsentHook = 'app.hushgram.extension.nativerunner.AbsentHook'
-# Every run proves the controls first. Feature cases join this list once the controls hold.
-$NativeRunnerCases = @('bind', 'control-positive', 'control-negative')
+# Every run proves the controls first.
+$NativeRunnerControlCases = @('bind', 'control-positive', 'control-negative')
+# Then, only once they hold, the feature cases in this order, each with the case it builds on:
+# presence-paused needs the settings presence saves, so it runs only after presence passed.
+$NativeRunnerFeatureCases = [ordered]@{ 'presence' = $null; 'presence-paused' = 'presence' }
+# What every result carries. Anything else a case reports is what it observed.
+$NativeRunnerResultKeys = @('case', 'verdict', 'package', 'versionName', 'versionCode', 'signerSha256', 'baseApkSha256', 'user',
+    'process', 'network', 'missingHook', 'prerequisite', 'buildIdentity', 'error', 'detail')
 
 function Find-NativeRunnerSdkTool {
     param([string]$Directory, [string]$Name)
@@ -367,6 +373,13 @@ function Get-NativeRunnerCaseVerdict {
         $verdict = 'fail'
         $problems.Add("the extension answered build identity '$($results['hushgram.buildIdentity'])', the target APK carries '$($Target.BuildIdentity)'")
     }
+    $observed = [ordered]@{}
+    foreach ($key in @($results.Keys)) {
+        $name = [string]$key
+        if ($name.StartsWith('hushgram.', [StringComparison]::Ordinal) -and $name.Substring(9) -cnotin $NativeRunnerResultKeys) {
+            $observed[$name.Substring(9)] = [string]$results[$key]
+        }
+    }
     [pscustomobject]@{
         Case = $Case
         Verdict = $verdict
@@ -374,8 +387,23 @@ function Get-NativeRunnerCaseVerdict {
         Prerequisite = [string]$results['hushgram.prerequisite']
         BuildIdentity = [string]$results['hushgram.buildIdentity']
         Error = [string]$results['hushgram.error']
+        Detail = [string]$results['hushgram.detail']
+        Observed = $observed
         Problems = @($problems)
     }
+}
+
+function Test-NativeRunnerControls {
+    <#
+    .SYNOPSIS
+        Whether the verdicts prove both controls: the positive one passed and the negative one
+        failed on the absent hook alone.
+    #>
+    param($Verdicts)
+    $positive = @($Verdicts | Where-Object Case -ceq 'control-positive')
+    $negative = @($Verdicts | Where-Object Case -ceq 'control-negative')
+    $positive.Count -eq 1 -and $positive[0].Verdict -ceq 'pass' -and
+        $negative.Count -eq 1 -and $negative[0].Verdict -ceq 'fail' -and $negative[0].MissingHook -ceq $NativeRunnerAbsentHook
 }
 
 function Invoke-NativeRunnerAdb {
@@ -394,7 +422,8 @@ function Get-NativeRunnerPhoneRefusal {
 function Invoke-NativeRunnerSession {
     <#
     .SYNOPSIS
-        Run the controls on a verified, leased device and remove everything the run created.
+        Run the controls on a verified, leased device, then the feature cases once both controls
+        hold, and remove everything the run created.
     .DESCRIPTION
         Before anything is created, the installed target must be one APK whose bytes hash to the
         target's, and no runner package or test user may be left from another run. Cases run in a
@@ -493,19 +522,35 @@ function Invoke-NativeRunnerSession {
         $runnerAttempted = $true
         [void](Invoke-NativeRunnerAdb @call -Arguments @('install', '--user', $user, $RunnerApk) -Failure 'Could not install the runner')
         $runnerInstalled = $true
-        foreach ($case in $NativeRunnerCases) {
+        # One case in a new target process. False once a case ran out of time, which ends the run.
+        $runCase = {
+            param([string]$Case)
             $run = Invoke-NativeRunnerAdb @call -Arguments @('shell', 'timeout', [string]$CaseTimeoutSeconds, 'am', 'instrument', '-w', '-r',
-                '--user', $user, '-e', 'case', $case, "$NativeRunnerPackage/.Runner")
-            $verdict = Get-NativeRunnerCaseVerdict -Parsed (ConvertFrom-InstrumentOutput $run.Stdout) -Target $Target -User $user -Case $case `
-                -ExitCode $run.ExitCode -Output @($run.Stdout) -TimeoutSeconds $CaseTimeoutSeconds
-            $verdicts.Add($verdict)
-            if ($run.ExitCode -eq 124) {
-                # timeout ends am's wait, not the instrumentation, which still runs in the target.
-                [void](Invoke-NativeRunnerAdb @call -Arguments @('shell', 'am', 'force-stop', '--user', $user, $Target.Package) -Failure "Could not stop $($Target.Package) in user $user")
-                break
-            }
+                '--user', $user, '-e', 'case', $Case, "$NativeRunnerPackage/.Runner")
+            $verdicts.Add((Get-NativeRunnerCaseVerdict -Parsed (ConvertFrom-InstrumentOutput $run.Stdout) -Target $Target -User $user -Case $Case `
+                -ExitCode $run.ExitCode -Output @($run.Stdout) -TimeoutSeconds $CaseTimeoutSeconds))
+            if ($run.ExitCode -ne 124) { return $true }
+            # timeout ends am's wait, not the instrumentation, which still runs in the target.
+            [void](Invoke-NativeRunnerAdb @call -Arguments @('shell', 'am', 'force-stop', '--user', $user, $Target.Package) -Failure "Could not stop $($Target.Package) in user $user")
+            $false
+        }
+        $going = $true
+        foreach ($case in $NativeRunnerControlCases) {
+            $going = & $runCase $case
             # A binding that doesn't hold makes every later verdict meaningless.
-            if ($case -ceq 'bind' -and $verdict.Verdict -cne 'pass') { break }
+            if ($going -and $case -ceq 'bind' -and $verdicts[-1].Verdict -cne 'pass') { $going = $false }
+            if (-not $going) { break }
+        }
+        if ($going -and (Test-NativeRunnerControls $verdicts)) {
+            foreach ($case in $NativeRunnerFeatureCases.Keys) {
+                $basis = $NativeRunnerFeatureCases[$case]
+                if ($basis -and @($verdicts | Where-Object { $_.Case -ceq $basis -and $_.Verdict -ceq 'pass' }).Count -eq 0) {
+                    $verdicts.Add([pscustomobject]@{ Case = $case; Verdict = 'skipped'; MissingHook = ''; Prerequisite = ''; BuildIdentity = ''
+                        Error = ''; Detail = ''; Observed = [ordered]@{}; Problems = @("it builds on $basis, which did not pass") })
+                    continue
+                }
+                if (-not (& $runCase $case)) { break }
+            }
         }
     } catch {
         $primary = $_
@@ -528,8 +573,8 @@ function Invoke-NativeRunnerSession {
             else { throw ("Runner cleanup failed: " + ($cleanupErrors -join ' ')) }
         }
     }
-    $positive = @($verdicts | Where-Object Case -ceq 'control-positive')
-    $negative = @($verdicts | Where-Object Case -ceq 'control-negative')
+    $controlsProven = Test-NativeRunnerControls $verdicts
+    $features = @($verdicts | Where-Object { $NativeRunnerFeatureCases.Contains($_.Case) })
     [pscustomobject]@{
         Serial = $serial
         User = $user
@@ -537,8 +582,10 @@ function Invoke-NativeRunnerSession {
         NetworkOff = $networkOff
         Target = $Target
         Cases = @($verdicts)
-        ControlsProven = $positive.Count -eq 1 -and $positive[0].Verdict -ceq 'pass' -and
-            $negative.Count -eq 1 -and $negative[0].Verdict -ceq 'fail' -and $negative[0].MissingHook -ceq $NativeRunnerAbsentHook
+        ControlsProven = $controlsProven
+        # Every feature case ran and passed. needs-session counts against it: it was never judged.
+        FeaturesPassed = $controlsProven -and $features.Count -eq $NativeRunnerFeatureCases.Count -and
+            @($features | Where-Object Verdict -cne 'pass').Count -eq 0
     }
 }
 
@@ -637,6 +684,7 @@ function Invoke-NativeRunner {
         target = $session.Target
         cases = $session.Cases
         controlsProven = $session.ControlsProven
+        featuresPassed = $session.FeaturesPassed
     }
     [IO.File]::WriteAllText($Verdict, ($written | ConvertTo-Json -Depth 6), [Text.UTF8Encoding]::new($false))
     $session | Add-Member -NotePropertyName VerdictPath -NotePropertyValue $Verdict -PassThru

@@ -15,6 +15,12 @@
     hook no patch defines and has to fail with that hook named as missing. Feature cases build on
     these, so a run whose controls don't hold fails as a whole.
 
+    The feature cases run next, each in a new target process. presence builds Instagram's own
+    presence write requests for Active, Idle, Offline and Disabled and reads back the status each
+    keeps: before the settings are ready, then with Hide your active status off and on. Only
+    Active may become Idle, and only while the switch is on. presence-paused builds one in a start
+    the Pause switch paused. Nothing is sent. The run fails unless every feature case passed.
+
     The cases run in a new Android user created for the run, which has never signed in, and that
     user is removed afterwards along with the runner. The target app and its data in every other
     user are left as they were. Instagram's Application.onCreate never runs, but Android still
@@ -91,9 +97,13 @@ $session = Invoke-NativeRunner -Tools $tools -TargetApk $TargetApk -Report $Repo
 
 foreach ($case in $session.Cases) {
     $why = if ($case.Problems.Count) { ': ' + ($case.Problems -join '; ') } elseif ($case.Prerequisite) { " ($($case.Prerequisite))" }
+        elseif ($case.Detail) { ": $($case.Detail)" } elseif ($case.Error) { ": $($case.Error)" }
         elseif ($case.MissingHook) { " (missing $($case.MissingHook))" } else { '' }
     Write-Host "[native] $($case.Case) $($case.Verdict)$why"
+    foreach ($key in $case.Observed.Keys) { Write-Host "[native]   $key = $($case.Observed[$key])" }
 }
 Write-Host "[native] verdict written to $($session.VerdictPath)"
 if (-not $session.ControlsProven) { throw 'The native controls did not hold, so no feature case can be trusted on this target.' }
 Write-Host "[native] controls proven on $($session.Serial), user $($session.User), network off"
+if (-not $session.FeaturesPassed) { throw 'Not every feature case passed.' }
+Write-Host "[native] all $($NativeRunnerFeatureCases.Count) feature cases passed"
