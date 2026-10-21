@@ -964,6 +964,47 @@ public class ReelOriginTest {
     }
 
     /**
+     * A trial reel isn't on its poster's profile at all (#225), so nothing is held, a toast says why
+     * at once, and the profile's grids are left alone.
+     */
+    @Test
+    public void aTrialReelIsNotLookedFor() {
+        ReelOrigin.opening(new Reel(REEL), ON, VIDEO, media -> true);
+        ShadowLooper.idleMainLooper();
+        assertNull(ReelOrigin.heldForTests());
+        assertEquals("That's a trial reel, so it isn't on their profile", ShadowToast.getTextOfLatestToast());
+        List<String> posts = reels(30, 9000);
+        posts.set(20, REEL);
+        openProfile(posts, null);
+
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON, OFF);
+        ReelOrigin.postsGridResumed(new PostsGrid(profile, grid, ReelOrigin.POSTS), ON, OFF);
+        idleSeconds(3);
+        assertTrue(shown.isEmpty());
+        assertTrue(grid.drags.isEmpty());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.TRIAL + " 1"));
+    }
+
+    /** A reel whose trial flag reads false, or can't be read (null or a throw), is held and found as before. */
+    @Test
+    public void aReelThatIsNoTrialIsFoundAsBefore() {
+        Function<Object, Boolean> throwing = media -> { throw new ClassCastException("not a Media"); };
+        for (Function<Object, Boolean> trial : List.<Function<Object, Boolean>>of(media -> false, media -> null, throwing)) {
+            ReelOrigin.forget();
+            shown.clear();
+            ReelOrigin.opening(new Reel(REEL), ON, VIDEO, trial);
+            assertEquals(REEL, ReelOrigin.heldForTests());
+            openProfile(List.of("3000_7", REEL, "2900_7"), null);
+
+            ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON, OFF);
+            idleSeconds(2);
+            assertEquals(List.of(REEL), shown);
+        }
+        assertNull("no toast", ShadowToast.getTextOfLatestToast());
+    }
+
+    /**
      * Only the profile's main posts grid looks. Its tagged, fan club and long video grids are left
      * alone, and so is a second posts grid in the same screen, which is another profile's.
      */

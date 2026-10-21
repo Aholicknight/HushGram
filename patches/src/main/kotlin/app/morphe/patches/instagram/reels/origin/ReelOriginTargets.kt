@@ -6,6 +6,7 @@ package app.morphe.patches.instagram.reels.origin
 
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.download.activeTrialBridge
 import app.morphe.patches.instagram.download.mediaTypeBridge
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.jumpTargets
@@ -59,9 +60,16 @@ internal const val GRID_KEY = "ProfileMediaTabFragment.profile_tab_identifier"
 
 /**
  * What the patch writes into: the profile opener and the reel's media field it reads, the Reels
- * tab's onResume, and for photo reels the posts grid's, when it can be told.
+ * tab's onResume, for photo reels the posts grid's, and the step that writes the trial reel bridge,
+ * each of the last two when it can be told.
  */
-internal class ReelOriginTargets(val openProfile: Method, val media: Field, val tabResume: Method, val photoReels: PhotoReelTargets?)
+internal class ReelOriginTargets(
+    val openProfile: Method,
+    val media: Field,
+    val tabResume: Method,
+    val photoReels: PhotoReelTargets?,
+    val writeTrial: (() -> Unit)?,
+)
 
 /** The posts grid's onResume, and the step that writes the media type bridge the extension reads. */
 internal class PhotoReelTargets(val gridResume: Method, val writeMediaType: () -> Unit)
@@ -143,7 +151,19 @@ internal fun BytecodePatchContext.findReelOriginTargets(): ReelOriginTargets {
                 AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
         } ?: refuse("extension has no public static $name(Ljava/lang/Object;)V")
     }
-    return ReelOriginTargets(open, media, resume, findPhotoReelTargets())
+    return ReelOriginTargets(open, media, resume, findPhotoReelTargets(), findTrialBridge())
+}
+
+/**
+ * Media's one getter of `is_active_trial`, which the extension reads to skip a trial reel, one that
+ * isn't on its poster's profile (#225). Only that skip needs it, so a build where it can't be told
+ * answers null, after the patch log says why, and every reel is looked for.
+ */
+private fun BytecodePatchContext.findTrialBridge(): (() -> Unit)? = try {
+    activeTrialBridge(REEL_ORIGIN_PATCH)
+} catch (unknown: PatchException) {
+    patchLog.warning("${unknown.message}. $REEL_ORIGIN_PATCH goes in looking for trial reels too.")
+    null
 }
 
 /**

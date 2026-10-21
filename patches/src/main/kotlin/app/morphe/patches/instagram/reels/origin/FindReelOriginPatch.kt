@@ -45,7 +45,8 @@ val findReelOriginPatch = bytecodePatch(
  * reel's media, read from its one argument into v0, a local nothing has written yet. The Reels tab
  * hands itself from onResume. For photo reels the posts grid does too, just past its super call so
  * Profile posts as a list keeps the first spot, and the media type bridge's body is written. None returns anything, so no register or branch of Instagram's changes, and the
- * extension does its work after onResume has returned.
+ * extension does its work after onResume has returned. The trial reel bridge's body is written too,
+ * when Media's getter of it can be told.
  */
 internal fun BytecodePatchContext.hookReelOrigin() {
     val targets = findReelOriginTargets()
@@ -59,6 +60,7 @@ internal fun BytecodePatchContext.hookReelOrigin() {
         """,
     )
     mutable(targets.tabResume).addInstructions(0, "invoke-static/range { p0 .. p0 }, $TAB_RESUMED")
+    targets.writeTrial?.invoke()
     targets.photoReels?.let { photos ->
         photos.writeMediaType()
         val grid = mutable(photos.gridResume)

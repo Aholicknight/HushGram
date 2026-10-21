@@ -65,9 +65,46 @@ class FindReelOriginHookTest {
         assertEquals("the tab's other methods stay as they were",
             before.getValue(ReelOriginFixture.TAB).filter { !it.first.contains("->onResume(") },
             snapshot(tab.filter { it.name != "onResume" }))
-        for (other in input.filter { it.type != ReelOriginFixture.OPENER && it.type != ReelOriginFixture.TAB }) {
+        val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
+        assertTrialBridge(stubs)
+        assertEquals("the other bridges stay unwritten",
+            before.getValue(INSTAGRAM_MEDIA).filter { !it.first.contains("->activeTrial(") },
+            snapshot(stubs.filter { it.name != "activeTrial" }))
+        val hooked = setOf(ReelOriginFixture.OPENER, ReelOriginFixture.TAB, INSTAGRAM_MEDIA)
+        for (other in input.filter { it.type !in hooked }) {
             assertEquals("${other.type} changed", before[other.type], snapshot(context.mutableClassDefBy(other.type).methods))
         }
+    }
+
+    /**
+     * A trial reel isn't on its poster's profile, so the extension skips it by Media's one getter of
+     * `is_active_trial` (#225). Without one, or with two, every hook still goes in and the trial stub
+     * stays as it was, after the patch log says why, once.
+     */
+    @Test fun aMediaWithoutATrialGetterLooksForTrialReelsToo() =
+        skipsTrials(ReelOriginFixture.withPhotos(ReelOriginFixture.media(AccessFlags.PUBLIC.value, typeGetters = 1, trialGetters = 0)),
+            "for is_active_trial, found none")
+    @Test fun aMediaWithTwoTrialGettersLooksForTrialReelsToo() =
+        skipsTrials(ReelOriginFixture.withPhotos(ReelOriginFixture.media(AccessFlags.PUBLIC.value, typeGetters = 1, trialGetters = 2)),
+            "for is_active_trial, found A4p, A4q")
+
+    private fun skipsTrials(input: List<ClassDef>, reason: String) {
+        val context = PatchContexts.of(input)
+        val before = input.associate { it.type to snapshot(it.methods) }
+        val gridResume = ReelOriginFixture.postsGrid().methods.single { it.name == "onResume" }.code()
+        val tabResume = ReelOriginFixture.tab().methods.single { it.name == "onResume" }.code()
+        val warnings = PatchLogCapture.warnings { context.hookReelOrigin() }
+
+        assertEquals(warnings.toString(), 1, warnings.size)
+        assertTrue(warnings.single(), warnings.single().startsWith("$REEL_ORIGIN_PATCH: ") && reason in warnings.single() &&
+            warnings.single().endsWith("$REEL_ORIGIN_PATCH goes in looking for trial reels too."))
+        assertResumeHook(context.mutableClassDefBy(ReelOriginFixture.TAB).methods.single { it.name == "onResume" }, tabResume)
+        assertGridHook(context.mutableClassDefBy(POSTS_GRID).methods.single { it.name == "onResume" }, gridResume)
+        val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
+        assertEquals("the trial stub stays as it was", before.getValue(INSTAGRAM_MEDIA).filter { it.first.contains("->activeTrial(") },
+            snapshot(stubs.filter { it.name == "activeTrial" }))
+        assertEquals("the media type bridge is still written", "$MEDIA->A6N()Ljava/lang/Integer;",
+            stubs.single { it.name == "mediaType" }.code()[1].reference())
     }
 
     @Test fun aMissingOpenerIsRefused() = refuses("holding the $OPEN_PROFILE marker, found none",
@@ -150,9 +187,11 @@ class FindReelOriginHookTest {
             bridge.take(4).map { it.opcode })
         assertEquals(MEDIA, bridge[0].reference())
         assertEquals("the getter loading media_type, not its neighbor", "$MEDIA->A6N()Ljava/lang/Integer;", bridge[1].reference())
+        assertTrialBridge(stubs)
+        val written = setOf("mediaType", "activeTrial")
         assertEquals("the other bridges stay unwritten",
-            before.getValue(INSTAGRAM_MEDIA).filter { !it.first.contains("->mediaType(") },
-            snapshot(stubs.filter { it.name != "mediaType" }))
+            before.getValue(INSTAGRAM_MEDIA).filter { snapshot -> written.none { snapshot.first.contains("->$it(") } },
+            snapshot(stubs.filter { it.name !in written }))
         val hooked = setOf(ReelOriginFixture.OPENER, ReelOriginFixture.TAB, POSTS_GRID, INSTAGRAM_MEDIA)
         for (other in input.filter { it.type !in hooked }) {
             assertEquals("${other.type} changed", before[other.type], snapshot(context.mutableClassDefBy(other.type).methods))
@@ -211,7 +250,7 @@ class FindReelOriginHookTest {
 
     /**
      * The Reels tab is hooked as ever, while the posts grid and the media type stub are left as they
-     * were, and the patch log says why, once.
+     * were, and the patch log says why, once. The trial stub, which video reels need too, is written.
      */
     private fun skipsPhotos(input: List<ClassDef>, reason: String) {
         val context = PatchContexts.of(input)
@@ -223,9 +262,13 @@ class FindReelOriginHookTest {
         assertTrue(warnings.single(), warnings.single().startsWith("$REEL_ORIGIN_PATCH: ") && reason in warnings.single() &&
             warnings.single().endsWith("$REEL_ORIGIN_PATCH goes in finding video reels alone."))
         assertResumeHook(context.mutableClassDefBy(ReelOriginFixture.TAB).methods.single { it.name == "onResume" }, tabResume)
-        for (type in listOf(POSTS_GRID, INSTAGRAM_MEDIA).filter { type -> input.any { it.type == type } }) {
-            assertEquals("$type changed", before[type], snapshot(context.mutableClassDefBy(type).methods))
+        if (input.any { it.type == POSTS_GRID }) {
+            assertEquals("$POSTS_GRID changed", before[POSTS_GRID], snapshot(context.mutableClassDefBy(POSTS_GRID).methods))
         }
+        val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
+        assertTrialBridge(stubs)
+        assertEquals("$INSTAGRAM_MEDIA changed", before.getValue(INSTAGRAM_MEDIA).filter { !it.first.contains("->activeTrial(") },
+            snapshot(stubs.filter { it.name != "activeTrial" }))
     }
 
     /** Refused for [reason], with every class as it was. */
@@ -290,6 +333,15 @@ class FindReelOriginHookTest {
                 code.filterIndexed { index, _ -> index != at }.map { Triple(it.opcode, it.reference(), it.namedRegisters()) })
         }
 
+        /** The trial bridge casts to Media and calls the getter loading `is_active_trial`'s key, 452's A4p in the fixture. */
+        internal fun assertTrialBridge(stubs: Iterable<Method>) {
+            val bridge = stubs.single { it.name == "activeTrial" }.code()
+            assertEquals(listOf(Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT),
+                bridge.take(4).map { it.opcode })
+            assertEquals(MEDIA, bridge[0].reference())
+            assertEquals("the getter loading is_active_trial, not its neighbor", "$MEDIA->A4p()Ljava/lang/Boolean;", bridge[1].reference())
+        }
+
         internal fun snapshot(methods: Iterable<Method>) = methods.map { method ->
             method.toString() to method.code().map { Triple(it.opcode, it.reference(), it.namedRegisters()) }
         }
@@ -314,7 +366,7 @@ internal object ReelOriginFixture {
     private fun marker(name: String) = "android_purge_26_q3_$name"
 
     fun classes(): List<ClassDef> = listOf(opener(), destination(), media(AccessFlags.PUBLIC.value or AccessFlags.FINAL.value),
-        tab(), clazz(BASE, FRAGMENT, emptyList()), fragment(), extension())
+        tab(), clazz(BASE, FRAGMENT, emptyList()), fragment(), extension(), ExtensionDex.classDef(INSTAGRAM_MEDIA))
 
     /** [classes] with [replacement] in place of the class of its type. */
     fun with(replacement: ClassDef): List<ClassDef> = classes().map { if (it.type == replacement.type) replacement else it }
@@ -363,23 +415,27 @@ internal object ReelOriginFixture {
 
     /**
      * Media with its getId and [typeGetters] getters loading `media_type`'s key, as 451's A6N does,
-     * beside a getter of another Integer field, as its A6P of `original_media_type`.
+     * beside a getter of another Integer field, as its A6P of `original_media_type`, and
+     * [trialGetters] getters loading `is_active_trial`'s, as 452's A4p does, beside another Boolean's.
      */
-    fun media(getIdFlags: Int, typeGetters: Int = 0): ClassDef = clazz(MEDIA, OBJECT, listOf(method(MEDIA, "getId", emptyList(), "Ljava/lang/String;", 1,
+    fun media(getIdFlags: Int, typeGetters: Int = 0, trialGetters: Int = 1): ClassDef = clazz(MEDIA, OBJECT, listOf(method(MEDIA, "getId", emptyList(), "Ljava/lang/String;", 1,
         listOf(ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("1_2")), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)),
-        getIdFlags)) + (0 until typeGetters).map { integerGetter("A6${"NO"[it]}", "media_type") } + integerGetter("A6P", "original_media_type"))
+        getIdFlags)) + (0 until typeGetters).map { getter("A6${"NO"[it]}", "media_type") } + getter("A6P", "original_media_type") +
+        (0 until trialGetters).map { getter("A4${"pq"[it]}", "is_active_trial", BOOLEAN) } + getter("A4o", "is_paid_partnership", BOOLEAN))
 
-    private fun integerGetter(name: String, field: String) = method(MEDIA, name, emptyList(), "Ljava/lang/Integer;", 2, listOf(
+    private const val BOOLEAN = "Ljava/lang/Boolean;"
+
+    private fun getter(name: String, field: String, returns: String = "Ljava/lang/Integer;") = method(MEDIA, name, emptyList(), returns, 2, listOf(
         ImmutableInstruction31i(Opcode.CONST, 0, field.hashCode()), ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
         ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)), AccessFlags.PUBLIC.value or AccessFlags.FINAL.value)
 
     /**
-     * [classes] with what a photo reel's search needs too: 451's posts grid, Media's media_type
-     * getter and the extension's InstagramMedia stubs, then [replacements] in place of the classes of their types.
+     * [classes] with what a photo reel's search needs too: 451's posts grid and Media's media_type
+     * getter, then [replacements] in place of the classes of their types.
      */
     fun withPhotos(vararg replacements: ClassDef): List<ClassDef> =
         (classes().map { if (it.type == MEDIA) media(AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, typeGetters = 1) else it } +
-            postsGrid() + ExtensionDex.classDef(INSTAGRAM_MEDIA))
+            postsGrid())
             .map { classDef -> replacements.firstOrNull { it.type == classDef.type } ?: classDef }
 
     /**

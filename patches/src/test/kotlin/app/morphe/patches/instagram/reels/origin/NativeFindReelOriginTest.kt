@@ -36,7 +36,7 @@ import java.io.File
 /**
  * The hooks on each of 451's eight builds: the one profile opener, the one Reels tab onResume and
  * the posts grid's onResume they land in, nothing else changed, and the media type bridge a photo
- * reel is told by (#225). And what the extension's search goes by: the grid's binder
+ * reel is told by and the trial bridge a trial reel is (#225). And what the extension's search goes by: the grid's binder
  * names each tile by the string its reel's getId() returns, and the Reels tab puts up nine unnamed
  * placeholder tiles while its first page loads, which the search waits out (#30).
  */
@@ -64,7 +64,10 @@ class NativeFindReelOriginTest {
             // after its super.onResume(), leaving the first spot to Profile posts as a list (#225).
             assertGridHook(context.mutableClassDefBy(POSTS_GRID).methods.single { it.toString() == gridResume.toString() },
                 gridResume.code())
-            assertMediaTypeBridge(name, classes, context.mutableClassDefBy(INSTAGRAM_MEDIA).methods.single { it.name == "mediaType" })
+            val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
+            assertBridge(name, classes, stubs.single { it.name == "mediaType" }, "media_type", "Ljava/lang/Integer;")
+            // A trial reel, kept off its poster's profile, is told by is_active_trial and not looked for.
+            assertBridge(name, classes, stubs.single { it.name == "activeTrial" }, "is_active_trial", "Ljava/lang/Boolean;")
             for (classDef in classes.values) {
                 assertEquals("$name: ${classDef.type} changed", snapshot(classDef.methods.filter { it.toString() !in hooked }),
                     snapshot(context.mutableClassDefBy(classDef.type).methods.filter { it.toString() !in hooked }))
@@ -80,18 +83,18 @@ class NativeFindReelOriginTest {
         for (code in BUILDS) assertTrue("no fixture of build $code among $checked", checked.any { it.contains("-$code") })
     }
 
-    /** The media type bridge casts to Media and calls its one getter answering an Integer that loads `media_type`'s key. */
-    private fun assertMediaTypeBridge(name: String, classes: Map<String, ClassDef>, bridge: Method) {
+    /** A Media bridge casts to Media and calls its one getter answering [returns] that loads [field]'s key. */
+    private fun assertBridge(name: String, classes: Map<String, ClassDef>, bridge: Method, field: String, returns: String) {
         val code = bridge.code()
         assertEquals("$name: the bridge's code", listOf(Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT),
             code.take(4).map { it.opcode })
         assertEquals("$name: casts to Media", MEDIA, code[0].reference())
         val call = (code[1] as ReferenceInstruction).reference as MethodReference
         assertEquals("$name: calls Media", MEDIA, call.definingClass)
-        assertEquals("$name: answers an Integer", "Ljava/lang/Integer;", call.returnType)
+        assertEquals("$name: answers $returns", returns, call.returnType)
         val getter = classes.getValue(MEDIA).methods.single { it.name == call.name && it.parameterTypes.isEmpty() && it.returnType == call.returnType }
-        assertTrue("$name: ${call.name} loads media_type's key",
-            getter.code().any { (it as? NarrowLiteralInstruction)?.narrowLiteral == "media_type".hashCode() })
+        assertTrue("$name: ${call.name} loads $field's key",
+            getter.code().any { (it as? NarrowLiteralInstruction)?.narrowLiteral == field.hashCode() })
     }
 
     /**
@@ -173,6 +176,7 @@ class NativeFindReelOriginTest {
             val context = PatchContexts.of(classes.values + ExtensionDex.classDef(REEL_ORIGIN) + ExtensionDex.classDef(INSTAGRAM_MEDIA))
             val found = context.findReelOriginTargets()
             assertNotNull("${bundle.name}: a photo reel's posts grid is found", found.photoReels)
+            assertNotNull("${bundle.name}: Media's trial getter is found", found.writeTrial)
             val open = found.openProfile.code()
             val resume = found.tabResume.code()
             context.hookReelOrigin()

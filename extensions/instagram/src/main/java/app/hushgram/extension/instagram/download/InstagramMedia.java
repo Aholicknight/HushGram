@@ -111,6 +111,14 @@ public final class InstagramMedia {
         return null;
     }
 
+    /**
+     * A Media's {@code is_active_trial}: true for a trial reel, shown to people who don't follow its
+     * poster and kept off the poster's profile. Written by the Find the reel you came from patch alone.
+     */
+    public static Boolean activeTrial(Object media) {
+        return null;
+    }
+
     /** A Media's {@code image_versions2}: the sizes Instagram lists for its picture. */
     public static Object imageVersions(Object media) {
         return null;

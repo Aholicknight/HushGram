@@ -70,6 +70,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * resumed there later, a profile reached from it, is left alone. A video reel is looked for in the
  * Reels tab alone, as before, and so is any reel while the media type can't be read.
  *
+ * <p>A trial reel, which Instagram shows to people who don't follow its poster, isn't on the
+ * poster's profile at all, so the search could only give up (#225). When the reel's
+ * {@code is_active_trial} reads true, {@link #opening} holds nothing and a toast says so. A reel
+ * whose flag is false or can't be read is looked for as before.
+ *
  * <p>Nothing is dragged and no end is waited for until the grid holds a tile Instagram named. A
  * profile can open straight on its Reels tab (451 does for some reels), and then the tab resumes
  * before its first page: the grid shows nine grey placeholder tiles with no names, as many as fill
@@ -128,6 +133,8 @@ public final class ReelOrigin {
      * or a posts grid there is another than the first.
      */
     static final String OTHER_PROFILE = "other profile's tab";
+    /** Counted when the reel tapped is a trial reel, which isn't on the profile, so nothing is held. */
+    static final String TRIAL = "trial reel, not looked for";
 
     /** How long after the tap the profile's activity may take to be created. */
     static final long HOST_WINDOW_MS = 5000;
@@ -199,13 +206,23 @@ public final class ReelOrigin {
         opening(media, on, InstagramMedia::mediaType);
     }
 
-    /** [type] reads the media's type, null when it can't be told. */
     static void opening(Object media, BooleanSupplier on, Function<Object, Integer> type) {
+        opening(media, on, type, InstagramMedia::activeTrial);
+    }
+
+    /** [type] reads the media's type and [trial] whether it's a trial reel, each null when it can't be told. */
+    static void opening(Object media, BooleanSupplier on, Function<Object, Integer> type, Function<Object, Boolean> trial) {
         try {
             HookStatus.invoked(FamilyNames.REEL_ORIGIN);
             if (media == null || !on.getAsBoolean()) return;
             String id = mediaId(media);
             if (id == null || id.isEmpty()) return;
+            if (isTrial(media, trial)) {
+                forget();
+                HookStatus.counted(FamilyNames.REEL_ORIGIN, TRIAL);
+                Utils.showToastShort(L10n.t("That's a trial reel, so it isn't on their profile"));
+                return;
+            }
             Integer kind = type.apply(media);
             boolean photo = kind != null && (kind == PHOTO || kind == CAROUSEL);
             Application application = application();
@@ -226,6 +243,15 @@ public final class ReelOrigin {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_ORIGIN, OPENING, failure);
             forget();
+        }
+    }
+
+    /** True only when [trial] reads true. A flag that can't be read, even by throwing, is no trial reel. */
+    private static boolean isTrial(Object media, Function<Object, Boolean> trial) {
+        try {
+            return Boolean.TRUE.equals(trial.apply(media));
+        } catch (Throwable unreadable) {
+            return false;
         }
     }
 

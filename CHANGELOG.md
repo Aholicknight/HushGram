@@ -8,6 +8,10 @@ Every HushGram release, newest first.
 
 * **Instagram - Turn off HDR brightness boosts:** On Instagram's armeabi-v7a builds (for 32-bit phones) the switch now turns off SDR super white and Ultra HDR always on too. Before, only the arm64 build had those two options turned off. (#85)
 
+### Improvements
+
+* **Instagram - Find the reel you came from:** Trial reels, the ones Instagram shows to people who don't follow the creator, aren't on the creator's profile, so the search could only give up. Tapping the creator of a trial reel now shows a short note saying so and skips the search. Reported in #225.
+
 ## 0.0.14 (2026-10-20)
 
 ### Features

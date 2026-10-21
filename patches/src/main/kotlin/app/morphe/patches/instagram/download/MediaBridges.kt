@@ -295,6 +295,15 @@ internal fun BytecodePatchContext.mediaTypeBridge(patch: String): () -> Unit {
     return bridgeWriter(patch, listOf(Bridge("mediaType", MEDIA, virtual(type))))
 }
 
+/**
+ * The same for a post's `is_active_trial`, which Find the reel you came from reads to skip a trial
+ * reel, one kept off its poster's profile (#225).
+ */
+internal fun BytecodePatchContext.activeTrialBridge(patch: String): () -> Unit {
+    val trial = pandoGetter(patch, MEDIA, "is_active_trial", "Ljava/lang/Boolean;")
+    return bridgeWriter(patch, listOf(Bridge("activeTrial", MEDIA, virtual(trial))))
+}
+
 /** A post's music, the track it comes from, and the part of the track the post plays. All keep their names. */
 internal const val MUSIC_INFO = "Lcom/instagram/api/schemas/MusicInfo;"
 internal const val PANDO_MUSIC_INFO = "Lcom/instagram/api/schemas/ImmutablePandoMusicInfo;"
