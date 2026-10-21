@@ -584,4 +584,29 @@ public class ReelClearModeTest {
         swipe(second, third);
         assertEquals(2, viewer.turnedOn.size());
     }
+
+    /** A reel in clear mode draws no seek bar while the switch is on, and every other reel keeps Instagram's answer (#277). */
+    @Test
+    public void aReelInClearModeDrawsNoSeekBarWhileTheSwitchIsOn() {
+        assertFalse("in clear mode, no seek bar", ReelClearMode.scrubber(1, 1));
+        assertTrue("out of it, Instagram's yes stands", ReelClearMode.scrubber(1, 0));
+        assertFalse("Instagram's no stands", ReelClearMode.scrubber(0, 1));
+        assertFalse(ReelClearMode.scrubber(0, 0));
+        assertTrue("any non-zero is yes", ReelClearMode.scrubber(2, 0));
+        assertFalse(ReelClearMode.scrubber(2, -1));
+        assertTrue("nothing wanted is needed", !ReelClearMode.wanted() && !ReelClearMode.scrubber(1, 1));
+
+        Settings.KEEP_REEL_CLEAR_MODE.save(false);
+        assertTrue("off, Instagram's seek bar stays", ReelClearMode.scrubber(1, 1));
+        Settings.KEEP_REEL_CLEAR_MODE.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertTrue("paused, it stays", ReelClearMode.scrubber(1, 1));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertTrue("unready, it stays", ReelClearMode.scrubber(1, 1)));
+        assertFalse("and goes again once resumed and ready", ReelClearMode.scrubber(1, 1));
+    }
 }

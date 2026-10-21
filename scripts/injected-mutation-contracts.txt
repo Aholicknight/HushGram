@@ -360,8 +360,11 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveCount(
 # two of Instagram's objects and answering nothing on 452, 04Cq.A05), passes the reel it read off
 # the pager through current() before testing it. The pager
 # listener's page report asks paged() first thing, and the exit button's render hands built() its
-# reel first thing. Each hook is called from its one method and nowhere else. Left out, clear mode
-# ends with every swipe as Instagram has it; twice or elsewhere, it isn't the hook the patch wrote.
+# reel first thing. The seek bar row's render asks scrubber() once, at its test of whether to draw
+# the scrubber, with Instagram's answer and the reel state's clear mode flag (#277); left out, a long
+# reel in clear mode keeps its seek bar. Each hook is called from its one method and nowhere else.
+# Left out, clear mode ends with every swipe as Instagram has it; twice or elsewhere, it isn't the
+# hook the patch wrote.
 # The two stubs, filled with the handler's turn-on and the reel's getId, each have to leave the
 # extension before they return. ClearModeHookTest checks on every 450 fixture where each one lands.
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->entered(Ljava/lang/Object;Ljava/lang/Object;)V in instance (L*;)V holding android_purge_26_q3_FullscreenViewActionHandler_handleFullscreenViewEnable
@@ -371,6 +374,7 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->paged()V in i
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->paged()V in instance (II)V holding android_purge_26_q2_ClipsViewerViewPagerListener_onPageSelected
 start-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/lang/Object;)V in instance (L*;)L*; holding android_purge_26_q3_ClipsFullscreenViewComponent_render
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/lang/Object;)V in instance (L*;)L*; holding android_purge_26_q3_ClipsFullscreenViewComponent_render
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->scrubber(II)Z in instance (L*;)L*; holding android_purge_26_q3_ClipsScrubberRowComponent_render
 first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->enter(Ljava/lang/Object;Ljava/lang/Object;)V outside Lapp/hushgram/extension/
 first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->reelId(Ljava/lang/Object;)Ljava/lang/String; outside Lapp/hushgram/extension/
 #

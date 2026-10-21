@@ -34,7 +34,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * page the Reels pager lands on ({@link #paged}) and each reel whose exit button Instagram built
  * ({@link #built}). When a reel you put in clear mode leaves it because it left the screen, this
  * class asks the handler to turn clear mode on again, with the reason your own turn-on gave, so
- * Instagram does to the next reel exactly what your tap would have done. It hides nothing itself.
+ * Instagram does to the next reel exactly what your tap would have done.
+ *
+ * <p>Instagram's clear mode fades a reel's buttons, author row and top bar out but leaves the seek
+ * bar of a long reel on screen (#277). The patch asks {@link #scrubber} where the seek bar row
+ * decides whether to draw it, with the reel's own clear mode flag, and while the switch is on a reel
+ * in clear mode draws no seek bar. That is the only thing this class hides.
  *
  * <p>Instagram's turn-on acts on whatever reel the pager is on, so {@link #current} looks at that
  * reel first and holds the turn-on back when it would be the wrong one: the reel that just left
@@ -332,6 +337,23 @@ public final class ReelClearMode {
             wakeIfWaiting();
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "clear mode exit button", failure);
+        }
+    }
+
+    /**
+     * The hook, where the seek bar row tests whether to draw the seek bar, with Instagram's answer
+     * and the reel's clear mode flag, each non-zero for yes. A reel in clear mode draws none while
+     * the switch is on. Anything else, or a failure here, keeps Instagram's answer.
+     */
+    public static boolean scrubber(int shown, int fullscreen) {
+        if (shown == 0) return false;
+        if (fullscreen == 0) return true;
+        try {
+            HookStatus.invoked(FAMILY);
+            return !on();
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "clear mode seek bar", failure);
+            return true;
         }
     }
 

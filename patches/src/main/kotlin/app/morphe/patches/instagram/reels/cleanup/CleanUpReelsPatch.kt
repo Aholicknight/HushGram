@@ -59,9 +59,10 @@ private const val PATCH = "Clean up Reels"
  * is the Reels tab's. It finds the Create button by the kind Instagram tags it with and Your
  * algorithm by its class, in the bar of any reel viewer, and sets just that button gone.
  *
- * An eleventh switch hides nothing: Keep clear mode on has Instagram's own clear mode carry from the
- * reel you turned it on for to the next reels. See ClearMode.kt. Its places are found and checked
- * before any part is hidden, so a build that lacks one changes nothing.
+ * An eleventh switch, Keep clear mode on, has Instagram's own clear mode carry from the reel you
+ * turned it on for to the next reels, and keeps the seek bar of a long reel off while it's in clear
+ * mode (#277). See ClearMode.kt. Its places are found and checked before any part is hidden, so a
+ * build that lacks one changes nothing.
  *
  * Every part is required: a build where one can't be found once, in the shape its kind has, stops
  * the patch with what's wrong, rather than shipping a switch that quietly does nothing.

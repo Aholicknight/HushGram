@@ -5,20 +5,26 @@
 package app.morphe.patches.instagram.reels.cleanup
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Field
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -26,8 +32,12 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
+import java.util.BitSet
 
 private const val KEEP = "Clean up Reels: Keep clear mode on"
 
@@ -37,6 +47,7 @@ internal const val CLEAR_MODE_LEFT = "$CLEAR_MODE->left(Ljava/lang/Object;Ljava/
 internal const val CLEAR_MODE_CURRENT = "$CLEAR_MODE->current(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val CLEAR_MODE_PAGED = "$CLEAR_MODE->paged()V"
 internal const val CLEAR_MODE_BUILT = "$CLEAR_MODE->built(Ljava/lang/Object;)V"
+internal const val CLEAR_MODE_SCRUBBER = "$CLEAR_MODE->scrubber(II)Z"
 internal const val CLEAR_MODE_ENTER_STUB = "enter"
 internal const val CLEAR_MODE_ID_STUB = "reelId"
 
@@ -45,18 +56,24 @@ internal const val CLEAR_MODE_ID_STUB = "reelId"
  * Instagram 450 calls clear mode its fullscreen view. The action handler's two methods turn it on
  * and off, each through an action the Reels viewer hands it, and the viewer's turn-on action is the
  * one that reads the reel the pager is on. The exit button a reel in clear mode draws is a
- * component of its own, and the pager's listener reports each page it lands on.
+ * component of its own, and the pager's listener reports each page it lands on. The seek bar row
+ * under a reel draws Instagram's scrubber on long reels, clear mode or not (#277).
  */
 internal const val CLEAR_MODE_ENABLE = "FullscreenViewActionHandler_handleFullscreenViewEnable"
 internal const val CLEAR_MODE_DISMISS = "FullscreenViewActionHandler_handleFullscreenViewDismiss"
 internal const val CLEAR_MODE_ENABLED = "ClipsViewerNavigatorProvider_handleFullscreenViewEnable"
 internal const val CLEAR_MODE_BUTTON = "ClipsFullscreenViewComponent_render"
 internal const val REEL_PAGE_SELECTED = "ClipsViewerViewPagerListener_onPageSelected"
+internal const val CLEAR_MODE_SCRUBBER_ROW = "ClipsScrubberRowComponent_render"
 
-internal val CLEAR_MODE_MARKERS = listOf(CLEAR_MODE_ENABLE, CLEAR_MODE_DISMISS, CLEAR_MODE_ENABLED, CLEAR_MODE_BUTTON, REEL_PAGE_SELECTED)
+internal val CLEAR_MODE_MARKERS =
+    listOf(CLEAR_MODE_ENABLE, CLEAR_MODE_DISMISS, CLEAR_MODE_ENABLED, CLEAR_MODE_BUTTON, REEL_PAGE_SELECTED, CLEAR_MODE_SCRUBBER_ROW)
 
 /** The reason Instagram turns clear mode off with when a reel leaves the screen, which its enum has to name. */
 internal const val CLEAR_MODE_SWIPED_AWAY = "REELS_VIEWER_SWIPE_OR_EXIT"
+
+/** What the reel's state names its clear mode flag with in its toString, right before appending it. */
+internal const val CLEAR_MODE_FLAG_NAME = ", isFullscreenViewActive="
 
 private const val OBJECT = "Ljava/lang/Object;"
 private const val STRING = "Ljava/lang/String;"
@@ -70,8 +87,10 @@ private const val STRING = "Ljava/lang/String;"
  * turn-on passes the reel it read off the pager through the extension before testing it, so a
  * turn-on the extension asked for can be held back by answering no reel, which Instagram's own test
  * takes as nothing to do. The pager's listener tells the extension first thing about each page, and
- * the exit button's render hands over its reel first thing. The extension's two stubs are filled
- * with the handler's turn-on and the reel's getId.
+ * the exit button's render hands over its reel first thing. The seek bar row's render asks the
+ * extension at its test of whether to draw the scrubber, with the answer and the reel state's clear
+ * mode flag, and tests what comes back. The extension's two stubs are filled with the handler's
+ * turn-on and the reel's getId.
  *
  * Everything is found by Instagram's own markers and checked before anything changes, so a build
  * that differs stops the patch saying what it couldn't find, and nothing is half done.
@@ -104,7 +123,19 @@ internal class ClearModeHooks(
     val handler: String,
     val reason: String,
     val item: String,
-    /** How many instructions the turn-on, the turn-off and the viewer's turn-on had when their places were found. */
+    /**
+     * The seek bar row's render, the index of its test of whether to draw the scrubber, the register
+     * tested, and the local the hook borrows to read the clear mode flag into.
+     */
+    val row: Method,
+    val scrubber: Int,
+    val shown: Int,
+    val borrowed: Int,
+    /** The row's field holding its state, that state's field holding the reel's, and the reel state's clear mode flag. */
+    val rowState: String,
+    val reelState: String,
+    val flag: String,
+    /** How many instructions the turn-on, the turn-off, the viewer's turn-on and the row had when their places were found. */
     val lengths: List<Int>,
 )
 
@@ -201,15 +232,129 @@ internal fun BytecodePatchContext.findClearMode(): ClearModeHooks {
         ?: stop("the exit button ${button.definingClass} holds the reel in ${reels.size} fields, expected one")
     if (button.localRegisterCount() < 1) stop("${button.describe()} has no local register for the hook")
 
-    val every = listOf(enable, dismiss, enabled, paged, button).map { it.describe() }
+    // The seek bar row's render: an instance method taking the scope, in a class holding its state,
+    // whose state holds the reel's. The reel's state is the class whose toString names the clear mode flag.
+    val row = single(CLEAR_MODE_SCRUBBER_ROW)
+    if (row.isStatic() || row.parameterTypes.size != 1 || !row.returnType.startsWith("L") || row.implementation == null) {
+        stop("${row.describe()}, marked $CLEAR_MODE_SCRUBBER_ROW, isn't a render taking one scope and answering a component")
+    }
+    val flagged = classesLoadingString(CLEAR_MODE_FLAG_NAME).mapNotNull { state ->
+        state.methods.singleOrNull {
+            it.name == "toString" && it.parameterTypes.isEmpty() && it.returnType == STRING && loadsString(it, CLEAR_MODE_FLAG_NAME)
+        }
+    }.associateBy { it.definingClass }
+    val held = classDefBy(row.definingClass).instanceFields.flatMap { holder ->
+        classDefByOrNull(holder.type)?.instanceFields?.filter { it.type in flagged }?.map { holder to it }.orEmpty()
+    }
+    val (rowState, reelState) = held.singleOrNull()
+        ?: stop("the seek bar row ${row.definingClass} holds a reel state naming its clear mode flag through ${held.size} fields, expected one")
+    val flag = clearModeFlag(flagged.getValue(reelState.type))
+    listOf(rowState, reelState, flag).forEach { field ->
+        if (!readableFrom(field, row.definingClass)) stop("the seek bar row ${row.definingClass} can't read ${field.describe()}")
+    }
+
+    // What the row draws the scrubber from: everything it builds from both the reel and its state.
+    val rowCode = row.body()
+    val children = rowCode.indices.filter { at ->
+        val built = (rowCode[at] as? ReferenceInstruction)?.reference as? TypeReference
+        rowCode[at].opcode == Opcode.NEW_INSTANCE && built != null &&
+            classDefByOrNull(built.type)?.methods?.any { constructor ->
+                constructor.name == "<init>" && constructor.parameterTypes.map(Any::toString).let { item in it && reelState.type in it }
+            } == true
+    }
+    if (children.isEmpty()) stop("${row.describe()} builds nothing from the reel and its state, so there's no scrubber to hold back")
+
+    // The test of whether to draw the scrubber: the one test of an unboxed yes or no that skips
+    // everything the scrubber is built from when no, and leads to all of it when yes.
+    val flow = ControlFlow.of(row)
+    val tests = rowCode.indices.filter { at ->
+        val test = rowCode[at] as? OneRegisterInstruction
+        val kept = rowCode.getOrNull(at - 1) as? OneRegisterInstruction
+        val unboxed = rowCode.getOrNull(at - 2)?.methodReference()
+        test != null && kept != null && test.opcode == Opcode.IF_EQZ && kept.opcode == Opcode.MOVE_RESULT &&
+            kept.registerA == test.registerA && unboxed?.definingClass == "Ljava/lang/Boolean;" && unboxed.name == "booleanValue"
+    }.filter { at ->
+        val skipped = flow.reachedFrom(flow.normal[at].first())
+        val passed = flow.reachedFrom(at + 1)
+        children.none { skipped[it] } && children.all { passed[it] }
+    }
+    val scrubber = tests.singleOrNull() ?: stop("${row.describe()} tests whether to draw the scrubber ${tests.size} times, expected once")
+    val shown = (rowCode[scrubber] as OneRegisterInstruction).registerA
+    if (scrubber in row.jumpTargets()) stop("${row.describe()} jumps to its test of the scrubber, so the hook would be skipped")
+    if (shown > 15) stop("${row.describe()} tests the scrubber in v$shown, which the hook's call can't name")
+    row.requireThisIntact(KEEP, listOf(scrubber))
+    val borrowed = row.freeLocalsAt(KEEP, scrubber, 1, except = listOf(shown)).single()
+
+    val every = listOf(enable, dismiss, enabled, paged, button, row).map { it.describe() }
     if (every.toSet().size != every.size) stop("two hooks would go in one method: $every")
 
     return ClearModeHooks(
         enable, entered, dismiss, left, enabled, current, kept.registerA, paged, button,
-        "${buttonReel.definingClass}->${buttonReel.name}:${buttonReel.type}", handler, reason, item,
-        listOf(enable, dismiss, enabled).map { it.body().size },
+        buttonReel.describe(), handler, reason, item,
+        row, scrubber, shown, borrowed, rowState.describe(), reelState.describe(), flag.describe(),
+        listOf(enable, dismiss, enabled, row).map { it.body().size },
     )
 }
+
+/**
+ * The boolean field of its own class that [toString] appends right after naming the clear mode
+ * flag: the register handed to the first boolean append after the name, traced back through moves
+ * to the field read that filled it, with nothing jumping in between.
+ */
+private fun BytecodePatchContext.clearModeFlag(toString: Method): Field {
+    val code = toString.body()
+    val names = code.indices.filter { stringLoadedAt(code, it) == CLEAR_MODE_FLAG_NAME }
+    val name = names.singleOrNull() ?: stop("${toString.describe()} names the clear mode flag ${names.size} times, expected once")
+    val append = (name + 1 until code.size).firstOrNull { at ->
+        val call = code[at].methodReference()
+        call?.definingClass == BUILDER && call.name == "append" && call.parameterTypes.map(Any::toString) == listOf("Z")
+    } ?: stop("${toString.describe()} appends no yes or no after naming the clear mode flag")
+    if ((name + 1 until append).any { stringLoadedAt(code, it) != null }) {
+        stop("${toString.describe()} names something else before appending the clear mode flag")
+    }
+    var register = code[append].registers().getOrNull(1) ?: stop("${toString.describe()} appends the clear mode flag from no register")
+    var read = append
+    while (true) {
+        read = (read - 1 downTo 0).firstOrNull { code[it].writes(register) }
+            ?: stop("${toString.describe()} appends the clear mode flag from a register nothing filled")
+        val write = code[read]
+        when (write.opcode) {
+            Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16 -> register = (write as TwoRegisterInstruction).registerB
+            Opcode.IGET_BOOLEAN -> break
+            else -> stop("${toString.describe()} appends the clear mode flag from a ${write.opcode.name}, not a field it read") // opcode-name-ok
+        }
+    }
+    if (toString.jumpTargets().any { it in read + 1..append }) {
+        stop("${toString.describe()} jumps between reading the clear mode flag and appending it")
+    }
+    val field = (code[read] as ReferenceInstruction).reference as FieldReference
+    if (field.definingClass != toString.definingClass) stop("${toString.describe()} appends ${field.definingClass}'s flag, not its own")
+    return classDefBy(field.definingClass).instanceFields.singleOrNull { it.name == field.name && it.type == "Z" }
+        ?: stop("${field.definingClass} has no boolean field ${field.name}")
+}
+
+/** Whether code in [reader] may read [field]: it's [reader]'s own, or the field and its class are public, or same package and not private. */
+private fun BytecodePatchContext.readableFrom(field: Field, reader: String): Boolean {
+    if (field.definingClass == reader) return true
+    val owner = classDefByOrNull(field.definingClass) ?: return false
+    val near = field.definingClass.substringBeforeLast('/') == reader.substringBeforeLast('/')
+    fun open(flags: Int) = AccessFlags.PUBLIC.isSet(flags) || (near && !AccessFlags.PRIVATE.isSet(flags))
+    return open(owner.accessFlags) && open(field.accessFlags)
+}
+
+/** Every instruction a path from [start] can run, [start] included, over normal and exceptional edges. */
+private fun ControlFlow.reachedFrom(start: Int): BitSet {
+    val reached = BitSet()
+    val pending = ArrayDeque(listOf(start))
+    reached.set(start)
+    while (pending.isNotEmpty()) {
+        val at = pending.removeFirst()
+        (normal[at] + exceptional[at]).forEach { if (!reached[it]) { reached.set(it); pending += it } }
+    }
+    return reached
+}
+
+private const val BUILDER = "Ljava/lang/StringBuilder;"
 
 /**
  * The index after the one action [this] handler method runs: an interface call named invoke that
@@ -262,16 +407,18 @@ private val THROWS = setOf(Opcode.THROW)
 
 /**
  * Each hook reads registers the find phase checked and borrows none but the exit button's, which
- * goes in first where no local holds anything yet. The two handler hooks and the viewer's go in
- * with a plain insert on purpose: the handler's own branch around a missing action keeps landing
- * past the hook. Those three go in by the index the find phase read, which holds only while each
- * method is as long as it was, so one that changed in between stops the patch before any hook is in.
+ * goes in first where no local holds anything yet, and the seek bar row's, a local nothing reads
+ * past its test. The two handler hooks and the viewer's go in with a plain insert on purpose: the
+ * handler's own branch around a missing action keeps landing past the hook. Those three and the
+ * row's go in by the index the find phase read, which holds only while each method is as long as
+ * it was, so one that changed in between stops the patch before any hook is in.
  */
 internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
     val enable = changing(found.enable)
     val dismiss = changing(found.dismiss)
     val enabled = changing(found.enabled)
-    listOf(enable, dismiss, enabled).forEachIndexed { at, method ->
+    val row = changing(found.row)
+    listOf(enable, dismiss, enabled, row).forEachIndexed { at, method ->
         if (method.body().size != found.lengths[at]) stop("${method.describe()} changed after its hook's place was found")
     }
     enable.addInstructions(found.entered, "invoke-static/range { p0 .. p1 }, $CLEAR_MODE_ENTERED")
@@ -292,6 +439,27 @@ internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
             move-object/from16 v0, p0
             iget-object v0, v0, ${found.buttonReel}
             invoke-static { v0 }, $CLEAR_MODE_BUILT
+        """,
+    )
+    // A row or reel state that isn't there yet counts as clear mode off. The labels sit mid-method,
+    // so they go through addInstructionsWithLabels, which places them where the snippet lands.
+    val shown = found.shown
+    val flag = found.borrowed
+    row.addInstructionsWithLabels(
+        found.scrubber,
+        """
+            move-object/from16 v$flag, p0
+            iget-object v$flag, v$flag, ${found.rowState}
+            if-eqz v$flag, :off
+            iget-object v$flag, v$flag, ${found.reelState}
+            if-eqz v$flag, :off
+            iget-boolean v$flag, v$flag, ${found.flag}
+            goto :ask
+            :off
+            const/4 v$flag, 0x0
+            :ask
+            invoke-static { v$shown, v$flag }, $CLEAR_MODE_SCRUBBER
+            move-result v$shown
         """,
     )
 }
@@ -347,6 +515,14 @@ private fun Method.isStatic(): Boolean = AccessFlags.STATIC.isSet(accessFlags)
 private fun Method.isPublic(): Boolean = AccessFlags.PUBLIC.isSet(accessFlags)
 
 private fun Method.describe(): String = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+
+private fun Field.describe(): String = "$definingClass->$name:$type"
+
+/** Whether this instruction writes [register], or the pair starting just below it. */
+private fun Instruction.writes(register: Int): Boolean {
+    val written = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return opcode.setsRegister() && (written == register || (opcode.setsWideRegister() && written + 1 == register))
+}
 
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
 
