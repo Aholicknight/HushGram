@@ -428,6 +428,11 @@ public final class FullScreenBars {
         return names.toString();
     }
 
+    /**
+     * Tells each of [listeners] the kept pair of heights, then has a floating glass pill give its Reels
+     * viewers their margin for that pair in the same pass, so the screens and the viewers in them move
+     * in one layout ({@link GlassTabBar#heightsTold}, #222).
+     */
     private static void tellAll(List<Object> listeners) {
         for (Object listener : listeners) {
             try {
@@ -436,6 +441,7 @@ public final class FullScreenBars {
                 HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights told", failure);
             }
         }
+        GlassTabBar.heightsTold();
         HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_TOLD);
     }
 
