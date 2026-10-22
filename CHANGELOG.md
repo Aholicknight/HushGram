@@ -4,41 +4,43 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+## 0.0.15 (2026-10-22)
+
 ### Features
 
-* **Instagram - Downloads:** new switch, `Add the source to saved photos`, off to start. With it on, a saved photo carries where it came from in its EXIF details, the kind a gallery or exiftool reads: the account that posted it, the post date and a link to the post. JPEG photos only, and only what the save already knows, so a profile picture carries just the account. The picture itself is unchanged.
-* **Instagram - Details:** Reels on the Reels tab get Details and Copy caption in their menu now, the same as feed posts. (#282)
+* **Instagram:** New switch under Downloads, `Add the source to saved photos`, off to start. A saved JPEG photo carries the account that posted it, the post date and the post's link in its EXIF details. The picture doesn't change.
+* **Instagram - Download any reel:** Reels on the Reels tab get Details and Copy caption in their menu now, the same as feed posts. (#282)
 
 ### Bug Fixes
 
 * **Instagram - Hide Follow on feed posts:** The Subscribe button next to a creator's name on feed posts goes too now. On Reels it goes with Clean up Reels' follow switch. A creator's own profile keeps its button. (#248)
 * **Instagram - Clean up Reels:** With `Keep clear mode on`, a long reel in clear mode no longer keeps its seek bar along the bottom. The bar comes back once you leave clear mode. (#277)
-* **Instagram - Clean up Reels:** With `Keep clear mode on`, the buttons, author row and top bar could pop back up on a reel that was still in clear mode, a few swipes in. Instagram resets them to shown when it gets a page ready while you aren't scrolling. That reset leaves them hidden now, and they still come back when clear mode ends. Reported in #233.
-* **Instagram - Hide the Explore grid:** Turning on `Hide suggested accounts in search` no longer takes your recent searches away with the suggestions. Only the Suggested for you accounts go now, and your recent searches stay where they were. (#272)
+* **Instagram - Clean up Reels:** With `Keep clear mode on`, the buttons, author row and top bar could pop back up a few swipes in while a reel was still in clear mode. They stay hidden now, and come back when clear mode ends. Reported in #233.
+* **Instagram - Hide the Explore grid:** Turning on `Hide suggested accounts in search` took your recent searches away too. Now it hides only the Suggested for you accounts. (#272)
 * **Instagram - Turn off HDR brightness boosts:** On Instagram's armeabi-v7a builds (for 32-bit phones) the switch now turns off SDR super white and Ultra HDR always on too. Before, only the arm64 build had those two options turned off. (#85)
 * **Instagram - HushGram settings:** The settings shortcut on the app icon no longer shows a second of Reels (or whatever tab Instagram opens on) before the settings come up. The screen stays black until they're drawn. (#55)
-* **Instagram - Download any video:** Saved reels play with sound in more apps now. Some reels only carry a newer kind of sound (xHE-AAC) that a lot of galleries and players turn silent. When that happens and the post also has a plain video file, a normal save keeps the best picture and takes the sound from that file, which plays everywhere. No re-encoding, and no new setting to touch. Reels without a plain file save just as before. Refs #242.
-* **Instagram - Glass tab bar:** With the pill floating, a reel sits where it did in 0.0.13 again. It stops above the pill instead of running on behind it, so there's no wide black band over the video anymore. The seek bar stays clear of the pill and the gesture handle. (#280)
-* **Instagram - Glass tab bar:** A reel keeps one size while comments, the keyboard and a paused reel's controls come and go, and the glass doesn't draw the reel's video into its blur anymore. Both had a reel resizing under the video while it played. (#222)
+* **Instagram - Download any video:** Saved reels play with sound in more apps. Some reels carry only xHE-AAC sound, which many players turn silent. When the post also has a plain video file, the save keeps the best picture and takes that file's sound. Refs #242.
+* **Instagram - Glass tab bar:** With the pill floating, a reel stops above the pill again, as in 0.0.13, so there's no wide black band over the video. The seek bar stays clear of the pill and the gesture handle. (#280)
+* **Instagram - Glass tab bar:** A reel keeps one size while comments, the keyboard and a paused reel's controls come and go, and the glass doesn't draw the reel's video into its blur anymore. Both made a playing reel resize. (#222)
 * **Instagram - Glass tab bar:** If the blur ever drops to the plain dark tint while you scroll, it comes back by itself a moment later. Before, it stayed that way until Instagram restarted. (#262)
-* **Instagram - Start Home on Following:** Tapping Back to home at the end of your Following feed closed Instagram. Now it switches Home to For you, same as picking it from the menu at the top. With `Only accounts you follow` on, Home just stays on Following.
+* **Instagram - Start Home on Following:** Tapping Back to home at the end of your Following feed closed Instagram. Now it switches Home to For you, like picking it from the top menu. With `Only accounts you follow` on, Home just stays on Following.
 * **Instagram - Pure black dark mode:** Stories are black around the edges too. The thin strip above a story and the bar behind its reply field kept Instagram's dark gray before. The story itself keeps its colors. (#279)
 
 ### Improvements
 
 * **Instagram:** HushGram now patches Instagram 452.1.0.53.64 instead of 452.0.0.48.64. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385811006. The armeabi-v7a build (385811005) patches too, and so do the x86 and x86_64 builds (385811007 and 385811008), which Instagram is shipping again.
-* **Instagram:** HushGram now builds on Morphe patcher 2.0.0, so it needs Morphe Manager 2.0.0 or newer. Update Manager before you patch. From a computer, use morphe-desktop 1.19.0 or newer. Patching got quicker with it: on my computer, morphe-desktop put every patch on Instagram in about 24 seconds, where the old build took about 40. (#60)
+* **Instagram:** HushGram now builds on Morphe patcher 2.0.0, so update Morphe Manager to 2.0.0 or newer before patching. On a computer, use morphe-desktop 1.19.0 or newer. Patching with every patch on takes about 40% less time there. (#60)
 * **Instagram - Find the reel you came from:** Trial reels (shown to people who don't follow the creator) aren't on the creator's profile, so the search could only give up. Tapping the creator of one now shows a short note and skips the search. Reported in #225.
 * **Instagram - Download any video:** Skip what's already saved reads its history file in small, fixed amounts now. A damaged file can't slow a save down, and it gets written out fresh at the next save, so newer saves aren't lost behind the damage. (#150)
 * **Instagram - Turn off double tap to like:** Patching takes about 4% less time with every patch on. The patch reads code only in the places its targets can be, instead of every method in the app. The patched app comes out the same. Refs #173.
-* **Instagram - View stories anonymously:** Patching with every patch on takes about 3% less time and 5% less processor work. Its checks for other callers now read only the classes that can hold one. The patched app comes out the same. Refs #173.
-* **Instagram:** HushGram launch screen and Emoji style now ask the patcher's index where their code is, instead of reading every method in the app. With every patch on, that's about 3% less processor work. The patched app comes out the same. Refs #173.
-* **Instagram:** Patches that find their code by a piece of text, or by Instagram's internal labels, now look it up directly instead of checking every string in the app. Patching is about 2% quicker. The patched app is the same. Refs #173.
+* **Instagram - View stories anonymously:** Patching with every patch on takes about 3% less time and 5% less processor work. Its checks for other callers now read only the classes that can hold one. The patched app doesn't change. Refs #173.
+* **Instagram:** HushGram launch screen and Emoji style now ask the patcher's index where their code is, instead of reading every method. With every patch on, that's about 3% less processor work. Same patched app as before. Refs #173.
+* **Instagram:** Patches that find their code by a piece of text, or by Instagram's internal labels, now look it up directly instead of checking every string. Patching is about 2% quicker. The patched app is the same. Refs #173.
 * **Tooling:** `scripts/native-runner.ps1` runs checks inside the installed patched Instagram on an offline emulator, as a throwaway signed-out Android user. Each verdict names the exact APK it ran on. Two controls (build identity, a missing hook) must hold before feature checks count.
 * **Tooling:** The native runner's first feature checks cover Hide your active status. They build Instagram's own presence requests without sending them, and only Active may turn Idle, only while the switch is on and HushGram isn't paused.
 * **Tooling:** The native runner checks View DM photos and videos anonymously on Instagram's receipt handler. Switched on, the handler finishes a stand-in receipt on the phone without building its request. Voice receipts, a paused HushGram and the switch off stay Instagram's.
 * **Tooling:** Nothing goes public until the whole app has been walked with that exact bundle on a release phone or an emulator. `publish-release.ps1` stops before GitHub without a full, crash-free walk of that bundle.
-* **Tooling:** `scripts/find-release-for-identity.ps1` says which release a diagnostics report's build identity came from. It reads the `hg1:` line out of each release bundle and prints the matching version, or tells you the build isn't one of ours. A report from a repackaged fork is clear that way before anyone digs into it.
+* **Tooling:** `scripts/find-release-for-identity.ps1` reads the `hg1:` build identity from a diagnostics report and names the release it came from, or says the build isn't one of ours, so a repackaged fork shows up before anyone digs in.
 
 ## 0.0.14 (2026-10-20)
 
