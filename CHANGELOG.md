@@ -22,6 +22,7 @@ Every HushGram release, newest first.
 * **Instagram - Glass tab bar:** A reel keeps one size while comments, the keyboard and a paused reel's controls come and go, and the glass doesn't draw the reel's video into its blur anymore. Both had a reel resizing under the video while it played. (#222)
 * **Instagram - Glass tab bar:** If the blur ever drops to the plain dark tint while you scroll, it comes back by itself a moment later. Before, it stayed that way until Instagram restarted. (#262)
 * **Instagram - Start Home on Following:** Tapping Back to home at the end of your Following feed closed Instagram. Now it switches Home to For you, same as picking it from the menu at the top. With `Only accounts you follow` on, Home just stays on Following.
+* **Instagram - Pure black dark mode:** Stories are black around the edges too. The thin strip above a story and the bar behind its reply field kept Instagram's dark gray before. The story itself keeps its colors. (#279)
 
 ### Improvements
 

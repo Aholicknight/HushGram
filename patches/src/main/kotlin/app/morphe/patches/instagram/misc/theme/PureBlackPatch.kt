@@ -84,6 +84,19 @@ internal val DARK_SHEETS = listOf(
 )
 
 /**
+ * The theme attribute the story viewer's root (reel_viewer_root) fills with, which shows in the
+ * strip above a story and behind its reply bar, and the color a story's picture shows while it
+ * loads. Prism sets it to igds_prism_gray_09, #ff25292e, in both themes (#279).
+ */
+internal const val STORY_BACKGROUND = "igds_color_stories_loading_background"
+
+/**
+ * The dark theme's styles that set [STORY_BACKGROUND]: Prism's dark palette and its gray
+ * overrides. The light theme's stories keep their gray. The patch fails unless both change.
+ */
+internal val DARK_STORIES = listOf("IgdsPrismSemanticColorsExperimentDark", "IgdsPrismGrayOverridesDark")
+
+/**
  * Points each of [BLACK_BACKGROUNDS] that a style in one decoded styles.xml sets to
  * [PRISM_BLACK_COLOR] at [PURE_BLACK_COLOR] instead, and answers the styles it changed.
  */
@@ -106,14 +119,23 @@ internal fun blackenStyles(styles: Document): List<String> {
  * styles.xml holds, and answers the styles it changed. What sits on a sheet keeps its gray: the
  * pressed row, the separators, the fields and the buttons are other attributes.
  */
-internal fun blackenSheets(styles: Document): List<String> {
+internal fun blackenSheets(styles: Document): List<String> = blackenAttribute(styles, SHEET_BACKGROUND, DARK_SHEETS)
+
+/**
+ * Points [STORY_BACKGROUND] at [PURE_BLACK_COLOR] in each of [DARK_STORIES] that one decoded
+ * styles.xml holds, and answers the styles it changed. The story's own picture and stickers draw
+ * over it and keep their colors.
+ */
+internal fun blackenStories(styles: Document): List<String> = blackenAttribute(styles, STORY_BACKGROUND, DARK_STORIES)
+
+private fun blackenAttribute(styles: Document, attribute: String, names: List<String>): List<String> {
     val list = styles.getElementsByTagName("style")
     val changed = mutableListOf<String>()
     for (style in (0 until list.length).map { list.item(it) as Element }) {
-        if (style.getAttribute("name") !in DARK_SHEETS) continue
+        if (style.getAttribute("name") !in names) continue
         val items = style.getElementsByTagName("item")
         val gray = (0 until items.length).map { items.item(it) as Element }.filter { item ->
-            item.getAttribute("name").substringAfter(':') == SHEET_BACKGROUND && item.textContent.trim() != PURE_BLACK_COLOR
+            item.getAttribute("name").substringAfter(':') == attribute && item.textContent.trim() != PURE_BLACK_COLOR
         }
         gray.forEach { it.textContent = PURE_BLACK_COLOR }
         if (gray.isNotEmpty()) changed += style.getAttribute("name")
@@ -167,10 +189,10 @@ internal fun BytecodePatchContext.blackenLiterals(): List<String> {
 }
 
 /**
- * Writes pure black into the decoded styles: the backgrounds [blackenStyles] owns and the sheets
- * [blackenSheets] owns. Only the styles files that name [PRISM_BLACK_COLOR] are opened: document()
- * writes its file back, and the patcher re-encodes every file written. The sheets' styles sit in
- * the file the palettes are in.
+ * Writes pure black into the decoded styles: the backgrounds [blackenStyles] owns, the sheets
+ * [blackenSheets] owns and the story viewer [blackenStories] owns. Only the styles files that name
+ * [PRISM_BLACK_COLOR] are opened: document() writes its file back, and the patcher re-encodes every
+ * file written. The sheets' and stories' styles sit in the file the palettes are in.
  */
 internal fun ResourcePatchContext.blackenThemes() {
     val values = get("res").listFiles { file -> file.isDirectory && file.name.startsWith("values") }.orEmpty()
@@ -183,10 +205,12 @@ internal fun ResourcePatchContext.blackenThemes() {
     }
     val backgrounds = mutableListOf<String>()
     val sheets = mutableListOf<String>()
+    val stories = mutableListOf<String>()
     values.filter { File(it, "styles.xml").let { file -> file.isFile && PRISM_BLACK_COLOR in file.readText() } }.forEach { directory ->
         document("res/${directory.name}/styles.xml").use { styles ->
             backgrounds += blackenStyles(styles)
             sheets += blackenSheets(styles)
+            stories += blackenStories(styles)
         }
     }
     val missing = DARK_PALETTES - backgrounds.toSet()
@@ -195,12 +219,14 @@ internal fun ResourcePatchContext.blackenThemes() {
     }
     val gray = DARK_SHEETS - sheets.toSet()
     if (gray.isNotEmpty()) throw PatchException("$PATCH: ${gray.joinToString()} no longer set $SHEET_BACKGROUND")
+    val grayStories = DARK_STORIES - stories.toSet()
+    if (grayStories.isNotEmpty()) throw PatchException("$PATCH: ${grayStories.joinToString()} no longer set $STORY_BACKGROUND")
 }
 
 /**
- * A resource patch, for the themes the View screens, the sheets and the status bar read. Manager
- * decodes Instagram's resources for Remove the advertising ID already, so this costs no second
- * decode when both are picked.
+ * A resource patch, for the themes the View screens, the sheets, the story viewer and the status
+ * bar read. Manager decodes Instagram's resources for Remove the advertising ID already, so this
+ * costs no second decode when both are picked.
  */
 private val pureBlackStylesPatch = resourcePatch {
     execute {
