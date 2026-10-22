@@ -7,6 +7,7 @@
 A diagnostic report is already being saved.	Un report diagnostico è già in fase di salvataggio.
 A file named %1$s in %2$s paused HushGram.	Un file chiamato %1$s in %2$s ha messo in pausa HushGram.
 About	Informazioni
+Add the source to saved photos	Aggiungi l'origine alle foto salvate
 Ads and privacy	Annunci e privacy
 Back	Indietro
 Before you sign in	Prima di accedere
@@ -94,6 +95,7 @@ Updates	Aggiornamenti
 Version	Versione
 Version %1$s for Instagram %2$s	Versione %1$s per Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Mentre guardi in modo anonimo, una storia che hai visto diventa grigia e passa in fondo alla fila, solo su questo telefono. Instagram non viene comunque informato che l'hai vista.
+Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Scrive nei dettagli di una foto salvata l'account che ha pubblicato, la data del post e un link al post, i dati EXIF che una galleria o exiftool leggono. Solo foto JPEG, e solo ciò che il salvataggio conosce. L'immagine stessa non cambia.
 You paused HushGram.	Hai messo in pausa HushGram.
 the re-signed build fix	la correzione per la build firmata di nuovo
 Don't send reel watch history	Non inviare la cronologia dei reel guardati

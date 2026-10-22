@@ -702,9 +702,10 @@ public class DownloadSettingsTest {
     }
 
     /**
-     * Skip what's already saved sits right under Name saves by account and post time, with Clear
-     * download history under it. The switch starts off and goes in a settings file, the list it keeps
-     * never does, and Clear forgets the list at once and says so (#150).
+     * Skip what's already saved sits in the download naming rows, under Name saves by account and
+     * post time and the Add the source to saved photos row that follows it, with Clear download
+     * history directly under Skip. The switch starts off and goes in a settings file, the list it
+     * keeps never does, and Clear forgets the list at once and says so (#150).
      */
     @Test
     public void skipWhatsAlreadySavedSitsUnderTheNameSwitchWithItsClearRow() throws Exception {
@@ -715,15 +716,18 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             PreferenceGroup downloads = section(pageIn(controller).getPreferenceScreen(), "Downloads");
             int byPost = -1;
+            int metadata = -1;
             int skip = -1;
             int clear = -1;
             for (int i = 0; i < downloads.getPreferenceCount(); i++) {
                 String key = downloads.getPreference(i).getKey();
                 if (Settings.SAVE_NAME_BY_POST.key.equals(key)) byPost = i;
+                if (Settings.SAVE_PHOTO_METADATA.key.equals(key)) metadata = i;
                 if (Settings.DOWNLOAD_SKIP_SAVED.key.equals(key)) skip = i;
                 if (HushgramPreferenceFragment.CLEAR_DOWNLOAD_HISTORY.equals(key)) clear = i;
             }
-            assertEquals(byPost + 1, skip);
+            assertEquals(byPost + 1, metadata);
+            assertEquals(metadata + 1, skip);
             assertEquals(skip + 1, clear);
 
             Preference row = downloads.getPreference(skip);
