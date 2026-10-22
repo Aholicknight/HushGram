@@ -83,11 +83,13 @@ val cleanUpReelsPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("reelDeclutter")
-        val clearMode = findClearMode()
+        val clearMode = findClearModeWhereItFits()
         val clearModeStubs = clearModeStubs()
         hideReelParts()
-        applyClearMode(clearMode)
-        clearModeStubs.fill(clearMode)
+        if (clearMode != null) {
+            applyClearMode(clearMode)
+            clearModeStubs.fill(clearMode)
+        }
         enableStatus("reelDeclutter")
     }
 }

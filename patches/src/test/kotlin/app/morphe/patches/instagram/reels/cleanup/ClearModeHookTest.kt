@@ -36,6 +36,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -366,6 +367,13 @@ class ClearModeHookTest {
             }
         }
         val methods = holders.flatMap { it.methods }
+        if (methods.count { CLEAR_MODE_ENABLE in it.markers() } > 1) {
+            // 452.1's x86 build inlines the turn-on into its callers: Clean up Reels goes in without Keep clear mode on there.
+            assertTrue("$label: only the x86 build inlines the turn-on", label.endsWith("-385811007"))
+            val context = PatchContexts.of((holders + ExtensionDex.classDef(CLEAR_MODE)).distinctBy { it.type })
+            assertNull("$label: Keep clear mode on is left out", context.findClearModeWhereItFits())
+            return
+        }
         val enable = methods.single { CLEAR_MODE_ENABLE in it.markers() }
         val dismiss = methods.single { CLEAR_MODE_DISMISS in it.markers() }
         val enabled = methods.single { CLEAR_MODE_ENABLED in it.markers() }

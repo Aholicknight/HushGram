@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
@@ -108,6 +109,18 @@ internal fun BytecodePatchContext.keepClearMode() {
     val stubs = clearModeStubs()
     applyClearMode(found)
     stubs.fill(found)
+}
+
+/**
+ * What [findClearMode] finds, or null with a warning when the build differs, so Clean up Reels goes
+ * in without Keep clear mode on rather than not at all. 452.1's x86 build (385811007) inlines the
+ * handler's turn-on into its three callers, which leaves no method for the enter stub to call.
+ */
+internal fun BytecodePatchContext.findClearModeWhereItFits(): ClearModeHooks? = try {
+    findClearMode()
+} catch (unknown: PatchException) {
+    patchLog.warning("${unknown.message}. Clean up Reels goes in without Keep clear mode on.")
+    null
 }
 
 /** Every place Keep clear mode on changes, by method and instruction index, and what the stubs reach. */
