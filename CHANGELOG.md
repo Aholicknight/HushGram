@@ -18,6 +18,9 @@ Every HushGram release, newest first.
 * **Instagram - Turn off HDR brightness boosts:** On Instagram's armeabi-v7a builds (for 32-bit phones) the switch now turns off SDR super white and Ultra HDR always on too. Before, only the arm64 build had those two options turned off. (#85)
 * **Instagram - HushGram settings:** The settings shortcut on the app icon no longer shows a second of Reels (or whatever tab Instagram opens on) before the settings come up. The screen stays black until they're drawn. (#55)
 * **Instagram - Download any video:** Saved reels play with sound in more apps now. Some reels only carry a newer kind of sound (xHE-AAC) that a lot of galleries and players turn silent. When that happens and the post also has a plain video file, a normal save keeps the best picture and takes the sound from that file, which plays everywhere. No re-encoding, and no new setting to touch. Reels without a plain file save just as before. Refs #242.
+* **Instagram - Glass tab bar:** With the pill floating, a reel sits where it did in 0.0.13 again. It stops above the pill instead of running on behind it, so there's no wide black band over the video anymore. The seek bar stays clear of the pill and the gesture handle. (#280)
+* **Instagram - Glass tab bar:** A reel keeps one size while comments, the keyboard and a paused reel's controls come and go, and the glass doesn't draw the reel's video into its blur anymore. Both had a reel resizing under the video while it played. (#222)
+* **Instagram - Glass tab bar:** If the blur ever drops to the plain dark tint while you scroll, it comes back by itself a moment later. Before, it stayed that way until Instagram restarted. (#262)
 
 ### Improvements
 
