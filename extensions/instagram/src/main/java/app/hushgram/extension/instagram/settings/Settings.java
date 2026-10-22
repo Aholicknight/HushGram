@@ -1538,14 +1538,6 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_turn_off_double_tap_like_on_messages", FALSE, parent(TURN_OFF_DOUBLE_TAP_LIKE));
 
     /**
-     * Routes Instagram's outside-gallery entry to Android's system photo picker when you add a photo
-     * or video to a post ({@link app.hushgram.extension.instagram.media.SystemPhotoPicker}). Starts
-     * off, so the gallery sheet stays as it was.
-     */
-    public static final BooleanSetting SYSTEM_PHOTO_PICKER =
-            new BooleanSetting("hushgram_system_photo_picker", FALSE);
-
-    /**
      * The heart that pops up when you double tap a post plays {@link #LIKE_ANIMATION}
      * ({@link app.hushgram.extension.instagram.feed.LikeAnimation}). Read as each post's heart is set
      * up, so one already on screen changes the next time it's set up. Off to start.

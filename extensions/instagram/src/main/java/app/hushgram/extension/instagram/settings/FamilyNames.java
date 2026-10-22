@@ -96,7 +96,6 @@ public final class FamilyNames {
     public static final String REEL_DECLUTTER = "Clean up Reels";
     public static final String REEL_DOWNLOAD = "Download any reel";
     public static final String DOUBLE_TAP_LIKE = "Turn off double tap to like";
-    public static final String SYSTEM_PHOTO_PICKER = "Use the system photo picker";
     public static final String LIKE_ANIMATION = "Change the like animation";
     public static final String REELS_TAB = "Hide the Reels tab";
     public static final String REELS_SUGGESTIONS = "Hide suggested accounts in Reels";

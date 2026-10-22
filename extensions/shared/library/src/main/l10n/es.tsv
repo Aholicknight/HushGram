@@ -8,7 +8,6 @@ A diagnostic report is already being saved.	Ya se está guardando un informe de 
 A file named %1$s in %2$s paused HushGram.	Un archivo llamado %1$s en %2$s pausó HushGram.
 About	Acerca de
 Add the source to saved photos	Añadir el origen a las fotos guardadas
-Adds an entry to the gallery sheet when you make a post that opens Android's own photo picker. You pick from your photos and any cloud gallery, and Instagram only gets what you choose instead of reaching across your whole library. Starts off.	Añade una opción a la hoja de la galería al crear una publicación, que abre el propio selector de fotos de Android. Eliges entre tus fotos y cualquier galería en la nube, e Instagram solo recibe lo que eliges en vez de acceder a toda tu biblioteca. Empieza apagado.
 Ads and privacy	Anuncios y privacidad
 Back	Atrás
 Before you sign in	Antes de iniciar sesión
@@ -93,7 +92,6 @@ There's no diagnostic data to clear.	No hay datos de diagnóstico que borrar.
 There's no diagnostic data to put back.	No hay datos de diagnóstico que restaurar.
 Try again, or go back to Instagram.	Inténtalo de nuevo o vuelve a Instagram.
 Updates	Actualizaciones
-Use the system photo picker	Usar el selector de fotos del sistema
 Version	Versión
 Version %1$s for Instagram %2$s	Versión %1$s para Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Mientras ves de forma anónima, una historia que ya viste se pone en gris y pasa al final de la fila, solo en este teléfono. Instagram sigue sin saber que la viste.
