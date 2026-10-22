@@ -139,26 +139,16 @@ internal fun BytecodePatchContext.findPickerSites(): PickerSites {
         ) ref else null
     } ?: refuse("the factory ${factory.text()} never initialises the $pojoType it builds")
 
-    // The flag that shows the entry: one method reads "$ENTRY_POINT_ARG" from a bundle and hands it
-    // to getBoolean, whose result is moved into a register the creation flow then reads.
-    val configs = classesHolding(ENTRY_POINT_ARG).flatMap { it.methods }
-        .filter { method -> method.code().any { it.stringLoaded() == ENTRY_POINT_ARG } }
-    val config = configs.singleOrNull()
-        ?: refuse("expected one method reading \"$ENTRY_POINT_ARG\", found ${configs.size}")
-    val ccode = config.code()
-    val strAt = ccode.indexOfFirst { it.stringLoaded() == ENTRY_POINT_ARG }
-    val strReg = (ccode[strAt] as OneRegisterInstruction).registerA
-    val getBoolAt = (strAt + 1 until minOf(ccode.size, strAt + 12)).firstOrNull { at ->
-        val insn = ccode[at]
-        val ref = (insn as? ReferenceInstruction)?.reference as? MethodReference
-        (insn.opcode == Opcode.INVOKE_VIRTUAL || insn.opcode == Opcode.INVOKE_INTERFACE) &&
-            ref?.name == "getBoolean" && ref.returnType == "Z" && strReg in (insn as FiveRegisterInstruction).argumentRegisters()
-    } ?: refuse("the config method ${config.text()} never passes \"$ENTRY_POINT_ARG\" to getBoolean")
-    val configMoveAt = getBoolAt + 1
-    if (ccode.getOrNull(configMoveAt)?.opcode != Opcode.MOVE_RESULT) {
-        refuse("the config method ${config.text()} doesn't move getBoolean's result straight after reading the flag")
-    }
-    val configRegister = (ccode[configMoveAt] as OneRegisterInstruction).registerA
+    // The flag that shows the entry: exactly one method reads "$ENTRY_POINT_ARG" through getBoolean and
+    // moves the result into a register the creation flow then reads. A second method writes the same
+    // flag into the args bundle with putBoolean; it holds the string too but never reads it, so matching
+    // on the read leaves it alone (Instagram 452 keeps both on one class).
+    val readers = classesHolding(ENTRY_POINT_ARG).flatMap { it.methods }
+        .mapNotNull { method -> method.readsEntryFlag()?.let { method to it } }
+    val (config, flagRead) = readers.singleOrNull()
+        ?: refuse("expected one method reading \"$ENTRY_POINT_ARG\" through getBoolean, found ${readers.size}")
+    val configMoveAt = flagRead.moveAt
+    val configRegister = flagRead.register
 
     return PickerSites(factory, pojoType, initRef, intentField, iconField, labelField, config, configMoveAt, configRegister)
 }
@@ -206,6 +196,35 @@ private fun BytecodePatchContext.forceEntryVisible(sites: PickerSites) {
             move-result v$register
         """,
     )
+}
+
+/** Where a method reads the show-the-entry flag: getBoolean's result is moved into [register] at [moveAt]. */
+private class FlagRead(val moveAt: Int, val register: Int)
+
+/**
+ * The flag is read where the method loads "$ENTRY_POINT_ARG", hands that string to getBoolean within a
+ * few instructions, and moves the boolean result straight after. The method that only writes the flag
+ * (putBoolean, in the args builder) holds the string but never reads it, so it never matches. Each load
+ * of the string is tried, so a method that both writes and reads it is still found.
+ */
+private fun Method.readsEntryFlag(): FlagRead? {
+    val code = code()
+    code.forEachIndexed { strAt, insn ->
+        if (insn.stringLoaded() != ENTRY_POINT_ARG) return@forEachIndexed
+        val strReg = (insn as OneRegisterInstruction).registerA
+        val getBoolAt = (strAt + 1 until minOf(code.size, strAt + 12)).firstOrNull { at ->
+            val call = code[at]
+            val ref = (call as? ReferenceInstruction)?.reference as? MethodReference
+            (call.opcode == Opcode.INVOKE_VIRTUAL || call.opcode == Opcode.INVOKE_INTERFACE) &&
+                ref?.name == "getBoolean" && ref.returnType == "Z" &&
+                strReg in (call as FiveRegisterInstruction).argumentRegisters()
+        } ?: return@forEachIndexed
+        val moveAt = getBoolAt + 1
+        if (code.getOrNull(moveAt)?.opcode == Opcode.MOVE_RESULT) {
+            return FlagRead(moveAt, (code[moveAt] as OneRegisterInstruction).registerA)
+        }
+    }
+    return null
 }
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
