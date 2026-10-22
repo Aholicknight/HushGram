@@ -19,6 +19,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* **Instagram:** HushGram now patches Instagram 452.1.0.53.64 instead of 452.0.0.48.64. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385811006. The armeabi-v7a build (385811005) patches too, and so do the x86 and x86_64 builds (385811007 and 385811008), which Instagram is shipping again.
 * **Instagram - Find the reel you came from:** Trial reels (shown to people who don't follow the creator) aren't on the creator's profile, so the search could only give up. Tapping the creator of one now shows a short note and skips the search. Reported in #225.
 * **Instagram - Download any video:** Skip what's already saved reads its history file in small, fixed amounts now. A damaged file can't slow a save down, and it gets written out fresh at the next save, so newer saves aren't lost behind the damage. (#150)
 * **Instagram - Turn off double tap to like:** Patching takes about 4% less time with every patch on. The patch reads code only in the places its targets can be, instead of every method in the app. The patched app comes out the same. Refs #173.
