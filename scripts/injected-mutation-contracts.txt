@@ -820,6 +820,16 @@ shared-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->flag(I)Z in s
 # Its second switch hands the picker's list of feeds to limitPicker just before the same list build
 # freezes it, once. Left out, For you stays in the picker; twice or elsewhere, it isn't that list.
 once-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->limitPicker(Ljava/util/List;)V in static (LX/*;I)Ljava/lang/Object; holding FeedPickerStateManager feedPickerStateManager
+# It hands the feed type to picked() first thing in both methods that switch Home to a feed: the
+# one that logs instagram_feed_picker_selection with its feed_type (02tL.A00 on 452), and the
+# picker's, which loads no string, reads the remembered feed flag, calls the first for each
+# listener and clears its list (02tF.A00). Left out, End of following's Back to home opens an
+# empty contextual feed and Instagram closes; twice or elsewhere, it isn't the hook the patch
+# wrote. StartOnFollowingHookTest checks both on the fixture.
+start-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->picked(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)V holding instagram_feed_picker_selection feed_type
+once-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->picked(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)V holding instagram_feed_picker_selection feed_type
+start-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->picked(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)V calling instance LX/*;->A00(LX/*;)V holding const:0x810e4c00064e2f Ljava/util/AbstractCollection;->clear()V
+once-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->picked(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)V calling instance LX/*;->A00(LX/*;)V holding const:0x810e4c00064e2f Ljava/util/AbstractCollection;->clear()V
 # Its third switch asks keepLogo first thing in the title view's method that shows the picked feed's
 # name: the one (boolean, String) method of ActionBarTitleViewSwitcher, the class Instagram's layouts
 # name, that switches to its second child, holding "secondLabel" and "secondLabelChevron". A yes
