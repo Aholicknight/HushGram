@@ -70,6 +70,21 @@ class HideHomeTabHookTest {
         }
     }
 
+    /**
+     * With the root folded into the home tab method, as on 452.1's x86 build, that method is the root:
+     * each of its returns asks, and the saved stack and the push ask as they always do.
+     */
+    @Test
+    fun aRootFoldedIntoTheHomeTabIsTheRoot() {
+        val context = PatchContexts.of(classes(rootInHomeTab = true))
+
+        context.hideHomeTab(context.findHomeTab(context.findReelsTab()))
+
+        assertRootAsked("the home tab as the root", context.method(lists, "homeTab"), tab)
+        assertRestoreAsked("the saved stack", context.method(navigation, "<init>"), tab)
+        assertPushAsked("the push", context.method(navigation, "push"), tab, listOf(3, 4))
+    }
+
     /** A build the patch can't prove fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aBuildThePatchCantProveFailsBeforeAnythingChanges() {
@@ -213,7 +228,12 @@ class HideHomeTabHookTest {
         pushTabs: Int = 2,
         jumpToPushStart: Boolean = false,
         jumpPastSavedTab: Boolean = false,
+        rootInHomeTab: Boolean = false,
     ): List<ClassDef> {
+        // 452.1's x86 build has no root of its own: the start tab and the resets fall back to the home tab method.
+        fun callRoot(self: String, session: String) =
+            if (rootInHomeTab) "invoke-static { $session }, $lists->homeTab($SESSION)$tab"
+            else "invoke-virtual { $self, $session }, $lists->rootTab($SESSION)$tab"
         val setup = method(tab, "<clinit>", emptyList(), "V", 2, static = true, body = """
             const-string v0, "$HOME"
             sput-object v1, $tab->home:$tab
@@ -236,7 +256,7 @@ class HideHomeTabHookTest {
             sget-object v0, $tab->reels:$tab
             return-object v0
         """)
-        val rootTabs = (0 until roots).map { copy ->
+        val rootTabs = (0 until if (rootInHomeTab) 0 else roots).map { copy ->
             method(lists, if (copy == 0) "rootTab" else "otherRootTab", listOf(SESSION), tab, 1, body = """
                 if-eqz p1, :home
                 invoke-static { p1 }, $lists->homeTab($SESSION)$tab
@@ -247,7 +267,7 @@ class HideHomeTabHookTest {
                 return-object v0
             """)
         }
-        val fallback = if (startFallsBack) "invoke-virtual { p0, p1 }, $lists->rootTab($SESSION)$tab\nmove-result-object v0" else "const/4 v0, 0x0"
+        val fallback = if (startFallsBack) "${callRoot("p0", "p1")}\nmove-result-object v0" else "const/4 v0, 0x0"
         val startTab = method(lists, "startTab", listOf(SESSION, "Ljava/lang/String;", LIST), tab, 1, body = """
             if-eqz p2, :fallback
             invoke-static { p2 }, $tab->valueOf(Ljava/lang/String;)$tab
@@ -304,7 +324,7 @@ class HideHomeTabHookTest {
             iput-object v1, p0, $navigation->stack:$BACK_STACK
             return-void
         """)
-        val startAgain = if (resetStartsAgain) "invoke-virtual { v1, v1 }, $lists->rootTab($SESSION)$tab\nmove-result-object v1" else "move-object v1, p1"
+        val startAgain = if (resetStartsAgain) "${callRoot("v1", "v1")}\nmove-result-object v1" else "move-object v1, p1"
         val reset = method(navigation, "reset", listOf(tab), "V", 2, body = """
             iget-object v0, p0, $navigation->stack:$BACK_STACK
             invoke-virtual { v0 }, Ljava/util/AbstractCollection;->clear()V
@@ -323,7 +343,7 @@ class HideHomeTabHookTest {
             :start_again
             invoke-virtual { v0 }, Ljava/util/AbstractCollection;->clear()V
             const/4 v1, 0x0
-            invoke-virtual { v1, v1 }, $lists->rootTab($SESSION)$tab
+            ${callRoot("v1", "v1")}
             move-result-object v1
             invoke-virtual { v0, v1 }, $BACK_STACK->push(Ljava/lang/Object;)Ljava/lang/Object;
             return-void

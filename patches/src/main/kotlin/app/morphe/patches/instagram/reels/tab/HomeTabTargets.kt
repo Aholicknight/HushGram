@@ -57,7 +57,8 @@ internal class HomeTabHooks(
  * exactly once. From what [tabs] found:
  *
  *  - the root is the one method of the tab list builder's class, other than the home tab method,
- *    that reads Home and returns it straight away;
+ *    that reads Home and returns it straight away, or the home tab method itself when there's no
+ *    such method and the start tab falls back to it;
  *  - the navigation class is the one the tab host's constructor makes that takes the host and the
  *    tab list and keeps its back stack in one Stack field;
  *  - its constructor asks the builder's class for one tab, its start, and that method falls back to
@@ -75,8 +76,8 @@ internal fun BytecodePatchContext.findHomeTab(tabs: ReelsTabHooks): HomeTabHooks
     val home = tabField(tabType, setup, HOME)
 
     val builderClass = classDefByOrNull(tabs.builder.definingClass) ?: refuse("the tab list builder's class ${tabs.builder.definingClass} isn't in the app")
-    val roots = builderClass.methods.filter { method ->
-        method.returnType == tabType && !method.sameAs(tabs.home) && method.code().let { code ->
+    val returnsHome = builderClass.methods.filter { method ->
+        method.returnType == tabType && method.code().let { code ->
             code.indices.any { index ->
                 val read = code[index]
                 val back = code.getOrNull(index + 1)
@@ -86,8 +87,7 @@ internal fun BytecodePatchContext.findHomeTab(tabs: ReelsTabHooks): HomeTabHooks
             }
         }
     }
-    val root = roots.singleOrNull()
-        ?: refuse("expected one method in ${builderClass.type} that returns $HOME as a tab, found ${roots.size}")
+    val roots = returnsHome.filter { !it.sameAs(tabs.home) }
 
     val hostClass = classDefByOrNull(tabs.switch.definingClass) ?: refuse("the tab host ${tabs.switch.definingClass} isn't in the app")
     val made = hostClass.methods.filter { it.name == "<init>" }.flatMap { it.code() }
@@ -111,6 +111,11 @@ internal fun BytecodePatchContext.findHomeTab(tabs: ReelsTabHooks): HomeTabHooks
     val start = starts.singleOrNull()
         ?: refuse("${navigation.type}'s constructor asks ${builderClass.type} for ${starts.size} tabs, expected one")
     val startMethod = builderClass.methods.singleOrNull { it.sameAs(start) } ?: refuse("${builderClass.type} has no ${start.name}")
+    // 452.1's x86 build folds the root into the home tab method, which then names Reels, Home and the
+    // feed switcher itself. It's the root only when nothing else is and the start tab falls back to it.
+    val root = roots.singleOrNull()
+        ?: returnsHome.singleOrNull { roots.isEmpty() && it.sameAs(tabs.home) && startMethod.calls(it) }
+        ?: refuse("expected one method in ${builderClass.type} that returns $HOME as a tab, found ${roots.size}")
     if (!startMethod.sameAs(root)) {
         if (!startMethod.calls(root)) refuse("the start tab ${startMethod.describe()} doesn't fall back to ${root.describe()}")
         if (startMethod.reads(home)) refuse("the start tab ${startMethod.describe()} names $HOME itself")
