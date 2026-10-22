@@ -102,8 +102,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * shows, slides away or Instagram hides its bar (#221, #280), and the glass never draws it (#222).
  *
  * <p>Instagram sets the bar's colour, padding and visibility from time to time, so a draw listener
- * puts the pieces back whenever one is changed. Anything that throws turns the blur off for the
- * bar's lifetime and leaves Instagram's own bar as it was.
+ * puts the pieces back whenever one is changed. A failure there is reported and the bar carries on. A
+ * blur that keeps failing rests on the plain tint for a while, then tries again ({@link BlurTries}, #262).
  */
 public final class GlassTabBar {
     /**
@@ -538,6 +538,10 @@ public final class GlassTabBar {
      * recording every frame doubled the GPU's busy time.
      */
     static final long RECORD_EVERY_MS = 33;
+    /** Blur recordings that may fail in a row before the blur rests ({@link BlurTries}, #262). */
+    static final int BLUR_TRIES = 3;
+    /** How long the blur rests on the plain tint after {@link #BLUR_TRIES} failed recordings in a row. */
+    static final long BLUR_REST_MS = 2000;
     /** How long the capsule takes to slide to a new tab. */
     static final long SLIDE_MS = 280;
     /** How long a missing shadow or content view stays unsearched before the parent is walked for it again. */
@@ -570,6 +574,8 @@ public final class GlassTabBar {
     static final long FOOTER_REDRAW_MS = 500;
     /** Counted each time a video in a SurfaceView shows up under the bar, with none there before, and is kept out of the blur. */
     static final String COUNT_VIDEO_LEFT_OUT = "Video kept out of the blur";
+    /** Counted each time the blur fails {@link #BLUR_TRIES} recordings in a row and rests on the plain tint. */
+    static final String COUNT_BLUR_RESTED = "Blur rested after failing";
     /** Counted each time a tab's own background, Instagram's selected tab capsule, is taken off under the pill. */
     static final String COUNT_TAB_BACKGROUND = "Tab's own capsule taken off";
     /** Counted each time Instagram's touch strip for a reel's seek bar is moved back onto the seek bar. */
@@ -1151,7 +1157,8 @@ public final class GlassTabBar {
         private final boolean floating;
         private final PillDrawable pill = new PillDrawable();
         private int base;
-        private boolean blurBroken;
+        /** How the blur's recordings have gone lately, so one that fails is tried again ({@link BlurTries}, #262). */
+        private final BlurTries tries = new BlurTries();
         /** The padding Instagram gave the bar, and what this last put on it, to tell their changes from ours. */
         private int originalLeft, originalRight, originalTop, originalBottom;
         private int lastLeft = -1, lastRight = -1, lastTop = -1, lastBottom = -1;
@@ -1989,26 +1996,48 @@ public final class GlassTabBar {
                     if (scrollHide != null) scrollHide.show();
                     bar.invalidate();
                 }
-                // Something on screen is drawing a frame, so the glass records what's under it again, at most
-                // every RECORD_EVERY_MS, and once more shortly after a frame it skipped so it never stays behind.
-                // Only its own render node is recorded, not a view, so this asks for no frame of its own: the
-                // screen stops drawing as soon as nothing else changes.
-                // Off screen the bar is still drawn, so a video that starts under it is still kept out.
-                if (!blurBroken && blurWanted) {
-                    if (scrollHide == null || !scrollHide.isOffScreen()) pill.recordIfDue();
-                    else pill.recordIfSurfaceAppeared();
-                }
             } catch (Throwable failure) {
+                // Reported, and the frame and the blur go on: neither depends on what threw (#262).
                 HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "draw", failure);
                 diagnose("pre-draw failed", failure);
-                blurBroken = true;
             } finally {
                 Trace.endSection();
             }
+            recordUnder();
             if (!layOutAgain) return true;
             if (now - heldBackAt < HOLD_BACK_MS) return true;
             heldBackAt = now;
             return false;
+        }
+
+        /**
+         * Something on screen is drawing a frame, so the glass records what's under it again, at most every
+         * RECORD_EVERY_MS, and once more shortly after a frame it skipped so it never stays behind. Only its
+         * own render node is recorded, not a view, so this asks for no frame of its own: the screen stops
+         * drawing as soon as nothing else changes. Off screen the bar is still drawn, so a video that starts
+         * under it is still kept out. A recording that throws leaves the pill on its plain tint only until
+         * one works again ({@link BlurTries}, #262).
+         */
+        private void recordUnder() {
+            if (!blurWanted) return;
+            try {
+                if (scrollHide == null || !scrollHide.isOffScreen()) pill.recordIfDue();
+                else pill.recordIfSurfaceAppeared();
+            } catch (Throwable failure) {
+                blurFailed("blur", failure);
+            }
+        }
+
+        /**
+         * A blur recording that threw: reported, tried again shortly, and after {@link #BLUR_TRIES} in a row
+         * left to rest on the plain tint for {@link #BLUR_REST_MS}. Before, one failure turned the blur off for
+         * as long as the bar lived, and the pill sat on the dark tint from then on (#262).
+         */
+        private void blurFailed(String what, Throwable failure) {
+            HookStatus.threw(FamilyNames.GLASS_TAB_BAR, what, failure);
+            diagnose(what + " failed", failure);
+            if (tries.failed(SystemClock.uptimeMillis())) HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_BLUR_RESTED);
+            else pill.retrySoon();
         }
 
         /** The tab Instagram marks selected, or null. */
@@ -2110,7 +2139,7 @@ public final class GlassTabBar {
                 underlay(canvas);
                 // Light glass has nothing under it to stand out against, so it gets a soft shadow.
                 if (!dark) shadow(canvas, rect, radius);
-                boolean blurred = !blurBroken && blurWanted && drawBackdrop(canvas);
+                boolean blurred = blurWanted && !tries.resting(SystemClock.uptimeMillis()) && drawBackdrop(canvas);
                 fill.setColor(tint(base, blurred, opacity));
                 canvas.drawRoundRect(rect, radius, radius, fill);
 
@@ -2146,7 +2175,7 @@ public final class GlassTabBar {
                 shapes.addRoundRect(shrunk, round, round, Path.Direction.CW);
                 if (apart) shapes.addOval(circle, Path.Direction.CW);
                 boolean blurred = false;
-                if (!blurBroken && blurWanted) {
+                if (blurWanted && !tries.resting(SystemClock.uptimeMillis())) {
                     int saved = canvas.save();
                     canvas.clipPath(shapes);
                     blurred = drawBackdrop(canvas);
@@ -2296,10 +2325,17 @@ public final class GlassTabBar {
             private boolean catchUpPending;
             private final Runnable catchUp = () -> {
                 catchUpPending = false;
-                if (blurBroken || !bar.isAttachedToWindow()) return;
+                if (!bar.isAttachedToWindow() || tries.resting(SystemClock.uptimeMillis())) return;
                 recordBackdrop();
                 bar.invalidate();
             };
+
+            /** Records again shortly after a recording failed, so the blur comes back on a screen that's gone still. */
+            void retrySoon() {
+                if (catchUpPending) return;
+                catchUpPending = true;
+                bar.postDelayed(catchUp, RECORD_EVERY_MS);
+            }
 
             /** Drops a catch-up still waiting, so the next frame can arrange a new one. */
             void cancelCatchUp() {
@@ -2378,6 +2414,7 @@ public final class GlassTabBar {
              */
             void recordBackdrop() {
                 if (drawingBackdrop || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
+                if (tries.resting(SystemClock.uptimeMillis())) return;
                 if (!(bar.getParent() instanceof ViewGroup) || !pillBounds(area)) return;
                 ViewGroup parent = (ViewGroup) bar.getParent();
                 int barIndex = parent.indexOfChild(bar);
@@ -2442,12 +2479,13 @@ public final class GlassTabBar {
                         backdrop.endRecording();
                     }
                     recorded = true;
+                    tries.worked();
                     report("backdrop recorded under " + barIndex + " views: pill " + Math.round(area.width()) + "x"
                             + Math.round(area.height()) + " as " + width + "x" + height);
                 } catch (Throwable failure) {
-                    blurBroken = true;
-                    HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "blur", failure);
-                    diagnose("backdrop failed", failure);
+                    // A recording cut short isn't shown: the pill draws its tint, or this frame tries again.
+                    recorded = false;
+                    blurFailed("blur", failure);
                 } finally {
                     drawingBackdrop = false;
                     Trace.endSection();
@@ -2465,6 +2503,37 @@ public final class GlassTabBar {
             @Override public int getOpacity() {
                 return PixelFormat.TRANSLUCENT;
             }
+        }
+    }
+
+    /**
+     * How a glass bar's blur recordings have gone lately (#262). A recording that throws, such as one
+     * drawing a view Instagram is recycling as a list scrolls, leaves the pill on its plain tint only
+     * until the next one works. After {@link #BLUR_TRIES} in a row the blur rests on the tint for
+     * {@link #BLUR_REST_MS}, so a view that throws every time it's drawn doesn't cost a failure each
+     * frame, and then tries again. Before, one failure turned the blur off for as long as the bar lived.
+     * Main thread.
+     */
+    static final class BlurTries {
+        private int failedInARow;
+        private long restUntil = Long.MIN_VALUE;
+
+        /** Whether the blur rests at [now], drawing the plain tint and recording nothing. */
+        boolean resting(long now) {
+            return now < restUntil;
+        }
+
+        /** A recording failed at [now]. Says whether that was one too many in a row and the blur rests. */
+        boolean failed(long now) {
+            if (++failedInARow < BLUR_TRIES) return false;
+            failedInARow = 0;
+            restUntil = now + BLUR_REST_MS;
+            return true;
+        }
+
+        /** A recording worked, so the count of failures starts over. */
+        void worked() {
+            failedInARow = 0;
         }
     }
 

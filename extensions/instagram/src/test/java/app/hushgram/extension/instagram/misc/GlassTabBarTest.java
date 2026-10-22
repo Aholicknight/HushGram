@@ -1469,6 +1469,33 @@ public class GlassTabBarTest {
         assertTrue(GlassTabBar.shouldRecord(true, GlassTabBar.MAX_STALE_MS, 60));
     }
 
+    /**
+     * #262: a blur recording that throws leaves the pill on its plain tint only until one works again.
+     * Before, one failure turned the blur off for as long as the bar lived, and the pill stayed on the
+     * dark tint. A blur that fails too many times in a row rests a while, then tries again, and one that
+     * works in between starts the count over.
+     */
+    @Test
+    public void aFailedBlurRecordingIsTriedAgain() {
+        GlassTabBar.BlurTries tries = new GlassTabBar.BlurTries();
+        long now = 10_000;
+        assertFalse(tries.resting(now));
+        for (int i = 1; i < GlassTabBar.BLUR_TRIES; i++) {
+            assertFalse("a failure is tried again", tries.failed(now));
+            assertFalse(tries.resting(now));
+        }
+        tries.worked();
+        for (int i = 1; i < GlassTabBar.BLUR_TRIES; i++) {
+            assertFalse("one that worked started the count over", tries.failed(now));
+        }
+        assertTrue("one too many in a row, and the blur rests", tries.failed(now));
+        assertTrue(tries.resting(now));
+        assertTrue(tries.resting(now + GlassTabBar.BLUR_REST_MS - 1));
+        assertFalse("then tries again", tries.resting(now + GlassTabBar.BLUR_REST_MS));
+        assertFalse("with the count started over", tries.failed(now + GlassTabBar.BLUR_REST_MS));
+        assertFalse(tries.resting(now + GlassTabBar.BLUR_REST_MS));
+    }
+
     @Test
     public void hapticTicksCloserThanTheMinimumGapAreDropped() {
         assertTrue(GlassTabBar.Haptics.farEnough(1000, 1000 - GlassTabBar.Haptics.MIN_TICK_GAP_MS));
@@ -1734,6 +1761,68 @@ public class GlassTabBarTest {
             host.frame();
             assertEquals("the same video recorded again", 1L, (long) ReflectionHelpers.getField(pill, "lastRecorded"));
             assertTrue("still hidden", hide.isOffScreen());
+        }
+    }
+
+    /**
+     * #262: a view under the bar that throws as the glass records it, as one Instagram is recycling can
+     * while a list scrolls, costs the blur that recording and no more. The glass tries again shortly, so
+     * the blur comes back even on a still screen, rests on the plain tint after too many failures in a
+     * row, and records again once the rest is over. Before, the first throw turned the blur off for as
+     * long as the bar lived, and the pill sat on the dark tint.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aBlurRecordingThatThrowsIsTriedAgainInsteadOfTurningTheBlurOff() {
+        GlassTabBar.animationsOnForTests = false;
+        HookStatus.clear();
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, true)) {
+            boolean[] throwing = {false};
+            Object[] pill = {null};
+            View feed = new View(host.activity) {
+                @Override public void draw(Canvas canvas) {
+                    // Only as the glass records it: the window's own draw goes on.
+                    if (throwing[0] && pill[0] != null && (boolean) ReflectionHelpers.getField(pill[0], "drawingBackdrop")) {
+                        throw new IllegalStateException("recycled");
+                    }
+                    super.draw(canvas);
+                }
+            };
+            feed.setBackgroundColor(Color.RED);
+            host.root.addView(feed, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            GlassTabBar.apply(host.activity);
+            host.frame();
+            pill[0] = host.bar.getBackground();
+            assertTrue("no backdrop recorded", (boolean) ReflectionHelpers.getField(pill[0], "recorded"));
+            GlassTabBar.BlurTries tries = ReflectionHelpers.getField(host.glass(), "tries");
+
+            throwing[0] = true;
+            ReflectionHelpers.callInstanceMethod(pill[0], "cancelCatchUp");
+            ReflectionHelpers.callInstanceMethod(pill[0], "recordBackdrop");
+            assertFalse("a recording cut short isn't shown", (boolean) ReflectionHelpers.getField(pill[0], "recorded"));
+            assertFalse("one failure doesn't rest the blur", tries.resting(SystemClock.uptimeMillis()));
+            assertTrue("it's tried again shortly", (boolean) ReflectionHelpers.getField(pill[0], "catchUpPending"));
+            throwing[0] = false;
+            ShadowLooper.idleMainLooper(GlassTabBar.RECORD_EVERY_MS * 2, java.util.concurrent.TimeUnit.MILLISECONDS);
+            assertTrue("the blur came back on a still screen", (boolean) ReflectionHelpers.getField(pill[0], "recorded"));
+            String report = String.join("\n", HookStatus.report());
+            assertTrue(report, report.contains("IllegalStateException"));
+
+            // A view that throws every time it's drawn.
+            throwing[0] = true;
+            for (int i = 0; i < GlassTabBar.BLUR_TRIES; i++) ReflectionHelpers.callInstanceMethod(pill[0], "recordBackdrop");
+            assertTrue("too many in a row, and the blur rests", tries.resting(SystemClock.uptimeMillis()));
+            report = String.join("\n", HookStatus.report());
+            assertTrue(report, report.contains(GlassTabBar.COUNT_BLUR_RESTED));
+            throwing[0] = false;
+            host.frame();
+            assertFalse("resting, nothing is recorded", (boolean) ReflectionHelpers.getField(pill[0], "recorded"));
+
+            ShadowLooper.idleMainLooper(GlassTabBar.BLUR_REST_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
+            assertFalse(tries.resting(SystemClock.uptimeMillis()));
+            host.frame();
+            assertTrue("the rest over, the blur records again", (boolean) ReflectionHelpers.getField(pill[0], "recorded"));
         }
     }
 
