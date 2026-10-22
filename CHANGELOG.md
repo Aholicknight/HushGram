@@ -7,9 +7,11 @@ Every HushGram release, newest first.
 ### Features
 
 * **Instagram - Downloads:** new switch, `Add the source to saved photos`, off to start. With it on, a saved photo carries where it came from in its EXIF details, the kind a gallery or exiftool reads: the account that posted it, the post date and a link to the post. JPEG photos only, and only what the save already knows, so a profile picture carries just the account. The picture itself is unchanged.
+* **Instagram - Details:** Reels on the Reels tab get Details and Copy caption in their menu now, the same as feed posts. (#282)
 
 ### Bug Fixes
 
+* **Instagram - Hide Follow on feed posts:** The Subscribe button next to a creator's name on feed posts goes too now. On Reels it goes with Clean up Reels' follow switch. A creator's own profile keeps its button. (#248)
 * **Instagram - Clean up Reels:** With `Keep clear mode on`, a long reel in clear mode no longer keeps its seek bar along the bottom. The bar comes back once you leave clear mode. (#277)
 * **Instagram - Clean up Reels:** With `Keep clear mode on`, the buttons, author row and top bar could pop back up on a reel that was still in clear mode, a few swipes in. Instagram resets them to shown when it gets a page ready while you aren't scrolling. That reset leaves them hidden now, and they still come back when clear mode ends. Reported in #233.
 * **Instagram - Hide the Explore grid:** Turning on `Hide suggested accounts in search` no longer takes your recent searches away with the suggestions. Only the Suggested for you accounts go now, and your recent searches stay where they were. (#272)
