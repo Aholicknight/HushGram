@@ -141,6 +141,9 @@ internal fun namesSplashIcon(styles: Document): Boolean =
  * patcher re-encodes every file written.
  */
 internal fun ResourcePatchContext.addLaunchScreen() {
+    // Patcher 2.0 decodes only the files a patch asks for. The mark is asked for so one already in
+    // the APK shows up and is refused.
+    decode("res/values*/styles.xml", "res/drawable*/$LAUNCH_MARK.xml")
     val res = get("res")
     val v31 = res.listFiles { file -> file.isDirectory && file.name.startsWith("values") && file.name.endsWith("-v31") }
         .orEmpty().map { File(it, "styles.xml") }.filter { it.isFile }
@@ -156,8 +159,7 @@ internal fun ResourcePatchContext.addLaunchScreen() {
 }
 
 /**
- * The theme and the mark. Manager decodes Instagram's resources for Remove the advertising ID
- * already, so this costs no second decode when both are picked, and it touches no color.
+ * The theme and the mark. Only the styles files are decoded, and it touches no color.
  */
 private val launchThemePatch = resourcePatch {
     execute {

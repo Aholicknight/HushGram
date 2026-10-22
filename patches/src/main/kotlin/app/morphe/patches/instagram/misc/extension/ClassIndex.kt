@@ -188,14 +188,17 @@ internal fun BytecodePatchContext.typesMarked(vararg names: String): Set<String>
  * Every android_purge_ string the app's code loads, by the part after its last underscore, with the
  * types of the classes loading it. A string ends in `_X` only when that part is X's own, so a name
  * reads one short list. Asking the patcher's string index for an ending tests each of the app's
- * 400,000 strings, once per name, and the Reels patches ask for dozens (#173). It holds strings
- * only, never the app's classes.
+ * 400,000 strings, once per name, and the Reels patches ask for dozens (#173). It holds strings,
+ * plus the few classes it read last so the next ask knows where to start.
  */
 private class PurgeIndex {
     private val byLastPart = HashMap<String, MutableList<Pair<String, String>>>()
 
-    /** How many of the patcher's classes with strings this has read. */
-    var read = 0
+    /**
+     * The patcher's classes with strings this has read last, by identity: the end of the list when
+     * it was built, then every class read after that.
+     */
+    val read: MutableSet<ClassDef> = java.util.Collections.newSetFromMap(java.util.IdentityHashMap())
 
     fun add(classDef: ClassDef) {
         for (method in classDef.methods) {
@@ -218,19 +221,28 @@ private val purgeIndexes = java.util.WeakHashMap<BytecodePatchContext, PurgeInde
 /**
  * This context's [PurgeIndex]. The first ask reads the classes the patcher's string index names
  * for an android_purge_ string. The patcher indexes a class merged in later, an extension's, by
- * adding it to the end of its classes with strings, so each ask reads the ones added since.
+ * adding it to the end of its classes with strings, so each ask reads back from the end to the
+ * last class it has read. Patcher 2.0 also drops a class a merge replaces from that list, which
+ * keeps its length the same, so counting what was added would miss the replacement. A class made
+ * mutable can come back as another object, which is why more than the list's last class is kept.
  */
 private fun BytecodePatchContext.purgeIndex(): PurgeIndex = synchronized(purgeIndexes) {
     val withStrings = getAllClassesWithStrings()
     val index = purgeIndexes[this] ?: PurgeIndex().also { index ->
         classDefByStrings("android_purge_", StringComparisonType.STARTS_WITH).forEach(index::add)
-        index.read = withStrings.size
+        index.read += withStrings.takeLast(KEPT_FROM_THE_END)
         purgeIndexes[this] = index
     }
-    withStrings.subList(index.read, withStrings.size).forEach(index::add)
-    index.read = withStrings.size
+    var from = withStrings.size
+    while (from > 0 && withStrings[from - 1] !in index.read) from--
+    for (classDef in withStrings.subList(from, withStrings.size)) {
+        index.add(classDef)
+        index.read += classDef
+    }
     index
 }
+
+private const val KEPT_FROM_THE_END = 32
 
 /** The classes outside the extension holding a method [fingerprint] matches, in the app's order. */
 private fun BytecodePatchContext.classesMatching(fingerprint: Fingerprint): List<ClassDef> =

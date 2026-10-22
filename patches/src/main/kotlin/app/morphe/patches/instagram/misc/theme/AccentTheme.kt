@@ -248,6 +248,8 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
  * every file written. Answers the attributes, as [addAccentResources] does.
  */
 internal fun ResourcePatchContext.addAccentTheme(): String {
+    // Patcher 2.0 decodes only the files a patch asks for.
+    decode("res/values*/styles.xml", "res/values*/colors.xml", "res/values/attrs.xml")
     val values = get("res").listFiles { file -> file.isDirectory && file.name.startsWith("values") }.orEmpty()
     val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
     fun read(name: String) = values.map { File(it, name) }.filter { it.isFile }.map { builder.parse(it) }

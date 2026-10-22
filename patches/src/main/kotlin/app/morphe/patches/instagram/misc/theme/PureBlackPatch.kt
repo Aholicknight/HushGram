@@ -195,6 +195,8 @@ internal fun BytecodePatchContext.blackenLiterals(): List<String> {
  * file written. The sheets' and stories' styles sit in the file the palettes are in.
  */
 internal fun ResourcePatchContext.blackenThemes() {
+    // Patcher 2.0 decodes only the files a patch asks for.
+    decode("res/values*/colors.xml", "res/values*/styles.xml")
     val values = get("res").listFiles { file -> file.isDirectory && file.name.startsWith("values") }.orEmpty()
     val colors = File(get("res"), "values/colors.xml")
     // 449 stores it as an RGB color, which decodes without the alpha.
@@ -225,8 +227,7 @@ internal fun ResourcePatchContext.blackenThemes() {
 
 /**
  * A resource patch, for the themes the View screens, the sheets, the story viewer and the status
- * bar read. Manager decodes Instagram's resources for Remove the advertising ID already, so this
- * costs no second decode when both are picked.
+ * bar read. Only the colors and styles files are decoded.
  */
 private val pureBlackStylesPatch = resourcePatch {
     execute {
