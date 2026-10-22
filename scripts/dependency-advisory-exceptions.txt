@@ -6,13 +6,15 @@
 # Its reason starts with jar-sha256=<the JAR's SHA-256>, and it counts only when that JAR is the one audited.
 # Dates may be at most 90 days ahead. Expired or unmatched exceptions fail the audit.
 #
-# Desktop 1.18.1, reviewed 2026-10-18 (javap). Outside Bouncy Castle itself only two classes name it:
+# Desktop 1.19.0, reviewed 2026-10-22 (javap; first reviewed on 1.18.1, 2026-10-18). It packs the same 3387
+# Bouncy Castle classes as 1.18.1. Outside Bouncy Castle itself only two classes use it:
 # app/morphe/patcher/apk/ApkSigner (KeyStore BKS from BC, and JcaContentSignerBuilder SHA256withRSA with
 # X509v3CertificateBuilder for a new self-signed certificate) and okhttp3 BouncyCastlePlatform, used only
-# when BC is the first provider. ApkSigner registers BC with Security.addProvider, which puts it last, so
-# the official APK's certificate is read by the JDK. No stable Desktop after 1.18.1 exists on this date.
-external-desktop GHSA-574f-3g2m-x479 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=1b506ab5f03d16a2f65026d5e0e1910d01fc1e2152f21eaeb44ed2f30856597b Nothing Desktop does selects GOST 28147 or CTR mode. Its only BC work is a BKS keystore and an RSA signature.
-external-desktop GHSA-9pwp-9qqc-pr26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=1b506ab5f03d16a2f65026d5e0e1910d01fc1e2152f21eaeb44ed2f30856597b Desktop never builds or validates a certificate path, so BC never checks a name constraint.
-external-desktop GHSA-qp49-qgx5-5m26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=1b506ab5f03d16a2f65026d5e0e1910d01fc1e2152f21eaeb44ed2f30856597b BC only parses ASN.1 from our own BKS keystore and the certificate ApkSigner makes. The APK's certificate goes to the JDK.
-external-desktop GHSA-c3fc-8qff-9hwx org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=1b506ab5f03d16a2f65026d5e0e1910d01fc1e2152f21eaeb44ed2f30856597b Desktop never opens an LDAP cert store, so LDAPStoreHelper and X509LDAPCertStoreSpi sit unused in the JAR.
-external-desktop GHSA-wg6q-6289-32hp org.bouncycastle:bcpkix-jdk18on 2027-01-14 jar-sha256=1b506ab5f03d16a2f65026d5e0e1910d01fc1e2152f21eaeb44ed2f30856597b The JAR has no CompositeVerifier, and Desktop never verifies a signature through BC's operator classes.
+# when BC is the first provider. app/morphe/patcher/dex/SdkDexVerifier only lists the package name as a
+# string. ApkSigner registers BC with Security.addProvider, which puts it last, so the official APK's
+# certificate is read by the JDK.
+external-desktop GHSA-574f-3g2m-x479 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=deb5d931f3899b20a119637473d338c52585f0c561b5d8b2856b916fe90163b5 Nothing Desktop does selects GOST 28147 or CTR mode. Its only BC work is a BKS keystore and an RSA signature.
+external-desktop GHSA-9pwp-9qqc-pr26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=deb5d931f3899b20a119637473d338c52585f0c561b5d8b2856b916fe90163b5 Desktop never builds or validates a certificate path, so BC never checks a name constraint.
+external-desktop GHSA-qp49-qgx5-5m26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=deb5d931f3899b20a119637473d338c52585f0c561b5d8b2856b916fe90163b5 BC only parses ASN.1 from our own BKS keystore and the certificate ApkSigner makes. The APK's certificate goes to the JDK.
+external-desktop GHSA-c3fc-8qff-9hwx org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=deb5d931f3899b20a119637473d338c52585f0c561b5d8b2856b916fe90163b5 Desktop never opens an LDAP cert store, so LDAPStoreHelper and X509LDAPCertStoreSpi sit unused in the JAR.
+external-desktop GHSA-wg6q-6289-32hp org.bouncycastle:bcpkix-jdk18on 2027-01-14 jar-sha256=deb5d931f3899b20a119637473d338c52585f0c561b5d8b2856b916fe90163b5 The JAR has no CompositeVerifier, and Desktop never verifies a signature through BC's operator classes.

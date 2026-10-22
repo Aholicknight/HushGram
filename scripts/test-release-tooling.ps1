@@ -3179,16 +3179,35 @@ try {
             -Value (Get-FixtureManifest -Build $build -Code "$versionCode" -WithSplit)
         Set-Content -LiteralPath "$apkm.patched.txt" -Encoding ASCII -NoNewline `
             -Value (Get-FixtureManifest -Build $build -Code "$versionCode" -WithSplit -Patched)
-        # The report the CLI writes: every patch and the internal dependencies applied, one step,
-        # and the input's own version.
+        # The report the CLI (1.19.0) writes: every patch and the internal dependencies applied,
+        # its steps, and the input's own version.
         Set-Content -LiteralPath "$apkm.result.json" -Encoding ASCII -Value ([ordered]@{
-            patchingSteps = @([ordered]@{ success = $true })
+            success = $true
+            stepResults = @([ordered]@{ step = 'PATCHING'; success = $true }, [ordered]@{ step = 'REBUILDING'; success = $true })
             appliedPatches = @(@($releaseNames) + @($dependencyNamesHere) | ForEach-Object { [ordered]@{ name = $_ } })
             failedPatches = @()
             packageName = $releaseTarget.PackageName
             packageVersion = $build } | ConvertTo-Json -Depth 6)
         $fixturePaths[$build] = $apkm
     }
+    # The 1.18 CLI's step list name still reads, and a result with no step list, or with a step
+    # that failed, is invalid rather than an error.
+    $reportApk = Join-Path $fixtures 'report-check.apk'
+    New-TestBundleArchive -Path $reportApk -Entries ([ordered]@{ 'AndroidManifest.xml' = 'manifest'; 'classes.dex' = "dex`n035" })
+    function Test-StepReport([object[]]$Steps, [string]$Name = 'stepResults') {
+        $report = [pscustomobject]@{ appliedPatches = @([pscustomobject]@{ name = 'Only' }); failedPatches = @()
+            packageName = 'com.instagram.android'; packageVersion = '1.0' }
+        if ($null -ne $Steps) { $report | Add-Member -NotePropertyName $Name -NotePropertyValue $Steps }
+        Test-PatchingReport -Report $report -ExpectedNames @('Only') -OutputPath $reportApk `
+            -ExpectedPackageName 'com.instagram.android' -ExpectedPackageVersion '1.0'
+    }
+    $passed = [pscustomobject]@{ step = 'PATCHING'; success = $true }
+    Assert-True (Test-StepReport @($passed)).Valid 'A 1.19 CLI result was rejected.'
+    Assert-True (Test-StepReport @([pscustomobject]@{ success = $true }) -Name 'patchingSteps').Valid 'A 1.18 CLI result was rejected.'
+    $stepless = Test-StepReport $null
+    Assert-True (-not $stepless.Valid -and $stepless.Reason -match 'step') "A result with no step list passed: $($stepless.Reason)"
+    Assert-True (-not (Test-StepReport @($passed, [pscustomobject]@{ step = 'REBUILDING'; success = $false })).Valid) `
+        'A result whose rebuild step failed passed.'
     # And another build of the declared version, as APKMirror lists several arm64 builds of one
     # Instagram release: the declared name at a code the catalog doesn't pin. Only its base
     # manifest, since the builder has to refuse it before anything is merged or patched.
