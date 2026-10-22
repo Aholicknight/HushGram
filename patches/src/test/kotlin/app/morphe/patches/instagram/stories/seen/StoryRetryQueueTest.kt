@@ -594,7 +594,7 @@ class StoryRetryQueueTest {
     }
 
     private fun proofInputs(): List<List<ClassDef>> {
-        assertTrue("the authoritative declared 452 build (385810270) is required", nativeProofInputs.isNotEmpty())
+        assertTrue("the authoritative declared 452 build (385811006) is required", nativeProofInputs.isNotEmpty())
         return nativeProofInputs + listOf(fixtures.standIns())
     }
 
@@ -621,7 +621,7 @@ class StoryRetryQueueTest {
 
     companion object {
         private val nativeProofInputs by lazy {
-            Fixtures.files { it.name == "instagram-452.0.0.48.64-385810270.apks" }
+            Fixtures.files { it.name == "instagram-452.1.0.53.64-385811006.apks" }
                 .map { StorySeenHookTest().fixtureClasses(it) }
         }
         private val otherNativeProofInputs by lazy {

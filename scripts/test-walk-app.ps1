@@ -58,7 +58,7 @@ try {
 
     function New-WalkReceiptFile([string]$Name, [string]$Result, [bool]$Full, [int]$Screens, [int]$Crashes, [string]$Sha, [string[]]$Problems) {
         $receipt = New-WalkReceipt -Result $Result -Full $Full -Serial 'emulator-5554' -Device 'sdk_gphone64_x86_64' `
-            -AppVersion '452.0.0.48.64' -BundleSha256 $Sha -InstalledApkSha256 ('0' * 64) `
+            -AppVersion '452.1.0.53.64' -BundleSha256 $Sha -InstalledApkSha256 ('0' * 64) `
             -Started $started -Finished $finished -Screens $Screens -Crashes $Crashes -Problems $Problems
         $path = Join-Path $scratch $Name
         [IO.File]::WriteAllText($path, (ConvertTo-Json -InputObject $receipt -Depth 4) + "`n")

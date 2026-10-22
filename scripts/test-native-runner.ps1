@@ -28,7 +28,7 @@ function Assert-True {
 }
 
 $target = [pscustomobject]@{
-    Package = 'com.instagram.android'; VersionName = '452.0.0.48.64'; VersionCode = '385810270'
+    Package = 'com.instagram.android'; VersionName = '452.1.0.53.64'; VersionCode = '385811006'
     Sha256 = 'a' * 64; SignerSha256 = 'b' * 64; BuildIdentity = 'hg1:' + ('c' * 64)
     SelectionSha256 = 'd' * 64; AppliedPatches = 113
 }
