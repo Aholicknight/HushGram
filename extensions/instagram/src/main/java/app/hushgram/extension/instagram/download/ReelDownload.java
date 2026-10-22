@@ -53,6 +53,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *       Download on reels off, the row goes above Instagram's own Download row where Instagram
  *       shows one, and that row stays Instagram's. Where Instagram shows none, Download is let in
  *       for the adder all the same, which puts the player row alone in its place.
+ *   <li>With Details in a post's menu on, a reel gets a Details row last, which opens the sheet a
+ *       feed post's Details does, with Copy username and Copy caption (#282). It follows the same
+ *       rules as the player row when Download on reels is off.
  * </ul>
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with the switch
@@ -119,12 +122,18 @@ public final class ReelDownload {
      */
     static final String PLAYER_OPTION = ExternalPlayer.OPTION;
 
+    /**
+     * The name of the Details row a reel's menu gets with Details in a post's menu on (#282). It
+     * opens the same sheet a feed post's does, Copy username and Copy caption included.
+     */
+    static final String DETAILS_OPTION = "HUSHGRAM_REEL_DETAILS";
+
     /** Counted when a reel Instagram keeps Download off gets the player row alone. */
     static final String PLAYER_ALONE = "player row alone";
 
     /** Every row of ours, by name. */
     private static final List<String> OUR_ROWS = Arrays.asList(VIDEO_OPTION, PHOTO_OPTION, REEL_OPTION, COVER_OPTION,
-            AUDIO_OPTION, PLAYER_OPTION);
+            AUDIO_OPTION, PLAYER_OPTION, DETAILS_OPTION);
 
     /** What the menu found for a reel's cover, and what a tap on Download cover started. */
     static final String HAS_COVER = "has cover";
@@ -190,7 +199,7 @@ public final class ReelDownload {
         playerOnly = false;
         playerFits = false;
         if (on()) return true;
-        playerFits = ExternalPlayer.offers(media);
+        playerFits = ExternalPlayer.offers(media) || detailsFit(media);
         if (eligible) return true;
         playerOnly = playerFits;
         return playerOnly;
@@ -228,7 +237,7 @@ public final class ReelDownload {
         try {
             if (options == null || download == null || options.contains(download)) return;
             boolean player = !on();
-            if (player && !ExternalPlayer.on()) return;
+            if (player && !ExternalPlayer.on() && !PostInfo.on()) return;
             int at = 0;
             for (int i = 0; i < options.size(); i++) {
                 Object option = options.get(i);
@@ -258,9 +267,9 @@ public final class ReelDownload {
         try {
             if (alone || !on()) {
                 Object player = media != null && ExternalPlayer.offers(media) ? InstagramMedia.reelOption(PLAYER_OPTION) : null;
-                if (player != null && playerRow(menu, context, player, sheet, rowState) && alone) {
-                    HookStatus.counted(FamilyNames.REEL_DOWNLOAD, PLAYER_ALONE);
-                }
+                boolean added = player != null && playerRow(menu, context, player, sheet, rowState);
+                added |= detailsRow(menu, media, context, sheet, rowState);
+                if (added && alone) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, PLAYER_ALONE);
                 return alone;
             }
             if (media == null) return false;
@@ -282,8 +291,10 @@ public final class ReelDownload {
                 return false;
             }
             try {
-                return InstagramMedia.addReelRow(menu, context, photo, sheet, rowState,
+                boolean went = InstagramMedia.addReelRow(menu, context, photo, sheet, rowState,
                     StoryDownload.label(StoryDownload.Choice.PHOTO));
+                detailsRow(menu, media, context, sheet, rowState);
+                return went;
             } catch (Throwable t) {
                 // Instagram's own Download row follows the video's then, and a tap on it saves the photo.
                 HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu photo row", t);
@@ -308,12 +319,14 @@ public final class ReelDownload {
         boolean cover = coverOn() && !StoryDownload.pictures(media).isEmpty();
         boolean audio = audioOn() && InstagramMedia.dashManifest(media) != null;
         boolean player = ExternalPlayer.offers(media);
-        if (!cover && !audio && !player) return false;
+        boolean details = detailsFit(media);
+        if (!cover && !audio && !player && !details) return false;
         Object reel = InstagramMedia.reelOption(REEL_OPTION);
         Object coverRow = cover ? InstagramMedia.reelOption(COVER_OPTION) : null;
         Object audioRow = audio ? InstagramMedia.reelOption(AUDIO_OPTION) : null;
         Object playerRow = player ? InstagramMedia.reelOption(PLAYER_OPTION) : null;
-        if (reel == null || coverRow == null && audioRow == null && playerRow == null) return false;
+        Object detailsOption = details ? InstagramMedia.reelOption(DETAILS_OPTION) : null;
+        if (reel == null || coverRow == null && audioRow == null && playerRow == null && detailsOption == null) return false;
         if (!InstagramMedia.addReelRow(menu, context, reel, sheet, rowState,
                 StoryDownload.label(StoryDownload.Choice.STORY))) {
             return false;
@@ -335,7 +348,34 @@ public final class ReelDownload {
             }
         }
         if (playerRow != null) playerRow(menu, context, playerRow, sheet, rowState);
+        if (detailsOption != null) addDetails(menu, context, detailsOption, sheet, rowState);
         return true;
+    }
+
+    /** Whether the reel [media] gets a Details row: Details in a post's menu is on and there is a reel. */
+    private static boolean detailsFit(Object media) {
+        return media != null && PostInfo.on();
+    }
+
+    /** Adds Details to the reel menu when [media] gets it, and whether it went in. Never throws. */
+    private static boolean detailsRow(Object menu, Object media, Object context, Object sheet, Object rowState) {
+        try {
+            if (!detailsFit(media)) return false;
+            Object option = InstagramMedia.reelOption(DETAILS_OPTION);
+            return option != null && addDetails(menu, context, option, sheet, rowState);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu details row", t);
+            return false;
+        }
+    }
+
+    private static boolean addDetails(Object menu, Object context, Object option, Object sheet, Object rowState) {
+        try {
+            return InstagramMedia.addReelRow(menu, context, option, sheet, rowState, L10n.t(Utils.getContext(), "Details"));
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu details row", t);
+            return false;
+        }
     }
 
     /** Adds Open in another player, [option], to the reel menu, and whether it went in. Never throws. */
@@ -400,6 +440,11 @@ public final class ReelDownload {
         // Open in another player has its own switch, and comes without Download on reels.
         if (PLAYER_OPTION.equals(row)) {
             if (ExternalPlayer.on()) ExternalPlayer.open(context, media, FamilyNames.REEL_DOWNLOAD);
+            return true;
+        }
+        // Details has its own switch too, and opens the sheet a feed post's Details does.
+        if (DETAILS_OPTION.equals(row)) {
+            if (activity != null) PostInfo.show(media, null, activity);
             return true;
         }
         if (!on()) return false;

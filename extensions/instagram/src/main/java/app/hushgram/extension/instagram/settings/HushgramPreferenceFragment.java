@@ -1547,7 +1547,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("The same Download on a photo post, and on a carousel showing a photo. Saves the largest "
                                 + "size Instagram has.")));
                 downloads.addPreference(toggle(context, Settings.POST_DETAILS, L10n.t("Details in a post's menu"),
-                        L10n.t("Adds Details to a feed post's menu. It shows when the post went up, who posted it, "
+                        L10n.t("Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, "
                                 + "its media ID and the size Download saves, with buttons to copy the file link, "
                                 + "username and caption.")));
                 downloads.addPreference(toggle(context, Settings.DOWNLOAD_CHOOSE_PAGES, L10n.t("Choose carousel pages"),

@@ -630,7 +630,7 @@ Media link copied	미디어 링크를 복사했습니다
 No direct link for this one	이 항목에는 직접 링크가 없습니다
 Posted %1$s	게시 시간 %1$s
 Size %1$d × %2$d	크기 %1$d × %2$d
-Adds Details to a feed post's menu. It shows when the post went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	피드 게시물의 메뉴에 상세 정보를 추가합니다. 게시 시각, 올린 사람, 미디어 ID, 다운로드로 저장되는 크기를 보여주고 파일 링크, 사용자 이름, 캡션을 복사하는 버튼이 있습니다.
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	피드 게시물이나 릴스의 메뉴에 상세 정보를 추가합니다. 게시 시각, 올린 사람, 미디어 ID, 다운로드로 저장되는 크기를 보여주고 파일 링크, 사용자 이름, 캡션을 복사하는 버튼이 있습니다.
 Caption	캡션
 Caption copied	캡션을 복사했습니다
 Copy caption	캡션 복사

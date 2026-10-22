@@ -631,7 +631,7 @@ Media link copied	Medya bağlantısı kopyalandı
 No direct link for this one	Bunun için doğrudan bağlantı yok
 Posted %1$s	Paylaşıldı: %1$s
 Size %1$d × %2$d	Boyut %1$d × %2$d
-Adds Details to a feed post's menu. It shows when the post went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	Akıştaki bir gönderinin menüsüne Ayrıntılar ekler. Gönderinin ne zaman paylaşıldığını, kimin paylaştığını, medya kimliğini ve İndir'in kaydettiği boyutu gösterir. Dosya bağlantısını, kullanıcı adını ve açıklamayı kopyalayan düğmeler de vardır.
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	Akıştaki bir gönderinin ya da reelin menüsüne Ayrıntılar ekler. Ne zaman paylaşıldığını, kimin paylaştığını, medya kimliğini ve İndir'in kaydettiği boyutu gösterir. Dosya bağlantısını, kullanıcı adını ve açıklamayı kopyalayan düğmeler de vardır.
 Caption	Açıklama
 Caption copied	Açıklama kopyalandı
 Copy caption	Açıklamayı kopyala

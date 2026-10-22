@@ -414,6 +414,59 @@ public class PostInfoTest {
         assertEquals("the list Instagram made", options, VideoDownload.allow(options, "DOWNLOAD"));
     }
 
+    /** Our Details row in a reel's menu, an option the menu's handler is handed. */
+    private enum ReelRow { HUSHGRAM_REEL_DETAILS }
+
+    /**
+     * A reel's menu gets Details with the switch on, whatever Download does, and a tap on it opens
+     * the sheet a feed post's does, Copy caption included (#282). With the switch off the menu is
+     * Instagram's.
+     */
+    @Test
+    public void aReelGetsDetailsWithCopyCaption() {
+        Post reel = video();
+        reel.caption = "a reel's words";
+
+        Bridges.reelRows.clear();
+        Settings.POST_DETAILS.save(false);
+        assertFalse(ReelDownload.rows(null, reel, null, null, null));
+        assertTrue("off", Bridges.reelRows.isEmpty());
+
+        Settings.POST_DETAILS.save(true);
+        assertTrue("Download on reels keeps Instagram's row out of a video's", ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(Arrays.asList("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_REEL_DETAILS=Details"), Bridges.reelRows);
+
+        Bridges.reelRows.clear();
+        Settings.DOWNLOAD_REELS.save(false);
+        assertFalse("Download on reels off: Instagram's own row follows", ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(Arrays.asList("HUSHGRAM_REEL_DETAILS=Details"), Bridges.reelRows);
+
+        assertTrue(ReelDownload.ours(ReelRow.HUSHGRAM_REEL_DETAILS));
+        assertTrue(ReelDownload.save(ReelRow.HUSHGRAM_REEL_DETAILS, reel, activity));
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        labelled(dialog, "Copy caption").performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals("a reel's words", clip().getItemAt(0).getText().toString());
+        Settings.DOWNLOAD_REELS.resetToDefault();
+    }
+
+    /** The reel menu's adder is let in for Details alone when Download is off and Instagram keeps its row out. */
+    @Test
+    public void detailsAloneLetsTheReelMenuIn() {
+        Settings.DOWNLOAD_REELS.save(false);
+        Settings.POST_DETAILS.save(false);
+        assertFalse(ReelDownload.offerRow(0, new Post("1_2", "someone", POSTED)));
+
+        Settings.POST_DETAILS.save(true);
+        Post reel = video();
+        assertTrue(ReelDownload.offerRow(0, reel));
+        assertTrue("Instagram's flag that keeps the row out is let by", !ReelDownload.withholdRow(1));
+        Bridges.reelRows.clear();
+        assertTrue("Details alone takes Download's place", ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(Arrays.asList("HUSHGRAM_REEL_DETAILS=Details"), Bridges.reelRows);
+        Settings.DOWNLOAD_REELS.resetToDefault();
+    }
+
     /** A post or a carousel page as the bridges read it. */
     static final class Post {
         String id;
@@ -456,6 +509,15 @@ public class PostInfoTest {
         @Implementation protected static String captionText(Object caption) { return ((Post) caption).caption; }
         @Implementation protected static int carouselIndex(Object itemState) { return (Integer) itemState; }
         @Implementation protected static Object feedOption(String name) { return name; }
+        @Implementation protected static Object reelOption(String name) { return name; }
+
+        static final List<String> reelRows = new ArrayList<>();
+
+        @Implementation
+        protected static boolean addReelRow(Object menu, Object context, Object option, Object sheet, Object rowState, String text) {
+            reelRows.add(option + "=" + text);
+            return true;
+        }
         @Implementation protected static Object saveAllOption() { return "SAVE_ALL"; }
         @Implementation protected static Object feedMenuMedia(Object menu) { return menu; }
         @Implementation protected static Object feedMenuItemState(Object menu) { return null; }
