@@ -66,8 +66,10 @@ public final class Runner extends Instrumentation {
     // method, the visual and voice mutations, the mutation base, its analytics extras and the
     // completion interface. A set is used only once Instagram's own code agrees with it.
     private static final String[][] VISUAL_NAMES = {
-            {"385810270", "X.04wm", "X.04wp", "Gxe", "X.0KN3", "X.0KMW", "X.0999", "X.08hM", "X.0Wom"},
-            {"385810231/385810269", "X.05eb", "X.05ef", "Gxn", "X.0J1i", "X.0J1O", "X.0682", "X.08wE", "X.0VAA"},
+            {"385811006", "X.04wm", "X.04wp", "Gxe", "X.0KN3", "X.0KMW", "X.0999", "X.08hM", "X.0Wom"},
+            {"385811005", "X.05eb", "X.05ef", "Gxn", "X.0J1i", "X.0J1O", "X.0682", "X.08wE", "X.0VAA"},
+            {"385811007", "X.04xq", "X.04xt", "Gxt", "X.0KP3", "X.0KOW", "X.0974", "X.08iU", "X.0Wa2"},
+            {"385811008", "X.04wm", "X.04wp", "Gxd", "X.0KM6", "X.0KM1", "X.0997", "X.08hM", "X.0Wnn"},
     };
     private static final String VISUAL_MUTATION = "send_visual_item_seen_marker";
     private static final String VOICE_MUTATION = "send_voice_item_seen_marker";
