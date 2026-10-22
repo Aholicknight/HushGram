@@ -58,6 +58,8 @@ final class ViewHider {
     @Nullable
     private final String scope;
     private final String[] names;
+    /** Names counted wherever they are, scope or not. See {@link #anywhere}. */
+    private String[] anywhere = new String[0];
     private final ResourceIdCache ids = new ResourceIdCache();
     private final WeakHashMap<Activity, Session> sessions = new WeakHashMap<>();
     private volatile boolean registered;
@@ -69,6 +71,15 @@ final class ViewHider {
         this.on = on;
         this.scope = scope;
         this.names = names;
+    }
+
+    /**
+     * Also hides views of these ids wherever they are, outside the scope too. For a button that sits
+     * in the post's own row rather than in its header, and has an id no other screen reuses.
+     */
+    ViewHider anywhere(String... more) {
+        this.anywhere = more;
+        return this;
     }
 
     /** Called as the application starts. Does nothing in a build without the patch. */
@@ -255,6 +266,16 @@ final class ViewHider {
                     wanted.add(id);
                 }
             }
+            Set<Integer> everywhere = new HashSet<>();
+            for (String name : anywhere) {
+                int id = id(owner, name);
+                if (id == 0) {
+                    HookStatus.missingViewId(family, name);
+                } else {
+                    HookStatus.recoveredViewId(family, name);
+                    everywhere.add(id);
+                }
+            }
             int within = 0;
             if (scope != null) {
                 within = id(owner, scope);
@@ -264,17 +285,18 @@ final class ViewHider {
                 }
                 HookStatus.recoveredViewId(family, scope);
             }
-            if (wanted.isEmpty()) return false;
-            return walk(owner.getWindow().getDecorView(), scope == null, within, wanted, new int[] {MAX_VIEWS});
+            if (wanted.isEmpty() && everywhere.isEmpty()) return false;
+            return walk(owner.getWindow().getDecorView(), scope == null, within, wanted, everywhere, new int[] {MAX_VIEWS});
         }
 
-        private boolean walk(View view, boolean inside, int within, Set<Integer> wanted, int[] budget) {
+        private boolean walk(View view, boolean inside, int within, Set<Integer> wanted, Set<Integer> everywhere,
+                int[] budget) {
             if (budget[0]-- <= 0) return false;
             boolean found = false;
             int id = view.getId();
             if (id != View.NO_ID) {
                 if (id == within) inside = true;
-                if (inside && wanted.contains(id) && !(view instanceof ViewStub)
+                if (((inside && wanted.contains(id)) || everywhere.contains(id)) && !(view instanceof ViewStub)
                         && view.getVisibility() != View.GONE) {
                     hidden.add(new WeakReference<>(view));
                     view.setVisibility(View.GONE);
@@ -285,7 +307,7 @@ final class ViewHider {
             if (view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;
                 for (int i = 0; i < group.getChildCount(); i++) {
-                    found |= walk(group.getChildAt(i), inside, within, wanted, budget);
+                    found |= walk(group.getChildAt(i), inside, within, wanted, everywhere, budget);
                 }
             }
             return found;

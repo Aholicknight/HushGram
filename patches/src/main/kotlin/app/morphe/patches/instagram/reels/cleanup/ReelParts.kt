@@ -23,8 +23,16 @@ internal const val HIDE_DIRECT_REPLY_BAR = "$DECLUTTER->hideDirectReplyBar(Ljava
  */
 internal data class ReelPart(val marker: String, val hook: String, val check: Boolean = false)
 
-/** The Follow button beside a reel's author. The suggested accounts' cards draw a Legacy one, which stays. */
-internal val FOLLOW_PARTS = listOf(ReelPart("ClipsFollowButtonComponent_render", HIDE_FOLLOW_BUTTON))
+/**
+ * The Follow button beside a reel's author, and the Subscribe button the author-info component draws
+ * in its place for a creator who sells subscriptions (#248). Both are renders of their own, and the
+ * Subscribe one is built only by the author-info component, so no other screen loses its button. The
+ * suggested accounts' cards draw a Legacy Follow button, which stays.
+ */
+internal val FOLLOW_PARTS = listOf(
+    ReelPart("ClipsFollowButtonComponent_render", HIDE_FOLLOW_BUTTON),
+    ReelPart("SubscriptionCtaButtonComponent_render", HIDE_FOLLOW_BUTTON),
+)
 
 /**
  * The pills that prompt you to make something or promote something. On Instagram 449 the first

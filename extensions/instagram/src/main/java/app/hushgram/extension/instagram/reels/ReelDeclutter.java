@@ -24,7 +24,8 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * nothing to show. The patch asks one of these first thing in each render it hides:
  *
  * <ul>
- *   <li>{@link #hideFollowButton} in the Follow button beside a reel's author. The Follow button
+ *   <li>{@link #hideFollowButton} in the Follow button beside a reel's author, and in the
+ *       Subscribe button a creator who sells subscriptions gets there (#248). The Follow button
  *       on the cards of suggested accounts between reels is another component and stays.
  *   <li>{@link #hideChips} in each pill that prompts you to make something or promotes something:
  *       the attribution pills for Edits, templates and creative tools, the Stories template pill,
@@ -109,7 +110,7 @@ public final class ReelDeclutter {
     private ReelDeclutter() {
     }
 
-    /** True leaves the Follow button beside a reel's author out. Never throws. */
+    /** True leaves the Follow or Subscribe button beside a reel's author out. Never throws. */
     public static boolean hideFollowButton() {
         return hide(Settings.HIDE_REEL_FOLLOW_BUTTON, "Follow button");
     }

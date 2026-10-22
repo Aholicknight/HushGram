@@ -51,6 +51,9 @@ public class FeedFollowButtonTest {
     private View subscribe;
     private ViewStub stub;
     private View storyFollow;
+    private View shortcut;
+    private View shortcutByStubId;
+    private ViewStub shortcutStub;
 
     @Before
     public void prepare() {
@@ -65,6 +68,10 @@ public class FeedFollowButtonTest {
         FeedFollowButton.hider().idForTests(activity, FeedFollowButton.INLINE_FOLLOW, inlineId);
         FeedFollowButton.hider().idForTests(activity, FeedFollowButton.HEADER_FOLLOW, inHeaderId);
         FeedFollowButton.hider().idForTests(activity, FeedFollowButton.SUBSCRIBE, subscribeId);
+        int shortcutId = View.generateViewId();
+        int shortcutStubId = View.generateViewId();
+        FeedFollowButton.hider().idForTests(activity, FeedFollowButton.SUBSCRIBE_SHORTCUT, shortcutId);
+        FeedFollowButton.hider().idForTests(activity, FeedFollowButton.SUBSCRIBE_SHORTCUT_STUB, shortcutStubId);
 
         screen = new LinearLayout(activity);
         screen.setOrientation(LinearLayout.VERTICAL);
@@ -90,8 +97,19 @@ public class FeedFollowButtonTest {
         header.addView(menu);
         storyFollow = new View(activity);
         storyFollow.setId(inlineId);
+        // The Subscribe shortcut is in the post's own row, outside the header: once inflated under its
+        // own id, and once under the stub's id, which a stub without an inflated id hands on.
+        shortcut = new View(activity);
+        shortcut.setId(shortcutId);
+        shortcutByStubId = new View(activity);
+        shortcutByStubId.setId(shortcutStubId);
+        shortcutStub = new ViewStub(activity);
+        shortcutStub.setId(shortcutStubId);
         screen.addView(header);
         screen.addView(storyFollow);
+        screen.addView(shortcut);
+        screen.addView(shortcutByStubId);
+        screen.addView(shortcutStub);
         FrameLayout root = new FrameLayout(activity);
         root.addView(screen);
         activity.setContentView(root);
@@ -145,6 +163,29 @@ public class FeedFollowButtonTest {
         assertEquals("nothing is taken out", 7, header.getChildCount());
         assertTrue(HookStatus.missing("Hide Follow on feed posts").toString(),
                 HookStatus.missing("Hide Follow on feed posts").isEmpty());
+    }
+
+    @Test
+    public void theSubscribeShortcutOutsideTheHeaderGoesToo() {
+        Settings.HIDE_FEED_FOLLOW.save(true);
+
+        FeedFollowButton.hider().watch(activity);
+
+        assertTrue(frame());
+        assertEquals("the shortcut's button", View.GONE, shortcut.getVisibility());
+        assertEquals("a view that took the stub's id", View.GONE, shortcutByStubId.getVisibility());
+        assertEquals(screen, shortcutStub.getParent());
+        assertTrue(HookStatus.missing("Hide Follow on feed posts").toString(),
+                HookStatus.missing("Hide Follow on feed posts").isEmpty());
+    }
+
+    @Test
+    public void theShortcutStaysWithTheSwitchOff() {
+        FeedFollowButton.hider().watch(activity);
+
+        assertFalse(frame());
+        assertEquals(View.VISIBLE, shortcut.getVisibility());
+        assertEquals(View.VISIBLE, shortcutByStubId.getVisibility());
     }
 
     @Test

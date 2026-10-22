@@ -26,7 +26,10 @@ import org.junit.Test
  * extension finds the buttons by the ids Instagram's layout gives them.
  */
 class HideFeedFollowPatchTest {
-    private val views = listOf("row_feed_profile_header", "inline_follow_button", "follow_in_header", "subscribe_button")
+    private val views = listOf(
+        "row_feed_profile_header", "inline_follow_button", "follow_in_header", "subscribe_button",
+        "subscribe_shortcut_button", "subscribe_shortcut_stub",
+    )
 
     /** The extension the bundle ships has the install the application hook calls. */
     @Test

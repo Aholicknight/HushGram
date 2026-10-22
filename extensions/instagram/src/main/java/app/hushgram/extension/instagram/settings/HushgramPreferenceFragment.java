@@ -887,7 +887,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (build.contains(PatchFamily.REEL_DECLUTTER)) {
             reels.add(toggle(context, Settings.HIDE_REEL_FOLLOW_BUTTON, L10n.t("Hide the Follow button"),
-                    L10n.t("The Follow button beside a reel's author. Their profile still has one.")));
+                    L10n.t("The Follow and Subscribe buttons beside a reel's author. Their profile still has them.")));
             reels.add(toggle(context, Settings.HIDE_REEL_CHIPS, L10n.t("Hide promotion buttons on reels"),
                     L10n.t("Hides the buttons that push Edits, templates, Meta AI and Ray-Ban Meta glasses. Live "
                             + "badges and state-controlled media labels stay.")));

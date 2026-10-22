@@ -16,7 +16,8 @@ import app.hushgram.extension.instagram.settings.SettingsStatus;
  *
  * <p>Instagram reuses these ids in other places (a story, a reel, a profile), so {@link ViewHider}
  * counts them only inside the feed post header, and never touches the view stubs the header
- * inflates them from. The author's name, the time and the menu are not named and stay.
+ * inflates them from. The author's name, the time and the menu are not named and stay. The
+ * Subscribe shortcut sits outside the header, so it is matched by its own ids anywhere.
  */
 public final class FeedFollowButton {
     /** The header of a feed post, which holds the author's name and the buttons beside it. */
@@ -25,12 +26,20 @@ public final class FeedFollowButton {
     static final String INLINE_FOLLOW = "inline_follow_button";
     static final String HEADER_FOLLOW = "follow_in_header";
     static final String SUBSCRIBE = "subscribe_button";
+    /**
+     * The Subscribe shortcut a creator's post carries (#248). It is a view stub in the post's own row,
+     * not in the header, so it is hidden wherever it is: the button it inflates, and the stub's id
+     * when the stub gave its id to the view it inflated. Only the feed row's holder looks these up.
+     */
+    static final String SUBSCRIBE_SHORTCUT = "subscribe_shortcut_button";
+    static final String SUBSCRIBE_SHORTCUT_STUB = "subscribe_shortcut_stub";
 
     static final String HOOK = "feed follow button";
     static final String COUNT_HIDDEN = "feed follow buttons hidden";
 
     private static final ViewHider HIDER = new ViewHider(FamilyNames.FEED_FOLLOW, HOOK, COUNT_HIDDEN,
-            () -> Settings.HIDE_FEED_FOLLOW.get(), HEADER, INLINE_FOLLOW, HEADER_FOLLOW, SUBSCRIBE);
+            () -> Settings.HIDE_FEED_FOLLOW.get(), HEADER, INLINE_FOLLOW, HEADER_FOLLOW, SUBSCRIBE)
+            .anywhere(SUBSCRIBE_SHORTCUT, SUBSCRIBE_SHORTCUT_STUB);
 
     private FeedFollowButton() {
     }

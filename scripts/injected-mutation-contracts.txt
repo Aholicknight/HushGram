@@ -292,6 +292,8 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelWatchHistory;->holdBack(
 # so that hook's rules cover the bar under reels opened from anywhere else.
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideFollowButton()Z holding android_purge_26_q3_ClipsFollowButtonComponent_render
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideFollowButton()Z holding android_purge_26_q3_ClipsFollowButtonComponent_render
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideFollowButton()Z holding android_purge_26_q3_SubscriptionCtaButtonComponent_render
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideFollowButton()Z holding android_purge_26_q3_SubscriptionCtaButtonComponent_render
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideChips()Z holding android_purge_26_q3_ClipsBaselAttributionPillComponent_render
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideChips()Z holding android_purge_26_q3_ClipsBaselAttributionPillComponent_render
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideChips()Z holding android_purge_26_q2_ClipsBaselCreativeToolAttributionPillComponent_render
