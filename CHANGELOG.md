@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Use the system photo picker:** new switch, off to start. With it on, the gallery sheet you get when you make a post adds an entry that opens Android's own photo picker. You pick from your photos and any cloud gallery that plugs into it, and Instagram only gets what you choose instead of reaching across your whole library. The entry shows even when Google Photos isn't installed. Turn it on in Ads and privacy.
 * **Instagram - Downloads:** new switch, `Add the source to saved photos`, off to start. With it on, a saved photo carries where it came from in its EXIF details, the kind a gallery or exiftool reads: the account that posted it, the post date and a link to the post. JPEG photos only, and only what the save already knows, so a profile picture carries just the account. The picture itself is unchanged.
 
 ### Bug Fixes

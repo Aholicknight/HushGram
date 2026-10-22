@@ -533,6 +533,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "places and maps. Photos keep their own places.")));
             privacy.add(placeRow(context));
         }
+        if (build.contains(PatchFamily.SYSTEM_PHOTO_PICKER)) {
+            privacy.add(toggle(context, Settings.SYSTEM_PHOTO_PICKER, L10n.t("Use the system photo picker"),
+                    L10n.t("Adds an entry to the gallery sheet when you make a post that opens Android's own photo "
+                            + "picker. You pick from your photos and any cloud gallery, and Instagram only gets what "
+                            + "you choose instead of reaching across your whole library. Starts off.")));
+        }
         if (!privacy.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Ads and privacy"), SettingsIcons.PRIVACY,
                     L10n.t("Hide ads and share less about yourself with Instagram."));

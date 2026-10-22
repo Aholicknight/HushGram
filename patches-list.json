@@ -4147,6 +4147,43 @@
       "options": []
     },
     {
+      "name": "Use the system photo picker",
+      "description": "Adds an entry to Instagram's gallery sheet that opens Android's own photo picker when you make a post, so you pick from your photos and any cloud gallery and Instagram only gets what you choose. Starts off. Turn it on in HushGram settings > Ads and privacy.",
+      "category": "Privacy",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "452.0.0.48.64"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "452.0.0.48.64",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385810270
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "View DM photos and videos anonymously",
       "description": "Holds back the Opened notice for view once photos and videos in messages, so the sender doesn't see you opened them. Ghost mode turns it on too. Starts off. Turn it on in HushGram settings > Ads and privacy.",
       "category": "Ghost mode",

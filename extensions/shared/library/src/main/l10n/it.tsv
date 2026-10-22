@@ -8,6 +8,7 @@ A diagnostic report is already being saved.	Un report diagnostico è già in fas
 A file named %1$s in %2$s paused HushGram.	Un file chiamato %1$s in %2$s ha messo in pausa HushGram.
 About	Informazioni
 Add the source to saved photos	Aggiungi l'origine alle foto salvate
+Adds an entry to the gallery sheet when you make a post that opens Android's own photo picker. You pick from your photos and any cloud gallery, and Instagram only gets what you choose instead of reaching across your whole library. Starts off.	Aggiunge una voce al pannello della galleria quando crei un post, che apre il selettore foto di Android. Scegli tra le tue foto e qualsiasi galleria nel cloud, e Instagram riceve solo ciò che scegli invece di accedere a tutta la tua libreria. Parte disattivato.
 Ads and privacy	Annunci e privacy
 Back	Indietro
 Before you sign in	Prima di accedere
@@ -92,6 +93,7 @@ There's no diagnostic data to clear.	Non ci sono dati diagnostici da cancellare.
 There's no diagnostic data to put back.	Non ci sono dati diagnostici da ripristinare.
 Try again, or go back to Instagram.	Riprova, oppure torna a Instagram.
 Updates	Aggiornamenti
+Use the system photo picker	Usa il selettore foto di sistema
 Version	Versione
 Version %1$s for Instagram %2$s	Versione %1$s per Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Mentre guardi in modo anonimo, una storia che hai visto diventa grigia e passa in fondo alla fila, solo su questo telefono. Instagram non viene comunque informato che l'hai vista.

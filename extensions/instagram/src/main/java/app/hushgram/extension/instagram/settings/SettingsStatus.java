@@ -347,6 +347,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean systemPhotoPicker() {
+        return false;
+    }
+
     public static boolean likeAnimation() {
         return false;
     }
