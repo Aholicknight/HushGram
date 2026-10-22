@@ -29,7 +29,7 @@
 
 .EXAMPLE
     # Walk a build already patched and installed from this bundle (records its APK hash):
-    scripts/walk-app.ps1 -Serial R5CT139QJ5F -ExpectedModel SM-S908U1 -SkipPatch
+    scripts/walk-app.ps1 -Serial <your phone's adb serial> -ExpectedModel SM-S908U1 -SkipPatch
 
 .NOTES
     Copyright 2026 HushGram contributors. https://github.com/SysAdminDoc/HushGram

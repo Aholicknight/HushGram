@@ -308,7 +308,7 @@ try {
         @{ Name = 'a runner from another run'; Device = (New-FakeDevice -RunnerPresent); Want = '*already on emulator-5554*' },
         @{ Name = 'a test user from another run'; Device = (New-FakeDevice -LeftoverUser); Want = '*User 11*already on*' },
         @{ Name = 'a single-user device'; Device = (New-FakeDevice -MaxUsers 1); Want = '*supports one Android user*' },
-        @{ Name = 'a phone'; Device = (New-FakeDevice -Serial 'R5CY34G070L'); Want = '*R5CY34G070L is not an emulator*' }
+        @{ Name = 'a phone'; Device = (New-FakeDevice -Serial 'PHONE0SERIAL'); Want = '*PHONE0SERIAL is not an emulator*' }
     )
     foreach ($refusal in $refusals) {
         $run = Invoke-FakeSession $refusal.Device
@@ -580,10 +580,10 @@ try {
     $whole = Invoke-WholeRun (New-FakeDevice) $target -Reader { throw 'No target APK at x.' }
     Assert-True ($whole.Error -like '*No target APK*' -and -not (Test-Path -LiteralPath $wholeVerdict)) 'A run that stopped at the target left the earlier verdict standing.'
     # A phone with -Install: refused before the gate, the lease and any install.
-    $phone = New-FakeDevice -Serial 'R5CY34G070L' -ReportedSigner $runnerSignerDigest -Fixture $boundTarget
+    $phone = New-FakeDevice -Serial 'PHONE0SERIAL' -ReportedSigner $runnerSignerDigest -Fixture $boundTarget
     $whole = Invoke-WholeRun $phone $boundTarget -Install -Gate $passingGate
-    Assert-True ($whole.Error -like '*R5CY34G070L is not an emulator*' -and $phone.State.Calls.Count -eq 0 -and $gateSaw.Count -eq 1) "A phone reached the gate or the device: $($whole.Error)"
-    Assert-True (-not (Test-Path -LiteralPath (Join-Path $leaseDirectory 'R5CY34G070L.json'))) 'A phone was leased by a run that refuses phones.'
+    Assert-True ($whole.Error -like '*PHONE0SERIAL is not an emulator*' -and $phone.State.Calls.Count -eq 0 -and $gateSaw.Count -eq 1) "A phone reached the gate or the device: $($whole.Error)"
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $leaseDirectory 'PHONE0SERIAL.json'))) 'A phone was leased by a run that refuses phones.'
     Write-Host '[native] whole run: 12 checks passed'
 
     Assert-True (Test-PushGateRunsSuite (Join-Path $Root 'scripts/pre-push.ps1') 'scripts/test-native-runner.ps1') `
