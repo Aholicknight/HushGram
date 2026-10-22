@@ -336,7 +336,7 @@ class HidePaidPartnershipReelsHookTest {
             }
             checked++
         }
-        assertEquals("the three builds of 452 weren't all read", 3, checked)
+        assertEquals("every build of 452 is read", Fixtures.BUILDS, checked)
     }
 
     /**

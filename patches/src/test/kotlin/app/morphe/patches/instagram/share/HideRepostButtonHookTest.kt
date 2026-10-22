@@ -534,7 +534,7 @@ class HideRepostButtonHookTest {
         const val LABEL = 0x7f137268
 
         /** 073's Feed component renderer, a renderer of its own, so its Repost part is the whole of it. */
-        const val RENDERER_073 = "LX/05RD;->A0p"
+        const val RENDERER_073 = "LX/05RC;->A0p"
         const val PART_073 = 0
 
         /** A renderer of its own: the icon, the label, the [role] it gives the button, then null. */

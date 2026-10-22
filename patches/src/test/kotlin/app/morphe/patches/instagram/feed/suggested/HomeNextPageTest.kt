@@ -279,7 +279,7 @@ class HomeNextPageTest {
             checked++
         }
         assertEquals("every build was checked", bundles.size + others.size, checked)
-        assertEquals("the declared build and the two others", 3, checked)
+        assertEquals("the declared build and the others", Fixtures.BUILDS, checked)
     }
 
     /**

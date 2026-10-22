@@ -116,7 +116,7 @@ class HideAiLabeledReelsHookTest {
             checkBuild(bundle.parentFile.name, bundle)
             bundle.parentFile.name
         }
-        assertEquals("the other builds: $checked", 2, checked.size)
+        assertEquals("the other builds: $checked", Fixtures.OTHER_BUILDS, checked.size)
     }
 
     /**

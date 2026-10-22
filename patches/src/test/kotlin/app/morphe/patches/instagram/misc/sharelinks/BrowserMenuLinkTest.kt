@@ -114,9 +114,9 @@ class BrowserMenuLinkTest {
      * What the clipboard helper answers. It's the same ClipboardUtil copy(Context, String)
      * everywhere, handing the text to the (Context, String, String)Z that calls setPrimaryClip.
      * 450's x86 builds were compiled with it void since no caller reads its answer, 451 kept a Z,
-     * and all three 452 builds are void. The handler drops it either way.
+     * and 452.1 is void on three builds and a Z on x86 (385811007). The handler drops it either way.
      */
-    private val COPY_HELPER_ANSWER = "V"
+    private val COPY_HELPER_ANSWERS = setOf("V", "Z")
 
     private fun builds(bundle: File, label: String) {
         val handlers = FixtureDex.classesHolding(bundle, BROWSER_SHARE_FAILURE)
@@ -148,7 +148,7 @@ class BrowserMenuLinkTest {
         assertTrue("${label}: Copy link's after its failure line", (share until copy).any { code[it].loads(BROWSER_COPY_FAILURE) })
         val helper = code[copy + 2]
         assertEquals(label, Opcode.INVOKE_STATIC, helper.opcode)
-        assertTrue("${label}: ${helper.reference()}", helper.reference().endsWith("(Landroid/content/Context;Ljava/lang/String;)$COPY_HELPER_ANSWER"))
+        assertTrue("${label}: ${helper.reference()}", COPY_HELPER_ANSWERS.any { helper.reference().endsWith("(Landroid/content/Context;Ljava/lang/String;)$it") })
         assertEquals("${label}: the copied text is the address", (code[copy] as RegisterRangeInstruction).startRegister, (helper as FiveRegisterInstruction).registerD)
         assertEquals(
             "${label}: the rest as it was",

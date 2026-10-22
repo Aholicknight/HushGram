@@ -241,7 +241,7 @@ class SaveProfilePictureHookTest {
                 checked++
             }
         }
-        assertEquals("every build checked", 3, checked)
+        assertEquals("every build checked", Fixtures.BUILDS, checked)
     }
 
     /** With the bio's getter gone, every other bridge goes in and the bio's keeps answering null, so only Copy bio is left out. */

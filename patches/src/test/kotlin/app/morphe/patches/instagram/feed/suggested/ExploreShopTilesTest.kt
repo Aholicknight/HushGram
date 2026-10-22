@@ -168,7 +168,7 @@ class ExploreShopTilesTest {
             checked++
         }
         assertTrue("no other build", checked > 0)
-        assertEquals("the declared build and these two make the three 452 builds", 2, checked)
+        assertEquals("the builds besides the declared one", Fixtures.OTHER_BUILDS, checked)
     }
 
     /**

@@ -184,7 +184,9 @@ class StopSwipeReplyHookTest {
         val delegates = first.filter { it.originalName() == ITEM_DELEGATE }
         assertEquals("$label: classes named $ITEM_DELEGATE", 1, delegates.size)
         val focusing = first.filter { c -> c.methods.any { m -> m.code().any { it.referenceText() == REQUEST_FOCUS } } }.map { it.type }
-        val near = delegates.single().fields.map { it.type }.filter { it.startsWith("L") }.toSet() + focusing
+        // 452.1's delegate holds Strings, Lists and Maps too, and their callers are a quarter of the app.
+        val near = delegates.single().fields.map { it.type }
+            .filter { it.startsWith("L") && !it.startsWith("Ljava/") && !it.startsWith("Landroid/") }.toSet() + focusing
         val have = first.mapTo(HashSet()) { it.type }
         val second = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
