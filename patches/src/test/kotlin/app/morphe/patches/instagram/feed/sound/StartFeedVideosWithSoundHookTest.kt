@@ -121,7 +121,7 @@ class StartFeedVideosWithSoundHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("the three 452 builds", 3, bundles.size)
+        assertEquals("every 452 build", Fixtures.BUILDS, bundles.size)
         for (apk in bundles) {
             val name = if (apk.extension == "apk") apk.parentFile.name else apk.name
             val holding = FixtureDex.classesHolding(apk, FEED_CONTROLLER_STRING)

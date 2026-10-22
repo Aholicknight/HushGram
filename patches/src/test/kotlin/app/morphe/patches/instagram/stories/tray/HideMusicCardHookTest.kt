@@ -115,7 +115,7 @@ class HideMusicCardHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         // The declared build and the other builds of the version, each compiled on its own.
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("the three 452 builds: ${bundles.map { it.name }}", 3, bundles.size)
+        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val loaders = mutableMapOf<String, String>()
             val holders = mutableListOf<ClassDef>()

@@ -100,7 +100,7 @@ class SummaryCardHookTest {
     fun eachOtherBuildFoldsTheSummaryRows() {
         val builds = Fixtures.otherBuilds()
         for (base in builds) foldsTheSummaryRowsIn(base, base.parentFile.name)
-        assertEquals("the declared build and these two make the three 452 builds", 2, builds.size)
+        assertEquals("the builds besides the declared one", Fixtures.OTHER_BUILDS, builds.size)
     }
 
     /**

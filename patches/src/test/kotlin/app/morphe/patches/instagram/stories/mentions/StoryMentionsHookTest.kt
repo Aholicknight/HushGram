@@ -321,7 +321,7 @@ class StoryMentionsHookTest {
         var checked = 0
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("the declared build and the two others", 3, bundles.size)
+        assertEquals("the declared build and the others", Fixtures.BUILDS, bundles.size)
         run {
             for (bundle in bundles) {
                 // 452's catch-up binder asks a string pool for the name, so the pool and its askers come too.

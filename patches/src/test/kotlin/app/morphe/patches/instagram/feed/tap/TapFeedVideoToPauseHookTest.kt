@@ -85,7 +85,7 @@ class TapFeedVideoToPauseHookTest {
     @Test
     fun eachDeclaredBuildHoldsItsFeedTap() {
         val bundles = bundles()
-        assertEquals("the three 452 builds", 3, bundles.size)
+        assertEquals("every 452 build", Fixtures.BUILDS, bundles.size)
         for (apk in bundles) {
             val name = name(apk)
             val parts = parts(apk)

@@ -64,7 +64,7 @@ class CommentKeyboardPatchTest {
     fun eachBuildSkipsTheKeyboardWhenAsked() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("the three 452 builds: ${bundles.map { it.name }}", 3, bundles.size)
+        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val enums = FixtureDex.classesLoading(bundle, KEYBOARD_AUTO_SHOW)
             val enumTypes = enums.filter { e -> e.methods.any { it.name == "<clinit>" } }.mapTo(HashSet()) { it.type }
