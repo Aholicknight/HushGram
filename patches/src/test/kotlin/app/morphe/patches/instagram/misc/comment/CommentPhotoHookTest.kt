@@ -194,7 +194,7 @@ class CommentPhotoHookTest {
             }
             checked += label
         }
-        assertEquals(3, checked.distinct().size)
+        assertEquals(Fixtures.BUILDS, checked.distinct().size)
     }
 
     /**
