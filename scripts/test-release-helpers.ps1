@@ -47,7 +47,9 @@ function Invoke-Python {
 function Invoke-Script {
     <# A script in a pwsh of its own, its output and exit code. #>
     param([string]$Path, [string[]]$Arguments = @())
-    $output = @(& pwsh -NoProfile -File $Path @Arguments 2>&1 | ForEach-Object { "$_" })
+    # Under Git's sh (TERM=xterm-256color, as in the pre-push hook) pwsh colors its error view, and the
+    # escapes between a wrapped line's break and its "| " would keep the callers from joining the text.
+    $output = @(& pwsh -NoProfile -File $Path @Arguments 2>&1 | ForEach-Object { "$_" -replace "`e\[[0-9;]*m", '' })
     return [pscustomobject]@{ Exit = $LASTEXITCODE; Output = $output -join "`n" }
 }
 
