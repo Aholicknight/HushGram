@@ -202,6 +202,39 @@ public class FollowingFeedTest {
         }
     }
 
+    /** Back to home at the end of Following asks for the plain Home feed, which opened an empty page and closed Instagram. */
+    @Test
+    public void backToHomeSwitchesHomeInPlace() {
+        HookStatus.clear();
+        assertEquals(Feed.BLENDED_FOR_YOU, FollowingFeed.picked(Feed.BLENDED));
+        assertEquals(
+                java.util.Arrays.asList(FamilyNames.FOLLOWING_FEED + ": invoked 1, 0 found, 0 missing. Counted: "
+                        + FollowingFeed.HOME_LINK_KEPT + " 1"),
+                HookStatus.report());
+        assertEquals(Feed.FOLLOWING, FollowingFeed.picked(Feed.FOLLOWING));
+        assertEquals(Feed.FAVORITES, FollowingFeed.picked(Feed.FAVORITES));
+        assertEquals("not a feed type", FollowingFeed.picked("not a feed type"));
+        assertNull(FollowingFeed.picked(null));
+
+        Settings.ONLY_FOLLOWING.save(true);
+        try {
+            assertEquals("For you taken out, Home stays on Following", Feed.FOLLOWING, FollowingFeed.picked(Feed.BLENDED));
+            Settings.START_ON_FOLLOWING.save(false);
+            assertEquals("switch off", Feed.BLENDED, FollowingFeed.picked(Feed.BLENDED));
+        } finally {
+            Settings.ONLY_FOLLOWING.resetToDefault();
+            Settings.START_ON_FOLLOWING.save(true);
+        }
+    }
+
+    /** An enum without the constant answered is left as it came. */
+    @Test
+    public void aFeedTypeWithoutForYouStands() {
+        assertEquals(Plain.BLENDED, FollowingFeed.picked(Plain.BLENDED));
+    }
+
+    private enum Plain { BLENDED }
+
     @Test
     public void anItemWithoutOneFeedTypeIsKept() throws Exception {
         assertNull(FollowingFeed.feedName(new Object()));

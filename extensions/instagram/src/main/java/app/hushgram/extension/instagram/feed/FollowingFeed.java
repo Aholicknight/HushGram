@@ -36,6 +36,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>A third switch keeps Instagram's logo at the top of Home where the picked feed's name would
  * be: {@link #keepLogo} is asked as the header's title view is about to show that name, and a yes
  * has it show the logo with its arrow instead. The arrow still opens the picker.
+ *
+ * <p>The end of Following links back to the plain Home feed, which the picker doesn't offer, so
+ * {@link #picked} answers a feed the picker switches Home to in place.
  */
 public final class FollowingFeed {
     /** The name Instagram 449 saves for the Following feed, its feed type constant's. */
@@ -47,11 +50,21 @@ public final class FollowingFeed {
      */
     static final Set<String> FOR_YOU = new HashSet<>(Arrays.asList("BLENDED", "BLENDED_FOR_YOU"));
 
+    /** The plain Home feed, which the end of Following's "Back to home" link asks for. */
+    static final String PLAIN_HOME = "BLENDED";
+
+    /** The picker's For you. */
+    static final String PICKER_FOR_YOU = "BLENDED_FOR_YOU";
+
+    /** What's counted each time a link to the plain Home feed gets a feed the picker switches to in place. */
+    static final String HOME_LINK_KEPT = "Back to home kept on Home";
+
     private static volatile boolean loggedFlag;
     private static volatile boolean loggedDefault;
     private static volatile boolean loggedLimit;
     private static volatile boolean loggedPicker;
     private static volatile boolean loggedLogo;
+    private static volatile boolean loggedLink;
 
     /** The name of Home's header, whose title view shows the picked feed's name. Instagram's layouts name it, so it keeps its name. */
     static final String HOME_BAR = "instagram.features.feed.mainfeed.actionbar.MainFeedActionBar";
@@ -152,6 +165,35 @@ public final class FollowingFeed {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FOLLOWING_FEED, "saved feed", failure);
             return name;
+        }
+    }
+
+    /**
+     * Injected first thing where Instagram switches Home to a feed, with the feed type constant.
+     * With the picker on, Home switches in place only to For you or Following, and any other feed
+     * opens as a page of its own. The end of Following's "Back to home" link asks for the plain
+     * Home feed, which has no page, and Instagram closed on the empty one it opened. While the
+     * switch is on, answers For you for it, or Following (the feed Home is already on, so the link
+     * stays put) while For you is taken out. Answers [feed] otherwise, or when anything goes
+     * wrong. Never throws.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static Object picked(Object feed) {
+        if (!(feed instanceof Enum) || !PLAIN_HOME.equals(((Enum<?>) feed).name())) return feed;
+        try {
+            HookStatus.invoked(FamilyNames.FOLLOWING_FEED);
+            if (!Utils.settingsReady() || !Settings.START_ON_FOLLOWING.get()) return feed;
+            String name = Settings.ONLY_FOLLOWING.get() ? FOLLOWING : PICKER_FOR_YOU;
+            Object kept = Enum.valueOf((Class) ((Enum<?>) feed).getDeclaringClass(), name);
+            HookStatus.counted(FamilyNames.FOLLOWING_FEED, HOME_LINK_KEPT);
+            if (!loggedLink) {
+                loggedLink = true;
+                Logger.printDebug(() -> "Following feed: Back to home switches Home to " + name);
+            }
+            return kept;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FOLLOWING_FEED, "feed link", failure);
+            return feed;
         }
     }
 
