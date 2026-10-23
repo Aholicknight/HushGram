@@ -12,6 +12,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.hiddenBarsRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.likeAnimationRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.scrollBreakRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
 import android.content.Context;
@@ -206,6 +207,7 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.REEL_CAP, L10n.t("Stop after 20 reels"),
                     L10n.t("After 20 reels, swiping in Reels stops until Instagram has been in the background for "
                             + "15 minutes. A reel you open from a message or a post still plays.")));
+            reels.add(scrollBreakRow(context));
         }
         if (build.contains(PatchFamily.SWIPE_TO_PROFILE)) {
             reels.add(toggle(context, Settings.REEL_SWIPE_TO_PROFILE, L10n.t("Swipe left to open the profile"),

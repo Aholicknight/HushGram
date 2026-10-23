@@ -69,6 +69,7 @@ public final class FullScreenBars {
     static final String TAB_BAR = "tab_bar";
     static final String REELS_TAB = "clips_tab";
     static final String HOME_TAB = "feed_tab";
+    static final String SEARCH_TAB = "search_tab";
     static final String VIEWER = "clips_viewer_container";
 
     /** The viewer counts as showing when this share of the window is its own. */
@@ -178,9 +179,31 @@ public final class FullScreenBars {
             if (tab.getVisibility() != View.VISIBLE || !tab.isSelected()) continue;
             if (tab.getId() != View.NO_ID && tab.getId() == id(decor.getContext(), REELS_TAB)) return REELS_TAB;
             if (tab.getId() != View.NO_ID && tab.getId() == id(decor.getContext(), HOME_TAB)) return HOME_TAB;
+            if (tab.getId() != View.NO_ID && tab.getId() == id(decor.getContext(), SEARCH_TAB)) return SEARCH_TAB;
             return null;
         }
         return null;
+    }
+
+    /** Whether [decor] has Explore's tab selected with no reel filling the window over it (#297). */
+    static boolean exploreSelected(View decor) {
+        View viewer = find(decor, VIEWER);
+        if (viewer != null && fills(viewer, decor)) return false;
+        return SEARCH_TAB.equals(selectedTab(decor));
+    }
+
+    /**
+     * How far down [decor] the tab bar's top sits where it rests, so a slide away on scroll doesn't
+     * move it, or 0 while there's no tab bar on screen (#297).
+     */
+    static int tabBarTop(View decor) {
+        View bar = find(decor, TAB_BAR);
+        if (bar == null || !bar.isShown() || sidewaysOff(bar, decor)) return 0;
+        int[] at = new int[2], origin = new int[2];
+        bar.getLocationOnScreen(at);
+        decor.getLocationOnScreen(origin);
+        int top = at[1] - origin[1] - Math.round(bar.getTranslationY());
+        return top > 0 && top < decor.getHeight() ? top : 0;
     }
 
     /** What [decor]'s screen is: the reels viewer filling the window, or the Reels or Home tab selected. */

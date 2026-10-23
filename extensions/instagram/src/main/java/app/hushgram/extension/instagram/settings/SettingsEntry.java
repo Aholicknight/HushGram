@@ -47,6 +47,7 @@ import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.reels.ReelsTopBar;
+import app.hushgram.extension.instagram.reels.ScrollBreak;
 import app.hushgram.extension.instagram.reels.TabStart;
 import app.hushgram.extension.instagram.misc.ProfileSaved;
 import app.hushgram.extension.instagram.misc.LaunchScreen;
@@ -142,6 +143,7 @@ public final class SettingsEntry {
         FullScreenBars.install(context);
         ReelsTopBar.install(context);
         BurnInGuard.install(context);
+        ScrollBreak.install(context);
         TabStart.install(context);
         ProfileSaved.install(context);
         CommentEmojiRow.install(context);

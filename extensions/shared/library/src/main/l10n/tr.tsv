@@ -556,6 +556,15 @@ Send to	Gönderilecek uygulama
 Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	Başka bir uygulamaya gönderildi. Burada kaydetmek için İndirmeler'de İndirmeleri başka bir uygulamaya gönder'i kapat.
 Spoof location	Konumu taklit et
 Stop after 20 reels	20 reel'den sonra dur
+Take a scroll break	Kaydırmaya mola ver
+# context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
+After %1$d minutes	%1$d dakika sonra
+Off. It can cover the Home, Reels and Explore tabs for 5 minutes after you've spent a while on them.	Kapalı. Ana Sayfa, Reels ve Keşfet sekmelerinde bir süre geçirdikten sonra bu sekmeleri 5 dakika boyunca kapatabilir.
+After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for 5 minutes. Messages, your profile and the tab bar still work.	Ana Sayfa, Reels ve Keşfet sekmelerinde %1$d dakika geçirdikten sonra bir mola ekranı onları 5 dakika boyunca kapatır. Mesajlar, profilin ve sekme çubuğu çalışmaya devam eder.
+Time for a break	Mola zamanı
+Home, Reels and Explore open again when the countdown ends. Messages and your profile still work.	Geri sayım bitince Ana Sayfa, Reels ve Keşfet yeniden açılır. Mesajlar ve profilin çalışmaya devam eder.
+# context: read aloud by the screen reader on the break screen; %1$s is the time left, like 4:59
+Time for a break. Home, Reels and Explore open again in %1$s.	Mola zamanı. Ana Sayfa, Reels ve Keşfet şu süre sonra yeniden açılır: %1$s
 Storage	Depolama
 That isn't a place. Type a latitude and a longitude with a comma between them.	Bu bir yer değil. Aralarında virgül olan bir enlem ve bir boylam yaz.
 That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.	%1$d reel oldu. Instagram %2$d dakika arka planda kalana kadar Reels'te kaydırma kapalı.

@@ -116,6 +116,7 @@ import app.hushgram.extension.instagram.reels.CaptionWordReels;
 import app.hushgram.extension.instagram.reels.HiddenBars;
 import app.hushgram.extension.instagram.reels.HiddenSounds;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
+import app.hushgram.extension.instagram.reels.ScrollBreakTime;
 import app.hushgram.extension.instagram.reels.StartTab;
 import app.hushgram.extension.instagram.reels.TabOrder;
 import app.hushgram.extension.instagram.download.DownloadHistory;
@@ -583,6 +584,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DECLUTTER && (Settings.BURN_IN_GUARD.key.equals(key)
                             || Settings.BURN_IN_WAIT.key.equals(key) || Settings.BURN_IN_STAY_DIM.key.equals(key));
+                    belongs |= family == PatchFamily.REEL_SCROLLING && Settings.SCROLL_BREAK.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && (Settings.TAP_TO_PLAY_SCOPE.key.equals(key)
@@ -3264,6 +3266,41 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 + "Download don't count as a touch, so the buttons stay faded.");
     }
 
+    /** Scroll break (#297): how long the Home, Reels and Explore tabs stay open before a break. Its summary says the choice. */
+    static ScrollBreakRow scrollBreakRow(Context context) {
+        ScrollBreakRow row = new ScrollBreakRow(context);
+        row.setKey(Settings.SCROLL_BREAK.key);
+        row.setTitle(L10n.t("Take a scroll break"));
+        row.setDialogTitle(L10n.t("Take a scroll break"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        ScrollBreakTime[] times = ScrollBreakTime.values();
+        CharSequence[] entries = new CharSequence[times.length];
+        CharSequence[] values = new CharSequence[times.length];
+        for (int i = 0; i < times.length; i++) {
+            entries[i] = scrollBreakLabel(times[i]);
+            values[i] = times[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.SCROLL_BREAK.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [time]. */
+    static String scrollBreakLabel(ScrollBreakTime time) {
+        return time == ScrollBreakTime.OFF ? L10n.t("Off") : L10n.f("After %1$d minutes", time.minutes);
+    }
+
+    /** [time], then what it does, for the row's summary. */
+    static String scrollBreakSummary(ScrollBreakTime time) {
+        if (time == ScrollBreakTime.OFF) {
+            return L10n.t("Off. It can cover the Home, Reels and Explore tabs for 5 minutes after you've spent a "
+                    + "while on them.");
+        }
+        return L10n.f("After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for 5 "
+                + "minutes. Messages, your profile and the tab bar still work.", time.minutes);
+    }
+
     /** What a single tap on a reel does. Its summary says what the choice does. */
     static ReelTapChoiceRow reelTapChoiceRow(Context context) {
         ReelTapChoiceRow row = new ReelTapChoiceRow(context);
@@ -4165,6 +4202,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((BurnInGuardRow) preference).showSummary();
         } else if (preference instanceof BurnInWaitRow) {
             ((BurnInWaitRow) preference).showSummary();
+        } else if (preference instanceof ScrollBreakRow) {
+            ((ScrollBreakRow) preference).showSummary();
         } else if (preference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) preference).showSummary();
         } else if (preference instanceof FollowLabelPlaceRow) {
@@ -5286,6 +5325,42 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(getValue())) wait = candidate;
             }
             setSummary(burnInWaitSummary(wait));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /** Scroll break's time (#297). Its summary says the choice, as Dim after's does. */
+    static final class ScrollBreakRow extends ListPreference {
+        ScrollBreakRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            ScrollBreakTime time = ScrollBreakTime.OFF;
+            for (ScrollBreakTime candidate : ScrollBreakTime.values()) {
+                if (candidate.name().equals(getValue())) time = candidate;
+            }
+            setSummary(scrollBreakSummary(time));
         }
 
         @Override

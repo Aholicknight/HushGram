@@ -556,6 +556,15 @@ Send to	Enviar a
 Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	Enviado a otra app. Para guardar aquí, desactiva Enviar descargas a otra app en Descargas.
 Spoof location	Falsificar ubicación
 Stop after 20 reels	Parar después de 20 reels
+Take a scroll break	Tomar un descanso del scroll
+# context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
+After %1$d minutes	Después de %1$d minutos
+Off. It can cover the Home, Reels and Explore tabs for 5 minutes after you've spent a while on them.	Desactivado. Puede tapar las pestañas Inicio, Reels y Explorar durante 5 minutos después de pasar un rato en ellas.
+After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for 5 minutes. Messages, your profile and the tab bar still work.	Después de %1$d minutos en las pestañas Inicio, Reels y Explorar, una pantalla de descanso las tapa durante 5 minutos. Los mensajes, tu perfil y la barra de pestañas siguen funcionando.
+Time for a break	Hora de un descanso
+Home, Reels and Explore open again when the countdown ends. Messages and your profile still work.	Inicio, Reels y Explorar se abren de nuevo cuando termina la cuenta atrás. Los mensajes y tu perfil siguen funcionando.
+# context: read aloud by the screen reader on the break screen; %1$s is the time left, like 4:59
+Time for a break. Home, Reels and Explore open again in %1$s.	Hora de un descanso. Inicio, Reels y Explorar se abren de nuevo en %1$s.
 Storage	Almacenamiento
 That isn't a place. Type a latitude and a longitude with a comma between them.	Eso no es un lugar. Escribe una latitud y una longitud separadas por una coma.
 That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.	Ya van %1$d reels. Deslizar en Reels está desactivado hasta que Instagram haya estado %2$d minutos en segundo plano.

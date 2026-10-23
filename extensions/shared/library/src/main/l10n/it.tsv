@@ -556,6 +556,15 @@ Send to	Invia a
 Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	Inviato a un'altra app. Per salvare qui, disattiva Invia i download a un'altra app in Download.
 Spoof location	Simula la posizione
 Stop after 20 reels	Fermati dopo 20 reel
+Take a scroll break	Fai una pausa dallo scroll
+# context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
+After %1$d minutes	Dopo %1$d minuti
+Off. It can cover the Home, Reels and Explore tabs for 5 minutes after you've spent a while on them.	Disattivato. Può coprire le schede Home, Reels ed Esplora per 5 minuti dopo che ci hai passato un po' di tempo.
+After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for 5 minutes. Messages, your profile and the tab bar still work.	Dopo %1$d minuti sulle schede Home, Reels ed Esplora, una schermata di pausa le copre per 5 minuti. I messaggi, il tuo profilo e la barra delle schede funzionano ancora.
+Time for a break	È ora di una pausa
+Home, Reels and Explore open again when the countdown ends. Messages and your profile still work.	Home, Reels ed Esplora si riaprono quando finisce il conto alla rovescia. I messaggi e il tuo profilo funzionano ancora.
+# context: read aloud by the screen reader on the break screen; %1$s is the time left, like 4:59
+Time for a break. Home, Reels and Explore open again in %1$s.	È ora di una pausa. Home, Reels ed Esplora si riaprono tra %1$s.
 Storage	Archiviazione
 That isn't a place. Type a latitude and a longitude with a comma between them.	Non è un luogo. Scrivi una latitudine e una longitudine con una virgola in mezzo.
 That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.	Sono %1$d reel. Lo scorrimento nei reel è disattivato finché Instagram non resta in background per %2$d minuti.
