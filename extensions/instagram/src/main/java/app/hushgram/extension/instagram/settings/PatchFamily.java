@@ -501,7 +501,7 @@ public enum PatchFamily {
             case MESSAGE_BOX:
                 return Collections.singletonList(Settings.HIDDEN_MESSAGE_BOX_BUTTONS);
             case PROFILE_TABS:
-                return Collections.singletonList(Settings.HIDDEN_PROFILE_TABS);
+                return Arrays.asList(Settings.HIDDEN_OWN_PROFILE_TABS, Settings.HIDDEN_PROFILE_TABS);
             case PLAYBACK_QUALITY:
                 return Collections.singletonList(Settings.PLAYBACK_QUALITY);
             case SHARE_SHEET:

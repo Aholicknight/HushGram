@@ -1555,6 +1555,13 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->keepNot
 # the patch wrote. HideHighlightsHookTest checks on the 449 fixture where it lands, with and
 # without Hide suggested people on profiles in the same method.
 once-call Lapp/hushgram/extension/instagram/profile/ProfileHighlights;->keepTray()I in instance (L*;LX/*;LX/*;)V class-holding ProfileHeaderBinderGroup.bindView ProfileHeaderBinderGroup.createView
+# Hide profile tabs hands the list of a profile's tab keys to ProfileTabs.tabs, with the builder
+# (which keeps the signed-in session) and the profile's user, right before the builder returns it:
+# the one instance method taking a user, answering a list and naming all four tab keys. The hook
+# picks the setting for your own profile or everyone else's from the two IDs (#296). Left out, every
+# tab stays; twice or elsewhere, it isn't the hook the patch wrote. HideProfileTabsHookTest checks on
+# every 452 fixture that it lands right before the one return, naming the builder, the user and the list.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileTabs;->tabs(Ljava/lang/Object;Ljava/lang/Object;Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/user/model/User;)Ljava/util/List; pooled holding profile_media_grid profile_clips profile_reposts profile_tagged_media_photos_of_you
 # Hide the Threads button hands the list a profile's top bar builds its buttons from to
 # ThreadsButton.buttons right after the bar's binder reads it (ProfileActionBar.A00 on 450, the one
 # method of its shape reading the bar's A06 group), and builds from the answer. Left out, the

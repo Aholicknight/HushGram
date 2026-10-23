@@ -1169,10 +1169,13 @@ LINE	LINE
 KakaoTalk	KakaoTalk
 Discord	Discord
 Band	Band
-# context: Tabs on profiles row under Profiles; Reposts and Tagged are the names of Instagram's own profile tabs
-Tabs on profiles	Profillerdeki sekmeler
-Every tab shows on profiles. Untick the ones you don't want. The grid of posts always stays.	Profillerde tüm sekmeler görünür. İstemediklerinin işaretini kaldır. Gönderi ızgarası her zaman kalır.
-Left off profiles: %1$s. The grid of posts stays.	Profillerden kaldırılanlar: %1$s. Gönderi ızgarası kalır.
+# context: Tabs on your profile and Tabs on other profiles rows under Profiles, one for the signed-in account's own profile and one for everyone else's; Reposts and Tagged are the names of Instagram's own profile tabs
+Tabs on your profile	Profilindeki sekmeler
+Tabs on other profiles	Diğer profillerdeki sekmeler
+Every tab shows on your profile. Untick the ones you don't want. The grid of posts always stays.	Profilinde tüm sekmeler görünür. İstemediklerinin işaretini kaldır. Gönderi ızgarası her zaman kalır.
+Every tab shows on other people's profiles. Untick the ones you don't want. The grid of posts always stays.	Başkalarının profillerinde tüm sekmeler görünür. İstemediklerinin işaretini kaldır. Gönderi ızgarası her zaman kalır.
+Left off your profile: %1$s. The grid of posts stays.	Profilinden kaldırılanlar: %1$s. Gönderi ızgarası kalır.
+Left off other profiles: %1$s. The grid of posts stays.	Diğer profillerden kaldırılanlar: %1$s. Gönderi ızgarası kalır.
 Reposts	Yeniden paylaşımlar
 Tagged	Etiketli
 # context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches

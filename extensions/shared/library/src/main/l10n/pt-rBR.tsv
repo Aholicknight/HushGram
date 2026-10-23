@@ -1169,10 +1169,13 @@ LINE	LINE
 KakaoTalk	KakaoTalk
 Discord	Discord
 Band	Band
-# context: Tabs on profiles row under Profiles; Reposts and Tagged are the names of Instagram's own profile tabs
-Tabs on profiles	Abas nos perfis
-Every tab shows on profiles. Untick the ones you don't want. The grid of posts always stays.	Todas as abas aparecem nos perfis. Desmarque as que você não quer. A grade de publicações sempre fica.
-Left off profiles: %1$s. The grid of posts stays.	Fora dos perfis: %1$s. A grade de publicações fica.
+# context: Tabs on your profile and Tabs on other profiles rows under Profiles, one for the signed-in account's own profile and one for everyone else's; Reposts and Tagged are the names of Instagram's own profile tabs
+Tabs on your profile	Abas no seu perfil
+Tabs on other profiles	Abas em outros perfis
+Every tab shows on your profile. Untick the ones you don't want. The grid of posts always stays.	Todas as abas aparecem no seu perfil. Desmarque as que você não quer. A grade de publicações sempre fica.
+Every tab shows on other people's profiles. Untick the ones you don't want. The grid of posts always stays.	Todas as abas aparecem nos perfis de outras pessoas. Desmarque as que você não quer. A grade de publicações sempre fica.
+Left off your profile: %1$s. The grid of posts stays.	Fora do seu perfil: %1$s. A grade de publicações fica.
+Left off other profiles: %1$s. The grid of posts stays.	Fora de outros perfis: %1$s. A grade de publicações fica.
 Reposts	Reposts
 Tagged	Marcados
 # context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches

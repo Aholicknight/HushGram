@@ -612,7 +612,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
                     belongs |= family == PatchFamily.SHARE_SHEET && Settings.HIDDEN_SHARE_SHEET_BUTTONS.key.equals(key);
-                    belongs |= family == PatchFamily.PROFILE_TABS && Settings.HIDDEN_PROFILE_TABS.key.equals(key);
+                    belongs |= family == PatchFamily.PROFILE_TABS && (Settings.HIDDEN_PROFILE_TABS.key.equals(key)
+                            || Settings.HIDDEN_OWN_PROFILE_TABS.key.equals(key));
                     belongs |= family == PatchFamily.MESSAGE_BOX && Settings.HIDDEN_MESSAGE_BOX_BUTTONS.key.equals(key);
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
@@ -932,32 +933,55 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         });
     }
 
-    /** The row under Profiles that opens the list of profile tabs to show (#254). */
-    Row profileTabsRow(Context context) {
+    /** The row under Profiles that opens the list of tabs to show on your own profile (#296). */
+    Row ownProfileTabsRow(Context context) {
+        return profileTabsRow(context, true);
+    }
+
+    /** The row under Profiles that opens the list of tabs to show on other people's profiles (#254, #296). */
+    Row otherProfileTabsRow(Context context) {
+        return profileTabsRow(context, false);
+    }
+
+    private Row profileTabsRow(Context context, boolean own) {
         Row row = new Row(context);
-        row.setKey(Settings.HIDDEN_PROFILE_TABS.key);
+        row.setKey(own ? Settings.HIDDEN_OWN_PROFILE_TABS.key : Settings.HIDDEN_PROFILE_TABS.key);
         row.setPersistent(false);
-        row.setTitle(L10n.t("Tabs on profiles"));
-        row.setSummary(profileTabsSummary(Settings.HIDDEN_PROFILE_TABS.savedValue()));
+        row.setTitle(profileTabsTitle(own));
+        row.setSummary(profileTabsSummary(own, savedProfileTabs(own)));
         row.setOnPreferenceClickListener(tapped -> {
-            pickProfileTabs(row);
+            pickProfileTabs(row, own);
             return true;
         });
         return row;
     }
 
-    /** What the tabs left off in [saved] do, for the row's summary. */
-    static String profileTabsSummary(String saved) {
+    /** The row's and the list's title, for your own profile when [own], else other people's. */
+    static String profileTabsTitle(boolean own) {
+        return own ? L10n.t("Tabs on your profile") : L10n.t("Tabs on other profiles");
+    }
+
+    /** What the user picked to leave off your own profile when [own], else off other people's. */
+    static String savedProfileTabs(boolean own) {
+        return own ? ProfileTabs.savedForOwn() : Settings.HIDDEN_PROFILE_TABS.savedValue();
+    }
+
+    /** What the tabs left off in [saved] do, for the row's summary, on your own profile when [own]. */
+    static String profileTabsSummary(boolean own, String saved) {
         Set<String> hidden = ProfileTabs.parse(saved);
         if (hidden.isEmpty()) {
-            return L10n.t("Every tab shows on profiles. Untick the ones you don't want. The grid of posts always stays.");
+            return own
+                    ? L10n.t("Every tab shows on your profile. Untick the ones you don't want. The grid of posts always stays.")
+                    : L10n.t("Every tab shows on other people's profiles. Untick the ones you don't want. The grid of posts always stays.");
         }
         List<String> labels = new ArrayList<>();
         for (String key : ProfileTabs.OFFERED) {
             if (hidden.contains(key)) labels.add(L10n.isolate(profileTabLabel(key)));
         }
         String left = String.join(", ", labels);
-        return L10n.f("Left off profiles: %1$s. The grid of posts stays.", left);
+        return own
+                ? L10n.f("Left off your profile: %1$s. The grid of posts stays.", left)
+                : L10n.f("Left off other profiles: %1$s. The grid of posts stays.", left);
     }
 
     /** What the profile tabs list calls the tab Instagram keys [key]. */
@@ -973,13 +997,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * Each tab Instagram can show on a profile, ticked while it shows. A change saves at once and
-     * shows the next time a profile opens. The grid of posts isn't listed, since it's what stays.
+     * Each tab Instagram can show on a profile, ticked while it shows, for your own profile when
+     * [own], else other people's. A change saves at once and shows the next time a profile opens.
+     * The grid of posts isn't listed, since it's what stays.
      */
-    void pickProfileTabs(Row row) {
+    void pickProfileTabs(Row row, boolean own) {
         Context context = getActivity();
         if (context == null) return;
-        Set<String> hidden = new LinkedHashSet<>(ProfileTabs.parse(Settings.HIDDEN_PROFILE_TABS.savedValue()));
+        Set<String> hidden = new LinkedHashSet<>(ProfileTabs.parse(savedProfileTabs(own)));
         List<String> keys = ProfileTabs.OFFERED;
         CharSequence[] names = new CharSequence[keys.size()];
         boolean[] checked = new boolean[keys.size()];
@@ -987,12 +1012,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             names[i] = profileTabLabel(keys.get(i));
             checked[i] = !hidden.contains(keys.get(i));
         }
-        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Tabs on profiles"));
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(profileTabsTitle(own));
         builder.setMultiChoiceItems(names, checked, (dialog, which, on) -> {
             if (on) hidden.remove(keys.get(which));
             else hidden.add(keys.get(which));
-            Settings.HIDDEN_PROFILE_TABS.save(ProfileTabs.join(hidden));
-            row.setSummary(profileTabsSummary(Settings.HIDDEN_PROFILE_TABS.savedValue()));
+            if (own) ProfileTabs.saveOwn(hidden);
+            else ProfileTabs.saveOthers(hidden);
+            row.setSummary(profileTabsSummary(own, savedProfileTabs(own)));
         });
         show(builder.setPositiveButton(L10n.t("OK"), null));
     }

@@ -104,7 +104,8 @@ final class ProfilesCategory {
                                 + "posts stay, and so does Add to highlight on your stories.")));
             }
             if (build.contains(PatchFamily.PROFILE_TABS)) {
-                profiles.addPreference(page.profileTabsRow(context));
+                profiles.addPreference(page.ownProfileTabsRow(context));
+                profiles.addPreference(page.otherProfileTabsRow(context));
             }
             if (build.contains(PatchFamily.SAVED_ON_PROFILE)) {
                 profiles.addPreference(toggle(context, Settings.SAVED_ON_PROFILE, L10n.t("Saved tab on your profile"),

@@ -1169,10 +1169,13 @@ LINE	LINE
 KakaoTalk	KakaoTalk
 Discord	Discord
 Band	Band
-# context: Tabs on profiles row under Profiles; Reposts and Tagged are the names of Instagram's own profile tabs
-Tabs on profiles	Tab di profil
-Every tab shows on profiles. Untick the ones you don't want. The grid of posts always stays.	Semua tab tampil di profil. Hapus centang pada tab yang tidak Anda inginkan. Kisi postingan selalu tetap ada.
-Left off profiles: %1$s. The grid of posts stays.	Disembunyikan dari profil: %1$s. Kisi postingan tetap ada.
+# context: Tabs on your profile and Tabs on other profiles rows under Profiles, one for the signed-in account's own profile and one for everyone else's; Reposts and Tagged are the names of Instagram's own profile tabs
+Tabs on your profile	Tab di profil Anda
+Tabs on other profiles	Tab di profil lain
+Every tab shows on your profile. Untick the ones you don't want. The grid of posts always stays.	Semua tab tampil di profil Anda. Hapus centang pada tab yang tidak Anda inginkan. Kisi postingan selalu tetap ada.
+Every tab shows on other people's profiles. Untick the ones you don't want. The grid of posts always stays.	Semua tab tampil di profil orang lain. Hapus centang pada tab yang tidak Anda inginkan. Kisi postingan selalu tetap ada.
+Left off your profile: %1$s. The grid of posts stays.	Disembunyikan dari profil Anda: %1$s. Kisi postingan tetap ada.
+Left off other profiles: %1$s. The grid of posts stays.	Disembunyikan dari profil lain: %1$s. Kisi postingan tetap ada.
 Reposts	Postingan ulang
 Tagged	Ditandai
 # context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches

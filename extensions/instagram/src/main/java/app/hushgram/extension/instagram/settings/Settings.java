@@ -18,6 +18,7 @@ import app.hushgram.extension.instagram.download.HoldTime;
 import app.hushgram.extension.instagram.download.SaveFolder;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
+import app.hushgram.extension.instagram.profile.ProfileTabs;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
@@ -1237,12 +1238,21 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_highlights", FALSE);
 
     /**
-     * The profile tabs Instagram leaves off, as Instagram's tab keys with commas between ({@link app.hushgram.extension.instagram.profile.ProfileTabs}):
+     * The tabs Instagram leaves off other people's profiles, as Instagram's tab keys with commas between ({@link app.hushgram.extension.instagram.profile.ProfileTabs}):
      * any of profile_clips, profile_reposts and profile_tagged_media_photos_of_you. Nothing named is the start, so every tab shows. The grid is
-     * never offered. Read each time Instagram builds a profile's tabs, so it shows on the next profile opened.
+     * never offered. Read each time Instagram builds a profile's tabs, so it shows on the next profile opened. Before #296 it covered your own
+     * profile too, so {@link #HIDDEN_OWN_PROFILE_TABS} follows it until that's saved.
      */
     public static final StringSetting HIDDEN_PROFILE_TABS =
             new StringSetting("hushgram_hidden_profile_tabs", "");
+
+    /**
+     * The tabs Instagram leaves off your own profile (#296), the same keys as {@link #HIDDEN_PROFILE_TABS}. Starts as
+     * {@link ProfileTabs#SAME_AS_OTHERS}, which means it was never saved and your profile follows the other-profiles value, so a pick
+     * made before the split keeps covering both. Saving either row writes a real value here.
+     */
+    public static final StringSetting HIDDEN_OWN_PROFILE_TABS =
+            new StringSetting("hushgram_hidden_own_profile_tabs", ProfileTabs.SAME_AS_OTHERS);
 
     /**
      * The Threads button on profiles' top bar
