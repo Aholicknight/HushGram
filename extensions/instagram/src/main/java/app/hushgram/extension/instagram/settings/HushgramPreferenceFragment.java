@@ -1614,9 +1614,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
                 if (result == null) showImportFeedback(L10n.t("Undo has expired."));
                 else {
-                    String message = undo ? result.skipped == 0 ? L10n.t("Settings restored.")
-                            : L10n.f("Restored %1$d settings. Kept %2$d newer choices.", result.applied, result.skipped)
-                            : L10n.f("Imported %1$d settings. Skipped %2$d that this version doesn't know.", result.applied, result.skipped);
+                    String message = configurationReceipt(undo, result);
                     // A file or an Undo owes the same restart as flipping each row by hand, so Restart now
                     // shows for it too, and an Undo back to what's running takes it away again. The
                     // receipt asks for a restart only while one is owed, not for every restart choice
@@ -1638,6 +1636,21 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 showImportFeedback(L10n.t("Couldn't use that settings file. Your settings haven't changed."));
             } finally { configurationFinished(); }
         })) configurationQueueFull();
+    }
+
+    /**
+     * What an import or an Undo reports, before any restart note. Lock switches a HushGram PIN (or a
+     * lock that came back) kept as they are get their own sentence: they're known settings, and
+     * counting them as ones this version doesn't know hid why they didn't change. Skipped settings
+     * are only mentioned when there are some.
+     */
+    static String configurationReceipt(boolean undo, ConfigurationBackup.Result result) {
+        String message = undo ? result.skipped == 0 ? L10n.t("Settings restored.")
+                : L10n.f("Restored %1$d settings. Kept %2$d newer choices.", result.applied, result.skipped)
+                : result.skipped == 0 ? L10n.f("Imported %1$d settings.", result.applied)
+                : L10n.f("Imported %1$d settings. Skipped %2$d that this version doesn't know.", result.applied, result.skipped);
+        return result.held == 0 ? message
+                : message + " " + L10n.t("Lock switches stay as they are until you change them here.");
     }
 
     /** Android limits toasts to two lines. Keep complete import/rollback/restart feedback readable. */

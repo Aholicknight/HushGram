@@ -372,6 +372,8 @@ HushGram settings exported.	Impostazioni di HushGram esportate.
 Couldn't export HushGram settings. Try another file.	Impossibile esportare le impostazioni di HushGram. Prova con un altro file.
 Settings restored.	Impostazioni ripristinate.
 Imported %1$d settings. Skipped %2$d that this version doesn't know.	Importate %1$d impostazioni. Saltate %2$d che questa versione non conosce.
+Imported %1$d settings.	Importate %1$d impostazioni.
+Lock switches stay as they are until you change them here.	Gli interruttori di blocco restano come sono finché non li cambi qui.
 Restart Instagram to apply these choices.	Riavvia Instagram per applicare queste scelte.
 Couldn't save the settings. The previous values were restored.	Impossibile salvare le impostazioni. I valori precedenti sono stati ripristinati.
 Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.	Annulla non ha potuto ripristinare del tutto le impostazioni. Controlla i valori mostrati. Annulla è stato esaurito.

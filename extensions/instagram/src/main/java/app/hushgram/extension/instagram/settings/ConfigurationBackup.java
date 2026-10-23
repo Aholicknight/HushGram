@@ -62,6 +62,11 @@ public final class ConfigurationBackup {
     public static final class Result {
         public final int applied;
         public final int skipped;
+        /**
+         * Lock switches the file (or Undo) would have changed but {@link #heldByLock} kept as they
+         * are. They're known settings, so they aren't counted with the skipped ones.
+         */
+        public final int held;
         public final boolean restart;
         /**
          * Each setting this changed, with the value it held before, so the page can offer Restart
@@ -69,9 +74,10 @@ public final class ConfigurationBackup {
          */
         public final Map<Setting<?>, Object> before;
 
-        Result(int applied, int skipped, boolean restart, Map<Setting<?>, Object> before) {
+        Result(int applied, int skipped, int held, boolean restart, Map<Setting<?>, Object> before) {
             this.applied = applied;
             this.skipped = skipped;
+            this.held = held;
             this.restart = restart;
             this.before = Collections.unmodifiableMap(before);
         }
@@ -231,6 +237,7 @@ public final class ConfigurationBackup {
         final Map<Setting<?>, Object> updates = new LinkedHashMap<>();
         final Map<String, Setting<?>> allowed = eligible();
         int skipped = 0;
+        int held = 0;
         try {
             JSONObject root = SettingsJson.parseObject(bytes, LIMITS);
             if (root.length() != 3 || !"HushGram".equals(root.get("project"))
@@ -245,8 +252,13 @@ public final class ConfigurationBackup {
                 if (entry.length() != 2 || !(entry.get("type") instanceof String) || !entry.has("value")) throw invalid();
                 Setting<?> setting = allowed.get(key);
                 Object value = setting == null ? null : accepted(setting, entry.getString("type"), entry.get("value"));
-                if (value == null || !setting.includeWithImportExport || heldByLock(setting)) {
+                if (value == null || !setting.includeWithImportExport) {
                     skipped++;
+                    continue;
+                }
+                if (heldByLock(setting)) {
+                    // Counted only when the file asked for a change: one matching what's saved changed nothing.
+                    if (!value.equals(setting.savedValue())) held++;
                     continue;
                 }
                 updates.put(setting, value);
@@ -275,7 +287,7 @@ public final class ConfigurationBackup {
                     throw failure;
                 }
             }
-            return new Result(updates.size(), skipped, restart, before);
+            return new Result(updates.size(), skipped, held, restart, before);
         }
     }
 
@@ -381,10 +393,14 @@ public final class ConfigurationBackup {
             Map<Setting<?>, Object> before = new LinkedHashMap<>();
             boolean restart = false;
             int skipped = 0;
+            int held = 0;
             for (var entries = values.entrySet().iterator(); entries.hasNext();) {
                 var entry = entries.next();
                 Setting<?> setting = entry.getKey();
-                if (heldByLock(setting) || revisions.get(setting) != setting.savedRevision()
+                if (heldByLock(setting)) {
+                    entries.remove();
+                    if (!entry.getValue().equals(setting.savedValue())) held++;
+                } else if (revisions.get(setting) != setting.savedRevision()
                         || !expected.get(setting).equals(setting.savedValue())) {
                     entries.remove();
                     skipped++;
@@ -395,7 +411,7 @@ public final class ConfigurationBackup {
             }
             for (var changed : before.entrySet()) AbstractPreferenceFragment.noteRunningValue(changed.getKey(), changed.getValue());
             Setting.saveAll(values);
-            return new Result(values.size(), skipped, restart, before);
+            return new Result(values.size(), skipped, held, restart, before);
         }
     }
 

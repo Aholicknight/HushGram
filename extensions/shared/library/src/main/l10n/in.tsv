@@ -372,6 +372,8 @@ HushGram settings exported.	Pengaturan HushGram diekspor.
 Couldn't export HushGram settings. Try another file.	Pengaturan HushGram tidak dapat diekspor. Coba file lain.
 Settings restored.	Pengaturan dipulihkan.
 Imported %1$d settings. Skipped %2$d that this version doesn't know.	%1$d pengaturan diimpor. %2$d dilewati karena tidak dikenal versi ini.
+Imported %1$d settings.	%1$d pengaturan diimpor.
+Lock switches stay as they are until you change them here.	Sakelar kunci tetap seperti sekarang sampai kamu mengubahnya di sini.
 Restart Instagram to apply these choices.	Mulai ulang Instagram untuk menerapkan pilihan ini.
 Couldn't save the settings. The previous values were restored.	Pengaturan tidak dapat disimpan. Nilai sebelumnya dipulihkan.
 Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.	Urungkan tidak bisa memulihkan pengaturan sepenuhnya. Periksa nilai yang ditampilkan. Urungkan sudah terpakai.

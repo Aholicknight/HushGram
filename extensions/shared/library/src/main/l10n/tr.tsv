@@ -372,6 +372,8 @@ HushGram settings exported.	HushGram ayarları dışa aktarıldı.
 Couldn't export HushGram settings. Try another file.	HushGram ayarları dışa aktarılamadı. Başka bir dosya deneyin.
 Settings restored.	Ayarlar geri yüklendi.
 Imported %1$d settings. Skipped %2$d that this version doesn't know.	%1$d ayar içe aktarıldı. Bu sürümün tanımadığı %2$d tanesi atlandı.
+Imported %1$d settings.	%1$d ayar içe aktarıldı.
+Lock switches stay as they are until you change them here.	Kilit anahtarları, burada değiştirene kadar olduğu gibi kalır.
 Restart Instagram to apply these choices.	Bu seçimleri uygulamak için Instagram'ı yeniden başlatın.
 Couldn't save the settings. The previous values were restored.	Ayarlar kaydedilemedi. Önceki değerler geri yüklendi.
 Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.	Geri Al ayarları tamamen geri yükleyemedi. Gösterilen değerleri kontrol et. Geri Al kullanıldı.

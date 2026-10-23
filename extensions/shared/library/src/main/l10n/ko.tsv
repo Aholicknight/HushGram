@@ -373,6 +373,8 @@ HushGram settings exported.	HushGram 설정을 내보냈습니다
 Couldn't export HushGram settings. Try another file.	HushGram 설정을 내보낼 수 없습니다. 다른 파일을 사용해 보세요
 Settings restored.	설정이 복원되었습니다
 Imported %1$d settings. Skipped %2$d that this version doesn't know.	설정 %1$d개를 가져왔습니다. 이 버전이 모르는 %2$d개는 건너뛰었습니다.
+Imported %1$d settings.	설정 %1$d개를 가져왔습니다.
+Lock switches stay as they are until you change them here.	잠금 스위치는 여기서 바꾸기 전까지 그대로 유지됩니다.
 Restart Instagram to apply these choices.	이 설정을 적용하려면 Instagram을 다시 시작하세요
 Couldn't save the settings. The previous values were restored.	설정을 저장하지 못하였습니다. 이전 값으로 복원하였습니다
 Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.	되돌리기로 설정을 완전히 복원하지 못했습니다. 표시된 값을 확인하세요. 되돌리기는 이미 사용되었습니다.
