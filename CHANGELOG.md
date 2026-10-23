@@ -12,6 +12,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Glass tab bar:** A video playing under the glass pill no longer turns the pill black. Some videos play on a layer the blur couldn't see, so the glass showed the post's black background instead. It blurs a small copy of the video's picture now. Reported in #144.
 * **Instagram - Change the like animation:** The animation you picked plays on Instagram 452's feed and Reels hearts again, for a double tap and for the heart button. Before, 452 showed its usual heart there. Reported in #299.
 * **Instagram - View stories anonymously:** With `Gray out stories you've watched` on, stories you've watched now move behind the new ones in the story row at the top of Home too. Before, only the stories inside the feed were reordered. (#241)
 * **Instagram - Read messages without the seen receipt:** With `Keep chats unread here` off, a chat you opened could still flip back to unread after a refresh. Now it stays read until a new message comes in. (#186)

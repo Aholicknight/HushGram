@@ -1633,11 +1633,24 @@ public class GlassTabBarTest {
         GlassTabBar.drawLeavingOutSurfaces(new Canvas(glass), feed, paths, 0);
 
         assertEquals("the SurfaceView is left out", 0, video.drawn);
-        assertEquals("the feed's own background still shows", Color.RED, glass.getPixel(50, 30));
+        assertEquals("#144: the video's place is cleared, not the feed's background", 0, glass.getPixel(50, 30));
+        assertEquals("the feed's own background still shows round it", Color.RED, glass.getPixel(50, 58));
         assertEquals("a child draws where it sits, scrolled", Color.GREEN, glass.getPixel(50, 66));
         assertEquals(Color.RED, glass.getPixel(50, 86));
-        assertEquals("a see-through child isn't drawn", Color.RED, glass.getPixel(50, 12));
+        assertEquals("a see-through child isn't drawn", 0, glass.getPixel(50, 12));
         assertEquals("nothing above the feed", 0, glass.getPixel(50, 5));
+
+        // With a copy of the video's frame, the frame draws in its place, under what's drawn after it.
+        Bitmap frame = Bitmap.createBitmap(10, 5, Bitmap.Config.ARGB_8888);
+        frame.eraseColor(Color.YELLOW);
+        Bitmap withFrame = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888);
+        GlassTabBar.drawLeavingOutSurfaces(new Canvas(withFrame), feed, paths, new HashSet<>(),
+                view -> view == video ? frame : null, 0);
+        assertEquals("the copied frame fills the video's place", Color.YELLOW, withFrame.getPixel(50, 30));
+        assertEquals("stretched to the whole of it", Color.YELLOW, withFrame.getPixel(98, 53));
+        assertEquals(Color.RED, withFrame.getPixel(50, 58));
+        assertEquals(Color.GREEN, withFrame.getPixel(50, 66));
+        assertEquals(0, video.drawn);
     }
 
     /**

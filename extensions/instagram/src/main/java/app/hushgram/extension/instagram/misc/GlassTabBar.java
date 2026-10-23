@@ -94,8 +94,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  *
  * <p>What the pill blurs is Instagram's own screens, the views drawn under the bar, recorded into a render node of its own and blurred
  * on the GPU, never read back from the screen. It's the views as they draw, so photos, text and video
- * in a TextureView come through. A video in a SurfaceView is left out and shows through the tint
- * instead, so the glass stays glass over videos. A docked bar's glass shows the strip just above it, upside down.
+ * in a TextureView come through. A video in a SurfaceView can't be recorded, so the glass draws a small
+ * copy of its frame in its place ({@link SurfaceFrames}, #144), and leaves the place clear until one lands,
+ * so the glass stays glass over videos. A docked bar's glass shows the strip just above it, upside down.
  * With the float switch on, the content container also runs to the bottom of the screen and the glass shows
  * what's behind it (#262), so nothing of Instagram's own colour is left round the pill. Reels are the one
  * screen left out: the Reels viewer stops at the top of the pill's slot, at one size whether the pill
@@ -449,18 +450,28 @@ public final class GlassTabBar {
     /**
      * Draws [view] into [canvas] where its parent would, leaving out the SurfaceViews in [paths]. A view on
      * the way down to one is drawn piece by piece, its background and then each child, and any other view
-     * draws itself whole. A video in a SurfaceView is a layer under the window, never in the views, so
-     * nothing of it is lost: the pill shows it through its tint, unblurred.
+     * draws itself whole. A video in a SurfaceView is a layer under the window, never in the views, so its
+     * place is cleared, the way the SurfaceView clears its hole in the window, and the pill shows the video
+     * through its tint. Before, the backgrounds round the video drew there, black on a feed post (#144).
      */
     static void drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths, int depth) {
-        drawLeavingOutSurfaces(canvas, view, paths, java.util.Collections.emptySet(), depth);
+        drawLeavingOutSurfaces(canvas, view, paths, java.util.Collections.emptySet(), null, depth);
     }
 
     /** {@link #drawLeavingOutSurfaces}, leaving out the views in [skipped] too ({@link #leaveOut}). */
     static void drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths, java.util.Set<View> skipped,
             int depth) {
-        if (view.getVisibility() != View.VISIBLE || view.getAlpha() <= 0f || view instanceof android.view.SurfaceView
-                || skipped.contains(view)) return;
+        drawLeavingOutSurfaces(canvas, view, paths, skipped, null, depth);
+    }
+
+    /** {@link #drawLeavingOutSurfaces}, drawing the frame [frames] has for a SurfaceView in its place, when it has one ({@link SurfaceFrames}). */
+    static void drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths, java.util.Set<View> skipped,
+            @Nullable java.util.function.Function<View, android.graphics.Bitmap> frames, int depth) {
+        if (view.getVisibility() != View.VISIBLE || view.getAlpha() <= 0f || skipped.contains(view)) return;
+        if (view instanceof android.view.SurfaceView) {
+            drawSurfacePlace(canvas, view, frames == null ? null : frames.apply(view));
+            return;
+        }
         int saved = canvas.save();
         canvas.translate(view.getLeft(), view.getTop());
         if (!view.getMatrix().isIdentity()) canvas.concat(view.getMatrix());
@@ -474,9 +485,27 @@ public final class GlassTabBar {
             if (background != null) background.draw(canvas);
             canvas.translate(-view.getScrollX(), -view.getScrollY());
             for (int i = 0, n = group.getChildCount(); i < n; i++) {
-                drawLeavingOutSurfaces(canvas, group.getChildAt(i), paths, skipped, depth + 1);
+                drawLeavingOutSurfaces(canvas, group.getChildAt(i), paths, skipped, frames, depth + 1);
             }
         }
+        canvas.restoreToCount(saved);
+    }
+
+    private static final Paint SURFACE_CLEAR = new Paint();
+    private static final Paint SURFACE_FRAME = new Paint(Paint.FILTER_BITMAP_FLAG);
+
+    static {
+        SURFACE_CLEAR.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR));
+    }
+
+    /** Draws [frame] over [surface]'s place, stretched to it, or clears the place when there's no frame. */
+    private static void drawSurfacePlace(Canvas canvas, View surface, @Nullable android.graphics.Bitmap frame) {
+        int saved = canvas.save();
+        canvas.translate(surface.getLeft(), surface.getTop());
+        if (!surface.getMatrix().isIdentity()) canvas.concat(surface.getMatrix());
+        RectF place = new RectF(0, 0, surface.getWidth(), surface.getHeight());
+        if (frame != null && !frame.isRecycled()) canvas.drawBitmap(frame, null, place, SURFACE_FRAME);
+        else canvas.drawRect(place, SURFACE_CLEAR);
         canvas.restoreToCount(saved);
     }
 
@@ -574,6 +603,8 @@ public final class GlassTabBar {
     static final long FOOTER_REDRAW_MS = 500;
     /** Counted each time a video in a SurfaceView shows up under the bar, with none there before, and is kept out of the blur. */
     static final String COUNT_VIDEO_LEFT_OUT = "Video kept out of the blur";
+    /** Counted the first time a frame of a video in a SurfaceView under the bar is copied into the blur, each time one comes under it (#144). */
+    static final String COUNT_VIDEO_COPIED = "Video frame copied into the blur";
     /** Counted each time the blur fails {@link #BLUR_TRIES} recordings in a row and rests on the plain tint. */
     static final String COUNT_BLUR_RESTED = "Blur rested after failing";
     /** Counted each time a tab's own background, Instagram's selected tab capsule, is taken off under the pill. */
@@ -2353,7 +2384,49 @@ public final class GlassTabBar {
                 leftOut.clear();
                 surfaces.clear();
                 skipped.clear();
+                frames.clear();
                 hadSurfaces = false;
+                videoCopied = false;
+            }
+
+            /** Copies of the frames playing in the SurfaceViews under the bar, drawn in their places (#144). */
+            private final SurfaceFrames frames = new SurfaceFrames(DOWNSAMPLE);
+            /** Whether a frame has been copied since a SurfaceView last came under the bar, for the report's count. */
+            private boolean videoCopied;
+            private final Runnable frameLanded = () -> {
+                if (!videoCopied) {
+                    videoCopied = true;
+                    HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_VIDEO_COPIED);
+                }
+                // A SurfaceView's new frames don't redraw a view, so the landed copy asks for the frame that records it.
+                if (bar.isAttachedToWindow()) bar.invalidate();
+            };
+
+            /**
+             * Asks for a fresh copy of each SurfaceView's frame in [parent] that crosses the strip the glass shows,
+             * from [top] and [tall] high, leaving out those inside a Reels viewer the glass doesn't draw (#222).
+             */
+            private void askFrames(ViewGroup parent, float top, float tall) {
+                long now = SystemClock.uptimeMillis();
+                Rect place = new Rect();
+                for (View view : leftOut) {
+                    if (!(view instanceof android.view.SurfaceView) || insideSkipped(view)) continue;
+                    place.set(0, 0, view.getWidth(), view.getHeight());
+                    try {
+                        parent.offsetDescendantRectToMyCoords(view, place);
+                    } catch (IllegalArgumentException gone) {
+                        continue;
+                    }
+                    if (place.bottom <= top || place.top >= top + tall) continue;
+                    frames.ask((android.view.SurfaceView) view, now, frameLanded);
+                }
+            }
+
+            private boolean insideSkipped(View view) {
+                for (View viewer : skipped) {
+                    if (viewer instanceof ViewGroup && under(view, (ViewGroup) viewer)) return true;
+                }
+                return false;
             }
 
             /** Records the backdrop if it's been long enough and this frame isn't late, or arranges to once it can. */
@@ -2470,10 +2543,13 @@ public final class GlassTabBar {
                         for (View viewer : viewers) {
                             if (viewer != null) leaveOut(viewer, parent, leftOut, skipped);
                         }
+                        if (found) askFrames(parent, top, tall);
+                        else videoCopied = false;
+                        frames.keepOnly(leftOut);
                         for (int i = 0; i < barIndex; i++) {
                             View sibling = parent.getChildAt(i);
                             if (sibling.getWidth() <= 0 || sibling.getBottom() <= top || sibling.getTop() >= top + tall) continue;
-                            drawLeavingOutSurfaces(recording, sibling, leftOut, skipped, 0);
+                            drawLeavingOutSurfaces(recording, sibling, leftOut, skipped, frames::frameOf, 0);
                         }
                     } finally {
                         backdrop.endRecording();
