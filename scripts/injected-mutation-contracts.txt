@@ -1791,10 +1791,22 @@ shared-call Lapp/hushgram/extension/instagram/misc/VersionCode;->read(Landroid/c
 shared-call Lapp/hushgram/extension/instagram/misc/VersionCode;->read(Landroid/content/pm/PackageInfo;)I in instance (Landroid/content/Context;L*;L*;)V holding Error\sgetting\sapp\sversion\scode.
 # Change the like animation hands the animation the double-tap heart is set up with to
 # LikeAnimation.pick first thing in LikeActionView's set-up for a post, and the check that set-up makes
-# before it plays one of Instagram's own animations to LikeAnimation.allow, once each, and nowhere else.
+# before it plays one of Instagram's own animations to LikeAnimation.allow, once each. Since 452 the
+# feed and Reels hearts are Litho components (#299): pick also takes the post's animation where the
+# config reader returns it (04mS.A01 on 452.1, picked by the config ids it reads) and where the feed
+# heart (05oX) and the Reels heart (086g) keep theirs in their constructors, and allow takes the
+# answer of the eligibility check in each heart's render, in the like button's tap handler (06nK.FhH,
+# which logs ufi_like_clicked) and twice in the heart spring's static check (0EcK.A00), and nowhere else.
 start-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->pick(Ljava/lang/Object;)Ljava/lang/Object; in instance (Lcom/instagram/common/session/UserSession;LX/*;)V holding Lcom/instagram/ui/mediaactions/LikeActionView;->A01:LX/*;
 once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->pick(Ljava/lang/Object;)Ljava/lang/Object; in instance (Lcom/instagram/common/session/UserSession;LX/*;)V holding Lcom/instagram/ui/mediaactions/LikeActionView;->A01:LX/*;
+once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->pick(Ljava/lang/Object;)Ljava/lang/Object; in static (LX/*;)LX/*; holding const:0x36ebcb const:0xbb8a25c3 const:0x4cba04c3
+once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->pick(Ljava/lang/Object;)Ljava/lang/Object; in instance (Lcom/instagram/common/session/UserSession;LX/*;LX/*;Z)V class-holding custom_likes_animation like_heart
+once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->pick(Ljava/lang/Object;)Ljava/lang/Object; in instance (Lcom/instagram/common/session/UserSession;LX/*;LX/*;)V class-holding like_custom_likes like_heart
 once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->allow(I)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;)V holding Lcom/instagram/ui/mediaactions/LikeActionView;->A01:LX/*;
+once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->allow(I)Z in instance (LX/*;)LX/*; holding custom_likes_animation like_heart
+once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->allow(I)Z in instance (LX/*;)LX/*; holding like_custom_likes like_heart
+once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->allow(I)Z in instance (Lcom/instagram/feed/media/Media;LX/*;Ljava/lang/String;Lkotlin/jvm/functions/Function0;I)V holding like_from_ufi ufi_like_clicked
+once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->allow(I)Z in static (Lcom/instagram/common/session/UserSession;LX/*;Ljava/lang/Integer;)Z sites 2 holding Ljava/lang/RuntimeException;-><init>()V LX/*;->*(Lcom/instagram/common/session/UserSession;)Z
 # Show hidden like counts hands HiddenLikeCounts.hidden the poster's id and the post's hidden-count flag
 # first thing in the method every caller asks whether to hide a post's count (04fX.A06 on 452, asked by
 # the like rows below and by at least eight other callers, among them the Reels item config), the one
