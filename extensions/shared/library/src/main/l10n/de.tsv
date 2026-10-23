@@ -30,6 +30,22 @@ Empties the activity log that a diagnostic report would include.	Leert das Aktiv
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Jeder Schalter außer der Debug-Protokollierung verhält sich, als wäre er aus, und was beim Patchen festgelegt wurde, bleibt aktiv. Deine Einstellungen bleiben, wie sie sind.
 Export diagnostic report	Diagnosebericht exportieren
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Ab dem nächsten Start verhält sich jeder Schalter außer der Debug-Protokollierung, als wäre er aus. Was beim Patchen festgelegt wurde, bleibt aktiv, und deine Auswahl bleibt gespeichert.
+Lock these settings	Diese Einstellungen sperren
+Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Wähle eine Wartezeit von 1, 6 oder 24 Stunden. Gesperrt ändert sich hier nichts, bis du das Entsperren anforderst und die Wartezeit vorbei ist.
+Ask to unlock	Entsperren anfordern
+These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Diese Einstellungen sind gesperrt. Tippe, um die Wartezeit von %1$s zu starten, danach sind sie 10 Minuten lang offen.
+Unlock asked	Entsperren angefordert
+These settings open at %1$s, for 10 minutes.	Diese Einstellungen öffnen sich um %1$s für 10 Minuten.
+Settings are open	Einstellungen sind offen
+They lock again at %1$s. Tap to lock them now or turn the lock off.	Sie sperren sich um %1$s wieder. Tippe, um sie jetzt zu sperren oder die Sperre auszuschalten.
+# context: the wait of a settings lock when it is exactly one hour; %1$d is the number
+%1$d hour	%1$d Stunde
+# context: the same wait for any other number of hours; %1$d is how many
+%1$d hours	%1$d Stunden
+Turn the lock off	Sperre ausschalten
+Settings locked	Einstellungen gesperrt
+Lock turned off	Sperre ausgeschaltet
+These settings are locked. Ask to unlock first.	Diese Einstellungen sind gesperrt. Fordere zuerst das Entsperren an.
 Full report saved to %1$s	Vollständiger Bericht gespeichert unter %1$s
 GPL-3.0, with the notices of the projects this is built on	GPL-3.0, mit den Hinweisen der Projekte, auf denen es aufbaut
 Gray out stories you've watched	Angesehene Stories ausgrauen

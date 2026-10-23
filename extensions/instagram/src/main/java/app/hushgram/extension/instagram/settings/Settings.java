@@ -24,6 +24,7 @@ import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.EnumSetting;
+import app.hushgram.extension.shared.settings.IntegerSetting;
 import app.hushgram.extension.shared.settings.LongSetting;
 import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.StringSetting;
@@ -429,6 +430,26 @@ public class Settings extends BaseSettings {
         // neither one, nor the marker file that pauses it from outside, gets around them.
         Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_AGAIN, LOCKED_CHATS,
                 UNLOCK_WITH, LOCK_PIN, LOCK_PIN_MISSES, LOCK_PIN_WAIT_UNTIL);
+    }
+
+    /**
+     * Lock these settings (#301): the hours a change waits for, or 0 while the lock is off
+     * ({@link SettingsLock}). A backup leaves it out, so a settings file can't take the lock off.
+     */
+    public static final IntegerSetting SETTINGS_LOCK_HOURS =
+            new IntegerSetting("hushgram_settings_lock_hours", 0, false, false);
+
+    /**
+     * When Ask to unlock was tapped, as "time of day,time since the phone started,phone starts", or
+     * empty while nobody asked ({@link SettingsLock}). One value, so a wait never starts half
+     * written. Left out of a backup.
+     */
+    public static final StringSetting SETTINGS_LOCK_ASKED =
+            new StringSetting("hushgram_settings_lock_asked", "", false, false);
+
+    static {
+        // Pause HushGram and safe mode keep the lock, or pausing would be the way around it.
+        Setting.keepWhenPaused(SETTINGS_LOCK_HOURS, SETTINGS_LOCK_ASKED);
     }
 
     /**

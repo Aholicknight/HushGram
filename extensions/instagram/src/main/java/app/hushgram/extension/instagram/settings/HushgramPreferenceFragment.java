@@ -65,6 +65,7 @@ import java.text.Normalizer;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -164,6 +165,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String REPORT_ROW_KEY = "action_report_problem";
     /** The row under Search that offers Quiet, Privacy and Back to defaults. */
     static final String QUICK_SETUPS_ROW_KEY = "action_quick_setups";
+    /** Lock these settings (#301), right under Pause HushGram. */
+    static final String LOCK_ROW_KEY = "hushgram_settings_lock_row";
     /** Settings backup's row that hides or shows the Quick setups row on the home page. */
     static final String RESTORE_QUICK_SETUPS_ROW_KEY = "action_restore_quick_setups";
     /** The English of the row listing what Pause can't reach, and its key in {@link L10n}. */
@@ -218,6 +221,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private final Runnable exportChanges = this::showConfiguration;
     @Nullable Row importConfiguration;
     @Nullable Row undoConfiguration;
+    /** Lock these settings (#301), and the rows it greyed out while the settings are locked. */
+    @Nullable Row settingsLock;
+    private final Set<Preference> lockedRows = new HashSet<>();
+    private boolean lockHolds, showingLock;
+    private final Handler lockRefresh = new Handler(Looper.getMainLooper());
+    private final Runnable lockTick = this::showLock;
+    /** The About section, whose rows stay open while the settings are locked. */
+    @Nullable PreferenceCategory about;
     /** Ghost mode's switch, and the switches it turns, both set once the page is built. */
     @Nullable SwitchPreference ghostMode;
     List<BooleanSetting> ghostSwitches = new ArrayList<>();
@@ -343,6 +354,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             // A long press on Quick setups takes it off the home, and Settings backup brings it back.
             list.setOnItemLongClickListener((parent, row, position, id) -> {
                 if (quickSetups == null || parent.getItemAtPosition(position) != quickSetups) return false;
+                if (SettingsLock.locked()) return false;
                 return hideQuickSetups();
             });
         }
@@ -374,6 +386,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         showSaves();
         showClearPositions();
         showConfiguration();
+        showLock();
     }
 
     @Override
@@ -382,6 +395,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         ExportStatus.DIAGNOSTICS.unwatch(exportChanges);
         SaveControl.unwatch(saves);
         undoRefresh.removeCallbacks(refreshUndo);
+        lockRefresh.removeCallbacks(lockTick);
         super.onPause();
     }
 
@@ -389,6 +403,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     public void onDestroyView() {
         AbstractPreferenceFragment.clearRestartFeedbackPresenter(restartFeedback);
         undoRefresh.removeCallbacks(refreshUndo);
+        lockRefresh.removeCallbacks(lockTick);
         for (Dialog dialog : new ArrayList<>(shownDialogs)) dialog.dismiss();
         shownDialogs.clear();
         clearPositions = null;
@@ -425,6 +440,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         searchableRows.clear();
         searchAliases.clear();
         categoryRows.clear();
+        // The rows are built again, so the old ones' greying is no longer anyone's to undo.
+        lockedRows.clear();
         openCategory = null;
         intro = new Intro(context);
 
@@ -555,6 +572,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 aliases.append(row == clearPositions
                         ? L10n.t("Clear remembered positions")
                         : row.getTitle() == null ? "" : row.getTitle().toString());
+                // Its title follows the lock's state, so the words for every state find it.
+                if (row == settingsLock) aliases.append(' ').append(L10n.t("Lock these settings"))
+                        .append(' ').append(L10n.t("Ask to unlock")).append(" lock focus cooldown wait timer");
                 for (PatchFamily family : build) {
                     boolean belongs = family.switches.stream().anyMatch(setting -> setting.key.equals(key));
                     belongs |= family == PatchFamily.STORY_RING && (Settings.STORY_RING_SCALE.key.equals(key)
@@ -1198,6 +1218,150 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (terms.length > 0 && matches == 0) {
             if (noSearchResults.getParent() != screen) screen.addPreference(noSearchResults);
         } else if (noSearchResults.getParent() == screen) screen.removePreference(noSearchResults);
+        // Last, after every row that sets its own state has: a locked page greys them all again.
+        showLock();
+    }
+
+    /**
+     * Lock these settings (#301): what the lock's row says now, and while the settings are locked,
+     * every row that changes something greyed out. When they open, the rows it greyed come back and
+     * each row's own rules run again. While a wait or the open time runs, it runs again within a
+     * minute, so the page opens and locks on time.
+     */
+    void showLock() {
+        if (showingLock) return;
+        showingLock = true;
+        try {
+            lockRefresh.removeCallbacks(lockTick);
+            SettingsLock.forgetSpentAsk();
+            SettingsLock.State state = SettingsLock.state();
+            if (settingsLock != null) showLockRow(settingsLock, state);
+            lockHolds = state == SettingsLock.State.LOCKED || state == SettingsLock.State.WAITING;
+            if (lockHolds) {
+                for (Preference row : everyRow()) holdLocked(row);
+                holdLocked(quickSetups);
+            } else if (!lockedRows.isEmpty()) {
+                for (Preference row : lockedRows) row.setEnabled(true);
+                lockedRows.clear();
+                if (getPreferenceScreen() != null) updateUIAvailability();
+                setResumeControlsEnabled(!resumingFromOverview);
+                showClearPositions();
+                showConfiguration();
+            }
+            long left = SettingsLock.left();
+            if (left > 0 && isResumed()) lockRefresh.postDelayed(lockTick, Math.min(left, 60_000L));
+        } finally {
+            showingLock = false;
+        }
+    }
+
+    /** Greys out [row] while the settings are locked, unless it changes nothing or it's the lock itself. */
+    private void holdLocked(@Nullable Preference row) {
+        if (!lockHolds || row == null || !row.isEnabled() || !lockable(row)) return;
+        row.setEnabled(false);
+        lockedRows.add(row);
+    }
+
+    /**
+     * Whether the lock greys [row] out. The lock's own row, both exports, Debug logging, clearing
+     * the diagnostic data and the About rows stay open: none of them changes how Instagram acts.
+     */
+    private boolean lockable(Preference row) {
+        if (row == settingsLock || row == exportConfiguration || row == exportDiagnostics
+                || row instanceof ClearRow || !row.isSelectable()) return false;
+        String key = row.getKey();
+        if (BaseSettings.DEBUG.key.equals(key)) return false;
+        // Switching Pause off only brings every switch back, so it stays open while paused.
+        if (BaseSettings.PAUSED.key.equals(key) && BaseSettings.PAUSED.savedValue()) return false;
+        List<Preference> aboutRows = about == null ? null : searchableRows.get(about);
+        return aboutRows == null || !aboutRows.contains(row);
+    }
+
+    /** What Lock these settings says in each of the lock's states. */
+    static void showLockRow(Row row, SettingsLock.State state) {
+        switch (state) {
+            case LOCKED:
+                row.setTitle(L10n.t("Ask to unlock"));
+                row.setSummary(L10n.f("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
+                        waitName(SettingsLock.hours())));
+                break;
+            case WAITING:
+                row.setTitle(L10n.t("Unlock asked"));
+                row.setSummary(L10n.f("These settings open at %1$s, for 10 minutes.", lockTime(row.getContext())));
+                break;
+            case OPEN:
+                row.setTitle(L10n.t("Settings are open"));
+                row.setSummary(L10n.f("They lock again at %1$s. Tap to lock them now or turn the lock off.",
+                        lockTime(row.getContext())));
+                break;
+            default:
+                row.setTitle(L10n.t("Lock these settings"));
+                row.setSummary(L10n.t("Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you "
+                        + "ask to unlock and the wait is over."));
+        }
+        // Ask to unlock acts at once. Off or open, a tap opens the choice of waits.
+        row.actsAtOnce = state == SettingsLock.State.LOCKED || state == SettingsLock.State.WAITING;
+    }
+
+    /** A lock's wait in words: "1 hour", "6 hours". */
+    static String waitName(int hours) {
+        return L10n.quantity(hours, "%1$d hour", "%1$d hours", hours);
+    }
+
+    /**
+     * When the wait or the open time ends, as the time of day, with the date too when that isn't
+     * today.
+     */
+    static String lockTime(Context context) {
+        long now = SettingsLock.clocks.wall();
+        long at = now + SettingsLock.left();
+        Locale locale = L10n.locale(context);
+        Calendar today = Calendar.getInstance(locale);
+        today.setTimeInMillis(now);
+        Calendar then = Calendar.getInstance(locale);
+        then.setTimeInMillis(at);
+        boolean sameDay = today.get(Calendar.YEAR) == then.get(Calendar.YEAR)
+                && today.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR);
+        DateFormat format = sameDay ? DateFormat.getTimeInstance(DateFormat.SHORT, locale)
+                : DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, locale);
+        return L10n.isolate(format.format(new Date(at)));
+    }
+
+    /**
+     * A tap on the lock's row. Off or open, it offers the waits (and while open, turning the lock
+     * off). Locked, it starts the wait. Waiting, it says when the settings open.
+     */
+    void tapLock() {
+        Context context = getContext();
+        if (context == null) return;
+        SettingsLock.State state = SettingsLock.state();
+        if (state == SettingsLock.State.LOCKED || state == SettingsLock.State.WAITING) {
+            SettingsLock.ask();
+            Utils.showToastLong(L10n.f("These settings open at %1$s, for 10 minutes.", lockTime(context)));
+            showLock();
+            return;
+        }
+        boolean open = state == SettingsLock.State.OPEN;
+        int[] waits = SettingsLock.WAITS;
+        CharSequence[] names = new CharSequence[waits.length + (open ? 1 : 0)];
+        for (int i = 0; i < waits.length; i++) names[i] = waitName(waits[i]);
+        if (open) names[waits.length] = L10n.t("Turn the lock off");
+        show(new AlertDialog.Builder(themed(context))
+                .setTitle(L10n.t("Lock these settings"))
+                .setItems(names, (shown, which) -> {
+                    if (which < waits.length) {
+                        if (SettingsLock.lock(waits[which])) Utils.showToastLong(L10n.t("Settings locked"));
+                    } else if (SettingsLock.off()) {
+                        Utils.showToastLong(L10n.t("Lock turned off"));
+                    }
+                    showLock();
+                })
+                .setNegativeButton(L10n.t("Cancel"), null));
+    }
+
+    /** Says why a change didn't happen while the settings are locked. */
+    private static void sayLocked() {
+        Utils.showToastLong(L10n.t("These settings are locked. Ask to unlock first."));
     }
 
     /**
@@ -1329,6 +1493,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      * once between them.
      */
     int applyQuickSetup(Map<BooleanSetting, Boolean> values) {
+        // Lock these settings (#301): Back to defaults would be the way around the lock.
+        if (SettingsLock.locked()) {
+            sayLocked();
+            return 0;
+        }
         if (MessagesLock.locked()) {
             Activity activity = getActivity();
             if (activity != null) MessagesLock.confirmThen(activity, () -> applyQuickSetup(values));
@@ -1408,6 +1577,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     void pickConfiguration(boolean importing) {
         if (documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active()) return;
+        if (importing && SettingsLock.locked()) {
+            sayLocked();
+            return;
+        }
         if (documentSequence == Integer.MAX_VALUE) {
             Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
             return;
@@ -1584,6 +1757,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** Undo always remains Undo, even if its expiration callback hasn't reached the screen yet. */
     private void changeConfiguration(@Nullable Uri uri, long token) {
         if (changingConfiguration || ExportStatus.CONFIGURATION.active()) return;
+        // A file or an Undo arriving after the settings locked again (#301) changes nothing.
+        if (SettingsLock.locked()) {
+            showConfiguration();
+            sayLocked();
+            return;
+        }
         // These settings can outlast the unlock that opened them, and the file picker's own screen
         // is a leave that can lock again. A file or an Undo arriving while locked waits for a new
         // unlock; a cancel changes nothing.
@@ -2049,6 +2228,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (statusCard != null) statusCard.setEnabled(enabled);
         Preference pause = findPreference(BaseSettings.PAUSED.key);
         if (pause != null) pause.setEnabled(enabled && BaseSettings.PAUSED.isAvailable());
+        holdLocked(pause);
     }
 
     private void resumeFromOverviewFinished(@Nullable HushgramPause.Reason still) {
@@ -4008,6 +4188,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         } else if (preference instanceof GlassReelsHideRow) {
             ((GlassReelsHideRow) preference).showSummary();
         }
+        holdLocked(preference);
     }
 
     /** The quality rows' and the ring size's summaries are sentences of their own rather than the chosen entry. */

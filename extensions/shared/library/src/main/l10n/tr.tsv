@@ -30,6 +30,22 @@ Empties the activity log that a diagnostic report would include.	Bir tanılama r
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır, yamaladığında ayarlananlar ise devrede kalır. Ayarların olduğu gibi kalır.
 Export diagnostic report	Tanılama raporunu dışa aktar
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Sonraki açılıştan itibaren Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır. Yamaladığında ayarlananlar devrede kalır ve tercihlerin kayıtlı kalır.
+Lock these settings	Bu ayarları kilitle
+Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1, 6 veya 24 saatlik bir bekleme seç. Kilitliyken, kilidi açmayı isteyip bekleme bitene kadar burada hiçbir şey değişmez.
+Ask to unlock	Kilidi açmayı iste
+These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Bu ayarlar kilitli. %1$s beklemeyi başlatmak için dokun, sonra 10 dakika açık kalırlar.
+Unlock asked	Kilit açma istendi
+These settings open at %1$s, for 10 minutes.	Bu ayarlar 10 dakikalığına şu saatte açılır: %1$s
+Settings are open	Ayarlar açık
+They lock again at %1$s. Tap to lock them now or turn the lock off.	Şu saatte yeniden kilitlenir: %1$s. Şimdi kilitlemek veya kilidi kapatmak için dokun.
+# context: the wait of a settings lock when it is exactly one hour; %1$d is the number
+%1$d hour	%1$d saat
+# context: the same wait for any other number of hours; %1$d is how many
+%1$d hours	%1$d saat
+Turn the lock off	Kilidi kapat
+Settings locked	Ayarlar kilitlendi
+Lock turned off	Kilit kapatıldı
+These settings are locked. Ask to unlock first.	Bu ayarlar kilitli. Önce kilidi açmayı iste.
 Full report saved to %1$s	Tam rapor şuraya kaydedildi: %1$s
 GPL-3.0, with the notices of the projects this is built on	GPL-3.0, üzerine kurulduğu projelerin lisans bildirimleriyle
 Gray out stories you've watched	İzlediğin hikayeleri gri göster

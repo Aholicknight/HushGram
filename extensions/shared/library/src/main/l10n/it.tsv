@@ -30,6 +30,22 @@ Empties the activity log that a diagnostic report would include.	Svuota il regis
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Tutti gli interruttori tranne Log di debug agiscono come se fossero off, e ciò che è stato impostato durante la patch resta attivo. Le tue impostazioni restano invariate.
 Export diagnostic report	Esporta report diagnostico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Dal prossimo avvio, tutti gli interruttori tranne Log di debug agiscono come se fossero off. Le modifiche fatte durante la patch restano attive e le tue scelte restano salvate.
+Lock these settings	Blocca queste impostazioni
+Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Scegli un'attesa di 1, 6 o 24 ore. Con il blocco, qui non cambia niente finché non chiedi di sbloccare e l'attesa non è finita.
+Ask to unlock	Chiedi di sbloccare
+These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Queste impostazioni sono bloccate. Tocca per avviare l'attesa di %1$s, poi restano aperte per 10 minuti.
+Unlock asked	Sblocco chiesto
+These settings open at %1$s, for 10 minutes.	Queste impostazioni si aprono alle %1$s, per 10 minuti.
+Settings are open	Impostazioni aperte
+They lock again at %1$s. Tap to lock them now or turn the lock off.	Si bloccano di nuovo alle %1$s. Tocca per bloccarle ora o disattivare il blocco.
+# context: the wait of a settings lock when it is exactly one hour; %1$d is the number
+%1$d hour	%1$d ora
+# context: the same wait for any other number of hours; %1$d is how many
+%1$d hours	%1$d ore
+Turn the lock off	Disattiva il blocco
+Settings locked	Impostazioni bloccate
+Lock turned off	Blocco disattivato
+These settings are locked. Ask to unlock first.	Queste impostazioni sono bloccate. Prima chiedi di sbloccarle.
 Full report saved to %1$s	Report completo salvato in %1$s
 GPL-3.0, with the notices of the projects this is built on	GPL-3.0, con le note dei progetti su cui si basa
 Gray out stories you've watched	Ingrigisci le storie che hai già visto

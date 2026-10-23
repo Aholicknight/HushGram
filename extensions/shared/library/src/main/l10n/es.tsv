@@ -30,6 +30,22 @@ Empties the activity log that a diagnostic report would include.	Vacía el regis
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Todos los interruptores, salvo el Registro de depuración, funcionan como si estuvieran desactivados, y lo que se aplicó al parchear se mantiene. Tu configuración no cambia.
 Export diagnostic report	Exportar informe de diagnóstico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Desde el próximo inicio, todos los interruptores, salvo el Registro de depuración, funcionan como si estuvieran desactivados. Lo que se aplicó al parchear se mantiene, y tus preferencias quedan guardadas.
+Lock these settings	Bloquear estos ajustes
+Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Elige una espera de 1, 6 o 24 horas. Con el bloqueo, aquí no cambia nada hasta que pidas desbloquear y termine la espera.
+Ask to unlock	Pedir desbloqueo
+These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Estos ajustes están bloqueados. Toca para empezar la espera de %1$s y luego se abren durante 10 minutos.
+Unlock asked	Desbloqueo pedido
+These settings open at %1$s, for 10 minutes.	Estos ajustes se abren a las %1$s, durante 10 minutos.
+Settings are open	Los ajustes están abiertos
+They lock again at %1$s. Tap to lock them now or turn the lock off.	Se bloquean de nuevo a las %1$s. Toca para bloquearlos ya o desactivar el bloqueo.
+# context: the wait of a settings lock when it is exactly one hour; %1$d is the number
+%1$d hour	%1$d hora
+# context: the same wait for any other number of hours; %1$d is how many
+%1$d hours	%1$d horas
+Turn the lock off	Desactivar el bloqueo
+Settings locked	Ajustes bloqueados
+Lock turned off	Bloqueo desactivado
+These settings are locked. Ask to unlock first.	Estos ajustes están bloqueados. Pide desbloquear primero.
 Full report saved to %1$s	Informe completo guardado en %1$s
 GPL-3.0, with the notices of the projects this is built on	GPL-3.0, con los avisos de los proyectos en los que se basa
 Gray out stories you've watched	Mostrar en gris las historias que ya viste

@@ -30,6 +30,22 @@ Empties the activity log that a diagnostic report would include.	Mengosongkan lo
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Semua sakelar kecuali Pencatatan debug dianggap nonaktif, dan yang diatur saat Anda menambal tetap aktif. Pengaturan Anda tetap seperti semula.
 Export diagnostic report	Ekspor laporan diagnostik
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Mulai peluncuran berikutnya, semua sakelar kecuali Pencatatan debug dianggap nonaktif. Yang diatur saat Anda menambal tetap aktif, dan pilihan Anda tetap tersimpan.
+Lock these settings	Kunci pengaturan ini
+Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Pilih waktu tunggu 1, 6, atau 24 jam. Saat terkunci, tidak ada yang berubah di sini sampai kamu meminta buka kunci dan waktu tunggunya selesai.
+Ask to unlock	Minta buka kunci
+These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Pengaturan ini terkunci. Ketuk untuk memulai waktu tunggu %1$s, lalu pengaturan terbuka selama 10 menit.
+Unlock asked	Buka kunci diminta
+These settings open at %1$s, for 10 minutes.	Pengaturan ini terbuka pukul %1$s, selama 10 menit.
+Settings are open	Pengaturan terbuka
+They lock again at %1$s. Tap to lock them now or turn the lock off.	Pengaturan terkunci lagi pukul %1$s. Ketuk untuk menguncinya sekarang atau mematikan kunci.
+# context: the wait of a settings lock when it is exactly one hour; %1$d is the number
+%1$d hour	%1$d jam
+# context: the same wait for any other number of hours; %1$d is how many
+%1$d hours	%1$d jam
+Turn the lock off	Matikan kunci
+Settings locked	Pengaturan dikunci
+Lock turned off	Kunci dimatikan
+These settings are locked. Ask to unlock first.	Pengaturan ini terkunci. Minta buka kunci dulu.
 Full report saved to %1$s	Laporan lengkap disimpan ke %1$s
 GPL-3.0, with the notices of the projects this is built on	GPL-3.0, beserta pemberitahuan dari proyek yang menjadi dasarnya
 Gray out stories you've watched	Abu-abukan cerita yang sudah ditonton
