@@ -54,7 +54,7 @@ public final class SwipeToProfileTargets {
     public static void turn(Object container, Object panel, boolean on) {
     }
 
-    /** Instagram's own walk: whether a view under the point, or the view itself, can scroll sideways against dx. */
+    /** Instagram's own walk: whether a view under the point, or the view itself, can scroll sideways against dx (negative for a swipe left). */
     public static boolean childScrolls(View view, int dx, int x, int y, boolean checkView, boolean skipOff) {
         return false;
     }

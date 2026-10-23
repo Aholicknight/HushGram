@@ -69,7 +69,7 @@ Five patches stay out of simple mode. Tick them in Manager's patch list (Expert 
 - **Change version code** raises the version code for good. Going back means uninstalling Instagram, and every later HushGram build needs it too.
 - **Install next to Instagram** makes the build a second app with its own package, data and sign-in (see [Two Instagrams on one phone](#two-instagrams-on-one-phone)).
 - **Pure black dark mode** rewrites Instagram's colors when you patch and has no switch to turn it off.
-- **Swipe left to open the profile** is still a test feature.
+- **Swipe left to open the profile** is still a test feature. A right swipe on a reel goes to Home as usual, and Back takes you from the profile to the reel.
 - **View DM photos and videos anonymously** is a test feature until the sender's side is checked with two accounts.
 
 In Expert mode the patches are grouped under Ads, Ghost mode, Privacy, Messages, Feed, Stories, Reels, Playback, Interaction, Profiles, Interface, Downloads, Updates, Fixes and Settings, and most of those match a section in HushGram settings.

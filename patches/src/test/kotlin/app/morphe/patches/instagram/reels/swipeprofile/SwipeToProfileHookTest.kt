@@ -106,7 +106,7 @@ class SwipeToProfileHookTest {
         val declared = ExtensionDex.classDef(SWIPE_TO_PROFILE).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(TAB_CHANGING_HOOK, TAB_CHANGED_HOOK, CHILD_SCROLLS_HOOK, PAGER_INPUT_HOOK, RIGHT_PANEL_HOOK)) {
+        for (hook in listOf(TAB_CHANGING_HOOK, TAB_CHANGED_HOOK, CHILD_SCROLLS_HOOK, PAGER_INPUT_HOOK, TOUCHED_HOOK, RIGHT_PANEL_HOOK)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
         val stubs = ExtensionDex.classDef(SWIPE_TARGETS).methods.filter { AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.name }.toSet()
@@ -349,8 +349,9 @@ class SwipeToProfileHookTest {
     }
 
     /**
-     * The walk and the tabs' pager input call replaced, in their places, by [CHILD_SCROLLS_HOOK] and
-     * [PAGER_INPUT_HOOK] on the registers they read, and the stubs reaching the walk and the pager.
+     * [TOUCHED_HOOK] first, on this and the event; the walk and the tabs' pager input call replaced,
+     * in their places one further on, by [CHILD_SCROLLS_HOOK] and [PAGER_INPUT_HOOK] on the registers
+     * they read; and the stubs reaching the walk and the pager.
      */
     private fun assertPagersHooked(what: String, context: BytecodePatchContext, panel: ProfilePanel, pagers: PagerHandling) {
         val before = panel.touch.implementation!!.instructions.toList()
@@ -359,9 +360,15 @@ class SwipeToProfileHookTest {
         assertEquals("$what: walks left", 0, code.count { it.names(pagers.walk.toString()) })
         assertEquals("$what: input calls left", 0, code.count { it.names(setInput) })
 
+        assertEquals("$what: one touch hook", 1, code.count { it.names(TOUCHED_HOOK) })
+        assertTrue("$what: the touch hook first", code[0].names(TOUCHED_HOOK))
+        val touched = code[0] as RegisterRangeInstruction
+        assertEquals("$what: on this", panel.touch.localRegisterCount(), touched.startRegister)
+        assertEquals("$what: and the event", 2, touched.registerCount)
+
         val walks = code.indices.filter { code[it].names(CHILD_SCROLLS_HOOK) }
-        assertEquals("$what: the walk in its place", listOf(pagers.walkCall), walks)
-        val walk = code[pagers.walkCall] as RegisterRangeInstruction
+        assertEquals("$what: the walk in its place", listOf(pagers.walkCall + 1), walks)
+        val walk = code[pagers.walkCall + 1] as RegisterRangeInstruction
         assertEquals("$what: the walk's registers", (before[pagers.walkCall] as RegisterRangeInstruction).startRegister, walk.startRegister)
         assertEquals("$what: six of them", 6, walk.registerCount)
 

@@ -4,7 +4,9 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -39,12 +41,19 @@ import java.util.function.BooleanSupplier;
  * walks the views under the finger and yields to any that can scroll sideways, and Instagram's walk
  * counts a pager whose input is off unless a server flag says otherwise. The main tabs' pager and the
  * Reels and Friends pager can always scroll. The patch hands that walk to {@link #childScrolls}:
- * on the Reels tab with the switch on, HushGram's walk passes over every sideways pager and the list
- * inside it, and turns a passed pager's input off so it can't start a drag of its own. The reels
- * themselves sit in an up-and-down pager, and that pager and everything inside it, a carousel
- * included, get Instagram's own walk. The patch also hands the container's own call turning the
- * tabs' pager input back on as a touch starts to {@link #pagerInput}, which keeps it off on Reels.
- * The next tab change gives every held pager its input back.
+ * on the Reels tab with the switch on, a swipe left gets HushGram's walk, which passes over every
+ * sideways pager and the list inside it, and turns a passed pager's input off so it can't start a
+ * drag of its own. The reels themselves sit in an up-and-down pager, and that pager and everything
+ * inside it, a carousel included, get Instagram's own walk. A swipe right gets Instagram's walk too,
+ * so the tabs' pager still slides it to Home.
+ *
+ * <p>The tabs' pager starts its drag at the touch slop, half the distance the container waits for,
+ * so it would take a swipe left before the container's walk runs. The patch hands the container's
+ * call setting that pager's input as a touch starts to {@link #pagerInput}, which notes the pager
+ * and passes the call on, and calls {@link #touched} first in the container's touch check, which
+ * sees each move before the pager does. Once a lone finger has gone left by the touch slop, it holds
+ * the pager until the next touch starts, which gives it back. The next tab change gives every held
+ * pager its input back.
  *
  * <p>The hooks fail open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer comes back and the panel stays as Instagram left it.
@@ -165,6 +174,15 @@ public final class SwipeToProfile {
     /** The pagers HushGram turned the input off on, until the next tab change turns it back on. */
     private static final List<WeakReference<Object>> heldPagers = new ArrayList<>();
 
+    /** The tabs' pager, as the container last set its input at a touch's start. */
+    private static WeakReference<Object> tabsPager;
+
+    /** Where across the screen the current touch went down. */
+    private static float downX;
+
+    /** Whether the current touch has had only one finger down so far. */
+    private static boolean oneFinger;
+
     private SwipeToProfile() {
     }
 
@@ -280,12 +298,13 @@ public final class SwipeToProfile {
     /**
      * Called in place of the swipe container's walk of the views under the finger, which answers
      * whether one of them, or {@code view} itself when {@code checkView}, can scroll sideways against
-     * {@code dx}, with (x, y) in {@code view}'s coordinates. On Reels with the switch on, HushGram
-     * walks them the same way but passes over every sideways pager and the list inside it, and holds
-     * a passed pager that still takes swipes. An up-and-down pager and what's inside it get
-     * Instagram's walk. Otherwise Instagram walks them all, and a pager HushGram held gets its input
-     * back. Never throws on HushGram's account. {@code checkView} and {@code skipOff} come as Instagram's
-     * registers hold them, non-zero for yes.
+     * {@code dx}, with (x, y) in {@code view}'s coordinates. On Reels with the switch on, a swipe
+     * left (negative {@code dx}) gets HushGram's walk, which goes the same way but passes over every
+     * sideways pager and the list inside it, and holds a passed pager that still takes swipes. An
+     * up-and-down pager and what's inside it get Instagram's walk. A swipe right gets Instagram's walk
+     * and leaves held pagers as they are, mid-swipe. With the switch off Instagram walks them all, and
+     * a pager HushGram held gets its input back. Never throws on HushGram's account. {@code checkView}
+     * and {@code skipOff} come as Instagram's registers hold them, non-zero for yes.
      */
     public static boolean childScrolls(View view, int dx, int x, int y, int checkView, int skipOff) {
         return childScrolls(view, dx, x, y, checkView != 0, skipOff != 0, INSTAGRAM, SwipeToProfile::reelsOpen);
@@ -300,11 +319,13 @@ public final class SwipeToProfile {
             HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, SWITCH, t);
         }
         if (open) {
-            try {
-                return scrolls(view, dx, x, y, checkView, skipOff, panels);
-            } catch (Throwable t) {
-                HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, PAGER, t);
-                release(panels);
+            if (dx < 0) {
+                try {
+                    return scrolls(view, dx, x, y, checkView, skipOff, panels);
+                } catch (Throwable t) {
+                    HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, PAGER, t);
+                    release(panels);
+                }
             }
         } else {
             release(panels);
@@ -351,27 +372,65 @@ public final class SwipeToProfile {
 
     /**
      * Called in place of the swipe container's own call turning the tabs' pager input on or off as a
-     * touch starts. On Reels with the switch on, input Instagram turns on stays off until the next tab
-     * change. Otherwise the pager gets what Instagram asked for. The call to the pager is Instagram's
-     * own, so it fails the way Instagram's would; nothing else here throws. {@code wanted} is non-zero
-     * for on.
+     * touch starts. Notes the pager for {@link #touched}, which may hold it later in the touch, and
+     * gives it what Instagram asked for, which ends any hold from the touch before. The call to the
+     * pager is Instagram's own, so it fails the way Instagram's would; nothing else here throws.
+     * {@code wanted} is non-zero for on.
      */
     public static void pagerInput(Object pager, int wanted) {
-        pagerInput(pager, wanted != 0, INSTAGRAM, SwipeToProfile::reelsOpen);
+        pagerInput(pager, wanted != 0, INSTAGRAM);
     }
 
-    static void pagerInput(Object pager, boolean wanted, Panels panels, BooleanSupplier on) {
+    static void pagerInput(Object pager, boolean wanted, Panels panels) {
         if (pager == null) return;
-        boolean hold = false;
+        HookStatus.invoked(FamilyNames.SWIPE_TO_PROFILE);
+        tabsPager = new WeakReference<>(pager);
+        forget(pager);
+        panels.input(pager, wanted);
+    }
+
+    /**
+     * Called first thing in the swipe container's touch check, with each event before the container's
+     * children see it. At a touch's start, notes where the finger went down and gives the tabs' pager
+     * back its input if HushGram held it, since Instagram doesn't set it on every touch. On Reels with
+     * the switch on, once a lone finger has gone left by the touch slop, which is where the tabs'
+     * pager would start its own drag, holds the tabs' pager until the next touch starts, so the
+     * container can take the swipe to the profile panel. A swipe right, one that hasn't gone that
+     * far, or a second finger leaves the pager on, so it still slides to Home. Never throws.
+     */
+    public static void touched(View container, MotionEvent event) {
+        touched(container, event, INSTAGRAM, SwipeToProfile::reelsOpen);
+    }
+
+    static void touched(View container, MotionEvent event, Panels panels, BooleanSupplier on) {
+        Object pager;
         try {
-            HookStatus.invoked(FamilyNames.SWIPE_TO_PROFILE);
-            hold = wanted && on.getAsBoolean();
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                downX = event.getRawX();
+                oneFinger = true;
+                letGo(panels);
+                return;
+            }
+            if (action == MotionEvent.ACTION_POINTER_DOWN) oneFinger = false;
+            if (action != MotionEvent.ACTION_MOVE || !oneFinger) return;
+            pager = tabsPager == null ? null : tabsPager.get();
+            if (pager == null || downX - event.getRawX() < ViewConfiguration.get(container.getContext()).getScaledTouchSlop()) return;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, PAGER, t);
+            return;
+        }
+        try {
+            if (!on.getAsBoolean()) return;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, SWITCH, t);
+            return;
         }
-        if (hold) remember(pager);
-        else forget(pager);
-        panels.input(pager, wanted && !hold);
+        try {
+            hold(pager, panels);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, PAGER, t);
+        }
     }
 
     /** Turns a pager's input off when it's on, and remembers it to turn back on. */
@@ -392,6 +451,21 @@ public final class SwipeToProfile {
             loggedPager = true;
             Logger.printDebug(() -> "SwipeToProfile: held a pager so the swipe reaches the profile panel");
         }
+    }
+
+    /** Gives the tabs' pager its input back if HushGram held it. */
+    private static void letGo(Panels panels) {
+        Object pager = tabsPager == null ? null : tabsPager.get();
+        if (pager == null || !held(pager)) return;
+        forget(pager);
+        panels.input(pager, true);
+    }
+
+    private static boolean held(Object pager) {
+        for (WeakReference<Object> reference : heldPagers) {
+            if (reference.get() == pager) return true;
+        }
+        return false;
     }
 
     private static void forget(Object pager) {
@@ -417,9 +491,12 @@ public final class SwipeToProfile {
         }
     }
 
-    /** Forgets that a setup built the right panel, as a new process would. */
+    /** Forgets that a setup built the right panel and which pager the tabs use, as a new process would. */
     static void forgetSetUpForTests() {
         builtRight = false;
+        tabsPager = null;
+        downX = 0;
+        oneFinger = false;
     }
 
     private static boolean switchedOn() {

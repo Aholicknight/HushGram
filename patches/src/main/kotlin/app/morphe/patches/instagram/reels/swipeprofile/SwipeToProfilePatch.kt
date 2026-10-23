@@ -47,6 +47,7 @@ internal const val TAB_CHANGING_HOOK = "$SWIPE_TO_PROFILE->tabChanging(Ljava/lan
 internal const val TAB_CHANGED_HOOK = "$SWIPE_TO_PROFILE->tabChanged(Ljava/lang/Object;)V"
 internal const val CHILD_SCROLLS_HOOK = "$SWIPE_TO_PROFILE->childScrolls(Landroid/view/View;IIIII)Z"
 internal const val PAGER_INPUT_HOOK = "$SWIPE_TO_PROFILE->pagerInput(Ljava/lang/Object;I)V"
+internal const val TOUCHED_HOOK = "$SWIPE_TO_PROFILE->touched(Landroid/view/View;Landroid/view/MotionEvent;)V"
 internal const val RIGHT_PANEL_HOOK = "$SWIPE_TO_PROFILE->leaveOutRightPanel(ILjava/lang/Object;)Z"
 internal const val SWIPE_TARGETS = "$EXTENSION_PACKAGE/reels/SwipeToProfileTargets;"
 
@@ -75,11 +76,11 @@ private val MOVES = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
 
 /**
  * Lets a left swipe on a reel open its creator's profile, as older Instagram builds did. Kept out of
- * the default selection until a device shows the swipe opening the profile. The profile loads into
- * the container's right panel, which the swipe setup leaves out on accounts with the new tab bar, so
- * the setup's answer goes through the extension (#283). The container's walk of the views under the
- * finger gave the swipe to a pager (#245), so that walk and the call turning the tabs' pager input on
- * go through the extension too.
+ * the default selection until a right swipe on the open profile slides back to the reel. The profile
+ * loads into the container's right panel, which the swipe setup leaves out on accounts with the new
+ * tab bar, so the setup's answer goes through the extension (#283). The container's walk of the
+ * views under the finger gave the swipe to a pager (#245), so that walk, the call setting the tabs'
+ * pager input and each touch event the container sees go through the extension too.
  */
 @Suppress("unused")
 val swipeToProfilePatch = bytecodePatch(
@@ -586,10 +587,11 @@ private fun holds(code: List<Instruction>, read: Int, call: Int, register: Int):
 
 /**
  * Puts [CHILD_SCROLLS_HOOK] in the walk's place and [PAGER_INPUT_HOOK] in the input call's, each on
- * the registers the call it replaces read, so a jump to either still lands on the hook. Then writes
- * the stubs: Instagram's own walk, whether a view is a pager, whether it takes swipes, and the call
- * turning that on or off. The walk takes six registers, always a range; the input call takes two,
- * never above v15.
+ * the registers the call it replaces read, so a jump to either still lands on the hook, then
+ * [TOUCHED_HOOK] on this and the event first, so the extension sees each move before the pager does.
+ * Then writes the stubs: Instagram's own walk, whether a view is a pager, whether it takes swipes,
+ * and the call turning that on or off. The walk takes six registers, always a range; the input call
+ * takes two, never above v15. The first hook goes in last, as it moves every index after it.
  */
 internal fun BytecodePatchContext.hookPagerHandling(touch: Method, found: PagerHandling) {
     val method = mutable(touch)
@@ -601,6 +603,7 @@ internal fun BytecodePatchContext.hookPagerHandling(touch: Method, found: PagerH
     )
     val input = code[found.inputCall] as FiveRegisterInstruction
     method.replaceInstruction(found.inputCall, "invoke-static { v${input.registerC}, v${input.registerD} }, $PAGER_INPUT_HOOK")
+    method.addInstruction(0, "invoke-static/range { p0 .. p1 }, $TOUCHED_HOOK")
 
     stub("childScrolls", WALK, "Z", "invoke-static/range { p0 .. p5 }, ${found.walk}\nmove-result p0\nreturn p0")
     stub("pager", listOf(ANY), "Z", "instance-of p0, p0, $VIEW_PAGER\nreturn p0")

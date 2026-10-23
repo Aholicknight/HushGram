@@ -7,7 +7,7 @@ Every HushGram release, newest first.
 ### Features
 
 * **Instagram - Download any video:** Details has a Copy caption without hashtags row for captions that have them. It drops a closing block of tags and the dots above it, and a tag inside a sentence keeps its word. Reported in #282.
-* **Instagram - Swipe left to open the profile:** new patch. A switch under Reels, off to start, makes a left swipe on a reel in the Reels tab slide in the creator's profile, like Instagram used to. Back takes you to the reel. Turning it on or off takes a restart. Asked for in #245 and #283.
+* **Instagram - Swipe left to open the profile:** new patch. A switch under Reels, off to start, makes a left swipe on a reel in the Reels tab slide in the creator's profile, like Instagram used to. A right swipe still goes to Home, and Back takes you from the profile to the reel. Turning it on or off takes a restart. Asked for in #245 and #283.
 
 ### Bug Fixes
 
