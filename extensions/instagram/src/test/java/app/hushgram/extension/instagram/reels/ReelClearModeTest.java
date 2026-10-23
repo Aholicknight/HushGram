@@ -366,7 +366,7 @@ public class ReelClearModeTest {
         assertTrue("nothing waits, so rest asks for nothing", viewer.posted.isEmpty());
         assertEquals(Arrays.asList("first OVERFLOW_MENU", "second OVERFLOW_MENU"), viewer.turnedOn);
 
-        // The page landed before its button was built: the try at rest still goes to that page.
+        // The page landed before its button was built: rest asks for nothing, the button's try does.
         ReelClearMode.left(viewer.handler, second, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
         viewer.page = late;
         ReelClearMode.paged();
@@ -374,7 +374,7 @@ public class ReelClearModeTest {
         assertTrue(ReelClearMode.waiting());
         viewer.now += 200;
         ReelClearMode.settled(viewer.pager, Scroll.IDLE);
-        viewer.runPosted();
+        assertTrue("a rest after a page asks for nothing", viewer.posted.isEmpty());
         assertEquals("the reel that left isn't put back", 2, viewer.turnedOn.size());
         assertTrue("the late page still waits for its button", ReelClearMode.waiting());
         viewer.now += 200;
@@ -383,6 +383,74 @@ public class ReelClearModeTest {
 
         assertEquals(Arrays.asList("first OVERFLOW_MENU", "second OVERFLOW_MENU", "late OVERFLOW_MENU"), viewer.turnedOn);
         assertTrue(HookStatus.report().toString(), counted(2));
+        assertFalse(HookStatus.report().toString().contains(ReelClearMode.KEPT));
+    }
+
+    /**
+     * A page reported while the reel waits means the swipe landed, through every try after it. A
+     * rest once the page's try waited on a late button doesn't put the reel that left back, even
+     * when Instagram's turn-on would still read that reel.
+     */
+    @Test
+    public void aRestAfterAPageWithALateButtonLeavesTheReelThatLeftOut() {
+        Reel first = reel("first");
+        Reel late = new Reel("late");
+        viewer.page = first;
+        tapClearMode();
+
+        ReelClearMode.left(viewer.handler, first, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
+        viewer.page = late;
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertTrue("the page's try waits for its button", ReelClearMode.waiting());
+
+        viewer.page = first;
+        viewer.now += 200;
+        ReelClearMode.settled(viewer.pager, Scroll.IDLE);
+        assertTrue("the swipe landed, so rest asks for nothing", viewer.posted.isEmpty());
+        viewer.runPosted();
+        assertEquals("the reel that left isn't put back", Collections.singletonList("first OVERFLOW_MENU"), viewer.turnedOn);
+
+        viewer.page = late;
+        viewer.now += 200;
+        ReelClearMode.built(late);
+        viewer.runPosted();
+        assertEquals(Arrays.asList("first OVERFLOW_MENU", "late OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(HookStatus.report().toString(), counted(1));
+        assertFalse(HookStatus.report().toString().contains(ReelClearMode.KEPT));
+    }
+
+    /**
+     * A swipe can report its page before the reel's exit button leaves, so no page comes while it
+     * waits. A first try that finds another reel on the pager means the swipe landed all the same.
+     */
+    @Test
+    public void aRestAfterATryFoundAnotherReelLeavesTheReelThatLeftOut() {
+        Reel first = reel("first");
+        Reel late = new Reel("late");
+        viewer.page = first;
+        tapClearMode();
+
+        viewer.page = late;
+        ReelClearMode.paged();
+        assertTrue("nothing waits yet, so the page asks for nothing", viewer.posted.isEmpty());
+        ReelClearMode.left(viewer.handler, first, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
+        assertEquals(1, viewer.asked);
+        assertTrue("the first try waits for the next reel's button", ReelClearMode.waiting());
+
+        viewer.page = first;
+        viewer.now += 200;
+        ReelClearMode.settled(viewer.pager, Scroll.IDLE);
+        assertTrue("the swipe landed, so rest asks for nothing", viewer.posted.isEmpty());
+        viewer.runPosted();
+        assertEquals("the reel that left isn't put back", Collections.singletonList("first OVERFLOW_MENU"), viewer.turnedOn);
+
+        viewer.page = late;
+        viewer.now += 200;
+        ReelClearMode.built(late);
+        viewer.runPosted();
+        assertEquals(Arrays.asList("first OVERFLOW_MENU", "late OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(HookStatus.report().toString(), counted(1));
         assertFalse(HookStatus.report().toString().contains(ReelClearMode.KEPT));
     }
 

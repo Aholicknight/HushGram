@@ -197,7 +197,13 @@ public final class ReelClearMode {
     /** The pager reported a page while a reel waits, so the next try's page is where the swipe landed. */
     private static volatile boolean pageReported;
 
-    /** The pager, weakly, when it came to rest with no page reported while a reel waits: the swipe snapped back. */
+    /**
+     * The swipe that took the reel out of clear mode landed: the pager reported a page, or a try
+     * found another reel on it. A rest after that isn't a snap-back, for as long as the reel waits.
+     */
+    private static volatile boolean landed;
+
+    /** The pager, weakly, when it came to rest before the swipe {@link #landed} while a reel waits: the swipe snapped back. */
     @Nullable
     private static volatile WeakReference<Object> snapped;
 
@@ -312,7 +318,9 @@ public final class ReelClearMode {
                 outcome = NO_BUTTON;
                 return null;
             }
-            if (id.equals(from) && !returning) {
+            boolean same = id.equals(from);
+            if (!same) landed = true;
+            if (same && !returning) {
                 outcome = SAME_REEL;
                 return null;
             }
@@ -346,6 +354,7 @@ public final class ReelClearMode {
                 return;
             }
             pageReported = true;
+            landed = true;
             if (retryPosted) return;
             retryPosted = true;
             access.post(ReelClearMode::retry);
@@ -358,13 +367,13 @@ public final class ReelClearMode {
 
     /**
      * The hook, where the Reels pager's listener handles a change of its scroll state, right after
-     * it read the pager, with the pager and the state. A reel that left clear mode and still waits
-     * with no page reported since, when the pager comes to rest, had its swipe snap back: the next
-     * try may put that same reel back in clear mode, once Instagram is done with the change (#233).
+     * it read the pager, with the pager and the state. A reel that left clear mode and still waits,
+     * when the pager comes to rest and its swipe never {@link #landed}, had its swipe snap back: the
+     * next try may put that same reel back in clear mode, once Instagram is done with the change (#233).
      */
     public static void settled(@Nullable Object pager, @Nullable Object state) {
         long until = retryUntil;
-        if (until == 0 || pageReported || pager == null || !atRest(state)) return;
+        if (until == 0 || landed || pager == null || !atRest(state)) return;
         try {
             HookStatus.invoked(FAMILY);
             if (!on() || access.now() > until) {
@@ -460,8 +469,8 @@ public final class ReelClearMode {
 
     /**
      * The pager's next page, a reel's exit button or the pager at rest, once Instagram has handled
-     * it: the next try. A pager that came to rest with no page reported, and is still on screen, lets
-     * it land on the reel that left.
+     * it: the next try. A pager that came to rest before its swipe landed, and is still on screen,
+     * lets it land on the reel that left. A swipe that landed stays landed for the tries after.
      */
     private static void retry() {
         try {
@@ -471,6 +480,7 @@ public final class ReelClearMode {
             String left = from;
             long until = retryUntil;
             boolean page = pageReported;
+            boolean moved = landed;
             clearRetry();
             if (until == 0 || !wanted) return;
             Object handler = held == null ? null : held.get();
@@ -480,8 +490,11 @@ public final class ReelClearMode {
                 return;
             }
             Object pager = rested == null ? null : rested.get();
-            boolean back = pager != null && !page && access.showing(pager);
-            if (pager != null && !back) Logger.printDebug(() -> "Clear mode: the pager came to rest off screen, the reel that left stays out");
+            boolean back = pager != null && !moved && access.showing(pager);
+            if (pager != null && !back) Logger.printDebug(() -> moved
+                    ? "Clear mode: the pager came to rest after the swipe landed, the reel that left stays out"
+                    : "Clear mode: the pager came to rest off screen, the reel that left stays out");
+            landed = moved;
             carry(handler, left, until, page, back);
         } catch (Throwable failure) {
             drop();
@@ -577,6 +590,7 @@ public final class ReelClearMode {
         retryUntil = 0;
         waiting = null;
         pageReported = false;
+        landed = false;
         snapped = null;
     }
 
