@@ -171,12 +171,15 @@ public final class ScrollBreak {
                 hide(activity);
             } else {
                 boolean counted = counted(decor);
+                long since = lastTick;
                 if (breakUntil != 0 && now >= breakUntil) {
+                    // Only the time after the break ended counts toward the next one.
+                    since = Math.max(since, breakUntil);
                     breakUntil = 0;
                     used = 0;
                 }
                 if (breakUntil == 0) {
-                    if (counted && lastTick != 0) used += Math.max(0, Math.min(now - lastTick, MAX_STEP_MS));
+                    if (counted && since != 0) used += Math.max(0, Math.min(now - since, MAX_STEP_MS));
                     if (used >= limit.millis()) {
                         breakUntil = now + BREAK_MS;
                         HookStatus.counted(FamilyNames.REEL_SCROLLING, STARTED);
