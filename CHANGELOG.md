@@ -24,6 +24,7 @@ Every HushGram release, newest first.
 * **Instagram - Download any video:** The Details row in a feed post's menu shows Instagram's info icon now, not Download's arrow.
 * **Instagram - Hide suggested people on profiles:** `Hide Suggested for you on follow lists` now also takes the Suggested tab off other people's follow lists, and the Suggested for you block under their mutual followers. Before, it only reached the bottom of the followers and following lists. Reported in #302.
 * **Instagram - Blur the bars around Reels:** The band behind the clock and the gesture bar's strip at the bottom stayed black on Reels. Both show the reel blurred now. Behind the clock it's toned down a bit more (darker under white icons, lighter under dark ones) so the time and icons stay easy to read. Reported in #258.
+* **Instagram - Sanitize sharing links:** Share and Copy link in Instagram's in-app browser move an Instagram page's link to your Sharing domain now, as the share sheet and Copy link on a post already did. Before, those two still said instagram.com. Thanks to @Aholicknight for the fix in #304.
 
 ### Improvements
 
