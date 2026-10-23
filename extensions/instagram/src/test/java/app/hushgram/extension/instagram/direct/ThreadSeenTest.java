@@ -613,6 +613,39 @@ public class ThreadSeenTest {
         assertNothingReported();
     }
 
+    /** #186: a refresh asks Instagram's seen check about the message opened here, which must answer seen. */
+    @Test
+    public void theMessageOpenedHereIsSeenOnThatAccountOnly() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertFalse("nothing kept yet", seen(summary("t1", "m1"), "a1", "m1"));
+        assertTrue(hold(receipt("t1", "m1")));
+        assertTrue("the message opened here is seen, whatever the summary's newest", seen(summary("t1", "m2"), "a1", "m1"));
+        assertFalse("a newer message isn't", seen(summary("t1", "m2"), "a1", "m2"));
+        assertFalse("another person's seen state is Instagram's", seen(summary("t1", "m1"), "a2", "m1"));
+        assertFalse("another chat isn't kept", seen(summary("t2", "m1"), "a1", "m1"));
+        assertFalse(seen(null, "a1", "m1"));
+        assertFalse(seen(summary(null, "m1"), "a1", "m1"));
+        assertFalse(seen(summary("t1", "m1"), null, "m1"));
+        assertFalse(seen(summary("t1", "m1"), "a1", null));
+        assertFalse(seen(summary("t1", "m1"), "", ""));
+
+        Settings.KEEP_CHATS_UNREAD.save(true);
+        assertFalse("with chats kept unread, Instagram decides", seen(summary("t1", "m1"), "a1", "m1"));
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(seen(summary("t1", "m1"), "a1", "m1"));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue(seen(summary("t1", "m1"), "a1", "m1"));
+        assertFalse("as built, Instagram's summary can't be read", ThreadSeen.seenHere(summary("t1", "m1"), "a1", "m1"));
+        assertNothingReported();
+
+        assertFalse(ThreadSeen.seenHere(summary("t1", "m1"), "a1", "m1", THROWS, chats));
+        String missing = HookStatus.missing(FamilyNames.THREAD_SEEN).toString();
+        assertTrue(missing, missing.contains("'" + ThreadSeen.READ + "'"));
+    }
+
     @Test
     public void withKeepUnreadOnNoChatIsKeptRead() {
         assertTrue(hold(receipt("t1", "m1")));
@@ -754,6 +787,10 @@ public class ThreadSeenTest {
 
     private boolean read(Object summary) {
         return ThreadSeen.readHere(summary, SESSION, ThreadSeen::readsHere, chats);
+    }
+
+    private boolean seen(Object summary, String account, String message) {
+        return ThreadSeen.seenHere(summary, account, message, ThreadSeen::readsHere, chats);
     }
 
     private boolean keep(Object receipt) {

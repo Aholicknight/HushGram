@@ -15,6 +15,7 @@ import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.SESSI
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.TapTrace
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.assertOfferGated
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.assertReadHereHook
+import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.assertSeenHereHook
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.assertRowOffer
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.assertStateGuard
 import app.morphe.patches.instagram.direct.seen.MarkReadHookTest.Companion.assertTapGuard
@@ -76,7 +77,10 @@ class NativeMarkReadTest {
         val picked = found.together.visualCode()
         val report = unread.lifecycle.visualCode()
         val answer = read.unread.visualCode()
-        val hooked = listOf(seen.handler, found.builder, found.action, found.together, unread.lifecycle, read.unread).map { "${it.definingClass}->${it.name}(" }
+        val check = read.seen.visualCode()
+        assertEquals("the summary's own check, taking the account's id, the item's and its sender's", read.unread.definingClass, read.seen.definingClass)
+        val hooked = listOf(seen.handler, found.builder, found.action, found.together, unread.lifecycle, read.unread, read.seen)
+            .map { "${it.definingClass}->${it.name}(" }
         val before = classes.mapValues { snapshot(it.value.methods) }
         context.readWithoutSeenReceipt()
 
@@ -94,6 +98,7 @@ class NativeMarkReadTest {
         assertTogetherHook(found.together, picked, found.togetherAt)
         assertStateGuard(unread.lifecycle, report)
         assertReadHereHook(read.unread, read.flags.map(Any::toString), answer)
+        assertSeenHereHook(read.seen, check)
         for ((type, original) in before) {
             if (type == INSTAGRAM_CHATS) continue
             val now = snapshot(context.mutableClassDefBy(type).methods)
@@ -120,12 +125,14 @@ class NativeMarkReadTest {
         val report = unread.lifecycle.visualCode()
         val read = context.findReadHere(found.chat)
         val answer = read.unread.visualCode()
+        val check = read.seen.visualCode()
         context.readWithoutSeenReceipt()
         assertRowOffer(found.builder, found.rows, found.markAsRead.toString(), rows, found.offerAt)
         assertTapGuard(found.action, found.markAsRead.toString(), found.session.toString(), act, found.tapAt)
         assertTogetherHook(found.together, picked, found.togetherAt)
         assertStateGuard(unread.lifecycle, report)
         assertReadHereHook(read.unread, read.flags.map(Any::toString), answer)
+        assertSeenHereHook(read.seen, check)
     }
 
     companion object {

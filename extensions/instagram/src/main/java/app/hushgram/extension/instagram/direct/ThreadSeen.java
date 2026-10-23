@@ -391,6 +391,33 @@ public final class ThreadSeen {
     }
 
     /**
+     * Asked at the start of the summary's check whether an account has seen one of the chat's items,
+     * with the summary, the account's id and the item's. True makes the item seen: only for the
+     * message kept read here on that account, with the switch on and Keep chats unread here off.
+     * Instagram's sync puts that message on the summary as one the server still has unseen, and the
+     * inbox showed the chat unread again for it (#186). A newer message isn't kept, so it still shows.
+     * False otherwise, for any other account's id, when the summary can't be read, and while HushGram
+     * is paused or the settings aren't ready. Never throws.
+     */
+    public static boolean seenHere(Object thread, String account, String message) {
+        return seenHere(thread, account, message, ThreadSeen::readsHere, INSTAGRAM);
+    }
+
+    static boolean seenHere(Object thread, String account, String message, BooleanSupplier on, Chats chats) {
+        try {
+            if (!on.getAsBoolean()) return false;
+            ReadHere kept = opened();
+            if (kept == null || kept.isEmpty() || isEmpty(account) || isEmpty(message)) return false;
+            String id = chats.threadId(chats.chatKey(thread));
+            if (isEmpty(id)) return false;
+            return kept.readUpTo(account, id, message);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, READ, t);
+            return false;
+        }
+    }
+
+    /**
      * Whether [receipt] goes through because its message was marked read on [session]'s account.
      * With no mark kept, the receipt isn't read at all. Anything that can't be read leaves it held,
      * and the failure is reported.

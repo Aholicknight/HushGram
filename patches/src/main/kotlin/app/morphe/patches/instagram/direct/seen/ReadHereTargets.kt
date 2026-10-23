@@ -28,6 +28,7 @@ import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 internal const val READ_HERE = "$THREAD_SEEN->readHere(Ljava/lang/Object;Ljava/lang/Object;)Z"
+internal const val SEEN_HERE = "$THREAD_SEEN->seenHere(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)Z"
 
 private const val OBJECT_TYPE = "Ljava/lang/Object;"
 private const val TEXT_TYPE = "Ljava/lang/String;"
@@ -43,6 +44,11 @@ internal class ReadHereTargets(
      * them. A chat kept read never overrides one that's set.
      */
     val flags: List<MethodReference>,
+    /**
+     * The summary's check whether an account has seen one of the chat's items, taking the account's
+     * id, the item's and its sender's. The flags and Instagram's sync ask it too.
+     */
+    val seen: MutableMethod,
     /** The bridges reading the chat's key and its newest item's id off the summary. */
     val bridges: List<ChatBridge>,
 )
@@ -117,6 +123,7 @@ internal fun BytecodePatchContext.findReadHere(chat: String): ReadHereTargets {
     flags.filter { it.name !in declared }.one("Mark as unread flag the summary checks")
     // The check takes the account's id, the newest item's id and its sender's id, in that order.
     val newest = newestItem(answer, code, compare, (code[compare] as FiveRegisterInstruction).registerE)
+    val check = code[compare].call()!!
     val key = summary.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.isEmpty() && it.returnType == THREAD_KEY
     }.one("summary's chat key")
@@ -130,9 +137,16 @@ internal fun BytecodePatchContext.findReadHere(chat: String): ReadHereTargets {
     }
     unread.requireLocals(THREAD_SEEN_PATCH, 2)
     if (0 in unread.jumpTargets()) refuse("a jump reaches the start of the summary's answer whether the chat shows unread")
+    val seen = mutableClassDefBy(summary.type).methods.filter {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null && it.name == check.name &&
+            it.parameters() == check.parameterTypes.map(Any::toString) && it.returnType == check.returnType
+    }.one("summary's own check whether an item was seen")
+    seen.requireLocals(THREAD_SEEN_PATCH, 1)
+    if (0 in seen.jumpTargets()) refuse("a jump reaches the start of the summary's check whether an item was seen")
 
     val extension = byType[THREAD_SEEN] ?: refuse("extension is missing")
     requireHook(extension, "readHere", listOf(OBJECT_TYPE, OBJECT_TYPE), "Z")
+    requireHook(extension, "seenHere", listOf(OBJECT_TYPE, TEXT_TYPE, TEXT_TYPE), "Z")
     val reads = newest.dropLast(1).joinToString("\n") { "iget-object p0, p0, $it\nif-eqz p0, :none" }
     val bridges = chatBridges(listOf(
         Triple("chatKey", listOf(OBJECT_TYPE), OBJECT_TYPE) to """
@@ -151,7 +165,7 @@ internal fun BytecodePatchContext.findReadHere(chat: String): ReadHereTargets {
             return-object p0
         """,
     ))
-    return ReadHereTargets(unread, flags, bridges)
+    return ReadHereTargets(unread, flags, seen, bridges)
 }
 
 /**
@@ -186,7 +200,12 @@ private fun newestItem(method: Method, code: List<Instruction>, at: Int, registe
  * Asks the extension at the start of the summary's answer, with the summary and the account,
  * whether the chat stays read on this phone. A yes returns that the chat isn't unread, unless one of
  * the summary's own flags is set, Mark as unread among them, which a chat kept read never overrides.
- * A no, and a set flag, run Instagram's answer as it is. Then writes the bridges' bodies.
+ * A no, and a set flag, run Instagram's answer as it is.
+ *
+ * The summary's seen check asks the extension first too, with the summary, the account's id and the
+ * item's, and a yes answers seen. A sync fills one of the flags' items with the newest message the
+ * server still has unseen, which is the one opened here while its receipt was held, so without this
+ * the chat showed unread again after a refresh (#186). Then writes the bridges' bodies.
  */
 internal fun keepChatsRead(found: ReadHereTargets) {
     val flags = found.flags.joinToString("\n") {
@@ -205,6 +224,16 @@ internal fun keepChatsRead(found: ReadHereTargets) {
             return v0
         """,
         ExternalLabel("instagram", found.unread.getInstruction(0)),
+    )
+    found.seen.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static/range { p0 .. p2 }, $SEEN_HERE
+            move-result v0
+            if-eqz v0, :instagram
+            return v0
+        """,
+        ExternalLabel("instagram", found.seen.getInstruction(0)),
     )
     found.bridges.forEach { it.stub.addInstructions(0, it.body) }
 }

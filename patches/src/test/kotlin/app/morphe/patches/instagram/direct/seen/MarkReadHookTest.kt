@@ -130,9 +130,11 @@ class MarkReadHookTest {
 
         val summary = context.mutableClassDefBy(M.SUMMARY).methods.single { it.name == M.ASKED.name }
         assertReadHereHook(summary, listOf(M.PENDING, M.MANUAL).map(Any::toString), original.getValue(M.SUMMARY).getValue(M.ASKED.name))
+        val check = context.mutableClassDefBy(M.SUMMARY).methods.single { it.name == M.SEEN_UP_TO.name }
+        assertSeenHereHook(check, original.getValue(M.SUMMARY).getValue(M.SEEN_UP_TO.name))
 
         val hooked = setOf("${F.HANDLER}->send(", "${M.ROWS}->rows(", "${M.ACTIONS}->act(", "${M.PICKED}->onClick(", "${M.STATES}->report(",
-            "${M.SUMMARY}->${M.ASKED.name}(")
+            "${M.SUMMARY}->${M.ASKED.name}(", "${M.SUMMARY}->${M.SEEN_UP_TO.name}(")
         for (candidate in input) {
             val now = snapshot(context.mutableClassDefBy(candidate.type).methods)
             if (candidate.type == INSTAGRAM_CHATS) continue
@@ -145,6 +147,7 @@ class MarkReadHookTest {
         assertEquals(1, context.callsTo(MARK_READ_TOGETHER, input))
         assertEquals(1, context.callsTo(KEEP_UNREAD, input))
         assertEquals(1, context.callsTo(READ_HERE, input))
+        assertEquals(1, context.callsTo(SEEN_HERE, input))
     }
 
     @Test fun aChatThatNeverAsksWhetherItShowsUnreadIsRefused() = refuses(M.classes().map { if (it.type == M.CHAT) M.chat(asks = false) else it },
@@ -190,6 +193,12 @@ class MarkReadHookTest {
         }
     @Test fun anExtensionWithoutTheReadHereHookIsRefused() = refuses(M.classes().map { if (it.type == THREAD_SEEN) M.extension(readHere = false) else it },
         "expected one extension's public static readHere, found 0")
+    @Test fun anExtensionWithoutTheSeenHereHookIsRefused() = refuses(M.classes().map { if (it.type == THREAD_SEEN) M.extension(seenHere = false) else it },
+        "expected one extension's public static seenHere, found 0")
+    @Test fun aJumpToTheStartOfTheSeenCheckIsRefused() =
+        changed(M.SUMMARY, M.SEEN_UP_TO.name, "a jump reaches the start of the summary's check whether an item was seen") {
+            it.add(1, ImmutableInstruction21t(Opcode.IF_NEZ, 0, -it.take(1).sumOf { instruction -> instruction.codeUnits }))
+        }
     @Test fun aMissingNewestMessageBridgeIsRefused() =
         refuses(M.classes().map { if (it.type == INSTAGRAM_CHATS) M.bridges(without = "newestMessage") else it },
             "expected one extension's chat bridge newestMessage, found 0")
@@ -738,6 +747,25 @@ class MarkReadHookTest {
         }
 
         /**
+         * The summary's seen check hands the extension the summary, the account's id and the item's
+         * first. Its yes answers seen, its no goes on to [original], which follows unchanged.
+         */
+        internal fun assertSeenHereHook(method: Method, original: List<Instruction>) {
+            val code = method.visualCode()
+            assertEquals(listOf(Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN), code.take(4).map { it.opcode })
+            assertEquals(SEEN_HERE, code[0].visualReference().toString())
+            val self = method.localRegisterCount()
+            assertEquals("this, the account's id, the item's", listOf(self, self + 1, self + 2), code[0].namedRegisters())
+            assertEquals(listOf(0, 0, 0), code.subList(1, 4).map { (it as OneRegisterInstruction).registerA })
+            assertEquals(1, code.count { it.visualReference()?.toString() == SEEN_HERE })
+            assertEquals(shape(original), shape(code.drop(4)))
+            val flow = ControlFlow.of(method)
+            assertEquals("the extension's no goes on to Instagram's check", setOf(3, 4), flow.normal[2].toSet())
+            assertTrue("its yes returns", flow.normal[3].isEmpty())
+            assertEquals("nothing else reaches Instagram's check", listOf(2), flow.normal.indices.filter { 4 in flow.normal[it] })
+        }
+
+        /**
          * The bridge checks it was handed a [summary], reads [fields] off it in turn, and answers the
          * last one. A link that's null answers null.
          */
@@ -1120,7 +1148,8 @@ internal object MarkReadFixture {
         text(0, MARK_READ_DONE), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
     ))))
 
-    fun extension(offer: Boolean = true, markRead: Boolean = true, together: Boolean = true, keepUnread: Boolean = true, readHere: Boolean = true): ClassDef = clazz(THREAD_SEEN, listOfNotNull(
+    fun extension(offer: Boolean = true, markRead: Boolean = true, together: Boolean = true, keepUnread: Boolean = true, readHere: Boolean = true,
+                  seenHere: Boolean = true): ClassDef = clazz(THREAD_SEEN, listOfNotNull(
         method(THREAD_SEEN, "hold", listOf(OBJECT, OBJECT), "Z", 3, listOf(ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
             ImmutableInstruction11x(Opcode.RETURN, 0)), static = true),
         method(THREAD_SEEN, "offerMarkRead", listOf(LIST, OBJECT), "V", 2, listOf(ImmutableInstruction10x(Opcode.RETURN_VOID)), static = true)
@@ -1133,6 +1162,8 @@ internal object MarkReadFixture {
             ImmutableInstruction11x(Opcode.RETURN, 0)), static = true).takeIf { keepUnread },
         method(THREAD_SEEN, "readHere", listOf(OBJECT, OBJECT), "Z", 3, listOf(ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
             ImmutableInstruction11x(Opcode.RETURN, 0)), static = true).takeIf { readHere },
+        method(THREAD_SEEN, "seenHere", listOf(OBJECT, STRING, STRING), "Z", 4, listOf(ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+            ImmutableInstruction11x(Opcode.RETURN, 0)), static = true).takeIf { seenHere },
     ))
 
     /** The extension's bridge stubs, as javac writes them: null back, or nothing done. */
