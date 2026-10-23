@@ -19,6 +19,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -27,8 +28,9 @@ import org.junit.Test
 import java.io.File
 
 /**
- * The list the reel store hands Home's feed adapter goes through StoryTrayOrder just before the
- * store's method returns, after it lets go of the store, and nothing else of the store changes (#241).
+ * The lists the reel store hands out for the tray (Home's top story row and the stories unit inside
+ * the feed) go through StoryTrayOrder just before the store's methods return, after they let go of
+ * the store, and nothing else of the store changes (#241).
  */
 class StoryTrayOrderHookTest {
     /** The hook the patch calls and the stub it fills are in the extension the bundle ships, static. */
@@ -44,9 +46,9 @@ class StoryTrayOrderHookTest {
     }
 
     /**
-     * On each declared build the store's list for Home's feed adapter is found alone and hooked right
-     * before its one return, whose monitor-exit stays ahead of the hook; the stub asks the reel's
-     * own check; 
+     * On each declared build the store's list for Home's top story row and its list for the feed's
+     * stories unit are found alone, each hooked right before its one return, whose monitor-exit stays
+     * ahead of the hook; the stub asks the reel's own check.
      */
     @Test
     fun eachDeclaredBuildOrdersTheTray() {
@@ -59,27 +61,38 @@ class StoryTrayOrderHookTest {
                 val rings = context.findStoryRings()
                 val found = context.findStoryTray(rings.reelClass)
                 assertEquals("${bundle.name}: the reel", rings.reelClass, found.reelClass)
+                assertEquals("${bundle.name}: the top row's list, then the feed unit's", listOf(listOf("Z", "Z"), listOf(LIST)), found.sites.map { it.parameters })
 
                 val store = classes.single { it.type == found.store }
-                val before = store.methods.single { it.name == found.lister && it.parameterTypes.map(Any::toString) == found.parameters }.code()
-                assertEquals("${bundle.name}: the monitor-exit", Opcode.MONITOR_EXIT, before[found.at - 1].opcode)
-                assertEquals("${bundle.name}: the one return", 1, before.count { it.opcode == Opcode.RETURN_OBJECT })
+                val befores = found.sites.map { site ->
+                    store.methods.single { it.name == site.lister && it.parameterTypes.map(Any::toString) == site.parameters }
+                }
+                val top = befores.first()
+                assertTrue("${bundle.name}: the top row's list isn't synchronized", AccessFlags.DECLARED_SYNCHRONIZED.isSet(top.accessFlags))
+                assertTrue("${bundle.name}: the top row's list doesn't log an empty store", top.code().any { it.referenceText() == MAIN_TRAY_EMPTY })
+                for ((site, before) in found.sites.zip(befores.map { it.code() })) {
+                    assertEquals("${bundle.name} ${site.lister}: the monitor-exit", Opcode.MONITOR_EXIT, before[site.at - 1].opcode)
+                    assertEquals("${bundle.name} ${site.lister}: the one return", 1, before.count { it.opcode == Opcode.RETURN_OBJECT })
+                }
 
                 context.orderStoryTray(found)
 
-                val after = context.mutableClassDefBy(found.store).methods.single {
-                    it.name == found.lister && it.parameterTypes.map(Any::toString) == found.parameters
-                }.code()
                 fun shape(code: List<Instruction>) = code.filter { it.opcode != Opcode.NOP }.map { it.opcode to it.referenceText() }
-                val hooked = after.indexOfFirst { it.referenceText() == TRAY_ORDER }
-                assertTrue("${bundle.name}: the hook isn't in the list's method", hooked > 0)
-                assertEquals("${bundle.name}: the hook sits after the monitor-exit", Opcode.MONITOR_EXIT, after[hooked - 1].opcode)
-                assertEquals("${bundle.name}: the answer is taken back", Opcode.MOVE_RESULT_OBJECT, after[hooked + 1].opcode)
-                assertEquals("${bundle.name}: the answer goes to the register returned", found.result, (after[hooked + 1] as OneRegisterInstruction).registerA)
-                assertEquals("${bundle.name}: the answer is returned", Opcode.RETURN_OBJECT, after[hooked + 2].opcode)
-                assertEquals("${bundle.name}: the hook's registers", listOf(found.result, found.self), (after[hooked] as FiveRegisterInstruction).registers())
-                assertEquals("${bundle.name}: the rest of the method", shape(before), shape(after).filterIndexed { i, _ -> i !in hooked..hooked + 1 })
-                assertEquals("${bundle.name}: one call of the hook", 1, context.calls(TRAY_ORDER))
+                for ((site, before) in found.sites.zip(befores.map { it.code() })) {
+                    val at = "${bundle.name} ${site.lister}"
+                    val after = context.mutableClassDefBy(found.store).methods.single {
+                        it.name == site.lister && it.parameterTypes.map(Any::toString) == site.parameters
+                    }.code()
+                    val hooked = after.indexOfFirst { it.referenceText() == TRAY_ORDER }
+                    assertTrue("$at: the hook isn't in the list's method", hooked > 0)
+                    assertEquals("$at: the hook sits after the monitor-exit", Opcode.MONITOR_EXIT, after[hooked - 1].opcode)
+                    assertEquals("$at: the answer is taken back", Opcode.MOVE_RESULT_OBJECT, after[hooked + 1].opcode)
+                    assertEquals("$at: the answer goes to the register returned", site.result, (after[hooked + 1] as OneRegisterInstruction).registerA)
+                    assertEquals("$at: the answer is returned", Opcode.RETURN_OBJECT, after[hooked + 2].opcode)
+                    assertEquals("$at: the hook's registers", listOf(site.result, site.self), (after[hooked] as FiveRegisterInstruction).registers())
+                    assertEquals("$at: the rest of the method", shape(before), shape(after).filterIndexed { i, _ -> i !in hooked..hooked + 1 })
+                }
+                assertEquals("${bundle.name}: one call of the hook per list", 2, context.calls(TRAY_ORDER))
 
                 val stub = context.mutableClassDefBy(STORY_TRAY_ORDER).methods.single { it.name == "seen" }.code()
                 assertEquals(
@@ -107,6 +120,30 @@ class StoryTrayOrderHookTest {
                 val trimmed = PatchContexts.of(classes.filter { it.type != storeOf(classes) })
                 val refusal = assertThrows(PatchException::class.java) { trimmed.findStoryTray(trimmed.findStoryRings().reelClass) }
                 assertTrue(refusal.message, "found 0" in refusal.message!!)
+            }
+        }
+    }
+
+    /**
+     * A store without the list for Home's top story row is refused rather than patched with only
+     * the feed unit's list ordered, which left the top row in the server's order (#241).
+     */
+    @Test
+    fun aStoreWithoutTheTopRowsListFails() {
+        for (version in AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                val classes = trayClasses(bundle)
+                val store = storeOf(classes)
+                val trimmed = PatchContexts.of(classes.map { classDef ->
+                    if (classDef.type != store) return@map classDef
+                    ImmutableClassDef(
+                        classDef.type, classDef.accessFlags, classDef.superclass, classDef.interfaces, classDef.sourceFile,
+                        classDef.annotations, classDef.fields,
+                        classDef.methods.filterNot { method -> method.code().any { it.referenceText() == MAIN_TRAY_EMPTY } },
+                    )
+                })
+                val refusal = assertThrows(PatchException::class.java) { trimmed.findStoryTray(trimmed.findStoryRings().reelClass) }
+                assertTrue(refusal.message, "top story row" in refusal.message!! && "found 0" in refusal.message!!)
             }
         }
     }
@@ -176,10 +213,15 @@ class StoryTrayOrderHookTest {
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
-    private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
+    private fun Instruction.referenceText(): String? = when (val reference = (this as? ReferenceInstruction)?.reference) {
+        is StringReference -> reference.string
+        else -> reference?.toString()
+    }
 
     private companion object {
         const val OBJECT = "Ljava/lang/Object;"
         const val STRING = "Ljava/lang/String;"
+        const val LIST = "Ljava/util/List;"
+        const val MAIN_TRAY_EMPTY = "main feed tray reels is empty"
     }
 }

@@ -1172,12 +1172,14 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryFollowButton;->bind(Lja
 # nux_story take a view or two ints. Left out, every story you watch greys and moves to the end of
 # the tray; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StorySeenRings;->seen(Ljava/lang/Object;Ljava/lang/Object;JLjava/lang/Object;)V in instance (Lcom/instagram/model/reels/ReelItem;LX/*;)V holding LX/*;->*(LX/*;LX/*;I)V
-# And it hands StoryTrayOrder the reel store's list for Home's feed adapter right before that list
-# returns (03sa.A0a on 452, the synchronized (list) list method calling the store's static
-# (session, list) filter), so watched stories go behind unwatched ones while their rings stay new
-# (#241). Left out, the tray keeps the server's order; twice or elsewhere, it isn't the hook the
-# patch wrote.
+# And it hands StoryTrayOrder the reel store's lists right before they return, so watched stories go
+# behind unwatched ones while their rings stay new (#241): the one for the feed's stories unit
+# (03sa.A0a on 452.1, the synchronized (list) list method calling the store's static (session, list)
+# filter) and the one Home's top story row reads (03sa.A0b on 452.1, the synchronized (boolean,
+# boolean) list method logging an empty store). Left out, that list keeps the server's order; twice
+# or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StoryTrayOrder;->order(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;)Ljava/util/List; calling static LX/*;->*(Lcom/instagram/common/session/UserSession;Ljava/util/List;)Ljava/util/ArrayList; holding const:0x8113970001674b
+once-call Lapp/hushgram/extension/instagram/stories/StoryTrayOrder;->order(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (ZZ)Ljava/util/List; holding main\sfeed\stray\sreels\sis\sempty
 #
 # Turn off double tap to like asks the extension first thing in the feed's double-tap like, the one
 # method every kind of post's gesture delegate hands a double tap to, and returns there before the

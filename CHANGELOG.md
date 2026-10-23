@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Bug Fixes
+
+* **Instagram - View stories anonymously:** With `Gray out stories you've watched` on, stories you've watched now move behind the new ones in the story row at the top of Home too. Before, only the stories inside the feed were reordered. (#241)
+
 ## 0.0.15 (2026-10-22)
 
 ### Features
