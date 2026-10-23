@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.download;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Resources;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -127,6 +128,9 @@ public final class ReelDownload {
      * opens the same sheet a feed post's does, Copy username and Copy caption included.
      */
     static final String DETAILS_OPTION = "HUSHGRAM_REEL_DETAILS";
+
+    /** Instagram's info glyphs, the Details row's icon, first found wins. */
+    static final String[] DETAILS_ICONS = {"instagram_info_outline_24", "instagram_info_pano_outline_24"};
 
     /** Counted when a reel Instagram keeps Download off gets the player row alone. */
     static final String PLAYER_ALONE = "player row alone";
@@ -350,6 +354,31 @@ public final class ReelDownload {
         if (playerRow != null) playerRow(menu, context, playerRow, sheet, rowState);
         if (detailsOption != null) addDetails(menu, context, detailsOption, sheet, rowState);
         return true;
+    }
+
+    /**
+     * The icon of the reel menu row named [name]. Every row of ours starts from Download's arrow
+     * [download]; Details answers Instagram's info glyph from the package the arrow comes from,
+     * which on a second copy is still Instagram's own, or [download] when the build has none.
+     * Called by the reel option bridge the patch writes. Never throws.
+     */
+    public static int rowIcon(String name, int download) {
+        return rowIcon(name, download, Utils.getContext(), DETAILS_ICONS);
+    }
+
+    static int rowIcon(String name, int download, Context context, String... icons) {
+        try {
+            if (!DETAILS_OPTION.equals(name) || download == 0 || context == null) return download;
+            Resources resources = context.getResources();
+            String owner = resources.getResourcePackageName(download);
+            for (String icon : icons) {
+                int found = resources.getIdentifier(icon, "drawable", owner);
+                if (found != 0) return found;
+            }
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu row icon", t);
+        }
+        return download;
     }
 
     /** Whether the reel [media] gets a Details row: Details in a post's menu is on and there is a reel. */

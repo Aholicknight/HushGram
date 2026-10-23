@@ -75,6 +75,8 @@ internal const val SAVE = "$REEL_DOWNLOAD->save(Ljava/lang/Object;Ljava/lang/Obj
 internal const val OURS = "$REEL_DOWNLOAD->ours(Ljava/lang/Object;)Z"
 internal const val ROWS = "$REEL_DOWNLOAD->rows(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
 internal const val ADD_TO = "$REEL_DOWNLOAD->addTo(Ljava/util/List;Ljava/lang/Object;)V"
+/** Gives a row of ours its icon by name: Details gets Instagram's info glyph, the rest Download's arrow. */
+internal const val ROW_ICON = "$REEL_DOWNLOAD->rowIcon(Ljava/lang/String;I)I"
 
 /** The reel menu's handler of a tapped option, in the class that runs the menu. */
 internal const val HANDLER_MARKER = "ClipsOrganicMoreOptionsHelper_handleOptionSelected"
@@ -308,7 +310,8 @@ internal fun BytecodePatchContext.offerDownloadOnEveryReel() {
 
 /**
  * Finds the extension's two bridges to the reel menu, and answers the step that writes them:
- * `reelOption`, which makes an option named by its argument with Download's ordinal and [icon],
+ * `reelOption`, which makes an option named by its argument with Download's ordinal and [icon]
+ * (handed with the name to [ROW_ICON], so Details draws the info glyph),
  * and `addReelRow`, which hands an option and a label to [adder], the menu's adder of one row,
  * with no icon of its own, and answers true.
  */
@@ -327,7 +330,7 @@ private fun BytecodePatchContext.rowBridges(icon: String, adder: Method): () -> 
     return {
         bridges.methods.remove(optionStub)
         bridges.methods.add(replaced(optionStub, 5).apply {
-            addInstructions(0, newOption(icon, "move-object v1, p0"))
+            addInstructions(0, newOption(icon, "move-object v1, p0", iconByName = ROW_ICON))
         })
         bridges.methods.remove(rowStub)
         bridges.methods.add(replaced(rowStub, 13).apply {

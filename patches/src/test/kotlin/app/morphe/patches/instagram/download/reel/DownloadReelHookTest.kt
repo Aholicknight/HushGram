@@ -294,7 +294,12 @@ class DownloadReelHookTest {
         assertEquals(Opcode.MOVE_OBJECT, option[5].opcode)
         // p0 is v4 in a method of five registers.
         assertEquals("the name is the argument", 4, (option[5] as TwoRegisterInstruction).registerB)
-        assertEquals("$OPTION-><init>(Ljava/lang/String;II)V", option[7].referenceText())
+        // The name and Download's icon go through rowIcon, so Details draws the info glyph (not the arrow).
+        assertEquals(ROW_ICON, option[6].referenceText())
+        assertEquals("rowIcon takes the name and the icon", listOf(1, 3),
+            (option[6] as Instruction35c).let { listOf(it.registerC, it.registerD) })
+        assertEquals(Opcode.MOVE_RESULT, option[7].opcode)
+        assertEquals("$OPTION-><init>(Ljava/lang/String;II)V", option[9].referenceText())
         assertEquals(Opcode.RETURN_OBJECT, option.last().opcode)
         val row = context.method(INSTAGRAM_MEDIA, "addReelRow").code()
         val call = row.single { it.opcode == Opcode.INVOKE_VIRTUAL_RANGE }

@@ -8,6 +8,7 @@ Every HushGram release, newest first.
 
 * **Instagram - View stories anonymously:** With `Gray out stories you've watched` on, stories you've watched now move behind the new ones in the story row at the top of Home too. Before, only the stories inside the feed were reordered. (#241)
 * **Instagram - Read messages without the seen receipt:** With `Keep chats unread here` off, a chat you opened could still flip back to unread after a refresh. Now it stays read until a new message comes in. (#186)
+* **Instagram - Download any reel:** The Details row in a reel's menu shows Instagram's info icon now. It used to wear Download's arrow. (#282)
 
 ## 0.0.15 (2026-10-22)
 

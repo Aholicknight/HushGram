@@ -514,4 +514,33 @@ public class ReelDownloadTest {
         assertFalse(details.hasOwner());
         assertNull(details.posted);
     }
+
+    /** Details takes the first info glyph its package has; every other row keeps Download's arrow. */
+    @Test
+    public void detailsTakesTheInfoGlyphAndTheOtherRowsKeepTheArrow() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        int download = android.R.drawable.ic_menu_save;
+
+        assertEquals(android.R.drawable.ic_menu_info_details, ReelDownload.rowIcon(ReelDownload.DETAILS_OPTION, download,
+                context, "no_such_icon", "ic_menu_info_details", "ic_menu_delete"));
+        assertEquals(download, ReelDownload.rowIcon(ReelDownload.VIDEO_OPTION, download, context, "ic_menu_info_details"));
+        assertEquals(download, ReelDownload.rowIcon(ReelDownload.PLAYER_OPTION, download, context, "ic_menu_info_details"));
+        assertEquals("the names Instagram ships", Arrays.asList("instagram_info_outline_24", "instagram_info_pano_outline_24"),
+                Arrays.asList(ReelDownload.DETAILS_ICONS));
+    }
+
+    /** Without the glyph, a context or an arrow to start from, Details keeps Download's, and nothing throws. */
+    @Test
+    public void withoutTheGlyphDetailsKeepsTheArrow() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        int download = android.R.drawable.ic_menu_save;
+
+        assertEquals(download, ReelDownload.rowIcon(ReelDownload.DETAILS_OPTION, download, context, ReelDownload.DETAILS_ICONS));
+        assertEquals(download, ReelDownload.rowIcon(ReelDownload.DETAILS_OPTION, download, null, "ic_menu_info_details"));
+        assertEquals(0, ReelDownload.rowIcon(ReelDownload.DETAILS_OPTION, 0, context, "ic_menu_info_details"));
+        assertEquals(download, ReelDownload.rowIcon(null, download, context, "ic_menu_info_details"));
+        assertEquals("an id no package owns", 0x7f7f7f7f,
+                ReelDownload.rowIcon(ReelDownload.DETAILS_OPTION, 0x7f7f7f7f, context, "ic_menu_info_details"));
+        assertTrue(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("reel menu row icon"));
+    }
 }
