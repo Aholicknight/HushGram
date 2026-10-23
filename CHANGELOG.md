@@ -29,6 +29,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* **Instagram:** With `Send downloads to another app` on, the first download each time Instagram starts shows a short note that this switch sent it to the share sheet and where to turn it off. Android no longer shows the sheet's title, so it looked just like Instagram's own Share. Reported in #305.
 * **Instagram - Upload stories at full quality:** The switch's description now says what you actually get. Video stories still go up at 1080p, but Instagram shrinks every story video to 720p on its servers, so viewers see only a small difference. (#37)
 * **Tooling:** HushGram builds on Gradle 9.8.2 now, with androidx.annotation 1.11.0 and commons-lang3 3.21.0. Each new download was checked against its publisher's checksums before it went on the verification list. The patches themselves don't change.
 * **Tooling:** The HushGram settings code is split into one file per category, so a row is easier to find. Every category lists the same rows in the same order, and search finds the same ones.
