@@ -10,6 +10,7 @@ Every HushGram release, newest first.
 * **Instagram - Read messages without the seen receipt:** With `Keep chats unread here` off, a chat you opened could still flip back to unread after a refresh. Now it stays read until a new message comes in. (#186)
 * **Instagram - Download any reel:** The Details row in a reel's menu shows Instagram's info icon now. It used to wear Download's arrow. (#282)
 * **Instagram - Start Home on Following:** With `Only accounts you follow` on, Back to home at the end of your Following feed takes you back up to the newest post. Before, the link did nothing.
+* **Instagram - HushGram settings:** Opening an Instagram link or a notification while HushGram settings are up closes them, so you land where it leads. Before, the tab changed behind the settings.
 
 ## 0.0.15 (2026-10-22)
 

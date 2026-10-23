@@ -33,6 +33,7 @@ import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
@@ -356,10 +357,36 @@ public final class SettingsEntry {
     public static void onNewIntent(Activity activity, Intent intent) {
         try {
             if (noteIntent(intent)) ShortcutCover.show(activity);
+            else if (leavesSettings(intent)) closeForLink(activity);
             if (openPending) OpenWhenResumed.openWhenSettled(activity);
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: onNewIntent failure", ex);
         }
+    }
+
+    /**
+     * Whether [intent], one that isn't the shortcut's, takes the person somewhere in Instagram: a
+     * link, which carries data, or a tapped notification, which names itself in an extra. Instagram
+     * shows where it leads under the settings, so they close for it.
+     */
+    static boolean leavesSettings(Intent intent) {
+        if (intent == null) return false;
+        if (intent.getData() != null) return true;
+        Bundle extras = intent.getExtras();
+        if (extras == null) return false;
+        for (String key : extras.keySet()) {
+            if (key != null && key.toLowerCase(Locale.ROOT).contains("notification")) return true;
+        }
+        return false;
+    }
+
+    /** Closes the settings shown on [activity] as if the person had, so a link that came in shows. */
+    private static void closeForLink(Activity activity) {
+        Fragment shown = activity.getFragmentManager().findFragmentByTag(DIALOG_TAG);
+        if (!(shown instanceof DialogFragment)) return;
+        onClosedByUser();
+        ((DialogFragment) shown).dismissAllowingStateLoss();
+        Logger.printInfo(() -> "Settings entry: a link or notification came in, closing the settings over it");
     }
 
     private static final String SAVED_SETTINGS = "app.hushgram.settings.saved_dialog";
