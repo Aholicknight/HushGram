@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Hide the Reels tab:** New `Hide the Messages tab` switch under Tab bar. It takes the Messages button off the tab bar with no restart, and if Instagram's own Messages button isn't on Home's header, HushGram puts one there so your chats stay a tap away. Unchecking Messages in Show and reorder tabs does the same. Asked for in #298 and #307.
 * **Instagram - Hide suggested posts:** New `Hide the caught up card` switch under Feed, off to start. It folds the "You've seen the latest posts" card after the posts from accounts you follow, so Home runs straight on into the rest of the feed. When Home has no new posts at all, the card stays. Reported in #307.
 * **Instagram - Download any video:** Details has a Copy caption without hashtags row for captions that have them. It drops a closing block of tags and the dots above it, and a tag inside a sentence keeps its word. Reported in #282.
 * **Instagram - Swipe left to open the profile:** new patch, in simple mode with its switch off. Turn it on under Reels and a left swipe on a reel in the Reels tab slides in the creator's profile, like Instagram used to. A right swipe on a reel still goes to Home, and on the profile it opened, a right swipe or Back takes you to the reel. Turning it on or off takes a restart. Asked for in #245 and #283.

@@ -46,6 +46,9 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.SHOW_MESSAGES_TAB, L10n.t("Show the Messages tab"),
                         L10n.t("Puts Messages on the tab bar, before Profile, if Instagram left it off yours. Tab order "
                                 + "can move it. Restart Instagram to see the change.")));
+                glass.addPreference(toggle(context, Settings.HIDE_MESSAGES_TAB, L10n.t("Hide the Messages tab"),
+                        L10n.t("Takes the Messages button off the tab bar. A Messages button on Home's header still "
+                                + "opens your chats, and so do notifications.")));
                 glass.addPreference(toggle(context, Settings.SHOW_ACTIVITY_TAB, L10n.t("Show the Activity tab"),
                         L10n.t("Puts Activity, the screen the heart opens, on the tab bar before Profile. Tab order can "
                                 + "move it, and Hide notifications on Home's header takes the heart away. "

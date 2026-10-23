@@ -206,6 +206,8 @@ Show the Reels tab	릴스 탭 표시
 Puts Reels back on the tab bar if Instagram left it off yours. Hide the Reels tab wins if both are on. Restart Instagram to see the change.	인스타그램이 내 탭 바에서 릴스를 뺐다면 다시 넣습니다. 둘 다 켜져 있으면 릴스 탭 숨기기가 우선합니다. 변경 내용을 보려면 인스타그램을 다시 시작하세요.
 Show the Messages tab	메시지 탭 표시
 Puts Messages on the tab bar, before Profile, if Instagram left it off yours. Tab order can move it. Restart Instagram to see the change.	Instagram이 내 탭 바에서 메시지를 뺐다면 프로필 앞에 넣습니다. 탭 순서에서 옮길 수 있습니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Hide the Messages tab	메시지 탭 숨기기
+Takes the Messages button off the tab bar. A Messages button on Home's header still opens your chats, and so do notifications.	탭 바에서 메시지 버튼을 없앱니다. 홈 상단의 메시지 버튼으로 계속 채팅을 열 수 있고, 알림으로도 열립니다.
 Show the Activity tab	활동 탭 표시
 Puts Activity, the screen the heart opens, on the tab bar before Profile. Tab order can move it, and Hide notifications on Home's header takes the heart away. Restart Instagram to see the change.	하트를 누르면 열리는 활동 화면을 탭 바의 프로필 앞에 넣습니다. 탭 순서에서 옮길 수 있고, 홈 상단의 알림 숨기기로 하트를 없앨 수 있습니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Keep the reel speed	릴스 속도 유지

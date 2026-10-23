@@ -1587,6 +1587,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_show_messages_tab", FALSE, true);
 
     /**
+     * Messages' button is off the tab bar, and Messages stays one of Instagram's tabs, so the Messages
+     * button on Home's header, notifications and shared chats still open it (#298). Only the button
+     * folds, as each screen comes back, so no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_MESSAGES_TAB =
+            new BooleanSetting("hushgram_hide_messages_tab", FALSE);
+
+    /**
      * Activity (Instagram's notifications screen, the one the heart on Home's header opens) is put on
      * the tab bar, before Profile, when Instagram's tab list leaves it out (#156). Tab order can move
      * it like any tab. The list is built as Instagram starts, so a change takes a restart. Off to start.
