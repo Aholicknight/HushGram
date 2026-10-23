@@ -26,8 +26,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * the plain heart. The patch hands each set-up's animation through {@link #pick} first, so while the
  * switch is on it gets the one picked in settings, and passes the check Instagram makes before it
  * plays any of its own animations through {@link #allow}, so that check doesn't put the plain heart
- * back. Nothing Instagram stores is written, so with the switch off or HushGram paused the plain
- * heart (or a Rings creator's own animation) is back on the next post set up.
+ * back. Since 452 feed posts and reels draw the heart without the old view, so a post's animation
+ * goes through {@link #pick} where Instagram reads it off the post, each heart's where it's kept, and
+ * every check after a comparison with the plain heart through {@link #allow}. Nothing Instagram
+ * stores is written, so with the switch off or HushGram paused the plain heart (or a Rings
+ * creator's own animation) is back on the next post set up.
  *
  * <p>The animations are Instagram's own enum. The patch fills {@link #noAnimation} in with its
  * plain heart, and {@link #animationType} reads the enum off that, which is how the settings
