@@ -112,6 +112,9 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.ASK_FOR_LARGER_PHOTOS, L10n.t("Ask for larger photos"),
                     L10n.t("On a phone under 1440 pixels wide, asks Instagram for photos sized for a wider screen. "
                             + "This uses more data. Restart Instagram to see the change.")));
+            feed.addPreference(toggle(context, Settings.FULL_SIZE_COVERS, L10n.t("Full size covers"),
+                    L10n.t("Reel covers and grid pictures come at full size, so Download cover saves a picked "
+                            + "cover at full size too. Grids use a lot more data. Restart Instagram to see the change.")));
         }
         if (askLike) {
             feed.addPreference(toggle(context, Settings.ASK_BEFORE_LIKE, L10n.t("Ask before a like"),

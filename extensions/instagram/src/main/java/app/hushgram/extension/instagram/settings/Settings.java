@@ -2064,6 +2064,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_ask_for_larger_photos", FALSE, true);
 
     /**
+     * Instagram reports a screen 3240 pixels on its shorter side, so the reel covers and grid
+     * pictures the server sizes to a third of that width come at full size, and Download cover
+     * saves a picked cover that way (#214, {@link app.hushgram.extension.instagram.feed.LargerPhotos}).
+     * The reported screen changes after a restart, so the restart card comes up. Off to start:
+     * every grid picture loads larger.
+     */
+    public static final BooleanSetting FULL_SIZE_COVERS =
+            new BooleanSetting("hushgram_full_size_covers", FALSE, true);
+
+    /**
      * Photos shown across the screen are asked for at a smaller width, and videos start at the
      * lowest quality, through Full resolution photos' and Default playback quality's hooks
      * ({@link app.hushgram.extension.instagram.media.DataSaver}). Wins over both while it's saving.
