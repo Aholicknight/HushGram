@@ -366,7 +366,9 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveCount(
 # the scrubber, with Instagram's answer and the reel state's clear mode flag (#277); left out, a long
 # reel in clear mode keeps its seek bar. The reel holder's chrome alpha setter passes the alpha it was
 # asked for through chrome() once, with the one it holds, right after reading that (#233); left out,
-# Instagram's reset of a page it binds at rest brings back the buttons of a reel in clear mode.
+# Instagram's reset of a page it binds at rest brings back the buttons of a reel in clear mode. The
+# pager listener's scroll state change hands settled() the pager and the state once, right after
+# reading the pager on its way to rest (#233); left out, a swipe back that snaps back ends clear mode.
 # Each hook is called from its one method and nowhere else.
 # Left out, clear mode ends with every swipe as Instagram has it; twice or elsewhere, it isn't the
 # hook the patch wrote.
@@ -381,6 +383,7 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/l
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/lang/Object;)V in instance (L*;)L*; holding android_purge_26_q3_ClipsFullscreenViewComponent_render
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->scrubber(II)Z in instance (L*;)L*; holding android_purge_26_q3_ClipsScrubberRowComponent_render
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->chrome(FF)F in instance (F)V holding android_purge_26_q2_LithoClipsItemDefinition_Holder_updateChromeAlpha
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->settled(Ljava/lang/Object;Ljava/lang/Object;)V in instance (L*;)V holding android_purge_26_q2_ClipsViewerViewPagerListener_onScrollStateChanged
 first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->enter(Ljava/lang/Object;Ljava/lang/Object;)V outside Lapp/hushgram/extension/
 first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->reelId(Ljava/lang/Object;)Ljava/lang/String; outside Lapp/hushgram/extension/
 #
