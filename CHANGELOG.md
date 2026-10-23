@@ -13,6 +13,7 @@ Every HushGram release, newest first.
 * **Instagram - View stories anonymously:** With `Gray out stories you've watched` on, stories you've watched now move behind the new ones in the story row at the top of Home too. Before, only the stories inside the feed were reordered. (#241)
 * **Instagram - Read messages without the seen receipt:** With `Keep chats unread here` off, a chat you opened could still flip back to unread after a refresh. Now it stays read until a new message comes in. (#186)
 * **Instagram - Download any reel:** The Details row in a reel's menu shows Instagram's info icon now. It used to wear Download's arrow. (#282)
+* **Instagram - Download any reel:** A photo post opened on the Reels tab or from a hashtag page gets Details in its menu too, under Download. Before, only videos and photos with music had it. (#282)
 * **Instagram - Start Home on Following:** With `Only accounts you follow` on, Back to home at the end of your Following feed takes you back up to the newest post. Before, the link did nothing.
 * **Instagram - HushGram settings:** Opening an Instagram link or a notification while HushGram settings are up closes them, so you land where it leads. A link that arrives while they're still opening wins too. Before, the tab changed behind the settings.
 

@@ -259,7 +259,8 @@ public final class ReelDownload {
      * reel [media] is a photo that comes with music and the switch is on, and answers whether it
      * did, in which case Instagram's own Download row is left out. [menu] is the menu's helper, and
      * [context], [sheet] and [rowState] are what its adder of one row was handed for Download. Any
-     * other reel answers false and gets the one Download row. With Download on reels off and Open in
+     * other reel answers false and gets the one Download row, or with Details in a post's menu on,
+     * Download and Details in its place ({@link #withDetails}). With Download on reels off and Open in
      * another player on, a reel with a video file gets that row above Instagram's own Download row,
      * which stays, or in its place when Download is there only for the player row ({@link #playerOnly}),
      * which answers true. Never throws.
@@ -280,12 +281,12 @@ public final class ReelDownload {
             if (!renditions(media).isEmpty() || InstagramMedia.dashManifest(media) != null) {
                 return videoRows(menu, media, context, sheet, rowState);
             }
-            if (StoryDownload.pictures(media).isEmpty()) return false;
+            if (StoryDownload.pictures(media).isEmpty()) return withDetails(menu, media, context, sheet, rowState);
             MusicVideo.Music music = MusicVideo.music(media);
-            if (music == null) return false;
+            if (music == null) return withDetails(menu, media, context, sheet, rowState);
             if (music.url == null) {
                 HookStatus.counted(FamilyNames.REEL_DOWNLOAD, NO_AUDIO_URL);
-                return false;
+                return withDetails(menu, media, context, sheet, rowState);
             }
             HookStatus.counted(FamilyNames.REEL_DOWNLOAD, HAS_MUSIC);
             Object video = InstagramMedia.reelOption(VIDEO_OPTION);
@@ -353,6 +354,26 @@ public final class ReelDownload {
         }
         if (playerRow != null) playerRow(menu, context, playerRow, sheet, rowState);
         if (detailsOption != null) addDetails(menu, context, detailsOption, sheet, rowState);
+        return true;
+    }
+
+    /**
+     * Download, then Details, in Download's place for [media], a reel that would otherwise keep
+     * Instagram's one Download row (a photo without music, or with music that has no track), so a
+     * photo gets Details where a video does. A tap on that Download saves what Instagram's would,
+     * since Download on reels takes both. Without Details, or when a row can't go in, the reel keeps
+     * Instagram's row and the answer is false.
+     */
+    private static boolean withDetails(Object menu, Object media, Object context, Object sheet, Object rowState) {
+        if (!detailsFit(media)) return false;
+        Object reel = InstagramMedia.reelOption(REEL_OPTION);
+        Object details = InstagramMedia.reelOption(DETAILS_OPTION);
+        if (reel == null || details == null) return false;
+        if (!InstagramMedia.addReelRow(menu, context, reel, sheet, rowState,
+                StoryDownload.label(StoryDownload.Choice.STORY))) {
+            return false;
+        }
+        addDetails(menu, context, details, sheet, rowState);
         return true;
     }
 
