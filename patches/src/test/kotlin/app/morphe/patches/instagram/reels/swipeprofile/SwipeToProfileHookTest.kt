@@ -49,9 +49,10 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Swipe left to open the profile (#245): the answer of the Reels viewer's last swipe gate goes
- * through the extension right after Instagram reads it, and a build where the check or the gate
- * can't be told apart fails the patch before an instruction changes.
+ * Swipe left to open the profile (#245, #283): the answer of the Reels viewer's last swipe gate goes
+ * through the extension right after Instagram reads it, the swipe setup's new-tab-bar answer goes
+ * through it so the right panel gets built, and a build where the check, the gate or the setup can't
+ * be told apart fails the patch before an instruction changes.
  */
 class SwipeToProfileHookTest {
     @Test
@@ -94,6 +95,8 @@ class SwipeToProfileHookTest {
 
         val method = context.mutableClassDefBy(CHECK).methods.single()
         assertEquals(1, method.implementation!!.instructions.count { (it as? ReferenceInstruction)?.reference?.toString() == SWIPE_ALLOWED_HOOK })
+        val setUp = context.mutableClassDefBy(HOST).methods.single { it.name == "A0I" }
+        assertEquals(1, setUp.implementation!!.instructions.count { (it as? ReferenceInstruction)?.reference?.toString() == RIGHT_PANEL_HOOK })
         val status = context.mutableClassDefBy(SETTINGS_STATUS).methods.single { it.name == "swipeToProfile" }
         assertEquals(Opcode.CONST_4, status.implementation!!.instructions.first().opcode)
     }
@@ -103,11 +106,14 @@ class SwipeToProfileHookTest {
         val declared = ExtensionDex.classDef(SWIPE_TO_PROFILE).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(TAB_CHANGING_HOOK, TAB_CHANGED_HOOK, CHILD_SCROLLS_HOOK, PAGER_INPUT_HOOK)) {
+        for (hook in listOf(TAB_CHANGING_HOOK, TAB_CHANGED_HOOK, CHILD_SCROLLS_HOOK, PAGER_INPUT_HOOK, RIGHT_PANEL_HOOK)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
         val stubs = ExtensionDex.classDef(SWIPE_TARGETS).methods.filter { AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.name }.toSet()
-        assertEquals(setOf("controller", "container", "tab", "reelsTab", "panel", "panelOn", "turn", "childScrolls", "pager", "inputOn", "input"), stubs)
+        assertEquals(
+            setOf("controller", "container", "tab", "reelsTab", "panel", "rightView", "panelOn", "turn", "childScrolls", "pager", "inputOn", "input"),
+            stubs,
+        )
     }
 
     /** The walk and the tabs' pager input call go through the extension on the registers they read, and the stubs reach the walk and the pager. */
@@ -148,15 +154,16 @@ class SwipeToProfileHookTest {
         refuses("found 2") { PatchContexts.of(panelClasses(inputCalls = 2)).let { it.findPagerHandling(it.findProfilePanel().touch) } }
     }
 
-    /** The touch check's gate answer goes through the extension, each tab change is bracketed by the two calls, and the stubs read the panel. */
+    /** Each tab change is bracketed by the two calls, the stubs read the right panel, and the touch check's camera gate stays Instagram's. */
     @Test
-    fun thePanelIsTurnedOnForReelsAndKeptOnUnderATouch() {
+    fun theRightPanelIsTurnedOnForReelsAndTheCameraIsLeftAlone() {
         val context = PatchContexts.of(panelClasses() + ExtensionDex.classDef(SWIPE_TARGETS))
 
         val panel = context.findProfilePanel()
         context.hookProfilePanel(panel)
 
-        assertEquals("$SWIPE_CONTAINER->A0F:$PANEL_TYPE", panel.panel.toString())
+        assertEquals("$SWIPE_CONTAINER->A0E:$PANEL_TYPE", panel.panel.toString())
+        assertEquals("$SWIPE_CONTAINER->A02($CONTROLLER$SWIPE_CONTAINER$PANEL_TYPE$PANEL_TYPE${PANEL_TYPE}DD)V", panel.setter.toString())
         assertEquals("$PANEL_TYPE->A00:Z", panel.panelOn.toString())
         assertEquals("$PANEL_TYPE->A01:F", panel.position.toString())
         assertEquals("$TAB->A08:$TAB", panel.reelsTab.toString())
@@ -167,6 +174,50 @@ class SwipeToProfileHookTest {
         assertEquals(panel.toggle.toString(), (turn[3] as ReferenceInstruction).reference.toString())
         val reels = context.mutableClassDefBy(SWIPE_TARGETS).methods.single { it.name == "reelsTab" }.implementation!!.instructions.first()
         assertEquals(panel.reelsTab.toString(), (reels as ReferenceInstruction).reference.toString())
+    }
+
+    /** The setup's new-tab-bar answer and the holder go to the extension right after the answer is read, and the tab hook follows the panel setter. */
+    @Test
+    fun theSetUpBuildsTheRightPanelThroughTheExtension() {
+        val context = PatchContexts.of(panelClasses() + ExtensionDex.classDef(SWIPE_TARGETS))
+
+        val panel = context.findProfilePanel()
+        val setUp = context.findPanelSetUp(panel)
+        context.hookPanelSetUp(setUp)
+
+        assertEquals("A0I", setUp.method.name)
+        assertEquals(4, setUp.answer)
+        assertEquals(0, setUp.register)
+        assertEquals(13, setUp.holder)
+        assertEquals(19, setUp.setterCall)
+        assertEquals("$CONTROLLER->A0A:Landroid/view/View;", setUp.rightView.toString())
+        assertSetUpHooked("stand-in", context, panel, setUp)
+        val view = context.mutableClassDefBy(SWIPE_TARGETS).methods.single { it.name == "rightView" }.implementation!!.instructions.toList()
+        assertEquals(setUp.rightView.toString(), (view[1] as ReferenceInstruction).reference.toString())
+    }
+
+    @Test
+    fun aSetUpThatDoesntFlipTheAnswerFailsThePatch() {
+        refuses("leave out the right panel on one session gate's answer, found 0") {
+            PatchContexts.of(panelClasses(flip = false)).let { it.findPanelSetUp(it.findProfilePanel()) }
+        }
+    }
+
+    @Test
+    fun aSetUpHandingThePanelsTwiceFailsThePatch() {
+        refuses("hand the container its panels once, found 2") {
+            PatchContexts.of(panelClasses(setterCalls = 2)).let { it.findPanelSetUp(it.findProfilePanel()) }
+        }
+    }
+
+    @Test
+    fun aRightPanelBuiltOnAnotherViewFailsThePatch() {
+        refuses("found 0") { PatchContexts.of(panelClasses(builtOnView = false)).let { it.findPanelSetUp(it.findProfilePanel()) } }
+    }
+
+    @Test
+    fun aPanelSwitchThatDoesntReadTheRightPanelFailsThePatch() {
+        refuses("doesn't read the right panel") { PatchContexts.of(panelClasses(toggleReadsRight = false)).findProfilePanel() }
     }
 
     @Test
@@ -259,6 +310,7 @@ class SwipeToProfileHookTest {
 
         val gate = context.findSwipeGate()
         val panel = context.findProfilePanel()
+        val setUp = context.findPanelSetUp(panel)
         val pagers = context.findPagerHandling(panel.touch)
         val returns = panel.tabChange.implementation!!.instructions.count { it.opcode == Opcode.RETURN_VOID }
         swipeToProfilePatch.execute(context)
@@ -266,6 +318,7 @@ class SwipeToProfileHookTest {
         val method = context.mutableClassDefBy(gate.type).methods.single { it.name == gate.name && SWIPE_ALLOWED in it.markers() }
         assertHooked("$label ${gate.type}->${gate.name}", method, gate)
         assertPanelHooked("$label ${panel.tabChange.definingClass}->${panel.tabChange.name}", context, panel, returns)
+        assertSetUpHooked("$label ${setUp.method.definingClass}->${setUp.method.name}", context, panel, setUp)
         assertPagersHooked("$label $SWIPE_CONTAINER->onInterceptTouchEvent", context, panel, pagers)
     }
 
@@ -330,25 +383,13 @@ class SwipeToProfileHookTest {
     }
 
     /**
-     * The touch check's gate answer handed to [SWIPE_ALLOWED_HOOK] and on to the panel switch; the
-     * tab change opening with [TAB_CHANGING_HOOK] on this and each of its [returns] right after
-     * [TAB_CHANGED_HOOK] on this, with nothing jumping past the call.
+     * The touch check's camera gate left to Instagram; the tab change opening with
+     * [TAB_CHANGING_HOOK] on this and each of its [returns] right after [TAB_CHANGED_HOOK] on this,
+     * with nothing jumping past the call.
      */
     private fun assertPanelHooked(what: String, context: BytecodePatchContext, panel: ProfilePanel, returns: Int) {
         val code = context.mutated(panel.touch).implementation!!.instructions.toList()
-        assertEquals("$what: touch hooks", 1, code.count { it.names(SWIPE_ALLOWED_HOOK) })
-        assertEquals("$what: the gate's answer", Opcode.MOVE_RESULT, code[panel.gateResult].opcode)
-        val call = code[panel.gateResult + 1]
-        assertEquals("$what: the touch call", Opcode.INVOKE_STATIC_RANGE, call.opcode)
-        assertTrue("$what: the touch hook", call.names(SWIPE_ALLOWED_HOOK))
-        assertEquals("$what: the touch call's register", panel.gateRegister, (call as RegisterRangeInstruction).startRegister)
-        assertEquals("$what: one register", 1, call.registerCount)
-        val back = code[panel.gateResult + 2]
-        assertEquals("$what: the answer", Opcode.MOVE_RESULT, back.opcode)
-        assertEquals("$what: into the same register", panel.gateRegister, (back as OneRegisterInstruction).registerA)
-        val handed = code[panel.gateResult + 3]
-        assertTrue("$what: the panel switch", handed.names(panel.toggle.toString()))
-        assertEquals("$what: handed the same register", panel.gateRegister, (handed as FiveRegisterInstruction).registerD)
+        assertEquals("$what: the camera gate is Instagram's", 0, code.count { it.names(SWIPE_ALLOWED_HOOK) })
 
         val change = context.mutated(panel.tabChange)
         val body = change.implementation!!.instructions.toList()
@@ -365,6 +406,35 @@ class SwipeToProfileHookTest {
             assertEquals("$what: on this before the return at $end", self, (body[end - 1] as RegisterRangeInstruction).startRegister)
             assertFalse("$what: something jumps past the call to the return at $end", end in targets)
         }
+    }
+
+    /**
+     * The setup's new-tab-bar answer handed with the holder to [RIGHT_PANEL_HOOK] right after it's
+     * read and back into its register before the flip, and [TAB_CHANGED_HOOK] on this right after the
+     * panel setter; one of each.
+     */
+    private fun assertSetUpHooked(what: String, context: BytecodePatchContext, panel: ProfilePanel, setUp: PanelSetUp) {
+        val code = context.mutated(setUp.method).implementation!!.instructions.toList()
+        assertEquals("$what: setup hooks", 1, code.count { it.names(RIGHT_PANEL_HOOK) })
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[setUp.answer].opcode)
+        val call = code[setUp.answer + 1]
+        assertTrue("$what: the setup hook", call.names(RIGHT_PANEL_HOOK))
+        assertEquals("$what: a static call", Opcode.INVOKE_STATIC, call.opcode)
+        assertEquals("$what: two registers", 2, (call as FiveRegisterInstruction).registerCount)
+        assertEquals("$what: the answer's register", setUp.register, call.registerC)
+        assertEquals("$what: the holder", setUp.holder, call.registerD)
+        val back = code[setUp.answer + 2]
+        assertEquals("$what: back", Opcode.MOVE_RESULT, back.opcode)
+        assertEquals("$what: into the same register", setUp.register, (back as OneRegisterInstruction).registerA)
+        assertEquals("$what: then the flip", Opcode.XOR_INT_LIT8, code[setUp.answer + 3].opcode)
+
+        assertEquals("$what: tab hooks", 1, code.count { it.names(TAB_CHANGED_HOOK) })
+        val setter = setUp.setterCall + 2
+        assertTrue("$what: the panel setter", code[setter].names(panel.setter.toString()))
+        val after = code[setter + 1]
+        assertTrue("$what: the tab hook after it", after.names(TAB_CHANGED_HOOK))
+        assertEquals("$what: on this", setUp.method.localRegisterCount(), (after as RegisterRangeInstruction).startRegister)
+        assertEquals("$what: alone", 1, after.registerCount)
     }
 
     private fun BytecodePatchContext.mutated(method: Method) = mutableClassDefBy(method.definingClass).methods.single {
@@ -411,6 +481,7 @@ class SwipeToProfileHookTest {
         const val HOST = "Lfixture/Host;"
         const val CONTROLLER = "Lfixture/Controller;"
         const val PANEL_GATE = "Lfixture/PanelGate;->A08($SESSION)Z"
+        const val NEW_TAB_BAR = "Lfixture/Nav;->A05($SESSION)Z"
         const val TOGGLE = "$SWIPE_CONTAINER->A05(ZF)V"
         const val WALK_TYPE = "Lfixture/Walk;"
         const val WALK_REF = "$WALK_TYPE->A00(Landroid/view/View;IIIZZ)Z"
@@ -440,6 +511,13 @@ class SwipeToProfileHookTest {
          * times after the panel switch; [pagerSetter] false drops the flag's setter and
          * [walkHanded] false hands the walk a constant instead. [afterMove] goes right after the
          * move.
+         *
+         * The container's static panel setter keeps its holder's left, middle and right panels in
+         * A0F, A0D and A0E, and the switch reads A0E too unless [toggleReadsRight] is false. The
+         * host's setup asks the new-tab-bar gate, flips the answer unless [flip] is false and, on
+         * no, jumps ahead to read the holder's view, check it for null and build the right panel on
+         * it (on a constant instead when [builtOnView] is false), then hands the panels to the
+         * setter [setterCalls] times.
          */
         fun panelClasses(
             gates: Int = 1,
@@ -449,6 +527,10 @@ class SwipeToProfileHookTest {
             walkHanded: Boolean = true,
             inputCalls: Int = 1,
             afterMove: String = "",
+            toggleReadsRight: Boolean = true,
+            flip: Boolean = true,
+            builtOnView: Boolean = true,
+            setterCalls: Int = 1,
         ): List<ClassDef> {
             val public = AccessFlags.PUBLIC.value
             val publicFinal = public or AccessFlags.FINAL.value
@@ -466,15 +548,31 @@ class SwipeToProfileHookTest {
             """
             val container = ImmutableClassDef(
                 SWIPE_CONTAINER, public, "Landroid/view/ViewGroup;", null, null, null,
-                listOf(field(SWIPE_CONTAINER, "A0F", PANEL_TYPE), field(SWIPE_CONTAINER, "A0R", "Z")),
+                listOf(
+                    field(SWIPE_CONTAINER, "A0D", PANEL_TYPE),
+                    field(SWIPE_CONTAINER, "A0E", PANEL_TYPE),
+                    field(SWIPE_CONTAINER, "A0F", PANEL_TYPE),
+                    field(SWIPE_CONTAINER, "A0R", "Z"),
+                ),
                 listOfNotNull(
                     assembled(
                         SWIPE_CONTAINER, "A05", listOf("Z", "F"), "V", public, 5,
                         """
                             const-string v1, "$CENTER_PANEL"
+                            ${if (toggleReadsRight) "iget-object v0, p0, $SWIPE_CONTAINER->A0E:$PANEL_TYPE" else ""}
                             iget-object v0, p0, $SWIPE_CONTAINER->A0F:$PANEL_TYPE
                             iget v1, v0, $PANEL_TYPE->A01:F
                             iput-boolean p1, v0, $PANEL_TYPE->A00:Z
+                            return-void
+                        """,
+                    ),
+                    assembled(
+                        SWIPE_CONTAINER, "A02", listOf(CONTROLLER, SWIPE_CONTAINER, PANEL_TYPE, PANEL_TYPE, PANEL_TYPE, "D", "D"), "V",
+                        public or AccessFlags.STATIC.value, 9,
+                        """
+                            iput-object p3, p1, $SWIPE_CONTAINER->A0D:$PANEL_TYPE
+                            iput-object p2, p1, $SWIPE_CONTAINER->A0F:$PANEL_TYPE
+                            iput-object p4, p1, $SWIPE_CONTAINER->A0E:$PANEL_TYPE
                             return-void
                         """,
                     ),
@@ -565,7 +663,7 @@ class SwipeToProfileHookTest {
             )
             val controller = ImmutableClassDef(
                 CONTROLLER, publicFinal, "Ljava/lang/Object;", null, null, null,
-                listOf(field(CONTROLLER, "A0E", SWIPE_CONTAINER)),
+                listOf(field(CONTROLLER, "A0A", "Landroid/view/View;"), field(CONTROLLER, "A0E", SWIPE_CONTAINER)),
                 listOf(
                     assembled(
                         CONTROLLER, "A05", listOf(CONTROLLER), SWIPE_CONTAINER, public or AccessFlags.STATIC.value, 1,
@@ -605,6 +703,37 @@ class SwipeToProfileHookTest {
                             :done
                             return-void
                             :same
+                            return-void
+                        """,
+                    ),
+                    assembled(
+                        HOST, "A0I", listOf("Landroid/os/Bundle;"), "V", publicFinal, 16,
+                        """
+                            iget-object v13, p0, $HOST->A03:$CONTROLLER
+                            const/4 v3, 0x0
+                            const/4 v8, 0x0
+                            invoke-static { v3 }, $NEW_TAB_BAR
+                            move-result v0
+                            ${if (flip) "xor-int/lit8 v0, v0, 0x1" else "nop"}
+                            if-nez v0, :right
+                            goto :set
+                            :right
+                            iget-object v1, v13, $CONTROLLER->A0A:Landroid/view/View;
+                            if-eqz v1, :fail
+                            const/high16 v0, 0x3f800000
+                            new-instance v8, $PANEL_TYPE
+                            ${if (builtOnView) "" else "const/4 v1, 0x0"}
+                            invoke-direct { v8, v1, v0 }, $PANEL_TYPE-><init>(Landroid/view/View;F)V
+                            :set
+                            move-object v4, v13
+                            const/4 v5, 0x0
+                            const/4 v6, 0x0
+                            const/4 v7, 0x0
+                            const-wide/16 v9, 0x0
+                            const-wide/16 v11, 0x0
+                        """ + "invoke-static/range { v4 .. v12 }, $SWIPE_CONTAINER->A02($CONTROLLER$SWIPE_CONTAINER$PANEL_TYPE$PANEL_TYPE${PANEL_TYPE}DD)V\n".repeat(setterCalls) + """
+                            return-void
+                            :fail
                             return-void
                         """,
                     ),

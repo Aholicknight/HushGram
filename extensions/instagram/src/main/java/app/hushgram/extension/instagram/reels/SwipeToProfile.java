@@ -26,12 +26,14 @@ import java.util.function.BooleanSupplier;
  * right after Instagram reads it. While the switch is on the answer is yes, and Instagram's own
  * panel picker then chooses the profile panel for an ordinary reel, the way it used to.
  *
- * <p>The panel itself is on only for accounts Instagram's server picks. The tab host turns it on
- * when you reach Reels if a second gate says yes, and the swipe container turns it off on each touch
- * if that gate says no. The patch hands the container's answer to {@link #allow} as well, calls
- * {@link #tabChanged} at the end of each tab change, which turns the panel on for the Reels tab, and
- * {@link #tabChanging} at the start of the next, which turns off only what HushGram turned on, so
- * Instagram picks the other tabs' panels as it always does.
+ * <p>The profile loads into the swipe container's right panel. On accounts with the new tab bar the
+ * swipe setup never builds that panel, and elsewhere Instagram keeps it off on Reels unless its
+ * server says otherwise. The patch hands the setup's new-tab-bar answer to {@link #leaveOutRightPanel},
+ * which has the setup build the panel while the switch is on. It calls {@link #tabChanged} right
+ * after the setup and at the end of each tab change, which turns the panel on for the Reels tab and
+ * turns a panel HushGram had built off everywhere else, and {@link #tabChanging} at the start of the
+ * next, which turns off only what HushGram turned on, so Instagram picks the other tabs' panels as
+ * it always does.
  *
  * <p>With the panel on, the container still gives the swipe away. Before it starts its own drag it
  * walks the views under the finger and yields to any that can scroll sideways, and Instagram's walk
@@ -67,6 +69,8 @@ public final class SwipeToProfile {
         Object reelsTab();
 
         Object panel(Object container);
+
+        Object rightView(Object controller);
 
         boolean panelOn(Object panel);
 
@@ -108,6 +112,11 @@ public final class SwipeToProfile {
         }
 
         @Override
+        public Object rightView(Object controller) {
+            return SwipeToProfileTargets.rightView(controller);
+        }
+
+        @Override
         public boolean panelOn(Object panel) {
             return SwipeToProfileTargets.panelOn(panel);
         }
@@ -146,6 +155,9 @@ public final class SwipeToProfile {
     /** Whether the last tab change landed on Reels. */
     private static volatile boolean onReels;
 
+    /** Whether the last swipe setup built the right panel only because HushGram asked it to. */
+    private static volatile boolean builtRight;
+
     /** The panel HushGram turned on and its container, until the next tab change turns it off. */
     private static WeakReference<Object> turnedPanel;
     private static WeakReference<Object> turnedContainer;
@@ -181,6 +193,32 @@ public final class SwipeToProfile {
     }
 
     /**
+     * Called in the swipe setup with Instagram's answer to whether the account has the new tab bar,
+     * non-zero for yes, which leaves the right panel out, and the swipe controller. Returns false
+     * while the switch is on and the layout has a view for the panel, so the setup builds it, and
+     * remembers that until the next setup, such as one for an account on the old tab bar. Otherwise
+     * returns the answer as it came. Read once per setup, so turning the switch on takes a restart.
+     * Never throws.
+     */
+    public static boolean leaveOutRightPanel(int stock, Object controller) {
+        return leaveOutRightPanel(stock != 0, controller, INSTAGRAM, SwipeToProfile::switchedOn);
+    }
+
+    static boolean leaveOutRightPanel(boolean stock, Object controller, Panels panels, BooleanSupplier on) {
+        builtRight = false;
+        try {
+            HookStatus.invoked(FamilyNames.SWIPE_TO_PROFILE);
+            if (!stock || !on.getAsBoolean() || panels.rightView(controller) == null) return stock;
+            builtRight = true;
+            Logger.printDebug(() -> "SwipeToProfile: had the swipe setup build the right panel");
+            return false;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, PANEL, t);
+            return stock;
+        }
+    }
+
+    /**
      * Called first thing in each tab change, before Instagram picks the next tab's panels. Turns the
      * profile panel off if HushGram turned it on and it's still on. Never throws.
      */
@@ -203,8 +241,10 @@ public final class SwipeToProfile {
     }
 
     /**
-     * Called at each return of a tab change. Notes whether the tab is Reels, and there with the switch
-     * on, turns the profile panel on when Instagram left it off, and remembers it. Never throws.
+     * Called right after the swipe setup and at each return of a tab change. Notes whether the tab is
+     * Reels, and there with the switch on, turns the profile panel on when Instagram left it off, and
+     * remembers it. Anywhere else, or with the switch off, a panel only HushGram had built is turned
+     * off, since it starts on and Instagram doesn't expect it. Never throws.
      */
     public static void tabChanged(Object host) {
         tabChanged(host, INSTAGRAM, SwipeToProfile::switchedOn);
@@ -215,11 +255,16 @@ public final class SwipeToProfile {
             HookStatus.invoked(FamilyNames.SWIPE_TO_PROFILE);
             Object tab = panels.tab(host);
             onReels = tab != null && tab == panels.reelsTab();
-            if (!onReels || !on.getAsBoolean()) return;
+            boolean open = onReels && on.getAsBoolean();
+            if (!open && !builtRight) return;
             Object controller = panels.controller(host);
             Object container = controller == null ? null : panels.container(controller);
             Object panel = container == null ? null : panels.panel(container);
-            if (panel == null || panels.panelOn(panel)) return;
+            if (panel == null || panels.panelOn(panel) == open) return;
+            if (!open) {
+                panels.turn(container, panel, false);
+                return;
+            }
             panels.turn(container, panel, true);
             turnedPanel = new WeakReference<>(panel);
             turnedContainer = new WeakReference<>(container);
@@ -370,6 +415,11 @@ public final class SwipeToProfile {
                 HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, PAGER, t);
             }
         }
+    }
+
+    /** Forgets that a setup built the right panel, as a new process would. */
+    static void forgetSetUpForTests() {
+        builtRight = false;
     }
 
     private static boolean switchedOn() {

@@ -35,8 +35,13 @@ public final class SwipeToProfileTargets {
         return null;
     }
 
-    /** The container's profile panel, or null. */
+    /** The container's profile panel, its right one, or null. */
     public static Object panel(Object container) {
+        return null;
+    }
+
+    /** The view the right panel is built on, from the controller, or null when the layout has none. */
+    public static Object rightView(Object controller) {
         return null;
     }
 

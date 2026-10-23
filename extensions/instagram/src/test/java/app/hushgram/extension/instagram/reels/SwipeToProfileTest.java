@@ -56,6 +56,7 @@ public class SwipeToProfileTest {
         final Object controller = new Object();
         final Object container = new Object();
         final Object panel = new Object();
+        Object view = new Object();
         Object tab = reels;
         boolean on;
         int turns;
@@ -70,6 +71,7 @@ public class SwipeToProfileTest {
         @Override public Object tab(Object host) { return tab; }
         @Override public Object reelsTab() { return reels; }
         @Override public Object panel(Object of) { return of == container ? panel : null; }
+        @Override public Object rightView(Object of) { return of == controller ? view : null; }
         @Override public boolean panelOn(Object of) { return on; }
 
         @Override
@@ -155,12 +157,14 @@ public class SwipeToProfileTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.REEL_SWIPE_TO_PROFILE.save(true);
+        SwipeToProfile.forgetSetUpForTests();
         SwipeToProfile.tabChanging(new FakePanels());
         HookStatus.clear();
     }
 
     @After
     public void restore() {
+        SwipeToProfile.forgetSetUpForTests();
         Settings.REEL_SWIPE_TO_PROFILE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -266,9 +270,70 @@ public class SwipeToProfileTest {
         assertEquals(0, panels.turns);
     }
 
+    /** With the switch on, the setup builds the right panel the new tab bar leaves out, when the layout has its view. */
+    @Test
+    public void theSetUpBuildsTheRightPanelOnlyWithTheSwitchOnAndAView() {
+        FakePanels panels = new FakePanels();
+
+        assertTrue(SwipeToProfile.leaveOutRightPanel(true, panels.controller, panels, () -> false));
+        assertFalse(SwipeToProfile.leaveOutRightPanel(false, panels.controller, panels, () -> true));
+        panels.view = null;
+        assertTrue(SwipeToProfile.leaveOutRightPanel(true, panels.controller, panels, () -> true));
+        panels.view = new Object();
+        assertFalse(SwipeToProfile.leaveOutRightPanel(true, panels.controller, panels, () -> true));
+        assertTrue(HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString(), HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).isEmpty());
+    }
+
+    @Test
+    public void aThrowingSwitchLeavesTheRightPanelOutAndIsReported() {
+        assertTrue(SwipeToProfile.leaveOutRightPanel(true, new Object(), new FakePanels(), THROWS));
+
+        String missing = HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString();
+        assertTrue(missing, missing.contains("'" + SwipeToProfile.PANEL + "'"));
+    }
+
+    /** A right panel only HushGram had built starts on, so it's turned off away from Reels and with the switch off. */
+    @Test
+    public void aRightPanelHushGramBuiltIsOnlyOnForReels() {
+        FakePanels panels = new FakePanels();
+        panels.tab = panels.home;
+        panels.on = true;
+        SwipeToProfile.tabChanged(HOST, panels, () -> true);
+        assertTrue("Instagram's own panel is Instagram's", panels.on);
+
+        assertFalse(SwipeToProfile.leaveOutRightPanel(true, panels.controller, panels, () -> true));
+        SwipeToProfile.tabChanged(HOST, panels, () -> true);
+        assertFalse(panels.on);
+
+        panels.tab = panels.reels;
+        SwipeToProfile.tabChanging(panels);
+        SwipeToProfile.tabChanged(HOST, panels, () -> true);
+        assertTrue(panels.on);
+        SwipeToProfile.tabChanged(HOST, panels, () -> false);
+        assertFalse(panels.on);
+        assertEquals(3, panels.turns);
+        assertTrue(HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString(), HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).isEmpty());
+    }
+
+    /** A later setup that builds the panel itself, as on an account with the old tab bar, leaves that panel Instagram's. */
+    @Test
+    public void aLaterSetupInstagramBuiltLeavesItsPanelOn() {
+        FakePanels panels = new FakePanels();
+        panels.tab = panels.home;
+        assertFalse(SwipeToProfile.leaveOutRightPanel(true, panels.controller, panels, () -> true));
+
+        assertFalse(SwipeToProfile.leaveOutRightPanel(false, panels.controller, panels, () -> true));
+        panels.on = true;
+        SwipeToProfile.tabChanged(HOST, panels, () -> true);
+        assertTrue("Instagram's own panel is Instagram's", panels.on);
+        assertEquals(0, panels.turns);
+    }
+
     /** Unpatched, the stubs answer nothing and the hooks do nothing. */
     @Test
     public void unpatchedStubsLeaveTheTabsAlone() {
+        assertTrue(SwipeToProfile.leaveOutRightPanel(1, new Object()));
+        assertFalse(SwipeToProfile.leaveOutRightPanel(0, new Object()));
         SwipeToProfile.tabChanged(HOST);
         SwipeToProfile.tabChanging(HOST);
         SwipeToProfile.pagerInput(new Object(), 1);

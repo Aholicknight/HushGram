@@ -28,6 +28,8 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -45,6 +47,7 @@ internal const val TAB_CHANGING_HOOK = "$SWIPE_TO_PROFILE->tabChanging(Ljava/lan
 internal const val TAB_CHANGED_HOOK = "$SWIPE_TO_PROFILE->tabChanged(Ljava/lang/Object;)V"
 internal const val CHILD_SCROLLS_HOOK = "$SWIPE_TO_PROFILE->childScrolls(Landroid/view/View;IIIII)Z"
 internal const val PAGER_INPUT_HOOK = "$SWIPE_TO_PROFILE->pagerInput(Ljava/lang/Object;I)V"
+internal const val RIGHT_PANEL_HOOK = "$SWIPE_TO_PROFILE->leaveOutRightPanel(ILjava/lang/Object;)Z"
 internal const val SWIPE_TARGETS = "$EXTENSION_PACKAGE/reels/SwipeToProfileTargets;"
 
 /** The marker, less its release, of the Reels viewer's check of whether a swipe may go from a reel to its side panel. */
@@ -65,16 +68,18 @@ private const val SET_USER_INPUT = "setUserInputEnabled"
 
 private const val SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
+private const val VIEW = "Landroid/view/View;"
 private const val ANY = "Ljava/lang/Object;"
 private val WALK = listOf("Landroid/view/View;", "I", "I", "I", "Z", "Z")
 private val MOVES = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
 
 /**
  * Lets a left swipe on a reel open its creator's profile, as older Instagram builds did. Kept out of
- * the default selection until a device shows the swipe opening the profile: on the accounts tried so
- * far the swipe container never started its own drag, even with the panel on, because its walk of
- * the views under the finger gave the swipe to a pager (#245). The walk and the call turning the
- * tabs' pager input on go through the extension too.
+ * the default selection until a device shows the swipe opening the profile. The profile loads into
+ * the container's right panel, which the swipe setup leaves out on accounts with the new tab bar, so
+ * the setup's answer goes through the extension (#283). The container's walk of the views under the
+ * finger gave the swipe to a pager (#245), so that walk and the call turning the tabs' pager input on
+ * go through the extension too.
  */
 @Suppress("unused")
 val swipeToProfilePatch = bytecodePatch(
@@ -91,10 +96,12 @@ val swipeToProfilePatch = bytecodePatch(
         requireStatusMethod("swipeToProfile")
         val gate = findSwipeGate()
         val panel = findProfilePanel()
+        val setUp = findPanelSetUp(panel)
         val pagers = findPagerHandling(panel.touch)
         hookSwipeGate(gate)
         hookPagerHandling(panel.touch, pagers)
         hookProfilePanel(panel)
+        hookPanelSetUp(setUp)
         enableStatus("swipeToProfile")
     }
 }
@@ -171,20 +178,21 @@ internal fun BytecodePatchContext.hookSwipeGate(gate: SwipeGate) {
 
 /**
  * The Reels tab's profile panel and what reaches it. On 452: the container's onInterceptTouchEvent
- * hands the panel switch (A05(ZF)V) the answer of the panel gate (07xk.A08) at [gateResult]; the
- * panel sits in the container's [panel] field (A0F, a 00VQ), which keeps its on flag and its
- * position. The tab host's tab-change method (00M2.A0O) is the gate's one other caller; the host
- * answers its tab with [currentTab] (A09), compares it with [reelsTab] (08kM.A08), and reaches the
- * container through its [controller] field (A03, a 004N) and that one's [container] field (A0E).
+ * hands the panel switch (A05(ZF)V) the answer of a panel gate (07xk.A08), which turns the left
+ * panel, the camera, on or off. The profile loads into the right panel, which sits in the
+ * container's [panel] field (A0E, a 00VQ) that [setter] (A02) fills from its fifth parameter, and
+ * which keeps its on flag and its position. The tab host's tab-change method (00M2.A0O) is the
+ * gate's one other caller; the host answers its tab with [currentTab] (A09), compares it with
+ * [reelsTab] (08kM.A08), and reaches the container through its [controller] field (A03, a 004N) and
+ * that one's [container] field (A0E).
  */
 internal class ProfilePanel(
     val touch: Method,
-    val gateResult: Int,
-    val gateRegister: Int,
     val toggle: MethodReference,
     val panel: FieldReference,
     val panelOn: FieldReference,
     val position: FieldReference,
+    val setter: MethodReference,
     val tabChange: Method,
     val currentTab: MethodReference,
     val reelsTab: FieldReference,
@@ -193,22 +201,24 @@ internal class ProfilePanel(
 )
 
 /**
- * Finds the Reels tab's profile panel. Instagram turns it on only for accounts its server picks: the
- * tab host turns it on when you reach Reels if the panel gate says yes, and the container's touch
- * check turns it off again on each touch if the gate says no. Everything here is checked against
+ * Finds the Reels tab's profile panel. Instagram keeps it on for the Reels tab only on accounts
+ * without the new tab bar, and only when its server says so. Everything here is checked against
  * something else that reads it, and has to be public, since the extension's stubs read it.
  *
  * - The panel switch is the container's one (boolean, float) method saying [CENTER_PANEL].
  * - The gate is the one call in the container's onInterceptTouchEvent taking only the session and
  *   answering a boolean whose move-result the panel switch takes, straight after, as its boolean.
- * - The panel is the container field read last before the gate whose type's boolean field is read
- *   just after it; the switch reads the same field. The panel keeps its position in its one float
+ * - A panel's on flag is the boolean field the touch check reads last before the gate.
+ * - The panel setter is the container's one static method taking its holder, the container, three
+ *   panels (left, middle, right) and two doubles. The panel is the container field it fills from the
+ *   right one; the switch reads the same field. The panel keeps its position in its one float
  *   field, which the switch reads too.
  * - The tab-change method is the one other method calling the gate. It is an instance method
  *   answering nothing whose first two parameters are a tab. Before the gate it asks the host's tab
  *   (a call of the host taking nothing and answering a tab) and loads the tab it's compared with,
  *   which the touch check loads as well. After the gate it fetches the container with a static call
  *   taking the controller, which the host keeps in one field and which keeps the container in one.
+ *   The controller is the panel setter's first parameter.
  */
 internal fun BytecodePatchContext.findProfilePanel(): ProfilePanel {
     val container = classDefByOrNull(SWIPE_CONTAINER) ?: refuse("this Instagram build has no $SWIPE_CONTAINER")
@@ -235,21 +245,33 @@ internal fun BytecodePatchContext.findProfilePanel(): ProfilePanel {
     }
     val gate = gates.singleOrNull()
         ?: refuse("expected $SWIPE_CONTAINER's onInterceptTouchEvent to hand the panel switch one session gate's answer, found ${gates.size}")
-    if (gate + 2 in touch.jumpTargets()) refuse("something in $SWIPE_CONTAINER's onInterceptTouchEvent jumps between the gate's answer and the panel switch")
     val gateCall = code[gate].called()!!
 
     val onRead = (0 until gate).lastOrNull { code[it].opcode == Opcode.IGET_BOOLEAN }
         ?: refuse("$SWIPE_CONTAINER's onInterceptTouchEvent reads no panel's on flag before its gate")
     val panelOn = code[onRead].field()!!
-    val panelRead = (0 until onRead).lastOrNull { at ->
-        code[at].opcode == Opcode.IGET_OBJECT && code[at].field()?.let { it.definingClass == SWIPE_CONTAINER && it.type == panelOn.definingClass } == true
-    } ?: refuse("$SWIPE_CONTAINER's onInterceptTouchEvent reads no panel of type ${panelOn.definingClass} before its on flag")
-    val panel = code[panelRead].field()!!
+    val panelType = panelOn.definingClass
+    val setters = container.methods.filter { method ->
+        val parameters = method.parameterTypes.map(CharSequence::toString)
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && parameters.size == 7 &&
+            parameters[1] == SWIPE_CONTAINER && parameters.subList(2, 5).all { it == panelType } && parameters.subList(5, 7) == listOf("D", "D")
+    }
+    val setterMethod = setters.singleOrNull()
+        ?: refuse("expected one static method of $SWIPE_CONTAINER taking its holder, the container, three panels and two doubles, found ${setters.size}")
+    // The holder, the container and the three panels take a register each and the doubles two, so the right panel is the fifth of the last nine.
+    val right = setterMethod.implementation!!.registerCount - 9 + 4
+    val rights = setterMethod.implementation!!.instructions.filter {
+        it.opcode == Opcode.IPUT_OBJECT && (it as TwoRegisterInstruction).registerA == right &&
+            it.field()?.let { field -> field.definingClass == SWIPE_CONTAINER && field.type == panelType } == true
+    }.mapNotNull { it.field() }
+    val panel = rights.singleOrNull()
+        ?: refuse("expected the panel setter ${setterMethod.name} to keep its right panel in one field of the container, found ${rights.size}")
+    val setter = ImmutableMethodReference(setterMethod.definingClass, setterMethod.name, setterMethod.parameterTypes, "V")
     val toggleCode = toggleMethod.implementation!!.instructions.toList()
     if (toggleCode.none { it.opcode == Opcode.IGET_OBJECT && it.field()?.matches(panel) == true }) {
-        refuse("the panel switch ${toggleMethod.name} doesn't read the panel $panel the touch check reads")
+        refuse("the panel switch ${toggleMethod.name} doesn't read the right panel $panel")
     }
-    val panelClass = classDefByOrNull(panelOn.definingClass) ?: refuse("the panel type ${panelOn.definingClass} isn't in the app")
+    val panelClass = classDefByOrNull(panelType) ?: refuse("the panel type $panelType isn't in the app")
     val positions = panelClass.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == "F" }
     val positionField = positions.singleOrNull()
         ?: refuse("expected the panel ${panelClass.type} to keep its position in one float field, found ${positions.size}")
@@ -289,6 +311,9 @@ internal fun BytecodePatchContext.findProfilePanel(): ProfilePanel {
             ?.takeIf { it.returnType == SWIPE_CONTAINER && it.parameterTypes.size == 1 }
     } ?: refuse("$host doesn't fetch the container after the gate")
     val controllerType = fetch.parameterTypes.single().toString()
+    if (setter.parameterTypes.first().toString() != controllerType) {
+        refuse("the panel setter ${setter.name} takes a ${setter.parameterTypes.first()}, not the container's holder $controllerType")
+    }
     val controllers = instanceFields(classDefBy(tabChange.definingClass)).filter { it.type == controllerType }
     val controller = controllers.singleOrNull()
         ?: refuse("expected ${tabChange.definingClass} to keep its $controllerType in one field, found ${controllers.size}")
@@ -309,30 +334,18 @@ internal fun BytecodePatchContext.findProfilePanel(): ProfilePanel {
     tabChange.requireThisIntact(PATCH, returns)
 
     return ProfilePanel(
-        touch, gate + 1, (code[gate + 1] as OneRegisterInstruction).registerA, toggle, panel, panelOn, position,
-        tabChange, currentTab, reelsTab, controllerRef, containerRef,
+        touch, toggle, panel, panelOn, position, setter, tabChange, currentTab, reelsTab, controllerRef, containerRef,
     )
 }
 
 /**
- * Hands the panel gate's answer in the touch check to [SWIPE_ALLOWED_HOOK], so a touch doesn't turn
- * the panel off while the switch is on. Calls [TAB_CHANGING_HOOK] first thing in the tab-change
- * method, to turn off what HushGram turned on before Instagram picks the next tab's panels, and
- * [TAB_CHANGED_HOOK] at each of its returns, to turn the panel on when the tab is Reels. A return
- * can be a jump target, so each is replaced by the call, which keeps the return's label, and a new
- * return follows it. Then writes the stubs the extension reaches Instagram's pieces through.
+ * Calls [TAB_CHANGING_HOOK] first thing in the tab-change method, to turn off what HushGram turned
+ * on before Instagram picks the next tab's panels, and [TAB_CHANGED_HOOK] at each of its returns, to
+ * turn the panel on when the tab is Reels. A return can be a jump target, so each is replaced by the
+ * call, which keeps the return's label, and a new return follows it. Then writes the stubs the
+ * extension reaches Instagram's pieces through. The touch check's camera gate stays Instagram's.
  */
 internal fun BytecodePatchContext.hookProfilePanel(found: ProfilePanel) {
-    val touch = mutable(found.touch)
-    val register = "v${found.gateRegister}"
-    touch.addInstructions(
-        found.gateResult + 1,
-        """
-            invoke-static/range { $register .. $register }, $SWIPE_ALLOWED_HOOK
-            move-result $register
-        """,
-    )
-
     val change = mutable(found.tabChange)
     val returns = change.implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_VOID }.map { it.index }
     for (at in returns.reversed()) {
@@ -358,6 +371,109 @@ internal fun BytecodePatchContext.hookProfilePanel(found: ProfilePanel) {
             return-void
         """,
     )
+}
+
+/**
+ * Where the tab host builds the container's panels. On 452: the host's setUpSwipeNavigationController
+ * (00M2.A0I) asks whether the account has the new tab bar (07xk.A05) into [register] at [answer],
+ * flips it and, when it's yes, skips building the right panel unless another check says otherwise.
+ * The right panel's view is the holder's [rightView] (004N.A0A), read from [holder], and may be
+ * missing. The panels go to the panel setter at [setterCall].
+ */
+internal class PanelSetUp(
+    val method: Method,
+    val answer: Int,
+    val register: Int,
+    val holder: Int,
+    val rightView: FieldReference,
+    val setterCall: Int,
+)
+
+/**
+ * Finds where the tab host builds the panels: the one method of the host calling the panel setter,
+ * once. Before that call it asks a static call taking only the session and answering a boolean, and
+ * straight after the move-result flips it (xor 1) and branches with an if-nez on it. The branch lands
+ * on a read of a view field of the container's holder, checked for null right after, and the first
+ * panel built after that is built on that view. Exactly one ask may look like that. The answer and
+ * the holder have to sit in v0 to v15, the hook's call takes both; nothing may jump onto the flip or
+ * onto the instruction after the setter call, where the hooks go, and this has to be intact there.
+ */
+internal fun BytecodePatchContext.findPanelSetUp(found: ProfilePanel): PanelSetUp {
+    val host = classDefBy(found.tabChange.definingClass)
+    val setUps = host.methods.filter { method -> method.implementation?.instructions?.any { it.called()?.matches(found.setter) == true } == true }
+    val setUp = setUps.singleOrNull() ?: refuse("expected one method of ${host.type} to hand the container its panels, found ${setUps.size}")
+    val where = "${setUp.definingClass}->${setUp.name}"
+    val code = setUp.implementation!!.instructions.toList()
+    val calls = code.indices.filter { code[it].called()?.matches(found.setter) == true }
+    val setterCall = calls.singleOrNull() ?: refuse("expected $where to hand the container its panels once, found ${calls.size}")
+    val holderType = found.controller.type
+    val panelType = found.panelOn.definingClass
+    val starts = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+
+    val asks = (0 until setterCall).mapNotNull { at ->
+        val call = code[at].takeIf { it.opcode == Opcode.INVOKE_STATIC }?.called() ?: return@mapNotNull null
+        if (call.returnType != "Z" || call.parameterTypes.map(CharSequence::toString) != listOf(SESSION)) return@mapNotNull null
+        val result = code.getOrNull(at + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } as? OneRegisterInstruction ?: return@mapNotNull null
+        val answer = result.registerA
+        val flip = code.getOrNull(at + 2)
+        if (flip?.opcode != Opcode.XOR_INT_LIT8 || (flip as TwoRegisterInstruction).registerA != answer || flip.registerB != answer ||
+            (flip as NarrowLiteralInstruction).narrowLiteral != 1
+        ) {
+            return@mapNotNull null
+        }
+        val branch = code.getOrNull(at + 3)?.takeIf { it.opcode == Opcode.IF_NEZ && (it as OneRegisterInstruction).registerA == answer }
+            ?: return@mapNotNull null
+        val target = starts.indexOf(starts[at + 3] + (branch as OffsetInstruction).codeOffset).takeIf { it in code.indices } ?: return@mapNotNull null
+        val read = code[target].takeIf { it.opcode == Opcode.IGET_OBJECT } ?: return@mapNotNull null
+        val view = read.field()?.takeIf { it.definingClass == holderType && it.type == VIEW } ?: return@mapNotNull null
+        val viewRegister = (read as TwoRegisterInstruction).registerA
+        if (code.getOrNull(target + 1)?.let { it.opcode == Opcode.IF_EQZ && (it as OneRegisterInstruction).registerA == viewRegister } != true) {
+            return@mapNotNull null
+        }
+        val built = (target + 2 until setterCall).firstOrNull { index ->
+            code[index].opcode == Opcode.INVOKE_DIRECT && code[index].called()?.let {
+                it.definingClass == panelType && it.name == "<init>" && it.parameterTypes.map(CharSequence::toString) == listOf(VIEW, "F")
+            } == true
+        } ?: return@mapNotNull null
+        if ((code[built] as FiveRegisterInstruction).registerD != viewRegister) return@mapNotNull null
+        if ((target + 2 until built).any { code[it].writes(viewRegister) }) return@mapNotNull null
+        PanelSetUp(setUp, at + 1, answer, read.registerB, view, setterCall)
+    }
+    val ask = asks.singleOrNull() ?: refuse("expected $where to leave out the right panel on one session gate's answer, found ${asks.size}")
+    if (ask.register > 15 || ask.holder > 15) refuse("$where keeps the gate's answer or the holder past v15, out of reach of the hook's call")
+    val targets = setUp.jumpTargets()
+    if (ask.answer + 1 in targets) refuse("something in $where jumps onto the flip of the gate's answer")
+    if (setterCall + 1 in targets) refuse("something in $where jumps onto the instruction after the panel setter")
+    setUp.requireThisIntact(PATCH, listOf(setterCall + 1))
+    requirePublic(ask.rightView)
+    return ask
+}
+
+/**
+ * Hands the setup's new-tab-bar answer and the holder to [RIGHT_PANEL_HOOK] right after the answer is
+ * read, so the right panel is built while the switch is on, and calls [TAB_CHANGED_HOOK] on this
+ * right after the panels go to the setter, which turns the right panel off away from Reels. A panel
+ * starts on. Then writes the stub reading the right panel's view.
+ */
+internal fun BytecodePatchContext.hookPanelSetUp(found: PanelSetUp) {
+    val method = mutable(found.method)
+    method.addInstruction(found.setterCall + 1, "invoke-static/range { p0 .. p0 }, $TAB_CHANGED_HOOK")
+    val register = "v${found.register}"
+    method.addInstructions(
+        found.answer + 1,
+        """
+            invoke-static { $register, v${found.holder} }, $RIGHT_PANEL_HOOK
+            move-result $register
+        """,
+    )
+    stub("rightView", listOf(ANY), ANY, "check-cast p0, ${found.rightView.definingClass}\niget-object p0, p0, ${found.rightView}\nreturn-object p0")
+}
+
+/** Whether this writes [register], or the pair starting below it when it's a wide write. */
+private fun Instruction.writes(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val target = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return target == register || (opcode.setsWideRegister() && target + 1 == register)
 }
 
 /**
