@@ -553,6 +553,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_FEED_SHOPPING =
             new BooleanSetting("hushgram_hide_feed_shopping", TRUE);
 
+    /**
+     * The "You've seen the latest posts from accounts you follow" card Home puts after the followed
+     * posts, folded away with its Older posts link (#307). A card at the top of Home, when there are
+     * no new posts at all, stays. Off to start.
+     */
+    public static final BooleanSetting HIDE_CAUGHT_UP_CARD =
+            new BooleanSetting("hushgram_hide_caught_up_card", FALSE);
+
     /** Posts in Home that are one video, reels among them. Off until enabled. */
     public static final BooleanSetting HIDE_FEED_VIDEOS =
             new BooleanSetting("hushgram_hide_feed_videos", FALSE);
