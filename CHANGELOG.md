@@ -8,9 +8,11 @@ Every HushGram release, newest first.
 
 * **Instagram - Download any video:** Details has a Copy caption without hashtags row for captions that have them. It drops a closing block of tags and the dots above it, and a tag inside a sentence keeps its word. Reported in #282.
 * **Instagram - Swipe left to open the profile:** new patch, in simple mode with its switch off. Turn it on under Reels and a left swipe on a reel in the Reels tab slides in the creator's profile, like Instagram used to. A right swipe on a reel still goes to Home, and on the profile it opened, a right swipe or Back takes you to the reel. Turning it on or off takes a restart. Asked for in #245 and #283.
+* **Instagram - Full resolution photos:** New `Full size covers` switch under Feed. Reel covers and grid pictures come at full size, so Download cover saves a picked cover 1080 pixels wide, where it used to save something between 240 and 480 depending on the phone. Grids use a lot more data with it on, which is why it starts off. Restart Instagram after flipping it. Asked for in #214.
 
 ### Bug Fixes
 
+* **Instagram - Change the like animation:** The animation you picked plays on Instagram 452's feed and Reels hearts again, for a double tap and for the heart button. Before, 452 showed its usual heart there. Reported in #299.
 * **Instagram - View stories anonymously:** With `Gray out stories you've watched` on, stories you've watched now move behind the new ones in the story row at the top of Home too. Before, only the stories inside the feed were reordered. (#241)
 * **Instagram - Read messages without the seen receipt:** With `Keep chats unread here` off, a chat you opened could still flip back to unread after a refresh. Now it stays read until a new message comes in. (#186)
 * **Instagram - Download any reel:** The Details row in a reel's menu shows Instagram's info icon now. It used to wear Download's arrow. (#282)
