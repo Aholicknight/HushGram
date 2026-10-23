@@ -225,6 +225,7 @@ class DefaultCatalogTest {
         longPressZoomPatch,
         roundedPostCornersPatch,
         fullScreenBarsPatch,
+        swipeToProfilePatch,
     )
 
     private val prior = listOf<Patch<*>>(
@@ -251,7 +252,6 @@ class DefaultCatalogTest {
         changeVersionCodePatch,
         installNextToInstagramPatch,
         pureBlackPatch,
-        swipeToProfilePatch,
         viewDmMediaAnonymouslyPatch,
     )
 
@@ -261,12 +261,12 @@ class DefaultCatalogTest {
     }
 
     @Test fun initiallyNeutralControlsAreAvailableInSimpleMode() {
-        assertEquals(92, neutral.size)
+        assertEquals(93, neutral.size)
         neutral.forEach { assertEquals(it.name, true, it.default) }
     }
 
     @Test fun patchTimeChangesAndUnreadyFeaturesStayOptIn() {
-        assertEquals(5, optIn.size)
+        assertEquals(4, optIn.size)
         optIn.forEach { assertEquals(it.name, false, it.default) }
     }
 
