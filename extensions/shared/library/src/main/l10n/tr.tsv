@@ -633,6 +633,7 @@ Adds Details to a feed post's or reel's menu. It shows when it went up, who post
 Caption	Açıklama
 Caption copied	Açıklama kopyalandı
 Copy caption	Açıklamayı kopyala
+Copy caption without hashtags	Açıklamayı hashtag'ler olmadan kopyala
 Copy username	Kullanıcı adını kopyala
 Couldn't copy the caption	Açıklama kopyalanamadı
 Couldn't copy the username	Kullanıcı adı kopyalanamadı

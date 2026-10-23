@@ -633,6 +633,7 @@ Adds Details to a feed post's or reel's menu. It shows when it went up, who post
 Caption	Texto
 Caption copied	Texto copiado
 Copy caption	Copiar texto
+Copy caption without hashtags	Copiar texto sin hashtags
 Copy username	Copiar nombre de usuario
 Couldn't copy the caption	No se pudo copiar el texto
 Couldn't copy the username	No se pudo copiar el nombre de usuario
