@@ -1144,6 +1144,8 @@ public final class GlassTabBar {
         private final ViewGroup bar;
         private final float density;
         private final boolean blurWanted;
+        /** How strongly the glass blurs what's behind it (#289). */
+        private final GlassBlur blurStrength;
         private final boolean haptics;
         private final HapticStyle hapticStyle;
         private final GlassOpacity opacity;
@@ -1272,6 +1274,7 @@ public final class GlassTabBar {
             this.opacity = Settings.GLASS_TAB_BAR_OPACITY.get();
             this.height = Settings.GLASS_TAB_BAR_HEIGHT.get();
             this.corners = Settings.GLASS_TAB_BAR_CORNERS.get();
+            this.blurStrength = Settings.GLASS_TAB_BAR_BLUR_STRENGTH.get();
             this.lift = liftPx(Settings.GLASS_TAB_BAR_LIFT.get(), floating, density);
             this.room = lift;
             this.liquid = Settings.GLASS_TAB_BAR_LIQUID.get();
@@ -2131,6 +2134,15 @@ public final class GlassTabBar {
             /** Where the capsule is sliding from and to, and when the slide started, on the frame clock. */
             private float fromLeft = Float.NaN, fromRight, toLeft, toRight, nowLeft, nowRight;
             private long slideStart;
+            /** The size the liquid look's bubble is drawn at now, and at when the slide it is in began (#289). */
+            private float bubbleNow = 1f, bubbleFrom = 1f;
+            /** Whether the blurred backdrop was drawn into the pill this frame, which the bubble's lens needs. */
+            private boolean blurShown;
+            @Nullable private GlassLens lens;
+            private final Paint bubbleSheen = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Paint bubbleRim = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Matrix bubbleMatrix = new Matrix();
+            private int bubbleShade;
             /** The tab the capsule's middle was over when it last ticked, or -1 before the first frame. */
             private int tickedTab = -1;
             private boolean reported;
@@ -2212,6 +2224,7 @@ public final class GlassTabBar {
                     blurred = drawBackdrop(canvas);
                     canvas.restoreToCount(saved);
                 }
+                blurShown = blurred;
                 fill.setColor(tint(base, blurred, opacity));
                 canvas.drawPath(shapes, fill);
                 keepSheen(dark);
@@ -2293,10 +2306,12 @@ public final class GlassTabBar {
                     fromRight = nowRight = toRight = toLeft + width;
                     slideStart = now - SLIDE_MS;
                     tickedThisSlide = false;
+                    bubbleNow = bubbleFrom = 1f + BUBBLE_SWELL;
                 } else if (Float.isNaN(fromLeft) || share < 1f) {
                     fromLeft = nowLeft = toLeft = targetLeft;
                     fromRight = nowRight = toRight = targetRight;
                     slideStart = now - SLIDE_MS;
+                    bubbleNow = bubbleFrom = 1f;
                 } else if (Math.abs(targetLeft - toLeft) > 0.5f || Math.abs(targetRight - toRight) > 0.5f) {
                     tickedThisSlide = false;
                     fromLeft = nowLeft;
@@ -2304,8 +2319,12 @@ public final class GlassTabBar {
                     toLeft = targetLeft;
                     toRight = targetRight;
                     slideStart = slideStartAt(now);
+                    bubbleFrom = bubbleNow;
                 }
                 float progress = slideProgress(now - slideStart);
+                boolean bubble = liquidNow() && share > 0f;
+                if (Float.isNaN(dragX)) bubbleNow = bubble ? bubbleScale(now - slideStart, bubbleFrom) : 1f;
+                else if (!bubble) bubbleNow = bubbleFrom = 1f;
                 nowLeft = fromLeft + (toLeft - fromLeft) * progress;
                 nowRight = fromRight + (toRight - fromRight) * progress;
                 capsule.set(nowLeft, within.top + inset, nowRight, within.bottom - inset);
@@ -2313,8 +2332,65 @@ public final class GlassTabBar {
                 int color = highlight(base);
                 if (share < 1f) color = (color & 0x00ffffff) | (scaledAlpha(Color.alpha(color), Math.max(0f, share)) << 24);
                 fill.setColor(color);
+                if (bubble && bubbleNow != 1f) {
+                    float swell = (bubbleNow - 1f) / 2f;
+                    capsule.inset(-capsule.width() * swell, -capsule.height() * swell);
+                    corner *= bubbleNow;
+                }
+                if (bubble) paintLens(canvas, corner);
+                fill.setColor(color);
                 if (share > 0f) canvas.drawRoundRect(capsule, corner, corner, fill);
+                if (bubble) paintBubble(canvas, corner, share);
                 if (progress < 1f) invalidateSelf();
+            }
+
+            /**
+             * The lens under the bubble (#289): the blurred backdrop magnified a little, on Android 13 and newer and
+             * only where the pill is blurred. The pill's tint goes back over it so the bubble reads as part of the pill.
+             */
+            private void paintLens(Canvas canvas, float corner) {
+                if (!blurShown || !GlassLens.supported()) return;
+                GlassLens made = lens;
+                if (made == null) {
+                    made = new GlassLens();
+                    lens = made;
+                }
+                if (made.paint(canvas, node, nodeLeft, nodeTop, DOWNSAMPLE, bar.getWidth(), bar.getHeight(), capsule, corner)) {
+                    fill.setColor(tint(base, true, opacity));
+                    canvas.drawRoundRect(capsule, corner, corner, fill);
+                }
+            }
+
+            /**
+             * The raised look of the liquid look's bubble (#289): light at its top edge fading down inside it, and a
+             * brighter rim, bright at the top and faint at the bottom, drawn at [share] of their strength. Light and
+             * dark glass each get the shades that read on them.
+             */
+            private void paintBubble(Canvas canvas, float corner, float share) {
+                boolean dark = isDark(base);
+                int shade = dark ? 1 : 2;
+                if (bubbleShade != shade) {
+                    bubbleShade = shade;
+                    bubbleSheen.setShader(new LinearGradient(0, 0, 0, 1,
+                            dark ? 0x40ffffff : 0x8cffffff, 0x00ffffff, Shader.TileMode.CLAMP));
+                    bubbleRim.setStyle(Paint.Style.STROKE);
+                    bubbleRim.setShader(new LinearGradient(0, 0, 0, 1,
+                            dark ? 0xb0ffffff : 0xf0ffffff, dark ? 0x28ffffff : 0x66ffffff, Shader.TileMode.CLAMP));
+                }
+                bubbleMatrix.setScale(1f, Math.max(1f, capsule.height()));
+                bubbleMatrix.postTranslate(0f, capsule.top);
+                bubbleSheen.getShader().setLocalMatrix(bubbleMatrix);
+                bubbleRim.getShader().setLocalMatrix(bubbleMatrix);
+                int alpha = scaledAlpha(255, Math.max(0f, Math.min(1f, share)));
+                bubbleSheen.setAlpha(alpha);
+                bubbleRim.setAlpha(alpha);
+                canvas.drawRoundRect(capsule, corner, corner, bubbleSheen);
+                float stroke = Math.max(1f, density * 1.25f);
+                bubbleRim.setStrokeWidth(stroke);
+                float half = stroke / 2f;
+                capsule.inset(half, half);
+                canvas.drawRoundRect(capsule, Math.max(0f, corner - half), Math.max(0f, corner - half), bubbleRim);
+                capsule.inset(-half, -half);
             }
 
             /** A light tick each time the capsule's middle moves over a different tab, wherever the tab was moved to. */
@@ -2381,6 +2457,7 @@ public final class GlassTabBar {
                 node = null;
                 recorded = false;
                 if (backdrop != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) backdrop.discardDisplayList();
+                if (lens != null) lens.discard();
                 leftOut.clear();
                 surfaces.clear();
                 skipped.clear();
@@ -2496,7 +2573,7 @@ public final class GlassTabBar {
                 drawingBackdrop = true;
                 try {
                     float scale = 1f / DOWNSAMPLE;
-                    float pad = dp(BLUR_DP);
+                    float pad = GlassBlur.radiusPx(blurStrength, density);
                     float radius = cornerPx(corners, false, area.height(), density);
                     float wide = area.width() + 2 * pad;
                     float tall = area.height() + 2 * pad;
@@ -2506,7 +2583,7 @@ public final class GlassTabBar {
                     if (backdrop == null) {
                         backdrop = new RenderNode("hushgram-glass");
                         backdrop.setClipToOutline(true);
-                        float blur = Math.max(1f, dp(BLUR_DP) * scale);
+                        float blur = GlassBlur.effectRadius(blurStrength, density, scale);
                         ColorMatrix saturate = new ColorMatrix();
                         saturate.setSaturation(1.5f);
                         ColorFilter colour = new ColorMatrixColorFilter(saturate);
@@ -2634,6 +2711,22 @@ public final class GlassTabBar {
         float t = elapsed / (float) SLIDE_MS;
         float rest = 1f - t;
         return 1f - rest * rest * rest;
+    }
+
+    /** How much larger the liquid look's bubble is while it moves between tabs, and under a finger (#289). */
+    static final float BUBBLE_SWELL = 0.08f;
+
+    /**
+     * The size of the liquid look's bubble [elapsed] ms into a slide that began at size [from]: it swells to
+     * {@link #BUBBLE_SWELL} over 1 mid-slide, eases back to 1 as it settles, and carries on from [from] when
+     * it was already bigger, such as a finger letting go of it. 1 once the slide is over, or with none.
+     */
+    static float bubbleScale(long elapsed, float from) {
+        if (elapsed >= SLIDE_MS) return 1f;
+        float t = Math.max(0f, elapsed) / (float) SLIDE_MS;
+        float swell = 1f + BUBBLE_SWELL * (float) Math.sin(Math.PI * t);
+        float carried = 1f + Math.max(0f, from - 1f) * (1f - t);
+        return Math.max(swell, carried);
     }
 
     /**

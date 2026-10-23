@@ -15,6 +15,8 @@ Every HushGram release, newest first.
 * **Instagram - Swipe left to open the profile:** new patch, off to start. Turned on under Reels, a left swipe on a reel slides in the creator's profile, like Instagram used to. A right swipe or Back on that profile returns to the reel. Takes a restart. Asked for in #245 and #283.
 * **Instagram - Full resolution photos:** New `Full size covers` switch under Feed. Reel covers and grid pictures load at full size, so Download cover saves 1080 pixels wide, not 240 to 480. It uses a lot more data, so it starts off. Takes a restart. Asked for in #214.
 
+* **Instagram - Glass tab bar:** With `Liquid glass look` on, the active tab sits in a raised glass bubble that swells while it moves and bends what's behind it on Android 13 and up. New `Blur strength` row sets how much the pill blurs. Asked for in #289.
+
 ### Bug Fixes
 
 * **Instagram - Glass tab bar:** A video playing under the glass pill no longer turns the pill black. Some videos play on a layer the blur couldn't see, so it blurs a small copy of the video's picture now. Reported in #144.

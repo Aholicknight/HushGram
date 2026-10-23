@@ -884,6 +884,10 @@ Clearest	Lo más transparente
 Clear	Transparente
 Frosted	Esmerilado
 Standard	Estándar
+Blur strength	Intensidad del desenfoque
+# context: a blur strength step of the tab bar
+Light	Suave
+Strong	Fuerte
 Compact	Compacta
 Tall	Alta
 Tab bar corners	Esquinas de la barra de pestañas

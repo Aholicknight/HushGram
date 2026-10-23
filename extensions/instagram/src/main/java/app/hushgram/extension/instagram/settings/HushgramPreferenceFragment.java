@@ -108,6 +108,7 @@ import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.misc.AccentHue;
 import app.hushgram.extension.instagram.misc.FontChoice;
 import app.hushgram.extension.instagram.misc.Fonts;
+import app.hushgram.extension.instagram.misc.GlassBlur;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.reels.BurnInMode;
@@ -596,6 +597,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.FULL_SCREEN_BARS && Settings.FULL_SCREEN_HIDES.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)
+                            || Settings.GLASS_TAB_BAR_BLUR_STRENGTH.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key)
                             || Settings.GLASS_TAB_BAR_CORNERS.key.equals(key) || Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key));
                     belongs |= family == PatchFamily.VIDEO_DOWNLOAD && (Settings.HOLD_TO_DOWNLOAD.key.equals(key)
@@ -3366,6 +3368,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** How strongly the glass tab bar blurs what's behind it (#289). Its summary is the step chosen. */
+    static GlassBlurRow glassBlurRow(Context context) {
+        GlassBlurRow row = new GlassBlurRow(context);
+        row.setKey(Settings.GLASS_TAB_BAR_BLUR_STRENGTH.key);
+        row.setTitle(L10n.t("Blur strength"));
+        row.setDialogTitle(L10n.t("Blur strength"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        GlassBlur[] steps = GlassBlur.values();
+        CharSequence[] entries = new CharSequence[steps.length];
+        CharSequence[] values = new CharSequence[steps.length];
+        for (int i = 0; i < steps.length; i++) {
+            entries[i] = glassBlurLabel(steps[i]);
+            values[i] = steps[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.GLASS_TAB_BAR_BLUR_STRENGTH.savedValue().name());
+        return row;
+    }
+
     /** How see-through the glass tab bar's pill is. Its summary is the step chosen. */
     static GlassOpacityRow glassOpacityRow(Context context) {
         GlassOpacityRow row = new GlassOpacityRow(context);
@@ -3892,6 +3914,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Teal");
             default:
                 return L10n.t("Instagram blue");
+        }
+    }
+
+    /** What the list calls [step]. */
+    static String glassBlurLabel(GlassBlur step) {
+        switch (step) {
+            case LIGHT:
+                return L10n.t("Light");
+            case STRONG:
+                return L10n.t("Strong");
+            default:
+                return L10n.t("Standard");
         }
     }
 
@@ -5528,6 +5562,31 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         protected void showDialog(Bundle state) {
             super.showDialog(state);
             if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class GlassBlurRow extends ListPreference {
+        GlassBlurRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the step chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            GlassBlur step = GlassBlur.STANDARD;
+            for (GlassBlur candidate : GlassBlur.values()) {
+                if (candidate.name().equals(value)) step = candidate;
+            }
+            setSummary(glassBlurLabel(step));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
         }
     }
 

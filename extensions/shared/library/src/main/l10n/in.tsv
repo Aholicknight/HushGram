@@ -884,6 +884,10 @@ Clearest	Paling bening
 Clear	Bening
 Frosted	Buram
 Standard	Standar
+Blur strength	Kekuatan blur
+# context: a blur strength step of the tab bar
+Light	Ringan
+Strong	Kuat
 Compact	Ringkas
 Tall	Tinggi
 Tab bar corners	Sudut bilah tab

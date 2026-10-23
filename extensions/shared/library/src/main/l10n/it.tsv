@@ -884,6 +884,10 @@ Clearest	Più trasparente
 Clear	Trasparente
 Frosted	Smerigliata
 Standard	Standard
+Blur strength	Intensità della sfocatura
+# context: a blur strength step of the tab bar
+Light	Leggera
+Strong	Forte
 Compact	Compatta
 Tall	Alta
 Tab bar corners	Angoli della barra delle schede

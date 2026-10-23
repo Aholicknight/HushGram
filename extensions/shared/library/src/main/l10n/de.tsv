@@ -884,6 +884,10 @@ Clearest	Am klarsten
 Clear	Klar
 Frosted	Milchglas
 Standard	Standard
+Blur strength	Stärke der Unschärfe
+# context: a blur strength step of the tab bar
+Light	Leicht
+Strong	Stark
 Compact	Kompakt
 Tall	Hoch
 Tab bar corners	Ecken der Tab-Leiste

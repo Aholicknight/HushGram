@@ -916,6 +916,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_blur", TRUE, true, parent(GLASS_TAB_BAR));
 
     /**
+     * Under {@link #GLASS_TAB_BAR_BLUR}: how strongly the pill blurs what's behind it
+     * ({@link app.hushgram.extension.instagram.misc.GlassBlur}, #289). Standard is the blur the bar has always
+     * had. The blur is made once as the bar is built, so a change shows after a restart and asks for one.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassBlur> GLASS_TAB_BAR_BLUR_STRENGTH =
+            new EnumSetting<>("hushgram_glass_tab_bar_blur_strength",
+                    app.hushgram.extension.instagram.misc.GlassBlur.STANDARD, true, parent(GLASS_TAB_BAR_BLUR));
+
+    /**
      * Under {@link #GLASS_TAB_BAR}: Home and the other tabs run down behind the bar, so the glass has
      * the real content to blur and no strip of Instagram's own colour sits behind the pill. Reels keeps
      * its own controls above the pill. Off, the content stops above the bar.

@@ -883,6 +883,10 @@ Clearest	가장 투명하게
 Clear	투명하게
 Frosted	젖빛 유리
 Standard	기본
+Blur strength	흐림 강도
+# context: a blur strength step of the tab bar
+Light	약하게
+Strong	강하게
 Compact	컴팩트
 Tall	높게
 Tab bar corners	탭 바 모서리

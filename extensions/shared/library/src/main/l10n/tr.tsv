@@ -884,6 +884,10 @@ Clearest	En saydam
 Clear	Saydam
 Frosted	Buzlu
 Standard	Standart
+Blur strength	Bulanıklık gücü
+# context: a blur strength step of the tab bar
+Light	Hafif
+Strong	Güçlü
 Compact	Kompakt
 Tall	Yüksek
 Tab bar corners	Sekme çubuğu köşeleri

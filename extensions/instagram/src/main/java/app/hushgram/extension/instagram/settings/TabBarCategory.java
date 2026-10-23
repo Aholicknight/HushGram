@@ -7,6 +7,7 @@
 package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassBlurRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassCornersRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassHeightRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassLiftRow;
@@ -98,6 +99,7 @@ final class TabBarCategory {
                                 + "you're on. Restart Instagram after changing it.")));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_BLUR, L10n.t("Blur behind the tab bar"),
                         L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.")));
+                glass.addPreference(glassBlurRow(context));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_LIQUID, L10n.t("Liquid glass look"),
                         L10n.t("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling "
                                 + "a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as "

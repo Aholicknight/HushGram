@@ -884,6 +884,10 @@ Clearest	Mais transparente
 Clear	Transparente
 Frosted	Fosco
 Standard	Padrão
+Blur strength	Intensidade do desfoque
+# context: a blur strength step of the tab bar
+Light	Leve
+Strong	Forte
 Compact	Compacta
 Tall	Alta
 Tab bar corners	Cantos da barra de abas
