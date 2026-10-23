@@ -19,6 +19,7 @@ Every HushGram release, newest first.
 ### Improvements
 
 * **Tooling:** HushGram builds on Gradle 9.8.2 now, with androidx.annotation 1.11.0 and commons-lang3 3.21.0. Each new download was checked against its publisher's checksums before it went on the verification list. The patches themselves don't change.
+* **Tooling:** The HushGram settings code is split into one file per category, so a row is easier to find. Every category lists the same rows in the same order, and search finds the same ones.
 
 ## 0.0.15 (2026-10-22)
 
