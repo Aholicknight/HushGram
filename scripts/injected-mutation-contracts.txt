@@ -1744,6 +1744,17 @@ once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->childScrolls(
 sole-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->pagerInput(Ljava/lang/Object;I)V replacing Landroidx/viewpager2/widget/ViewPager2;->setUserInputEnabled(Z)V in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
 start-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->touched(Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
 once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->touched(Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/MotionEvent;)Z calling instance Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;->*(ZF)V class-holding No\ssupport\sfor\sdisabling\scenter\spanel
+# Once the panel has slid in, Instagram opens the profile in a screen of its own (ModalActivity) with
+# no swipe back, so the profile (UserDetailFragment) hands itself to SwipeToProfile.profileResumed
+# first in its onResume and to SwipeToProfile.profilePaused first in its onPause, and every screen's
+# touch is offered to SwipeToProfile.closesProfile in IgFragmentActivity.dispatchTouchEvent, first or
+# right after Tap to play's TapClock. Left out, a right swipe on the profile the reel opened does
+# nothing; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->profileResumed(Ljava/lang/Object;)V in instance ()V holding UserDetailFragment.onResume
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->profileResumed(Ljava/lang/Object;)V in instance ()V holding UserDetailFragment.onResume
+start-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->profilePaused(Ljava/lang/Object;)V in instance ()V holding UserDetailFragment.onPause
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->profilePaused(Ljava/lang/Object;)V in instance ()V holding UserDetailFragment.onPause
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->closesProfile(Landroid/app/Activity;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
 # Find the reel you came from hands the reel's media to ReelOrigin.opening first thing in the Reels
 # viewer's profile opener (07FC.A03 on 450, the one method holding the marker below), reading the media
 # field of its one argument into v0 on the way, and hands a profile's Reels tab to

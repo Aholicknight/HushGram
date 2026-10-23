@@ -9,11 +9,17 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
 import android.content.Context;
+import android.os.Bundle;
+import android.os.SystemClock;
+import android.view.Gravity;
+import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.FrameLayout;
 
 import org.junit.After;
@@ -21,11 +27,16 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLooper;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -625,6 +636,311 @@ public class SwipeToProfileTest {
         assertEquals(Boolean.TRUE, panels.inputs.get(pager));
         String missing = HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString();
         assertTrue(missing, missing.contains("'" + SwipeToProfile.SWITCH + "'"));
+    }
+
+    /** A right swipe on the profile a left swipe on a reel opened takes the touch from the views under it and goes back on the lift. */
+    @Test
+    public void aRightSwipeOnTheProfileTheReelOpenedGoesBack() {
+        Screen screen = screen();
+        assertTrue(SwipeToProfile.allow(false, () -> true));
+        SwipeToProfile.profileResumed(new Object());
+        float x = 20;
+        float y = headerY(screen);
+
+        assertFalse(dispatch(screen, MotionEvent.ACTION_DOWN, x, y, () -> true));
+        assertFalse("within the slop", dispatch(screen, MotionEvent.ACTION_MOVE, x + slop() / 2f, y, () -> true));
+        assertTrue(dispatch(screen, MotionEvent.ACTION_MOVE, x + 2 * slop(), y + slop() / 2f, () -> true));
+        assertTrue(dispatch(screen, MotionEvent.ACTION_MOVE, x + 4 * slop(), y, () -> true));
+        assertTrue(dispatch(screen, MotionEvent.ACTION_UP, x + width(screen) / 2f, y, () -> true));
+        ShadowLooper.idleMainLooper();
+
+        assertEquals(1, screen.backs);
+        assertEquals(where(screen), Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_CANCEL), screen.header.actions);
+        assertTrue(HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString(), HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).isEmpty());
+    }
+
+    /** A left swipe the container held the tabs' pager for opened the profile too, so a right swipe on it goes back. */
+    @Test
+    public void aLeftSwipeThePagerWasHeldForCountsToo() {
+        FakePanels panels = new FakePanels();
+        FrameLayout container = container();
+        Object pager = new Object();
+        startTouch(container, panels, pager, true);
+        SwipeToProfile.touched(container, event(MotionEvent.ACTION_MOVE, 100), panels, () -> true);
+        SwipeToProfile.profileResumed(new Object());
+
+        assertTrue(swipesBack(screen(), () -> true));
+    }
+
+    /** A close lifted short of twice the touch slop, and of a tenth of the screen's width, keeps the touch from the views but doesn't go back. */
+    @Test
+    public void aShortRightSwipeDoesntGoBack() {
+        Screen screen = screen();
+        SwipeToProfile.allow(false, () -> true);
+        SwipeToProfile.profileResumed(new Object());
+        float y = headerY(screen);
+
+        dispatch(screen, MotionEvent.ACTION_DOWN, 20, y, () -> true);
+        assertTrue(dispatch(screen, MotionEvent.ACTION_MOVE, 20 + slop(), y, () -> true));
+        assertTrue(dispatch(screen, MotionEvent.ACTION_UP, 20 + 2 * slop() - 1, y, () -> true));
+        ShadowLooper.idleMainLooper();
+
+        assertEquals(0, screen.backs);
+        assertEquals(where(screen), Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_CANCEL), screen.header.actions);
+    }
+
+    /** A left swipe, and one going more up or down than right, stay with the profile's own views. */
+    @Test
+    public void leftAndUpAndDownSwipesStayInstagrams() {
+        Screen screen = screen();
+        SwipeToProfile.allow(false, () -> true);
+        SwipeToProfile.profileResumed(new Object());
+        float y = headerY(screen);
+        float middle = width(screen) / 2f;
+
+        assertFalse(dispatch(screen, MotionEvent.ACTION_DOWN, middle, y, () -> true));
+        assertFalse(dispatch(screen, MotionEvent.ACTION_MOVE, middle - 2 * slop(), y, () -> true));
+        assertFalse(dispatch(screen, MotionEvent.ACTION_UP, middle - 2 * slop(), y, () -> true));
+
+        assertFalse(dispatch(screen, MotionEvent.ACTION_DOWN, 20, y, () -> true));
+        assertFalse(dispatch(screen, MotionEvent.ACTION_MOVE, 20 + slop(), y + 2 * slop(), () -> true));
+        assertFalse("given back for the rest of the touch", dispatch(screen, MotionEvent.ACTION_MOVE, 20 + 10 * slop(), y + 2 * slop(), () -> true));
+        assertFalse(dispatch(screen, MotionEvent.ACTION_UP, 20 + width(screen) / 2f, y, () -> true));
+        ShadowLooper.idleMainLooper();
+
+        assertEquals(0, screen.backs);
+        assertFalse(screen.header.actions.contains(MotionEvent.ACTION_CANCEL));
+    }
+
+    /** A view under the finger that can scroll left, like the grid past its first tab, keeps the swipe. */
+    @Test
+    public void aViewThatCanScrollLeftKeepsTheSwipe() {
+        Screen screen = screen();
+        SwipeToProfile.allow(false, () -> true);
+        SwipeToProfile.profileResumed(new Object());
+        int[] strip = new int[2];
+        screen.strip.getLocationInWindow(strip);
+        float y = strip[1] + screen.strip.getHeight() / 2f;
+
+        assertFalse(dispatch(screen, MotionEvent.ACTION_DOWN, 20, y, () -> true));
+        assertFalse(dispatch(screen, MotionEvent.ACTION_MOVE, 20 + 2 * slop(), y, () -> true));
+        assertFalse(dispatch(screen, MotionEvent.ACTION_UP, 20 + width(screen) / 2f, y, () -> true));
+        ShadowLooper.idleMainLooper();
+        assertEquals(0, screen.backs);
+
+        assertTrue("the header above it", swipesBack(screen, () -> true));
+    }
+
+    /** A second finger, before the swipe is clear or after, never goes back. */
+    @Test
+    public void aSecondFingerNeverGoesBack() {
+        Screen screen = screen();
+        SwipeToProfile.allow(false, () -> true);
+        SwipeToProfile.profileResumed(new Object());
+        float y = headerY(screen);
+
+        int secondDown = MotionEvent.ACTION_POINTER_DOWN | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
+        int secondUp = MotionEvent.ACTION_POINTER_UP | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
+        float far = 20 + width(screen) / 2f;
+
+        dispatch(screen, MotionEvent.ACTION_DOWN, 1, 20, y, () -> true);
+        assertFalse(dispatch(screen, secondDown, 2, 20, y, () -> true));
+        assertFalse(dispatch(screen, MotionEvent.ACTION_MOVE, 2, 20 + 2 * slop(), y, () -> true));
+        assertFalse(dispatch(screen, secondUp, 2, far, y, () -> true));
+        assertFalse(dispatch(screen, MotionEvent.ACTION_UP, 1, far, y, () -> true));
+
+        dispatch(screen, MotionEvent.ACTION_DOWN, 1, 20, y, () -> true);
+        assertTrue(dispatch(screen, MotionEvent.ACTION_MOVE, 1, 20 + 2 * slop(), y, () -> true));
+        assertTrue(dispatch(screen, secondDown, 2, 20 + 2 * slop(), y, () -> true));
+        assertTrue(dispatch(screen, MotionEvent.ACTION_MOVE, 2, far, y, () -> true));
+        assertTrue(dispatch(screen, secondUp, 2, far, y, () -> true));
+        assertTrue(dispatch(screen, MotionEvent.ACTION_UP, 1, far, y, () -> true));
+        ShadowLooper.idleMainLooper();
+
+        assertEquals(0, screen.backs);
+    }
+
+    /** Off, paused or the settings not read yet, a right swipe on the profile stays Instagram's. */
+    @Test
+    public void offPausedAndUnreadyLeaveTheProfileAlone() {
+        Screen screen = screen();
+        SwipeToProfile.allow(false, () -> true);
+        SwipeToProfile.profileResumed(new Object());
+
+        Settings.REEL_SWIPE_TO_PROFILE.save(false);
+        assertFalse("off", swipesBack(screen, null));
+        assertEquals(where(screen), Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP), screen.header.actions);
+        Settings.REEL_SWIPE_TO_PROFILE.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", swipesBack(screen, null));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", swipesBack(screen, null)));
+
+        assertTrue("on", swipesBack(screen, null));
+    }
+
+    /** Only the profile a left swipe on a reel opened, while it shows, closes on a right swipe. */
+    @Test
+    public void aProfileTheSwipeDidntOpenStaysInstagrams() {
+        Screen screen = screen();
+        SwipeToProfile.profileResumed(new Object());
+        assertFalse("opened some other way", swipesBack(screen, () -> true));
+
+        SwipeToProfile.allow(false, () -> true);
+        SystemClock.sleep(SwipeToProfile.OPENS_WITHIN_MS + 1);
+        SwipeToProfile.profileResumed(new Object());
+        assertFalse("shown too long after the swipe", swipesBack(screen, () -> true));
+
+        SwipeToProfile.allow(false, () -> true);
+        Object swiped = new Object();
+        SwipeToProfile.profileResumed(swiped);
+        SwipeToProfile.profilePaused(swiped);
+        assertFalse("paused", swipesBack(screen, () -> true));
+
+        SystemClock.sleep(SwipeToProfile.OPENS_WITHIN_MS + 1);
+        Object over = new Object();
+        SwipeToProfile.profileResumed(over);
+        assertFalse("another profile over it", swipesBack(screen, () -> true));
+        SwipeToProfile.profilePaused(over);
+        SwipeToProfile.profileResumed(swiped);
+        assertTrue("back on it", swipesBack(screen, () -> true));
+    }
+
+    @Test
+    public void aThrowingSwitchLeavesTheProfileAloneAndIsReported() {
+        Screen screen = screen();
+        SwipeToProfile.allow(false, () -> true);
+        SwipeToProfile.profileResumed(new Object());
+
+        assertFalse(swipesBack(screen, THROWS));
+
+        String missing = HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString();
+        assertTrue(missing, missing.contains("'" + SwipeToProfile.SWITCH + "'"));
+    }
+
+    /** A screen that fails the walk under the finger, here one with no window, leaves the touch to Instagram and is reported. */
+    @Test
+    public void aFailedCloseLeavesTheTouchToInstagramAndIsReported() {
+        SwipeToProfile.allow(false, () -> true);
+        SwipeToProfile.profileResumed(new Object());
+        MotionEvent down = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 20, 50, 0);
+
+        assertFalse(SwipeToProfile.closesProfile(new Activity(), down, () -> true));
+
+        String missing = HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString();
+        assertTrue(missing, missing.contains("'" + SwipeToProfile.CLOSE + "'"));
+    }
+
+    /** A screen counting the Backs it gets: a header filling it that records each touch it's handed, and a strip along the bottom that can scroll sideways. */
+    public static final class Screen extends Activity {
+        int backs;
+        Recorder header;
+        View strip;
+
+        @Override
+        protected void onCreate(Bundle state) {
+            super.onCreate(state);
+            requestWindowFeature(Window.FEATURE_NO_TITLE);
+            FrameLayout root = new FrameLayout(this);
+            header = new Recorder(this);
+            root.addView(header, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            strip = new Sideways(this);
+            root.addView(strip, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 40, Gravity.BOTTOM));
+            setContentView(root);
+        }
+
+        @SuppressWarnings("deprecation")
+        @Override
+        public void onBackPressed() {
+            backs++;
+        }
+    }
+
+    /** A view taking every touch, recording each action it's handed. */
+    private static final class Recorder extends View {
+        final List<Integer> actions = new ArrayList<>();
+
+        Recorder(Context context) {
+            super(context);
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            actions.add(event.getActionMasked());
+            return true;
+        }
+    }
+
+    private static Screen screen() {
+        Screen screen = Robolectric.buildActivity(Screen.class).setup().get();
+        ShadowLooper.idleMainLooper();
+        return screen;
+    }
+
+    /** A third of the way down the header, well above the strip, in the window's coordinates. */
+    private static float headerY(Screen screen) {
+        int[] at = new int[2];
+        screen.header.getLocationInWindow(at);
+        return at[1] + screen.header.getHeight() / 3f;
+    }
+
+    /** Where the header sits in the window, for a failure message. */
+    private static String where(Screen screen) {
+        int[] at = new int[2];
+        screen.header.getLocationInWindow(at);
+        return "header at " + at[0] + "," + at[1] + " size " + screen.header.getWidth() + "x" + screen.header.getHeight() + ", touched at y " + headerY(screen);
+    }
+
+    private static int width(Screen screen) {
+        return screen.getResources().getDisplayMetrics().widthPixels;
+    }
+
+    private static boolean dispatch(Screen screen, int action, float x, float y, BooleanSupplier on) {
+        return dispatch(screen, action, 1, x, y, on);
+    }
+
+    /**
+     * Hands a touchscreen event with one or two fingers, the first at (x, y) and the second 20 below
+     * it, to the screen as the patched touch dispatch does: to HushGram first, through the switch the
+     * hook reads when {@code on} is null, then to the views unless HushGram took it. Views on API 37
+     * skip an event with no input source.
+     */
+    private static boolean dispatch(Screen screen, int action, int fingers, float x, float y, BooleanSupplier on) {
+        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[fingers];
+        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[fingers];
+        for (int i = 0; i < fingers; i++) {
+            properties[i] = new MotionEvent.PointerProperties();
+            properties[i].id = i;
+            properties[i].toolType = MotionEvent.TOOL_TYPE_FINGER;
+            coords[i] = new MotionEvent.PointerCoords();
+            coords[i].x = x;
+            coords[i].y = y + 20 * i;
+            coords[i].pressure = 1f;
+            coords[i].size = 1f;
+        }
+        MotionEvent event = MotionEvent.obtain(0, 0, action, fingers, properties, coords, 0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_TOUCHSCREEN, 0);
+        try {
+            boolean taken = on == null ? SwipeToProfile.closesProfile(screen, event) : SwipeToProfile.closesProfile(screen, event, on);
+            if (!taken) screen.getWindow().superDispatchTouchEvent(event);
+            return taken;
+        } finally {
+            event.recycle();
+        }
+    }
+
+    /** A right swipe on the header, lifted half the screen's width right of where it went down; whether it went back. */
+    private static boolean swipesBack(Screen screen, BooleanSupplier on) {
+        int before = screen.backs;
+        float y = headerY(screen);
+        dispatch(screen, MotionEvent.ACTION_DOWN, 20, y, on);
+        dispatch(screen, MotionEvent.ACTION_MOVE, 20 + 2 * slop(), y, on);
+        dispatch(screen, MotionEvent.ACTION_UP, 20 + width(screen) / 2f, y, on);
+        ShadowLooper.idleMainLooper();
+        return screen.backs > before;
     }
 
     /** A touch going down at 500 across, and the container setting the tabs' pager input as Instagram does then. */

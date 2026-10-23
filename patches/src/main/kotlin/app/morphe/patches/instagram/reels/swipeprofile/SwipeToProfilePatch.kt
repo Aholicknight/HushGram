@@ -6,16 +6,22 @@ package app.morphe.patches.instagram.reels.swipeprofile
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
+import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
@@ -49,6 +55,9 @@ internal const val CHILD_SCROLLS_HOOK = "$SWIPE_TO_PROFILE->childScrolls(Landroi
 internal const val PAGER_INPUT_HOOK = "$SWIPE_TO_PROFILE->pagerInput(Ljava/lang/Object;I)V"
 internal const val TOUCHED_HOOK = "$SWIPE_TO_PROFILE->touched(Landroid/view/View;Landroid/view/MotionEvent;)V"
 internal const val RIGHT_PANEL_HOOK = "$SWIPE_TO_PROFILE->leaveOutRightPanel(ILjava/lang/Object;)Z"
+internal const val CLOSES_PROFILE_HOOK = "$SWIPE_TO_PROFILE->closesProfile(Landroid/app/Activity;Landroid/view/MotionEvent;)Z"
+internal const val PROFILE_RESUMED_HOOK = "$SWIPE_TO_PROFILE->profileResumed(Ljava/lang/Object;)V"
+internal const val PROFILE_PAUSED_HOOK = "$SWIPE_TO_PROFILE->profilePaused(Ljava/lang/Object;)V"
 internal const val SWIPE_TARGETS = "$EXTENSION_PACKAGE/reels/SwipeToProfileTargets;"
 
 /** The marker, less its release, of the Reels viewer's check of whether a swipe may go from a reel to its side panel. */
@@ -63,6 +72,9 @@ internal const val CENTER_PANEL = "No support for disabling center panel"
 /** The container's setter of whether its walk passes over a pager whose input is off. Instagram keeps its name. */
 internal const val PAGER_CHECK_SETTER = "setShouldCheckViewPagerInputEnabledForScroll"
 
+/** The profile screen, which opens in a screen of its own once the panel has slid in. Instagram keeps its name. */
+internal const val PROFILE_FRAGMENT = "Lcom/instagram/profile/fragment/UserDetailFragment;"
+
 /** The pager the main tabs and the Reels and Friends tabs slide in. androidx keeps its name. */
 internal const val VIEW_PAGER = "Landroidx/viewpager2/widget/ViewPager2;"
 private const val SET_USER_INPUT = "setUserInputEnabled"
@@ -75,12 +87,14 @@ private val WALK = listOf("Landroid/view/View;", "I", "I", "I", "Z", "Z")
 private val MOVES = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
 
 /**
- * Lets a left swipe on a reel open its creator's profile, as older Instagram builds did. Kept out of
- * the default selection until a right swipe on the open profile slides back to the reel. The profile
+ * Lets a left swipe on a reel open its creator's profile, as older Instagram builds did. The profile
  * loads into the container's right panel, which the swipe setup leaves out on accounts with the new
  * tab bar, so the setup's answer goes through the extension (#283). The container's walk of the
  * views under the finger gave the swipe to a pager (#245), so that walk, the call setting the tabs'
- * pager input and each touch event the container sees go through the extension too.
+ * pager input and each touch event the container sees go through the extension too. Once the panel
+ * has slid in, Instagram opens the profile in a screen of its own with no swipe back, so the
+ * profile's resume and pause and every screen's touch dispatch go through the extension as well,
+ * which lets a right swipe on that profile go back to the reel.
  */
 @Suppress("unused")
 val swipeToProfilePatch = bytecodePatch(
@@ -99,10 +113,12 @@ val swipeToProfilePatch = bytecodePatch(
         val panel = findProfilePanel()
         val setUp = findPanelSetUp(panel)
         val pagers = findPagerHandling(panel.touch)
+        val close = findProfileClose()
         hookSwipeGate(gate)
         hookPagerHandling(panel.touch, pagers)
         hookProfilePanel(panel)
         hookPanelSetUp(setUp)
+        hookProfileClose(close)
         enableStatus("swipeToProfile")
     }
 }
@@ -609,6 +625,59 @@ internal fun BytecodePatchContext.hookPagerHandling(touch: Method, found: PagerH
     stub("pager", listOf(ANY), "Z", "instance-of p0, p0, $VIEW_PAGER\nreturn p0")
     stub("inputOn", listOf(ANY), "Z", "check-cast p0, $VIEW_PAGER\niget-boolean p0, p0, ${found.pagerInput}\nreturn p0")
     stub("input", listOf(ANY, "Z"), "V", "check-cast p0, $VIEW_PAGER\ninvoke-virtual { p0, p1 }, $VIEW_PAGER->$SET_USER_INPUT(Z)V\nreturn-void")
+}
+
+/** Every Instagram screen's touch dispatch, and the profile screen's resume and pause. */
+internal class ProfileClose(val touch: Method, val resume: Method, val pause: Method)
+
+/**
+ * Finds where a right swipe on the open profile is caught. [FRAGMENT_ACTIVITY], which every
+ * Instagram screen extends, has to have one dispatchTouchEvent of its own, which sees each touch
+ * before any view does, with a local for the hook's answer and nothing jumping back to its start.
+ * [PROFILE_FRAGMENT] has to have an onResume and an onPause of its own, instance methods taking
+ * nothing.
+ */
+internal fun BytecodePatchContext.findProfileClose(): ProfileClose {
+    val activity = classDefByOrNull(FRAGMENT_ACTIVITY) ?: refuse("this build has no $FRAGMENT_ACTIVITY")
+    val touches = activity.methods.filter {
+        it.name == "dispatchTouchEvent" && it.returnType == "Z" &&
+            it.parameterTypes.map(CharSequence::toString) == listOf(MOTION_EVENT) && it.implementation != null
+    }
+    val touch = touches.singleOrNull() ?: refuse("expected $FRAGMENT_ACTIVITY to have one dispatchTouchEvent of its own, found ${touches.size}")
+    if (touch.localRegisterCount() < 1) refuse("$FRAGMENT_ACTIVITY->dispatchTouchEvent has no local register for the hook's answer")
+    if (0 in touch.jumpTargets()) refuse("something in $FRAGMENT_ACTIVITY->dispatchTouchEvent jumps back to its start")
+    val profile = classDefByOrNull(PROFILE_FRAGMENT) ?: refuse("this build has no $PROFILE_FRAGMENT")
+    fun lifecycle(name: String) = profile.methods.singleOrNull {
+        it.name == name && it.returnType == "V" && it.parameterTypes.isEmpty() &&
+            !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
+    } ?: refuse("$PROFILE_FRAGMENT has no $name() of its own")
+    return ProfileClose(touch, lifecycle("onResume"), lifecycle("onPause"))
+}
+
+/**
+ * First thing in the touch dispatch, hands the screen and the event to [CLOSES_PROFILE_HOOK]. When
+ * it answers true the event was a right swipe closing the profile and is answered as handled.
+ * Otherwise the code after it runs as it was. Tap to play reads every touch here too, so when its
+ * call is already first, this one goes right after it; when Tap to play comes later, it goes in
+ * front. First thing in the profile's resume and pause, hands the profile to [PROFILE_RESUMED_HOOK]
+ * and [PROFILE_PAUSED_HOOK].
+ */
+internal fun BytecodePatchContext.hookProfileClose(found: ProfileClose) {
+    val touch = mutable(found.touch)
+    val first = touch.getInstruction(0).called()
+    val at = if (first != null && "${first.definingClass}->${first.name}(${first.parameterTypes.joinToString("")})${first.returnType}" == TAP_CLOCK) 1 else 0
+    touch.addInstructionsWithLabels(
+        at,
+        """
+            invoke-static/range { p0 .. p1 }, $CLOSES_PROFILE_HOOK
+            move-result v0
+            if-eqz v0, :instagram
+            return v0
+        """,
+        ExternalLabel("instagram", touch.getInstruction(at)),
+    )
+    mutable(found.resume).addInstruction(0, "invoke-static/range { p0 .. p0 }, $PROFILE_RESUMED_HOOK")
+    mutable(found.pause).addInstruction(0, "invoke-static/range { p0 .. p0 }, $PROFILE_PAUSED_HOOK")
 }
 
 private fun BytecodePatchContext.mutable(method: Method): MutableMethod =

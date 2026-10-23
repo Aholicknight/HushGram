@@ -12,6 +12,8 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
+import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
 import app.morphe.patches.instagram.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
@@ -30,6 +32,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -89,7 +92,9 @@ class SwipeToProfileHookTest {
 
     @Test
     fun theWholePatchHooksTheGateAndThePanelAndTurnsTheStatusOn() {
-        val context = PatchContexts.of(listOf(check(), ExtensionDex.classDef(SETTINGS_STATUS), ExtensionDex.classDef(SWIPE_TARGETS)) + panelClasses())
+        val context = PatchContexts.of(
+            listOf(check(), ExtensionDex.classDef(SETTINGS_STATUS), ExtensionDex.classDef(SWIPE_TARGETS)) + panelClasses() + closeClasses(),
+        )
 
         swipeToProfilePatch.execute(context)
 
@@ -97,6 +102,8 @@ class SwipeToProfileHookTest {
         assertEquals(1, method.implementation!!.instructions.count { (it as? ReferenceInstruction)?.reference?.toString() == SWIPE_ALLOWED_HOOK })
         val setUp = context.mutableClassDefBy(HOST).methods.single { it.name == "A0I" }
         assertEquals(1, setUp.implementation!!.instructions.count { (it as? ReferenceInstruction)?.reference?.toString() == RIGHT_PANEL_HOOK })
+        val touch = context.mutableClassDefBy(FRAGMENT_ACTIVITY).methods.single { it.name == "dispatchTouchEvent" }
+        assertEquals(1, touch.implementation!!.instructions.count { it.names(CLOSES_PROFILE_HOOK) })
         val status = context.mutableClassDefBy(SETTINGS_STATUS).methods.single { it.name == "swipeToProfile" }
         assertEquals(Opcode.CONST_4, status.implementation!!.instructions.first().opcode)
     }
@@ -106,7 +113,10 @@ class SwipeToProfileHookTest {
         val declared = ExtensionDex.classDef(SWIPE_TO_PROFILE).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(TAB_CHANGING_HOOK, TAB_CHANGED_HOOK, CHILD_SCROLLS_HOOK, PAGER_INPUT_HOOK, TOUCHED_HOOK, RIGHT_PANEL_HOOK)) {
+        for (hook in listOf(
+            TAB_CHANGING_HOOK, TAB_CHANGED_HOOK, CHILD_SCROLLS_HOOK, PAGER_INPUT_HOOK, TOUCHED_HOOK, RIGHT_PANEL_HOOK,
+            CLOSES_PROFILE_HOOK, PROFILE_RESUMED_HOOK, PROFILE_PAUSED_HOOK,
+        )) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
         val stubs = ExtensionDex.classDef(SWIPE_TARGETS).methods.filter { AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.name }.toSet()
@@ -276,6 +286,62 @@ class SwipeToProfileHookTest {
     }
 
     /** In each declared build: the one gate, read in the one check, with the extension's answer taking its place. */
+    /** Every screen's touch dispatch asks the extension first and answers handled on yes, and the profile reports its resume and pause. */
+    @Test
+    fun aRightSwipeOnTheProfileIsAskedFirstInEveryScreensTouch() {
+        val context = PatchContexts.of(closeClasses())
+
+        val close = context.findProfileClose()
+        context.hookProfileClose(close)
+
+        assertCloseHooked("stand-in", context, close)
+        assertEquals(0, context.mutated(close.touch).implementation!!.instructions.indexOfFirst { it.names(CLOSES_PROFILE_HOOK) })
+    }
+
+    /** Tap to play's clock still sees every touch: when its call is already first, the close goes right after it. */
+    @Test
+    fun tapToPlaysClockStaysFirstInTheTouch() {
+        val context = PatchContexts.of(closeClasses(tapClock = true))
+
+        val close = context.findProfileClose()
+        context.hookProfileClose(close)
+
+        val code = context.mutated(close.touch).implementation!!.instructions.toList()
+        assertTrue(code[0].names(TAP_CLOCK))
+        assertTrue(code[1].names(CLOSES_PROFILE_HOOK))
+        assertCloseHooked("stand-in", context, close)
+    }
+
+    @Test
+    fun aBuildWithoutTheBaseScreenFailsThePatch() {
+        refuses("no $FRAGMENT_ACTIVITY") { PatchContexts.of(closeClasses(activity = false)).findProfileClose() }
+    }
+
+    @Test
+    fun aBaseScreenWithoutATouchDispatchOfItsOwnFailsThePatch() {
+        refuses("one dispatchTouchEvent of its own, found 0") { PatchContexts.of(closeClasses(touch = false)).findProfileClose() }
+    }
+
+    @Test
+    fun aTouchDispatchWithoutALocalFailsThePatch() {
+        refuses("no local register") { PatchContexts.of(closeClasses(locals = 0)).findProfileClose() }
+    }
+
+    @Test
+    fun aTouchDispatchJumpingBackToItsStartFailsThePatch() {
+        refuses("jumps back to its start") { PatchContexts.of(closeClasses(loopsBack = true)).findProfileClose() }
+    }
+
+    @Test
+    fun aBuildWithoutTheProfileFailsThePatch() {
+        refuses("no $PROFILE_FRAGMENT") { PatchContexts.of(closeClasses(profile = false)).findProfileClose() }
+    }
+
+    @Test
+    fun aProfileWithoutAResumeOfItsOwnFailsThePatch() {
+        refuses("$PROFILE_FRAGMENT has no onResume()") { PatchContexts.of(closeClasses(resume = false)).findProfileClose() }
+    }
+
     @Test
     fun eachDeclaredBuildHooksTheGate() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -303,8 +369,9 @@ class SwipeToProfileHookTest {
                 if (classDef.methods.any { SWIPE_ALLOWED in it.markers() }) found += ImmutableClassDef.of(classDef)
             }
         }
+        val screens = FixtureDex.classes(bundle, setOf(FRAGMENT_ACTIVITY, PROFILE_FRAGMENT)).values
         val context = PatchContexts.of(
-            FixtureDex.withStringPools(bundle, found + fixturePanelClasses(bundle)) +
+            FixtureDex.withStringPools(bundle, found + fixturePanelClasses(bundle) + screens) +
                 ExtensionDex.classDef(SETTINGS_STATUS) + ExtensionDex.classDef(SWIPE_TARGETS),
         )
 
@@ -312,8 +379,10 @@ class SwipeToProfileHookTest {
         val panel = context.findProfilePanel()
         val setUp = context.findPanelSetUp(panel)
         val pagers = context.findPagerHandling(panel.touch)
+        val close = context.findProfileClose()
         val returns = panel.tabChange.implementation!!.instructions.count { it.opcode == Opcode.RETURN_VOID }
         swipeToProfilePatch.execute(context)
+        assertCloseHooked("$label $FRAGMENT_ACTIVITY->dispatchTouchEvent", context, close)
 
         val method = context.mutableClassDefBy(gate.type).methods.single { it.name == gate.name && SWIPE_ALLOWED in it.markers() }
         assertHooked("$label ${gate.type}->${gate.name}", method, gate)
@@ -444,6 +513,35 @@ class SwipeToProfileHookTest {
         assertEquals("$what: alone", 1, after.registerCount)
     }
 
+    /**
+     * [CLOSES_PROFILE_HOOK] on this and the event, from the touch dispatch's range of parameters,
+     * its answer in v0, an if-eqz over a `return v0` to the instruction that stood there, and every
+     * instruction of the dispatch after it as it was; [PROFILE_RESUMED_HOOK] and [PROFILE_PAUSED_HOOK]
+     * first in the profile's resume and pause, on this.
+     */
+    private fun assertCloseHooked(what: String, context: BytecodePatchContext, close: ProfileClose) {
+        val before = close.touch.implementation!!.instructions.toList()
+        val code = context.mutated(close.touch).implementation!!.instructions.toList()
+        val at = code.indexOfFirst { it.names(CLOSES_PROFILE_HOOK) }
+        assertTrue("$what: no $CLOSES_PROFILE_HOOK", at >= 0)
+        assertEquals("$what: asked once", 1, code.count { it.names(CLOSES_PROFILE_HOOK) })
+        val call = code[at] as RegisterRangeInstruction
+        assertEquals("$what: hands this and the event", close.touch.localRegisterCount() to 2, call.startRegister to call.registerCount)
+        assertEquals("$what: answer", Opcode.MOVE_RESULT to 0, code[at + 1].opcode to (code[at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: branch", Opcode.IF_EQZ to 0, code[at + 2].opcode to (code[at + 2] as OneRegisterInstruction).registerA)
+        assertEquals("$what: over the return", 3, (code[at + 2] as OffsetInstruction).codeOffset)
+        assertEquals("$what: return", Opcode.RETURN to 0, code[at + 3].opcode to (code[at + 3] as OneRegisterInstruction).registerA)
+        assertEquals("$what: rest as it was", before.drop(at).map { it.opcode }, code.drop(at + 4).map { it.opcode })
+        assertEquals("$what: before it as it was", before.take(at).map { it.opcode }, code.take(at).map { it.opcode })
+        for ((method, hook) in listOf(close.resume to PROFILE_RESUMED_HOOK, close.pause to PROFILE_PAUSED_HOOK)) {
+            val lifecycle = context.mutated(method).implementation!!.instructions.toList()
+            val first = lifecycle.first() as RegisterRangeInstruction
+            assertTrue("$what: ${method.name} starts with $hook", lifecycle.first().names(hook))
+            assertEquals("$what: ${method.name} hands this", method.localRegisterCount() to 1, first.startRegister to first.registerCount)
+            assertEquals("$what: ${method.name} as it was", method.implementation!!.instructions.map { it.opcode }, lifecycle.drop(1).map { it.opcode })
+        }
+    }
+
     private fun BytecodePatchContext.mutated(method: Method) = mutableClassDefBy(method.definingClass).methods.single {
         it.name == method.name && it.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
     }
@@ -493,6 +591,9 @@ class SwipeToProfileHookTest {
         const val WALK_TYPE = "Lfixture/Walk;"
         const val WALK_REF = "$WALK_TYPE->A00(Landroid/view/View;IIIZZ)Z"
         val WALK_SHAPE = listOf("Landroid/view/View;", "I", "I", "I", "Z", "Z")
+        const val MOTION = "Landroid/view/MotionEvent;"
+        const val ACTIVITY_SUPER = "Lcom/instagram/base/activity/BaseFragmentActivity;"
+        const val FRAGMENT_SUPER = "Landroidx/fragment/app/Fragment;"
 
         /** A method whose body is [smali], assembled the way the patches assemble what they add. */
         fun assembled(owner: String, name: String, parameters: List<String>, returns: String, flags: Int, registers: Int, smali: String): ImmutableMethod =
@@ -761,6 +862,54 @@ class SwipeToProfileHookTest {
                 ),
             )
             return listOf(container, panel, tab, controller, host, walk, pager)
+        }
+
+        /**
+         * Shaped like 452's: the base screen's own touch dispatch, Tap to play's call first when
+         * [tapClock], with [locals] locals, handing the event to its super's and answering what
+         * that answers, or jumping back to its start on no when [loopsBack]; and the profile's
+         * onResume and onPause, each calling its super's with this beyond v15. [activity],
+         * [touch], [profile] and [resume] false leave each out.
+         */
+        fun closeClasses(
+            activity: Boolean = true,
+            touch: Boolean = true,
+            tapClock: Boolean = false,
+            locals: Int = 7,
+            loopsBack: Boolean = false,
+            profile: Boolean = true,
+            resume: Boolean = true,
+        ): List<ClassDef> {
+            val public = AccessFlags.PUBLIC.value
+            val classes = mutableListOf<ClassDef>()
+            if (activity) {
+                val dispatch = assembled(
+                    FRAGMENT_ACTIVITY, "dispatchTouchEvent", listOf(MOTION), "Z", public, locals + 2,
+                    """
+                        ${if (tapClock) "invoke-static/range { p0 .. p1 }, $TAP_CLOCK" else ""}
+                        :start
+                        invoke-super { p0, p1 }, $ACTIVITY_SUPER->dispatchTouchEvent($MOTION)Z
+                        move-result p1
+                        ${if (loopsBack) "if-eqz p1, :start" else ""}
+                        return p1
+                    """,
+                )
+                classes += ImmutableClassDef(
+                    FRAGMENT_ACTIVITY, public, ACTIVITY_SUPER, null, null, null, null, if (touch) listOf(dispatch) else emptyList(),
+                )
+            }
+            if (profile) {
+                fun lifecycle(name: String) = assembled(
+                    PROFILE_FRAGMENT, name, emptyList(), "V", public, 26,
+                    """
+                        invoke-super/range { p0 .. p0 }, $FRAGMENT_SUPER->$name()V
+                        return-void
+                    """,
+                )
+                val methods = listOfNotNull(if (resume) lifecycle("onResume") else null, lifecycle("onPause"))
+                classes += ImmutableClassDef(PROFILE_FRAGMENT, public, FRAGMENT_SUPER, null, null, null, null, methods)
+            }
+            return classes
         }
 
         /**

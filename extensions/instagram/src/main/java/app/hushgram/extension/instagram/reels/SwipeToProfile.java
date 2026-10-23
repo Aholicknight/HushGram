@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import android.app.Activity;
+import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -55,9 +57,18 @@ import java.util.function.BooleanSupplier;
  * the pager until the next touch starts, which gives it back. The next tab change gives every held
  * pager its input back.
  *
+ * <p>Once the panel has slid in, Instagram opens the profile in a screen of its own on top of Reels,
+ * and that screen has no swipe back. The patch calls {@link #profileResumed} and {@link #profilePaused}
+ * from the profile's own resume and pause, and {@link #closesProfile} first in every Instagram
+ * screen's touch dispatch. While the profile a left swipe on a reel just opened is showing and the
+ * switch is on, a lone finger going mostly right by the touch slop, from a spot where nothing under it
+ * can scroll left, is HushGram's: the views under it get a cancel, and lifting it far enough to the
+ * right goes back, which closes the profile onto the reel. The profile's grid still slides between
+ * its own tabs, since past the first tab it can scroll left.
+ *
  * <p>The hooks fail open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer comes back and the panel stays as Instagram left it.
- * Touch and tab hooks run on the main thread.
+ * Touch, tab and profile hooks run on the main thread.
  */
 public final class SwipeToProfile {
     /** The step a failed switch read is reported under. */
@@ -66,6 +77,19 @@ public final class SwipeToProfile {
     static final String PANEL = "panel turn";
     /** The step a failed walk or pager hold is reported under. */
     static final String PAGER = "pager hold";
+    /** The step a failed right swipe closing the profile is reported under. */
+    static final String CLOSE = "profile close";
+
+    /** How soon after a left swipe on a reel the profile it opens has to show to count as opened by it. */
+    static final long OPENS_WITHIN_MS = 5000;
+
+    private static final int IDLE = 0;
+    /** The touch went down on the profile the swipe opened; a move right may still make it a close. */
+    private static final int ARMED = 1;
+    /** The touch is a right swipe closing the profile; lifting it far enough goes back. */
+    private static final int CLOSING = 2;
+    /** The touch was a close until a second finger landed; the rest of it is swallowed. */
+    private static final int SWALLOWING = 3;
 
     /** What the tab and touch hooks need of Instagram, reached through the stubs the patch writes. */
     interface Panels {
@@ -159,6 +183,7 @@ public final class SwipeToProfile {
     private static volatile boolean logged;
     private static volatile boolean loggedPanel;
     private static volatile boolean loggedPager;
+    private static volatile boolean loggedClose;
     private static volatile String lastClaim;
 
     /** Whether the last tab change landed on Reels. */
@@ -183,6 +208,21 @@ public final class SwipeToProfile {
     /** Whether the current touch has had only one finger down so far. */
     private static boolean oneFinger;
 
+    /** Whether a left swipe on a reel went on to the profile, and when, in uptime milliseconds. */
+    private static boolean swipePending;
+    private static long swipedAt;
+
+    /** The profile a left swipe on a reel opened. */
+    private static WeakReference<Object> swipedProfile;
+
+    /** The profile showing now, between its resume and its pause. */
+    private static WeakReference<Object> shownProfile;
+
+    /** Where a right swipe closing the profile is in its touch, and where that touch went down. */
+    private static int closing;
+    private static float closeX;
+    private static float closeY;
+
     private SwipeToProfile() {
     }
 
@@ -199,6 +239,7 @@ public final class SwipeToProfile {
             HookStatus.invoked(FamilyNames.SWIPE_TO_PROFILE);
             if (stock) return true;
             boolean open = on.getAsBoolean();
+            if (open) swiped();
             if (open && !logged) {
                 logged = true;
                 Logger.printDebug(() -> "SwipeToProfile: let a swipe on a reel go to its profile");
@@ -426,11 +467,162 @@ public final class SwipeToProfile {
             HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, SWITCH, t);
             return;
         }
+        swiped();
         try {
             hold(pager, panels);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, PAGER, t);
         }
+    }
+
+    /** Notes that a left swipe on a reel just went on to the profile, for {@link #profileResumed}. */
+    private static void swiped() {
+        swipePending = true;
+        swipedAt = SystemClock.uptimeMillis();
+    }
+
+    /**
+     * Called first thing in the profile's resume. Remembers it as the profile showing, and as the one
+     * the swipe opened when a left swipe on a reel went on to the profile at most
+     * {@link #OPENS_WITHIN_MS} ago. Never throws.
+     */
+    public static void profileResumed(Object profile) {
+        try {
+            HookStatus.invoked(FamilyNames.SWIPE_TO_PROFILE);
+            if (swipePending && SystemClock.uptimeMillis() - swipedAt <= OPENS_WITHIN_MS) {
+                swipedProfile = new WeakReference<>(profile);
+            }
+            shownProfile = new WeakReference<>(profile);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, CLOSE, t);
+        }
+    }
+
+    /** Called first thing in the profile's pause. It's no longer the profile showing. Never throws. */
+    public static void profilePaused(Object profile) {
+        if (shownProfile != null && shownProfile.get() == profile) shownProfile = null;
+    }
+
+    /**
+     * Called first thing in every Instagram screen's touch dispatch, with each touch event before any
+     * view sees it. Answers true for an event HushGram took, which the screen then answers as handled.
+     * A touch is HushGram's once it goes down on the profile a left swipe on a reel opened, while that
+     * profile shows and the switch is on, from a spot where nothing under the finger can scroll left,
+     * and its lone finger then goes right by the touch slop, at least twice as far as up or down. The
+     * views under it then get a cancel, and lifting it a tenth of the screen's width or more right of
+     * where it went down goes back, closing the profile. A second finger swallows the rest of that
+     * touch without going back. Every other touch is Instagram's. Never throws.
+     */
+    public static boolean closesProfile(Activity activity, MotionEvent event) {
+        return closesProfile(activity, event, SwipeToProfile::switchedOn);
+    }
+
+    static boolean closesProfile(Activity activity, MotionEvent event, BooleanSupplier on) {
+        int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) {
+            closing = IDLE;
+            Object profile = shownProfile == null ? null : shownProfile.get();
+            if (profile == null || swipedProfile == null || swipedProfile.get() != profile) return false;
+            try {
+                HookStatus.invoked(FamilyNames.SWIPE_TO_PROFILE);
+                if (!on.getAsBoolean()) return false;
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, SWITCH, t);
+                return false;
+            }
+        } else if (closing == IDLE) {
+            return false;
+        }
+        try {
+            if (action == MotionEvent.ACTION_DOWN) {
+                if (scrollsLeft(activity.getWindow().getDecorView(), event.getX(), event.getY())) return false;
+                closing = ARMED;
+                closeX = event.getX();
+                closeY = event.getY();
+                return false;
+            }
+            if (closing == ARMED) return claims(activity, event, action);
+            if (action == MotionEvent.ACTION_POINTER_DOWN) {
+                closing = SWALLOWING;
+            } else if (action == MotionEvent.ACTION_UP) {
+                boolean back = closing == CLOSING && event.getX() - closeX >= closeDistance(activity);
+                closing = IDLE;
+                if (back) activity.getWindow().getDecorView().post(() -> goBack(activity));
+            } else if (action == MotionEvent.ACTION_CANCEL) {
+                closing = IDLE;
+            }
+            return true;
+        } catch (Throwable t) {
+            closing = IDLE;
+            HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, CLOSE, t);
+            return false;
+        }
+    }
+
+    /**
+     * A move of an armed touch: once it's gone right by the touch slop and at least twice as far as
+     * up or down, the touch becomes a close, the views under it get a cancel and this answers true.
+     * Any other move past the slop, a second finger or the touch ending gives the touch back.
+     */
+    private static boolean claims(Activity activity, MotionEvent event, int action) {
+        if (action != MotionEvent.ACTION_MOVE) {
+            closing = IDLE;
+            return false;
+        }
+        float dx = event.getX() - closeX;
+        float dy = Math.abs(event.getY() - closeY);
+        int slop = ViewConfiguration.get(activity).getScaledTouchSlop();
+        if (Math.abs(dx) < slop && dy < slop) return false;
+        if (dx < slop || dx < 2 * dy) {
+            closing = IDLE;
+            return false;
+        }
+        closing = CLOSING;
+        MotionEvent cancel = MotionEvent.obtain(event);
+        cancel.setAction(MotionEvent.ACTION_CANCEL);
+        try {
+            activity.getWindow().superDispatchTouchEvent(cancel);
+        } finally {
+            cancel.recycle();
+        }
+        if (!loggedClose) {
+            loggedClose = true;
+            Logger.printDebug(() -> "SwipeToProfile: took a right swipe to close the profile the reel opened");
+        }
+        return true;
+    }
+
+    /** How far right of where it went down a close has to lift to go back. */
+    private static float closeDistance(Activity activity) {
+        int slop = ViewConfiguration.get(activity).getScaledTouchSlop();
+        return Math.max(2 * slop, activity.getResources().getDisplayMetrics().widthPixels / 10f);
+    }
+
+    @SuppressWarnings("deprecation")
+    private static void goBack(Activity activity) {
+        try {
+            if (!activity.isFinishing()) activity.onBackPressed();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, CLOSE, t);
+        }
+    }
+
+    /** Whether {@code view}, or a shown view under (x, y) in its coordinates, can scroll left. */
+    private static boolean scrollsLeft(View view, float x, float y) {
+        if (view.canScrollHorizontally(-1)) return true;
+        if (!(view instanceof ViewGroup)) return false;
+        ViewGroup group = (ViewGroup) view;
+        float left = x + group.getScrollX();
+        float top = y + group.getScrollY();
+        for (int i = group.getChildCount() - 1; i >= 0; i--) {
+            View child = group.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE) continue;
+            float childX = child.getX();
+            float childY = child.getY();
+            if (left < childX || left >= childX + child.getWidth() || top < childY || top >= childY + child.getHeight()) continue;
+            if (scrollsLeft(child, left - childX, top - childY)) return true;
+        }
+        return false;
     }
 
     /** Turns a pager's input off when it's on, and remembers it to turn back on. */
@@ -491,12 +683,17 @@ public final class SwipeToProfile {
         }
     }
 
-    /** Forgets that a setup built the right panel and which pager the tabs use, as a new process would. */
+    /** Forgets that a setup built the right panel, which pager the tabs use and which profile a swipe opened, as a new process would. */
     static void forgetSetUpForTests() {
         builtRight = false;
         tabsPager = null;
         downX = 0;
         oneFinger = false;
+        swipePending = false;
+        swipedAt = 0;
+        swipedProfile = null;
+        shownProfile = null;
+        closing = IDLE;
     }
 
     private static boolean switchedOn() {
