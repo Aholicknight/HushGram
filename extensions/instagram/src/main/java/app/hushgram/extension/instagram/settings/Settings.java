@@ -1464,6 +1464,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reels_your_algorithm", FALSE);
 
     /**
+     * The Friends tab beside Reels at the top of the Reels tab, the lane of reels the people you
+     * follow shared (#300). The Reels title stays
+     * ({@link app.hushgram.extension.instagram.reels.ReelsTopBar}). Off to start.
+     */
+    public static final BooleanSetting HIDE_REELS_FRIENDS_TAB =
+            new BooleanSetting("hushgram_hide_reels_friends_tab", FALSE);
+
+    /**
      * The Save (bookmark) button in the right-hand column of a reel, and the save count under it
      * when Instagram draws one. Feed posts keep theirs. Off to start.
      */

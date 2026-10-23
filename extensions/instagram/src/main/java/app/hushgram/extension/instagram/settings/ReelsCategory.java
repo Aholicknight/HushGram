@@ -91,6 +91,9 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.HIDE_REELS_YOUR_ALGORITHM, L10n.t("Hide Your algorithm on reels"),
                     L10n.t("Takes the Your algorithm button off the top of the Reels tab and closes up the gap. The "
                             + "rest of the bar stays.")));
+            reels.add(toggle(context, Settings.HIDE_REELS_FRIENDS_TAB, L10n.t("Hide the Friends tab on Reels"),
+                    L10n.t("Takes the Friends tab, with reels the people you follow shared, off the top of the Reels "
+                            + "tab. Reels stays where it is.")));
             reels.add(toggle(context, Settings.HIDE_REEL_SAVE_BUTTON, L10n.t("Hide the Save button on reels"),
                     L10n.t("Takes the Save button out of the column of buttons beside a reel, and the count under it. "
                             + "Posts in your feed keep theirs.")));
