@@ -12,6 +12,10 @@ Every HushGram release, newest first.
 * **Instagram - Start Home on Following:** With `Only accounts you follow` on, Back to home at the end of your Following feed takes you back up to the newest post. Before, the link did nothing.
 * **Instagram - HushGram settings:** Opening an Instagram link or a notification while HushGram settings are up closes them, so you land where it leads. Before, the tab changed behind the settings.
 
+### Improvements
+
+* **Tooling:** HushGram builds on Gradle 9.8.2 now, with androidx.annotation 1.11.0 and commons-lang3 3.21.0. Each new download was checked against its publisher's checksums before it went on the verification list. The patches themselves don't change.
+
 ## 0.0.15 (2026-10-22)
 
 ### Features

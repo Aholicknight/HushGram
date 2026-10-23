@@ -1279,6 +1279,7 @@ $osvRecorded = @{
     'pkg:maven/com.google.guava/guava@31.1-jre' = "{`"vulns`":[$guavaModerate,$guavaLow]}"
     $cleanPurl = '{}'
     # OSV had none of Gradle's 2026-10-07 advisories on 2026-10-12; the publisher supplement does.
+    'pkg:maven/org.gradle/gradle-core@9.8.2' = '{}'
     'pkg:maven/org.gradle/gradle-core@9.8.1' = '{}'
     'pkg:maven/org.gradle/gradle-core@9.8.0' = '{}'
 }
@@ -1949,12 +1950,12 @@ try {
     # the same wrapper pointing at 9.8.0 exposes all three in the tooling-distribution scope.
     $ownDistribution = Get-GradleDistributionGraph -Root (Split-Path -Parent $PSScriptRoot)
     Assert-True ($ownDistribution.scope -ceq 'tooling-distribution' -and
-        $ownDistribution.libraries[0].purl -ceq 'pkg:maven/org.gradle/gradle-core@9.8.1') `
-        "The wrapper's own distribution was not audited as gradle-core 9.8.1: $($ownDistribution | ConvertTo-Json -Depth 5 -Compress)"
+        $ownDistribution.libraries[0].purl -ceq 'pkg:maven/org.gradle/gradle-core@9.8.2') `
+        "The wrapper's own distribution was not audited as gradle-core 9.8.2: $($ownDistribution | ConvertTo-Json -Depth 5 -Compress)"
     $osvAnswers = $osvRecorded
     $ownFindings = @(Get-SbomAdvisories -Sbom ([pscustomobject]@{ Libraries = $ownDistribution.libraries }))
     Assert-True ($ownFindings.Count -eq 0 -and (Test-AdvisoryFindings -Findings $ownFindings -Scope 'tooling-distribution').Valid) `
-        'Gradle 9.8.1 was reported as affected.'
+        'Gradle 9.8.2 was reported as affected.'
     $oldWrapperRoot = Join-Path $advisoryRoot 'old-wrapper'
     New-Item -ItemType Directory -Path (Join-Path $oldWrapperRoot 'gradle/wrapper') -Force | Out-Null
     $wrapperProperties = Join-Path $oldWrapperRoot 'gradle/wrapper/gradle-wrapper.properties'
@@ -3338,7 +3339,7 @@ try {
     Assert-True ($built.sbom.file -eq "patches-$releaseVersionHere.cdx.json" -and
         $built.sbom.sha256 -ceq (Get-Sha256Hex -Path $releaseSbom) -and [int]$built.sbom.components -eq 3) `
         "The receipt does not record the SBOM beside the bundle: $($built.sbom | ConvertTo-Json -Compress)"
-    Assert-True ($cleanPurl -cin $osvAsked -and 'pkg:maven/org.gradle/gradle-core@9.8.1' -cin $osvAsked -and $builderSaid -like '*Checking 2 unique resolved packages against OSV*') `
+    Assert-True ($cleanPurl -cin $osvAsked -and 'pkg:maven/org.gradle/gradle-core@9.8.2' -cin $osvAsked -and $builderSaid -like '*Checking 2 unique resolved packages against OSV*') `
         "The receipt builder did not put the SBOM's libraries to OSV: $builderSaid"
     $builderReport = Read-CurrentDependencyAdvisoryReport -Path (Join-Path $releaseRepo 'build/reports/dependencies/advisories.json') `
         -Subject (Get-CurrentDependencyAuditSubject -Root $releaseRepo -Graphs (Read-DependencyGraphs -Path $releaseGraph) `
