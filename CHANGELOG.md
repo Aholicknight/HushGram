@@ -23,6 +23,7 @@ Every HushGram release, newest first.
 * **Instagram - HushGram settings:** With a HushGram PIN set, importing a settings file no longer counts `Lock your messages` and `Lock all of Instagram` as settings this version doesn't know. The message says the lock switches stay as they are until you change them on the settings page. An import that skipped nothing doesn't mention skipping anymore.
 * **Instagram - Download any video:** The Details row in a feed post's menu shows Instagram's info icon now, not Download's arrow.
 * **Instagram - Hide suggested people on profiles:** `Hide Suggested for you on follow lists` now also takes the Suggested tab off other people's follow lists, and the Suggested for you block under their mutual followers. Before, it only reached the bottom of the followers and following lists. Reported in #302.
+* **Instagram - Blur the bars around Reels:** The band behind the clock and the gesture bar's strip at the bottom stayed black on Reels. Both show the reel blurred now. Behind the clock it's toned down a bit more (darker under white icons, lighter under dark ones) so the time and icons stay easy to read. Reported in #258.
 
 ### Improvements
 
