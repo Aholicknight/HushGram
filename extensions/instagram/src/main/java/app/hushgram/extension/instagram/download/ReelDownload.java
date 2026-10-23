@@ -378,10 +378,11 @@ public final class ReelDownload {
     }
 
     /**
-     * The icon of the reel menu row named [name]. Every row of ours starts from Download's arrow
-     * [download]; Details answers Instagram's info glyph from the package the arrow comes from,
-     * which on a second copy is still Instagram's own, or [download] when the build has none.
-     * Called by the reel option bridge the patch writes. Never throws.
+     * The icon of the reel or feed menu row named [name]. Every row of ours starts from Download's
+     * arrow [download]; Details (the reel's or the feed post's) answers Instagram's info glyph from
+     * the package the arrow comes from, which on a second copy is still Instagram's own, or
+     * [download] when the build has none. Called by the reel and feed option bridges the patches
+     * write. Never throws.
      */
     public static int rowIcon(String name, int download) {
         return rowIcon(name, download, Utils.getContext(), DETAILS_ICONS);
@@ -389,7 +390,8 @@ public final class ReelDownload {
 
     static int rowIcon(String name, int download, Context context, String... icons) {
         try {
-            if (!DETAILS_OPTION.equals(name) || download == 0 || context == null) return download;
+            boolean details = DETAILS_OPTION.equals(name) || PostInfo.OPTION.equals(name);
+            if (!details || download == 0 || context == null) return download;
             Resources resources = context.getResources();
             String owner = resources.getResourcePackageName(download);
             for (String icon : icons) {

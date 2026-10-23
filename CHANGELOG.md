@@ -20,6 +20,7 @@ Every HushGram release, newest first.
 * **Instagram - Start Home on Following:** With `Only accounts you follow` on, Back to home at the end of your Following feed takes you back up to the newest post. Before, the link did nothing.
 * **Instagram - HushGram settings:** Opening an Instagram link or a notification while HushGram settings are up closes them, so you land where it leads. A link that arrives while they're still opening wins too. Before, the tab changed behind the settings.
 * **Instagram - Clean up Reels:** With `Keep clear mode on`, starting a swipe back and letting the reel snap back into place could end clear mode on that reel and bring its buttons back. It stays in clear mode now. Reported in #233.
+* **Instagram - Download any video:** The Details row in a feed post's menu shows Instagram's info icon now, not Download's arrow.
 
 ### Improvements
 
