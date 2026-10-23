@@ -245,7 +245,8 @@ public class Settings extends BaseSettings {
 
     /**
      * A video story is prepared the way Instagram prepares it with its own "Upload at highest quality"
-     * setting on, up to 1080 wide instead of 720 ({@link app.hushgram.extension.instagram.stories.StoryUploadQuality}).
+     * setting on, at 1080p and 9 Mbps ({@link app.hushgram.extension.instagram.stories.StoryUploadQuality}). The server still
+     * keeps story videos at 720p.
      * Read as each upload is prepared, so a change applies to the next story posted. Off to start.
      */
     public static final BooleanSetting UPLOAD_STORIES_AT_FULL_QUALITY =

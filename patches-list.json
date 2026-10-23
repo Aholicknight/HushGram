@@ -4111,7 +4111,7 @@
     },
     {
       "name": "Upload stories at full quality",
-      "description": "Sends the video stories you post at up to 1080 pixels wide instead of 720, as Instagram does with its own Upload at highest quality setting on. Starts off. Turn it on in HushGram settings > Stories.",
+      "description": "Sends the video stories you post at 1080p and a higher bitrate, as Instagram does with its own Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so viewers see a small difference. Starts off. Turn it on in HushGram settings > Stories.",
       "category": "Stories",
       "use": true,
       "dependencies": [

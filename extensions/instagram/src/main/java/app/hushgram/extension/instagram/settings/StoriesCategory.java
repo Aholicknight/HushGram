@@ -121,8 +121,9 @@ final class StoriesCategory {
         }
         if (build.contains(PatchFamily.STORY_UPLOAD_QUALITY)) {
             stories.add(toggle(context, Settings.UPLOAD_STORIES_AT_FULL_QUALITY, L10n.t("Upload stories at full quality"),
-                    L10n.t("Video stories you post are sent up to 1080 pixels wide instead of 720, as they are with Instagram's "
-                            + "own Upload at highest quality setting on. Photo stories stay as they are.")));
+                    L10n.t("Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at "
+                            + "highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so the "
+                            + "difference viewers see is small. Photo stories already go up larger than Instagram keeps.")));
         }
         if (!stories.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Stories"), SettingsIcons.STORIES,
