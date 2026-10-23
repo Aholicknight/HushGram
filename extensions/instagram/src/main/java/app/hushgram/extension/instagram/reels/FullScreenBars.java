@@ -49,8 +49,10 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * seven 450 builds: {@code clips_viewer_container} (the reels viewer, in the Reels tab and in the
  * full screen viewer a reel opens from anywhere), and the {@code clips_tab} and {@code feed_tab}
  * children of {@code tab_bar}. The viewer counts as showing when most of the window is its own, which
- * keeps a viewer sitting off screen in a pager from counting. Without a viewer, the tab bar's
- * selected tab answers.
+ * keeps a viewer sitting off screen in a pager from counting. Your messages ({@code
+ * inbox_refreshable_thread_list_recyclerview}) and a chat ({@code thread_view_root}) count from a
+ * smaller share, so the keyboard doesn't end them (#288). Without either, the tab bar's selected tab
+ * answers.
  *
  * <p>The bars are hidden through the window's insets controller (Android 11 and newer) with the
  * "show transient bars by swipe" behaviour, and on Android 9 and 10 through the immersive sticky
@@ -71,9 +73,14 @@ public final class FullScreenBars {
     static final String HOME_TAB = "feed_tab";
     static final String SEARCH_TAB = "search_tab";
     static final String VIEWER = "clips_viewer_container";
+    /** Your messages' list of chats, and a chat's whole screen, as Instagram names them (#288). */
+    static final String INBOX = "inbox_refreshable_thread_list_recyclerview";
+    static final String CHAT = "thread_view_root";
 
     /** The viewer counts as showing when this share of the window is its own. */
     static final float FILL_SHARE = 0.8f;
+    /** Your messages or a chat count as showing from this share, so the keyboard taking half doesn't end it. */
+    static final float MESSAGES_SHARE = 0.4f;
     /** The most often the screen is looked at for a change. */
     static final long CHECK_MS = 100;
     static final String COUNT_HID = "hid the bars";
@@ -128,7 +135,7 @@ public final class FullScreenBars {
     }
 
     /** What the screen is showing, as far as the bars are concerned. */
-    enum Screen { REELS, HOME, OTHER }
+    enum Screen { REELS, HOME, MESSAGES, OTHER }
 
     static int id(Context context, String name) {
         synchronized (IDS) {
@@ -147,13 +154,45 @@ public final class FullScreenBars {
         return id == 0 ? null : root.findViewById(id);
     }
 
-    /** Whether a view [share] of the window is on screen: its visible rectangle against the window's. */
+    /** Whether a view [FILL_SHARE] of the window is on screen: its visible rectangle against the window's. */
     static boolean fills(View view, View decor) {
+        return covers(view, decor, FILL_SHARE);
+    }
+
+    private static boolean covers(View view, View decor, float share) {
         if (!view.isShown()) return false;
         Rect seen = new Rect();
         if (!view.getGlobalVisibleRect(seen)) return false;
         long window = (long) decor.getWidth() * decor.getHeight();
-        return window > 0 && (long) seen.width() * seen.height() >= window * FILL_SHARE;
+        return window > 0 && (long) seen.width() * seen.height() >= window * share;
+    }
+
+    /**
+     * Whether your messages or a chat take [MESSAGES_SHARE] of the window (#288): in the Messages tab,
+     * swiped to from Home, or a chat in its own activity, the keyboard up or not.
+     */
+    static boolean messagesShowing(View decor) {
+        return anyCovers(decor, CHAT) || anyCovers(decor, INBOX);
+    }
+
+    /** Whether a view named [name] covers [MESSAGES_SHARE] of [decor]; a hidden one left behind doesn't hide another. */
+    private static boolean anyCovers(View decor, String name) {
+        int id = id(decor.getContext(), name);
+        if (id == 0) return false;
+        View first = decor.findViewById(id);
+        if (first == null) return false;
+        return covers(first, decor, MESSAGES_SHARE) || anyCovers(decor, id, decor);
+    }
+
+    private static boolean anyCovers(View view, int id, View decor) {
+        if (view.getVisibility() != View.VISIBLE) return false;
+        if (view.getId() == id) return covers(view, decor, MESSAGES_SHARE);
+        if (!(view instanceof ViewGroup)) return false;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            if (anyCovers(group.getChildAt(i), id, decor)) return true;
+        }
+        return false;
     }
 
     /**
@@ -206,28 +245,31 @@ public final class FullScreenBars {
         return top > 0 && top < decor.getHeight() ? top : 0;
     }
 
-    /** What [decor]'s screen is: the reels viewer filling the window, or the Reels or Home tab selected. */
+    /**
+     * What [decor]'s screen is: the reels viewer filling the window, your messages or a chat, or the
+     * Reels or Home tab selected.
+     */
     static Screen screenOf(View decor) {
         View viewer = find(decor, VIEWER);
-        if (viewer != null) {
-            if (fills(viewer, decor)) return Screen.REELS;
-            // The viewer is there but not showing: Home, or a screen over Reels, whatever tab is selected.
-            return HOME_TAB.equals(selectedTab(decor)) ? Screen.HOME : Screen.OTHER;
-        }
+        if (viewer != null && fills(viewer, decor)) return Screen.REELS;
+        if (messagesShowing(decor)) return Screen.MESSAGES;
         String tab = selectedTab(decor);
-        if (REELS_TAB.equals(tab)) return Screen.REELS;
+        // A viewer there but not showing: Home, or a screen over Reels, whatever tab is selected.
+        if (viewer == null && REELS_TAB.equals(tab)) return Screen.REELS;
         return HOME_TAB.equals(tab) ? Screen.HOME : Screen.OTHER;
     }
 
-    /** Whether the bars should be hidden on [screen], by the two switches. */
+    /** Whether the bars should be hidden on [screen], by the three switches. */
     static boolean wanted(Screen screen) {
         if (screen == Screen.REELS) return Settings.FULL_SCREEN_REELS.get();
+        if (screen == Screen.MESSAGES) return Settings.FULL_SCREEN_MESSAGES.get();
         return screen == Screen.HOME && Settings.FULL_SCREEN_HOME.get();
     }
 
-    /** Whether either switch is on, so some screen may want the bars hidden. */
+    /** Whether any of the three switches is on, so some screen may want the bars hidden. */
     static boolean eitherOn() {
-        return Settings.FULL_SCREEN_REELS.get() || Settings.FULL_SCREEN_HOME.get();
+        return Settings.FULL_SCREEN_REELS.get() || Settings.FULL_SCREEN_HOME.get()
+                || Settings.FULL_SCREEN_MESSAGES.get();
     }
 
     /**

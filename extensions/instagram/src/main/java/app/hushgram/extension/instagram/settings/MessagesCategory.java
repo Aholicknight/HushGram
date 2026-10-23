@@ -36,7 +36,8 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.SCREENSHOT_BLOCK)
                 || build.contains(PatchFamily.KEEP_IN_CHAT)
                 || build.contains(PatchFamily.ASK_BEFORE_CALL)
-                || build.contains(PatchFamily.MESSAGE_BOX)) {
+                || build.contains(PatchFamily.MESSAGE_BOX)
+                || build.contains(PatchFamily.FULL_SCREEN_BARS)) {
             PreferenceCategory messages = category(screen, L10n.t("Messages"), SettingsIcons.CHATS,
                     L10n.t("Keep your chats private and your inbox clear of extras."));
             if (build.contains(PatchFamily.NOTES_ROW)) {
@@ -112,6 +113,11 @@ final class MessagesCategory {
             }
             if (build.contains(PatchFamily.MESSAGE_BOX)) {
                 messages.addPreference(page.messageBoxRow(context));
+            }
+            if (build.contains(PatchFamily.FULL_SCREEN_BARS)) {
+                messages.addPreference(toggle(context, Settings.FULL_SCREEN_MESSAGES, L10n.t("Full screen Messages"),
+                        L10n.t("Hides the status bar and the navigation bar while your messages or a chat shows. Swipe "
+                                + "in from the edge to bring them back for a moment. Back and the keyboard work as usual.")));
             }
             if (build.contains(PatchFamily.MESSAGES_LOCK)) {
                 messages.addPreference(lockToggle(context, Settings.LOCK_MESSAGES, L10n.t("Lock your messages"),

@@ -6035,7 +6035,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             setSummary(Settings.FULL_SCREEN_HIDES.isAvailable()
                     ? hiddenBarsSummary(bars)
-                    : L10n.t("Turn on Full screen Reels or Full screen Home to use this choice."));
+                    : L10n.t("Turn on Full screen Reels, Full screen Home or Full screen Messages to use this choice."));
         }
 
         @Override

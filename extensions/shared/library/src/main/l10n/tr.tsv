@@ -921,6 +921,8 @@ Full screen Reels	Tam ekran Reels
 Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Reels görünürken durum çubuğunu ve gezinme çubuğunu gizler. Kısa süreliğine geri getirmek için kenardan içeri kaydır. Geri ve klavye her zamanki gibi çalışır.
 Full screen Home	Tam ekran Ana sayfa
 Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to bring them back for a moment.	Ana sayfa görünürken durum çubuğunu ve gezinme çubuğunu gizler. Kısa süreliğine geri getirmek için kenardan içeri kaydır.
+Full screen Messages	Tam ekran Mesajlar
+Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Mesajların veya bir sohbet görünürken durum çubuğunu ve gezinme çubuğunu gizler. Kısa süreliğine geri getirmek için kenardan içeri kaydır. Geri ve klavye her zamanki gibi çalışır.
 Hide Notes on profile pictures	Profil fotoğraflarındaki Notları gizle
 Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.	Notlar balonunu profil fotoğraflarından kaldırır, seninki dahil. Mesajlar'daki Notlar olduğu gibi kalır.
 # context: the line that opens a category's page in HushGram settings, under the page title
@@ -1110,7 +1112,7 @@ The navigation bar only	Yalnızca gezinme çubuğu
 Full screen Reels and Home hide the status bar and the navigation bar.	Tam ekran Reels ve Tam ekran Ana sayfa, durum çubuğunu ve gezinme çubuğunu gizler.
 Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.	Tam ekran Reels ve Tam ekran Ana sayfa yalnızca üstteki durum çubuğunu gizler. Gezinme çubuğu kalır.
 Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.	Tam ekran Reels ve Tam ekran Ana sayfa yalnızca alttaki gezinme çubuğunu gizler. Durum çubuğu kalır.
-Turn on Full screen Reels or Full screen Home to use this choice.	Bu seçimi kullanmak için Tam ekran Reels veya Tam ekran Ana sayfa seçeneğini açın.
+Turn on Full screen Reels, Full screen Home or Full screen Messages to use this choice.	Bu seçimi kullanmak için Tam ekran Reels, Tam ekran Ana sayfa veya Tam ekran Mesajlar seçeneğini açın.
 Choose carousel pages	Çoklu gönderi sayfalarını seç
 Adds Choose pages to a carousel's menu, after Save all, and to the download icon. Tick the pages you want and only those save, in order.	Çoklu gönderinin menüsüne, Tümünü kaydet'in ardından, ve indirme simgesine Sayfaları seç ekler. İstediğin sayfaları işaretle, yalnızca onlar sırayla kaydedilir.
 Choose pages	Sayfaları seç

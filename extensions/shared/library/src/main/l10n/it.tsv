@@ -921,6 +921,8 @@ Full screen Reels	Reel a schermo intero
 Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Nasconde la barra di stato e la barra di navigazione mentre si vedono i reel. Scorri dal bordo verso l'interno per riportarle un attimo. Indietro e la tastiera funzionano come al solito.
 Full screen Home	Home a schermo intero
 Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to bring them back for a moment.	Nasconde la barra di stato e la barra di navigazione mentre si vede la Home. Scorri dal bordo verso l'interno per riportarle un attimo.
+Full screen Messages	Messaggi a schermo intero
+Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Nasconde la barra di stato e la barra di navigazione mentre si vedono i tuoi messaggi o una chat. Scorri dal bordo verso l'interno per riportarle un attimo. Indietro e la tastiera funzionano come al solito.
 Hide Notes on profile pictures	Nascondi le Note sulle foto profilo
 Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.	Toglie la bolla delle Note dalle foto profilo, compresa la tua. Le note nei Messaggi restano come sono.
 # context: the line that opens a category's page in HushGram settings, under the page title
@@ -1110,7 +1112,7 @@ The navigation bar only	Solo la barra di navigazione
 Full screen Reels and Home hide the status bar and the navigation bar.	Reel a schermo intero e Home a schermo intero nascondono la barra di stato e la barra di navigazione.
 Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.	Reel a schermo intero e Home a schermo intero nascondono solo la barra di stato in alto. La barra di navigazione resta.
 Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.	Reel a schermo intero e Home a schermo intero nascondono solo la barra di navigazione in basso. La barra di stato resta.
-Turn on Full screen Reels or Full screen Home to use this choice.	Attiva Reel a schermo intero o Home a schermo intero per usare questa scelta.
+Turn on Full screen Reels, Full screen Home or Full screen Messages to use this choice.	Attiva Reel a schermo intero, Home a schermo intero o Messaggi a schermo intero per usare questa scelta.
 Choose carousel pages	Scegli le pagine del carosello
 Adds Choose pages to a carousel's menu, after Save all, and to the download icon. Tick the pages you want and only those save, in order.	Aggiunge Scegli le pagine al menu di un carosello, dopo Salva tutto, e all'icona di download. Spunta le pagine che vuoi e si salvano solo quelle, in ordine.
 Choose pages	Scegli le pagine

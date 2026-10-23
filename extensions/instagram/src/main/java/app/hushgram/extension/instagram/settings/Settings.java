@@ -900,14 +900,19 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting FULL_SCREEN_HOME =
             new BooleanSetting("hushgram_full_screen_home", FALSE);
 
+    /** The same on your messages and in a chat (#288). Off to start. */
+    public static final BooleanSetting FULL_SCREEN_MESSAGES =
+            new BooleanSetting("hushgram_full_screen_messages", FALSE);
+
     /**
-     * Which bars the two switches above hide (#231): both to start, or only the status bar or only the
+     * Which bars the three switches above hide (#231): both to start, or only the status bar or only the
      * navigation bar ({@link app.hushgram.extension.instagram.reels.HiddenBars}). Read each time a
      * screen hides them.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.reels.HiddenBars> FULL_SCREEN_HIDES =
             new EnumSetting<>("hushgram_full_screen_hides",
-                    app.hushgram.extension.instagram.reels.HiddenBars.BOTH, parentsAny(FULL_SCREEN_REELS, FULL_SCREEN_HOME));
+                    app.hushgram.extension.instagram.reels.HiddenBars.BOTH,
+                    parentsAny(FULL_SCREEN_REELS, FULL_SCREEN_HOME, FULL_SCREEN_MESSAGES));
 
     /**
      * Under {@link #GLASS_TAB_BAR}: the pill blurs what's behind it, on Android 12 and newer. Off, or

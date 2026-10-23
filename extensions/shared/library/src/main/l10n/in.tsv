@@ -921,6 +921,8 @@ Full screen Reels	Reels layar penuh
 Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Menyembunyikan bilah status dan bilah navigasi saat Reels ditampilkan. Geser dari tepi untuk menampilkannya kembali sebentar. Tombol Kembali dan keyboard tetap berfungsi seperti biasa.
 Full screen Home	Beranda layar penuh
 Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to bring them back for a moment.	Menyembunyikan bilah status dan bilah navigasi saat Beranda ditampilkan. Geser dari tepi untuk menampilkannya kembali sebentar.
+Full screen Messages	Pesan layar penuh
+Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Menyembunyikan bilah status dan bilah navigasi saat pesanmu atau sebuah chat ditampilkan. Geser dari tepi untuk menampilkannya kembali sebentar. Tombol Kembali dan keyboard tetap berfungsi seperti biasa.
 Hide Notes on profile pictures	Sembunyikan Catatan di foto profil
 Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.	Menghapus gelembung Catatan dari foto profil, termasuk milik Anda. Catatan di Pesan tetap seperti semula.
 # context: the line that opens a category's page in HushGram settings, under the page title
@@ -1110,7 +1112,7 @@ The navigation bar only	Hanya bilah navigasi
 Full screen Reels and Home hide the status bar and the navigation bar.	Reels layar penuh dan Beranda layar penuh menyembunyikan bilah status dan bilah navigasi.
 Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.	Reels layar penuh dan Beranda layar penuh hanya menyembunyikan bilah status di atas. Bilah navigasi tetap ada.
 Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.	Reels layar penuh dan Beranda layar penuh hanya menyembunyikan bilah navigasi di bawah. Bilah status tetap ada.
-Turn on Full screen Reels or Full screen Home to use this choice.	Aktifkan Reels layar penuh atau Beranda layar penuh untuk menggunakan pilihan ini.
+Turn on Full screen Reels, Full screen Home or Full screen Messages to use this choice.	Aktifkan Reels layar penuh, Beranda layar penuh, atau Pesan layar penuh untuk menggunakan pilihan ini.
 Choose carousel pages	Pilih halaman carousel
 Adds Choose pages to a carousel's menu, after Save all, and to the download icon. Tick the pages you want and only those save, in order.	Menambahkan Pilih halaman ke menu carousel, setelah Simpan semua, dan ke ikon unduh. Centang halaman yang kamu mau dan hanya itu yang disimpan, sesuai urutan.
 Choose pages	Pilih halaman

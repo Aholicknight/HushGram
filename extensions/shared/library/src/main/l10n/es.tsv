@@ -921,6 +921,8 @@ Full screen Reels	Reels a pantalla completa
 Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Oculta la barra de estado y la barra de navegación mientras se muestran los Reels. Desliza desde el borde para volver a mostrarlas un momento. Atrás y el teclado funcionan como siempre.
 Full screen Home	Inicio a pantalla completa
 Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to bring them back for a moment.	Oculta la barra de estado y la barra de navegación mientras se muestra Inicio. Desliza desde el borde para volver a mostrarlas un momento.
+Full screen Messages	Mensajes a pantalla completa
+Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Oculta la barra de estado y la barra de navegación mientras se muestran tus mensajes o un chat. Desliza desde el borde para volver a mostrarlas un momento. Atrás y el teclado funcionan como siempre.
 Hide Notes on profile pictures	Ocultar las notas en las fotos de perfil
 Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.	Quita la burbuja de notas de las fotos de perfil, incluida la tuya. Las notas en Mensajes se quedan como están.
 # context: the line that opens a category's page in HushGram settings, under the page title
@@ -1110,7 +1112,7 @@ The navigation bar only	Solo la barra de navegación
 Full screen Reels and Home hide the status bar and the navigation bar.	Reels a pantalla completa e Inicio a pantalla completa ocultan la barra de estado y la barra de navegación.
 Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.	Reels a pantalla completa e Inicio a pantalla completa ocultan solo la barra de estado de arriba. La barra de navegación se queda.
 Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.	Reels a pantalla completa e Inicio a pantalla completa ocultan solo la barra de navegación de abajo. La barra de estado se queda.
-Turn on Full screen Reels or Full screen Home to use this choice.	Activa «Reels a pantalla completa» o «Inicio a pantalla completa» para usar esta opción.
+Turn on Full screen Reels, Full screen Home or Full screen Messages to use this choice.	Activa «Reels a pantalla completa», «Inicio a pantalla completa» o «Mensajes a pantalla completa» para usar esta opción.
 Choose carousel pages	Elegir páginas del carrusel
 Adds Choose pages to a carousel's menu, after Save all, and to the download icon. Tick the pages you want and only those save, in order.	Añade Elegir páginas al menú de un carrusel, después de Guardar todo, y al icono de descarga. Marca las páginas que quieras y solo esas se guardan, en orden.
 Choose pages	Elegir páginas
