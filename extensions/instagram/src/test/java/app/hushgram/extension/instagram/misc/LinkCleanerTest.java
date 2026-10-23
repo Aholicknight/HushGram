@@ -314,6 +314,19 @@ public class LinkCleanerTest {
         }
     }
 
+    @Test
+    public void inAppBrowserShareAndCopyLinksMoveToTheSharingDomain() {
+        Settings.SHARING_DOMAIN.save("example.com");
+        try {
+            assertEquals("https://example.com/reel/C1/",
+                    LinkCleaner.browserLink("https://www.instagram.com/reel/C1/?igsh=abc&utm_source=ig_web_copy_link"));
+            assertEquals("https://example.org/page?x=1",
+                    LinkCleaner.browserLink("https://example.org/page?fbclid=abc&utm_source=campaign&x=1"));
+        } finally {
+            Settings.SHARING_DOMAIN.resetToDefault();
+        }
+    }
+
     /** With Sanitize sharing links off, a Sharing domain changes nothing. */
     @Test
     public void theSharingDomainWaitsForSanitizeSharingLinks() {
