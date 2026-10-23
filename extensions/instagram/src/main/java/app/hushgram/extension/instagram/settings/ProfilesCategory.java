@@ -78,8 +78,8 @@ final class ProfilesCategory {
                                 + "Bios, counts, posts and follower lists stay.")));
                 profiles.addPreference(toggle(context, Settings.HIDE_FOLLOW_LIST_SUGGESTIONS,
                         L10n.t("Hide Suggested for you on follow lists"),
-                        L10n.t("Leaves the Suggested for you section off the bottom of the followers and following "
-                                + "lists. Every account in the list stays.")));
+                        L10n.t("Leaves the Suggested for you section off the followers, following and mutual lists, "
+                                + "and the Suggested tab off other people's follow lists. Every account in the lists stays.")));
                 profiles.addPreference(toggle(context, Settings.HIDE_PROFILE_COMPLETION,
                         L10n.t("Hide Complete your profile"),
                         L10n.t("Takes the Complete your profile cards, like Add bio and Find people to follow, off "

@@ -22,6 +22,7 @@ Every HushGram release, newest first.
 * **Instagram - Clean up Reels:** With `Keep clear mode on`, starting a swipe back and letting the reel snap back into place could end clear mode on that reel and bring its buttons back. It stays in clear mode now. Reported in #233.
 * **Instagram - HushGram settings:** With a HushGram PIN set, importing a settings file no longer counts `Lock your messages` and `Lock all of Instagram` as settings this version doesn't know. The message says the lock switches stay as they are until you change them on the settings page. An import that skipped nothing doesn't mention skipping anymore.
 * **Instagram - Download any video:** The Details row in a feed post's menu shows Instagram's info icon now, not Download's arrow.
+* **Instagram - Hide suggested people on profiles:** `Hide Suggested for you on follow lists` now also takes the Suggested tab off other people's follow lists, and the Suggested for you block under their mutual followers. Before, it only reached the bottom of the followers and following lists. Reported in #302.
 
 ### Improvements
 

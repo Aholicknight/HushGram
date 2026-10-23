@@ -1490,6 +1490,21 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->keepSta
 # checks on all seven 450 builds that the read is that one and where the hook lands.
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->followList(I)I in instance (Landroid/os/Bundle;)V pooled holding FollowListFragment.ShouldFetchSuggestedUsers
 #
+# The same switch takes the Suggested tab off someone else's follow lists (#302). The pager's read of
+# its UnifiedFollowFragment.HAS_SIMILAR_ACCOUNTS argument goes to ProfileSuggestions.suggestedTab right
+# after the getBoolean's move-result, in UnifiedFollowFragment's onCreate, the one method of that shape
+# loading the key (the places opening the pager put it or ask whether it's there). Left out, the tab
+# comes back; twice or elsewhere, it isn't the hook the patch wrote. FollowListSuggestionsHookTest
+# checks on every 452 build that the read is that one and where the hook lands.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->suggestedTab(I)I in instance (Landroid/os/Bundle;)V pooled holding UnifiedFollowFragment.HAS_SIMILAR_ACCOUNTS
+#
+# It also takes Suggested for you off the bottom of the mutual followers list (#302). The list
+# adapter's rows (LX/0N6E;->A0C()V on 452.1) hand the suggested accounts to
+# ProfileSuggestions.mutualSuggestions right after reading them and before their isEmpty(). The rows
+# load no string, so the rule picks them by the config id they read to pick the section's header and
+# the subList they cut the mutual followers with. MutualSuggestionsHookTest checks every 452 build.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->mutualSuggestions(Ljava/util/List;)Ljava/util/List; in instance ()V holding const:0x81089600002d70 Ljava/util/List;->subList(II)Ljava/util/List;
+#
 # Hide Complete your profile, Hide suggested people on profiles' third switch, asks
 # ProfileSuggestions.hideCompletionCards first in the check your own profile's posts make before adding
 # the Complete your profile cards (LX/0806;->A02(LX/0Ha3;)Z on 385611438), the one boolean method of one
