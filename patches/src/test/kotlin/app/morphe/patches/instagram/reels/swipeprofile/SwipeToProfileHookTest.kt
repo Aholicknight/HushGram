@@ -58,6 +58,12 @@ import java.io.File
  * be told apart fails the patch before an instruction changes.
  */
 class SwipeToProfileHookTest {
+    // Its switch starts off, so simple mode picks it (DefaultSelectionPolicyTest).
+    @Test
+    fun simpleModePicksThePatchSinceItsSwitchStartsOff() {
+        assertTrue(swipeToProfilePatch.default)
+    }
+
     @Test
     fun theHookIsInTheExtension() {
         val declared = ExtensionDex.classDef(SWIPE_ALLOWED_HOOK.substringBefore("->")).methods

@@ -94,14 +94,14 @@ private val MOVES = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
  * pager input and each touch event the container sees go through the extension too. Once the panel
  * has slid in, Instagram opens the profile in a screen of its own with no swipe back, so the
  * profile's resume and pause and every screen's touch dispatch go through the extension as well,
- * which lets a right swipe on that profile go back to the reel.
+ * which lets a right swipe on that profile go back to the reel. In the default selection with its
+ * switch off: it changes what a swipe on a reel does, so it's the user's pick.
  */
 @Suppress("unused")
 val swipeToProfilePatch = bytecodePatch(
     name = "Swipe left to open the profile",
     description = "Makes a left swipe on a reel open the profile of the person who posted it, like Instagram used " +
         "to. Tap Friends at the top to reach your friends' reels. Starts off. Turn it on in HushGram settings > Reels.",
-    default = false,
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)

@@ -3928,7 +3928,7 @@
       "name": "Swipe left to open the profile",
       "description": "Makes a left swipe on a reel open the profile of the person who posted it, like Instagram used to. Tap Friends at the top to reach your friends' reels. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
