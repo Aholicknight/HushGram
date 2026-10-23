@@ -138,6 +138,12 @@ final class ShortcutCover {
         take(cover, "its screen paused");
     }
 
+    /** The request the cover waited on was dropped: it comes off now. */
+    static void off(String why) {
+        coverWhenStarted = null;
+        take(cover, why);
+    }
+
     /** Whether [activity]'s window carries the cover. Package-visible for tests. */
     static boolean covers(Activity activity) {
         View decor = coveredWindow == null ? null : coveredWindow.get();

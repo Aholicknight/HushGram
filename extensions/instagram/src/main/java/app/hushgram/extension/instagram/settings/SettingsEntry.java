@@ -380,8 +380,17 @@ public final class SettingsEntry {
         return false;
     }
 
-    /** Closes the settings shown on [activity] as if the person had, so a link that came in shows. */
+    /**
+     * Closes the settings shown on [activity] as if the person had, so a link that came in shows.
+     * A request that hasn't shown yet is dropped with its cover, or it would open over the link.
+     */
     private static void closeForLink(Activity activity) {
+        if (openPending) {
+            openPending = false;
+            onClosedByUser();
+            ShortcutCover.off("a link or notification came in first");
+            Logger.printInfo(() -> "Settings entry: a link or notification came in before the settings showed, dropping the request");
+        }
         Fragment shown = activity.getFragmentManager().findFragmentByTag(DIALOG_TAG);
         if (!(shown instanceof DialogFragment)) return;
         onClosedByUser();
