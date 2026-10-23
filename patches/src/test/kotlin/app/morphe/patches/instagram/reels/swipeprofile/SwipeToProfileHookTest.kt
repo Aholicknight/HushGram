@@ -338,6 +338,12 @@ class SwipeToProfileHookTest {
         refuses("jumps back to its start") { PatchContexts.of(closeClasses(loopsBack = true)).findProfileClose() }
     }
 
+    /** With Tap to play's call first the close goes right after it, so a jump landing there would skip the close. */
+    @Test
+    fun aTouchDispatchJumpingBackPastTapToPlaysCallFailsThePatch() {
+        refuses("jumps back to its start") { PatchContexts.of(closeClasses(tapClock = true, loopsBack = true)).findProfileClose() }
+    }
+
     @Test
     fun aBuildWithoutTheProfileFailsThePatch() {
         refuses("no $PROFILE_FRAGMENT") { PatchContexts.of(closeClasses(profile = false)).findProfileClose() }

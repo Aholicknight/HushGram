@@ -822,17 +822,113 @@ public class SwipeToProfileTest {
         assertTrue(missing, missing.contains("'" + SwipeToProfile.SWITCH + "'"));
     }
 
-    /** A screen that fails the walk under the finger, here one with no window, leaves the touch to Instagram and is reported. */
+    /** A screen that fails the checks of a right swipe, here one attached to nothing, leaves the touch to Instagram and is reported. */
     @Test
     public void aFailedCloseLeavesTheTouchToInstagramAndIsReported() {
         SwipeToProfile.allow(false, () -> true);
         SwipeToProfile.profileResumed(new Object());
+        Activity unattached = new Activity();
         MotionEvent down = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 20, 50, 0);
+        MotionEvent move = MotionEvent.obtain(0, 0, MotionEvent.ACTION_MOVE, 520, 50, 0);
 
-        assertFalse(SwipeToProfile.closesProfile(new Activity(), down, () -> true));
+        assertFalse(SwipeToProfile.closesProfile(unattached, down, () -> true));
+        assertFalse(SwipeToProfile.closesProfile(unattached, move, () -> true));
 
         String missing = HookStatus.missing(FamilyNames.SWIPE_TO_PROFILE).toString();
         assertTrue(missing, missing.contains("'" + SwipeToProfile.CLOSE + "'"));
+    }
+
+    /** A profile opened from the one the swipe opened, by a mention say, doesn't take its place, even inside the swipe's window. */
+    @Test
+    public void aProfileOpenedFromTheSwipedOneDoesntTakeItsPlace() {
+        Screen screen = screen();
+        SwipeToProfile.allow(false, () -> true);
+        Object swiped = new Object();
+        SwipeToProfile.profileResumed(swiped);
+        float y = headerY(screen);
+
+        dispatch(screen, MotionEvent.ACTION_DOWN, 20, y, () -> true);
+        dispatch(screen, MotionEvent.ACTION_UP, 20, y, () -> true);
+        SwipeToProfile.profilePaused(swiped);
+        Object mentioned = new Object();
+        SwipeToProfile.profileResumed(mentioned);
+        assertFalse("the profile the tap opened", swipesBack(screen, () -> true));
+
+        SwipeToProfile.profilePaused(mentioned);
+        SwipeToProfile.profileResumed(swiped);
+        assertTrue("back on the one the swipe opened", swipesBack(screen, () -> true));
+    }
+
+    /** A swipe Instagram allows on its own opens a profile that closes the same way, while the switch is on. */
+    @Test
+    public void aSwipeInstagramAllowsItselfClosesTheSameWay() {
+        Screen screen = screen();
+        assertTrue(SwipeToProfile.allow(true, () -> false));
+        SwipeToProfile.profileResumed(new Object());
+        assertFalse("the switch was off at the swipe", swipesBack(screen, () -> true));
+
+        assertTrue(SwipeToProfile.allow(true, () -> true));
+        SwipeToProfile.profileResumed(new Object());
+        assertTrue(swipesBack(screen, () -> true));
+    }
+
+    /** A close the system cancels, a new touch after a close that never lifted, and a profile gone before the posted Back runs. */
+    @Test
+    public void aCancelledCloseOrAGoneProfileDoesntGoBack() {
+        Screen screen = screen();
+        SwipeToProfile.allow(false, () -> true);
+        Object profile = new Object();
+        SwipeToProfile.profileResumed(profile);
+        float y = headerY(screen);
+        float far = 20 + width(screen) / 2f;
+
+        dispatch(screen, MotionEvent.ACTION_DOWN, 20, y, () -> true);
+        assertTrue(dispatch(screen, MotionEvent.ACTION_MOVE, 20 + 2 * slop(), y, () -> true));
+        assertTrue("the cancel ends the close", dispatch(screen, MotionEvent.ACTION_CANCEL, far, y, () -> true));
+        assertFalse("what follows is Instagram's", dispatch(screen, MotionEvent.ACTION_MOVE, far, y, () -> true));
+        ShadowLooper.idleMainLooper();
+        assertEquals(0, screen.backs);
+
+        dispatch(screen, MotionEvent.ACTION_DOWN, 20, y, () -> true);
+        assertTrue(dispatch(screen, MotionEvent.ACTION_MOVE, 20 + 2 * slop(), y, () -> true));
+        assertTrue("a touch after one that never lifted starts over", swipesBack(screen, () -> true));
+        assertEquals(1, screen.backs);
+
+        dispatch(screen, MotionEvent.ACTION_DOWN, 20, y, () -> true);
+        dispatch(screen, MotionEvent.ACTION_MOVE, 20 + 2 * slop(), y, () -> true);
+        dispatch(screen, MotionEvent.ACTION_UP, far, y, () -> true);
+        SwipeToProfile.profilePaused(profile);
+        ShadowLooper.idleMainLooper();
+        assertEquals("paused before the Back ran", 1, screen.backs);
+    }
+
+    /** A view answering for the last touch that went down on it, as a Compose view does, is asked once it was handed this one. */
+    @Test
+    public void aViewAnsweringForItsLastTouchIsAskedAfterItGetsThisOne() {
+        RowScreen screen = Robolectric.buildActivity(RowScreen.class).setup().get();
+        ShadowLooper.idleMainLooper();
+        SwipeToProfile.allow(false, () -> true);
+        SwipeToProfile.profileResumed(new Object());
+        int[] at = new int[2];
+        screen.row.getLocationInWindow(at);
+        float high = at[1] + screen.row.getHeight() / 3f;
+        float low = at[1] + screen.row.getHeight() * 5 / 6f;
+        float far = 20 + width(screen) / 2f;
+
+        dispatch(screen, MotionEvent.ACTION_DOWN, 20, low, () -> true);
+        dispatch(screen, MotionEvent.ACTION_UP, 20, low, () -> true);
+
+        assertFalse(dispatch(screen, MotionEvent.ACTION_DOWN, 20, high, () -> true));
+        assertFalse("the row scrolls left up there", dispatch(screen, MotionEvent.ACTION_MOVE, 20 + 2 * slop(), high, () -> true));
+        assertFalse(dispatch(screen, MotionEvent.ACTION_UP, far, high, () -> true));
+        ShadowLooper.idleMainLooper();
+        assertEquals(0, screen.backs);
+
+        dispatch(screen, MotionEvent.ACTION_DOWN, 20, low, () -> true);
+        assertTrue("and not down here", dispatch(screen, MotionEvent.ACTION_MOVE, 20 + 2 * slop(), low, () -> true));
+        assertTrue(dispatch(screen, MotionEvent.ACTION_UP, far, low, () -> true));
+        ShadowLooper.idleMainLooper();
+        assertEquals(1, screen.backs);
     }
 
     /** A screen counting the Backs it gets: a header filling it that records each touch it's handed, and a strip along the bottom that can scroll sideways. */
@@ -857,6 +953,48 @@ public class SwipeToProfileTest {
         @Override
         public void onBackPressed() {
             backs++;
+        }
+    }
+
+    /** A screen counting the Backs it gets, filled by a {@link LastDown} row. */
+    public static final class RowScreen extends Activity {
+        int backs;
+        View row;
+
+        @Override
+        protected void onCreate(Bundle state) {
+            super.onCreate(state);
+            requestWindowFeature(Window.FEATURE_NO_TITLE);
+            FrameLayout root = new FrameLayout(this);
+            row = new LastDown(this);
+            root.addView(row, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            setContentView(root);
+        }
+
+        @SuppressWarnings("deprecation")
+        @Override
+        public void onBackPressed() {
+            backs++;
+        }
+    }
+
+    /** A view taking every touch that, like a Compose view, says whether it can scroll left for where the last touch went down on it: yes in its top half. */
+    private static final class LastDown extends View {
+        float downY = -1;
+
+        LastDown(Context context) {
+            super(context);
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) downY = event.getY();
+            return true;
+        }
+
+        @Override
+        public boolean canScrollHorizontally(int direction) {
+            return direction < 0 && downY >= 0 && downY < getHeight() / 2f;
         }
     }
 
@@ -895,11 +1033,11 @@ public class SwipeToProfileTest {
         return "header at " + at[0] + "," + at[1] + " size " + screen.header.getWidth() + "x" + screen.header.getHeight() + ", touched at y " + headerY(screen);
     }
 
-    private static int width(Screen screen) {
+    private static int width(Activity screen) {
         return screen.getResources().getDisplayMetrics().widthPixels;
     }
 
-    private static boolean dispatch(Screen screen, int action, float x, float y, BooleanSupplier on) {
+    private static boolean dispatch(Activity screen, int action, float x, float y, BooleanSupplier on) {
         return dispatch(screen, action, 1, x, y, on);
     }
 
@@ -909,7 +1047,7 @@ public class SwipeToProfileTest {
      * hook reads when {@code on} is null, then to the views unless HushGram took it. Views on API 37
      * skip an event with no input source.
      */
-    private static boolean dispatch(Screen screen, int action, int fingers, float x, float y, BooleanSupplier on) {
+    private static boolean dispatch(Activity screen, int action, int fingers, float x, float y, BooleanSupplier on) {
         MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[fingers];
         MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[fingers];
         for (int i = 0; i < fingers; i++) {

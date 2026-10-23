@@ -633,9 +633,9 @@ internal class ProfileClose(val touch: Method, val resume: Method, val pause: Me
 /**
  * Finds where a right swipe on the open profile is caught. [FRAGMENT_ACTIVITY], which every
  * Instagram screen extends, has to have one dispatchTouchEvent of its own, which sees each touch
- * before any view does, with a local for the hook's answer and nothing jumping back to its start.
- * [PROFILE_FRAGMENT] has to have an onResume and an onPause of its own, instance methods taking
- * nothing.
+ * before any view does, with a local for the hook's answer and nothing jumping back to where the
+ * hook goes, its start or right after Tap to play's call. [PROFILE_FRAGMENT] has to have an onResume
+ * and an onPause of its own, instance methods taking nothing.
  */
 internal fun BytecodePatchContext.findProfileClose(): ProfileClose {
     val activity = classDefByOrNull(FRAGMENT_ACTIVITY) ?: refuse("this build has no $FRAGMENT_ACTIVITY")
@@ -645,7 +645,7 @@ internal fun BytecodePatchContext.findProfileClose(): ProfileClose {
     }
     val touch = touches.singleOrNull() ?: refuse("expected $FRAGMENT_ACTIVITY to have one dispatchTouchEvent of its own, found ${touches.size}")
     if (touch.localRegisterCount() < 1) refuse("$FRAGMENT_ACTIVITY->dispatchTouchEvent has no local register for the hook's answer")
-    if (0 in touch.jumpTargets()) refuse("something in $FRAGMENT_ACTIVITY->dispatchTouchEvent jumps back to its start")
+    if (touch.closeHookAt() in touch.jumpTargets()) refuse("something in $FRAGMENT_ACTIVITY->dispatchTouchEvent jumps back to its start")
     val profile = classDefByOrNull(PROFILE_FRAGMENT) ?: refuse("this build has no $PROFILE_FRAGMENT")
     fun lifecycle(name: String) = profile.methods.singleOrNull {
         it.name == name && it.returnType == "V" && it.parameterTypes.isEmpty() &&
@@ -664,8 +664,7 @@ internal fun BytecodePatchContext.findProfileClose(): ProfileClose {
  */
 internal fun BytecodePatchContext.hookProfileClose(found: ProfileClose) {
     val touch = mutable(found.touch)
-    val first = touch.getInstruction(0).called()
-    val at = if (first != null && "${first.definingClass}->${first.name}(${first.parameterTypes.joinToString("")})${first.returnType}" == TAP_CLOCK) 1 else 0
+    val at = touch.closeHookAt()
     touch.addInstructionsWithLabels(
         at,
         """
@@ -678,6 +677,12 @@ internal fun BytecodePatchContext.hookProfileClose(found: ProfileClose) {
     )
     mutable(found.resume).addInstruction(0, "invoke-static/range { p0 .. p0 }, $PROFILE_RESUMED_HOOK")
     mutable(found.pause).addInstruction(0, "invoke-static/range { p0 .. p0 }, $PROFILE_PAUSED_HOOK")
+}
+
+/** Where the close hook goes in the touch dispatch: right after Tap to play's call when that's first, else first. */
+private fun Method.closeHookAt(): Int {
+    val first = implementation?.instructions?.firstOrNull()?.called() ?: return 0
+    return if ("${first.definingClass}->${first.name}(${first.parameterTypes.joinToString("")})${first.returnType}" == TAP_CLOCK) 1 else 0
 }
 
 private fun BytecodePatchContext.mutable(method: Method): MutableMethod =

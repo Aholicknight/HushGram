@@ -64,7 +64,8 @@ import java.util.function.BooleanSupplier;
  * switch is on, a lone finger going mostly right by the touch slop, from a spot where nothing under it
  * can scroll left, is HushGram's: the views under it get a cancel, and lifting it far enough to the
  * right goes back, which closes the profile onto the reel. The profile's grid still slides between
- * its own tabs, since past the first tab it can scroll left.
+ * its own tabs, since past the first tab it can scroll left. A profile screen Instagram builds again
+ * later, after a theme change say, wasn't opened by the swipe, so it keeps only Back.
  *
  * <p>The hooks fail open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer comes back and the panel stays as Instagram left it.
@@ -228,7 +229,8 @@ public final class SwipeToProfile {
 
     /**
      * Called with Instagram's answer to whether this swipe may go on to the side panel, non-zero for
-     * yes. Returns true while the switch is on, otherwise the answer as it came. Never throws.
+     * yes. Returns true while the switch is on, and notes the swipe for {@link #profileResumed},
+     * otherwise the answer as it came. Never throws.
      */
     public static boolean allow(int stock) {
         return allow(stock != 0, SwipeToProfile::switchedOn);
@@ -237,14 +239,14 @@ public final class SwipeToProfile {
     static boolean allow(boolean stock, BooleanSupplier on) {
         try {
             HookStatus.invoked(FamilyNames.SWIPE_TO_PROFILE);
-            if (stock) return true;
             boolean open = on.getAsBoolean();
+            // Noted when Instagram allows the swipe itself too, so the profile it opens closes the same way.
             if (open) swiped();
-            if (open && !logged) {
+            if (open && !stock && !logged) {
                 logged = true;
                 Logger.printDebug(() -> "SwipeToProfile: let a swipe on a reel go to its profile");
             }
-            return open;
+            return stock || open;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, SWITCH, t);
             return stock;
@@ -484,7 +486,8 @@ public final class SwipeToProfile {
     /**
      * Called first thing in the profile's resume. Remembers it as the profile showing, and as the one
      * the swipe opened when a left swipe on a reel went on to the profile at most
-     * {@link #OPENS_WITHIN_MS} ago. Never throws.
+     * {@link #OPENS_WITHIN_MS} ago and no touch has gone down on the profile it opened since. Never
+     * throws.
      */
     public static void profileResumed(Object profile) {
         try {
@@ -523,6 +526,8 @@ public final class SwipeToProfile {
             closing = IDLE;
             Object profile = shownProfile == null ? null : shownProfile.get();
             if (profile == null || swipedProfile == null || swipedProfile.get() != profile) return false;
+            // A touch on it ends the swipe's window, so a profile opened from it, by a mention say, doesn't take its place.
+            swipePending = false;
             try {
                 HookStatus.invoked(FamilyNames.SWIPE_TO_PROFILE);
                 if (!on.getAsBoolean()) return false;
@@ -535,7 +540,6 @@ public final class SwipeToProfile {
         }
         try {
             if (action == MotionEvent.ACTION_DOWN) {
-                if (scrollsLeft(activity.getWindow().getDecorView(), event.getX(), event.getY())) return false;
                 closing = ARMED;
                 closeX = event.getX();
                 closeY = event.getY();
@@ -561,8 +565,11 @@ public final class SwipeToProfile {
 
     /**
      * A move of an armed touch: once it's gone right by the touch slop and at least twice as far as
-     * up or down, the touch becomes a close, the views under it get a cancel and this answers true.
-     * Any other move past the slop, a second finger or the touch ending gives the touch back.
+     * up or down, from a spot where nothing under the finger can scroll left, the touch becomes a
+     * close, the views under it get a cancel and this answers true. Any other move past the slop, a
+     * second finger or the touch ending gives the touch back. The views are asked here and not as the
+     * touch went down: a Compose view answers for the last touch that went down on it, and only once
+     * it was handed this one does it answer for this one.
      */
     private static boolean claims(Activity activity, MotionEvent event, int action) {
         if (action != MotionEvent.ACTION_MOVE) {
@@ -573,7 +580,7 @@ public final class SwipeToProfile {
         float dy = Math.abs(event.getY() - closeY);
         int slop = ViewConfiguration.get(activity).getScaledTouchSlop();
         if (Math.abs(dx) < slop && dy < slop) return false;
-        if (dx < slop || dx < 2 * dy) {
+        if (dx < slop || dx < 2 * dy || scrollsLeft(activity.getWindow().getDecorView(), closeX, closeY)) {
             closing = IDLE;
             return false;
         }
@@ -598,10 +605,13 @@ public final class SwipeToProfile {
         return Math.max(2 * slop, activity.getResources().getDisplayMetrics().widthPixels / 10f);
     }
 
+    /** Goes back, closing the profile, unless it stopped showing or its screen went away since the lift. */
     @SuppressWarnings("deprecation")
     private static void goBack(Activity activity) {
         try {
-            if (!activity.isFinishing()) activity.onBackPressed();
+            Object profile = shownProfile == null ? null : shownProfile.get();
+            boolean showing = profile != null && swipedProfile != null && swipedProfile.get() == profile;
+            if (showing && !activity.isFinishing() && !activity.isDestroyed()) activity.onBackPressed();
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, CLOSE, t);
         }
