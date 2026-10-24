@@ -559,6 +559,11 @@ public class ReelDownloadTest {
                 context, "no_such_icon", "ic_menu_info_details", "ic_menu_delete"));
         assertEquals(download, ReelDownload.rowIcon(ReelDownload.VIDEO_OPTION, download, context, "ic_menu_info_details"));
         assertEquals(download, ReelDownload.rowIcon(ReelDownload.PLAYER_OPTION, download, context, "ic_menu_info_details"));
+        assertEquals("the feed menu's Details row too", android.R.drawable.ic_menu_info_details,
+                ReelDownload.rowIcon(PostInfo.OPTION, download, context, "ic_menu_info_details"));
+        for (String feedRow : new String[]{ReelDownload.COVER_OPTION, ExternalPlayer.OPTION, VideoDownload.CHOOSE_OPTION}) {
+            assertEquals(feedRow + " keeps the arrow", download, ReelDownload.rowIcon(feedRow, download, context, "ic_menu_info_details"));
+        }
         assertEquals("the names Instagram ships", Arrays.asList("instagram_info_outline_24", "instagram_info_pano_outline_24"),
                 Arrays.asList(ReelDownload.DETAILS_ICONS));
     }

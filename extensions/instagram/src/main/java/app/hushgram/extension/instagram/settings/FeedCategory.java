@@ -74,6 +74,10 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.HIDE_FEED_INTEREST, L10n.t("Hide 'Are you interested?' bubbles"),
                     L10n.t("Hides the bubble under a post that asks 'Are you interested in this post?' with Not "
                             + "interested and Interested buttons. Nothing is answered for you.")));
+            feed.addPreference(toggle(context, Settings.HIDE_CAUGHT_UP_CARD, L10n.t("Hide the caught up card"),
+                    L10n.t("Hides the card after the posts from accounts you follow that says you've seen the latest "
+                            + "ones, and its Older posts link. When Home has no new posts at all, the card stays. Pull "
+                            + "down on Home to refresh after changing it.")));
             if (PatchFamily.feedTypesInBuild()) {
                 feed.addPreference(toggle(context, Settings.HIDE_FEED_VIDEOS, L10n.t("Hide videos"),
                         L10n.t("Removes every single-video post and reel from Home, even from accounts you follow. "
@@ -112,6 +116,9 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.ASK_FOR_LARGER_PHOTOS, L10n.t("Ask for larger photos"),
                     L10n.t("On a phone under 1440 pixels wide, asks Instagram for photos sized for a wider screen. "
                             + "This uses more data. Restart Instagram to see the change.")));
+            feed.addPreference(toggle(context, Settings.FULL_SIZE_COVERS, L10n.t("Full size covers"),
+                    L10n.t("Reel covers and grid pictures come at full size, so Download cover saves a picked "
+                            + "cover at full size too. Grids use a lot more data. Restart Instagram to see the change.")));
         }
         if (askLike) {
             feed.addPreference(toggle(context, Settings.ASK_BEFORE_LIKE, L10n.t("Ask before a like"),

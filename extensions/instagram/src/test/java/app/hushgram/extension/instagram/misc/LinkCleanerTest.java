@@ -314,6 +314,10 @@ public class LinkCleanerTest {
         }
     }
 
+    /**
+     * The in-app browser's Share and Copy link move an Instagram page to the Sharing domain too,
+     * and a page on another site only loses its ad keys (PR #304, Aholicknight).
+     */
     @Test
     public void inAppBrowserShareAndCopyLinksMoveToTheSharingDomain() {
         Settings.SHARING_DOMAIN.save("example.com");

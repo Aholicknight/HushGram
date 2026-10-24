@@ -7,6 +7,7 @@
 package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassBlurRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassCornersRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassHeightRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassLiftRow;
@@ -46,6 +47,9 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.SHOW_MESSAGES_TAB, L10n.t("Show the Messages tab"),
                         L10n.t("Puts Messages on the tab bar, before Profile, if Instagram left it off yours. Tab order "
                                 + "can move it. Restart Instagram to see the change.")));
+                glass.addPreference(toggle(context, Settings.HIDE_MESSAGES_TAB, L10n.t("Hide the Messages tab"),
+                        L10n.t("Takes the Messages button off the tab bar. A Messages button on Home's header still "
+                                + "opens your chats, and so do notifications.")));
                 glass.addPreference(toggle(context, Settings.SHOW_ACTIVITY_TAB, L10n.t("Show the Activity tab"),
                         L10n.t("Puts Activity, the screen the heart opens, on the tab bar before Profile. Tab order can "
                                 + "move it, and Hide notifications on Home's header takes the heart away. "
@@ -81,6 +85,10 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.CENTER_SCREEN_TITLES, L10n.t("Center titles on other screens"),
                         L10n.t("Puts the title in the middle of the bar at the top of other screens, like notifications, "
                                 + "as far as the buttons beside it allow. The buttons stay where they are.")));
+                glass.addPreference(toggle(context, Settings.TITLES_AT_START, L10n.t("Logo and titles at the start"),
+                        L10n.t("Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used "
+                                + "to show them. Turn it on if Instagram centers them for you. It wins over the centering "
+                                + "switches above. Restart Instagram to see the change on Home.")));
                 glass.addPreference(page.tabOrderRow(context));
                 glass.addPreference(startTabRow(context));
             }
@@ -95,6 +103,7 @@ final class TabBarCategory {
                                 + "you're on. Restart Instagram after changing it.")));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_BLUR, L10n.t("Blur behind the tab bar"),
                         L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.")));
+                glass.addPreference(glassBlurRow(context));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_LIQUID, L10n.t("Liquid glass look"),
                         L10n.t("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling "
                                 + "a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as "
