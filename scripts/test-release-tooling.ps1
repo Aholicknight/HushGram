@@ -178,9 +178,10 @@ $olderDelta = [pscustomobject]@{ permissionsAdded = @(); permissionsRemoved = @(
 Assert-True ((@(ConvertTo-ManifestDeltaEntries -Delta $olderDelta) -join '; ') -ceq 'permission-removed android.permission.CAMERA') `
     'A delta without a version code field did not flatten.'
 
-# The checked-in allowlist approves two changes and nothing else: Remove the advertising ID takes
+# The checked-in allowlist approves three changes and nothing else: Remove the advertising ID takes
 # the three advertising ID permissions out of the build, which the receipt reads as three
-# permissions no longer asked for, and Change version code raises the version code to the highest.
+# permissions no longer asked for, Change version code raises the version code to the highest, and
+# Pick the app icon adds one launcher alias per HushGram icon, exported like Instagram's own.
 $checkedInAllowlist = @(Read-ManifestDeltaAllowlist -Path (Join-Path $PSScriptRoot 'manifest-delta-allowlist.txt') |
     Where-Object { $_ })
 $removalEntries = @(
@@ -189,11 +190,13 @@ $removalEntries = @(
     'permission-removed com.google.android.gms.permission.AD_ID')
 $removedPermissions = @($removalEntries | ForEach-Object { $_ -replace '^permission-removed ', '' })
 $raisedVersionCode = '2147483647'
-$approvedEntries = @($removalEntries) + "version-code $raisedVersionCode"
+$iconAliasEntries = @('hushgram', 'dark', 'plum' | ForEach-Object {
+    "exported-added activity-alias:com.instagram.android.activity.MainTabActivity.hushgram_$_" })
+$approvedEntries = @($removalEntries) + "version-code $raisedVersionCode" + $iconAliasEntries
 Assert-True ((@($checkedInAllowlist | Sort-Object -CaseSensitive) -join "`n") -ceq
         (@($approvedEntries | Sort-Object -CaseSensitive) -join "`n")) `
-    ('The checked-in manifest delta allowlist approves something besides the advertising ID removals and the ' +
-     "raised version code, or less than all of them: $($checkedInAllowlist -join ', ')")
+    ('The checked-in manifest delta allowlist approves something besides the advertising ID removals, the ' +
+     "raised version code and the icon aliases, or less than all of them: $($checkedInAllowlist -join ', ')")
 
 $allowlistRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("receipt-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $allowlistRoot | Out-Null
