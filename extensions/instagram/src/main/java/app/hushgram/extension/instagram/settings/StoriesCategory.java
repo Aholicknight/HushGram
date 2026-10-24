@@ -130,6 +130,7 @@ final class StoriesCategory {
                     L10n.t("Adds the fonts below to the story text editor, after Instagram's own fonts, which all "
                             + "stay. Pick one there like any other font.")));
             stories.add(page.storyFontsRow(context));
+            stories.add(page.storyEmojiRow(context));
         }
         if (!stories.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Stories"), SettingsIcons.STORIES,

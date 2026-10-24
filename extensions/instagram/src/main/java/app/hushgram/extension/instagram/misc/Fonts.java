@@ -336,6 +336,12 @@ public final class Fonts {
         return false;
     }
 
+    /** Loads [file] the way the picked font is loaded, or answers null when it isn't a font. */
+    @Nullable
+    public static Typeface load(File file) {
+        return loader.load(file);
+    }
+
     /** Where the picked font is kept. */
     static File kept(Context context) {
         return new File(new File(context.getFilesDir(), DIRECTORY), FILE);

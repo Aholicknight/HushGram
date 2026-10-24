@@ -2161,3 +2161,18 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryFonts;->named(Ljava/lan
 # picked font back; twice or elsewhere, it isn't the call the patch wrote.
 start-call Lapp/hushgram/extension/instagram/stories/StoryFonts;->applied(Ljava/lang/Object;)V in static (Landroid/widget/EditText;L*;)V holding Landroid/widget/EditText;->getText()Landroid/text/Editable; LX/*;->*(Landroid/content/Context;Landroid/graphics/Paint;Landroid/text/Editable;LX/*;)V
 once-call Lapp/hushgram/extension/instagram/stories/StoryFonts;->applied(Ljava/lang/Object;)V in static (Landroid/widget/EditText;L*;)V holding Landroid/widget/EditText;->getText()Landroid/text/Editable; LX/*;->*(Landroid/content/Context;Landroid/graphics/Paint;Landroid/text/Editable;LX/*;)V
+# Right after it the same apply hands its text box to StoryEmoji.applied, which lays the picked emoji
+# font over each emoji and watches the text for more (#275). Left out, story emoji never change;
+# twice or elsewhere, it isn't the call the patch wrote.
+once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->applied(Landroid/widget/EditText;)V in static (Landroid/widget/EditText;L*;)V holding Landroid/widget/EditText;->getText()Landroid/text/Editable; LX/*;->*(Landroid/content/Context;Landroid/graphics/Paint;Landroid/text/Editable;LX/*;)V
+# The story text sticker (092h on 452), the drawable every story text editor makes, hands the text
+# its private (CharSequence, boolean) layout builder is given to StoryEmoji.drawing first and lays out
+# what comes back, so a finished sticker and the shared story get the picked emoji font (#275). Left
+# out, the sticker shows Instagram's emoji after Next; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; in instance (Ljava/lang/CharSequence;Z)Landroid/text/StaticLayout; holding Landroid/text/StaticLayout$Builder;->obtain(Ljava/lang/CharSequence;IILandroid/text/TextPaint;I)Landroid/text/StaticLayout$Builder; Landroid/text/StaticLayout$Builder;->setTextDirection(Landroid/text/TextDirectionHeuristic;)Landroid/text/StaticLayout$Builder;
+# Its subclass measuring each line (0WzZ.A09 on 452) hands the sticker's change to that line to the
+# same hook before laying it out, so each line is measured with the emoji it's drawn with.
+once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; in static (L*;Ljava/lang/CharSequence;)L*; holding Landroid/text/StaticLayout$Builder;->obtain(Ljava/lang/CharSequence;IILandroid/text/TextPaint;I)Landroid/text/StaticLayout$Builder; LX/*;->*(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; LX/*;->*(Landroid/text/StaticLayout$Builder;FF)Landroid/text/StaticLayout;
+# One sticker style below it (0Su2.A06 on 452) measures its placeholder and its last line the same way,
+# so that measure gets the hook too and the line keeps the width it's drawn at.
+once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; in instance (Landroid/text/Spannable;Lkotlin/jvm/functions/Function1;)L*; holding Landroid/text/StaticLayout$Builder;->obtain(Ljava/lang/CharSequence;IILandroid/text/TextPaint;I)Landroid/text/StaticLayout$Builder; LX/*;->*(Ljava/lang/CharSequence;)Ljava/lang/CharSequence; LX/*;->*(Landroid/text/StaticLayout$Builder;FF)Landroid/text/StaticLayout;

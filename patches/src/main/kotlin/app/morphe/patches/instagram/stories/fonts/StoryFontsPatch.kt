@@ -31,6 +31,7 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -38,12 +39,16 @@ import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 
 private const val PATCH = "Story text fonts"
 internal const val STORY_FONTS = "$EXTENSION_PACKAGE/stories/StoryFonts;"
 internal const val FORMATS = "$STORY_FONTS->formats(Ljava/util/List;)V"
 internal const val NAMED = "$STORY_FONTS->named(Ljava/lang/String;)Ljava/lang/Object;"
 internal const val APPLIED = "$STORY_FONTS->applied(Ljava/lang/Object;)V"
+internal const val STORY_EMOJI = "$EXTENSION_PACKAGE/stories/StoryEmoji;"
+internal const val EMOJI_APPLIED = "$STORY_EMOJI->applied(Landroid/widget/EditText;)V"
+internal const val EMOJI_DRAWING = "$STORY_EMOJI->drawing(Ljava/lang/CharSequence;)Ljava/lang/CharSequence;"
 internal const val IMPORTED_FONT = "importedFont"
 
 /** Instagram's name for a format that draws its text in a font file, which its own import gives. */
@@ -56,6 +61,11 @@ private const val STRING = "Ljava/lang/String;"
 private const val INTEGER = "Ljava/lang/Integer;"
 private const val EDIT_TEXT = "Landroid/widget/EditText;"
 private const val TEXT_VIEW = "Landroid/widget/TextView;"
+private const val CHAR_SEQUENCE = "Ljava/lang/CharSequence;"
+private const val STATIC_LAYOUT = "Landroid/text/StaticLayout;"
+internal const val DRAWABLE = "Landroid/graphics/drawable/Drawable;"
+internal const val LAYOUT_BUILDER = "Landroid/text/StaticLayout\$Builder;->obtain(Ljava/lang/CharSequence;IILandroid/text/TextPaint;I)" +
+    "Landroid/text/StaticLayout\$Builder;"
 
 /**
  * Adds the font files picked in HushGram settings to the story text editor's row of fonts, after
@@ -67,7 +77,8 @@ private const val TEXT_VIEW = "Landroid/widget/TextView;"
 val storyFontsPatch = bytecodePatch(
     name = "Story text fonts",
     description = "Adds fonts you pick from your phone (.ttf or .otf files) to the story text editor, after Instagram's " +
-        "own fonts. Starts off. Add them under Your story fonts in HushGram settings > Stories.",
+        "own fonts, and can draw the emoji in story text from an emoji font file you pick. Starts off. Set both up in " +
+        "HushGram settings > Stories.",
 ) {
     category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -95,15 +106,22 @@ internal class StoryFontTargets(
     val byName: MethodReference,
     /** `(EditText, format)V` that applies a format to the text being edited. */
     val apply: MethodReference,
+    /** The story text sticker's private `(CharSequence, Z)StaticLayout` that lays out the text it draws. */
+    val layout: MethodReference,
+    /** Each place a sticker lays out one line of its text to measure it. */
+    val lines: List<LineLayout>,
     /** The format's fields the editor names a font from, as [labelFields] finds them. */
     val labels: List<FieldReference>,
 ) {
     val format: String get() = copy.returnType
 }
 
+/** A sticker method that lays out a line with StaticLayout.Builder, and where it moves the sticker's change to that line into a register. */
+internal class LineLayout(val method: MethodReference, val at: Int)
+
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** Finds everything with [findStoryFontTargets], then fills the extension's stub and adds the three hooks. */
+/** Finds everything with [findStoryFontTargets], then fills the extension's stub and adds the hooks. */
 internal fun BytecodePatchContext.addStoryFonts() {
     val found = findStoryFontTargets()
     val stub = mutableClassDefBy(STORY_FONTS).methods.singleOrNull {
@@ -175,8 +193,40 @@ internal fun BytecodePatchContext.addStoryFonts() {
         ExternalLabel("instagram", byName.getInstruction(0)),
     )
 
+    // The emoji font goes over the text box's emoji whatever the format, so it's told the text box too.
     val format = apply.parameterRegister(1)
-    apply.addInstructions(0, "invoke-static/range { $format .. $format }, $APPLIED")
+    val edit = apply.parameterRegister(0)
+    apply.addInstructions(
+        0,
+        """
+            invoke-static/range { $format .. $format }, $APPLIED
+            invoke-static/range { $edit .. $edit }, $EMOJI_APPLIED
+        """,
+    )
+
+    // A finished sticker keeps its own copy of the text without those spans, so the text it lays out
+    // to draw, and each line it measures, goes through the emoji font first.
+    val layout = method(found.layout)
+    val text = layout.parameterRegister(0)
+    layout.addInstructions(
+        0,
+        """
+            invoke-static/range { $text .. $text }, $EMOJI_DRAWING
+            move-result-object $text
+        """,
+    )
+    // Last first, so two in one method keep their places.
+    for (line in found.lines.sortedByDescending { it.at }) {
+        val measure = method(line.method)
+        val result = (measure.getInstruction(line.at) as OneRegisterInstruction).registerA
+        measure.addInstructions(
+            line.at + 1,
+            """
+                invoke-static/range { v$result .. v$result }, $EMOJI_DRAWING
+                move-result-object v$result
+            """,
+        )
+    }
 }
 
 /**
@@ -185,8 +235,9 @@ internal fun BytecodePatchContext.addStoryFonts() {
  * kind, and that site has to be the only one. The editor's controller is the class whose current
  * format read logs [TEXT_FORMAT_CONTROLLER]: it reads its list of formats, a private `()ArrayList`,
  * and its re-edit of a sticker names that format and makes it again from its name. The controller
- * applies a format through one static `(EditText, format)V`. Anything else is an update this patch
- * hasn't seen, and it fails before anything is written.
+ * applies a format through one static `(EditText, format)V`, and [findStickerLayouts] finds the
+ * finished sticker. Anything else is an update this patch hasn't seen, and it fails before anything
+ * is written.
  */
 internal fun BytecodePatchContext.findStoryFontTargets(): StoryFontTargets {
     val imports = classesLoadingString(IMPORT_FONT).flatMap { it.methods }.flatMap { method -> importSites(method) }
@@ -242,6 +293,8 @@ internal fun BytecodePatchContext.findStoryFontTargets(): StoryFontTargets {
     }.distinctBy { it.toString() }
     if (applies.size != 1) refuse("expected the editor to apply a format to its text through one call, found ${applies.size}")
 
+    val (layout, lines) = findStickerLayouts()
+
     // The extension calls the import's two and reads its kind from another package, and the hooks
     // go in the other two, so all of them have to be there and reachable.
     for (called in listOf(named, copy, byName.single(), applies.single())) {
@@ -258,7 +311,80 @@ internal fun BytecodePatchContext.findStoryFontTargets(): StoryFontTargets {
         val owner = classDefByOrNull(type) ?: refuse("$type is not in this build")
         if (!AccessFlags.PUBLIC.isSet(owner.accessFlags)) refuse("$type is not public")
     }
-    return StoryFontTargets(named, copy, kind, mask, list, byName.single(), applies.single(), labelFields(controller, format))
+    return StoryFontTargets(named, copy, kind, mask, list, byName.single(), applies.single(), layout, lines,
+        labelFields(controller, format))
+}
+
+/**
+ * The story text sticker, a drawable whichever editor made it, and where it lays out its text. It's
+ * the one drawable with a private `(CharSequence, Z)StaticLayout` that builds with StaticLayout.Builder,
+ * which lays out the text it draws, and it changes its text before a layout in one
+ * `(CharSequence)CharSequence` of its own. Its family measures each line by handing that change's
+ * result straight to StaticLayout.Builder, in at least one place.
+ */
+private fun BytecodePatchContext.findStickerLayouts(): Pair<MethodReference, List<LineLayout>> {
+    val all = mutableListOf<ClassDef>()
+    classDefForEach { all += it }
+    val byType = all.associateBy { it.type }
+    fun drawable(start: ClassDef): Boolean {
+        var type: String? = start.superclass
+        repeat(8) {
+            if (type == DRAWABLE) return true
+            type = byType[type ?: return false]?.superclass
+        }
+        return false
+    }
+    val layouts = all.filter { drawable(it) }.flatMap { owner ->
+        owner.methods.filter { method ->
+            AccessFlags.PRIVATE.isSet(method.accessFlags) && !AccessFlags.STATIC.isSet(method.accessFlags) &&
+                method.parameterTypes.map(CharSequence::toString) == listOf(CHAR_SEQUENCE, "Z") && method.returnType == STATIC_LAYOUT &&
+                method.code().any { it.call()?.toString() == LAYOUT_BUILDER }
+        }
+    }
+    if (layouts.size != 1) refuse("expected one story text sticker laying out its text with StaticLayout.Builder, found ${layouts.size}")
+    val layout = layouts.single()
+    val sticker = layout.definingClass
+    val changes = byType.getValue(sticker).methods.filter {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(CharSequence::toString) == listOf(CHAR_SEQUENCE) &&
+            it.returnType == CHAR_SEQUENCE
+    }
+    if (changes.size != 1) refuse("expected $sticker to change its text before a layout in one method, found ${changes.size}")
+    val change = changes.single()
+
+    val family = mutableSetOf(sticker)
+    while (true) {
+        val more = all.filter { it.superclass in family && it.type !in family }
+        if (more.isEmpty()) break
+        more.mapTo(family) { it.type }
+    }
+    val lines = all.filter { it.type in family }.flatMap { owner ->
+        owner.methods.flatMap { method ->
+            val code = method.code()
+            code.indices.filter { at ->
+                val called = code[at].call()
+                called != null && called.definingClass in family && called.name == change.name &&
+                    called.parameterTypes.map(CharSequence::toString) == listOf(CHAR_SEQUENCE) && called.returnType == CHAR_SEQUENCE &&
+                    code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT && laysOut(code, at + 1)
+            }.map { LineLayout(ImmutableMethodReference(method.definingClass, method.name, method.parameterTypes, method.returnType), it + 1) }
+        }
+    }
+    if (lines.isEmpty()) refuse("expected $sticker and its subclasses to lay out a line of its text with StaticLayout.Builder, found 0")
+    return ImmutableMethodReference(sticker, layout.name, layout.parameterTypes, layout.returnType) to lines
+}
+
+/**
+ * Whether the text [code] moves into a register at [at] goes, untouched and with no branch on the
+ * way, into the next StaticLayout.Builder a few instructions on.
+ */
+private fun laysOut(code: List<Instruction>, at: Int): Boolean {
+    val register = (code[at] as OneRegisterInstruction).registerA
+    for (next in at + 1 until minOf(code.size, at + 8)) {
+        val instruction = code[next]
+        if (instruction.call()?.toString() == LAYOUT_BUILDER) return instruction.arguments().firstOrNull() == register
+        if (instruction.opcode.setsRegister() && (instruction as? OneRegisterInstruction)?.registerA == register) return false
+        if (instruction is OffsetInstruction || instruction.opcode == Opcode.RETURN_OBJECT) return false
+    }
+    return false
 }
 
 /**

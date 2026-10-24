@@ -1239,3 +1239,8 @@ Added %1$s. Pick it in the story text editor, after Instagram's fonts.	%1$s hinz
 # context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
 Logo and titles at the start	Logo und Titel am Anfang
 Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Setzt das Instagram-Logo und den Titel jeder Leiste an den Anfang der Leiste, wo Instagram sie früher zeigte. Schalte es ein, wenn Instagram sie bei dir zentriert. Es hat Vorrang vor den Zentrier-Schaltern darüber. Starte Instagram neu, um die Änderung auf der Startseite zu sehen.
+# context: Emoji font in story text, a switch under Stories after Your story fonts; turning it on opens the phone's file picker for an emoji font file (.ttf), used only for emoji typed in Instagram's story text editor (#275)
+Emoji font in story text	Emoji-Schriftart im Story-Text
+Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.	Emojis, die du im Story-Text eingibst, kommen aus einer Emoji-Schriftdatei, die du auswählst. Beim Einschalten wirst du nach der Datei gefragt. Aus kommen die Emojis von Instagram zurück.
+That file isn't a font HushGram can use. Story emoji haven't changed.	Diese Datei ist keine Schriftart, die HushGram nutzen kann. Die Story-Emojis wurden nicht geändert.
+Emoji font saved. Emoji in story text draw in it.	Emoji-Schriftart gespeichert. Emojis im Story-Text erscheinen jetzt in ihr.

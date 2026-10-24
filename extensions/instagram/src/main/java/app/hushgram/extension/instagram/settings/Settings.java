@@ -254,6 +254,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_story_fonts", FALSE);
 
     /**
+     * Emoji in story text draw from an emoji font file picked in settings
+     * ({@link app.hushgram.extension.instagram.stories.StoryEmoji}). Read each time the story text
+     * changes. Off to start, and turned on only once a picked file loads as a font.
+     */
+    public static final BooleanSetting STORY_EMOJI =
+            new BooleanSetting("hushgram_story_emoji", FALSE);
+
+    /**
      * A video story is prepared the way Instagram prepares it with its own "Upload at highest quality"
      * setting on, at 1080p and 9 Mbps ({@link app.hushgram.extension.instagram.stories.StoryUploadQuality}). The server still
      * keeps story videos at 720p.

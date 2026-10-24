@@ -100,6 +100,7 @@ import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.ShareSheetActions;
 import app.hushgram.extension.instagram.share.SharingDomain;
+import app.hushgram.extension.instagram.stories.StoryEmoji;
 import app.hushgram.extension.instagram.stories.StoryFonts;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
@@ -219,6 +220,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private static final int IMPORT_CONFIGURATION = 0x4848;
     private static final int PICK_FONT = 0x484d;
     private static final int PICK_STORY_FONT = 0x484e;
+    private static final int PICK_STORY_EMOJI = 0x484f;
     /** Framework fragment callbacks run on the main thread. Never reuse a code across pages. */
     private static int documentSequence = PICK_FONT;
     private int documentRequest;
@@ -1692,6 +1694,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (result == Activity.RESULT_OK) keepStoryFont(data == null ? null : data.getData());
             return;
         }
+        if (request == PICK_STORY_EMOJI) {
+            documentRequest = 0;
+            documentCode = 0;
+            showConfiguration();
+            if (result == Activity.RESULT_OK) keepStoryEmoji(data == null ? null : data.getData());
+            return;
+        }
         if (request != EXPORT_CONFIGURATION && request != IMPORT_CONFIGURATION) return;
         documentRequest = 0;
         documentCode = 0;
@@ -2936,6 +2945,61 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.isolate(name)));
         }
         if (isAdded()) showStoryFonts();
+    }
+
+    /**
+     * The switch for emoji in story text drawn from a font file (#275). Turning it on opens the file
+     * picker, and it shows on only once a picked file loads as a font. Off, Instagram's emoji return.
+     */
+    SwitchPreference storyEmojiRow(Context context) {
+        SwitchPreference row = toggle(context, Settings.STORY_EMOJI, L10n.t("Emoji font in story text"),
+                L10n.t("Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for "
+                        + "the file. Off, Instagram's emoji come back."));
+        row.setOnPreferenceChangeListener((preference, value) -> {
+            if (!Boolean.TRUE.equals(value)) return true;
+            pickFont(PICK_STORY_EMOJI);
+            return false;
+        });
+        return row;
+    }
+
+    /**
+     * Copies the picked file into Instagram's storage off the main thread if it loads as a font, then
+     * turns story emoji on. A file that isn't a font changes nothing and says so.
+     */
+    private void keepStoryEmoji(@Nullable Uri uri) {
+        Context context = getContext();
+        if (context == null) return;
+        if (uri == null || !"content".equals(uri.getScheme())) {
+            storyEmojiKept(false);
+            return;
+        }
+        Context application = context.getApplicationContext();
+        if (!Utils.runOnBackgroundThread(() -> {
+            boolean kept;
+            try (java.io.InputStream input = application.getContentResolver().openInputStream(uri)) {
+                kept = input != null && StoryEmoji.store(application, input);
+            } catch (Exception failure) {
+                Logger.printInfo(() -> "Story emoji: couldn't read the picked file", failure);
+                kept = false;
+            }
+            boolean usable = kept;
+            Utils.runOnMainThread(() -> storyEmojiKept(usable));
+        })) {
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+        }
+    }
+
+    /** Turns story emoji on once the picked file is kept, or says it isn't a font. */
+    private void storyEmojiKept(boolean kept) {
+        if (!kept) {
+            Utils.showToastLong(L10n.t("That file isn't a font HushGram can use. Story emoji haven't changed."));
+            return;
+        }
+        Settings.STORY_EMOJI.save(true);
+        Preference row = isAdded() ? findPreference(Settings.STORY_EMOJI.key) : null;
+        if (row instanceof TwoStatePreference) ((TwoStatePreference) row).setChecked(true);
+        Utils.showToastLong(L10n.t("Emoji font saved. Emoji in story text draw in it."));
     }
 
     /**

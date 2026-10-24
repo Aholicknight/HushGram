@@ -1238,3 +1238,8 @@ Added %1$s. Pick it in the story text editor, after Instagram's fonts.	%1$s 추�
 # context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
 Logo and titles at the start	로고와 제목을 앞쪽에
 Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Instagram 로고와 각 바의 제목을 예전처럼 바의 앞쪽에 둡니다. Instagram이 가운데에 두어 보여 줄 때 켜세요. 위의 가운데 정렬 스위치보다 우선합니다. 홈에서 변경 사항을 보려면 Instagram을 다시 시작하세요.
+# context: Emoji font in story text, a switch under Stories after Your story fonts; turning it on opens the phone's file picker for an emoji font file (.ttf), used only for emoji typed in Instagram's story text editor (#275)
+Emoji font in story text	스토리 텍스트의 이모지 글꼴
+Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.	스토리 텍스트에 입력하는 이모지를 직접 고른 이모지 글꼴 파일로 그립니다. 켜면 파일을 고르라고 합니다. 끄면 Instagram 이모지로 돌아갑니다.
+That file isn't a font HushGram can use. Story emoji haven't changed.	HushGram에서 쓸 수 있는 글꼴 파일이 아닙니다. 스토리 이모지는 바뀌지 않았습니다.
+Emoji font saved. Emoji in story text draw in it.	이모지 글꼴을 저장했습니다. 이제 스토리 텍스트의 이모지가 이 글꼴로 보입니다.

@@ -1239,3 +1239,8 @@ Added %1$s. Pick it in the story text editor, after Instagram's fonts.	%1$s ekle
 # context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
 Logo and titles at the start	Logo ve başlıklar başta
 Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Instagram logosunu ve her çubuğun başlığını, Instagram'ın eskiden gösterdiği gibi çubuğun başına koyar. Instagram bunları senin için ortalıyorsa aç. Yukarıdaki ortalama anahtarlarından önce gelir. Değişikliği Ana sayfada görmek için Instagram'ı yeniden başlat.
+# context: Emoji font in story text, a switch under Stories after Your story fonts; turning it on opens the phone's file picker for an emoji font file (.ttf), used only for emoji typed in Instagram's story text editor (#275)
+Emoji font in story text	Hikâye metninde emoji yazı tipi
+Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.	Hikâye metnine yazdığın emojiler, seçtiğin bir emoji yazı tipi dosyasından çizilir. Açınca dosyayı sorar. Kapalıyken Instagram'ın emojileri geri gelir.
+That file isn't a font HushGram can use. Story emoji haven't changed.	Bu dosya HushGram'ın kullanabileceği bir yazı tipi değil. Hikâye emojileri değişmedi.
+Emoji font saved. Emoji in story text draw in it.	Emoji yazı tipi kaydedildi. Hikâye metnindeki emojiler artık onunla çiziliyor.

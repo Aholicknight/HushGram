@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -49,6 +50,11 @@ class StoryFontsHookTest {
     private val kind = "$kindType->A00:$kindType"
     private val byName = "$formats->byName($string)$format"
     private val apply = "$applier->apply(Landroid/widget/EditText;$format)V"
+    private val textDrawable = "Lfixture/TextDrawable;"
+    private val lineDrawable = "Lfixture/LineDrawable;"
+    private val chars = "Ljava/lang/CharSequence;"
+    private val layout = "$textDrawable->layout(${chars}Z)Landroid/text/StaticLayout;"
+    private val measure = "$lineDrawable->measure($lineDrawable$chars)Ljava/lang/Object;"
     private val list = "$controller->formats()Ljava/util/ArrayList;"
     private val mask = 0x7ffff7f
     private val labelId = "$format->labelId:Ljava/lang/Integer;"
@@ -65,12 +71,19 @@ class StoryFontsHookTest {
         for (hook in listOf(FORMATS, NAMED, APPLIED, "$STORY_FONTS->$IMPORTED_FONT(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;")) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
+        val emoji = ExtensionDex.classDef(STORY_EMOJI).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        for (hook in listOf(EMOJI_APPLIED, EMOJI_DRAWING)) {
+            assertTrue("$hook is not in the extension: $emoji", hook.substringAfter("->") in emoji)
+        }
     }
 
     /**
      * The stub makes a format the way the import does and names it after the file, every return of
-     * the editor's list hands it over first, the rebuild by name asks first, and the apply says what
-     * it applied.
+     * the editor's list hands it over first, the rebuild by name asks first, the apply says what
+     * it applied and to which text box, and the sticker's layout and its line measure hand over
+     * their text first and lay out what comes back.
      */
     @Test
     fun theStubAndTheHooksGoIn() {
@@ -106,7 +119,23 @@ class StoryFontsHookTest {
         val applied = context.method(apply).code()
         assertEquals(APPLIED, applied[0].referenceText())
         assertEquals("the format it's handed", 2, (applied[0] as RegisterRangeInstruction).startRegister)
-        assertEquals(3, applied.size)
+        assertEquals(EMOJI_APPLIED, applied[1].referenceText())
+        assertEquals("the text box it's handed", 1, (applied[1] as RegisterRangeInstruction).startRegister)
+        assertEquals(4, applied.size)
+
+        val laidOut = context.method(layout).code()
+        assertEquals(EMOJI_DRAWING, laidOut[0].referenceText())
+        assertEquals("the text it's handed", 4, (laidOut[0] as RegisterRangeInstruction).startRegister)
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, laidOut[1].opcode)
+        assertEquals("the text laid out is what comes back", 4, (laidOut[1] as OneRegisterInstruction).registerA)
+        assertEquals("Instagram's own body follows", Opcode.CONST_4, laidOut[2].opcode)
+
+        val measured = context.method(measure).code()
+        assertEquals("the sticker's change to the line comes first", Opcode.INVOKE_VIRTUAL, measured[0].opcode)
+        assertEquals(EMOJI_DRAWING, measured[2].referenceText())
+        assertEquals("the changed line", 0, (measured[2] as RegisterRangeInstruction).startRegister)
+        assertEquals("the line measured is what comes back", 0, (measured[3] as OneRegisterInstruction).registerA)
+        assertEquals(LAYOUT_BUILDER, measured[7].referenceText())
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
@@ -121,6 +150,11 @@ class StoryFontsHookTest {
             classes(rebuilds = 2) to "expected the editor to make a format from its saved name in one place, found 2",
             classes(applies = 0) to "expected the editor to apply a format to its text through one call, found 0",
             classes(applies = 2) to "expected the editor to apply a format to its text through one call, found 2",
+            classes(stickers = 0) to "expected one story text sticker laying out its text with StaticLayout.Builder, found 0",
+            classes(stickers = 2) to "expected one story text sticker laying out its text with StaticLayout.Builder, found 2",
+            classes(drawable = false) to "expected one story text sticker laying out its text with StaticLayout.Builder, found 0",
+            classes(changes = 2) to "expected $textDrawable to change its text before a layout in one method, found 2",
+            classes(lineChanged = false) to "expected $textDrawable and its subclasses to lay out a line of its text with StaticLayout.Builder, found 0",
             classes(copyPublic = false) to "$copy is not public and static",
             classes(kindPublic = false) to "$kind is not a public static field",
             classes(labels = false) to "expected the editor to show the current font's name from one string id, found 0",
@@ -132,7 +166,7 @@ class StoryFontsHookTest {
             val failure = assertThrows(expected, PatchException::class.java) { context.addStoryFonts() }
             assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
             val written = classes.map { it.type }.distinct().filter { it != STORY_FONTS }.flatMap { type -> context.mutableClassDefBy(type).methods }
-                .filter { method -> method.code().any { it.referenceText() in setOf(FORMATS, NAMED, APPLIED) } }
+                .filter { method -> method.code().any { it.referenceText() in setOf(FORMATS, NAMED, APPLIED, EMOJI_APPLIED, EMOJI_DRAWING) } }
             assertTrue("$expected: something was written to $written", written.isEmpty())
             val stub = context.mutableClassDefBy(STORY_FONTS).methods.single { it.name == IMPORTED_FONT }.code()
             assertEquals("$expected: the stub was filled", listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT), stub.map { it.opcode })
@@ -174,7 +208,19 @@ class StoryFontsHookTest {
                     else -> emptyList()
                 }
             }.filter { it.startsWith("LX/") && it !in have }.toSet()
-        val classes = FixtureDex.withStringPools(bundle, holders + FixtureDex.classes(bundle, referenced).values)
+        val first = FixtureDex.classes(bundle, referenced).values
+        // The sticker is one of the drawables, and its lines are measured in its subclasses.
+        val drawables = FixtureDex.subclasses(bundle, setOf(DRAWABLE))
+        val family = drawables.filter { owner ->
+            owner.methods.any { it.parameterTypes.map(CharSequence::toString) == listOf(chars, "Z") && it.returnType == "Landroid/text/StaticLayout;" }
+        }.toMutableList()
+        var newest = family.map { it.type }.toSet()
+        while (newest.isNotEmpty()) {
+            val more = FixtureDex.subclasses(bundle, newest)
+            family += more
+            newest = more.map { it.type }.toSet()
+        }
+        val classes = FixtureDex.withStringPools(bundle, (holders + first + drawables + family).distinctBy { it.type })
         val context = PatchContexts.of(classes + ExtensionDex.classDef(STORY_FONTS))
 
         val found = context.findStoryFontTargets()
@@ -191,7 +237,28 @@ class StoryFontsHookTest {
         assertTrue("$label: the list returns", returns.isNotEmpty())
         for (at in returns) assertEquals("$label: before the list's return", FORMATS, listed[at - 1].referenceText())
         assertEquals("$label: the rebuild by name", NAMED, context.method(found.byName.toString()).code()[0].referenceText())
-        assertEquals("$label: the apply", APPLIED, context.method(found.apply.toString()).code()[0].referenceText())
+        val applied = context.method(found.apply.toString()).code()
+        assertEquals("$label: the apply", APPLIED, applied[0].referenceText())
+        assertEquals("$label: the apply's text box", EMOJI_APPLIED, applied[1].referenceText())
+        assertEquals("$label: the text box is the first parameter", context.method(found.apply.toString()).parameterRegisterNumber(0),
+            (applied[1] as RegisterRangeInstruction).startRegister)
+        val layoutMethod = context.method(found.layout.toString())
+        val laidOut = layoutMethod.code()
+        assertEquals("$label: the sticker's layout", EMOJI_DRAWING, laidOut[0].referenceText())
+        assertEquals("$label: the text is the layout's first parameter", layoutMethod.parameterRegisterNumber(0),
+            (laidOut[0] as RegisterRangeInstruction).startRegister)
+        assertEquals("$label: the layout lays out what comes back", layoutMethod.parameterRegisterNumber(0),
+            (laidOut[1] as OneRegisterInstruction).registerA)
+        assertTrue("$label: the sticker measures its lines", found.lines.isNotEmpty())
+        for (line in found.lines) {
+            val measured = context.method(line.method.toString()).code()
+            // Each hook put in further up the same method moves this one down by its two instructions.
+            val at = line.at + 2 * found.lines.count { it.method.toString() == line.method.toString() && it.at < line.at }
+            val changed = (measured[at] as OneRegisterInstruction).registerA
+            assertEquals("$label: ${line.method} hands over the changed line", EMOJI_DRAWING, measured[at + 1].referenceText())
+            assertEquals("$label: ${line.method}'s changed line", changed, (measured[at + 1] as RegisterRangeInstruction).startRegister)
+            assertEquals("$label: ${line.method} measures what comes back", changed, (measured[at + 2] as OneRegisterInstruction).registerA)
+        }
     }
 
     /**
@@ -217,7 +284,9 @@ class StoryFontsHookTest {
      * and copies it with a file font's kind; an editor whose current format read logs
      * "TextFormatController", reads a private list of formats, rebuilds a sticker's format from its
      * saved name, applies one to its text, labels the current font from a string id or a text, and
-     * reads one more of each for a screen reader in its row of fonts.
+     * reads one more of each for a screen reader in its row of fonts; and a text drawable that lays
+     * out its text with StaticLayout.Builder, changes its text in one method, and has a subclass that
+     * measures a line by laying out that change's result.
      */
     private fun classes(
         importLoads: String = IMPORT_FONT,
@@ -231,6 +300,10 @@ class StoryFontsHookTest {
         labels: Boolean = true,
         labelTexts: Int = 1,
         descriptions: Boolean = true,
+        stickers: Int = 1,
+        drawable: Boolean = true,
+        changes: Int = 1,
+        lineChanged: Boolean = true,
     ): List<ClassDef> {
         val public = AccessFlags.PUBLIC.value
         val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
@@ -343,8 +416,37 @@ class StoryFontsHookTest {
             method(applier, "apply", listOf("Landroid/widget/EditText;", format), "V", 1, static, "const/4 v0, 0x0\nreturn-void"),
             method(applier, "apply2", listOf("Landroid/widget/EditText;", format), "V", 1, static, "const/4 v0, 0x0\nreturn-void"),
         ))
-        return importers + listOf(formatClass, formatsClass, kindClass, classDef(controller, controllerMethods), applyClass,
-            ExtensionDex.classDef(STORY_FONTS))
+        val stickerClasses = List(stickers) { n ->
+            val type = if (n == 0) textDrawable else "Lfixture/OtherDrawable;"
+            val layoutBody = """
+                const/4 v0, 0x0
+                const/4 v1, 0x0
+                invoke-interface {p1}, $chars->length()I
+                move-result v2
+                invoke-static {p1, v0, v2, v1, v0}, $LAYOUT_BUILDER
+                move-result-object v1
+                const/4 v1, 0x0
+                return-object v1
+            """
+            val methods = listOf(
+                method(type, "layout", listOf(chars, "Z"), "Landroid/text/StaticLayout;", 3, AccessFlags.PRIVATE.value or AccessFlags.FINAL.value, layoutBody),
+            ) + List(changes) { c -> method(type, "change${if (c == 0) "" else "$c"}", listOf(chars), chars, 0, public, "return-object p1") }
+            ImmutableClassDef(type, public, if (drawable) DRAWABLE else "Ljava/lang/Object;", null, null, null, null, methods)
+        }
+        val lineClass = ImmutableClassDef(lineDrawable, public, textDrawable, null, null, null, null, listOf(
+            method(lineDrawable, "measure", listOf(lineDrawable, chars), "Ljava/lang/Object;", 3, static, """
+                invoke-virtual {p0, p1}, $lineDrawable->change($chars)$chars
+                move-result-object v0
+                invoke-interface {v0}, $chars->length()I
+                move-result v1
+                const/4 v2, 0x0
+                invoke-static {${if (lineChanged) "v0" else "p1"}, v2, v1, v2, v2}, $LAYOUT_BUILDER
+                move-result-object v0
+                return-object v0
+            """),
+        ))
+        return importers + listOf(formatClass, formatsClass, kindClass, classDef(controller, controllerMethods), applyClass) +
+            stickerClasses + lineClass + ExtensionDex.classDef(STORY_FONTS)
     }
 
     private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, flags: Int, body: String): Method {
