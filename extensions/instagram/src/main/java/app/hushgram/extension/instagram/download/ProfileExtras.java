@@ -238,7 +238,7 @@ public final class ProfileExtras {
             if (!wanted() || bar == null) return;
             Object user = stateOf(bar).user;
             if (user == null) return;
-            Context context = activityOf(button.getContext());
+            Context context = activityOf(button);
             List<ProfilePicture.Entry> entries = source.entries(user, context);
             if (entries.isEmpty()) {
                 HookStatus.counted(ROUTE, EMPTY);
@@ -262,14 +262,20 @@ public final class ProfileExtras {
         }
     }
 
-    /** The activity under [context]'s wrappers, or [context] when there's none. */
-    static Context activityOf(Context context) {
-        Context at = context;
-        for (int depth = 0; depth < 8 && at instanceof ContextWrapper; depth++) {
-            if (at instanceof Activity) return at;
-            at = ((ContextWrapper) at).getBaseContext();
+    /**
+     * The activity [view] sits in, found through its own context or its parents': a profile opened
+     * from a link hands its rows a context with no activity under it, while the screen's content
+     * view has one. [view]'s own context when none does.
+     */
+    static Context activityOf(View view) {
+        for (Object at = view; at instanceof View; at = ((View) at).getParent()) {
+            Context context = ((View) at).getContext();
+            for (int depth = 0; depth < 16 && context instanceof ContextWrapper; depth++) {
+                if (context instanceof Activity) return context;
+                context = ((ContextWrapper) context).getBaseContext();
+            }
         }
-        return at instanceof Activity ? at : context;
+        return view.getContext();
     }
 
     /** A circled "i", drawn rather than taken from Instagram's resources, in Instagram's own icon color. */

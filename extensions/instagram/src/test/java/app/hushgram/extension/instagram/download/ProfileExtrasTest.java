@@ -251,6 +251,22 @@ public class ProfileExtrasTest {
                 titles(ShadowPopupMenu.getLatestPopupMenu().getMenu()));
     }
 
+    /** A profile opened from a link hands its rows a context with no activity under it; the screen above them has one. */
+    @Test public void theActionsGetTheScreensActivityWhenTheRowHasNone() {
+        List<Context> opened = new ArrayList<>();
+        ProfileExtras.source = (account, at) -> ProfilePicture.entries(account, at, new Reads(), (c, s, d) -> true,
+                (c, s, o, save) -> opened.add(c));
+        Settings.SAVE_PROFILE_PICTURES.save(false);
+        Settings.VIEW_PROFILE_PICTURES.save(true);
+        bind();
+        assertFalse(button().getContext() instanceof Activity);
+        button().performClick();
+        PopupMenu menu = ShadowPopupMenu.getLatestPopupMenu();
+        assertEquals("View profile picture", menu.getMenu().getItem(0).getTitle().toString());
+        Shadows.shadowOf(menu).getOnMenuItemClickListener().onMenuItemClick(menu.getMenu().getItem(0));
+        assertEquals(Collections.singletonList(activity.get()), opened);
+    }
+
     @Test public void aTapWithNothingToListSaysSo() {
         ProfileExtras.source = (account, at) -> Collections.emptyList();
         bind();
