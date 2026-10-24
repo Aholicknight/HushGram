@@ -1226,6 +1226,16 @@ Instagram's own	El de Instagram
 Instagram's own. Pick another to change the icon on your home screen and in the app drawer.	El de Instagram. Elige otro para cambiar el icono de tu pantalla de inicio y del cajón de aplicaciones.
 %1$s. It shows once you leave Instagram. If the icon is gone from your home screen, add it again from the app drawer.	%1$s. Aparece cuando sales de Instagram. Si el icono desaparece de tu pantalla de inicio, vuelve a añadirlo desde el cajón de aplicaciones.
 the home screen icon you picked	el icono de la pantalla de inicio que elegiste
+# context: Your fonts in story text switch under Stories and the Your story fonts row and dialog under it; the fonts are .ttf or .otf files picked from the phone, shown in Instagram's story text editor after its own
+Your fonts in story text	Tus fuentes en el texto de historias
+Adds the fonts below to the story text editor, after Instagram's own fonts, which all stay. Pick one there like any other font.	Añade las fuentes de abajo al editor de texto de historias, después de las fuentes de Instagram, que se quedan todas. Elige una ahí como cualquier otra fuente.
+Your story fonts	Tus fuentes de historias
+Add .ttf or .otf files from your phone. Uncheck one to take it out.	Añade archivos .ttf u .otf desde tu teléfono. Desmarca uno para quitarlo.
+No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor, after Instagram's fonts.	Todavía no has añadido fuentes. Añade un archivo .ttf u .otf y aparecerá en el editor de texto de historias, después de las fuentes de Instagram.
+Add a font file	Añadir un archivo de fuente
+Removed from your story fonts	Quitada de tus fuentes de historias
+That file isn't a font HushGram can use. Nothing was added.	Ese archivo no es una fuente que HushGram pueda usar. No se añadió nada.
+Added %1$s. Pick it in the story text editor, after Instagram's fonts.	Se añadió %1$s. Elígela en el editor de texto de historias, después de las fuentes de Instagram.
 # context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
 Logo and titles at the start	Logo y títulos al principio
 Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Pone el logo de Instagram y el título de cada barra al principio de la barra, donde Instagram los mostraba antes. Actívalo si Instagram te los centra. Tiene prioridad sobre los interruptores de centrar de arriba. Reinicia Instagram para ver el cambio en Inicio.

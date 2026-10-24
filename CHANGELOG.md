@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Story text fonts:** new patch, off to start. Add .ttf or .otf files under `Your story fonts` in Stories, and they show up by file name in the story text editor after Instagram's own fonts. Asked for in #275.
 * **Instagram - Pick the app icon:** new patch. `App icon` under Layout swaps the home screen icon for HushGram's, or Instagram's glyph on black or plum. It changes once you leave Instagram. Starts on Instagram's own. Asked for in #284.
 * **Instagram - Full screen Reels and Home:** New `Full screen Messages` switch under Messages. Your messages and open chats hide the bars picked in `Bars to hide`, and a swipe in from the edge brings them back for a moment. Typing and Back work as usual. Asked for in #288.
 * **Instagram - Save profile picture:** New `Profile extras button` switch, off to start. It puts a small button next to the three dots on a profile that opens the profile actions you turned on. The three-dot menu keeps its rows. Asked for in #234.

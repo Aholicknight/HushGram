@@ -246,6 +246,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_story_swipe_reply", FALSE);
 
     /**
+     * The font files picked in settings show up in the story text editor after Instagram's own fonts
+     * ({@link app.hushgram.extension.instagram.stories.StoryFonts}). Read each time the editor lists
+     * its fonts. Off to start, and turned on when a font is added.
+     */
+    public static final BooleanSetting STORY_FONTS =
+            new BooleanSetting("hushgram_story_fonts", FALSE);
+
+    /**
      * A video story is prepared the way Instagram prepares it with its own "Upload at highest quality"
      * setting on, at 1080p and 9 Mbps ({@link app.hushgram.extension.instagram.stories.StoryUploadQuality}). The server still
      * keeps story videos at 720p.

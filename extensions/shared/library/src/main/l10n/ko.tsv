@@ -1225,6 +1225,16 @@ Instagram's own	Instagram 기본
 Instagram's own. Pick another to change the icon on your home screen and in the app drawer.	Instagram 기본 아이콘입니다. 다른 아이콘을 고르면 홈 화면과 앱 서랍의 아이콘이 바뀝니다.
 %1$s. It shows once you leave Instagram. If the icon is gone from your home screen, add it again from the app drawer.	%1$s. Instagram에서 나가면 바뀝니다. 홈 화면에서 아이콘이 사라지면 앱 서랍에서 다시 추가하세요.
 the home screen icon you picked	선택한 홈 화면 아이콘
+# context: Your fonts in story text switch under Stories and the Your story fonts row and dialog under it; the fonts are .ttf or .otf files picked from the phone, shown in Instagram's story text editor after its own
+Your fonts in story text	스토리 텍스트에 내 글꼴 사용
+Adds the fonts below to the story text editor, after Instagram's own fonts, which all stay. Pick one there like any other font.	아래 글꼴을 Instagram 기본 글꼴 뒤에 스토리 텍스트 편집기에 추가합니다. 기본 글꼴은 모두 그대로 남습니다. 다른 글꼴처럼 거기서 고르세요.
+Your story fonts	내 스토리 글꼴
+Add .ttf or .otf files from your phone. Uncheck one to take it out.	휴대폰에서 .ttf 또는 .otf 파일을 추가하세요. 빼려면 체크를 해제하세요.
+No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor, after Instagram's fonts.	아직 추가한 글꼴이 없습니다. .ttf 또는 .otf 파일을 추가하면 스토리 텍스트 편집기에서 Instagram 글꼴 뒤에 나타납니다.
+Add a font file	글꼴 파일 추가
+Removed from your story fonts	내 스토리 글꼴에서 제거했습니다
+That file isn't a font HushGram can use. Nothing was added.	이 파일은 HushGram이 사용할 수 있는 글꼴이 아닙니다. 아무것도 추가되지 않았습니다.
+Added %1$s. Pick it in the story text editor, after Instagram's fonts.	%1$s 추가됨. 스토리 텍스트 편집기에서 Instagram 글꼴 뒤에 있는 것을 고르세요.
 # context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
 Logo and titles at the start	로고와 제목을 앞쪽에
 Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Instagram 로고와 각 바의 제목을 예전처럼 바의 앞쪽에 둡니다. Instagram이 가운데에 두어 보여 줄 때 켜세요. 위의 가운데 정렬 스위치보다 우선합니다. 홈에서 변경 사항을 보려면 Instagram을 다시 시작하세요.

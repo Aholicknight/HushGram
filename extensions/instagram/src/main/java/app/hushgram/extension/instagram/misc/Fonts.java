@@ -348,11 +348,20 @@ public final class Fonts {
      * main thread.
      */
     public static boolean store(Context context, InputStream input) {
-        File target = kept(context);
+        return keep(input, kept(context));
+    }
+
+    /**
+     * Copies [input] to [target] if it's a font that loads, the way {@link #store} keeps the picked
+     * font, in place of any file there. Answers false, keeping what was there, for a file too big,
+     * one that doesn't start like a font or one Android won't load. Story text fonts keep their
+     * files this way too. Off the main thread.
+     */
+    public static boolean keep(InputStream input, File target) {
         File directory = target.getParentFile();
-        File temporary = new File(directory, FILE + ".tmp");
+        File temporary = new File(directory, target.getName() + ".tmp");
         try {
-            if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("Couldn't make " + DIRECTORY);
+            if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("Couldn't make " + directory.getName());
             byte[] start = new byte[4];
             int read = 0;
             long total = 0;

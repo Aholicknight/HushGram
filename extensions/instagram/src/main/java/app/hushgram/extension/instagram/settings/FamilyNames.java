@@ -33,6 +33,7 @@ public final class FamilyNames {
     public static final String STORY_LOOP = "Loop a story";
     public static final String STORY_SOUND = "Start stories with sound";
     public static final String STORY_SWIPE_REPLY = "Stop swipe up to reply";
+    public static final String STORY_FONTS = "Story text fonts";
     public static final String STORY_UPLOAD_QUALITY = "Upload stories at full quality";
     public static final String FEED_SOUND = "Start feed videos with sound";
     public static final String FEED_TAP_PAUSE = "Tap a feed video to pause it";

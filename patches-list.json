@@ -3963,6 +3963,43 @@
       "options": []
     },
     {
+      "name": "Story text fonts",
+      "description": "Adds fonts you pick from your phone (.ttf or .otf files) to the story text editor, after Instagram's own fonts. Starts off. Add them under Your story fonts in HushGram settings > Stories.",
+      "category": "Stories",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "452.1.0.53.64"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "452.1.0.53.64",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385811006
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Swipe left to open the profile",
       "description": "Makes a left swipe on a reel open the profile of the person who posted it, like Instagram used to. Tap Friends at the top to reach your friends' reels. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
