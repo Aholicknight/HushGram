@@ -1406,6 +1406,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_copy_profile_text", FALSE);
 
     /**
+     * A button next to the three dots on a profile opens a menu of the profile actions switched on
+     * above ({@link app.hushgram.extension.instagram.download.ProfileExtras}). The three-dot menu
+     * keeps its rows. Off until enabled.
+     */
+    public static final BooleanSetting PROFILE_EXTRAS_BUTTON =
+            new BooleanSetting("hushgram_profile_extras_button", FALSE);
+
+    /**
      * A voice message's menu in a chat gets Save
      * ({@link app.hushgram.extension.instagram.download.VoiceMessage}). Off until enabled.
      */

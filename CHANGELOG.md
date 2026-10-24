@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 ### Features
 
 * **Instagram - Full screen Reels and Home:** New `Full screen Messages` switch under Messages. Your messages and open chats hide the bars picked in `Bars to hide`, and a swipe in from the edge brings them back for a moment. Typing and Back work as usual. Asked for in #288.
+* **Instagram - Save profile picture:** New `Profile extras button` switch, off to start. It puts a small button next to the three dots on a profile that opens the profile actions you turned on. The three-dot menu keeps its rows. Asked for in #234.
 * **Instagram - Stop Reels scrolling:** New `Take a scroll break` list under Reels, off to start. After 10 to 60 minutes on Home, Reels and Explore, a break screen covers them for 5 minutes. Messages, your profile and the tab bar still work. Asked for in #297.
 * **Instagram - HushGram settings:** New `Lock these settings` row under Pause HushGram. Pick a 1, 6 or 24 hour wait and every row that changes something greys out, Pause included. `Ask to unlock` starts the wait, then the page opens for 10 minutes. Asked for in #301.
 * **Instagram - HushGram settings:** A small dot now marks settings added since you last looked, and the category row that holds them. It clears once you've been through that page. A fresh install shows none. Asked for in #274.

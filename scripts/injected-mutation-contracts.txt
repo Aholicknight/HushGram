@@ -1926,6 +1926,15 @@ once-call Lapp/hushgram/extension/instagram/download/ProfilePicture;->offer(Ljav
 # ProfilePicture.offerPopup the list of items, the account and the context right before the popup
 # takes the list. Left out, that list never gets the rows; a second call isn't what the patch wrote.
 once-call Lapp/hushgram/extension/instagram/download/ProfilePicture;->offerPopup(Ljava/util/List;Ljava/lang/Object;Landroid/content/Context;)V in instance (Landroid/view/View;)V holding UserOptionsBottomSheetOverflowHelper UserOptionsOverflowHelper
+# Profile extras button (#234) hands ProfileExtras.bound the profile bar and its right row first thing
+# in the bar's bind (ProfileActionBar.A00 on 452, the same one method Hide the Threads button reads the
+# list in). The bar empties both rows on every bind, so the extension puts its button in again behind
+# it. ProfileExtras.screen follows each call of that bind from the profile screen, with the bar and the
+# screen, which the extension reads the account off. Its call sites have no string
+# to anchor a rule on, so ProfileExtrasHookTest checks on every 452 fixture that each lands right after
+# its call. Left out, the button never shows; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/download/ProfileExtras;->bound(Landroid/view/View;Landroid/view/View;)V in instance (Lcom/instagram/common/session/UserSession;Landroid/app/Activity;LX/*;LX/*;Landroid/content/Context;Lkotlin/jvm/functions/Function1;)V holding userSession activity Lcom/instagram/profile/actionbar/ProfileActionBar;->A06:Lcom/instagram/common/ui/base/IgLinearLayout;
+once-call Lapp/hushgram/extension/instagram/download/ProfileExtras;->bound(Landroid/view/View;Landroid/view/View;)V in instance (Lcom/instagram/common/session/UserSession;Landroid/app/Activity;LX/*;LX/*;Landroid/content/Context;Lkotlin/jvm/functions/Function1;)V holding userSession activity Lcom/instagram/profile/actionbar/ProfileActionBar;->A06:Lcom/instagram/common/ui/base/IgLinearLayout;
 # Download voice messages (#20) hands VoiceMessage.offer the answer to whether a message's kind can be
 # saved, and the message, right after the menu model's builder asks it (09xN.invoke on 450, the
 # lambda building the long-press menu's model, the one method of this shape loading these strings
