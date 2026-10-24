@@ -913,6 +913,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting FULL_SCREEN_REELS =
             new BooleanSetting("hushgram_full_screen_reels", FALSE);
 
+    /**
+     * Under {@link #FULL_SCREEN_REELS}: a reel whose shape is close to the screen's fills it, cut a
+     * little at the sides, instead of fitting with black bars above and below (#288,
+     * {@link app.hushgram.extension.instagram.reels.ReelFill}). Off to start.
+     */
+    public static final BooleanSetting FILL_REEL_SCREEN =
+            new BooleanSetting("hushgram_fill_reel_screen", FALSE, parent(FULL_SCREEN_REELS));
+
     /** The same on Home, while its tab is selected and Reels isn't showing. Off to start. */
     public static final BooleanSetting FULL_SCREEN_HOME =
             new BooleanSetting("hushgram_full_screen_home", FALSE);

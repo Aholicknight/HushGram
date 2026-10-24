@@ -928,6 +928,8 @@ The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x t
 Zoomed photo	Yakınlaştırılmış fotoğraf
 Full screen Reels	Tam ekran Reels
 Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Reels görünürken durum çubuğunu ve gezinme çubuğunu gizler. Kısa süreliğine geri getirmek için kenardan içeri kaydır. Geri ve klavye her zamanki gibi çalışır.
+Fill the screen	Ekranı doldur
+Reels that are nearly the screen's shape fill it, cut a little at the sides, instead of showing black bars above and below. Square and wide videos still fit.	Ekranın şekline yakın Reels videoları, üstte ve altta siyah çubuklar göstermek yerine kenarlardan biraz kırpılarak ekranı doldurur. Kare ve geniş videolar yine sığdırılır.
 Full screen Home	Tam ekran Ana sayfa
 Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to bring them back for a moment.	Ana sayfa görünürken durum çubuğunu ve gezinme çubuğunu gizler. Kısa süreliğine geri getirmek için kenardan içeri kaydır.
 Full screen Messages	Tam ekran Mesajlar

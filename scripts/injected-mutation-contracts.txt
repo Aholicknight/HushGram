@@ -2101,6 +2101,11 @@ start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsAsked
 once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsAsked(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;Z)V calling static LX/*;->*(Landroid/app/Activity;)LX/*; holding LX/*;->*:Ljava/util/List; Ljava/util/List;->add(Ljava/lang/Object;)Z
 start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;)V holding LX/*;->*:Ljava/util/WeakHashMap; LX/*;->*:Ljava/util/List; Ljava/util/List;->remove(Ljava/lang/Object;)Z
 once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;)V holding LX/*;->*:Ljava/util/WeakHashMap; LX/*;->*:Ljava/util/List; Ljava/util/List;->remove(Ljava/lang/Object;)Z
+# Fill the screen (#288), under Full screen Reels: Instagram's reel crop decision (08JU.A02 on 452,
+# the one method naming both purge flags below) asks ReelFill.fill with the crop percentage right
+# after working it out, and returns true (fill) on a yes. Left out, reels close to the screen's shape
+# still letterbox with the bars hidden; twice or elsewhere, it isn't the check the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->fill(F)Z in instance (Lcom/instagram/clips/intf/ClipsViewerSource;Lcom/instagram/common/session/UserSession;LX/*;LX/*;Ljava/lang/Boolean;IIZZ)Z holding android_purge_26_q2_ClipsMediaResizingUtils_shouldCropDynamic android_purge_26_q2_ClipsMediaResizingUtils_getCropPercentage
 
 # Tap a feed video to pause it (#137) asks FeedTapPause.tapped first thing in the feed's tap handler,
 # the one instance (View, Media, five objects, int, boolean) void method that loads the handler's
