@@ -50,7 +50,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildDe() {
-        Map<String, String> table = new HashMap<>(2342);
+        Map<String, String> table = new HashMap<>(2344);
         fillDe0(table);
         fillDe1(table);
         fillDe2(table);
@@ -2176,6 +2176,8 @@ public final class L10nTranslations {
                 "Das ist keine Domain. Gib eine wie example.com ein oder lass das Feld leer.");
         table.put("That isn't a place. Type a latitude and a longitude with a comma between them.",
                 "Das ist kein Ort. Gib einen Breiten- und einen L\u00e4ngengrad mit einem Komma dazwischen ein.");
+        table.put("That reel isn't on their profile. It might be a trial reel.",
+                "Das Reel ist nicht im Profil. Vielleicht ist es ein Test-Reel.");
         table.put("That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.",
                 "Das sind %1$d Reels. Wischen in Reels ist aus, bis Instagram %2$d Minuten im Hintergrund war.");
         table.put("That's a trial reel, so it isn't on their profile",
@@ -2284,11 +2286,11 @@ public final class L10nTranslations {
                 "Ghost-Modus durch langes Dr\u00fccken auf einen Tab ein- oder ausschalten");
         table.put("Turn off HDR brightness boosts",
                 "HDR-Helligkeitsschub ausschalten");
-        table.put("Turn off double tap to like",
-                "Doppeltippen zum Liken ausschalten");
     }
 
     private static void fillDe18(Map<String, String> table) {
+        table.put("Turn off double tap to like",
+                "Doppeltippen zum Liken ausschalten");
         table.put("Turn on Change the like animation to use this choice.",
                 "Schalte Like-Animation \u00e4ndern ein, um diese Auswahl zu nutzen.");
         table.put("Turn on Default playback quality to use this choice.",
@@ -2407,11 +2409,11 @@ public final class L10nTranslations {
                 "Auf dem Fernseher ansehen");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "Weblinks, auf die du tippst, \u00f6ffnen sich in deinem \u00fcblichen Browser, ohne Instagrams Klick-Tracker. Instagram-Seiten und Werbung \u00f6ffnen sich weiter in der App.");
-        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
-                "Was du aus der Suche \u00f6ffnest, landet nicht unter Neueste, weder in der App noch bei Instagram. Suchen, die schon dort sind, bleiben, bis du sie l\u00f6schst.");
     }
 
     private static void fillDe19(Map<String, String> table) {
+        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
+                "Was du aus der Suche \u00f6ffnest, landet nicht unter Neueste, weder in der App noch bei Instagram. Suchen, die schon dort sind, bleiben, bis du sie l\u00f6schst.");
         table.put("WhatsApp",
                 "WhatsApp");
         table.put("WhatsApp status",
@@ -2477,7 +2479,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildEs() {
-        Map<String, String> table = new HashMap<>(2342);
+        Map<String, String> table = new HashMap<>(2344);
         fillEs0(table);
         fillEs1(table);
         fillEs2(table);
@@ -4603,6 +4605,8 @@ public final class L10nTranslations {
                 "Eso no es un dominio. Escribe uno como example.com o d\u00e9jalo en blanco.");
         table.put("That isn't a place. Type a latitude and a longitude with a comma between them.",
                 "Eso no es un lugar. Escribe una latitud y una longitud separadas por una coma.");
+        table.put("That reel isn't on their profile. It might be a trial reel.",
+                "Ese reel no est\u00e1 en su perfil. Puede que sea un reel de prueba.");
         table.put("That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.",
                 "Ya van %1$d reels. Deslizar en Reels est\u00e1 desactivado hasta que Instagram haya estado %2$d minutos en segundo plano.");
         table.put("That's a trial reel, so it isn't on their profile",
@@ -4711,11 +4715,11 @@ public final class L10nTranslations {
                 "Activar o desactivar el modo fantasma al mantener pulsada una pesta\u00f1a");
         table.put("Turn off HDR brightness boosts",
                 "Desactivar el brillo extra de HDR");
-        table.put("Turn off double tap to like",
-                "Desactivar tocar dos veces para dar Me gusta");
     }
 
     private static void fillEs18(Map<String, String> table) {
+        table.put("Turn off double tap to like",
+                "Desactivar tocar dos veces para dar Me gusta");
         table.put("Turn on Change the like animation to use this choice.",
                 "Activa Cambiar la animaci\u00f3n de me gusta para usar esta opci\u00f3n.");
         table.put("Turn on Default playback quality to use this choice.",
@@ -4834,11 +4838,11 @@ public final class L10nTranslations {
                 "Ver en la tele");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "Los enlaces web que tocas se abren en tu navegador habitual, sin el rastreador de clics de Instagram. Las p\u00e1ginas de Instagram y los anuncios se siguen abriendo en la app.");
-        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
-                "Lo que abres desde la b\u00fasqueda no aparece en Recientes, ni en la app ni del lado de Instagram. Las b\u00fasquedas que ya est\u00e1n ah\u00ed se quedan hasta que las borres.");
     }
 
     private static void fillEs19(Map<String, String> table) {
+        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
+                "Lo que abres desde la b\u00fasqueda no aparece en Recientes, ni en la app ni del lado de Instagram. Las b\u00fasquedas que ya est\u00e1n ah\u00ed se quedan hasta que las borres.");
         table.put("WhatsApp",
                 "WhatsApp");
         table.put("WhatsApp status",
@@ -4904,7 +4908,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildIn() {
-        Map<String, String> table = new HashMap<>(2342);
+        Map<String, String> table = new HashMap<>(2344);
         fillIn0(table);
         fillIn1(table);
         fillIn2(table);
@@ -7030,6 +7034,8 @@ public final class L10nTranslations {
                 "Itu bukan domain. Ketik domain seperti example.com, atau biarkan kosong.");
         table.put("That isn't a place. Type a latitude and a longitude with a comma between them.",
                 "Itu bukan tempat. Ketik lintang dan bujur dengan koma di antaranya.");
+        table.put("That reel isn't on their profile. It might be a trial reel.",
+                "Reel itu tidak ada di profilnya. Mungkin itu reel uji coba.");
         table.put("That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.",
                 "Sudah %1$d reel. Menggeser di Reels nonaktif sampai Instagram berada di latar belakang selama %2$d menit.");
         table.put("That's a trial reel, so it isn't on their profile",
@@ -7138,11 +7144,11 @@ public final class L10nTranslations {
                 "Nyalakan atau matikan Mode hantu dengan menekan lama tab");
         table.put("Turn off HDR brightness boosts",
                 "Matikan peningkatan kecerahan HDR");
-        table.put("Turn off double tap to like",
-                "Matikan ketuk dua kali untuk menyukai");
     }
 
     private static void fillIn18(Map<String, String> table) {
+        table.put("Turn off double tap to like",
+                "Matikan ketuk dua kali untuk menyukai");
         table.put("Turn on Change the like animation to use this choice.",
                 "Nyalakan Ubah animasi suka untuk memakai pilihan ini.");
         table.put("Turn on Default playback quality to use this choice.",
@@ -7261,11 +7267,11 @@ public final class L10nTranslations {
                 "Tonton di TV");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "Tautan web yang kamu ketuk dibuka di browser biasa kamu, tanpa pelacak klik Instagram. Halaman Instagram dan iklan tetap dibuka di aplikasi.");
-        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
-                "Apa yang Anda buka dari pencarian tidak masuk ke Terbaru, baik di aplikasi maupun di sisi Instagram. Pencarian yang sudah ada di sana tetap ada sampai Anda menghapusnya.");
     }
 
     private static void fillIn19(Map<String, String> table) {
+        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
+                "Apa yang Anda buka dari pencarian tidak masuk ke Terbaru, baik di aplikasi maupun di sisi Instagram. Pencarian yang sudah ada di sana tetap ada sampai Anda menghapusnya.");
         table.put("WhatsApp",
                 "WhatsApp");
         table.put("WhatsApp status",
@@ -7331,7 +7337,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildIt() {
-        Map<String, String> table = new HashMap<>(2342);
+        Map<String, String> table = new HashMap<>(2344);
         fillIt0(table);
         fillIt1(table);
         fillIt2(table);
@@ -9457,6 +9463,8 @@ public final class L10nTranslations {
                 "Non \u00e8 un dominio. Scrivine uno come example.com, oppure lascia vuoto.");
         table.put("That isn't a place. Type a latitude and a longitude with a comma between them.",
                 "Non \u00e8 un luogo. Scrivi una latitudine e una longitudine con una virgola in mezzo.");
+        table.put("That reel isn't on their profile. It might be a trial reel.",
+                "Quel reel non \u00e8 nel suo profilo. Forse \u00e8 un reel di prova.");
         table.put("That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.",
                 "Sono %1$d reel. Lo scorrimento nei reel \u00e8 disattivato finch\u00e9 Instagram non resta in background per %2$d minuti.");
         table.put("That's a trial reel, so it isn't on their profile",
@@ -9565,11 +9573,11 @@ public final class L10nTranslations {
                 "Attiva o disattiva la modalit\u00e0 Ghost con una pressione lunga su una scheda");
         table.put("Turn off HDR brightness boosts",
                 "Disattiva l'aumento di luminosit\u00e0 HDR");
-        table.put("Turn off double tap to like",
-                "Disattiva il doppio tocco per mettere Mi piace");
     }
 
     private static void fillIt18(Map<String, String> table) {
+        table.put("Turn off double tap to like",
+                "Disattiva il doppio tocco per mettere Mi piace");
         table.put("Turn on Change the like animation to use this choice.",
                 "Attiva Cambia l'animazione del Mi piace per usare questa scelta.");
         table.put("Turn on Default playback quality to use this choice.",
@@ -9688,11 +9696,11 @@ public final class L10nTranslations {
                 "Guarda sulla TV");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "I link web che tocchi si aprono nel tuo browser abituale, senza il tracker dei clic di Instagram. Le pagine di Instagram e gli annunci si aprono comunque nell'app.");
-        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
-                "Ci\u00f2 che apri dalla ricerca resta fuori da Recenti, nell'app e dal lato di Instagram. Le ricerche gi\u00e0 presenti restano finch\u00e9 non le cancelli.");
     }
 
     private static void fillIt19(Map<String, String> table) {
+        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
+                "Ci\u00f2 che apri dalla ricerca resta fuori da Recenti, nell'app e dal lato di Instagram. Le ricerche gi\u00e0 presenti restano finch\u00e9 non le cancelli.");
         table.put("WhatsApp",
                 "WhatsApp");
         table.put("WhatsApp status",
@@ -9758,7 +9766,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildKo() {
-        Map<String, String> table = new HashMap<>(2342);
+        Map<String, String> table = new HashMap<>(2344);
         fillKo0(table);
         fillKo1(table);
         fillKo2(table);
@@ -11884,6 +11892,8 @@ public final class L10nTranslations {
                 "\uc62c\ubc14\ub978 \ub3c4\uba54\uc778\uc774 \uc544\ub2d9\ub2c8\ub2e4. example.com\ucc98\ub7fc \uc785\ub825\ud558\uac70\ub098 \ube44\uc6cc \ub450\uc138\uc694.");
         table.put("That isn't a place. Type a latitude and a longitude with a comma between them.",
                 "\uc62c\ubc14\ub978 \uc7a5\uc18c\uac00 \uc544\ub2d9\ub2c8\ub2e4. \uc704\ub3c4\uc640 \uacbd\ub3c4\ub97c \uc27c\ud45c\ub85c \uad6c\ubd84\ud574 \uc785\ub825\ud558\uc138\uc694.");
+        table.put("That reel isn't on their profile. It might be a trial reel.",
+                "\uadf8 \ub9b4\uc2a4\ub294 \ud504\ub85c\ud544\uc5d0 \uc5c6\uc2b5\ub2c8\ub2e4. \uccb4\ud5d8 \ub9b4\uc2a4\uc77c \uc218 \uc788\uc2b5\ub2c8\ub2e4.");
         table.put("That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.",
                 "\ub9b4\uc2a4 %1$d\uac1c\ub97c \ubd24\uc2b5\ub2c8\ub2e4. Instagram\uc774 %2$d\ubd84 \ub3d9\uc548 \ubc31\uadf8\ub77c\uc6b4\ub4dc\uc5d0 \uc788\uc744 \ub54c\uae4c\uc9c0 \ub9b4\uc2a4 \uc2a4\uc640\uc774\ud504\uac00 \uaebc\uc9d1\ub2c8\ub2e4.");
         table.put("That's a trial reel, so it isn't on their profile",
@@ -11992,11 +12002,11 @@ public final class L10nTranslations {
                 "\ud0ed\uc744 \uae38\uac8c \ud0ed\ud558\uc5ec \uace0\uc2a4\ud2b8 \ubaa8\ub4dc \ucf1c\uace0 \ub044\uae30");
         table.put("Turn off HDR brightness boosts",
                 "HDR \ubc1d\uae30 \uac15\uc870 \ub044\uae30");
-        table.put("Turn off double tap to like",
-                "\ub450 \ubc88 \ud0ed\ud558\uc5ec \uc88b\uc544\uc694 \ud45c\uc2dc \ube44\ud65c\uc131\ud654");
     }
 
     private static void fillKo18(Map<String, String> table) {
+        table.put("Turn off double tap to like",
+                "\ub450 \ubc88 \ud0ed\ud558\uc5ec \uc88b\uc544\uc694 \ud45c\uc2dc \ube44\ud65c\uc131\ud654");
         table.put("Turn on Change the like animation to use this choice.",
                 "\uc774 \uc120\ud0dd\uc744 \uc0ac\uc6a9\ud558\ub824\uba74 \uc88b\uc544\uc694 \uc560\ub2c8\uba54\uc774\uc158 \ubc14\uafb8\uae30\ub97c \ucf1c\uc138\uc694.");
         table.put("Turn on Default playback quality to use this choice.",
@@ -12115,11 +12125,11 @@ public final class L10nTranslations {
                 "TV\ub85c \ubcf4\uae30");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "\ud0ed\ud55c \uc6f9 \ub9c1\ud06c\uac00 Instagram\uc758 \ud074\ub9ad \ucd94\uc801 \uc5c6\uc774 \ud3c9\uc18c \uc4f0\ub294 \ube0c\ub77c\uc6b0\uc800\uc5d0\uc11c \uc5f4\ub9bd\ub2c8\ub2e4. Instagram \ud398\uc774\uc9c0\uc640 \uad11\uace0\ub294 \uacc4\uc18d \uc571\uc5d0\uc11c \uc5f4\ub9bd\ub2c8\ub2e4.");
-        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
-                "\uac80\uc0c9\uc5d0\uc11c \uc5f0 \ud56d\ubaa9\uc740 \uc571\uc5d0\uc11c\ub3c4 Instagram \ucabd\uc5d0\uc11c\ub3c4 \ucd5c\uadfc \ud56d\ubaa9\uc5d0 \ub0a8\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \uc774\ubbf8 \uc788\ub294 \uac80\uc0c9\uc740 \uc9c0\uc6b8 \ub54c\uae4c\uc9c0 \ub0a8\uc544 \uc788\uc2b5\ub2c8\ub2e4.");
     }
 
     private static void fillKo19(Map<String, String> table) {
+        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
+                "\uac80\uc0c9\uc5d0\uc11c \uc5f0 \ud56d\ubaa9\uc740 \uc571\uc5d0\uc11c\ub3c4 Instagram \ucabd\uc5d0\uc11c\ub3c4 \ucd5c\uadfc \ud56d\ubaa9\uc5d0 \ub0a8\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \uc774\ubbf8 \uc788\ub294 \uac80\uc0c9\uc740 \uc9c0\uc6b8 \ub54c\uae4c\uc9c0 \ub0a8\uc544 \uc788\uc2b5\ub2c8\ub2e4.");
         table.put("WhatsApp",
                 "WhatsApp");
         table.put("WhatsApp status",
@@ -12185,7 +12195,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildPt_rBR() {
-        Map<String, String> table = new HashMap<>(2342);
+        Map<String, String> table = new HashMap<>(2344);
         fillPt_rBR0(table);
         fillPt_rBR1(table);
         fillPt_rBR2(table);
@@ -14311,6 +14321,8 @@ public final class L10nTranslations {
                 "Isso n\u00e3o \u00e9 um dom\u00ednio. Digite um como example.com ou deixe em branco.");
         table.put("That isn't a place. Type a latitude and a longitude with a comma between them.",
                 "Isso n\u00e3o \u00e9 um lugar. Digite uma latitude e uma longitude separadas por v\u00edrgula.");
+        table.put("That reel isn't on their profile. It might be a trial reel.",
+                "Esse reel n\u00e3o est\u00e1 no perfil. Talvez seja um reel de teste.");
         table.put("That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.",
                 "J\u00e1 s\u00e3o %1$d reels. Deslizar no Reels est\u00e1 desativado at\u00e9 o Instagram ficar %2$d minutos em segundo plano.");
         table.put("That's a trial reel, so it isn't on their profile",
@@ -14419,11 +14431,11 @@ public final class L10nTranslations {
                 "Ativar ou desativar o modo fantasma ao manter uma aba pressionada");
         table.put("Turn off HDR brightness boosts",
                 "Desativar o refor\u00e7o de brilho HDR");
-        table.put("Turn off double tap to like",
-                "Desativar toque duplo para curtir");
     }
 
     private static void fillPt_rBR18(Map<String, String> table) {
+        table.put("Turn off double tap to like",
+                "Desativar toque duplo para curtir");
         table.put("Turn on Change the like animation to use this choice.",
                 "Ative Mudar a anima\u00e7\u00e3o de curtida para usar esta escolha.");
         table.put("Turn on Default playback quality to use this choice.",
@@ -14542,11 +14554,11 @@ public final class L10nTranslations {
                 "Assistir na TV");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "Os links da web em que voc\u00ea toca abrem no seu navegador de costume, sem o rastreador de cliques do Instagram. P\u00e1ginas do Instagram e an\u00fancios continuam abrindo no app.");
-        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
-                "O que voc\u00ea abre pela pesquisa n\u00e3o entra em Recentes, nem no app nem do lado do Instagram. As pesquisas que j\u00e1 est\u00e3o l\u00e1 ficam at\u00e9 voc\u00ea limp\u00e1-las.");
     }
 
     private static void fillPt_rBR19(Map<String, String> table) {
+        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
+                "O que voc\u00ea abre pela pesquisa n\u00e3o entra em Recentes, nem no app nem do lado do Instagram. As pesquisas que j\u00e1 est\u00e3o l\u00e1 ficam at\u00e9 voc\u00ea limp\u00e1-las.");
         table.put("WhatsApp",
                 "WhatsApp");
         table.put("WhatsApp status",
@@ -14612,7 +14624,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildTr() {
-        Map<String, String> table = new HashMap<>(2342);
+        Map<String, String> table = new HashMap<>(2344);
         fillTr0(table);
         fillTr1(table);
         fillTr2(table);
@@ -16738,6 +16750,8 @@ public final class L10nTranslations {
                 "Bu bir alan ad\u0131 de\u011fil. example.com gibi bir tane yaz veya bo\u015f b\u0131rak.");
         table.put("That isn't a place. Type a latitude and a longitude with a comma between them.",
                 "Bu bir yer de\u011fil. Aralar\u0131nda virg\u00fcl olan bir enlem ve bir boylam yaz.");
+        table.put("That reel isn't on their profile. It might be a trial reel.",
+                "Bu reel profilde yok. Bir deneme reel'i olabilir.");
         table.put("That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.",
                 "%1$d reel oldu. Instagram %2$d dakika arka planda kalana kadar Reels'te kayd\u0131rma kapal\u0131.");
         table.put("That's a trial reel, so it isn't on their profile",
@@ -16846,11 +16860,11 @@ public final class L10nTranslations {
                 "Sekmeye uzun basarak Hayalet modunu a\u00e7 veya kapat");
         table.put("Turn off HDR brightness boosts",
                 "HDR parlakl\u0131k art\u0131\u015f\u0131n\u0131 kapat");
-        table.put("Turn off double tap to like",
-                "Be\u011fenmek i\u00e7in \u00e7ift dokunmay\u0131 kapat");
     }
 
     private static void fillTr18(Map<String, String> table) {
+        table.put("Turn off double tap to like",
+                "Be\u011fenmek i\u00e7in \u00e7ift dokunmay\u0131 kapat");
         table.put("Turn on Change the like animation to use this choice.",
                 "Bu se\u00e7imi kullanmak i\u00e7in Be\u011feni animasyonunu de\u011fi\u015ftir'i a\u00e7.");
         table.put("Turn on Default playback quality to use this choice.",
@@ -16969,11 +16983,11 @@ public final class L10nTranslations {
                 "TV'de izle");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "Dokundu\u011fun web ba\u011flant\u0131lar\u0131, Instagram'\u0131n t\u0131klama izleyicisi olmadan her zamanki taray\u0131c\u0131nda a\u00e7\u0131l\u0131r. Instagram sayfalar\u0131 ve reklamlar uygulamada a\u00e7\u0131lmaya devam eder.");
-        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
-                "Aramadan a\u00e7t\u0131klar\u0131n ne uygulamada ne de Instagram taraf\u0131nda Son aramalar'a girer. Orada zaten olan aramalar sen temizleyene kadar kal\u0131r.");
     }
 
     private static void fillTr19(Map<String, String> table) {
+        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
+                "Aramadan a\u00e7t\u0131klar\u0131n ne uygulamada ne de Instagram taraf\u0131nda Son aramalar'a girer. Orada zaten olan aramalar sen temizleyene kadar kal\u0131r.");
         table.put("WhatsApp",
                 "WhatsApp");
         table.put("WhatsApp status",

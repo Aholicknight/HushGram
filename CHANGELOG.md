@@ -43,6 +43,7 @@ Every HushGram release, newest first.
 * **Instagram - Hide suggested people on profiles:** `Hide Suggested for you on follow lists` now also takes the Suggested tab off other people's follow lists, and the Suggested for you block under their mutual followers. Before, it only reached the bottom of the followers and following lists. Reported in #302.
 * **Instagram - Blur the bars around Reels:** The band behind the clock and the gesture bar's strip stayed black on Reels. Both show the reel blurred now, a little darker behind the clock under white icons so the time stays easy to read. Reported in #258.
 * **Instagram - Sanitize sharing links:** Share and Copy link in Instagram's in-app browser move an Instagram page's link to your Sharing domain now, as the share sheet and Copy link on a post already did. Before, those two still said instagram.com. Thanks to @Aholicknight for the fix in #304.
+* **Instagram - Find the reel you came from:** A trial reel from someone else isn't on their profile, so the search used to keep scrolling and then give up. Once the grid has gone past the reel's date it stops and says the reel isn't there. Reported in #225.
 
 ### Improvements
 
