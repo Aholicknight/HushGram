@@ -41,6 +41,7 @@ internal const val SET_UP_CUSTOM_LIKES = "setUpCustomLikesAnimation"
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val CONTEXT = "Landroid/content/Context;"
 private const val ENUM = "Ljava/lang/Enum;"
+private const val OBJECT = "Ljava/lang/Object;"
 
 /** How many instructions after reading the plain heart's value an eligibility check may come and still be about the heart. */
 private const val CHECK_REACH = 10
@@ -54,6 +55,17 @@ internal const val ALLOW_LIKE_ANIMATION = "$LIKE_ANIMATION->allow(I)Z"
  * extension reads the type itself off that value.
  */
 internal const val NO_ANIMATION_STUB = "noAnimation"
+
+/**
+ * The stubs the patch fills so the settings list can show each heart before it's picked (#299): the
+ * heart Instagram builds for an animation, and the call that plays one. Left as they are when the
+ * build doesn't have what they need, which only takes the preview away.
+ */
+internal const val HEART_STUB = "heart"
+internal const val PLAY_STUB = "play"
+
+/** How many instructions after the view reads its heart out of a field the call that plays it may come. */
+private const val PLAY_REACH = 3
 
 /**
  * Plays the like animation picked in settings, one of the animations Instagram made for Instagram
@@ -87,7 +99,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * index of the answer of the check it makes before it plays any of Instagram's own animations.
  * Then the hearts drawn without the view (see [findHearts]): the post's animation where it's
  * [returned], where each heart component [kept] its own, and each eligibility check's answer in
- * [checks].
+ * [checks]. Last the settings preview's (#299): the [factory] a heart is built with, and the call that
+ * [play]s one, each null when the extension can't make it.
  */
 internal class LikeAnimationAnchors(
     val configure: Method,
@@ -97,13 +110,20 @@ internal class LikeAnimationAnchors(
     val returned: LikeAnimationSite,
     val kept: List<LikeAnimationSite>,
     val checks: List<LikeAnimationSite>,
+    val factory: String? = null,
+    val play: String? = null,
 )
 
 /** One instruction of [method] the patch hooks, at index [at]. */
 internal class LikeAnimationSite(val method: Method, val at: Int)
 
-/** What [findHearts] answers. */
-private class Hearts(val returned: LikeAnimationSite, val kept: List<LikeAnimationSite>, val checks: List<LikeAnimationSite>)
+/** What [findHearts] answers, [factory] null when the extension can't call it. */
+private class Hearts(
+    val returned: LikeAnimationSite,
+    val kept: List<LikeAnimationSite>,
+    val checks: List<LikeAnimationSite>,
+    val factory: String?,
+)
 
 /**
  * The heart view [LIKE_ACTION_VIEW] sets up the animation a double tap plays in one instance method
@@ -178,7 +198,40 @@ internal fun BytecodePatchContext.findLikeAnimation(): LikeAnimationAnchors {
         } ?: refuse("the extension has no $hook")
     }
     extension.stub(NO_ANIMATION_STUB, "Ljava/lang/Object;") ?: refuse("$LIKE_ANIMATION has no static Object $NO_ANIMATION_STUB()")
-    return LikeAnimationAnchors(configure, animation, none, gate, hearts.returned, hearts.kept, hearts.checks)
+    extension.stub(HEART_STUB, "Ljava/lang/Object;", listOf(CONTEXT, OBJECT), locals = 0)
+        ?: refuse("$LIKE_ANIMATION has no static Object $HEART_STUB(Context, Object)")
+    extension.stub(PLAY_STUB, "V", listOf(OBJECT), locals = 0) ?: refuse("$LIKE_ANIMATION has no static void $PLAY_STUB(Object)")
+    val play = hearts.factory?.let { findPlay(view, it.substringAfterLast(')')) }
+    return LikeAnimationAnchors(configure, animation, none, gate, hearts.returned, hearts.kept, hearts.checks, hearts.factory, play)
+}
+
+/**
+ * #299: how the view plays its heart, the one no-argument call it makes on the drawable [heart] right
+ * after reading it out of one of its fields. Null when it makes none or more than one, or when that
+ * method isn't public, so the extension couldn't make the call.
+ */
+private fun BytecodePatchContext.findPlay(view: ClassDef, heart: String): String? {
+    val plays = view.methods.flatMap { method ->
+        val code = method.code()
+        code.indices.mapNotNull { at ->
+            val read = code[at]
+            if (read.opcode != Opcode.IGET_OBJECT || (read.reference() as? FieldReference)?.type != heart) return@mapNotNull null
+            val held = (read as TwoRegisterInstruction).registerA
+            code.subList(at + 1, minOf(code.size, at + 1 + PLAY_REACH)).firstNotNullOfOrNull { next ->
+                (next.reference() as? MethodReference)?.takeIf {
+                    next.opcode == Opcode.INVOKE_VIRTUAL && it.parameterTypes.isEmpty() && it.returnType == "V" &&
+                        (next as FiveRegisterInstruction).registerCount == 1 && next.registerC == held
+                }
+            }
+        }
+    }.map { it.text() }.distinct()
+    val play = plays.singleOrNull() ?: return null
+    val owner = classDefByOrNull(play.substringBefore("->")) ?: return null
+    val name = play.substringAfter("->").substringBefore('(')
+    val method = owner.methods.singleOrNull { it.name == name && it.parameterTypes.isEmpty() && it.returnType == "V" } ?: return null
+    val callable = AccessFlags.PUBLIC.isSet(owner.accessFlags) && AccessFlags.PUBLIC.isSet(method.accessFlags) &&
+        !AccessFlags.STATIC.isSet(method.accessFlags)
+    return play.takeIf { callable }
 }
 
 /**
@@ -205,7 +258,11 @@ private fun BytecodePatchContext.findHearts(setUp: Method, animation: String, no
     val factory = factories.singleOrNull()
         ?: refuse("$SET_UP_CUSTOM_LIKES calls ${factories.size} static methods taking a context and $animation, not one")
     val factoryClass = factory.substringBefore("->")
-    val sources = classDefByOrNull(factoryClass)?.methods?.filter {
+    val factoryDef = classDefByOrNull(factoryClass)
+    val built = factoryDef?.methods?.singleOrNull { it.text() == factory }
+    val callable = factoryDef != null && built != null && AccessFlags.PUBLIC.isSet(factoryDef.accessFlags) &&
+        AccessFlags.PUBLIC.isSet(built.accessFlags) && AccessFlags.STATIC.isSet(built.accessFlags)
+    val sources = factoryDef?.methods?.filter {
         AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == animation && it.parameterTypes.size == 1
     }.orEmpty()
     val source = sources.singleOrNull()
@@ -267,7 +324,7 @@ private fun BytecodePatchContext.findHearts(setUp: Method, animation: String, no
             }
         }
     }
-    return Hearts(returned, kept, found)
+    return Hearts(returned, kept, found, factory.takeIf { callable })
 }
 
 /**
@@ -310,6 +367,25 @@ internal fun BytecodePatchContext.applyLikeAnimation(anchors: LikeAnimationAncho
         """
             sget-object v0, ${anchors.none.definingClass}->${anchors.none.name}:${anchors.none.type}
             return-object v0
+        """,
+    )
+    val factory = anchors.factory ?: return
+    stub(HEART_STUB).addInstructions(
+        0,
+        """
+            check-cast p1, ${anchors.animation}
+            invoke-static { p0, p1 }, $factory
+            move-result-object p0
+            return-object p0
+        """,
+    )
+    val play = anchors.play ?: return
+    stub(PLAY_STUB).addInstructions(
+        0,
+        """
+            check-cast p0, ${play.substringBefore("->")}
+            invoke-virtual { p0 }, $play
+            return-void
         """,
     )
 }
@@ -405,9 +481,10 @@ private fun Method.landings(): Map<Int, List<Int>> {
     return landings
 }
 
-private fun ClassDef.stub(name: String, answer: String): Method? = methods.singleOrNull {
-    it.name == name && it.returnType == answer && it.parameterTypes.isEmpty() && AccessFlags.STATIC.isSet(it.accessFlags) &&
-        (it.implementation?.registerCount ?: 0) >= 1
+/** The extension's static stub [name] taking [parameters] (none of them wide) with at least [locals] registers of its own. */
+private fun ClassDef.stub(name: String, answer: String, parameters: List<String> = emptyList(), locals: Int = 1): Method? = methods.singleOrNull {
+    it.name == name && it.returnType == answer && it.parameterTypes.map(CharSequence::toString) == parameters &&
+        AccessFlags.STATIC.isSet(it.accessFlags) && (it.implementation?.registerCount ?: 0) >= parameters.size + locals
 }
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

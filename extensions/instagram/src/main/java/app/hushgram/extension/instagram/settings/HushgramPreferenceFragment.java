@@ -14,6 +14,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -51,6 +52,7 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.LinearLayout;
@@ -75,6 +77,8 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import app.hushgram.extension.instagram.direct.ChatAccounts;
@@ -4953,13 +4957,79 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    /** The like animation's row. Its summary follows its value, and it answers it itself, as the ring size's does. */
+    /**
+     * The like animation's row. Its summary follows its value, and it answers it itself, as the ring
+     * size's does. With Instagram's hearts to hand, its list shows and plays the one tapped under it,
+     * and OK saves the choice, so each can be seen before it's picked (#299).
+     */
     static final class LikeAnimationRow extends ListPreference {
+        /** How tall the heart under the list is, in dp. */
+        static final int PREVIEW_DP = 160;
+
         @Nullable
         private String summary;
+        /** The heart for an animation's name and what plays one: Instagram's, unless a test swaps them. */
+        Function<String, Drawable> hearts = name -> LikeAnimation.preview(getContext(), name);
+        Consumer<Drawable> player = LikeAnimation::playPreview;
+        /** The choice the list shows checked, which OK saves. */
+        private int picked = -1;
+        /** The heart under the list while it's open with one, else null. */
+        @Nullable
+        ImageView preview;
 
         LikeAnimationRow(Context context) {
             super(context);
+        }
+
+        @Override
+        protected void onPrepareDialogBuilder(AlertDialog.Builder builder) {
+            super.onPrepareDialogBuilder(builder);
+            preview = null;
+            CharSequence[] entries = getEntries();
+            CharSequence[] values = getEntryValues();
+            if (entries == null || values == null || values.length == 0) return;
+            picked = findIndexOfValue(getValue());
+            Drawable heart = hearts.apply(values[Math.max(picked, 0)].toString());
+            if (heart == null) return;
+            int height = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, PREVIEW_DP,
+                    getContext().getResources().getDisplayMetrics()));
+            ImageView image = new ImageView(getContext());
+            image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            image.setAdjustViewBounds(true);
+            image.setMinimumHeight(height);
+            image.setMaxHeight(height);
+            image.setPadding(height / 12, height / 12, height / 12, height / 12);
+            image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            if (picked >= 0) image.setImageDrawable(heart);
+            preview = image;
+            builder.setView(image);
+            builder.setSingleChoiceItems(entries, picked, (dialog, which) -> show(which));
+            builder.setPositiveButton(android.R.string.ok, this);
+            builder.setNegativeButton(getNegativeButtonText(), this);
+        }
+
+        /** A tap on a choice: it's checked, and its heart shows and plays under the list. */
+        private void show(int which) {
+            picked = which;
+            CharSequence[] values = getEntryValues();
+            ImageView image = preview;
+            if (image == null || values == null || which < 0 || which >= values.length) return;
+            Drawable heart = hearts.apply(values[which].toString());
+            image.setImageDrawable(heart);
+            if (heart != null) player.accept(heart);
+        }
+
+        @Override
+        protected void onDialogClosed(boolean positiveResult) {
+            if (preview == null) {
+                super.onDialogClosed(positiveResult);
+                return;
+            }
+            preview = null;
+            CharSequence[] values = getEntryValues();
+            if (!positiveResult || values == null || picked < 0 || picked >= values.length) return;
+            String value = values[picked].toString();
+            if (callChangeListener(value)) setValue(value);
         }
 
         @Override
@@ -4988,11 +5058,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
         }
 
-        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        /** Its list takes the screen's colours, as the other rows' dialogs do, and the picked heart plays as it opens. */
         @Override
         protected void showDialog(Bundle state) {
             super.showDialog(state);
             if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            Drawable heart = preview == null ? null : preview.getDrawable();
+            if (heart != null) player.accept(heart);
         }
     }
 
