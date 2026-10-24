@@ -429,6 +429,11 @@ no-call Landroid/content/pm/ShortcutManager;->addDynamicShortcuts(Ljava/util/Lis
 no-call Landroid/content/pm/ShortcutManager;->setDynamicShortcuts(Ljava/util/List;)Z outside Lapp/hushgram/extension/
 no-call Landroid/content/pm/ShortcutManager;->updateShortcuts(Ljava/util/List;)Z outside Lapp/hushgram/extension/
 no-call Landroid/content/pm/ShortcutManager;->removeAllDynamicShortcuts()V outside Lapp/hushgram/extension/
+# Pick the app icon sends every call Instagram makes to turn a component on or off to AppIcon, which
+# drops only the ones that would undo the picked icon. One left in Instagram's code can turn its own
+# launcher alias back on at start beside HushGram's, so the home screen shows two icons.
+no-call Landroid/content/pm/PackageManager;->setComponentEnabledSetting(Landroid/content/ComponentName;II)V outside Lapp/hushgram/extension/
+no-call Landroid/content/pm/PackageManager;->setComponentEnabledSettings(Ljava/util/List;)V outside Lapp/hushgram/extension/
 # The settings patch also sends the call that gives Home's title view, which holds the Instagram
 # logo, its long press to SettingsEntry.setLogoLongClickListener, in the method that draws Home's
 # header from a state (MainFeedActionBar.A08 on 450, the method the Ghost mode button's rules below
