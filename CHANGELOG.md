@@ -29,6 +29,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Glass tab bar:** The outline Instagram draws round the message count and the dots on the tab bar is clear now, so it doesn't sit on the glass as a solid ring. The badge keeps its size. Reported in #315.
 * **Instagram - Hide suggested posts:** `Hide 'Are you interested?' bubbles` takes the question off Reels too, the Not interested and Interested row under a reel. Before, only Home's bubble went. (#131)
 * **Instagram - Glass tab bar:** With `Full screen Reels` on, the floating pill dropped by the navigation bar's height every time you switched to Reels, then jumped back up on the other tabs. It stays at one height on every tab now. Reported in #285.
 * **Instagram - Glass tab bar:** A video playing under the glass pill no longer turns the pill black. Some videos play on a layer the blur couldn't see, so it blurs a small copy of the video's picture now. Reported in #144.
