@@ -637,21 +637,27 @@ try {
     Assert-True ($stale.Reason -like '*any more*') `
         "The stale allowlist entry was refused for the wrong reason: $($stale.Reason)"
 
-    # The checked-in allowlist, against receipts that carry the three removals and the raised version
-    # code on both builds. Those pass. They plus any other change are refused, naming only the other,
-    # and a removal that stopped part way is refused for the part no patch makes any more.
+    # The checked-in allowlist, against receipts that carry the three removals, the raised version
+    # code and the icon aliases on both builds. Those pass. They plus any other change are refused,
+    # naming only the other, and a removal that stopped part way is refused for the part no patch
+    # makes any more.
+    $iconAliases = @($iconAliasEntries -replace '^exported-added ', '')
     $withRemovals = {
         param($r)
         foreach ($target in $r.targets) {
             $target.manifestDelta.permissionsRemoved = @($removedPermissions)
             $target.manifestDelta.versionCodeChanged = @($raisedVersionCode)
+            $target.manifestDelta.exportedComponentsAdded = @($iconAliases)
         }
     }
     $removed = Test-TestReceipt -Receipt (New-TestReceipt -Mutate $withRemovals) -Approved $checkedInAllowlist
     Assert-True $removed.Valid "A receipt carrying the approved advertising ID removals was refused: $($removed.Reason)"
     $unraised = Test-TestReceipt -Receipt (New-TestReceipt -Mutate {
             param($r)
-            foreach ($target in $r.targets) { $target.manifestDelta.permissionsRemoved = @($removedPermissions) }
+            foreach ($target in $r.targets) {
+                $target.manifestDelta.permissionsRemoved = @($removedPermissions)
+                $target.manifestDelta.exportedComponentsAdded = @($iconAliases)
+            }
         }) -Approved $checkedInAllowlist
     Assert-True (-not $unraised.Valid -and $unraised.Reason -like "*any more: version-code $raisedVersionCode") `
         "A receipt whose version code was never raised passed the allowlist that approves raising it: $($unraised.Reason)"
@@ -664,7 +670,7 @@ try {
             @{ Name = 'another permission dropped'; Entry = 'permission-removed android.permission.CAMERA'
                 Change = { param($t) $t.manifestDelta.permissionsRemoved = @($t.manifestDelta.permissionsRemoved) + 'android.permission.CAMERA' } },
             @{ Name = 'a component exported'; Entry = 'exported-added receiver:com.example.host.Probe'
-                Change = { param($t) $t.manifestDelta.exportedComponentsAdded = @('receiver:com.example.host.Probe') } },
+                Change = { param($t) $t.manifestDelta.exportedComponentsAdded = @($t.manifestDelta.exportedComponentsAdded) + 'receiver:com.example.host.Probe' } },
             @{ Name = 'a component no longer exported'; Entry = 'exported-removed activity:com.example.host.Main'
                 Change = { param($t) $t.manifestDelta.exportedComponentsRemoved = @('activity:com.example.host.Main') } },
             @{ Name = 'another version code'; Entry = 'version-code 2147483646'
@@ -680,6 +686,7 @@ try {
         foreach ($target in $r.targets) {
             $target.manifestDelta.permissionsRemoved = @($removedPermissions | Select-Object -First 2)
             $target.manifestDelta.versionCodeChanged = @($raisedVersionCode)
+            $target.manifestDelta.exportedComponentsAdded = @($iconAliases)
         }
     }
     $part = Test-TestReceipt -Receipt $partWay -Approved $checkedInAllowlist
