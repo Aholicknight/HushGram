@@ -1788,6 +1788,17 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_center_screen_titles", FALSE);
 
     /**
+     * Instagram's logo on Home, the name on profiles and the titles of other screens sit at the start
+     * of their bars, for accounts whose newer layout centers them (#310). It wins over the three
+     * centering switches above. Home's part is set as the header draws
+     * ({@link app.hushgram.extension.instagram.reels.HomeLogo}), so a change takes a restart; the
+     * names and titles move after each layout
+     * ({@link app.hushgram.extension.instagram.profile.ProfileTitle}). Off to start.
+     */
+    public static final BooleanSetting TITLES_AT_START =
+            new BooleanSetting("hushgram_titles_at_start", FALSE, true);
+
+    /**
      * The order the tab bar shows its tabs in, as the tab enum's names, comma separated, first tab
      * first ({@link app.hushgram.extension.instagram.reels.TabOrder}). Empty keeps Instagram's order.
      * The bar is built as Instagram starts, so a change takes a restart.

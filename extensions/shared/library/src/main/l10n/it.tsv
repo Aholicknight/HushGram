@@ -1226,3 +1226,6 @@ Instagram's own	Quella di Instagram
 Instagram's own. Pick another to change the icon on your home screen and in the app drawer.	Quella di Instagram. Scegline un'altra per cambiare l'icona nella schermata Home e nel cassetto delle app.
 %1$s. It shows once you leave Instagram. If the icon is gone from your home screen, add it again from the app drawer.	%1$s. Compare quando esci da Instagram. Se l'icona sparisce dalla schermata Home, aggiungila di nuovo dal cassetto delle app.
 the home screen icon you picked	l'icona della schermata Home che hai scelto
+# context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
+Logo and titles at the start	Logo e titoli all'inizio
+Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Mette il logo di Instagram e il titolo di ogni barra all'inizio della barra, dove Instagram li mostrava prima. Attivalo se Instagram te li centra. Ha la precedenza sugli interruttori per centrare qui sopra. Riavvia Instagram per vedere la modifica nella Home.

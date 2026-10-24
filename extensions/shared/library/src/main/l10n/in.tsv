@@ -1226,3 +1226,6 @@ Instagram's own	Bawaan Instagram
 Instagram's own. Pick another to change the icon on your home screen and in the app drawer.	Bawaan Instagram. Pilih yang lain untuk mengganti ikon di layar utama dan laci aplikasi.
 %1$s. It shows once you leave Instagram. If the icon is gone from your home screen, add it again from the app drawer.	%1$s. Ikon muncul setelah kamu keluar dari Instagram. Jika ikon hilang dari layar utama, tambahkan lagi dari laci aplikasi.
 the home screen icon you picked	ikon layar utama yang kamu pilih
+# context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
+Logo and titles at the start	Logo dan judul di awal
+Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Menempatkan logo Instagram dan judul setiap bilah di awal bilah, tempat Instagram dulu menampilkannya. Nyalakan jika Instagram menengahkannya untukmu. Ini lebih diutamakan daripada sakelar tengahkan di atas. Mulai ulang Instagram untuk melihat perubahannya di Beranda.
