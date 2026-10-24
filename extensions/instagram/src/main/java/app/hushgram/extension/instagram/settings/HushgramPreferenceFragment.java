@@ -5062,9 +5062,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         @Override
         protected void showDialog(Bundle state) {
             super.showDialog(state);
-            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            if (getDialog() instanceof AlertDialog) {
+                AlertDialog dialog = (AlertDialog) getDialog();
+                ScreenColors.dialog(dialog);
+                if (preview != null) letListGiveWay(dialog);
+            }
             Drawable heart = preview == null ? null : preview.getDrawable();
             if (heart != null) player.accept(heart);
+        }
+
+        /**
+         * With a list and a view under it, the dialog lays its parts out top to bottom, and dozens of
+         * animations took all the height: the heart and the buttons got none. The list's panel takes
+         * only what's left after them.
+         */
+        private static void letListGiveWay(AlertDialog dialog) {
+            ListView list = dialog.getListView();
+            if (list == null || !(list.getParent() instanceof View)) return;
+            View panel = (View) list.getParent();
+            if (!(panel.getParent() instanceof LinearLayout)) return;
+            panel.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
         }
     }
 

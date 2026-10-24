@@ -160,6 +160,35 @@ public class LikeAnimationSettingsTest {
         assertEquals("Cancel keeps the saved one", "RINGS_LIKE_AKI_KOICHI", row.getValue());
     }
 
+    /**
+     * Instagram has dozens of animations. A list that long took the whole dialog, leaving the heart
+     * and the buttons no room, so the list gives way for them.
+     */
+    @Test public void aLongListLeavesRoomForTheHeartAndButtons() throws Exception {
+        HushgramPreferenceFragment.LikeAnimationRow row = rowWithTwo();
+        CharSequence[] entries = new CharSequence[60];
+        CharSequence[] values = new CharSequence[60];
+        for (int i = 0; i < entries.length; i++) {
+            entries[i] = "Animation " + i;
+            values[i] = "RINGS_LIKE_" + i;
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.hearts = name -> new ColorDrawable();
+        row.player = heart -> { };
+
+        row.showDialog(null);
+        AlertDialog dialog = (AlertDialog) row.getDialog();
+        View window = dialog.getWindow().getDecorView();
+        window.measure(View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.AT_MOST));
+        window.layout(0, 0, window.getMeasuredWidth(), window.getMeasuredHeight());
+        assertTrue("the list scrolls inside the dialog", dialog.getListView().getHeight() < 1000);
+        assertTrue("the heart has room", row.preview.getHeight() > 0);
+        assertTrue("OK has room", dialog.getButton(DialogInterface.BUTTON_POSITIVE).getHeight() > 0);
+        assertTrue("Cancel has room", dialog.getButton(DialogInterface.BUTTON_NEGATIVE).getHeight() > 0);
+    }
+
     /** Without Instagram's hearts (the patch couldn't fill them in) the list saves on a tap, as before. */
     @Test public void withoutHeartsATapSavesAsBefore() throws Exception {
         HushgramPreferenceFragment.LikeAnimationRow row = rowWithTwo();
