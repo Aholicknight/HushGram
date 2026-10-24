@@ -1601,6 +1601,43 @@
       "options": []
     },
     {
+      "name": "Hide rows in Instagram's settings",
+      "description": "Lets you take the rows you don't use off Instagram's own Settings and activity screen. Every row shows until you untick it in HushGram settings > Layout > Rows in Instagram's settings.",
+      "category": "Interface",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "452.1.0.53.64"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "452.1.0.53.64",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385811006
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Hide suggested accounts in DMs",
       "description": "Takes the Accounts to follow section off the bottom of your messages. Your chats and follow requests stay. Starts off. Turn it on in HushGram settings > Messages.",
       "category": "Messages",
