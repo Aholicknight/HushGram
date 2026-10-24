@@ -3142,9 +3142,9 @@ try {
 
     $androidName = 'http://schemas.android.com/apk/res/android:name(0x01010003)='
     $androidExported = '          A: http://schemas.android.com/apk/res/android:exported(0x01010010)=true'
-    # Instagram asks for the three advertising ID permissions, and the patched build doesn't, and
-    # carries the raised version code: the changes the checked-in allowlist approves, and the only
-    # ones the patches make here.
+    # Instagram asks for the three advertising ID permissions, and the patched build doesn't, carries
+    # the raised version code and exports the three icon aliases: the changes the checked-in
+    # allowlist approves, and the only ones the patches make here.
     function Get-FixtureManifest([string]$Build, [string]$Code, [switch]$WithSplit, [switch]$Patched,
             [string]$Package = $releaseTarget.PackageName) {
         $permissions = @('android.permission.INTERNET')
@@ -3166,6 +3166,15 @@ try {
             '        E: activity (line=21)',
             "          A: $androidName`"com.example.host.Main`" (Raw: `"com.example.host.Main`")",
             $androidExported)
+        if ($Patched) {
+            $aliasLine = 30
+            foreach ($alias in @($iconAliasEntries -replace '^exported-added activity-alias:', '')) {
+                $lines += @("        E: activity-alias (line=$aliasLine)",
+                    "          A: $androidName`"$alias`" (Raw: `"$alias`")",
+                    $androidExported)
+                $aliasLine++
+            }
+        }
         if ($WithSplit) {
             $lines += @('        E: activity (line=40)',
                 "          A: $androidName`"com.example.split.FeatureActivity`" (Raw: `"com.example.split.FeatureActivity`")",
