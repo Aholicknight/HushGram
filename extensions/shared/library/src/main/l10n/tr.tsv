@@ -753,6 +753,8 @@ Red	Kırmızı
 Orange	Turuncu
 Green	Yeşil
 Teal	Camgöbeği
+Material You	Material You
+Material You needs Android 12 or newer, so Instagram's blue stays.	Material You için Android 12 veya daha yenisi gerekiyor, bu yüzden Instagram mavisi kalıyor.
 # context: Layout switch; it puts HushGram's logo on the screen Android shows while Instagram starts
 HushGram launch screen	HushGram açılış ekranı
 Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.	Instagram açılırken gördüğün ekranda Instagram'ın logosu yerine HushGram'ın logosunu gösterir. Android 13 ve sonrasında çalışır. Bir sonraki açılıştan itibaren görünür.

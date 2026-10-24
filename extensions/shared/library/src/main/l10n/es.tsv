@@ -753,6 +753,8 @@ Red	Rojo
 Orange	Naranja
 Green	Verde
 Teal	Verde azulado
+Material You	Material You
+Material You needs Android 12 or newer, so Instagram's blue stays.	Material You necesita Android 12 o posterior, así que se queda el azul de Instagram.
 # context: Layout switch; it puts HushGram's logo on the screen Android shows while Instagram starts
 HushGram launch screen	Pantalla de inicio de HushGram
 Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.	Muestra el logotipo de HushGram en lugar del de Instagram en la pantalla que ves mientras Instagram se inicia, en Android 13 y versiones posteriores. Se verá a partir del próximo inicio.

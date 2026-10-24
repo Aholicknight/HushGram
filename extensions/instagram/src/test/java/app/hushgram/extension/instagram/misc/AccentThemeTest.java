@@ -67,6 +67,9 @@ public class AccentThemeTest {
                 AccentTheme.styleFor("igds_color_selected_text_background", color(0x4d0095f6)));
         assertEquals("HushGramAccent_android_textColorLink_pale_b3", AccentTheme.styleFor("android:textColorLink", color(0xb3e0f1ff)));
         assertEquals("HushGramAccentPalette_PURPLE", AccentTheme.paletteStyle(AccentHue.PURPLE));
+        assertEquals("Material You's, which the patch adds on its own", "HushGramAccentPalette_WALLPAPER",
+                AccentTheme.paletteStyle(AccentHue.WALLPAPER));
+        assertEquals("HushGramAccentBadge_WALLPAPER", AccentTheme.badgeStyle(AccentHue.WALLPAPER));
     }
 
     /** An attribute holding a gray, a color list's file or a size has no style. */

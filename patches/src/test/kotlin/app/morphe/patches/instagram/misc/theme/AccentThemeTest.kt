@@ -54,7 +54,7 @@ class AccentThemeTest {
         val hues = Regex("""^\s+([A-Z]+)\((0x[0-9a-f]+|0), (0x[0-9a-f]+|0), (0x[0-9a-f]+|0)\)[,;]""", RegexOption.MULTILINE)
             .findAll(File(misc, "AccentHue.java").readText())
             .map { it.groupValues.drop(1) }
-            .filter { it[0] != "BLUE" }
+            .filter { it[0] != "BLUE" && it[0] != WALLPAPER }
             .map { (name, fill, light, dark) -> listOf(name, fill, light, dark) }
             .toList()
         assertEquals(
@@ -84,6 +84,65 @@ class AccentThemeTest {
         assertEquals(0x6430d5, purple.getValue(AccentRole.PRESSED))
         assertEquals(0x351971, purple.getValue(AccentRole.DIM))
         assertEquals(0xeee7fe, purple.getValue(AccentRole.PALE))
+        // Material You's system steps, in the Role order MaterialYou.java lists them.
+        val steps = Regex("""android\.R\.color\.system_accent1_(\d+),""")
+            .findAll(File(misc, "MaterialYou.java").readText()).map { it.groupValues[1].toInt() }.toList()
+        assertEquals(AccentRole.entries.map { WALLPAPER_STEPS.getValue(it) }, steps)
+        assertTrue("AccentHue lists the wallpaper", Regex("""^\s+$WALLPAPER\(0, 0, 0\);""", RegexOption.MULTILINE)
+            .containsMatchIn(File(misc, "AccentHue.java").readText()))
+    }
+
+    /**
+     * Material You (#187): each opaque shade gets a fallback color and the wallpaper's system color on
+     * Android 12, a palette style naming them, and a badge pair; a see-through shade gets nothing.
+     */
+    @Test
+    fun theWallpaperResourcesPointEachOpaqueShadeAtTheSystemPalette() {
+        val uses = setOf(
+            AccentUse("igds_color_link", AccentRole.LINK_ON_DARK, 0xff),
+            AccentUse("igds_color_link", AccentRole.LINK_ON_LIGHT, 0xff),
+            AccentUse("igds_color_primary_button_indigo", AccentRole.FILL, 0xff),
+            AccentUse("igds_color_selected_text_background", AccentRole.FILL, 0x4d),
+        )
+        val attrs = parse("<resources><attr name=\"$BADGE_ATTRIBUTE\" format=\"reference|color\" /></resources>")
+        val colors = parse("<resources />")
+        val colorsV31 = parse("<resources />")
+        val styles = parse("<resources />")
+
+        addAccentResources(uses, attrs, colors, styles)
+        addWallpaperResources(uses, attrs, colors, colorsV31, styles)
+
+        val fallback = colors.elements("color").associate { it.getAttribute("name") to it.textContent }
+        val system = colorsV31.elements("color").associate { it.getAttribute("name") to it.textContent }
+        assertEquals(
+            mapOf(
+                "hushgram_accent_wallpaper_fill_ff" to "@android:color/system_accent1_500",
+                "hushgram_accent_wallpaper_link_on_dark_ff" to "@android:color/system_accent1_200",
+                "hushgram_accent_wallpaper_link_on_light_ff" to "@android:color/system_accent1_600",
+                WALLPAPER_BADGE_COLOR to "@android:color/system_accent1_500",
+            ),
+            system,
+        )
+        assertEquals("#ff7f67be", fallback["hushgram_accent_wallpaper_fill_ff"])
+        assertEquals("#ffd0bcff", fallback["hushgram_accent_wallpaper_link_on_dark_ff"])
+        assertTrue("no see-through wallpaper shade", fallback.keys.none { it.startsWith("hushgram_accent_wallpaper_fill_4d") })
+        val added = styles.elements("style").associate { style ->
+            style.getAttribute("name") to style.elements("item").map { it.getAttribute("name") to it.textContent }
+        }
+        assertEquals(
+            listOf(
+                "hushgram_accent_fill_ff" to "@color/hushgram_accent_wallpaper_fill_ff",
+                "hushgram_accent_link_on_dark_ff" to "@color/hushgram_accent_wallpaper_link_on_dark_ff",
+                "hushgram_accent_link_on_light_ff" to "@color/hushgram_accent_wallpaper_link_on_light_ff",
+            ),
+            added[WALLPAPER_PALETTE_STYLE],
+        )
+        assertEquals(listOf(BADGE_ATTRIBUTE to "@color/$WALLPAPER_BADGE_COLOR"), added[WALLPAPER_BADGE_STYLE])
+
+        val again = assertThrows(PatchException::class.java) {
+            addWallpaperResources(uses, attrs, parse("<resources />"), colorsV31, parse("<resources />"))
+        }
+        assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_wallpaper_fill_ff"))
     }
 
     /** A blue named through a color, a color naming another, or written out counts, with its alpha. Nothing else does. */
@@ -344,6 +403,13 @@ class AccentThemeTest {
                     listOf(BADGE_ATTRIBUTE to "@color/hushgram_accent_purple_badge"),
                     badge.elements("item").map { it.getAttribute("name") to it.textContent.trim() },
                 )
+                // Material You's palette survives the encode, its colors naming the system palette on Android 12.
+                assertTrue("$code: the wallpaper palette", "style/$WALLPAPER_PALETTE_STYLE" in added)
+                assertTrue("$code: the wallpaper badge", "style/$WALLPAPER_BADGE_STYLE" in added)
+                val system = parse(File(res, "values-v31/colors.xml").readText()).elements("color")
+                    .associate { it.getAttribute("name") to it.textContent.trim() }
+                assertEquals("$code: the wallpaper's fill", "@android:color/system_accent1_500", system["hushgram_accent_wallpaper_fill_ff"])
+                assertEquals("$code: the wallpaper's dark link", "@android:color/system_accent1_200", system["hushgram_accent_wallpaper_link_on_dark_ff"])
             }
         } finally {
             work.deleteRecursively()

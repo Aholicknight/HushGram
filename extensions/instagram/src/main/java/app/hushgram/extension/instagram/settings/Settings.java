@@ -1110,7 +1110,8 @@ public class Settings extends BaseSettings {
 
     /**
      * Under {@link #ACCENT_COLOR}: the color ({@link app.hushgram.extension.instagram.misc.AccentHue}).
-     * Starts on purple, and Instagram blue keeps the stock color. A change shows after a restart.
+     * Starts on purple, and Instagram blue keeps the stock color. Material You (#187) takes the
+     * wallpaper's colors on Android 12 and newer. A change shows after a restart.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.misc.AccentHue> ACCENT_HUE =
             new EnumSetting<>("hushgram_accent_hue",

@@ -99,6 +99,36 @@ internal val ACCENT_PALETTES = listOf(
     AccentPalette("TEAL", 0x00838f, 0x00727c, 0x4dd0d9),
 )
 
+/**
+ * Material You (#187, #264), AccentHue.WALLPAPER: the step of Android 12's first accent family each
+ * part takes, as MaterialYou.java reads them (system_accent1_500 is tone 50).
+ */
+internal val WALLPAPER_STEPS: Map<AccentRole, Int> = mapOf(
+    AccentRole.FILL to 500, AccentRole.PRESSED to 600, AccentRole.DIM to 800,
+    AccentRole.LINK_ON_LIGHT to 600, AccentRole.LINK_ON_DARK to 200, AccentRole.PALE to 50,
+)
+
+/**
+ * The same tones of Material's own purple, for the default configuration. The extension offers the
+ * wallpaper only on Android 12 and newer, where values-v31 answers, so these never show.
+ */
+internal val WALLPAPER_FALLBACK: Map<AccentRole, Int> = mapOf(
+    AccentRole.FILL to 0x7f67be, AccentRole.PRESSED to 0x6750a4, AccentRole.DIM to 0x381e72,
+    AccentRole.LINK_ON_LIGHT to 0x6750a4, AccentRole.LINK_ON_DARK to 0xd0bcff, AccentRole.PALE to 0xf6edff,
+)
+
+internal const val WALLPAPER = "WALLPAPER"
+
+internal fun wallpaperColor(shade: String): String = "hushgram_accent_wallpaper_$shade"
+
+internal fun systemColor(role: AccentRole): String = "@android:color/system_accent1_${WALLPAPER_STEPS.getValue(role)}"
+
+internal const val WALLPAPER_PALETTE_STYLE = "HushGramAccentPalette_$WALLPAPER"
+
+internal const val WALLPAPER_BADGE_COLOR = "hushgram_accent_wallpaper_badge"
+
+internal const val WALLPAPER_BADGE_STYLE = "HushGramAccentBadge_$WALLPAPER"
+
 /** One theme attribute set to an accent blue somewhere in Instagram's styles, with the blue's alpha. */
 internal data class AccentUse(val attribute: String, val role: AccentRole, val alpha: Int) {
     val shade: String get() = shadeName(role, alpha)
@@ -271,6 +301,64 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
 }
 
 /**
+ * What the patch adds for Material You, after [addAccentResources] has declared the shade attributes:
+ *
+ * - for each opaque shade the uses need, a color at [WALLPAPER_FALLBACK] in the default
+ *   configuration and at the wallpaper's system color in [colorsV31], `hushgram_accent_wallpaper_fill_ff`;
+ * - a style setting each of those shade attributes to its color, [WALLPAPER_PALETTE_STYLE];
+ * - when attrs.xml declares [BADGE_ATTRIBUTE], a badge color at the fill and a style pointing the
+ *   attribute at it, for Badges in the accent color (#315).
+ *
+ * A see-through shade gets none: a plain color can't give a system color another alpha, and a color
+ * state list reads back as a file name to Instagram's own reads, so the extension leaves those
+ * attributes on Instagram's blue for its color hooks to swap. Refuses if any name it adds is there.
+ */
+internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors: Document, colorsV31: Document, styles: Document) {
+    val opaque = uses.filter { it.alpha == 0xff }.distinctBy { it.shade }.sortedBy { it.shade }
+    val taken = (colors.children("color") + colorsV31.children("color") + styles.children("style"))
+        .mapTo(HashSet()) { it.getAttribute("name") }
+    val badges = attrs.children("attr").any { it.getAttribute("name") == BADGE_ATTRIBUTE }
+    val adding = opaque.map { wallpaperColor(it.shade) } + WALLPAPER_PALETTE_STYLE +
+        (if (badges) listOf(WALLPAPER_BADGE_COLOR, WALLPAPER_BADGE_STYLE) else emptyList())
+    adding.firstOrNull { it in taken }?.let { refuse("the resources already have a $it") }
+
+    fun color(name: String, role: AccentRole) {
+        colors.documentElement.appendChild(colors.createElement("color").apply {
+            setAttribute("name", name)
+            textContent = "#ff%06x".format(WALLPAPER_FALLBACK.getValue(role))
+        })
+        colorsV31.documentElement.appendChild(colorsV31.createElement("color").apply {
+            setAttribute("name", name)
+            textContent = systemColor(role)
+        })
+    }
+
+    val style = styles.createElement("style").apply { setAttribute("name", WALLPAPER_PALETTE_STYLE) }
+    for (use in opaque) {
+        color(wallpaperColor(use.shade), use.role)
+        style.appendChild(styles.createElement("item").apply {
+            setAttribute("name", shadeAttribute(use.shade))
+            textContent = "@color/${wallpaperColor(use.shade)}"
+        })
+    }
+    styles.documentElement.appendChild(style)
+    if (badges) {
+        color(WALLPAPER_BADGE_COLOR, AccentRole.FILL)
+        styles.documentElement.appendChild(styles.createElement("style").apply {
+            setAttribute("name", WALLPAPER_BADGE_STYLE)
+            appendChild(styles.createElement("item").apply {
+                setAttribute("name", BADGE_ATTRIBUTE)
+                textContent = "@color/$WALLPAPER_BADGE_COLOR"
+            })
+        })
+    }
+}
+
+private const val COLORS_V31 = "res/values-v31/colors.xml"
+
+private const val EMPTY_RESOURCES = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n</resources>\n"
+
+/**
  * Reads every configuration's colors and styles, then adds the theme resources for each accent
  * attribute found. Refuses unless Instagram's link and primary button attributes are among them, the
  * ones 451's bio links and the Follow buttons on the Activity tab read through their styles (#8).
@@ -287,9 +375,19 @@ internal fun ResourcePatchContext.addAccentTheme(): String {
     for (needed in listOf("igds_color_link", "igds_color_primary_button_indigo")) {
         if (uses.none { it.attribute == needed }) refuse("no style sets $needed to one of Instagram's blues")
     }
+    get(COLORS_V31, false).takeIf { !it.exists() }?.let { file ->
+        file.parentFile.mkdirs()
+        file.writeText(EMPTY_RESOURCES)
+    }
     return document("res/values/attrs.xml").use { attrs ->
         document("res/values/colors.xml").use { colors ->
-            document("res/values/styles.xml").use { styles -> addAccentResources(uses, attrs, colors, styles) }
+            document(COLORS_V31).use { colorsV31 ->
+                document("res/values/styles.xml").use { styles ->
+                    addAccentResources(uses, attrs, colors, styles).also {
+                        addWallpaperResources(uses, attrs, colors, colorsV31, styles)
+                    }
+                }
+            }
         }
     }
 }

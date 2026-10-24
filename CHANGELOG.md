@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Accent color:** `Material You` is a new choice in the `Color` list on Android 12 and newer. Buttons, links and highlights take your wallpaper's colors, in light and dark mode, after a restart. Asked for in #187 and #264.
 * **Instagram - Accent color:** New `Badges in the accent color` switch under it, off to start. The red dots and counts for new messages and notifications take the color you picked, after a restart. Asked for in #315.
 * **Instagram - Story text fonts:** new patch, off to start. Add .ttf or .otf files under `Your story fonts` in Stories, and they show up by file name in the story text editor after Instagram's own fonts. Asked for in #275.
 * **Instagram - Story text fonts:** New `Emoji font in story text` switch under Stories, off to start. Turning it on asks for an emoji font file (.ttf), and the emoji you type in story text draw in it. Asked for in #275.

@@ -35,6 +35,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * dark link shade and a light one's the light shade, and the styles for the blues found go on along
  * with the picked color's. An attribute holding anything else is left alone.
  *
+ * <p>Material You's styles point at Android 12's wallpaper colors (#187). A plain color can't give a
+ * system color another alpha, so the patch gives it opaque shades only, and a blue with alpha is left
+ * for the color hooks.
+ *
  * <p>With {@link Settings#ACCENT_BADGES} on, the picked color's badge style goes on too (#315). It
  * points {@code igds_color_icon_badge}, the red of the dots and counts on Instagram's icons, at the
  * picked fill. The like heart and the red delete buttons read other attributes, so they stay red. The
@@ -99,6 +103,8 @@ public final class AccentTheme {
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, MISSING);
                 return;
             }
+            boolean wallpaper = hue == AccentHue.WALLPAPER;
+            if (wallpaper) MaterialYou.read(context);
             List<Integer> styles = new ArrayList<>();
             TypedValue value = new TypedValue();
             for (String attribute : listed.split(" ")) {
@@ -106,6 +112,9 @@ public final class AccentTheme {
                         ? id(resources, attribute.substring("android:".length()), "attr", "android")
                         : id(resources, attribute, "attr", app);
                 if (attr == 0 || !theme.resolveAttribute(attr, value, true)) continue;
+                // Material You's palette has opaque shades only, so a see-through blue keeps its
+                // attribute and the color hooks swap it as it's read.
+                if (wallpaper && value.data >>> 24 != 0xff) continue;
                 String style = styleFor(attribute, value);
                 int styleId = style == null ? 0 : id(resources, style, "style", app);
                 if (styleId != 0) styles.add(styleId);

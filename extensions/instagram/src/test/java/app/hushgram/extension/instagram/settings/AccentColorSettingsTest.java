@@ -122,11 +122,15 @@ public class AccentColorSettingsTest {
         assertEquals("Color", String.valueOf(hue.getTitle()));
         List<String> entries = new ArrayList<>();
         for (CharSequence entry : hue.getEntries()) entries.add(String.valueOf(entry));
-        assertEquals(Arrays.asList("Instagram blue", "Purple", "Pink", "Red", "Orange", "Green", "Teal"), entries);
+        List<String> offered = new ArrayList<>(Arrays.asList("Instagram blue", "Purple", "Pink", "Red", "Orange", "Green", "Teal"));
+        // Material You (#187) is offered only where the phone has a wallpaper palette, Android 12 and newer.
+        boolean materialYou = android.os.Build.VERSION.SDK_INT >= 31;
+        if (materialYou) offered.add("Material You");
+        assertEquals(offered, entries);
         List<String> values = new ArrayList<>();
         for (CharSequence value : hue.getEntryValues()) values.add(String.valueOf(value));
         List<String> names = new ArrayList<>();
-        for (AccentHue each : AccentHue.values()) names.add(each.name());
+        for (AccentHue each : AccentHue.values()) if (materialYou || each != AccentHue.WALLPAPER) names.add(each.name());
         assertEquals(names, values);
         assertEquals("PURPLE", hue.getValue());
         assertEquals("Purple", String.valueOf(hue.getSummary()));
@@ -139,6 +143,12 @@ public class AccentColorSettingsTest {
         ShadowLooper.idleMainLooper();
         assertEquals(AccentHue.BLUE, Settings.ACCENT_HUE.savedValue());
         assertEquals("Instagram blue", String.valueOf(hue.getSummary()));
+        // A backup from a newer phone can carry Material You onto an older one, which says why the blue stays.
+        hue.setValue("WALLPAPER");
+        ShadowLooper.idleMainLooper();
+        assertEquals(AccentHue.WALLPAPER, Settings.ACCENT_HUE.savedValue());
+        assertEquals(materialYou ? "Material You" : "Material You needs Android 12 or newer, so Instagram's blue stays.",
+                String.valueOf(hue.getSummary()));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_HUE.key));
     }
 }

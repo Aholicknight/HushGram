@@ -113,6 +113,7 @@ import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.misc.AccentHue;
+import app.hushgram.extension.instagram.misc.MaterialYou;
 import app.hushgram.extension.instagram.misc.AppIconChoice;
 import app.hushgram.extension.instagram.misc.FontChoice;
 import app.hushgram.extension.instagram.misc.Fonts;
@@ -3736,19 +3737,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    /** The color Instagram's blue turns into. Its summary is the color chosen. */
+    /**
+     * The color Instagram's blue turns into. Its summary is the color chosen. Material You is offered
+     * on Android 12 and newer, which have a wallpaper palette.
+     */
     static AccentHueRow accentHueRow(Context context) {
         AccentHueRow row = new AccentHueRow(context);
         row.setKey(Settings.ACCENT_HUE.key);
         row.setTitle(L10n.t("Color"));
         row.setDialogTitle(L10n.t("Accent color"));
         row.setNegativeButtonText(L10n.t("Cancel"));
-        AccentHue[] hues = AccentHue.values();
-        CharSequence[] entries = new CharSequence[hues.length];
-        CharSequence[] values = new CharSequence[hues.length];
-        for (int i = 0; i < hues.length; i++) {
-            entries[i] = accentHueLabel(hues[i]);
-            values[i] = hues[i].name();
+        List<AccentHue> hues = new ArrayList<>(Arrays.asList(AccentHue.values()));
+        if (!MaterialYou.available()) hues.remove(AccentHue.WALLPAPER);
+        CharSequence[] entries = new CharSequence[hues.size()];
+        CharSequence[] values = new CharSequence[hues.size()];
+        for (int i = 0; i < hues.size(); i++) {
+            entries[i] = accentHueLabel(hues.get(i));
+            values[i] = hues.get(i).name();
         }
         row.setEntries(entries);
         row.setEntryValues(values);
@@ -4248,6 +4253,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Green");
             case TEAL:
                 return L10n.t("Teal");
+            case WALLPAPER:
+                return L10n.t("Material You");
             default:
                 return L10n.t("Instagram blue");
         }
@@ -5999,7 +6006,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             super(context);
         }
 
-        /** The summary is the color chosen. */
+        /** The summary is the color chosen, or why Material You can't be, on Android 11 and older. */
         @Override
         public void setValue(String value) {
             super.setValue(value);
@@ -6007,7 +6014,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             for (AccentHue candidate : AccentHue.values()) {
                 if (candidate.name().equals(value)) hue = candidate;
             }
-            setSummary(accentHueLabel(hue));
+            setSummary(hue == AccentHue.WALLPAPER && !MaterialYou.available()
+                    ? L10n.t("Material You needs Android 12 or newer, so Instagram's blue stays.")
+                    : accentHueLabel(hue));
         }
 
         @Override

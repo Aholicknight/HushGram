@@ -81,7 +81,7 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
 val accentColorPatch = bytecodePatch(
     name = "Accent color",
     description = "Swaps Instagram's blue on Follow buttons, links and other highlights for purple, pink, red, orange, " +
-        "green or teal. Restart Instagram to see a change. Starts off. Turn it on in HushGram settings > Layout.",
+        "green, teal or your wallpaper's colors (Material You, on Android 12 and newer). Restart Instagram to see a change. Starts off. Turn it on in HushGram settings > Layout.",
     default = true,
 ) {
     category("Interface")
