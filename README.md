@@ -1,7 +1,7 @@
 ![HushGram. Keep the moments. Cut the noise.](assets/readme-hero.png)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.0.15-E1306C" alt="Version 0.0.15">
+  <img src="https://img.shields.io/badge/version-0.0.16-E1306C" alt="Version 0.0.16">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License GPL-3.0"></a>
   <img src="https://img.shields.io/badge/platform-Android%209%2B-3DDC84" alt="Platform Android 9+">
   <img src="https://img.shields.io/badge/Instagram-452.1.0.53.64-E1306C" alt="Instagram 452.1.0.53.64">
@@ -62,7 +62,7 @@ Back it up right after your first patch. In Morphe Manager open **Settings → S
 
 ## Patches
 
-There are 114 patches for `com.instagram.android`, checked against Instagram 452.1.0.53.64. Manager's simple mode includes 110 of them, so you don't need Expert mode to get any feature below. A patch that comes in this way changes nothing until you turn its switch on in HushGram settings, and each description says where that switch is. A few start on: Hide ads, Sanitize sharing links, Open links in external browser, Remove build expired popup, Hide suggested posts, Hide suggested stories, Hide Meta AI's search and posts switches, Show if a profile follows you, Download any reel, Download any story and Keep the reel speed. Story ring size and Default playback quality start on too, but they keep Instagram's own size and quality until you pick one.
+There are 117 patches for `com.instagram.android`, checked against Instagram 452.1.0.53.64. Manager's simple mode includes 113 of them, so you don't need Expert mode to get any feature below. A patch that comes in this way changes nothing until you turn its switch on in HushGram settings, and each description says where that switch is. A few start on: Hide ads, Sanitize sharing links, Open links in external browser, Remove build expired popup, Hide suggested posts, Hide suggested stories, Hide Meta AI's search and posts switches, Show if a profile follows you, Download any reel, Download any story and Keep the reel speed. Story ring size and Default playback quality start on too, but they keep Instagram's own size and quality until you pick one.
 
 Four patches stay out of simple mode. Tick them in Manager's patch list (Expert mode, then **Choose patches**) if you want them:
 
