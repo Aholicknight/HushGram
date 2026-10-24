@@ -71,8 +71,9 @@ private const val APPEND_OBJECT = "Ljava/lang/StringBuilder;->append(Ljava/lang/
 @Suppress("unused")
 val hideSettingsRowsPatch = bytecodePatch(
     name = "Hide rows in Instagram's settings",
-    description = "Lets you take the rows you don't use off Instagram's own Settings and activity screen. Every " +
-        "row shows until you untick it in HushGram settings > Layout > Rows in Instagram's settings.",
+    description = "Lets you take the rows you don't use off Instagram's own Settings and activity screen. Open " +
+        "that screen once, then untick rows in HushGram settings > Layout > Rows in Instagram's settings. Every " +
+        "row shows to start.",
     default = true,
 ) {
     category("Interface")
