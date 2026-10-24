@@ -87,6 +87,8 @@ public final class ProfileTitle {
     private static final Map<View, float[]> MOVED = new WeakHashMap<>();
     /** Title groups on shared bars moved here, the same way. */
     private static final Map<View, float[]> MOVED_TITLES = new WeakHashMap<>();
+    /** Name containers that clipped to their padding until a name was moved into it. */
+    private static final Map<ViewGroup, Boolean> UNCLIPPED = new WeakHashMap<>();
     private static final Focus FOCUS = new Focus();
     private static final Layout LAYOUT = new Layout();
 
@@ -194,7 +196,10 @@ public final class ProfileTitle {
         try {
             boolean names = wanted();
             boolean titles = titlesWanted();
-            if (!names) putBack(MOVED);
+            if (!names) {
+                putBack(MOVED);
+                clipAgain();
+            }
             if (!titles) putBack(MOVED_TITLES);
             if (!names && !titles) {
                 watchLayouts(false);
@@ -360,6 +365,20 @@ public final class ProfileTitle {
      * container's start, its right edge in a right to left bar.
      */
     static int offset(View bar, ViewGroup container, boolean start) {
+        int[] span = span(container);
+        if (span == null || bar.getWidth() <= 0) return 0;
+        int first = span[0];
+        int last = span[1];
+        if (start) return rightToLeft(container) ? container.getWidth() - last : -first;
+        int at = leftIn(container, bar);
+        if (at == Integer.MIN_VALUE) return 0;
+        int wanted = bar.getWidth() / 2 - (at + (first + last) / 2);
+        return Math.max(-first, Math.min(container.getWidth() - last, wanted));
+    }
+
+    /** The left of [container]'s first shown child and the right of its last, where the layout put them, or null with none. */
+    @Nullable
+    private static int[] span(ViewGroup container) {
         int first = Integer.MAX_VALUE;
         int last = Integer.MIN_VALUE;
         for (int i = 0; i < container.getChildCount(); i++) {
@@ -368,12 +387,7 @@ public final class ProfileTitle {
             first = Math.min(first, child.getLeft());
             last = Math.max(last, child.getRight());
         }
-        if (first > last || bar.getWidth() <= 0) return 0;
-        if (start) return rightToLeft(container) ? container.getWidth() - last : -first;
-        int at = leftIn(container, bar);
-        if (at == Integer.MIN_VALUE) return 0;
-        int wanted = bar.getWidth() / 2 - (at + (first + last) / 2);
-        return Math.max(-first, Math.min(container.getWidth() - last, wanted));
+        return first > last ? null : new int[]{first, last};
     }
 
     private static boolean rightToLeft(View view) {
@@ -388,7 +402,34 @@ public final class ProfileTitle {
             if (child.getVisibility() == View.GONE) continue;
             moved |= shift(child, offset, MOVED);
         }
+        unclip(container, offset);
         if (moved) HookStatus.counted(FamilyNames.REELS_TAB, start ? COUNT_AT_START : COUNT_CENTERED);
+    }
+
+    /**
+     * Lets [container] draw its children moved [offset] into its padding, which it would cut them
+     * off at. The newer profile header pads the name's row on both sides to keep it in the middle,
+     * so a name put at the start sits in that padding (#310). The container clips again once its
+     * children are back inside, or put back.
+     */
+    private static void unclip(ViewGroup container, int offset) {
+        int[] span = span(container);
+        boolean outside = span != null && offset != 0 && (span[0] + offset < container.getPaddingLeft()
+                || span[1] + offset > container.getWidth() - container.getPaddingRight());
+        if (outside && container.getClipToPadding()) {
+            container.setClipToPadding(false);
+            UNCLIPPED.put(container, Boolean.TRUE);
+        } else if (!outside && UNCLIPPED.remove(container) != null) {
+            container.setClipToPadding(true);
+        }
+    }
+
+    /** Has each container {@link #unclip} let draw into its padding clip to it again. */
+    private static void clipAgain() {
+        for (ViewGroup container : UNCLIPPED.keySet()) {
+            if (container != null) container.setClipToPadding(true);
+        }
+        UNCLIPPED.clear();
     }
 
     /** Moves [view] [offset] from where it was before this class moved it, noting it in [moved]. Whether it moved now. */
@@ -486,5 +527,6 @@ public final class ProfileTitle {
         leave();
         MOVED.clear();
         MOVED_TITLES.clear();
+        UNCLIPPED.clear();
     }
 }

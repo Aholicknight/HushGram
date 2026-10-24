@@ -235,6 +235,32 @@ public class ProfileTitleTest {
         assertFalse(ProfileTitle.watchingLayoutsForTests());
     }
 
+    /** The newer header pads the name's row on both sides (#310): at the start the name sits in that padding, drawn, not cut off. */
+    @Test public void atTheStartANameInItsContainersPaddingIsDrawn() {
+        container.setPadding(96, 0, 96, 0);
+        layout();
+        assertTrue(container.getClipToPadding());
+        Settings.TITLES_AT_START.save(true);
+        ProfileTitle.resumed(activity);
+        assertEquals(-235f, name.getTranslationX(), 0f);
+        assertFalse("drawn in the padding", container.getClipToPadding());
+        relayout();
+        assertFalse("still drawn after another layout", container.getClipToPadding());
+        Settings.TITLES_AT_START.save(false);
+        focusBack();
+        assertEquals(0f, name.getTranslationX(), 0f);
+        assertTrue("clipped again once it's back", container.getClipToPadding());
+    }
+
+    @Test public void aCenteredNameInsideThePaddingKeepsItClipped() {
+        container.setPadding(96, 0, 96, 0);
+        Settings.CENTER_PROFILE_NAME.save(true);
+        place(0, 200);
+        ProfileTitle.resumed(activity);
+        assertEquals(540f, drawnMiddle(), 0.5f);
+        assertTrue(container.getClipToPadding());
+    }
+
     @Test public void aHiddenBarIsLeftAlone() {
         Settings.CENTER_PROFILE_NAME.save(true);
         bar.setVisibility(View.GONE);
