@@ -741,6 +741,8 @@ Google's emoji everywhere	Emojis do Google em todo lugar
 # context: Layout switch; it turns Instagram's blue into a color picked in the row under it
 Accent color	Cor de destaque
 Turns Instagram's blue, on Follow buttons, links and the like, into the color you pick below. Restart Instagram to see the change.	Troca o azul do Instagram nos botões Seguir, nos links e afins pela cor que você escolher abaixo. Reinicie o Instagram para ver a mudança.
+Badges in the accent color	Selos na cor de destaque
+The red dots and counts for new messages and notifications take the color you picked. Restart Instagram to see the change.	Os pontos e números vermelhos de novas mensagens e notificações ficam na cor que você escolheu. Reinicie o Instagram para ver a mudança.
 # context: Layout list under Accent color; its choices are Instagram blue and the colors below
 Color	Cor
 Instagram blue	Azul do Instagram

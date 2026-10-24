@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Accent color:** New `Badges in the accent color` switch under it, off to start. The red dots and counts for new messages and notifications take the color you picked, after a restart. Asked for in #315.
 * **Instagram - Story text fonts:** new patch, off to start. Add .ttf or .otf files under `Your story fonts` in Stories, and they show up by file name in the story text editor after Instagram's own fonts. Asked for in #275.
 * **Instagram - Story text fonts:** New `Emoji font in story text` switch under Stories, off to start. Turning it on asks for an emoji font file (.ttf), and the emoji you type in story text draw in it. Asked for in #275.
 * **Instagram - Pick the app icon:** new patch. `App icon` under Layout swaps the home screen icon for HushGram's, or Instagram's glyph on black or plum. It changes once you leave Instagram. Starts on Instagram's own. Asked for in #284.

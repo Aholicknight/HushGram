@@ -46,6 +46,9 @@ final class LayoutCategory {
                         L10n.t("Turns Instagram's blue, on Follow buttons, links and the like, into the color you "
                                 + "pick below. Restart Instagram to see the change.")));
                 layout.addPreference(accentHueRow(context));
+                layout.addPreference(toggle(context, Settings.ACCENT_BADGES, L10n.t("Badges in the accent color"),
+                        L10n.t("The red dots and counts for new messages and notifications take the color you "
+                                + "picked. Restart Instagram to see the change.")));
             }
             if (build.contains(PatchFamily.LAUNCH_SCREEN)) {
                 layout.addPreference(toggle(context, Settings.LAUNCH_SCREEN, L10n.t("HushGram launch screen"),

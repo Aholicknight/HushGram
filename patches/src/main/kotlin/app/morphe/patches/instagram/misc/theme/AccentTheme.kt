@@ -114,6 +114,16 @@ internal fun paletteColor(palette: AccentPalette, shade: String): String =
 
 internal fun paletteStyle(palette: AccentPalette): String = "HushGramAccentPalette_${palette.name}"
 
+/**
+ * The theme attribute Instagram's red badges read, the dots and counts on its icons (#315). The like
+ * heart and the red delete buttons read others, so pointing this one at the picked color leaves them red.
+ */
+internal const val BADGE_ATTRIBUTE = "igds_color_icon_badge"
+
+internal fun badgeColor(palette: AccentPalette): String = "hushgram_accent_${palette.name.lowercase(Locale.ROOT)}_badge"
+
+internal fun badgeStyle(palette: AccentPalette): String = "HushGramAccentBadge_${palette.name}"
+
 private fun Document.children(tag: String): List<Element> {
     val list = documentElement.getElementsByTagName(tag)
     return (0 until list.length).map { list.item(it) as Element }
@@ -189,7 +199,9 @@ internal fun accentUses(styles: List<Document>, colors: Map<String, Set<Int>>): 
  * - an attribute for each shade the uses need (a part and an alpha), `hushgram_accent_fill_ff`;
  * - each color's value of each of those shades, `hushgram_accent_purple_fill_ff`;
  * - for each color, a style setting each shade attribute to that color's resource;
- * - for each use, a style setting its attribute to its shade attribute, `?attr/hushgram_accent_fill_ff`.
+ * - for each use, a style setting its attribute to its shade attribute, `?attr/hushgram_accent_fill_ff`;
+ * - when attrs.xml declares [BADGE_ATTRIBUTE], each color's fill as a badge color and a style setting
+ *   the attribute to it, `HushGramAccentBadge_PURPLE`, for Badges in the accent color (#315).
  *
  * The extension lays a color's style and the styles for whatever its theme's attributes hold onto the
  * theme. The shade attributes stand between them because a part and alpha is the same whatever color
@@ -201,9 +213,11 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
     val shades = uses.map { it.shade }.distinct().sorted()
     val taken = (attrs.children("attr") + colors.children("color") + styles.children("style"))
         .mapTo(HashSet()) { it.getAttribute("name") }
+    val badges = attrs.children("attr").any { it.getAttribute("name") == BADGE_ATTRIBUTE }
     val adding = shades.map(::shadeAttribute) +
         ACCENT_PALETTES.flatMap { palette -> shades.map { paletteColor(palette, it) } + paletteStyle(palette) } +
-        uses.map { it.style }
+        uses.map { it.style } +
+        (if (badges) ACCENT_PALETTES.flatMap { listOf(badgeColor(it), badgeStyle(it)) } else emptyList())
     adding.firstOrNull { it in taken }?.let { refuse("the resources already have a $it") }
 
     for (shade in shades) {
@@ -236,6 +250,21 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
                 textContent = "?attr/${shadeAttribute(use.shade)}"
             })
         })
+    }
+    if (badges) {
+        for (palette in ACCENT_PALETTES) {
+            colors.documentElement.appendChild(colors.createElement("color").apply {
+                setAttribute("name", badgeColor(palette))
+                textContent = "#ff%06x".format(palette.shades.getValue(AccentRole.FILL))
+            })
+            styles.documentElement.appendChild(styles.createElement("style").apply {
+                setAttribute("name", badgeStyle(palette))
+                appendChild(styles.createElement("item").apply {
+                    setAttribute("name", BADGE_ATTRIBUTE)
+                    textContent = "@color/${badgeColor(palette)}"
+                })
+            })
+        }
     }
     return uses.map { it.attribute }.distinct().joinToString(" ")
 }

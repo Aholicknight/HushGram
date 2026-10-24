@@ -180,6 +180,32 @@ class AccentThemeTest {
 
         val again = assertThrows(PatchException::class.java) { addAccentResources(uses, attrs, parse("<resources />"), parse("<resources />")) }
         assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_fill_4d"))
+        assertTrue("no badge styles without the badge attribute", added.keys.none { it.startsWith("HushGramAccentBadge_") })
+    }
+
+    /** With Instagram's badge attribute declared, each color gets a badge color at its fill and a style pointing the attribute at it (#315). */
+    @Test
+    fun theBadgeStylesPointTheBadgeAttributeAtEachFill() {
+        val uses = setOf(AccentUse("igds_color_link", AccentRole.LINK_ON_DARK, 0xff))
+        val attrs = parse("<resources><attr name=\"$BADGE_ATTRIBUTE\" format=\"reference|color\" /></resources>")
+        val colors = parse("<resources />")
+        val styles = parse("<resources />")
+
+        addAccentResources(uses, attrs, colors, styles)
+
+        val values = colors.elements("color").associate { it.getAttribute("name") to it.textContent }
+        assertEquals("#ff7638fa", values["hushgram_accent_purple_badge"])
+        assertEquals("#ff00838f", values["hushgram_accent_teal_badge"])
+        assertEquals(ACCENT_PALETTES.size * 2, values.size)
+        val badges = styles.elements("style").filter { it.getAttribute("name").startsWith("HushGramAccentBadge_") }
+            .associate { style -> style.getAttribute("name") to style.elements("item").map { it.getAttribute("name") to it.textContent } }
+        assertEquals(ACCENT_PALETTES.map { badgeStyle(it) }, badges.keys.toList())
+        assertEquals(listOf(BADGE_ATTRIBUTE to "@color/hushgram_accent_orange_badge"), badges["HushGramAccentBadge_ORANGE"])
+
+        val taken = parse("<resources><color name=\"hushgram_accent_red_badge\">#ff000000</color></resources>")
+        val fresh = parse("<resources><attr name=\"$BADGE_ATTRIBUTE\" format=\"reference|color\" /></resources>")
+        val again = assertThrows(PatchException::class.java) { addAccentResources(uses, fresh, taken, parse("<resources />")) }
+        assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_red_badge"))
     }
 
     @Test
@@ -296,6 +322,13 @@ class AccentThemeTest {
                 assertEquals(
                     listOf("igds_color_link" to "?attr/hushgram_accent_link_on_dark_ff"),
                     style.elements("item").map { it.getAttribute("name") to it.textContent.trim() },
+                )
+                assertTrue("$code: the badge style", "style/${badgeStyle(ACCENT_PALETTES.first())}" in added)
+                val badge = parse(File(res, "values/styles.xml").readText()).elements("style")
+                    .single { it.getAttribute("name") == badgeStyle(ACCENT_PALETTES.first()) }
+                assertEquals(
+                    listOf(BADGE_ATTRIBUTE to "@color/hushgram_accent_purple_badge"),
+                    badge.elements("item").map { it.getAttribute("name") to it.textContent.trim() },
                 )
             }
         } finally {

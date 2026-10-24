@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -34,6 +35,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * dark link shade and a light one's the light shade, and the styles for the blues found go on along
  * with the picked color's. An attribute holding anything else is left alone.
  *
+ * <p>With {@link Settings#ACCENT_BADGES} on, the picked color's badge style goes on too (#315). It
+ * points {@code igds_color_icon_badge}, the red of the dots and counts on Instagram's icons, at the
+ * picked fill. The like heart and the red delete buttons read other attributes, so they stay red.
+ *
  * <p>Fails open: with the switch off, Instagram blue picked, HushGram paused, the resources missing or
  * anything thrown, the theme stays Instagram's. A change shows on screens opened after a restart.
  */
@@ -46,6 +51,12 @@ public final class AccentTheme {
 
     /** What's counted when a theme holds none of the blues the patch made styles for. */
     static final String NO_BLUE = "themes with no accent blue";
+
+    /** What's counted each time the badges take the picked color, with Badges in the accent color on. */
+    static final String BADGES = "themes given accent badges";
+
+    /** What's counted when Badges in the accent color is on but the patch added no badge style, so badges stay red. */
+    static final String BADGES_MISSING = "themes left with red badges, the badge styles are missing";
 
     /** Resource numbers by type and name, 0 for none. They don't change while the app runs. */
     private static final Map<String, Integer> IDS = new HashMap<>();
@@ -97,12 +108,20 @@ public final class AccentTheme {
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, NO_BLUE);
                 Logger.printDebug(() -> "Accent color: no accent blue on " + context.getClass().getName() + "'s theme, "
                         + held(resources, theme, listed, app));
+            } else {
+                theme.applyStyle(palette, true);
+                for (int style : styles) theme.applyStyle(style, true);
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, APPLIED);
+                Logger.printDebug(() -> "Accent color: " + styles.size() + " styles on " + context.getClass().getName() + "'s theme");
+            }
+            if (!Settings.ACCENT_BADGES.get()) return;
+            int badges = id(resources, badgeStyle(hue), "style", app);
+            if (badges == 0) {
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, BADGES_MISSING);
                 return;
             }
-            theme.applyStyle(palette, true);
-            for (int style : styles) theme.applyStyle(style, true);
-            HookStatus.counted(FamilyNames.ACCENT_COLOR, APPLIED);
-            Logger.printDebug(() -> "Accent color: " + styles.size() + " styles on " + context.getClass().getName() + "'s theme");
+            theme.applyStyle(badges, true);
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, BADGES);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "theme", failure);
         }
@@ -140,6 +159,11 @@ public final class AccentTheme {
     /** The style setting every shade attribute to [hue]'s colors. */
     static String paletteStyle(AccentHue hue) {
         return "HushGramAccentPalette_" + hue.name();
+    }
+
+    /** The style pointing Instagram's badge attribute at [hue]'s fill (#315). */
+    static String badgeStyle(AccentHue hue) {
+        return "HushGramAccentBadge_" + hue.name();
     }
 
     private static int id(Resources resources, String name, String type, String app) {

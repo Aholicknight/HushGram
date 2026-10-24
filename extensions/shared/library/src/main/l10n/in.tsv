@@ -741,6 +741,8 @@ Google's emoji everywhere	Emoji Google di mana saja
 # context: Layout switch; it turns Instagram's blue into a color picked in the row under it
 Accent color	Warna aksen
 Turns Instagram's blue, on Follow buttons, links and the like, into the color you pick below. Restart Instagram to see the change.	Mengubah biru Instagram pada tombol Ikuti, tautan, dan sejenisnya menjadi warna yang kamu pilih di bawah. Mulai ulang Instagram untuk melihat perubahannya.
+Badges in the accent color	Lencana dengan warna aksen
+The red dots and counts for new messages and notifications take the color you picked. Restart Instagram to see the change.	Titik dan angka merah untuk pesan dan notifikasi baru memakai warna yang kamu pilih. Mulai ulang Instagram untuk melihat perubahannya.
 # context: Layout list under Accent color; its choices are Instagram blue and the colors below
 Color	Warna
 Instagram blue	Biru Instagram

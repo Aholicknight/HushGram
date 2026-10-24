@@ -1117,6 +1117,14 @@ public class Settings extends BaseSettings {
                     app.hushgram.extension.instagram.misc.AccentHue.PURPLE, true, parent(ACCENT_COLOR));
 
     /**
+     * Under {@link #ACCENT_COLOR}: Instagram's red badges, the dots and counts on its icons, take the
+     * picked color too (#315, {@link app.hushgram.extension.instagram.misc.AccentTheme}). A change shows
+     * after a restart. Off to start.
+     */
+    public static final BooleanSetting ACCENT_BADGES =
+            new BooleanSetting("hushgram_accent_badges", FALSE, true, parent(ACCENT_COLOR));
+
+    /**
      * HushGram's logo on the screen Android shows while Instagram starts, on Android 13 and newer
      * ({@link app.hushgram.extension.instagram.misc.LaunchScreen}). Android keeps the answer, so a
      * change shows from the next start. Off to start.

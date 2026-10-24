@@ -82,7 +82,8 @@ public class AccentColorSettingsTest {
         assertEquals("Layout", layout.getTitle().toString());
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
-        assertEquals(Arrays.asList(Settings.ACCENT_COLOR.key, Settings.ACCENT_HUE.key), Arrays.asList(keys));
+        assertEquals(Arrays.asList(Settings.ACCENT_COLOR.key, Settings.ACCENT_HUE.key, Settings.ACCENT_BADGES.key),
+                Arrays.asList(keys));
     }
     @Test public void switchStartsOffAfterEmojiPersistsAndHonorsPause() throws Exception {
         open(EnumSet.of(PatchFamily.BOTTOM_SPACE, PatchFamily.EMOJI_STYLE, PatchFamily.ACCENT_COLOR));
@@ -95,10 +96,11 @@ public class AccentColorSettingsTest {
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.REMOVE_BOTTOM_SPACE.key, Settings.NOTO_EMOJI.key, Settings.ACCENT_COLOR.key,
-                Settings.ACCENT_HUE.key), Arrays.asList(keys));
+                Settings.ACCENT_HUE.key, Settings.ACCENT_BADGES.key), Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.ACCENT_COLOR.get());
-        assertEquals(Collections.singletonList(Settings.ACCENT_COLOR), PatchFamily.ACCENT_COLOR.switches);
+        assertEquals(Arrays.asList(Settings.ACCENT_COLOR, Settings.ACCENT_BADGES), PatchFamily.ACCENT_COLOR.switches);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_BADGES.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_COLOR.key));
 
         Settings.ACCENT_COLOR.save(true);
