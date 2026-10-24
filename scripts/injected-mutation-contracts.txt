@@ -434,6 +434,14 @@ no-call Landroid/content/pm/ShortcutManager;->removeAllDynamicShortcuts()V outsi
 # launcher alias back on at start beside HushGram's, so the home screen shows two icons.
 no-call Landroid/content/pm/PackageManager;->setComponentEnabledSetting(Landroid/content/ComponentName;II)V outside Lapp/hushgram/extension/
 no-call Landroid/content/pm/PackageManager;->setComponentEnabledSettings(Ljava/util/List;)V outside Lapp/hushgram/extension/
+# Hide rows in Instagram's settings asks SettingsRows.hidden first thing in the two suspend methods
+# that turn a row model of Settings and activity into the row it draws (UiStateKt.A04 and A03 on
+# 452.1, the one with a title and a subtitle in front), and hands built each row they make. One
+# left out shows the rows of its kind whatever's picked, or never offers them in the list.
+once-call Lapp/hushgram/extension/instagram/misc/SettingsRows;->hidden(Ljava/lang/Object;)Z in static (LX/*;Lcom/instagram/settings2/core/session/SettingsSession;LX/*;LX/*;Z)Ljava/lang/Object; holding call\sto\s'resume'\sbefore\s'invoke'\swith\scoroutine UiState
+once-call Lapp/hushgram/extension/instagram/misc/SettingsRows;->hidden(Ljava/lang/Object;)Z in static (Lcom/instagram/settings2/core/model/FbtModel;Lcom/instagram/settings2/core/model/FbtModel;LX/*;Lcom/instagram/settings2/core/session/SettingsSession;LX/*;Ljava/lang/Boolean;LX/*;Z)Ljava/lang/Object; holding call\sto\s'resume'\sbefore\s'invoke'\swith\scoroutine
+once-call Lapp/hushgram/extension/instagram/misc/SettingsRows;->built(Ljava/lang/Object;)V in static (LX/*;Lcom/instagram/settings2/core/session/SettingsSession;LX/*;LX/*;Z)Ljava/lang/Object; holding call\sto\s'resume'\sbefore\s'invoke'\swith\scoroutine UiState
+once-call Lapp/hushgram/extension/instagram/misc/SettingsRows;->built(Ljava/lang/Object;)V in static (Lcom/instagram/settings2/core/model/FbtModel;Lcom/instagram/settings2/core/model/FbtModel;LX/*;Lcom/instagram/settings2/core/session/SettingsSession;LX/*;Ljava/lang/Boolean;LX/*;Z)Ljava/lang/Object; holding call\sto\s'resume'\sbefore\s'invoke'\swith\scoroutine
 # The settings patch also sends the call that gives Home's title view, which holds the Instagram
 # logo, its long press to SettingsEntry.setLogoLongClickListener, in the method that draws Home's
 # header from a state (MainFeedActionBar.A08 on 450, the method the Ghost mode button's rules below
