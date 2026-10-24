@@ -24,6 +24,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Glass tab bar:** With `Full screen Reels` on, the floating pill dropped by the navigation bar's height every time you switched to Reels, then jumped back up on the other tabs. It stays at one height on every tab now. Reported in #285.
 * **Instagram - Glass tab bar:** A video playing under the glass pill no longer turns the pill black. Some videos play on a layer the blur couldn't see, so it blurs a small copy of the video's picture now. Reported in #144.
 * **Instagram - Change the like animation:** The animation you picked plays on Instagram 452's feed and Reels hearts again, for a double tap and for the heart button. Before, 452 showed its usual heart there. Reported in #299.
 * **Instagram - View stories anonymously:** With `Gray out stories you've watched` on, stories you've watched now move behind the new ones in the story row at the top of Home too. Before, only the stories inside the feed were reordered. (#241)

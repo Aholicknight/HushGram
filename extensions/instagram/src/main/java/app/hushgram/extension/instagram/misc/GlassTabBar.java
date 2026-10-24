@@ -634,7 +634,8 @@ public final class GlassTabBar {
     private static WeakReference<Activity> front = new WeakReference<>(null);
     /**
      * The navigation bar's height Instagram would have padded its screens by when it was last answered
-     * 0 for a floating pill, or 0 when it was given through. The pill makes this much room of its own
+     * 0 for a floating pill, or the height of the bar HushGram's full screen hides under one (#285), or 0
+     * when it was given through. The pill makes this much room of its own
      * under itself, and keeps it while a bottom sheet over it has the height given through, so it stays
      * where it was as the sheet slides away. Main thread, as Instagram's insets listener is.
      */
@@ -712,11 +713,30 @@ public final class GlassTabBar {
      * its cover (#222).
      */
     public static int navBarHeight(int height) {
-        Glass glass = height <= 0 ? null : floatingGlassInFront();
+        return navBarHeight(height, 0);
+    }
+
+    /**
+     * {@link #navBarHeight(int)} with [hidden], the height of a navigation bar HushGram's full screen
+     * hides, or 0. Instagram is answered 0 for a hidden bar and its screens already run to the edge, so a
+     * floating pill gave up the bar's room there and dropped by the bar's height with every switch to
+     * Reels with Full screen Reels on, then rose again on Home (#285). It keeps that room under itself
+     * instead, so it sits at one height on every tab and stays clear of the bar when it's swiped in, and
+     * the Reels viewer still stops at its top ({@link #reelsMargin}). A sheet over it keeps no room, as
+     * there's no bar for it to stop above.
+     */
+    public static int navBarHeight(int height, int hidden) {
+        Glass glass = height <= 0 && hidden <= 0 ? null : floatingGlassInFront();
         if (glass == null) {
             navTaken = 0;
             sheetRoom = 0;
             navGiven = Math.max(0, height);
+            return height;
+        }
+        if (height <= 0) {
+            navTaken = hidden;
+            sheetRoom = 0;
+            navGiven = 0;
             return height;
         }
         navTaken = height;

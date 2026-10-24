@@ -379,7 +379,7 @@ public final class FullScreenBars {
         if (!keys) offered = height;
         int kept = keys ? offered : hiddenBarHeight(height, false);
         try {
-            kept = keys ? GlassTabBar.navBarHeightOverTheKeyboard(kept) : GlassTabBar.navBarHeight(kept);
+            kept = keys ? GlassTabBar.navBarHeightOverTheKeyboard(kept) : GlassTabBar.navBarHeight(kept, hiddenNavHeight(height));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height", failure);
         }
@@ -387,6 +387,22 @@ public final class FullScreenBars {
         navTaken = taken(offered, kept, navTaken);
         heightsKept(statusAnswer, kept);
         return kept;
+    }
+
+    /**
+     * The height of the navigation bar while HushGram hides it: the one Instagram offers, or for the 0 it
+     * offers back while the bar is hidden, the one it last offered. 0 while the bar shows or for an unset
+     * [height]. A floating glass pill keeps that much room under itself ({@link GlassTabBar#navBarHeight(int, int)}),
+     * so it stays at the height it has where the bar shows rather than dropping on Reels (#285).
+     */
+    static int hiddenNavHeight(int height) {
+        try {
+            int bar = height > 0 ? height : height == 0 ? navOffered : 0;
+            return bar > 0 && anyHidden(false) ? bar : 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "hidden navigation bar height", failure);
+            return 0;
+        }
     }
 
     /**

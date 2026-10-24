@@ -182,6 +182,10 @@ public class FullScreenBarsTest {
         assertEquals("the navigation bar's space stayed", 0, FullScreenBars.navBarHeight(63));
         assertEquals("an unset height changed", -1, FullScreenBars.barHeight(-1));
         assertEquals("an unset navigation bar height changed", -1, FullScreenBars.navBarHeight(-1));
+        // #285: a floating glass pill keeps the hidden bar's room, the height offered or the last one.
+        assertEquals(63, FullScreenBars.hiddenNavHeight(63));
+        assertEquals("Instagram's 0 offered back", 63, FullScreenBars.hiddenNavHeight(0));
+        assertEquals(0, FullScreenBars.hiddenNavHeight(-1));
 
         root.removeView(viewer);
         viewer = null;
@@ -192,6 +196,7 @@ public class FullScreenBarsTest {
         assertEquals(63, FullScreenBars.barHeight(63));
         assertEquals("without a glass pill the navigation bar's height goes through", 63, FullScreenBars.navBarHeight(63));
         assertEquals(63, GlassTabBar.navBarHeight(63));
+        assertEquals("a bar that shows isn't kept room for", 0, FullScreenBars.hiddenNavHeight(63));
     }
 
     /**
