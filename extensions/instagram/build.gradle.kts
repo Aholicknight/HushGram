@@ -959,8 +959,8 @@ tasks.register("verifyAndroidBoundaries") {
                 "pausedReadsAsNothingPicked", "nothingThrowsIntoInstagram", "aDroppedTabIsCounted", "savedTextIsTidied"
             ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.settings.ProfileTabsSettingsTest" to listOf(
-                "missingPatchHasNoTabsRow", "everyTabStartsTickedAndTheGridIsNotOffered", "aChangeSavesAtOnceByKey",
-                "aSavedChoiceShowsAndPauseKeepsIt"
+                "missingPatchHasNoTabsRows", "everyTabStartsTickedAndTheGridIsNotOffered",
+                "theOtherProfilesRowSavesItsOwnKey", "yourProfileRowSavesItsOwnKey", "aSavedChoiceShowsAndPauseKeepsIt"
             ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.direct.MessageBoxTest" to listOf(
                 "nothingPickedShowsEveryButton", "aPickedButtonIsHiddenAndTheRestShow", "aHideStaysAHide",
