@@ -1154,6 +1154,23 @@ public class Settings extends BaseSettings {
     }
 
     /**
+     * The rows Instagram's own Settings and activity screen leaves out, as the names of Instagram's
+     * row ids with commas between ({@link app.hushgram.extension.instagram.misc.SettingsRows}, #235):
+     * ARCHIVE, CLOSE_FRIENDS and the like. Nothing named is the start, so every row shows. Read as
+     * the screen makes each row, so a change shows the next time it opens.
+     */
+    public static final StringSetting HIDDEN_SETTINGS_ROWS =
+            new StringSetting("hushgram_hidden_settings_rows", "");
+
+    /**
+     * The rows Instagram's settings screen has shown on this phone, a line each: the row's id name, a
+     * tab and its title as Instagram showed it. Fills in as that screen opens, so the list of rows to
+     * hide offers what this phone has. Not a switch, and left out of a backup.
+     */
+    public static final StringSetting SEEN_SETTINGS_ROWS =
+            new StringSetting("hushgram_seen_settings_rows", "", false, false);
+
+    /**
      * Every notification Instagram posts joins one group with a count
      * ({@link app.hushgram.extension.instagram.misc.NotificationGroups}). Read at each post. Off to
      * start.

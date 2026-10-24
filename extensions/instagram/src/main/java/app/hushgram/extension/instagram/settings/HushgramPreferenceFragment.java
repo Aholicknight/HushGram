@@ -97,6 +97,7 @@ import app.hushgram.extension.instagram.feed.HiddenAccounts;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
 import app.hushgram.extension.instagram.misc.MediaCache;
+import app.hushgram.extension.instagram.misc.SettingsRows;
 import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.ShareSheetActions;
 import app.hushgram.extension.instagram.share.SharingDomain;
@@ -628,6 +629,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
                     belongs |= family == PatchFamily.STORY_FONTS && STORY_FONTS_ROW.equals(key);
                     belongs |= family == PatchFamily.APP_ICON && Settings.APP_ICON.key.equals(key);
+                    belongs |= family == PatchFamily.SETTINGS_ROWS && Settings.HIDDEN_SETTINGS_ROWS.key.equals(key);
                     belongs |= family == PatchFamily.SHARE_SHEET && Settings.HIDDEN_SHARE_SHEET_BUTTONS.key.equals(key);
                     belongs |= family == PatchFamily.PROFILE_TABS && (Settings.HIDDEN_PROFILE_TABS.key.equals(key)
                             || Settings.HIDDEN_OWN_PROFILE_TABS.key.equals(key));
@@ -4030,6 +4032,68 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             Settings.HIDDEN_SHARE_SHEET_BUTTONS.save("");
             row.setSummary(shareSheetButtonsSummary(""));
             for (int i = 0; i < actions.size(); i++) dialog.getListView().setItemChecked(i, true);
+        });
+    }
+
+    /** The row that opens the list of rows on Instagram's own settings screen. Its summary says how many are left off. */
+    Row settingsRowsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(Settings.HIDDEN_SETTINGS_ROWS.key);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Rows in Instagram's settings"));
+        row.setSummary(settingsRowsSummary(Settings.HIDDEN_SETTINGS_ROWS.savedValue()));
+        row.setOnPreferenceClickListener(tapped -> {
+            showSettingsRows(row);
+            return true;
+        });
+        return row;
+    }
+
+    /** What the rows left off in [saved] mean, for the row's summary. */
+    static String settingsRowsSummary(String saved) {
+        int hidden = SettingsRows.parse(saved).size();
+        if (hidden == 0) return L10n.t("Every row of Instagram's Settings and activity shows. Untick the ones you don't use.");
+        return L10n.quantity(hidden, "%1$d row is left off Instagram's Settings and activity.",
+                "%1$d rows are left off Instagram's Settings and activity.", hidden);
+    }
+
+    /**
+     * The rows Instagram's Settings and activity has shown on this phone, each with a check, ticked
+     * while it shows, in Instagram's own words. A change saves at once and shows the next time that
+     * screen opens. Until the screen has opened once there's nothing to list, and the list says so.
+     */
+    void showSettingsRows(Row row) {
+        Context context = getActivity();
+        if (context == null) return;
+        List<String[]> rows = SettingsRows.offered();
+        Set<String> hidden = SettingsRows.parse(Settings.HIDDEN_SETTINGS_ROWS.savedValue());
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Rows in Instagram's settings"));
+        if (rows.isEmpty()) {
+            show(builder.setMessage(L10n.t("Open Settings and activity in Instagram once, then come back here. Its rows "
+                    + "show up in this list to untick.")).setPositiveButton(L10n.t("OK"), null));
+            return;
+        }
+        CharSequence[] names = new CharSequence[rows.size()];
+        boolean[] shown = new boolean[rows.size()];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = rows.get(i)[1];
+            shown[i] = !hidden.contains(rows.get(i)[0]);
+        }
+        builder.setMultiChoiceItems(names, shown, (dialog, which, on) -> {
+            if (on) hidden.remove(rows.get(which)[0]);
+            else hidden.add(rows.get(which)[0]);
+            Settings.HIDDEN_SETTINGS_ROWS.save(SettingsRows.join(hidden));
+            row.setSummary(settingsRowsSummary(Settings.HIDDEN_SETTINGS_ROWS.savedValue()));
+        });
+        AlertDialog dialog = show(builder.setNeutralButton(L10n.t("Show all"), null)
+                .setPositiveButton(L10n.t("OK"), null));
+        if (dialog == null) return;
+        // A click listener of its own, so Show all ticks every row without closing the list.
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(tapped -> {
+            hidden.clear();
+            Settings.HIDDEN_SETTINGS_ROWS.save("");
+            row.setSummary(settingsRowsSummary(""));
+            for (int i = 0; i < rows.size(); i++) dialog.getListView().setItemChecked(i, true);
         });
     }
 

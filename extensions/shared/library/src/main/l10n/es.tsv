@@ -1249,3 +1249,8 @@ Emoji font in story text	Fuente de emojis en el texto de historias
 Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.	Los emojis que escribes en el texto de una historia salen de un archivo de fuente de emojis que eliges. Al activarlo te pide el archivo. Desactivado, vuelven los emojis de Instagram.
 That file isn't a font HushGram can use. Story emoji haven't changed.	Ese archivo no es una fuente que HushGram pueda usar. Los emojis de las historias no han cambiado.
 Emoji font saved. Emoji in story text draw in it.	Fuente de emojis guardada. Los emojis del texto de historias se ven con ella.
+Rows in Instagram's settings	Filas de la configuración de Instagram
+Every row of Instagram's Settings and activity shows. Untick the ones you don't use.	Se muestran todas las filas de Configuración y actividad de Instagram. Desmarca las que no uses.
+%1$d row is left off Instagram's Settings and activity.	Se quitó %1$d fila de Configuración y actividad de Instagram.
+%1$d rows are left off Instagram's Settings and activity.	Se quitaron %1$d filas de Configuración y actividad de Instagram.
+Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.	Abre Configuración y actividad en Instagram una vez y luego vuelve aquí. Sus filas aparecerán en esta lista para desmarcarlas.

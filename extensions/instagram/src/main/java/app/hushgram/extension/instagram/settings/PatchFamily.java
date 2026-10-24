@@ -131,6 +131,7 @@ public enum PatchFamily {
     ACCENT_COLOR(FamilyNames.ACCENT_COLOR, "accentColor", null, Settings.ACCENT_COLOR, Settings.ACCENT_BADGES),
     LAUNCH_SCREEN(FamilyNames.LAUNCH_SCREEN, "launchScreen", null, Settings.LAUNCH_SCREEN),
     APP_ICON(FamilyNames.APP_ICON, "appIcon", "the home screen icon you picked"),
+    SETTINGS_ROWS(FamilyNames.SETTINGS_ROWS, "settingsRows", null),
     FONT(FamilyNames.FONT, "font", null),
     NOTIFICATION_GROUPS(FamilyNames.NOTIFICATION_GROUPS, "notificationGroups", null, Settings.GROUP_NOTIFICATIONS),
     HDR_BOOST(FamilyNames.HDR_BOOST, "hdrBoost", null, Settings.TURN_OFF_HDR_BOOSTS),
@@ -509,6 +510,8 @@ public enum PatchFamily {
                 return Collections.singletonList(Settings.PLAYBACK_QUALITY);
             case SHARE_SHEET:
                 return Collections.singletonList(Settings.HIDDEN_SHARE_SHEET_BUTTONS);
+            case SETTINGS_ROWS:
+                return Collections.singletonList(Settings.HIDDEN_SETTINGS_ROWS);
             case REEL_TAP_AND_VOLUME:
                 return Collections.singletonList(Settings.REEL_TAP_CHOICE);
             default:

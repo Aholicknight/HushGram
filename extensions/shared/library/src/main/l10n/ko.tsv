@@ -1248,3 +1248,8 @@ Emoji font in story text	스토리 텍스트의 이모지 글꼴
 Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.	스토리 텍스트에 입력하는 이모지를 직접 고른 이모지 글꼴 파일로 그립니다. 켜면 파일을 고르라고 합니다. 끄면 Instagram 이모지로 돌아갑니다.
 That file isn't a font HushGram can use. Story emoji haven't changed.	HushGram에서 쓸 수 있는 글꼴 파일이 아닙니다. 스토리 이모지는 바뀌지 않았습니다.
 Emoji font saved. Emoji in story text draw in it.	이모지 글꼴을 저장했습니다. 이제 스토리 텍스트의 이모지가 이 글꼴로 보입니다.
+Rows in Instagram's settings	Instagram 설정의 항목
+Every row of Instagram's Settings and activity shows. Untick the ones you don't use.	Instagram 설정 및 활동의 항목이 모두 표시됩니다. 쓰지 않는 항목은 체크를 해제하세요.
+%1$d row is left off Instagram's Settings and activity.	Instagram 설정 및 활동에서 항목 %1$d개를 뺐습니다.
+%1$d rows are left off Instagram's Settings and activity.	Instagram 설정 및 활동에서 항목 %1$d개를 뺐습니다.
+Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.	Instagram에서 설정 및 활동을 한 번 연 다음 여기로 돌아오세요. 그 화면의 항목이 이 목록에 나타나 체크를 해제할 수 있습니다.

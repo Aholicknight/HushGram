@@ -206,6 +206,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean settingsRows() {
+        return false;
+    }
+
     public static boolean font() {
         return false;
     }

@@ -1249,3 +1249,8 @@ Emoji font in story text	Hikâye metninde emoji yazı tipi
 Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.	Hikâye metnine yazdığın emojiler, seçtiğin bir emoji yazı tipi dosyasından çizilir. Açınca dosyayı sorar. Kapalıyken Instagram'ın emojileri geri gelir.
 That file isn't a font HushGram can use. Story emoji haven't changed.	Bu dosya HushGram'ın kullanabileceği bir yazı tipi değil. Hikâye emojileri değişmedi.
 Emoji font saved. Emoji in story text draw in it.	Emoji yazı tipi kaydedildi. Hikâye metnindeki emojiler artık onunla çiziliyor.
+Rows in Instagram's settings	Instagram ayarlarındaki satırlar
+Every row of Instagram's Settings and activity shows. Untick the ones you don't use.	Instagram'ın Ayarlar ve hareketler ekranındaki tüm satırlar görünür. Kullanmadıklarının işaretini kaldır.
+%1$d row is left off Instagram's Settings and activity.	Instagram'ın Ayarlar ve hareketler ekranından %1$d satır kaldırıldı.
+%1$d rows are left off Instagram's Settings and activity.	Instagram'ın Ayarlar ve hareketler ekranından %1$d satır kaldırıldı.
+Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.	Instagram'da Ayarlar ve hareketler ekranını bir kez aç, sonra buraya dön. O ekranın satırları işaretini kaldırman için bu listede görünür.

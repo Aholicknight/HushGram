@@ -26,7 +26,8 @@ final class LayoutCategory {
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.BOTTOM_SPACE) || build.contains(PatchFamily.EMOJI_STYLE)
                 || build.contains(PatchFamily.ACCENT_COLOR) || build.contains(PatchFamily.LAUNCH_SCREEN)
-                || build.contains(PatchFamily.FONT) || build.contains(PatchFamily.APP_ICON)) {
+                || build.contains(PatchFamily.FONT) || build.contains(PatchFamily.APP_ICON)
+                || build.contains(PatchFamily.SETTINGS_ROWS)) {
             PreferenceCategory layout = category(screen, L10n.t("Layout"), SettingsIcons.LAYOUT,
                     L10n.t("Change how Instagram looks, from its colors to its emoji."));
             if (build.contains(PatchFamily.BOTTOM_SPACE)) {
@@ -56,6 +57,7 @@ final class LayoutCategory {
                                 + "starts, on Android 13 and newer. It shows from the next start.")));
             }
             if (build.contains(PatchFamily.APP_ICON)) layout.addPreference(appIconRow(context));
+            if (build.contains(PatchFamily.SETTINGS_ROWS)) layout.addPreference(page.settingsRowsRow(context));
         }
     }
 }
