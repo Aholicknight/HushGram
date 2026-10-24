@@ -110,6 +110,7 @@ import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.misc.AccentHue;
+import app.hushgram.extension.instagram.misc.AppIconChoice;
 import app.hushgram.extension.instagram.misc.FontChoice;
 import app.hushgram.extension.instagram.misc.Fonts;
 import app.hushgram.extension.instagram.misc.GlassBlur;
@@ -619,6 +620,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || HIDDEN_SOUNDS_ROW.equals(key));
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
+                    belongs |= family == PatchFamily.APP_ICON && Settings.APP_ICON.key.equals(key);
                     belongs |= family == PatchFamily.SHARE_SHEET && Settings.HIDDEN_SHARE_SHEET_BUTTONS.key.equals(key);
                     belongs |= family == PatchFamily.PROFILE_TABS && (Settings.HIDDEN_PROFILE_TABS.key.equals(key)
                             || Settings.HIDDEN_OWN_PROFILE_TABS.key.equals(key));
@@ -3345,6 +3347,45 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 + "minutes. Messages, your profile and the tab bar still work.", time.minutes);
     }
 
+    /** The home screen icon (#284). Its summary says the choice. */
+    static AppIconRow appIconRow(Context context) {
+        AppIconRow row = new AppIconRow(context);
+        row.setKey(Settings.APP_ICON.key);
+        row.setTitle(L10n.t("App icon"));
+        row.setDialogTitle(L10n.t("App icon"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        AppIconChoice[] icons = AppIconChoice.values();
+        CharSequence[] entries = new CharSequence[icons.length];
+        CharSequence[] values = new CharSequence[icons.length];
+        for (int i = 0; i < icons.length; i++) {
+            entries[i] = appIconLabel(icons[i]);
+            values[i] = icons[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.APP_ICON.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [icon]. HushGram's own name isn't translated. */
+    static String appIconLabel(AppIconChoice icon) {
+        switch (icon) {
+            case HUSHGRAM: return "HushGram";
+            case DARK: return L10n.t("Instagram on black");
+            case PLUM: return L10n.t("Instagram on plum");
+            default: return L10n.t("Instagram's own");
+        }
+    }
+
+    /** [icon], then when it shows, for the row's summary. */
+    static String appIconSummary(AppIconChoice icon) {
+        if (icon == AppIconChoice.INSTAGRAM) {
+            return L10n.t("Instagram's own. Pick another to change the icon on your home screen and in the app drawer.");
+        }
+        return L10n.f("%1$s. It shows once you leave Instagram. If the icon is gone from your home screen, add it "
+                + "again from the app drawer.", appIconLabel(icon));
+    }
+
     /** What a single tap on a reel does. Its summary says what the choice does. */
     static ReelTapChoiceRow reelTapChoiceRow(Context context) {
         ReelTapChoiceRow row = new ReelTapChoiceRow(context);
@@ -4302,6 +4343,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((LikeAnimationRow) preference).showSummary();
         } else if (preference instanceof GlassReelsHideRow) {
             ((GlassReelsHideRow) preference).showSummary();
+        } else if (preference instanceof AppIconRow) {
+            ((AppIconRow) preference).showSummary();
         }
         holdLocked(preference);
     }
@@ -4341,6 +4384,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((LikeAnimationRow) listPreference).showSummary();
         } else if (listPreference instanceof GlassReelsHideRow) {
             ((GlassReelsHideRow) listPreference).showSummary();
+        } else if (listPreference instanceof AppIconRow) {
+            ((AppIconRow) listPreference).showSummary();
         } else {
             super.updateListPreferenceSummary(listPreference, setting);
         }
@@ -5522,6 +5567,42 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(getValue())) time = candidate;
             }
             setSummary(scrollBreakSummary(time));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /** The home screen icon (#284). Its summary says the choice, as Scroll break's does. */
+    static final class AppIconRow extends ListPreference {
+        AppIconRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            AppIconChoice icon = AppIconChoice.INSTAGRAM;
+            for (AppIconChoice candidate : AppIconChoice.values()) {
+                if (candidate.name().equals(getValue())) icon = candidate;
+            }
+            setSummary(appIconSummary(icon));
         }
 
         @Override

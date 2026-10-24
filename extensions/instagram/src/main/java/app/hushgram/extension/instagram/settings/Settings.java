@@ -1108,6 +1108,19 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_font", app.hushgram.extension.instagram.misc.FontChoice.INSTAGRAM, true);
 
     /**
+     * The icon on the home screen and in the app drawer: Instagram's own, HushGram's, or Instagram's
+     * glyph on black or on plum ({@link app.hushgram.extension.instagram.misc.AppIcon}, #284). It
+     * changes when Instagram next goes to the background. Starts on Instagram's own.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.AppIconChoice> APP_ICON =
+            new EnumSetting<>("hushgram_app_icon", app.hushgram.extension.instagram.misc.AppIconChoice.INSTAGRAM);
+
+    static {
+        // Changing the icon can take it off the home screen, so a pause leaves the pick where it is.
+        Setting.keepWhenPaused(APP_ICON);
+    }
+
+    /**
      * Every notification Instagram posts joins one group with a count
      * ({@link app.hushgram.extension.instagram.misc.NotificationGroups}). Read at each post. Off to
      * start.

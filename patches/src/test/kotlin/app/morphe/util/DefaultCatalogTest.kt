@@ -63,6 +63,7 @@ import app.morphe.patches.instagram.download.voice.downloadVoiceMessagesPatch
 import app.morphe.patches.instagram.misc.emoji.emojiStylePatch
 import app.morphe.patches.instagram.misc.externalbrowser.openLinksExternallyPatch
 import app.morphe.patches.instagram.misc.font.fontPatch
+import app.morphe.patches.instagram.misc.icon.pickAppIconPatch
 import app.morphe.patches.instagram.misc.resignedtrust.restoreTrustPatch
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.instagram.misc.sharelinks.sanitizeSharingLinksPatch
@@ -191,6 +192,7 @@ class DefaultCatalogTest {
         launchScreenPatch,
         lockMessagesPatch,
         loopStoryPatch,
+        pickAppIconPatch,
         profilePostsListPatch,
         readWithoutSeenReceiptPatch,
         reelSeekBarPatch,
@@ -261,7 +263,7 @@ class DefaultCatalogTest {
     }
 
     @Test fun initiallyNeutralControlsAreAvailableInSimpleMode() {
-        assertEquals(93, neutral.size)
+        assertEquals(94, neutral.size)
         neutral.forEach { assertEquals(it.name, true, it.default) }
     }
 
@@ -273,7 +275,7 @@ class DefaultCatalogTest {
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.default }
-        assertEquals("every named patch needs one reviewed decision", 114, all.size)
+        assertEquals("every named patch needs one reviewed decision", 115, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

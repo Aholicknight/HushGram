@@ -51,6 +51,7 @@ import app.hushgram.extension.instagram.reels.ScrollBreak;
 import app.hushgram.extension.instagram.reels.TabStart;
 import app.hushgram.extension.instagram.misc.ProfileSaved;
 import app.hushgram.extension.instagram.misc.LaunchScreen;
+import app.hushgram.extension.instagram.misc.AppIcon;
 import app.hushgram.extension.instagram.profile.ProfileTitle;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -152,6 +153,7 @@ public final class SettingsEntry {
         ProfileMenuPress.install(context);
         ProfileTitle.install(context);
         LaunchScreen.install(context);
+        AppIcon.install(context);
         if (SettingsStatus.messagesLock()) MessagesLock.watch(context);
         // A save Android stopped halfway left a pending gallery row, a work file or a notification.
         SaveLeftovers.sweepAfterStart(context);
@@ -261,9 +263,10 @@ public final class SettingsEntry {
 
     /**
      * The shortcut switch changed: off takes the shortcut out of the launcher's menu now, on puts it
-     * back in front, both on a background thread. Instagram's own shortcuts stay.
+     * back in front, both on a background thread. Instagram's own shortcuts stay. Also called after
+     * the home screen icon changed, since Android takes a shortcut away with the icon it was under.
      */
-    static void shortcutSwitchChanged(Context context) {
+    public static void shortcutSwitchChanged(Context context) {
         final Context app = context.getApplicationContext() != null ? context.getApplicationContext() : context;
         Utils.runOnBackgroundThread(() -> publishShortcutNow(app));
     }
