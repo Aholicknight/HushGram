@@ -368,16 +368,20 @@ public final class FullScreenBars {
      * ({@link GlassTabBar#navBarHeight}). If anything throws, the height goes through as it came.
      */
     public static int navBarHeight(int height) {
-        int kept = height;
-        boolean keys = height > 0 && keyboardUp();
-        if (!keys) kept = hiddenBarHeight(height, false);
+        // While the bar is hidden Instagram offers back the 0 it kept, so the keyboard coming up in a
+        // chat that opened with the bars hidden had no height to let through (#288): the height
+        // Instagram last offered stands in for it.
+        int offered = height == 0 && navOffered > 0 ? navOffered : height;
+        boolean keys = offered > 0 && keyboardUp();
+        if (!keys) offered = height;
+        int kept = keys ? offered : hiddenBarHeight(height, false);
         try {
             kept = keys ? GlassTabBar.navBarHeightOverTheKeyboard(kept) : GlassTabBar.navBarHeight(kept);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height", failure);
         }
         if (height > 0) navOffered = height;
-        navTaken = taken(height, kept, navTaken);
+        navTaken = taken(offered, kept, navTaken);
         heightsKept(statusAnswer, kept);
         return kept;
     }
@@ -574,6 +578,33 @@ public final class FullScreenBars {
     }
 
     /**
+     * Called when the keyboard comes up ([shows]) or goes in a window with the navigation bar hidden
+     * ([bars]). Instagram lifts a chat's message box above the keyboard by the keyboard's height less
+     * the navigation bar's, and in a chat that opened with the bars hidden nothing told its screens
+     * the bar's height again as the keyboard came up, so the box sat a bar's height behind the keys
+     * (#288). While the keyboard shows, Instagram's copy gets the height back, unless a sheet over the
+     * glass pill makes that room itself ({@link GlassTabBar#navBarHeightOverTheKeyboard}), and the kept
+     * screens hear it. When the keyboard goes, the hidden bar takes it again.
+     */
+    static void keyboardMoved(boolean shows, HiddenBars bars) {
+        try {
+            if (!shows) {
+                takeHiddenHeights(bars);
+                return;
+            }
+            if (!navTaken || navOffered <= 0) return;
+            int answer = GlassTabBar.navBarHeightOverTheKeyboard(navOffered);
+            if (answer <= 0) return;
+            keepNavBarHeight(answer);
+            navTaken = false;
+            HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_KEYBOARD);
+            heightsKept(statusTaken ? 0 : statusOffered, answer);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "keyboard heights", failure);
+        }
+    }
+
+    /**
      * Called as an activity with a floating glass pill showing resumes, before its screens do. The
      * window it came back from (a chat) stored the navigation bar's real height, and a screen resuming
      * under the pill (the inbox) read that before the pill's insets came round again, so it kept a
@@ -705,6 +736,8 @@ public final class FullScreenBars {
         private int savedBehavior;
         private boolean saved;
         private boolean stopped;
+        /** Whether the keyboard showed at the last frame with the navigation bar hidden (#288). */
+        private boolean keys;
 
         Session(Activity activity) {
             this.activity = new WeakReference<>(activity);
@@ -750,7 +783,9 @@ public final class FullScreenBars {
         }
 
         @Override public boolean onPreDraw() {
-            if (stopped || queued) return true;
+            if (stopped) return true;
+            watchKeyboard();
+            if (queued) return true;
             // Both switches off and nothing hidden: nothing to look for, and no look left waiting
             // after the frame. A switch turned on is seen at the next frame.
             if (!hidden && !eitherOn()) return true;
@@ -763,6 +798,19 @@ public final class FullScreenBars {
                 handler.postDelayed(check, CHECK_MS - since);
             }
             return true;
+        }
+
+        /** Each frame: the keyboard coming or going while this window has the navigation bar hidden. */
+        void watchKeyboard() {
+            boolean shows = false;
+            try {
+                shows = hidden && bars.navigation() && keyboard.shown();
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "keyboard", failure);
+            }
+            if (shows == keys) return;
+            keys = shows;
+            if (hidden) keyboardMoved(shows, bars);
         }
 
         @Override public void onWindowFocusChanged(boolean hasFocus) {
@@ -814,6 +862,8 @@ public final class FullScreenBars {
             saved = true;
             hidden = true;
             takeHiddenHeights(chosen);
+            // A keyboard already up gets the height back again at the next frame.
+            keys = false;
             HookStatus.invoked(FamilyNames.FULL_SCREEN_BARS);
             HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_HID);
         }

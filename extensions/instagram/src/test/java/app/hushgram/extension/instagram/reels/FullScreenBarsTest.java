@@ -218,6 +218,54 @@ public class FullScreenBarsTest {
     }
 
     /**
+     * #288: in a chat that opened with the bars hidden, Instagram offers back the 0 it kept as the
+     * keyboard comes up, or isn't asked at all, so its message box sat a navigation bar's height
+     * behind the keys. The height last offered goes through for a 0 offer while the keyboard shows,
+     * and a keyboard seen at a frame gives it back to the kept screens itself. When the keyboard goes,
+     * the hidden bar takes it again.
+     */
+    @Test public void theKeyboardInAChatOpenedHiddenGetsTheHeightBack() {
+        List<String> told = new ArrayList<>();
+        FullScreenBars.resetHeightsForTests((listener, status, nav) -> told.add(listener + " " + status + " " + nav));
+        FullScreenBars.registeredForTests(true);
+        boolean[] up = {false};
+        FullScreenBars.keyboardForTests(() -> up[0]);
+        try {
+            Settings.FULL_SCREEN_REELS.save(true);
+            showViewer(W, H);
+            FullScreenBars.Session session = watch();
+            assertTrue(session.isHidden());
+            FullScreenBars.nowResumed(activity);
+            FullScreenBars.heightsAsked(activity, "chat");
+            heights(128, 63);
+            assertEquals(Collections.singletonList("chat 0 0"), told);
+
+            up[0] = true;
+            session.watchKeyboard();
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals("a frame with the keyboard up gives the height back", "chat 0 63", told.get(told.size() - 1));
+            up[0] = false;
+            session.watchKeyboard();
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals("the keyboard went and the hidden bar took it again", "chat 0 0", told.get(told.size() - 1));
+            assertArrayEquals(new int[] {128, 63}, FullScreenBars.heightsToGiveBack());
+            heights(128, 63);
+
+            up[0] = true;
+            assertEquals(0, FullScreenBars.barHeight(0));
+            assertEquals("a 0 offered back with the keyboard up", 63, FullScreenBars.navBarHeight(0));
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals("chat 0 63", told.get(told.size() - 1));
+            up[0] = false;
+            assertEquals(0, FullScreenBars.navBarHeight(63));
+            assertEquals("still hidden, a 0 stays 0", 0, FullScreenBars.navBarHeight(0));
+        } finally {
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
+    /**
      * #196: a chat opens in an activity of its own and reads the bar heights Instagram kept before
      * that window's insets reach the listener, so each height answered 0 is owed back as the activity
      * pauses, at the height Instagram last offered for it, and only once.
