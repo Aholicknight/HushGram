@@ -31,11 +31,15 @@ Every switch but Debug logging acts as if it were off, and what was set when you
 Export diagnostic report	Diagnosebericht exportieren
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Ab dem nächsten Start verhält sich jeder Schalter außer der Debug-Protokollierung, als wäre er aus. Was beim Patchen festgelegt wurde, bleibt aktiv, und deine Auswahl bleibt gespeichert.
 Lock these settings	Diese Einstellungen sperren
-Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Wähle eine Wartezeit von 1, 6 oder 24 Stunden. Gesperrt ändert sich hier nichts, bis du das Entsperren anforderst und die Wartezeit vorbei ist.
+Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Wähle eine Wartezeit von 1 bis 72 Stunden. Gesperrt ändert sich hier nichts, bis du das Entsperren anforderst und die Wartezeit vorbei ist.
 Ask to unlock	Entsperren anfordern
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Diese Einstellungen sind gesperrt. Tippe, um die Wartezeit von %1$s zu starten, danach sind sie 10 Minuten lang offen.
 Unlock asked	Entsperren angefordert
 These settings open at %1$s, for 10 minutes.	Diese Einstellungen öffnen sich um %1$s für 10 Minuten.
+These settings open at %1$s, for 10 minutes. Tap to stop the wait.	Diese Einstellungen öffnen sich um %1$s für 10 Minuten. Tippe, um die Wartezeit zu beenden.
+Stop the wait	Wartezeit beenden
+Keep waiting	Weiter warten
+Wait stopped. These settings stay locked.	Wartezeit beendet. Diese Einstellungen bleiben gesperrt.
 Settings are open	Einstellungen sind offen
 They lock again at %1$s. Tap to lock them now or turn the lock off.	Sie sperren sich um %1$s wieder. Tippe, um sie jetzt zu sperren oder die Sperre auszuschalten.
 # context: the wait of a settings lock when it is exactly one hour; %1$d is the number

@@ -1335,7 +1335,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 break;
             case WAITING:
                 row.setTitle(L10n.t("Unlock asked"));
-                row.setSummary(L10n.f("These settings open at %1$s, for 10 minutes.", lockTime(row.getContext())));
+                row.setSummary(L10n.f("These settings open at %1$s, for 10 minutes. Tap to stop the wait.",
+                        lockTime(row.getContext())));
                 break;
             case OPEN:
                 row.setTitle(L10n.t("Settings are open"));
@@ -1344,11 +1345,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 break;
             default:
                 row.setTitle(L10n.t("Lock these settings"));
-                row.setSummary(L10n.t("Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you "
+                row.setSummary(L10n.t("Pick a wait from 1 to 72 hours. Locked, nothing here changes until you "
                         + "ask to unlock and the wait is over."));
         }
-        // Ask to unlock acts at once. Off or open, a tap opens the choice of waits.
-        row.actsAtOnce = state == SettingsLock.State.LOCKED || state == SettingsLock.State.WAITING;
+        // Ask to unlock acts at once. Otherwise a tap opens a choice: the waits, or stopping one.
+        row.actsAtOnce = state == SettingsLock.State.LOCKED;
     }
 
     /** A lock's wait in words: "1 hour", "6 hours". */
@@ -1377,16 +1378,28 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /**
      * A tap on the lock's row. Off or open, it offers the waits (and while open, turning the lock
-     * off). Locked, it starts the wait. Waiting, it says when the settings open.
+     * off). Locked, it starts the wait. Waiting, it says when the settings open and offers to stop
+     * the wait, which keeps them locked.
      */
     void tapLock() {
         Context context = getContext();
         if (context == null) return;
         SettingsLock.State state = SettingsLock.state();
-        if (state == SettingsLock.State.LOCKED || state == SettingsLock.State.WAITING) {
+        if (state == SettingsLock.State.LOCKED) {
             SettingsLock.ask();
             Utils.showToastLong(L10n.f("These settings open at %1$s, for 10 minutes.", lockTime(context)));
             showLock();
+            return;
+        }
+        if (state == SettingsLock.State.WAITING) {
+            show(new AlertDialog.Builder(themed(context))
+                    .setTitle(L10n.t("Unlock asked"))
+                    .setMessage(L10n.f("These settings open at %1$s, for 10 minutes.", lockTime(context)))
+                    .setPositiveButton(L10n.t("Stop the wait"), (shown, which) -> {
+                        if (SettingsLock.stopWait()) Utils.showToastLong(L10n.t("Wait stopped. These settings stay locked."));
+                        showLock();
+                    })
+                    .setNegativeButton(L10n.t("Keep waiting"), null));
             return;
         }
         boolean open = state == SettingsLock.State.OPEN;

@@ -31,11 +31,15 @@ Every switch but Debug logging acts as if it were off, and what was set when you
 Export diagnostic report	Tanılama raporunu dışa aktar
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Sonraki açılıştan itibaren Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır. Yamaladığında ayarlananlar devrede kalır ve tercihlerin kayıtlı kalır.
 Lock these settings	Bu ayarları kilitle
-Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1, 6 veya 24 saatlik bir bekleme seç. Kilitliyken, kilidi açmayı isteyip bekleme bitene kadar burada hiçbir şey değişmez.
+Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1 ile 72 saat arasında bir bekleme seç. Kilitliyken, kilidi açmayı isteyip bekleme bitene kadar burada hiçbir şey değişmez.
 Ask to unlock	Kilidi açmayı iste
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Bu ayarlar kilitli. %1$s beklemeyi başlatmak için dokun, sonra 10 dakika açık kalırlar.
 Unlock asked	Kilit açma istendi
 These settings open at %1$s, for 10 minutes.	Bu ayarlar 10 dakikalığına şu saatte açılır: %1$s
+These settings open at %1$s, for 10 minutes. Tap to stop the wait.	Bu ayarlar 10 dakikalığına şu saatte açılır: %1$s. Beklemeyi durdurmak için dokun.
+Stop the wait	Beklemeyi durdur
+Keep waiting	Beklemeye devam et
+Wait stopped. These settings stay locked.	Bekleme durduruldu. Bu ayarlar kilitli kalır.
 Settings are open	Ayarlar açık
 They lock again at %1$s. Tap to lock them now or turn the lock off.	Şu saatte yeniden kilitlenir: %1$s. Şimdi kilitlemek veya kilidi kapatmak için dokun.
 # context: the wait of a settings lock when it is exactly one hour; %1$d is the number

@@ -31,11 +31,15 @@ Every switch but Debug logging acts as if it were off, and what was set when you
 Export diagnostic report	Exportar informe de diagnóstico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Desde el próximo inicio, todos los interruptores, salvo el Registro de depuración, funcionan como si estuvieran desactivados. Lo que se aplicó al parchear se mantiene, y tus preferencias quedan guardadas.
 Lock these settings	Bloquear estos ajustes
-Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Elige una espera de 1, 6 o 24 horas. Con el bloqueo, aquí no cambia nada hasta que pidas desbloquear y termine la espera.
+Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Elige una espera de 1 a 72 horas. Con el bloqueo, aquí no cambia nada hasta que pidas desbloquear y termine la espera.
 Ask to unlock	Pedir desbloqueo
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Estos ajustes están bloqueados. Toca para empezar la espera de %1$s y luego se abren durante 10 minutos.
 Unlock asked	Desbloqueo pedido
 These settings open at %1$s, for 10 minutes.	Estos ajustes se abren a las %1$s, durante 10 minutos.
+These settings open at %1$s, for 10 minutes. Tap to stop the wait.	Estos ajustes se abren a las %1$s, durante 10 minutos. Toca para detener la espera.
+Stop the wait	Detener la espera
+Keep waiting	Seguir esperando
+Wait stopped. These settings stay locked.	Espera detenida. Estos ajustes siguen bloqueados.
 Settings are open	Los ajustes están abiertos
 They lock again at %1$s. Tap to lock them now or turn the lock off.	Se bloquean de nuevo a las %1$s. Toca para bloquearlos ya o desactivar el bloqueo.
 # context: the wait of a settings lock when it is exactly one hour; %1$d is the number

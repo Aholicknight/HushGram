@@ -32,11 +32,15 @@ Every switch but Debug logging acts as if it were off, and what was set when you
 Export diagnostic report	진단 보고서 내보내기
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	다음 시작부터 디버그 로깅을 제외한 모든 스위치가 비활성화된 것처럼 작동합니다. 패치할 때 적용된 변경 사항은 그대로 유지되며, 사용자가 선택한 설정도 저장된 상태로 유지됩니다
 Lock these settings	이 설정 잠그기
-Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1시간, 6시간, 24시간 중 대기 시간을 고르세요. 잠기면 잠금 해제를 요청하고 대기 시간이 끝날 때까지 여기서 아무것도 바뀌지 않습니다.
+Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1~72시간 중 대기 시간을 고르세요. 잠기면 잠금 해제를 요청하고 대기 시간이 끝날 때까지 여기서 아무것도 바뀌지 않습니다.
 Ask to unlock	잠금 해제 요청
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	이 설정은 잠겨 있습니다. 탭하면 %1$s 대기가 시작되고, 끝나면 10분 동안 열립니다.
 Unlock asked	잠금 해제 요청됨
 These settings open at %1$s, for 10 minutes.	이 설정은 %1$s에 10분 동안 열립니다.
+These settings open at %1$s, for 10 minutes. Tap to stop the wait.	이 설정은 %1$s에 10분 동안 열립니다. 탭하면 대기를 멈춥니다.
+Stop the wait	대기 멈추기
+Keep waiting	계속 기다리기
+Wait stopped. These settings stay locked.	대기를 멈췄습니다. 이 설정은 잠긴 상태로 유지됩니다.
 Settings are open	설정이 열려 있음
 They lock again at %1$s. Tap to lock them now or turn the lock off.	%1$s에 다시 잠깁니다. 탭해서 지금 잠그거나 잠금을 끄세요.
 # context: the wait of a settings lock when it is exactly one hour; %1$d is the number

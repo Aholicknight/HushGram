@@ -31,11 +31,15 @@ Every switch but Debug logging acts as if it were off, and what was set when you
 Export diagnostic report	Ekspor laporan diagnostik
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Mulai peluncuran berikutnya, semua sakelar kecuali Pencatatan debug dianggap nonaktif. Yang diatur saat Anda menambal tetap aktif, dan pilihan Anda tetap tersimpan.
 Lock these settings	Kunci pengaturan ini
-Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Pilih waktu tunggu 1, 6, atau 24 jam. Saat terkunci, tidak ada yang berubah di sini sampai kamu meminta buka kunci dan waktu tunggunya selesai.
+Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Pilih waktu tunggu 1 sampai 72 jam. Saat terkunci, tidak ada yang berubah di sini sampai kamu meminta buka kunci dan waktu tunggunya selesai.
 Ask to unlock	Minta buka kunci
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Pengaturan ini terkunci. Ketuk untuk memulai waktu tunggu %1$s, lalu pengaturan terbuka selama 10 menit.
 Unlock asked	Buka kunci diminta
 These settings open at %1$s, for 10 minutes.	Pengaturan ini terbuka pukul %1$s, selama 10 menit.
+These settings open at %1$s, for 10 minutes. Tap to stop the wait.	Pengaturan ini terbuka pukul %1$s, selama 10 menit. Ketuk untuk menghentikan waktu tunggu.
+Stop the wait	Hentikan waktu tunggu
+Keep waiting	Tetap menunggu
+Wait stopped. These settings stay locked.	Waktu tunggu dihentikan. Pengaturan ini tetap terkunci.
 Settings are open	Pengaturan terbuka
 They lock again at %1$s. Tap to lock them now or turn the lock off.	Pengaturan terkunci lagi pukul %1$s. Ketuk untuk menguncinya sekarang atau mematikan kunci.
 # context: the wait of a settings lock when it is exactly one hour; %1$d is the number

@@ -31,11 +31,15 @@ Every switch but Debug logging acts as if it were off, and what was set when you
 Export diagnostic report	Esporta report diagnostico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Dal prossimo avvio, tutti gli interruttori tranne Log di debug agiscono come se fossero off. Le modifiche fatte durante la patch restano attive e le tue scelte restano salvate.
 Lock these settings	Blocca queste impostazioni
-Pick a wait of 1, 6 or 24 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Scegli un'attesa di 1, 6 o 24 ore. Con il blocco, qui non cambia niente finché non chiedi di sbloccare e l'attesa non è finita.
+Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Scegli un'attesa da 1 a 72 ore. Con il blocco, qui non cambia niente finché non chiedi di sbloccare e l'attesa non è finita.
 Ask to unlock	Chiedi di sbloccare
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Queste impostazioni sono bloccate. Tocca per avviare l'attesa di %1$s, poi restano aperte per 10 minuti.
 Unlock asked	Sblocco chiesto
 These settings open at %1$s, for 10 minutes.	Queste impostazioni si aprono alle %1$s, per 10 minuti.
+These settings open at %1$s, for 10 minutes. Tap to stop the wait.	Queste impostazioni si aprono alle %1$s, per 10 minuti. Tocca per fermare l'attesa.
+Stop the wait	Ferma l'attesa
+Keep waiting	Continua ad aspettare
+Wait stopped. These settings stay locked.	Attesa fermata. Queste impostazioni restano bloccate.
 Settings are open	Impostazioni aperte
 They lock again at %1$s. Tap to lock them now or turn the lock off.	Si bloccano di nuovo alle %1$s. Tocca per bloccarle ora o disattivare il blocco.
 # context: the wait of a settings lock when it is exactly one hour; %1$d is the number
