@@ -10,6 +10,7 @@ import app.morphe.patcher.patch.ResourcePatchContext
 import app.morphe.patcher.patch.resourcePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.util.addInstructionsAtControlFlowLabel
@@ -345,18 +346,49 @@ internal fun BytecodePatchContext.findThemeOverrides(): MutableMethod {
     }
 }
 
+/** What Instagram's theme util logs when its style list isn't loaded yet. Nothing else in the app says it. */
+internal const val THEME_UTIL_FAILURE = "Failed to apply theme to Activity because theme provider not initialized"
+
 /**
- * Writes [attributes] into the extension's stub, then runs AccentTheme.apply with the activity at
- * each of the overrides' returns, once Instagram's styles are all on.
+ * Instagram's theme util: the static (Context)V laying its theme provider's styles onto a context's
+ * theme. It styles the activities, and also contexts of Instagram's own making, such as the
+ * ContextThemeWrapper the tab bar is inflated in off the main thread, which the overrides never reach
+ * (#315). Its class is found by the line it logs when the styles aren't loaded, held or asked of a
+ * string pool, and it's that class's one static (Context)V applying a style.
+ */
+internal fun BytecodePatchContext.findThemeUtil(): MutableMethod {
+    val found = classesLoadingString(THEME_UTIL_FAILURE).flatMap { type ->
+        type.methods.filter { method ->
+            AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+                method.parameterTypes.map(Any::toString) == listOf(CONTEXT) && method.code().any { it.calls(THEME, "applyStyle") }
+        }
+    }
+    val util = found.singleOrNull()
+        ?: refuse("expected one static (Context)V applying a style beside \"$THEME_UTIL_FAILURE\", found ${found.size}")
+    val returns = util.code().indices.filter { util.code()[it].opcode == Opcode.RETURN_VOID }
+    if (returns.isEmpty()) refuse("${util.where()} never returns")
+    util.requireParameterIntact(PATCH, 0, returns)
+    return mutableClassDefBy(util.definingClass).methods.single {
+        it.name == util.name && it.parameterTypes.map(Any::toString) == listOf(CONTEXT) && it.returnType == "V"
+    }
+}
+
+/**
+ * Writes [attributes] into the extension's stub, then runs AccentTheme.apply with the context at each
+ * return of the overrides, once Instagram's styles are all on an activity, and of the theme util, for
+ * the contexts Instagram styles itself.
  */
 internal fun BytecodePatchContext.applyAccentTheme(attributes: String = requireAccentAttributes()) {
     val overrides = findThemeOverrides()
+    val util = findThemeUtil()
     val listed = requireAccentAttributes(attributes)
     mutableClassDefBy(ACCENT_THEME).methods.single { it.signature() == ATTRIBUTES_STUB }.returnEarly(listed)
-    val context = overrides.parameterRegisterNumber(0)
-    val returns = overrides.code().indices.filter { overrides.code()[it].opcode == Opcode.RETURN_VOID }
-    for (at in returns.asReversed()) {
-        overrides.addInstructionsAtControlFlowLabel(at, "invoke-static/range { v$context .. v$context }, $APPLY_THEME")
+    for (method in listOf(overrides, util)) {
+        val context = method.parameterRegisterNumber(0)
+        val returns = method.code().indices.filter { method.code()[it].opcode == Opcode.RETURN_VOID }
+        for (at in returns.asReversed()) {
+            method.addInstructionsAtControlFlowLabel(at, "invoke-static/range { v$context .. v$context }, $APPLY_THEME")
+        }
     }
 }
 

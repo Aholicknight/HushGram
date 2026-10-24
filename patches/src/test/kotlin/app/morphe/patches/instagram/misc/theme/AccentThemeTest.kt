@@ -43,7 +43,8 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 /**
  * Accent color's theme half (#8): the styles added for every attribute Instagram's styles set to one
- * of its blues, and AccentTheme.apply once Instagram's Prism overrides are on an activity's theme.
+ * of its blues, and AccentTheme.apply once Instagram's Prism overrides are on an activity's theme or its
+ * theme util has styled a context.
  */
 class AccentThemeTest {
     /** The patch's copies of AccentColor's blues and AccentHue's colors are the extension's own. */
@@ -224,44 +225,52 @@ class AccentThemeTest {
      * the activity. Anything else refuses before a change.
      */
     @Test
-    fun everyReturnOfTheOverridesAppliesTheTheme() {
-        val context = PatchContexts.of(listOf(activity(), overrides(), extension()))
+    fun everyReturnOfTheOverridesAndTheUtilAppliesTheTheme() {
+        val context = PatchContexts.of(listOf(activity(), overrides(), util(), extension()))
         context.applyAccentTheme("igds_color_link android:textColorLink")
         assertApplied("stand-in", context.mutableClassDefBy(OVERRIDES).methods.single { it.name == "A04" }, returns = 2)
+        assertApplied("stand-in util", context.mutableClassDefBy(UTIL).methods.single { it.name == "A01" }, returns = 1)
         val written = context.mutableClassDefBy(ACCENT_THEME).methods.single { it.name == "attributes" }.code()
         assertEquals(listOf(Opcode.CONST_STRING, Opcode.RETURN_OBJECT), written.take(2).map { it.opcode })
         assertEquals("igds_color_link android:textColorLink", (written.first() as ReferenceInstruction).reference.toString())
 
         for ((case, classes) in listOf(
-            "no activity" to listOf(overrides(), extension()),
-            "no overrides class" to listOf(activity(), extension()),
-            "a setup applying two styles" to listOf(activity(secondStyle = true), overrides(), extension()),
-            "nothing called after the style" to listOf(activity(callsOverrides = false), overrides(), extension()),
-            "overrides applying one style" to listOf(activity(), overrides(styles = 1), extension()),
-            "overrides writing over the activity" to listOf(activity(), overrides(reuseContext = true), extension()),
-            "no hook in the extension" to listOf(activity(), overrides()),
-            "no stub in the extension" to listOf(activity(), overrides(), extension(stub = false)),
+            "no activity" to listOf(overrides(), util(), extension()),
+            "no overrides class" to listOf(activity(), util(), extension()),
+            "a setup applying two styles" to listOf(activity(secondStyle = true), overrides(), util(), extension()),
+            "nothing called after the style" to listOf(activity(callsOverrides = false), overrides(), util(), extension()),
+            "overrides applying one style" to listOf(activity(), overrides(styles = 1), util(), extension()),
+            "overrides writing over the activity" to listOf(activity(), overrides(reuseContext = true), util(), extension()),
+            "no theme util" to listOf(activity(), overrides(), extension()),
+            "a util applying no style" to listOf(activity(), overrides(), util(applies = false), extension()),
+            "two theme utils" to listOf(activity(), overrides(), util(), util(type = "Lfixture/ThemeUtil2;"), extension()),
+            "a util writing over the context" to listOf(activity(), overrides(), util(reuseContext = true), extension()),
+            "no hook in the extension" to listOf(activity(), overrides(), util()),
+            "no stub in the extension" to listOf(activity(), overrides(), util(), extension(stub = false)),
         )) {
             val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).applyAccentTheme("igds_color_link") }
             assertTrue("$case: ${failure.message}", failure.message!!.startsWith("Accent color"))
         }
         for ((case, attributes) in listOf("no list" to "", "a quote in a name" to "igds_color_link\"")) {
-            val untouched = PatchContexts.of(listOf(activity(), overrides(), extension()))
+            val untouched = PatchContexts.of(listOf(activity(), overrides(), util(), extension()))
             val failure = assertThrows(case, PatchException::class.java) { untouched.applyAccentTheme(attributes) }
             assertTrue("$case: ${failure.message}", failure.message!!.startsWith("Accent color"))
             assertEquals("$case: the stub untouched", listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT),
                 untouched.classDefBy(ACCENT_THEME).methods.single { it.name == "attributes" }.code().map { it.opcode })
         }
-        val stub = overrides(styles = 1)
-        val refused = PatchContexts.of(listOf(activity(), stub, extension()))
+        val stub = overrides()
+        val refused = PatchContexts.of(listOf(activity(), stub, util(reuseContext = true), extension()))
         assertThrows(PatchException::class.java) { refused.applyAccentTheme("igds_color_link") }
-        assertEquals(stub.methods.single().implementation!!.instructions.map { it.opcode },
+        assertEquals("the overrides untouched when the util refuses", stub.methods.single().implementation!!.instructions.map { it.opcode },
             refused.classDefBy(OVERRIDES).methods.single().implementation!!.instructions.map { it.opcode })
     }
 
-    /** Every build of 452: the setup and the overrides are found by their shape, and each return applies the theme. */
+    /**
+     * Every build of 452: the setup and the overrides are found by their shape, the theme util by the
+     * line it logs, and each of their returns applies the theme.
+     */
     @Test
-    fun everyBuildAppliesTheThemeAfterTheOverrides() {
+    fun everyBuildAppliesTheThemeAfterTheOverridesAndTheUtil() {
         val builds = builds()
         assertEquals("every build of Instagram ${Fixtures.VERSION} has a fixture", Fixtures.BUILDS, builds.size)
         for ((code, bundle) in builds) {
@@ -273,12 +282,17 @@ class AccentThemeTest {
             val called = setup.code().mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
                 .first { it.parameterTypes.map(Any::toString) == listOf(CONTEXT) && it.returnType == "V" }
             val holder = FixtureDex.classes(bundle, setOf(called.definingClass)).getValue(called.definingClass)
-            val context = PatchContexts.of(listOf(activity, holder, extension()))
+            val logging = FixtureDex.classesLoading(bundle, THEME_UTIL_FAILURE).filter { it.type != holder.type && it.type != activity.type }
+            val context = PatchContexts.of(listOf(activity, holder, extension()) + logging)
             val found = context.findThemeOverrides()
             assertEquals("$code: the overrides", "${called.definingClass}->${called.name}", "${found.definingClass}->${found.name}")
             val returns = found.code().count { it.opcode == Opcode.RETURN_VOID }
+            val util = context.findThemeUtil()
+            assertTrue("$code: the util is static, ${util.definingClass}->${util.name}", AccessFlags.STATIC.isSet(util.accessFlags))
+            val utilReturns = util.code().count { it.opcode == Opcode.RETURN_VOID }
             context.applyAccentTheme("igds_color_link")
             assertApplied(code, context.mutableClassDefBy(called.definingClass).methods.single { it.name == called.name && it.parameterTypes.size == 1 }, returns)
+            assertApplied("$code util", context.mutableClassDefBy(util.definingClass).methods.single { it.name == util.name && it.parameterTypes.size == 1 }, utilReturns)
         }
     }
 
@@ -397,6 +411,7 @@ class AccentThemeTest {
         const val CONTEXT = "Landroid/content/Context;"
         const val THEME = "Landroid/content/res/Resources\$Theme;"
         const val OVERRIDES = "Lfixture/ThemeOverrides;"
+        const val UTIL = "Lfixture/ThemeUtil;"
 
         /** IgFragmentActivity's theme setup: one style, then the overrides on a static instance. */
         fun activity(secondStyle: Boolean = false, callsOverrides: Boolean = true): ClassDef {
@@ -433,6 +448,27 @@ class AccentThemeTest {
                 appendLine("return-void")
             }
             return classOf(OVERRIDES, method(OVERRIDES, "A04", listOf(CONTEXT), 3, body, static = false))
+        }
+
+        /** Instagram's theme util: its styles onto the context's theme, or the line it logs, then one return a goto reaches. */
+        fun util(type: String = UTIL, applies: Boolean = true, reuseContext: Boolean = false): ClassDef {
+            val body = buildString {
+                appendLine("const/4 v2, 0x1")
+                appendLine("const v1, 0x7f1402a0")
+                appendLine("if-eqz v1, :missing")
+                if (reuseContext) appendLine("const/4 p0, 0x0")
+                appendLine("invoke-virtual { p0 }, $CONTEXT->getTheme()$THEME")
+                appendLine("move-result-object v0")
+                if (applies) appendLine("invoke-virtual { v0, v1, v2 }, $THEME->applyStyle(IZ)V")
+                appendLine("goto :done")
+                appendLine(":missing")
+                appendLine("const-string v0, \"IgThemeUtil\"")
+                appendLine("const-string v1, \"$THEME_UTIL_FAILURE\"")
+                appendLine("invoke-static { v0, v1 }, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I")
+                appendLine(":done")
+                appendLine("return-void")
+            }
+            return classOf(type, method(type, "A01", listOf(CONTEXT), 3, body, static = true))
         }
 
         /** AccentTheme's hook, and the attribute stub as javac and D8 leave `return null`. */

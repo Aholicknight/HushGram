@@ -37,7 +37,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>With {@link Settings#ACCENT_BADGES} on, the picked color's badge style goes on too (#315). It
  * points {@code igds_color_icon_badge}, the red of the dots and counts on Instagram's icons, at the
- * picked fill. The like heart and the red delete buttons read other attributes, so they stay red.
+ * picked fill. The like heart and the red delete buttons read other attributes, so they stay red. The
+ * tab bar's badges come from a theme wrapper Instagram builds off the main thread and styles with its
+ * theme util, so they take the color through that hook rather than the activity's.
  *
  * <p>Fails open: with the switch off, Instagram blue picked, HushGram paused, the resources missing or
  * anything thrown, the theme stays Instagram's. A change shows on screens opened after a restart.
@@ -64,7 +66,11 @@ public final class AccentTheme {
     private AccentTheme() {
     }
 
-    /** Injected at each return of the method laying Instagram's overrides over [context]'s theme. Never throws. */
+    /**
+     * Injected at each return of the method laying Instagram's overrides over [context]'s theme, and of
+     * its theme util, which also styles contexts of Instagram's own making such as the tab bar's (#315).
+     * Never throws.
+     */
     public static void apply(Context context) {
         apply(context, attributes());
     }
