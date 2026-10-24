@@ -815,6 +815,12 @@ once-call Lapp/hushgram/extension/instagram/feed/ProductTags;->indicator(I)I in 
 once-call Lapp/hushgram/extension/instagram/feed/FeedInterest;->hide()Z in instance (L*;Ljava/lang/Object;Ljava/lang/Object;)V holding feed_timeline feed_timeline_older
 once-call Lapp/hushgram/extension/instagram/feed/FeedInterest;->hide()Z in instance (LX/*;LX/*;LX/*;)V pooled holding feed_timeline feed_timeline_older
 #
+# Reels ask the same question in their footer (#131), and the patch passes the reel's control through
+# FeedInterest.reelsControl once, right before the footer's use case stores it in the row's component.
+# That use case is the one instance method taking two Redex objects and answering one that holds the
+# getOnImpressionControl marker (07NV.A02 on 452, storing into 0E93.A0A).
+once-call Lapp/hushgram/extension/instagram/feed/FeedInterest;->reelsControl(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;LX/*;)LX/*; holding android_purge_26_q3_ClipsFullWidthFooterUseCase_getOnImpressionControl
+#
 # Start Home on Following passes every read of the two flags behind Instagram's For you and
 # Following picker through flag(), and the saved feed's getter passes the name it read through
 # saved() once. The getter is the one instance method taking nothing and answering a String in the

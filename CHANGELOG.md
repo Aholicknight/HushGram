@@ -26,6 +26,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Hide suggested posts:** `Hide 'Are you interested?' bubbles` takes the question off Reels too, the Not interested and Interested row under a reel. Before, only Home's bubble went. (#131)
 * **Instagram - Glass tab bar:** With `Full screen Reels` on, the floating pill dropped by the navigation bar's height every time you switched to Reels, then jumped back up on the other tabs. It stays at one height on every tab now. Reported in #285.
 * **Instagram - Glass tab bar:** A video playing under the glass pill no longer turns the pill black. Some videos play on a layer the blur couldn't see, so it blurs a small copy of the video's picture now. Reported in #144.
 * **Instagram - Change the like animation:** The animation you picked plays on Instagram 452's feed and Reels hearts again, for a double tap and for the heart button. Before, 452 showed its usual heart there. Reported in #299.

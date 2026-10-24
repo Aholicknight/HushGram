@@ -673,7 +673,8 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.feed.FeedInterestTest" to listOf(
                 "withTheSwitchOnTheRowIsLeftOutAndEachOneCounted[28]", "withTheSwitchOnTheRowIsLeftOutAndEachOneCounted[37]",
                 "onlyTheQuestionSwitchTurnsItOn[28]", "onlyTheQuestionSwitchTurnsItOn[37]",
-                "offPausedAndUnreadyAddTheRowAndCountNothing[28]", "offPausedAndUnreadyAddTheRowAndCountNothing[37]"),
+                "offPausedAndUnreadyAddTheRowAndCountNothing[28]", "offPausedAndUnreadyAddTheRowAndCountNothing[37]",
+                "theReelsControlIsDroppedOnlyWithTheSwitchOn[28]", "theReelsControlIsDroppedOnlyWithTheSwitchOn[37]"),
             "app.hushgram.extension.instagram.settings.FeedInterestSettingsTest" to listOf(
                 "itIsUnderFeedAfterHideShoppingAndStartsOff[28]", "itIsUnderFeedAfterHideShoppingAndStartsOff[37]",
                 "withoutHideSuggestedPostsThereIsNoSwitch[28]", "withoutHideSuggestedPostsThereIsNoSwitch[37]"),

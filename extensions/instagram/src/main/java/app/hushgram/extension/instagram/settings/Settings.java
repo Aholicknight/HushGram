@@ -574,7 +574,8 @@ public class Settings extends BaseSettings {
 
     /**
      * The "Are you interested in this post?" bubble with Not interested and Interested buttons that
-     * Instagram adds under a post in Home's feed. Left out, never answered. Off to start.
+     * Instagram adds under a post in Home's feed and under a reel (#131). Left out, never answered.
+     * Off to start.
      */
     public static final BooleanSetting HIDE_FEED_INTEREST =
             new BooleanSetting("hushgram_hide_feed_interest", FALSE);
