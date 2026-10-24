@@ -415,6 +415,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         interruptedSaves = null;
         // The rows outlive this view, and a search left on them would be read as how they were built.
         restoreOrders();
+        // Closing the settings on a page, or on the one long list, counts what showed as seen.
+        if (openCategory != null) NewRowDots.left(openCategory);
+        else if (!categoryPages()) NewRowDots.leftEverything();
         super.onDestroyView();
     }
 
@@ -424,6 +427,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (documentRequest == EXPORT_CONFIGURATION && (removed || (activity != null && activity.isFinishing()))) {
             ExportStatus.CONFIGURATION.finish(configurationExportToken, L10n.t("Settings export canceled."));
         }
+        NewRowDots.stop();
         super.onDestroy();
     }
 
@@ -656,6 +660,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             // Pause and diagnostics stays open in every mode, as it does while searching.
             if (group != recovery) categoryRows.put(group, categoryRow(context, group, rows));
         }
+        // After every row is known: a first open counts them all as seen, so a fresh install has no dots.
+        NewRowDots.start(context, searchableRows);
+        for (Map.Entry<PreferenceCategory, Row> category : categoryRows.entrySet()) {
+            NewRowDots.opens(category.getValue(), category.getKey());
+        }
         if (categoryPages() && restoredCategory != null) {
             for (Map.Entry<PreferenceCategory, Row> category : categoryRows.entrySet()) {
                 if (restoredCategory.equals(category.getValue().getKey())) {
@@ -729,6 +738,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     boolean closeCategory() {
         if (endSearch()) return true;
         if (openCategory == null) return false;
+        // The page is left: what it listed has been seen, so its dots are gone on the list again.
+        NewRowDots.left(openCategory);
         openCategory = null;
         filterSettings();
         showTitle(null);
@@ -1164,6 +1175,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         String normalized = searchText(searchQuery).trim();
         String[] terms = normalized.isEmpty() ? new String[0] : normalized.split("\\s+");
         boolean pages = categoryPages();
+        NewRowDots.searching(terms.length > 0);
         if (!pages && openCategory != null) {
             openCategory = null;
             showTitle(null);

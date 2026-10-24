@@ -1209,3 +1209,5 @@ Puts a music icon beside a reel. Tap it and the Reels tab skips other reels usin
 Hidden sounds	Gizli sesler
 The sounds you hid with the music icon. Uncheck one to see its reels again.	Müzik simgesiyle gizlediğin sesler. Reel'lerini yeniden görmek için birinin işaretini kaldır.
 No sounds are hidden yet. Turn on Hide reels by sound, then tap the music icon beside a reel.	Henüz gizli ses yok. Reels'i sese göre gizle'yi aç, sonra bir reel'in yanındaki müzik simgesine dokun.
+# context: read aloud after a settings row's name when a dot marks it as added since the settings were last opened
+New	Yeni
