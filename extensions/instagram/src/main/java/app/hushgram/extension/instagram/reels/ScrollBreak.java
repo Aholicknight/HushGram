@@ -7,6 +7,8 @@ package app.hushgram.extension.instagram.reels;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -14,6 +16,7 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -212,7 +215,11 @@ public final class ScrollBreak {
                 || FullScreenBars.exploreSelected(decor);
     }
 
-    /** Puts the break screen over [decor], above the tab bar, saying how long is left. */
+    /**
+     * Puts the break screen over [decor], with the tab bar left showing through it, saying how long is
+     * left. The whole window is covered, so a floating glass pill doesn't leave the feed showing and
+     * scrollable around and under it.
+     */
     private static void show(Activity activity, View decor, long left) {
         if (!(decor instanceof ViewGroup)) return;
         ViewGroup window = (ViewGroup) decor;
@@ -223,13 +230,7 @@ public final class ScrollBreak {
             window.addView(cover, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
         }
-        int bottom = FullScreenBars.tabBarTop(decor);
-        ViewGroup.LayoutParams params = cover.getLayoutParams();
-        int height = bottom > 0 ? bottom : ViewGroup.LayoutParams.MATCH_PARENT;
-        if (params.height != height) {
-            params.height = height;
-            cover.setLayoutParams(params);
-        }
+        cover.leaveOpen(FullScreenBars.tabBarRest(decor));
         cover.bringToFront();
         cover.showLeft(left);
     }
@@ -249,9 +250,14 @@ public final class ScrollBreak {
         return String.format(Locale.ROOT, "%d:%02d", seconds / 60, seconds % 60);
     }
 
-    /** The break screen: a calm color, what it is, and the countdown. It takes every touch over it. */
+    /**
+     * The break screen: a calm color, what it is, and the countdown. It takes every touch over it but
+     * the tab bar's, which it leaves showing through.
+     */
     static final class Cover extends FrameLayout {
         private final TextView countdown;
+        /** Where the tab bar is, left uncovered and reachable, or null to cover everything. */
+        @Nullable private Rect open;
 
         @SuppressWarnings("ClickableViewAccessibility")
         Cover(Context context) {
@@ -278,6 +284,40 @@ public final class ScrollBreak {
             column.addView(countdown);
             addView(column, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
                     Gravity.CENTER));
+        }
+
+        /** Leaves [bar] uncovered, so the tab bar shows and takes its own taps, or covers everything for null. */
+        void leaveOpen(@Nullable Rect bar) {
+            if (bar == null ? open == null : bar.equals(open)) return;
+            open = bar == null ? null : new Rect(bar);
+            invalidate();
+        }
+
+        @Nullable
+        Rect leftOpen() {
+            return open == null ? null : new Rect(open);
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            if (open == null) {
+                super.draw(canvas);
+                return;
+            }
+            int saved = canvas.save();
+            canvas.clipOutRect(open);
+            super.draw(canvas);
+            canvas.restoreToCount(saved);
+        }
+
+        /** A touch that starts on the tab bar goes past the cover to it. */
+        @Override
+        public boolean dispatchTouchEvent(MotionEvent event) {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN && open != null
+                    && open.contains(Math.round(event.getX()), Math.round(event.getY()))) {
+                return false;
+            }
+            return super.dispatchTouchEvent(event);
         }
 
         void showLeft(long left) {

@@ -5,11 +5,13 @@
 package app.hushgram.extension.instagram.reels;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.graphics.Rect;
 import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -35,7 +37,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * Scroll break (#297): only time on the Home, Reels and Explore tabs counts, and when the choice is
- * up a break screen covers those three, above the tab bar, for 5 minutes with a countdown.
+ * up a break screen covers those three, with the tab bar showing through, for 5 minutes with a countdown.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -144,7 +146,8 @@ public class ScrollBreakTest {
         ScrollBreak.Cover cover = cover();
         assertNotNull("ten minutes on Home", cover);
         assertEquals("5:00", cover.countdownText());
-        assertEquals("the tab bar stays out from under it", H - BAR_HEIGHT, cover.getHeight());
+        assertEquals("it covers the whole window", H, cover.getHeight());
+        assertEquals("but the tab bar shows through it", new Rect(0, H - BAR_HEIGHT, W, H), cover.leftOpen());
         assertTrue(String.valueOf(cover.getContentDescription()), String.valueOf(cover.getContentDescription())
                 .contains("5:00"));
 
@@ -258,6 +261,33 @@ public class ScrollBreakTest {
         MotionEvent down = MotionEvent.obtain(at, at, MotionEvent.ACTION_DOWN, W / 2f, H / 2f, 0);
         assertTrue(cover().dispatchTouchEvent(down));
         down.recycle();
+    }
+
+    /** A floating glass pill sits above the bottom with room at its sides: everything but the pill is covered. */
+    @Test public void aFloatingTabBarIsTheOnlyThingLeftOpen() {
+        FrameLayout.LayoutParams floating = new FrameLayout.LayoutParams(W - 40, BAR_HEIGHT, Gravity.BOTTOM);
+        floating.leftMargin = 20;
+        floating.bottomMargin = 30;
+        bar.setLayoutParams(floating);
+        Settings.SCROLL_BREAK.save(ScrollBreakTime.TEN_MINUTES);
+        open();
+        spend(10 * MINUTE);
+        Rect pill = new Rect(20, H - 30 - BAR_HEIGHT, W - 20, H - 30);
+        assertEquals(pill, cover().leftOpen());
+        assertFalse("a tap on the pill goes to the tab bar", touch(pill.centerX(), pill.centerY()));
+        assertTrue("beside the pill is covered", touch(5, pill.centerY()));
+        assertTrue("under the pill is covered", touch(pill.centerX(), H - 10));
+    }
+
+    /** Whether the break screen takes a touch that starts at [x],[y]. */
+    private boolean touch(int x, int y) {
+        long at = SystemClock.uptimeMillis();
+        MotionEvent down = MotionEvent.obtain(at, at, MotionEvent.ACTION_DOWN, x, y, 0);
+        try {
+            return cover().dispatchTouchEvent(down);
+        } finally {
+            down.recycle();
+        }
     }
 
     @Test public void theCountdownRoundsUp() {

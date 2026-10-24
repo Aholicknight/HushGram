@@ -232,17 +232,20 @@ public final class FullScreenBars {
     }
 
     /**
-     * How far down [decor] the tab bar's top sits where it rests, so a slide away on scroll doesn't
-     * move it, or 0 while there's no tab bar on screen (#297).
+     * Where the tab bar sits in [decor] at rest, so a slide away on scroll doesn't move it, or null
+     * while there's no tab bar on screen (#297).
      */
-    static int tabBarTop(View decor) {
+    @Nullable
+    static Rect tabBarRest(View decor) {
         View bar = find(decor, TAB_BAR);
-        if (bar == null || !bar.isShown() || sidewaysOff(bar, decor)) return 0;
+        if (bar == null || !bar.isShown() || sidewaysOff(bar, decor)) return null;
         int[] at = new int[2], origin = new int[2];
         bar.getLocationOnScreen(at);
         decor.getLocationOnScreen(origin);
+        int left = at[0] - origin[0];
         int top = at[1] - origin[1] - Math.round(bar.getTranslationY());
-        return top > 0 && top < decor.getHeight() ? top : 0;
+        if (top <= 0 || top >= decor.getHeight()) return null;
+        return new Rect(left, top, left + bar.getWidth(), Math.min(decor.getHeight(), top + bar.getHeight()));
     }
 
     /**
