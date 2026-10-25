@@ -3,6 +3,20 @@
   "rules": [
     {
       "paths": [
+        "extensions/shared/library/src/main/l10n/zh-rTW.tsv"
+      ],
+      "origin": "ported",
+      "upstream": "https://github.com/JhouHank/HushGram",
+      "commit": "95b2fd99e642f8f1d0a8563ba36fe7af1c21f933",
+      "blob": "33608947eb8aaa925a79dadd4b6a95305d3e601b",
+      "via": [
+        "https://github.com/crimera/piko"
+      ],
+      "license": "GPL-3.0-only with Piko's section 7(b) attribution notice",
+      "changes": "JhouHank's Traditional Chinese (Taiwan) table from HushGram PR #313, retained unchanged. The contributor declares their Piko translations as a terminology reference; its exact source revision is not supplied. Piko's attribution is preserved in the table and NOTICE. No Piko implementation is imported."
+    },
+    {
+      "paths": [
         "extensions/shared/**",
         "patches/src/main/kotlin/app/morphe/util/**",
         "patches/src/main/kotlin/app/morphe/patches/shared/**",
