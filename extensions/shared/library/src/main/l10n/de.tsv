@@ -1055,7 +1055,7 @@ Privacy	Datenschutz
 # context: a Quick setups choice that puts every switch back the way it started
 Back to defaults	Zurück zum Standard
 Hides ads, suggested accounts and posts, surveys and promotions.	Blendet Werbung, vorgeschlagene Konten und Beiträge, Umfragen und Werbeaktionen aus.
-Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.	Verbirgt deine Gesehen-Bestätigungen, dein Tippen und deinen Aktivitätsstatus. Erlaubt Screenshots und stoppt Link-Tracking und Nutzungsberichte.
+Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.	Verbirgt deine Gesehen-Bestätigungen, dein Tippen und deinen Aktivitätsstatus. Erlaubt Screenshots und bereinigt geteilte Links. Stoppt den Alarm zum Hochladen von Analysedaten.
 Puts every switch back the way it started. Your locks stay as they are.	Setzt alle Schalter auf ihren Ausgangszustand zurück. Deine Sperren bleiben, wie sie sind.
 # context: toast after a Quick setups choice changed exactly one switch
 Changed %1$d setting	%1$d Einstellung geändert

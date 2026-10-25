@@ -1054,7 +1054,7 @@ Privacy	개인정보 보호
 # context: a Quick setups choice that puts every switch back the way it started
 Back to defaults	기본값으로 되돌리기
 Hides ads, suggested accounts and posts, surveys and promotions.	광고, 추천 계정과 게시물, 설문, 홍보를 숨깁니다.
-Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.	읽음 표시, 입력 중 표시, 활동 상태를 숨깁니다. 스크린샷을 허용하고 링크 추적과 사용 보고를 막습니다.
+Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.	읽음 표시, 입력 중 표시, 활동 상태를 숨깁니다. 스크린샷을 허용하고 공유 링크를 정리합니다. 분석 데이터 업로드 알람을 중지합니다.
 Puts every switch back the way it started. Your locks stay as they are.	모든 스위치를 처음 상태로 되돌립니다. 잠금은 그대로 유지됩니다.
 # context: toast after a Quick setups choice changed exactly one switch
 Changed %1$d setting	설정 %1$d개를 바꿨습니다

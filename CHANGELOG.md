@@ -21,6 +21,7 @@ Every HushGram release, newest first.
 * **Instagram:** Font imports finish reading and closing their provider before replacing a live font. Failed or stale imports leave the current files alone, and reopening settings can't start a competing copy.
 * **Instagram:** Replacing an imported app font keeps Restart now available even when the font choice hasn't changed.
 * **Instagram:** Settings backups restore large selections of hidden Instagram settings rows. Selecting all 161 supported rows no longer causes that choice to be skipped.
+* **Instagram:** Privacy quick setup describes the analytics upload alarm it disables. It no longer promises to stop every usage report.
 * **Instagram:** `Hide suggested posts` keeps native paging when a filtered page retains a real post, even before its list is displayed. Header-only pages can still finish.
 * **Instagram:** `Glass tab bar` blur recovers after a temporary capture failure on a still screen. Automatic retries stay bounded, and pending work stops when the bar leaves or HushGram pauses.
 * **Instagram:** `Story text fonts` puts local fonts before Instagram's paid section, so selecting one doesn't open a Plus offer. Instagram's paid fonts keep their subscription checks. Reported in #275 and #325.

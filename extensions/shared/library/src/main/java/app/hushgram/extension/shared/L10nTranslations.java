@@ -1099,8 +1099,8 @@ public final class L10nTranslations {
                 "Blendet die Statusleiste und die Navigationsleiste aus, solange Reels angezeigt wird. Wische vom Rand herein, um sie kurz wieder einzublenden. Zur\u00fcck und die Tastatur funktionieren wie gewohnt.");
         table.put("Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.",
                 "Blendet die Statusleiste und die Navigationsleiste aus, solange deine Nachrichten oder ein Chat angezeigt werden. Wische vom Rand herein, um sie kurz wieder einzublenden. Zur\u00fcck und die Tastatur funktionieren wie gewohnt.");
-        table.put("Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.",
-                "Verbirgt deine Gesehen-Best\u00e4tigungen, dein Tippen und deinen Aktivit\u00e4tsstatus. Erlaubt Screenshots und stoppt Link-Tracking und Nutzungsberichte.");
+        table.put("Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.",
+                "Verbirgt deine Gesehen-Best\u00e4tigungen, dein Tippen und deinen Aktivit\u00e4tsstatus. Erlaubt Screenshots und bereinigt geteilte Links. Stoppt den Alarm zum Hochladen von Analysedaten.");
         table.put("Hiding reels with %1$s",
                 "Reels mit %1$s werden ausgeblendet");
         table.put("Highest",
@@ -3550,8 +3550,8 @@ public final class L10nTranslations {
                 "Oculta la barra de estado y la barra de navegaci\u00f3n mientras se muestran los Reels. Desliza desde el borde para volver a mostrarlas un momento. Atr\u00e1s y el teclado funcionan como siempre.");
         table.put("Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.",
                 "Oculta la barra de estado y la barra de navegaci\u00f3n mientras se muestran tus mensajes o un chat. Desliza desde el borde para volver a mostrarlas un momento. Atr\u00e1s y el teclado funcionan como siempre.");
-        table.put("Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.",
-                "Oculta tus confirmaciones de visto, cu\u00e1ndo escribes y tu estado de actividad. Permite capturas de pantalla y detiene el rastreo de enlaces y los informes de uso.");
+        table.put("Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.",
+                "Oculta tus confirmaciones de visto, cu\u00e1ndo escribes y tu estado de actividad. Permite capturas de pantalla y limpia los enlaces compartidos. Detiene la alarma de subida de datos de an\u00e1lisis.");
         table.put("Hiding reels with %1$s",
                 "Ocultando reels con %1$s");
         table.put("Highest",
@@ -6001,8 +6001,8 @@ public final class L10nTranslations {
                 "Menyembunyikan bilah status dan bilah navigasi saat Reels ditampilkan. Geser dari tepi untuk menampilkannya kembali sebentar. Tombol Kembali dan keyboard tetap berfungsi seperti biasa.");
         table.put("Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.",
                 "Menyembunyikan bilah status dan bilah navigasi saat pesanmu atau sebuah chat ditampilkan. Geser dari tepi untuk menampilkannya kembali sebentar. Tombol Kembali dan keyboard tetap berfungsi seperti biasa.");
-        table.put("Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.",
-                "Menyembunyikan tanda dilihat, status mengetik, dan status aktifmu. Mengizinkan tangkapan layar serta menghentikan pelacakan tautan dan laporan penggunaan.");
+        table.put("Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.",
+                "Menyembunyikan tanda dilihat, status mengetik, dan status aktifmu. Mengizinkan tangkapan layar dan membersihkan tautan yang dibagikan. Menghentikan alarm unggahan analitik.");
         table.put("Hiding reels with %1$s",
                 "Menyembunyikan reel dengan %1$s");
         table.put("Highest",
@@ -8452,8 +8452,8 @@ public final class L10nTranslations {
                 "Nasconde la barra di stato e la barra di navigazione mentre si vedono i reel. Scorri dal bordo verso l'interno per riportarle un attimo. Indietro e la tastiera funzionano come al solito.");
         table.put("Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.",
                 "Nasconde la barra di stato e la barra di navigazione mentre si vedono i tuoi messaggi o una chat. Scorri dal bordo verso l'interno per riportarle un attimo. Indietro e la tastiera funzionano come al solito.");
-        table.put("Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.",
-                "Nasconde le conferme di lettura, la scrittura e lo stato di attivit\u00e0. Consente gli screenshot e ferma il tracciamento dei link e i report di utilizzo.");
+        table.put("Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.",
+                "Nasconde le conferme di lettura, la scrittura e lo stato di attivit\u00e0. Consente gli screenshot e pulisce i link condivisi. Ferma l'allarme per il caricamento dei dati di analisi.");
         table.put("Hiding reels with %1$s",
                 "Nascondo i reel con %1$s");
         table.put("Highest",
@@ -10903,8 +10903,8 @@ public final class L10nTranslations {
                 "\ub9b4\uc2a4\uac00 \ud45c\uc2dc\ub418\ub294 \ub3d9\uc548 \uc0c1\ud0dc \ud45c\uc2dc\uc904\uacfc \ud0d0\uc0c9 \ub9c9\ub300\ub97c \uc228\uae41\ub2c8\ub2e4. \uac00\uc7a5\uc790\ub9ac\uc5d0\uc11c \uc548\ucabd\uc73c\ub85c \ubc00\uba74 \uc7a0\uae50 \ub2e4\uc2dc \ub098\ud0c0\ub0a9\ub2c8\ub2e4. \ub4a4\ub85c \uac00\uae30\uc640 \ud0a4\ubcf4\ub4dc\ub294 \ud3c9\uc18c\ucc98\ub7fc \uc791\ub3d9\ud569\ub2c8\ub2e4.");
         table.put("Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.",
                 "\uba54\uc2dc\uc9c0 \ubaa9\ub85d\uc774\ub098 \ucc44\ud305\uc774 \ud45c\uc2dc\ub418\ub294 \ub3d9\uc548 \uc0c1\ud0dc \ud45c\uc2dc\uc904\uacfc \ud0d0\uc0c9 \ub9c9\ub300\ub97c \uc228\uae41\ub2c8\ub2e4. \uac00\uc7a5\uc790\ub9ac\uc5d0\uc11c \uc548\ucabd\uc73c\ub85c \ubc00\uba74 \uc7a0\uae50 \ub2e4\uc2dc \ub098\ud0c0\ub0a9\ub2c8\ub2e4. \ub4a4\ub85c \uac00\uae30\uc640 \ud0a4\ubcf4\ub4dc\ub294 \ud3c9\uc18c\ucc98\ub7fc \uc791\ub3d9\ud569\ub2c8\ub2e4.");
-        table.put("Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.",
-                "\uc77d\uc74c \ud45c\uc2dc, \uc785\ub825 \uc911 \ud45c\uc2dc, \ud65c\ub3d9 \uc0c1\ud0dc\ub97c \uc228\uae41\ub2c8\ub2e4. \uc2a4\ud06c\ub9b0\uc0f7\uc744 \ud5c8\uc6a9\ud558\uace0 \ub9c1\ud06c \ucd94\uc801\uacfc \uc0ac\uc6a9 \ubcf4\uace0\ub97c \ub9c9\uc2b5\ub2c8\ub2e4.");
+        table.put("Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.",
+                "\uc77d\uc74c \ud45c\uc2dc, \uc785\ub825 \uc911 \ud45c\uc2dc, \ud65c\ub3d9 \uc0c1\ud0dc\ub97c \uc228\uae41\ub2c8\ub2e4. \uc2a4\ud06c\ub9b0\uc0f7\uc744 \ud5c8\uc6a9\ud558\uace0 \uacf5\uc720 \ub9c1\ud06c\ub97c \uc815\ub9ac\ud569\ub2c8\ub2e4. \ubd84\uc11d \ub370\uc774\ud130 \uc5c5\ub85c\ub4dc \uc54c\ub78c\uc744 \uc911\uc9c0\ud569\ub2c8\ub2e4.");
         table.put("Hiding reels with %1$s",
                 "%1$s \uc0ac\uc6b4\ub4dc\uc758 \ub9b4\uc2a4\ub97c \uc228\uae41\ub2c8\ub2e4");
         table.put("Highest",
@@ -13354,8 +13354,8 @@ public final class L10nTranslations {
                 "Oculta a barra de status e a barra de navega\u00e7\u00e3o enquanto os Reels aparecem. Deslize a partir da borda para mostr\u00e1-las por um instante. Voltar e o teclado funcionam como sempre.");
         table.put("Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.",
                 "Oculta a barra de status e a barra de navega\u00e7\u00e3o enquanto suas mensagens ou uma conversa aparecem. Deslize a partir da borda para mostr\u00e1-las por um instante. Voltar e o teclado funcionam como sempre.");
-        table.put("Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.",
-                "Oculta suas confirma\u00e7\u00f5es de visualiza\u00e7\u00e3o, quando voc\u00ea digita e seu status de atividade. Permite capturas de tela e interrompe o rastreamento de links e os relat\u00f3rios de uso.");
+        table.put("Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.",
+                "Oculta suas confirma\u00e7\u00f5es de visualiza\u00e7\u00e3o, quando voc\u00ea digita e seu status de atividade. Permite capturas de tela e limpa os links compartilhados. Interrompe o alarme de envio de dados de an\u00e1lise.");
         table.put("Hiding reels with %1$s",
                 "Ocultando reels com %1$s");
         table.put("Highest",
@@ -15805,8 +15805,8 @@ public final class L10nTranslations {
                 "Reels g\u00f6r\u00fcn\u00fcrken durum \u00e7ubu\u011funu ve gezinme \u00e7ubu\u011funu gizler. K\u0131sa s\u00fcreli\u011fine geri getirmek i\u00e7in kenardan i\u00e7eri kayd\u0131r. Geri ve klavye her zamanki gibi \u00e7al\u0131\u015f\u0131r.");
         table.put("Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.",
                 "Mesajlar\u0131n veya bir sohbet g\u00f6r\u00fcn\u00fcrken durum \u00e7ubu\u011funu ve gezinme \u00e7ubu\u011funu gizler. K\u0131sa s\u00fcreli\u011fine geri getirmek i\u00e7in kenardan i\u00e7eri kayd\u0131r. Geri ve klavye her zamanki gibi \u00e7al\u0131\u015f\u0131r.");
-        table.put("Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.",
-                "G\u00f6r\u00fcld\u00fc bilgini, yaz\u0131yor g\u00f6stergesini ve etkinlik durumunu gizler. Ekran g\u00f6r\u00fcnt\u00fclerine izin verir, ba\u011flant\u0131 takibini ve kullan\u0131m raporlar\u0131n\u0131 durdurur.");
+        table.put("Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.",
+                "G\u00f6r\u00fcld\u00fc bilgini, yaz\u0131yor g\u00f6stergesini ve etkinlik durumunu gizler. Ekran g\u00f6r\u00fcnt\u00fclerine izin verir ve payla\u015f\u0131lan ba\u011flant\u0131lar\u0131 temizler. Analiz verilerini y\u00fckleme alarm\u0131n\u0131 durdurur.");
         table.put("Hiding reels with %1$s",
                 "%1$s kullanan reel'ler gizleniyor");
         table.put("Highest",
@@ -18256,8 +18256,8 @@ public final class L10nTranslations {
                 "\u986f\u793a Reels \u6642\u96b1\u85cf\u72c0\u614b\u5217\u8207\u5c0e\u89bd\u5217\u3002\u5f9e\u908a\u7de3\u5411\u5167\u6ed1\u52d5\u53ef\u77ed\u66ab\u986f\u793a\u3002\u8fd4\u56de\u8207\u9375\u76e4\u4ecd\u53ef\u7167\u5e38\u4f7f\u7528\u3002");
         table.put("Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.",
                 "\u986f\u793a\u79c1\u8a0a\u6216\u804a\u5929\u6642\u96b1\u85cf\u72c0\u614b\u5217\u8207\u5c0e\u89bd\u5217\u3002\u5f9e\u908a\u7de3\u5411\u5167\u6ed1\u52d5\u53ef\u77ed\u66ab\u986f\u793a\u3002\u8fd4\u56de\u8207\u9375\u76e4\u4ecd\u53ef\u7167\u5e38\u4f7f\u7528\u3002");
-        table.put("Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.",
-                "\u96b1\u85cf\u5df2\u8b80\u6a19\u8a18\u3001\u6b63\u5728\u8f38\u5165\u8207\u4e0a\u7dda\u72c0\u614b\u3002\u5141\u8a31\u622a\u5716\uff0c\u4e26\u505c\u7528\u9023\u7d50\u8ffd\u8e64\u8207\u4f7f\u7528\u60c5\u6cc1\u56de\u5831\u3002");
+        table.put("Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.",
+                "\u96b1\u85cf\u5df2\u8b80\u6a19\u8a18\u3001\u6b63\u5728\u8f38\u5165\u8207\u4e0a\u7dda\u72c0\u614b\u3002\u5141\u8a31\u622a\u5716\u4e26\u6e05\u7406\u5206\u4eab\u9023\u7d50\u3002\u505c\u7528\u5206\u6790\u8cc7\u6599\u4e0a\u50b3\u7684\u9b27\u9418\u3002");
         table.put("Hiding reels with %1$s",
                 "\u5df2\u96b1\u85cf\u4f7f\u7528 %1$s \u7684 Reels");
         table.put("Highest",

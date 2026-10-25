@@ -41,7 +41,7 @@ Traditional Chinese translation
 JhouHank contributed the Traditional Chinese (Taiwan) translation in PR #313.
 The table was imported from commit
 95b2fd99e642f8f1d0a8563ba36fe7af1c21f933, under GPL-3.0-only.
-Three font-placement hints were later updated with the story-font picker fix.
+Font-placement hints and the Privacy quick-setup description have been maintained here.
 https://github.com/SysAdminDoc/HushGram/pull/313
 https://github.com/JhouHank/HushGram
 

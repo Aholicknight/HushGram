@@ -1667,7 +1667,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         CharSequence[] names = {L10n.t("Quiet"), L10n.t("Privacy"), L10n.t("Back to defaults")};
         CharSequence[] details = {
                 L10n.t("Hides ads, suggested accounts and posts, surveys and promotions."),
-                L10n.t("Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports."),
+                L10n.t("Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm."),
                 L10n.t("Puts every switch back the way it started. Your locks stay as they are.")};
         AlertDialog dialog = show(new AlertDialog.Builder(themed(context))
                 .setTitle(L10n.t("Quick setups"))

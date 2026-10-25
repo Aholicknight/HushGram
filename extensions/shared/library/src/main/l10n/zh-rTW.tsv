@@ -1053,7 +1053,7 @@ Privacy	隱私
 # context: a Quick setups choice that puts every switch back the way it started
 Back to defaults	還原預設值
 Hides ads, suggested accounts and posts, surveys and promotions.	隱藏廣告、建議帳號、推薦貼文、問卷與推廣內容。
-Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.	隱藏已讀標記、正在輸入與上線狀態。允許截圖，並停用連結追蹤與使用情況回報。
+Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.	隱藏已讀標記、正在輸入與上線狀態。允許截圖並清理分享連結。停用分析資料上傳的鬧鐘。
 Puts every switch back the way it started. Your locks stay as they are.	將所有開關還原為初始狀態。鎖定設定維持不變。
 # context: toast after a Quick setups choice changed exactly one switch
 Changed %1$d setting	已變更 %1$d 項設定
