@@ -17,6 +17,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.service.notification.StatusBarNotification;
 
 import org.junit.After;
 import org.junit.Before;
@@ -26,6 +27,11 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
+import org.robolectric.shadows.ShadowNotificationManager;
+
+import java.util.Objects;
 
 import java.util.function.BooleanSupplier;
 
@@ -39,7 +45,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /** Where Group Instagram's notifications puts each notification Instagram posts, and when it leaves it alone. */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = {28, 37})
+@Config(sdk = {28, 37}, shadows = NotificationGroupsTest.PlatformNotificationManager.class)
 public class NotificationGroupsTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
@@ -349,5 +355,73 @@ public class NotificationGroupsTest {
 
         assertNull(summary(NotificationGroups.ONE_GROUP));
         assertEquals(2, shadowOf(manager).size());
+    }
+
+    /**
+     * NotificationManagerService cancels ordinary children when their summary is cancelled.
+     * The default shadow only removes the named notification. These cases keep the existing
+     * preservation assertions and model that verified platform boundary.
+     */
+    @Implements(NotificationManager.class)
+    public static class PlatformNotificationManager extends ShadowNotificationManager {
+        @Implementation
+        protected void cancel(int id) {
+            cancel(null, id);
+        }
+
+        @Implementation
+        protected void cancel(String tag, int id) {
+            Notification previous = getNotification(tag, id);
+            super.cancel(tag, id);
+            if (summary(previous)) cancelChildren(previous.getGroup());
+        }
+
+        private void cancelChildren(String group) {
+            if (group == null) return;
+            for (StatusBarNotification child : getActiveNotifications()) {
+                Notification notification = child.getNotification();
+                if (Objects.equals(group, notification.getGroup()) && !summary(notification)
+                        && (notification.flags & Notification.FLAG_FOREGROUND_SERVICE) == 0) {
+                    super.cancel(child.getTag(), child.getId());
+                }
+            }
+        }
+
+        private static boolean summary(Notification notification) {
+            return notification != null && (notification.flags & Notification.FLAG_GROUP_SUMMARY) != 0;
+        }
+    }
+
+    @Test
+    public void platformSummaryCancellationRemovesOrdinaryChildrenInThatGroup() {
+        manager.notify("child", 20, new Notification.Builder(context, "direct")
+                .setSmallIcon(android.R.drawable.ic_dialog_info).setGroup("native-group").build());
+        manager.notify("other", 21, new Notification.Builder(context, "direct")
+                .setSmallIcon(android.R.drawable.ic_dialog_info).setGroup("other-group").build());
+        manager.notify("summary", 22, new Notification.Builder(context, "direct")
+                .setSmallIcon(android.R.drawable.ic_dialog_info).setGroup("native-group")
+                .setGroupSummary(true).build());
+
+        manager.cancel("summary", 22);
+
+        assertNull(shown("child", 20));
+        assertNotNull(shown("other", 21));
+    }
+
+    @Test
+    public void platformChildCancellationLeavesItsSiblingAndSummary() {
+        manager.notify("child", 20, new Notification.Builder(context, "direct")
+                .setSmallIcon(android.R.drawable.ic_dialog_info).setGroup("native-group").build());
+        manager.notify("sibling", 21, new Notification.Builder(context, "direct")
+                .setSmallIcon(android.R.drawable.ic_dialog_info).setGroup("native-group").build());
+        manager.notify("summary", 22, new Notification.Builder(context, "direct")
+                .setSmallIcon(android.R.drawable.ic_dialog_info).setGroup("native-group")
+                .setGroupSummary(true).build());
+
+        manager.cancel("child", 20);
+
+        assertNull(shown("child", 20));
+        assertNotNull(shown("sibling", 21));
+        assertNotNull(shown("summary", 22));
     }
 }
