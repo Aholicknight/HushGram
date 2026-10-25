@@ -411,6 +411,8 @@
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/direct/PinPersistenceTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/SettingsLockPersistenceTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/ConfigurationSelectionBackupTest.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/ConfigurationGuardTest.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/SettingsDeferredSaveTest.java",
         "extensions/instagram/src/test/resources/settings-row-ids-452.json",
         "patches/src/test/kotlin/app/morphe/patches/instagram/misc/extension/RuntimeFloorTest.kt"
       ],

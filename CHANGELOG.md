@@ -17,6 +17,9 @@ Every HushGram release, newest first.
 * **Instagram:** A failed PIN save keeps the setup form open and reports the failure. The PIN and its retry counters are saved together.
 * **Instagram:** PIN retry limits still apply in the current process when their counters can't be saved.
 * **Instagram:** `HushGram settings` saves a timed lock and its wait together. Lock, unlock and wait actions no longer report success after a failed write.
+* **Instagram:** `HushGram settings` checks the current lock before an editor or delayed action saves. Imports and Undo check again at their write boundary, and a held Undo remains available until its original deadline.
+* **Instagram:** Font imports finish reading and closing their provider before replacing a live font. Failed or stale imports leave the current files alone, and reopening settings can't start a competing copy.
+* **Instagram:** Replacing an imported app font keeps Restart now available even when the font choice hasn't changed.
 * **Instagram:** Settings backups restore large selections of hidden Instagram settings rows. Selecting all 161 supported rows no longer causes that choice to be skipped.
 * **Instagram:** `Hide suggested posts` keeps native paging when a filtered page retains a real post, even before its list is displayed. Header-only pages can still finish.
 * **Instagram:** `Glass tab bar` blur recovers after a temporary capture failure on a still screen. Automatic retries stay bounded, and pending work stops when the bar leaves or HushGram pauses.

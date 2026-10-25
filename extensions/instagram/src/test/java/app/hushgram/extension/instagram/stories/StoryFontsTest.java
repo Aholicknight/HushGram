@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.stories;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -29,6 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import app.hushgram.extension.instagram.misc.FontsForTests;
+import app.hushgram.extension.instagram.misc.Fonts;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -345,6 +347,38 @@ public class StoryFontsTest {
         StoryFonts.formats(after);
         assertEquals(4, after.size());
         assertEquals(List.of("Lobster (3).ttf", "Lobster.ttf"), StoryFonts.names(context));
+    }
+
+    /** The first editor list after restart recovers before caching any local paths. */
+    @Test public void theFirstStoryListOmitsAnUnacceptedFontWhenAlreadyEnabled() {
+        abandonStoryFont();
+        List<Object> list = instagrams();
+        StoryFonts.formats(list);
+        assertEquals(3, list.size());
+        assertEquals("kept.ttf", new File(((Format) list.get(2)).path).getName());
+        assertFalse(new File(StoryFonts.directory(context), "pending.ttf").exists());
+        assertTrue("the existing saved switch stays on", Settings.STORY_FONTS.savedValue());
+    }
+
+    @Test public void theFirstSavedFontListRecoversWithoutAnotherImport() {
+        abandonStoryFont();
+        assertEquals(List.of("kept.ttf"), StoryFonts.names(context));
+        assertFalse(new File(StoryFonts.directory(context), "pending.ttf").exists());
+    }
+
+    private void abandonStoryFont() {
+        Settings.STORY_FONTS.save(true);
+        assertEquals("kept.ttf", add("kept.ttf"));
+        Fonts.Prepared pending = StoryFonts.prepare(context, new ByteArrayInputStream(TRUE_TYPE));
+        assertNotNull(pending);
+        assertEquals("pending.ttf", StoryFonts.prepareInstall(context, pending, "pending.ttf"));
+        assertTrue(pending.recordSetting(Settings.STORY_FONTS, true));
+        assertTrue(pending.install());
+        FontsForTests.reset();
+        FontsForTests.loadEveryFile(Typeface.DEFAULT);
+        StoryFonts.resetForTests();
+        StoryFonts.formatFor = Format::new;
+        StoryFonts.premiumOf = format -> format instanceof String && ((String) format).startsWith("paid:") ? 1 : 0;
     }
 
     /** The picker's name, made safe for a file: no folders, no control characters, never empty, not too long. */

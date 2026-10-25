@@ -204,6 +204,7 @@ public final class StoryFonts {
 
     /** The kept files' paths, listed once until a font is added or taken out. */
     static List<String> paths(Context context) {
+        if (!Fonts.readyForRead(directory(context))) return Collections.emptyList();
         List<String> known = paths;
         if (known != null) return known;
         List<String> listed = new ArrayList<>();
@@ -215,7 +216,9 @@ public final class StoryFonts {
 
     /** The kept font files, sorted by name, leaving out a copy still being made. */
     static List<File> files(Context context) {
-        File[] all = directory(context).listFiles();
+        File directory = directory(context);
+        if (!Fonts.readyForRead(directory)) return Collections.emptyList();
+        File[] all = directory.listFiles();
         if (all == null) return Collections.emptyList();
         List<File> kept = new ArrayList<>();
         for (File file : all) {
@@ -242,13 +245,29 @@ public final class StoryFonts {
      * that isn't a font HushGram can use, keeping nothing. Off the main thread.
      */
     @Nullable
-    public static String add(Context context, InputStream input, @Nullable String shown) {
+    public static synchronized String add(Context context, InputStream input, @Nullable String shown) {
         File directory = directory(context);
         String name = freeName(directory, cleanName(shown));
         if (!Fonts.keep(input, new File(directory, name))) return null;
         paths = null;
         return name;
     }
+
+    /** A private stage, still absent from the story editor and the saved-font list. */
+    @Nullable
+    public static Fonts.Prepared prepare(Context context, InputStream input) {
+        return Fonts.prepare(input, directory(context));
+    }
+
+    /** Keep this class locked until the prepared installation is accepted or rolled back. */
+    @Nullable
+    public static String prepareInstall(Context context, Fonts.Prepared prepared, @Nullable String shown) {
+        File directory = directory(context);
+        String name = freeName(directory, cleanName(shown));
+        return prepared.prepareTarget(new File(directory, name)) ? name : null;
+    }
+
+    public static void installed() { paths = null; }
 
     /** Takes out the kept font called [name]. Answers whether it's gone. */
     public static boolean remove(Context context, String name) {
