@@ -309,7 +309,8 @@ public final class ConfigurationBackup {
     static Object accepted(Setting<?> setting, String declared, Object value) {
         Object fallback = setting.defaultValue;
         if (fallback instanceof Boolean) return "boolean".equals(declared) && value instanceof Boolean ? value : null;
-        int longest = setting == Settings.REELS_BLOCKED_WORDS ? MAX_WORDS_TEXT : MAX_TEXT;
+        int longest = setting == Settings.REELS_BLOCKED_WORDS || setting == Settings.HIDDEN_SETTINGS_ROWS
+                ? MAX_WORDS_TEXT : MAX_TEXT;
         if (!(value instanceof String) || ((String) value).length() > longest) return null;
         if (fallback instanceof Enum) {
             if (!"enum".equals(declared)) return null;
