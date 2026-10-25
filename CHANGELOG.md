@@ -6,17 +6,21 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
-* **Instagram - Hide suggested posts:** Home keeps native paging when a filtered page retains a real post, even before its list is displayed. Header-only pages can still finish.
-* **Instagram - Glass tab bar:** Blur recovers after a temporary capture failure on a still screen. Automatic retries stay bounded, and pending work stops when the bar leaves or HushGram pauses.
-* **Instagram - Story text fonts:** Local fonts appear before Instagram's paid section, so selecting one doesn't open a Plus offer. Instagram's paid fonts keep their subscription checks. Reported in #275 and #325.
-* **Instagram - View stories anonymously:** Watched-story sorting keeps your own story, Create and special tray entries in their original positions. Ordinary story rings keep their order within the unseen and watched groups.
-* **Instagram - HushGram settings:** Patched builds require Android 9 on every ABI, including the two 32-bit APKs Instagram ships for Android 8. Manifest checks verify that floor and preserve any higher vendor minimum.
-* **Instagram - Show if a profile follows you:** Recent unfollowers waits for unique followers to match the account's count. Short lists and older queued saves can't replace a newer snapshot, and failed saves can be retried.
+* **Instagram:** Canceling a download can finish while DNS, proxy discovery or response setup is still waiting. Late responses can't write a file, and repeated cancellations keep a bounded number of workers.
+* **Instagram:** The downloader closes opened response streams on success and failure. Cache bytes stay only after a successful close.
+* **Instagram:** Closing `Save profile picture` stops its fetch even when the general background workers are busy.
+* **Instagram:** `Hide suggested posts` keeps native paging when a filtered page retains a real post, even before its list is displayed. Header-only pages can still finish.
+* **Instagram:** `Glass tab bar` blur recovers after a temporary capture failure on a still screen. Automatic retries stay bounded, and pending work stops when the bar leaves or HushGram pauses.
+* **Instagram:** `Story text fonts` puts local fonts before Instagram's paid section, so selecting one doesn't open a Plus offer. Instagram's paid fonts keep their subscription checks. Reported in #275 and #325.
+* **Instagram:** `View stories anonymously` keeps your own story, Create and special tray entries in their original positions during watched-story sorting. Ordinary story rings keep their order within the unseen and watched groups.
+* **Instagram:** `HushGram settings` requires Android 9 on every ABI, including the two 32-bit APKs Instagram ships for Android 8. Manifest checks verify that floor and preserve any higher vendor minimum.
+* **Instagram:** `Show if a profile follows you` waits for unique followers to match the account's count before recording recent unfollowers. Short lists and older queued saves can't replace a newer snapshot, and failed saves can be retried.
 
 ### Improvements
 
 * **Instagram:** Added Traditional Chinese (Taiwan), contributed by JhouHank in #313. Traditional Chinese script preferences and Hong Kong or Macao locales use the new table.
 * **Tooling:** GitHub release notes now read like Hushfacebook's. A short summary comes first, then plain grouped bullets with no Instagram label, the update steps and what was checked.
+
 
 ## 0.0.16 (2026-10-24)
 
