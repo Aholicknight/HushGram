@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Hide suggested posts:** Home keeps native paging when a filtered page retains a real post, even before its list is displayed. Header-only pages can still finish.
 * **Instagram - Story text fonts:** Local fonts appear before Instagram's paid section, so selecting one doesn't open a Plus offer. Instagram's paid fonts keep their subscription checks. Reported in #275 and #325.
 * **Instagram - View stories anonymously:** Watched-story sorting keeps your own story, Create and special tray entries in their original positions. Ordinary story rings keep their order within the unseen and watched groups.
 * **Instagram - HushGram settings:** Patched builds require Android 9 on every ABI, including the two 32-bit APKs Instagram ships for Android 8. Manifest checks verify that floor and preserve any higher vendor minimum.
