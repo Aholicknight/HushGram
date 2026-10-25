@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Bug Fixes
+
+* **Instagram - Show if a profile follows you:** Recent unfollowers waits for unique followers to match the account's count. Short lists and older queued saves can't replace a newer snapshot, and failed saves can be retried.
+
 ### Improvements
 
 * **Tooling:** GitHub release notes now read like Hushfacebook's. A short summary comes first, then plain grouped bullets with no Instagram label, the update steps and what was checked.

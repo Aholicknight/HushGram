@@ -195,6 +195,8 @@ In Expert mode the patches are grouped under Ads, Ghost mode, Privacy, Messages,
 
 The patches with a switch keep it in `HushGram settings`, so Morphe Manager includes that patch whenever any of them is picked. Seven work as soon as they're patched in, with no switch: HushGram settings, Restore trust on re-signed builds, Remove the advertising ID, Start on x86 devices, Change version code, Install next to Instagram and Pure black dark mode. **Set when you patched**, near the bottom of HushGram settings, lists the ones your build has.
 
+Recent unfollowers only updates after your own Followers list loads completely and matches the account's follower count. If the counts disagree, your previous saved list stays. It doesn't make extra requests to fill the gap.
+
 ## Settings
 
 Inside Instagram, long-press the Instagram logo at the top of your feed. A tap still does what Instagram made it do, and the long press works while HushGram is paused. From your home screen, long-press Instagram's icon and tap **HushGram settings**. Or open **Settings and activity** from the menu on your profile and tap **HushGram settings** at the top. The shortcut works before you sign in too. Under **Settings entry** you can also pick a tab, or your profile's menu button, whose long press opens HushGram. Every way in has a switch there, so you can keep just the one you like. The last one still on can't be turned off.
