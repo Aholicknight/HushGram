@@ -260,10 +260,12 @@ For something that's broken, use the [bug form](https://github.com/SysAdminDoc/H
 | arm64-v8a builds | `385811006` (the one Manager is told about) |
 | armeabi-v7a builds | `385811005`, for older 32-bit phones |
 | x86 and x86_64 builds | `385811007` (x86) and `385811008` (x86_64), for emulators and Intel phones |
-| Minimum Android version | Android 9 (API 28) for arm64-v8a and x86_64, Android 8 (API 26) for armeabi-v7a and x86 |
+| Minimum Android version | Android 9 (API 28) for every ABI |
 | Where to get it | [APKMirror](https://www.apkmirror.com/apk/instagram/instagram-instagram/) |
 
 Other Instagram versions haven't been checked. Meta can publish different APKs under one version name, so go by the build number too.
+
+Patching raises the minimum to Android 9 for the two 32-bit builds, which Instagram ships with an Android 8 minimum. HushGram's settings use Android 9 APIs.
 
 Meta signs genuine Instagram builds with one of two certificates, and Morphe Manager warns before it patches an APK signed with any other key. To check a file yourself, run `apksigner verify --print-certs` (from Android's build tools) on the base APK and look for one of these certificate SHA-256 digests:
 
