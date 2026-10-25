@@ -9,6 +9,7 @@ Every HushGram release, newest first.
 * **Instagram:** Canceling a download can finish while DNS, proxy discovery or response setup is still waiting. Late responses can't write a file, and repeated cancellations keep a bounded number of workers.
 * **Instagram:** The downloader closes opened response streams on success and failure. Cache bytes stay only after a successful close.
 * **Instagram:** Closing `Save profile picture` stops its fetch even when the general background workers are busy.
+* **Instagram:** `Download any video` adds source metadata to JPEG photos saved through Save all and Choose pages, as it does for a single photo. Videos and other image formats stay unchanged.
 * **Instagram:** `Hide suggested posts` keeps native paging when a filtered page retains a real post, even before its list is displayed. Header-only pages can still finish.
 * **Instagram:** `Glass tab bar` blur recovers after a temporary capture failure on a still screen. Automatic retries stay bounded, and pending work stops when the bar leaves or HushGram pauses.
 * **Instagram:** `Story text fonts` puts local fonts before Instagram's paid section, so selecting one doesn't open a Plus offer. Instagram's paid fonts keep their subscription checks. Reported in #275 and #325.

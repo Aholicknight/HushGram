@@ -332,6 +332,7 @@ public final class MediaSave {
                         saved++;
                         if (result.lower) lower++;
                         DownloadHistory.record(application, key, writer, page.details);
+                        if (!page.video) PostMetadata.tag(application, writer, page.details);
                     } else if (result.status == Downloader.Status.CANCELLED) {
                         skipped += snapshot.size() - index;
                         cancelled = true;
