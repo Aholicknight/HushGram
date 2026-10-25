@@ -197,6 +197,8 @@ The patches with a switch keep it in `HushGram settings`, so Morphe Manager incl
 
 Recent unfollowers only updates after your own Followers list loads completely and matches the account's follower count. If the counts disagree, your previous saved list stays. It doesn't make extra requests to fill the gap.
 
+Watched-story sorting leaves your own story and Instagram's special tray entries in place. It moves ordinary watched story rings behind unseen ones when View stories anonymously and Gray out stories you've watched are both on.
+
 ## Settings
 
 Inside Instagram, long-press the Instagram logo at the top of your feed. A tap still does what Instagram made it do, and the long press works while HushGram is paused. From your home screen, long-press Instagram's icon and tap **HushGram settings**. Or open **Settings and activity** from the menu on your profile and tap **HushGram settings** at the top. The shortcut works before you sign in too. Under **Settings entry** you can also pick a tab, or your profile's menu button, whose long press opens HushGram. Every way in has a switch there, so you can keep just the one you like. The last one still on can't be turned off.
