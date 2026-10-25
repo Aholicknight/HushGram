@@ -1022,4 +1022,46 @@ public class TapToPlayTest {
             return 1;
         }
     }
+
+    /** A Reels move only authorizes the Reel it moves to. A separate Feed player waits for its tap. */
+    @Test
+    @Config(sdk = {28, 37})
+    public void anAutoScrollMoveDoesNotStartFeedOrSpendItsCreditThere() {
+        TapToPlay.autoScrolled();
+        SystemClock.sleep(800);
+        assertFalse("a known Feed player's start is not the Reels move", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        Object reel = new Object();
+        assertTrue("the intended Reel still has the move", TapToPlay.allowStart(reel, "autoplay", 1));
+        assertTrue("its direct start keeps the known Reels classification", TapToPlay.allowDirectStart(reel, "autoplay"));
+    }
+
+    @Test
+    @Config(sdk = {28, 37})
+    public void anAutoScrollMoveDoesNotStartAnUnknownDirectPlayerOrSpendItsCreditThere() {
+        TapToPlay.autoScrolled();
+        SystemClock.sleep(800);
+        assertFalse("a direct/story player not identified as Reels waits", TapToPlay.allowDirectStart(new Object(), "autoplay"));
+        assertTrue("the intended Reel still has the move", TapToPlay.allowStart(new Object(), "autoplay", 1));
+    }
+
+    @Test
+    @Config(sdk = {28, 37})
+    public void aUserTapOnFeedDoesNotUseAnIndependentReelsMove() {
+        TapToPlay.autoScrolled();
+        tapAt(SystemClock.uptimeMillis());
+        SystemClock.sleep(200);
+        assertTrue("a genuine tap still starts Feed", TapToPlay.allowStart(new Object(), "resume", 0));
+        SystemClock.sleep(1200);
+        assertTrue("after the tap's general window, the Reel still has its move", TapToPlay.allowStart(new Object(), "autoplay", 1));
+    }
+
+    @Test
+    @Config(sdk = {28, 37})
+    public void aDirectPlayerAlreadyIdentifiedAsReelsCanUseItsMove() {
+        Object reel = new Object();
+        assertFalse("held at first, with no tap", TapToPlay.allowStart(reel, "autoplay", 1));
+        TapToPlay.autoScrolled();
+        SystemClock.sleep(800);
+        assertTrue("its later direct start is still known to be Reels", TapToPlay.allowDirectStart(reel, "autoplay"));
+    }
 }

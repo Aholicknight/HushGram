@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** `Tap to play` keeps a Reels auto-scroll allowance for the next Reel. Feed and unidentified players can't spend it, and a real tap on Feed still works.
 * **Instagram:** Canceling a download can finish while DNS, proxy discovery or response setup is still waiting. Late responses can't write a file, and repeated cancellations keep a bounded number of workers.
 * **Instagram:** The downloader closes opened response streams on success and failure. Cache bytes stay only after a successful close.
 * **Instagram:** Closing `Save profile picture` stops its fetch even when the general background workers are busy.
