@@ -2850,7 +2850,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         show(builder.setPositiveButton(L10n.t("OK"), null));
     }
 
-    /** The row that opens the list of font files the story text editor shows after Instagram's own. */
+    /** The row that opens the list of font files the story text editor shows alongside Instagram's own. */
     Row storyFontsRow(Context context) {
         Row row = new Row(context);
         row.setKey(STORY_FONTS_ROW);
@@ -2877,7 +2877,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Your story fonts"));
         if (names.isEmpty()) {
             builder.setMessage(L10n.t("No fonts added yet. Add a .ttf or .otf file and it shows up in the story "
-                    + "text editor, after Instagram's fonts."));
+                    + "text editor alongside Instagram's fonts."));
         } else {
             CharSequence[] shown = new CharSequence[names.size()];
             for (int i = 0; i < shown.length; i++) shown[i] = L10n.isolate(names.get(i));
@@ -2944,7 +2944,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             Settings.STORY_FONTS.save(true);
             Preference row = isAdded() ? findPreference(Settings.STORY_FONTS.key) : null;
             if (row instanceof TwoStatePreference) ((TwoStatePreference) row).setChecked(true);
-            Utils.showToastLong(L10n.f("Added %1$s. Pick it in the story text editor, after Instagram's fonts.",
+            Utils.showToastLong(L10n.f("Added %1$s. Pick it in the story text editor alongside Instagram's fonts.",
                     L10n.isolate(name)));
         }
         if (isAdded()) showStoryFonts();

@@ -1235,14 +1235,14 @@ Instagram's own. Pick another to change the icon on your home screen and in the 
 the home screen icon you picked	ikon layar utama yang kamu pilih
 # context: Your fonts in story text switch under Stories and the Your story fonts row and dialog under it; the fonts are .ttf or .otf files picked from the phone, shown in Instagram's story text editor after its own
 Your fonts in story text	Fontmu di teks cerita
-Adds the fonts below to the story text editor, after Instagram's own fonts, which all stay. Pick one there like any other font.	Menambahkan font di bawah ke editor teks cerita, setelah font milik Instagram, yang semuanya tetap ada. Pilih di sana seperti font lainnya.
+Adds the fonts below to the story text editor alongside Instagram's own fonts, which all stay. Pick one there like any other font.	Menambahkan font di bawah ke editor teks cerita bersama font milik Instagram, yang semuanya tetap ada. Pilih di sana seperti font lainnya.
 Your story fonts	Font ceritamu
 Add .ttf or .otf files from your phone. Uncheck one to take it out.	Tambahkan file .ttf atau .otf dari ponselmu. Hapus centang untuk mengeluarkannya.
-No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor, after Instagram's fonts.	Belum ada font yang ditambahkan. Tambahkan file .ttf atau .otf dan font itu muncul di editor teks cerita, setelah font Instagram.
+No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor alongside Instagram's fonts.	Belum ada font yang ditambahkan. Tambahkan file .ttf atau .otf dan font itu muncul di editor teks cerita bersama font Instagram.
 Add a font file	Tambahkan file font
 Removed from your story fonts	Dihapus dari font ceritamu
 That file isn't a font HushGram can use. Nothing was added.	File itu bukan font yang bisa dipakai HushGram. Tidak ada yang ditambahkan.
-Added %1$s. Pick it in the story text editor, after Instagram's fonts.	%1$s ditambahkan. Pilih di editor teks cerita, setelah font Instagram.
+Added %1$s. Pick it in the story text editor alongside Instagram's fonts.	%1$s ditambahkan. Pilih di editor teks cerita bersama font Instagram.
 # context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
 Logo and titles at the start	Logo dan judul di awal
 Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Menempatkan logo Instagram dan judul setiap bilah di awal bilah, tempat Instagram dulu menampilkannya. Nyalakan jika Instagram menengahkannya untukmu. Ini lebih diutamakan daripada sakelar tengahkan di atas. Mulai ulang Instagram untuk melihat perubahannya di Beranda.

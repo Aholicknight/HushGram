@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Story text fonts:** Local fonts appear before Instagram's paid section, so selecting one doesn't open a Plus offer. Instagram's paid fonts keep their subscription checks. Reported in #275 and #325.
 * **Instagram - View stories anonymously:** Watched-story sorting keeps your own story, Create and special tray entries in their original positions. Ordinary story rings keep their order within the unseen and watched groups.
 * **Instagram - HushGram settings:** Patched builds require Android 9 on every ABI, including the two 32-bit APKs Instagram ships for Android 8. Manifest checks verify that floor and preserve any higher vendor minimum.
 * **Instagram - Show if a profile follows you:** Recent unfollowers waits for unique followers to match the account's count. Short lists and older queued saves can't replace a newer snapshot, and failed saves can be retried.

@@ -1235,14 +1235,14 @@ Instagram's own. Pick another to change the icon on your home screen and in the 
 the home screen icon you picked	l'icona della schermata Home che hai scelto
 # context: Your fonts in story text switch under Stories and the Your story fonts row and dialog under it; the fonts are .ttf or .otf files picked from the phone, shown in Instagram's story text editor after its own
 Your fonts in story text	I tuoi caratteri nel testo delle storie
-Adds the fonts below to the story text editor, after Instagram's own fonts, which all stay. Pick one there like any other font.	Aggiunge i caratteri qui sotto all'editor di testo delle storie, dopo quelli di Instagram, che restano tutti. Sceglilo lì come qualsiasi altro carattere.
+Adds the fonts below to the story text editor alongside Instagram's own fonts, which all stay. Pick one there like any other font.	Aggiunge i caratteri qui sotto all'editor di testo delle storie insieme a quelli di Instagram, che restano tutti. Sceglili lì come qualsiasi altro carattere.
 Your story fonts	I tuoi caratteri per le storie
 Add .ttf or .otf files from your phone. Uncheck one to take it out.	Aggiungi file .ttf o .otf dal telefono. Togli la spunta per rimuoverne uno.
-No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor, after Instagram's fonts.	Nessun carattere aggiunto. Aggiungi un file .ttf o .otf e comparirà nell'editor di testo delle storie, dopo i caratteri di Instagram.
+No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor alongside Instagram's fonts.	Nessun carattere aggiunto. Aggiungi un file .ttf o .otf e comparirà nell'editor di testo delle storie insieme ai caratteri di Instagram.
 Add a font file	Aggiungi un file di carattere
 Removed from your story fonts	Rimosso dai tuoi caratteri per le storie
 That file isn't a font HushGram can use. Nothing was added.	Quel file non è un carattere che HushGram può usare. Non è stato aggiunto nulla.
-Added %1$s. Pick it in the story text editor, after Instagram's fonts.	%1$s aggiunto. Sceglilo nell'editor di testo delle storie, dopo i caratteri di Instagram.
+Added %1$s. Pick it in the story text editor alongside Instagram's fonts.	%1$s aggiunto. Sceglilo nell'editor di testo delle storie insieme ai caratteri di Instagram.
 # context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
 Logo and titles at the start	Logo e titoli all'inizio
 Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Mette il logo di Instagram e il titolo di ogni barra all'inizio della barra, dove Instagram li mostrava prima. Attivalo se Instagram te li centra. Ha la precedenza sugli interruttori per centrare qui sopra. Riavvia Instagram per vedere la modifica nella Home.

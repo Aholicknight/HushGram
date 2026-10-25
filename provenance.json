@@ -13,7 +13,7 @@
         "https://github.com/crimera/piko"
       ],
       "license": "GPL-3.0-only with Piko's section 7(b) attribution notice",
-      "changes": "JhouHank's Traditional Chinese (Taiwan) table from HushGram PR #313, retained unchanged. The contributor declares their Piko translations as a terminology reference; its exact source revision is not supplied. Piko's attribution is preserved in the table and NOTICE. No Piko implementation is imported."
+      "changes": "JhouHank's Traditional Chinese (Taiwan) table imported from HushGram PR #313. Three font-placement hints were later updated with the story-font picker fix. The contributor declares their Piko translations as a terminology reference; its exact source revision is not supplied. Piko's attribution is preserved in the table and NOTICE. No Piko implementation is imported."
     },
     {
       "paths": [

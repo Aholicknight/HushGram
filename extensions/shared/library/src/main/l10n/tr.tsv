@@ -1235,14 +1235,14 @@ Instagram's own. Pick another to change the icon on your home screen and in the 
 the home screen icon you picked	seçtiğin ana ekran simgesi
 # context: Your fonts in story text switch under Stories and the Your story fonts row and dialog under it; the fonts are .ttf or .otf files picked from the phone, shown in Instagram's story text editor after its own
 Your fonts in story text	Hikaye metninde kendi yazı tiplerin
-Adds the fonts below to the story text editor, after Instagram's own fonts, which all stay. Pick one there like any other font.	Aşağıdaki yazı tiplerini hikaye metin düzenleyicisine, Instagram'ın kendi yazı tiplerinden sonra ekler. Onların hepsi yerinde kalır. Orada diğer yazı tipleri gibi birini seç.
+Adds the fonts below to the story text editor alongside Instagram's own fonts, which all stay. Pick one there like any other font.	Aşağıdaki yazı tiplerini hikaye metin düzenleyicisine Instagram'ın kendi yazı tipleriyle birlikte ekler. Onların hepsi yerinde kalır. Orada diğer yazı tipleri gibi birini seç.
 Your story fonts	Hikaye yazı tiplerin
 Add .ttf or .otf files from your phone. Uncheck one to take it out.	Telefonundan .ttf veya .otf dosyaları ekle. Çıkarmak için işaretini kaldır.
-No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor, after Instagram's fonts.	Henüz yazı tipi eklenmedi. Bir .ttf veya .otf dosyası ekle, hikaye metin düzenleyicisinde Instagram'ın yazı tiplerinden sonra görünür.
+No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor alongside Instagram's fonts.	Henüz yazı tipi eklenmedi. Bir .ttf veya .otf dosyası ekle, hikaye metin düzenleyicisinde Instagram'ın yazı tipleriyle birlikte görünür.
 Add a font file	Yazı tipi dosyası ekle
 Removed from your story fonts	Hikaye yazı tiplerinden çıkarıldı
 That file isn't a font HushGram can use. Nothing was added.	Bu dosya HushGram'ın kullanabileceği bir yazı tipi değil. Hiçbir şey eklenmedi.
-Added %1$s. Pick it in the story text editor, after Instagram's fonts.	%1$s eklendi. Hikaye metin düzenleyicisinde Instagram'ın yazı tiplerinden sonra onu seç.
+Added %1$s. Pick it in the story text editor alongside Instagram's fonts.	%1$s eklendi. Hikaye metin düzenleyicisinde Instagram'ın yazı tipleriyle birlikte onu seç.
 # context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
 Logo and titles at the start	Logo ve başlıklar başta
 Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Instagram logosunu ve her çubuğun başlığını, Instagram'ın eskiden gösterdiği gibi çubuğun başına koyar. Instagram bunları senin için ortalıyorsa aç. Yukarıdaki ortalama anahtarlarından önce gelir. Değişikliği Ana sayfada görmek için Instagram'ı yeniden başlat.
