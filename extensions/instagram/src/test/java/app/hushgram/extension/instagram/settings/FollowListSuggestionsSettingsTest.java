@@ -120,7 +120,7 @@ public class FollowListSuggestionsSettingsTest {
         assertFalse(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.get());
         assertTrue(Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.savedValue());
     }
-    /** #181: Hide suggestions in notifications comes right after Hide People you don't follow back, starts off, is a quick setup switch, is kept in a backup and answers off while paused. */
+    /** #181: Hide suggestions in notifications comes right after Hide People you don't follow back, starts off, is kept in a backup and answers off while paused. */
     @Test public void hideSuggestionsInNotificationsComesNextAndStartsOff() throws Exception {
         open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
         android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_NOTIFICATION_SUGGESTIONS.key);

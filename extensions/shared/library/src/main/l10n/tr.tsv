@@ -1041,27 +1041,13 @@ Loading the picture...	Fotoğraf yükleniyor...
 Report a problem	Sorun bildir
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Sürümlerin ve ayarların önceden doldurulmuş bir GitHub raporu açar. Ne olduğunu ekle.
 # context: the settings row under Search, and the title of its dialog of one-tap choices
-Quick setups	Hızlı kurulumlar
-Quiet, Privacy, or back to defaults. Hold to hide.	Sessiz, Gizlilik veya varsayılanlara dön. Gizlemek için basılı tut.
 # context: row on Settings backup that hides or shows the Quick setups row on the home page, and its two summaries
-Quick setups on the home page	Ana sayfada hızlı kurulumlar
-Shown. Tap to hide it.	Gösteriliyor. Gizlemek için dokun.
-Hidden. Tap to show it again.	Gizli. Yeniden göstermek için dokun.
 # context: toast after a long press hides Quick setups; the page named is Settings backup
-Quick setups hidden. Bring it back from %1$s.	Hızlı kurulumlar gizlendi. %1$s sayfasından geri getirebilirsin.
 # context: a Quick setups choice that hides ads, suggestions and promotions
-Quiet	Sessiz
 # context: a Quick setups choice that turns on the privacy switches
-Privacy	Gizlilik
 # context: a Quick setups choice that puts every switch back the way it started
-Back to defaults	Varsayılanlara dön
-Hides ads, suggested accounts and posts, surveys and promotions.	Reklamları, önerilen hesapları ve gönderileri, anketleri ve tanıtımları gizler.
-Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.	Görüldü bilgini, yazıyor göstergesini ve etkinlik durumunu gizler. Ekran görüntülerine izin verir ve paylaşılan bağlantıları temizler. Analiz verilerini yükleme alarmını durdurur.
-Puts every switch back the way it started. Your locks stay as they are.	Tüm anahtarları başlangıçtaki hâline döndürür. Kilitlerin olduğu gibi kalır.
 # context: toast after a Quick setups choice changed exactly one switch
-Changed %1$d setting	%1$d ayar değiştirildi
 # context: the same toast for any other count, zero included; %1$d is how many
-Changed %1$d settings	%1$d ayar değiştirildi
 Hide the reply bar on reels from chats	Sohbetlerden açılan reels'te yanıt çubuğunu gizle
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Bir sohbetten açtığın reels'in altındaki yanıt kutusu, tepkileri ve artı düğmesiyle birlikte. Sohbetin kendi mesaj kutusu kalır.
 # context: Layout list title; it picks the font Instagram's text draws in

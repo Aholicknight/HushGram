@@ -1040,27 +1040,13 @@ Loading the picture...	사진을 불러오는 중...
 Report a problem	문제 신고하기
 Opens a GitHub report with your versions and settings filled in. Add what happened.	버전과 설정이 미리 채워진 GitHub 신고를 엽니다. 무슨 일이 있었는지 적어 주세요.
 # context: the settings row under Search, and the title of its dialog of one-tap choices
-Quick setups	빠른 설정
-Quiet, Privacy, or back to defaults. Hold to hide.	조용하게, 개인정보 보호 또는 기본값으로 되돌리기. 길게 눌러 숨기세요.
 # context: row on Settings backup that hides or shows the Quick setups row on the home page, and its two summaries
-Quick setups on the home page	홈 페이지의 빠른 설정
-Shown. Tap to hide it.	표시 중입니다. 탭하면 숨깁니다.
-Hidden. Tap to show it again.	숨겨져 있습니다. 탭하면 다시 표시합니다.
 # context: toast after a long press hides Quick setups; the page named is Settings backup
-Quick setups hidden. Bring it back from %1$s.	빠른 설정을 숨겼습니다. %1$s에서 다시 표시할 수 있습니다.
 # context: a Quick setups choice that hides ads, suggestions and promotions
-Quiet	조용하게
 # context: a Quick setups choice that turns on the privacy switches
-Privacy	개인정보 보호
 # context: a Quick setups choice that puts every switch back the way it started
-Back to defaults	기본값으로 되돌리기
-Hides ads, suggested accounts and posts, surveys and promotions.	광고, 추천 계정과 게시물, 설문, 홍보를 숨깁니다.
-Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.	읽음 표시, 입력 중 표시, 활동 상태를 숨깁니다. 스크린샷을 허용하고 공유 링크를 정리합니다. 분석 데이터 업로드 알람을 중지합니다.
-Puts every switch back the way it started. Your locks stay as they are.	모든 스위치를 처음 상태로 되돌립니다. 잠금은 그대로 유지됩니다.
 # context: toast after a Quick setups choice changed exactly one switch
-Changed %1$d setting	설정 %1$d개를 바꿨습니다
 # context: the same toast for any other count, zero included; %1$d is how many
-Changed %1$d settings	설정 %1$d개를 바꿨습니다
 Hide the reply bar on reels from chats	채팅에서 연 릴스의 답장 창 숨기기
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	채팅에서 연 릴스 아래의 답장 입력란과 반응, 더하기 버튼입니다. 채팅의 메시지 입력란은 그대로 남습니다.
 # context: Layout list title; it picks the font Instagram's text draws in

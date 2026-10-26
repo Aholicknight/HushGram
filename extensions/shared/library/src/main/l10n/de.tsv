@@ -1041,27 +1041,13 @@ Loading the picture...	Bild wird geladen...
 Report a problem	Ein Problem melden
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Öffnet einen GitHub-Bericht, in dem deine Versionen und Einstellungen schon stehen. Schreib dazu, was passiert ist.
 # context: the settings row under Search, and the title of its dialog of one-tap choices
-Quick setups	Schnelleinstellungen
-Quiet, Privacy, or back to defaults. Hold to hide.	Ruhig, Datenschutz oder zurück zum Standard. Zum Ausblenden gedrückt halten.
 # context: row on Settings backup that hides or shows the Quick setups row on the home page, and its two summaries
-Quick setups on the home page	Schnelleinstellungen auf der Startseite
-Shown. Tap to hide it.	Angezeigt. Tippe, um sie auszublenden.
-Hidden. Tap to show it again.	Ausgeblendet. Tippe, um sie wieder einzublenden.
 # context: toast after a long press hides Quick setups; the page named is Settings backup
-Quick setups hidden. Bring it back from %1$s.	Schnelleinstellungen ausgeblendet. Du findest sie wieder unter „%1$s“.
 # context: a Quick setups choice that hides ads, suggestions and promotions
-Quiet	Ruhig
 # context: a Quick setups choice that turns on the privacy switches
-Privacy	Datenschutz
 # context: a Quick setups choice that puts every switch back the way it started
-Back to defaults	Zurück zum Standard
-Hides ads, suggested accounts and posts, surveys and promotions.	Blendet Werbung, vorgeschlagene Konten und Beiträge, Umfragen und Werbeaktionen aus.
-Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.	Verbirgt deine Gesehen-Bestätigungen, dein Tippen und deinen Aktivitätsstatus. Erlaubt Screenshots und bereinigt geteilte Links. Stoppt den Alarm zum Hochladen von Analysedaten.
-Puts every switch back the way it started. Your locks stay as they are.	Setzt alle Schalter auf ihren Ausgangszustand zurück. Deine Sperren bleiben, wie sie sind.
 # context: toast after a Quick setups choice changed exactly one switch
-Changed %1$d setting	%1$d Einstellung geändert
 # context: the same toast for any other count, zero included; %1$d is how many
-Changed %1$d settings	%1$d Einstellungen geändert
 Hide the reply bar on reels from chats	Antwortleiste bei Reels aus Chats ausblenden
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Das Antwortfeld unter einem Reel, das du aus einem Chat öffnest, mit seinen Reaktionen und dem Plus-Button. Das Nachrichtenfeld des Chats selbst bleibt.
 # context: Layout list title; it picks the font Instagram's text draws in

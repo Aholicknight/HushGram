@@ -435,9 +435,8 @@ public class SettingsRowAccessibilityTest {
         open(PatchFamily.HIDE_ADS);
         Preference preference = page.findPreference(Settings.HIDE_ADS.key);
         View view = row(preference);
-        // TalkBack brings a row it focuses fully on screen. Quick setups (216e5598) pushed this one
-        // past the bottom, and on API 28 a row cut off there came back as a new view once its summary
-        // shortened.
+        // TalkBack brings a row it focuses fully on screen. On API 28 a row cut off at the
+        // bottom can come back as a new view once its summary shortens.
         ListView list = page.getView().findViewById(android.R.id.list);
         if (view.getBottom() > list.getHeight()) {
             list.scrollListBy(view.getBottom() - list.getHeight());

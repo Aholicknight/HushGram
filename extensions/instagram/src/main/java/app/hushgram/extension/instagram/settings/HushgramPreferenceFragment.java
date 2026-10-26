@@ -155,7 +155,6 @@ import app.hushgram.extension.shared.settings.preference.ExportDiagnosticReportP
 import app.hushgram.extension.shared.settings.preference.ExportStatus;
 import app.hushgram.extension.shared.settings.preference.ImmediateAction;
 import app.hushgram.extension.shared.settings.preference.LogBufferManager;
-import app.hushgram.extension.shared.settings.preference.QuickSetups;
 
 /**
  * The preference list, built in code rather than from an XML resource so the bundle adds no
@@ -177,12 +176,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String SUPPORT_ROW_KEY = "action_support_hushgram";
     /** The row right above Support HushGram that opens a filled-in bug report on GitHub. */
     static final String REPORT_ROW_KEY = "action_report_problem";
-    /** The row under Search that offers Quiet, Privacy and Back to defaults. */
-    static final String QUICK_SETUPS_ROW_KEY = "action_quick_setups";
     /** Lock these settings (#301), right under Pause HushGram. */
     static final String LOCK_ROW_KEY = "hushgram_settings_lock_row";
-    /** Settings backup's row that hides or shows the Quick setups row on the home page. */
-    static final String RESTORE_QUICK_SETUPS_ROW_KEY = "action_restore_quick_setups";
     /** The English of the row listing what Pause can't reach, and its key in {@link L10n}. */
     static final String STAYS_WHILE_PAUSED = "Stays in while paused";
     /** The Before you sign in notice's key, which finds it on the screen. */
@@ -270,8 +265,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Nullable private Row support;
     /** Report a problem, right above Support HushGram. */
     @Nullable private Row report;
-    /** Quick setups, right under Search. */
-    @Nullable private Row quickSetups;
     /** Keep the actual row objects, including their values and listeners, while filtering. */
     private final Map<PreferenceCategory, List<Preference>> searchableRows = new LinkedHashMap<>();
     private final Map<Preference, String> searchAliases = new HashMap<>();
@@ -385,12 +378,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             list.setDivider(null);
             list.setDividerHeight(0);
             list.setBackgroundColor(Color.BLACK);
-            // A long press on Quick setups takes it off the home, and Settings backup brings it back.
-            list.setOnItemLongClickListener((parent, row, position, id) -> {
-                if (quickSetups == null || parent.getItemAtPosition(position) != quickSetups) return false;
-                if (SettingsLock.locked()) return false;
-                return hideQuickSetups();
-            });
         }
         showTitle(openCategory == null ? null : openCategory.getTitle());
     }
@@ -556,20 +543,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         BackupCategory.add(this, screen, context, build);
         PauseCategory.add(this, screen, context, build);
         AboutCategory.add(this, screen, context, build);
-
-        // Outside every category, so no category page or count changes. Under Search and
-        // above the first category, whose line on its own page takes the order just before it.
-        Row quick = quickSetups = new Row(context);
-        quick.setKey(QUICK_SETUPS_ROW_KEY);
-        quick.setTitle(L10n.t("Quick setups"));
-        quick.setSummary(L10n.t("Quiet, Privacy, or back to defaults. Hold to hide."));
-        quick.setPersistent(false);
-        quick.setOrder(-5);
-        quick.setOnPreferenceClickListener(p -> {
-            showQuickSetups();
-            return true;
-        });
-        mark(quick, SettingsIcons.TOOLS);
 
         // Outside every category, like Support HushGram below it. Every row counts toward the
         // switches it lists, the ones a category page or a search keeps off the screen too.
@@ -1299,16 +1272,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         // The rows outside every category: the home page (and a search each matches) shows them,
         // a category's page doesn't.
-        Row[] loose = {quickSetups, report, support};
-        String[] looseAliases = {" preset quiet privacy defaults reset", " github bug issue", " ko-fi kofi donate coffee"};
+        Row[] loose = {report, support};
+        String[] looseAliases = {" github bug issue", " ko-fi kofi donate coffee"};
         for (int i = 0; i < loose.length; i++) {
             Row row = loose[i];
             if (row == null) continue;
             String text = searchText(row.getTitle()) + " " + searchText(row.getSummary()) + looseAliases[i];
             boolean match = true;
             for (String term : terms) if (!text.contains(term)) { match = false; break; }
-            // A long press took Quick setups off the home, and a search leaves it off too.
-            if (row == quickSetups && Settings.HIDE_QUICK_SETUPS.savedValue()) match = false;
             boolean shown = match && (terms.length > 0 || !pages || openCategory == null);
             if (terms.length > 0 && match) matches++;
             if (shown) {
@@ -1340,7 +1311,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             lockHolds = state == SettingsLock.State.LOCKED || state == SettingsLock.State.WAITING;
             if (lockHolds) {
                 for (Preference row : everyRow()) holdLocked(row);
-                holdLocked(quickSetups);
                 closeMutatingDialogs();
             } else if (!lockedRows.isEmpty()) {
                 for (Preference row : lockedRows) row.setEnabled(true);
@@ -1584,9 +1554,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             rank(section.getKey(), !named);
         }
-        // Quick setups sits above every section, so a search that only matched its aliases listed
-        // it ahead of the rows named for the search.
-        if (quickSetups != null) rank(quickSetups, !holdsAll(searchText(quickSetups.getTitle()), terms));
     }
 
     /**
@@ -1639,76 +1606,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             line.setTitle(text);
             screen.addPreference(line);
         }
-    }
-
-    /** What the Settings backup row says about the Quick setups row on the home page. */
-    static String restoreQuickSetupsSummary() {
-        return Settings.HIDE_QUICK_SETUPS.savedValue() ? L10n.t("Hidden. Tap to show it again.") : L10n.t("Shown. Tap to hide it.");
-    }
-
-    /** A long press on Quick setups: the row leaves the home at once and a toast says where it went. */
-    private boolean hideQuickSetups() {
-        if (!Settings.HIDE_QUICK_SETUPS.save(true)) return false;
-        Preference restore = findPreference(RESTORE_QUICK_SETUPS_ROW_KEY);
-        if (restore != null) restore.setSummary(restoreQuickSetupsSummary());
-        filterSettings();
-        Utils.showToastLong(L10n.f("Quick setups hidden. Bring it back from %1$s.", L10n.t("Settings backup")));
-        return true;
-    }
-
-    /**
-     * Quick setups: Quiet, Privacy or Back to defaults, each changing its switches at once
-     * ({@link QuickSetupKeys}), then a toast saying how many changed. A switch that needs a restart
-     * turns the status card into Restart now the way a tap on it would.
-     */
-    void showQuickSetups() {
-        Context context = getContext();
-        if (context == null) return;
-        List<Map<BooleanSetting, Boolean>> choices = Arrays.asList(
-                QuickSetupKeys.quiet(), QuickSetupKeys.privacy(), QuickSetupKeys.defaults());
-        CharSequence[] names = {L10n.t("Quiet"), L10n.t("Privacy"), L10n.t("Back to defaults")};
-        CharSequence[] details = {
-                L10n.t("Hides ads, suggested accounts and posts, surveys and promotions."),
-                L10n.t("Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm."),
-                L10n.t("Puts every switch back the way it started. Your locks stay as they are.")};
-        AlertDialog dialog = show(new AlertDialog.Builder(themed(context))
-                .setTitle(L10n.t("Quick setups"))
-                .setAdapter(new ChoiceCards(ScreenColors.DEFAULT, names, details),
-                        (shown, which) -> applyQuickSetup(choices.get(which)))
-                .setNegativeButton(L10n.t("Cancel"), null));
-        ListView list = dialog == null ? null : dialog.getListView();
-        if (list != null) {
-            // The cards bring their own spacing and press ripple, as in the diagnostic report's choices.
-            list.setDivider(null);
-            list.setSelector(new ColorDrawable(Color.TRANSPARENT));
-        }
-    }
-
-    /**
-     * Applies one Quick setups choice to every switch on this page, the ones a category page or a
-     * search keeps off the screen too, and says how many changed. While Instagram is locked it
-     * waits for the phone's lock, as a settings file does. Switches that need a restart say so
-     * once between them.
-     */
-    int applyQuickSetup(Map<BooleanSetting, Boolean> values) {
-        // Lock these settings (#301): Back to defaults would be the way around the lock.
-        if (SettingsLock.locked()) {
-            sayLocked();
-            return 0;
-        }
-        if (MessagesLock.locked()) {
-            Activity activity = getActivity();
-            if (activity != null) MessagesLock.confirmThen(activity, () -> applyQuickSetup(values));
-            return 0;
-        }
-        Context context = getContext();
-        if (getPreferenceScreen() == null || context == null) return 0;
-        int[] count = {0};
-        AbstractPreferenceFragment.restartNoteOnce(context,
-                () -> count[0] = QuickSetups.apply(this::findPreference, values));
-        int changed = count[0];
-        Utils.showToastLong(L10n.quantity(changed, "Changed %1$d setting", "Changed %1$d settings", changed));
-        return changed;
     }
 
     /** Every row in the categories, on the screen or kept off it by a category page or a search. */

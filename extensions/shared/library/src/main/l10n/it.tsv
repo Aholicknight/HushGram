@@ -1041,27 +1041,13 @@ Loading the picture...	Caricamento dell'immagine...
 Report a problem	Segnala un problema
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Apre una segnalazione su GitHub con le tue versioni e impostazioni già compilate. Aggiungi cos'è successo.
 # context: the settings row under Search, and the title of its dialog of one-tap choices
-Quick setups	Configurazioni rapide
-Quiet, Privacy, or back to defaults. Hold to hide.	Silenzioso, Privacy o torna ai predefiniti. Tieni premuto per nascondere.
 # context: row on Settings backup that hides or shows the Quick setups row on the home page, and its two summaries
-Quick setups on the home page	Configurazioni rapide nella pagina iniziale
-Shown. Tap to hide it.	Visibile. Tocca per nasconderla.
-Hidden. Tap to show it again.	Nascosta. Tocca per mostrarla di nuovo.
 # context: toast after a long press hides Quick setups; the page named is Settings backup
-Quick setups hidden. Bring it back from %1$s.	Configurazioni rapide nascoste. Riportale da %1$s.
 # context: a Quick setups choice that hides ads, suggestions and promotions
-Quiet	Silenzioso
 # context: a Quick setups choice that turns on the privacy switches
-Privacy	Privacy
 # context: a Quick setups choice that puts every switch back the way it started
-Back to defaults	Torna ai predefiniti
-Hides ads, suggested accounts and posts, surveys and promotions.	Nasconde annunci, account e post suggeriti, sondaggi e promozioni.
-Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.	Nasconde le conferme di lettura, la scrittura e lo stato di attività. Consente gli screenshot e pulisce i link condivisi. Ferma l'allarme per il caricamento dei dati di analisi.
-Puts every switch back the way it started. Your locks stay as they are.	Rimette ogni interruttore come all'inizio. I tuoi blocchi restano come sono.
 # context: toast after a Quick setups choice changed exactly one switch
-Changed %1$d setting	Cambiata %1$d impostazione
 # context: the same toast for any other count, zero included; %1$d is how many
-Changed %1$d settings	Cambiate %1$d impostazioni
 Hide the reply bar on reels from chats	Nascondi la barra di risposta sui reel dalle chat
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	La casella Rispondi a sotto un reel che apri da una chat, con le sue reazioni e il pulsante più. La casella dei messaggi della chat resta.
 # context: Layout list title; it picks the font Instagram's text draws in

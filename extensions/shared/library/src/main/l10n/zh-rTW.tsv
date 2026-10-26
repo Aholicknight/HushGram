@@ -1039,27 +1039,13 @@ Loading the picture...	正在載入圖片…
 Report a problem	回報問題
 Opens a GitHub report with your versions and settings filled in. Add what happened.	開啟已填入版本與設定的 GitHub 問題回報，請補充發生的情況。
 # context: the settings row under Search, and the title of its dialog of one-tap choices
-Quick setups	快速設定
-Quiet, Privacy, or back to defaults. Hold to hide.	清靜、隱私，或還原預設值。長按即可隱藏。
 # context: row on Settings backup that hides or shows the Quick setups row on the home page, and its two summaries
-Quick setups on the home page	設定首頁的快速設定
-Shown. Tap to hide it.	已顯示。點擊即可隱藏。
-Hidden. Tap to show it again.	已隱藏。點擊即可重新顯示。
 # context: toast after a long press hides Quick setups; the page named is Settings backup
-Quick setups hidden. Bring it back from %1$s.	已隱藏快速設定，可從 %1$s 重新顯示。
 # context: a Quick setups choice that hides ads, suggestions and promotions
-Quiet	清靜
 # context: a Quick setups choice that turns on the privacy switches
-Privacy	隱私
 # context: a Quick setups choice that puts every switch back the way it started
-Back to defaults	還原預設值
-Hides ads, suggested accounts and posts, surveys and promotions.	隱藏廣告、建議帳號、推薦貼文、問卷與推廣內容。
-Hides your seen receipts, typing and active status. Allows screenshots and cleans shared links. Stops the analytics upload alarm.	隱藏已讀標記、正在輸入與上線狀態。允許截圖並清理分享連結。停用分析資料上傳的鬧鐘。
-Puts every switch back the way it started. Your locks stay as they are.	將所有開關還原為初始狀態。鎖定設定維持不變。
 # context: toast after a Quick setups choice changed exactly one switch
-Changed %1$d setting	已變更 %1$d 項設定
 # context: the same toast for any other count, zero included; %1$d is how many
-Changed %1$d settings	已變更 %1$d 項設定
 Hide the reply bar on reels from chats	隱藏從聊天開啟的 Reels 回覆列
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	隱藏從聊天開啟的 Reel 下方的回覆框、心情回應與加號按鈕。聊天本身的訊息輸入框仍會保留。
 # context: Layout list title; it picks the font Instagram's text draws in
