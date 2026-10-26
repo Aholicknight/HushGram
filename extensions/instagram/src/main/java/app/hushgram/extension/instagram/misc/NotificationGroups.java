@@ -322,7 +322,7 @@ public final class NotificationGroups {
             summary.setSmallIcon(context.getApplicationInfo().icon);
         }
         summary.setContentTitle(context.getApplicationInfo().loadLabel(context.getPackageManager()))
-                .setContentText(L10n.f("%d notifications", count))
+                .setContentText(L10n.quantity(count, "%d notification", "%d notifications", count))
                 .setNumber(count)
                 .setGroup(group)
                 .setGroupSummary(true)
@@ -356,7 +356,8 @@ public final class NotificationGroups {
             if (count > 0 || occupied.contains(group) || protectedGroup(group)) {
                 if (count > 0 && summary.number != count) {
                     Notification updated = Notification.Builder.recoverBuilder(Utils.getContext(), summary)
-                            .setContentText(L10n.f("%d notifications", count)).setNumber(count).build();
+                            .setContentText(L10n.quantity(count, "%d notification", "%d notifications", count))
+                            .setNumber(count).build();
                     manager.notify(SUMMARY_TAG, shown.getId(), updated);
                 }
                 continue;

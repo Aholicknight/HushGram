@@ -241,6 +241,52 @@ public class NotificationGroupsTest {
         return shown(NotificationGroups.SUMMARY_TAG, group.hashCode());
     }
 
+    @Test
+    @Config(qualifiers = "en-rUS")
+    public void recountUsesEnglishSingularAndPluralWithoutChangingChildren() {
+        NotificationGroups.post(manager, "first", 1, built("likes", "first"), ON, OFF);
+        NotificationGroups.post(manager, "second", 2, built("likes", "second"), ON, OFF);
+        NotificationGroups.post(manager, "third", 3, built("likes", "third"), ON, OFF);
+        Notification first = shown("first", 1);
+        Notification second = shown("second", 2);
+
+        NotificationGroups.withdraw(manager, "third", 3, ON);
+
+        assertEquals("2 notifications", summary(NotificationGroups.ONE_GROUP).extras
+                .getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertSame(first, shown("first", 1));
+        assertSame(second, shown("second", 2));
+        NotificationGroups.withdraw(manager, "first", 1, ON);
+
+        assertEquals("1 notification", summary(NotificationGroups.ONE_GROUP).extras
+                .getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertSame(second, shown("second", 2));
+        assertEquals(2, shadowOf(manager).size());
+    }
+
+    @Test
+    @Config(qualifiers = "en-rUS")
+    public void offCleanupUsesEnglishSingularAndPluralWithoutChangingChildren() {
+        NotificationGroups.post(manager, "first", 1, built("likes", "first"), ON, OFF);
+        NotificationGroups.post(manager, "second", 2, built("likes", "second"), ON, OFF);
+        NotificationGroups.post(manager, "third", 3, built("likes", "third"), ON, OFF);
+        Notification first = shown("first", 1);
+        Notification second = shown("second", 2);
+
+        NotificationGroups.withdraw(manager, "third", 3, OFF);
+
+        assertEquals("2 notifications", summary(NotificationGroups.ONE_GROUP).extras
+                .getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertSame(first, shown("first", 1));
+        assertSame(second, shown("second", 2));
+        NotificationGroups.withdraw(manager, "first", 1, OFF);
+
+        assertEquals("1 notification", summary(NotificationGroups.ONE_GROUP).extras
+                .getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertSame(second, shown("second", 2));
+        assertEquals(2, shadowOf(manager).size());
+    }
+
     /** Each cancel updates the count. The last child keeps its summary so cancelling it cannot dismiss that child. */
     @Test
     public void aCancelCountsTheSummaryAgain() {
