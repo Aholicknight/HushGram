@@ -31,6 +31,8 @@ Every HushGram release, newest first.
 * **Instagram:** `HushGram settings` requires Android 9 on every ABI, including the two 32-bit APKs Instagram ships for Android 8. Manifest checks verify that floor and preserve any higher vendor minimum.
 * **Instagram:** `Show if a profile follows you` waits for unique followers to match the account's count before recording recent unfollowers. Short lists and older queued saves can't replace a newer snapshot, and failed saves can be retried.
 
+* **Tooling:** Cached patch lookups now refresh when classes are added, replaced or removed. Unchanged classes keep their cached reads.
+
 #### Improvements
 
 * **Tooling:** Updated to Morphe patcher 2.0.1 and its matching Smali library. Morphe Manager 2.2.0 or newer is required.
