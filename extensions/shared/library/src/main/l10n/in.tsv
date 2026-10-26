@@ -164,12 +164,12 @@ Choose a folder name under Movies and Pictures. Invalid characters become unders
 Save	Simpan
 Folder name	Nama folder
 Folder set to %1$s.	Folder diatur menjadi %1$s.
-Video file name	Nama file video
+Download file name	Nama file unduhan
 %1$s becomes the date and time of the save, %2$s the video's number on Instagram, %3$s who posted it and %4$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %5$s.	%1$s diganti dengan tanggal dan waktu penyimpanan, %2$s dengan nomor video di Instagram, %3$s dengan nama pengunggahnya, dan %4$s dengan tanggal unggahnya. Yang tidak diketahui saat menyimpan akan dihilangkan, dan nama tanpa satu pun di antaranya akan ditambahi tanggal. Jika nama itu sudah ada di folder, waktu penyimpanan ditambahkan di akhir. Karakter yang tidak valid menjadi garis bawah. Kosongkan untuk memakai nama bawaan, %5$s.
 File name	Nama file
 File name set to %1$s.	Nama file diatur menjadi %1$s.
 Videos go to %1$s and photos to %2$s.	Video disimpan ke %1$s dan foto ke %2$s.
-Example without post details	Contoh tanpa detail postingan
+Example file name	Contoh nama file
 Cancel saving this video	Batalkan penyimpanan video ini
 Cancel saving this photo	Batalkan penyimpanan foto ini
 Download on reels	Unduh di reel
@@ -1257,3 +1257,5 @@ Every row of Instagram's Settings and activity shows. Untick the ones you don't 
 %1$d row is left off Instagram's Settings and activity.	%1$d baris dihapus dari Pengaturan dan aktivitas Instagram.
 %1$d rows are left off Instagram's Settings and activity.	%1$d baris dihapus dari Pengaturan dan aktivitas Instagram.
 Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.	Buka Pengaturan dan aktivitas di Instagram sekali, lalu kembali ke sini. Barisnya akan muncul di daftar ini untuk dihapus centangnya.
+%1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s adalah kode singkat postingan. Cerita dan postingan yang tidak diketahui mengosongkannya. Jika dipakai, templat ini juga menamai foto.
+Videos and photos use %1$s. Unknown codes are left out.	Video dan foto memakai %1$s. Kode yang tidak diketahui dihilangkan.

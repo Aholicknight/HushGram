@@ -169,12 +169,12 @@ Choose a folder name under Movies and Pictures. Invalid characters become unders
 Save	儲存
 Folder name	資料夾名稱
 Folder set to %1$s.	資料夾已設為 %1$s。
-Video file name	影片檔名
+Download file name	下載檔案名稱
 %1$s becomes the date and time of the save, %2$s the video's number on Instagram, %3$s who posted it and %4$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %5$s.	%1$s 代表儲存日期與時間，%2$s 代表影片在 Instagram 上的編號，%3$s 代表發佈者，%4$s 代表發佈日期。無法取得的資訊會略過；若名稱未包含這些項目，則會加入日期。資料夾內已有相同名稱時，會在結尾加上儲存時間。無效字元會替換為底線。留空則使用預設值 %5$s。
 File name	檔案名稱
 File name set to %1$s.	檔案名稱已設為 %1$s。
 Videos go to %1$s and photos to %2$s.	影片儲存至 %1$s，照片儲存至 %2$s。
-Example without post details	不含貼文資訊的範例
+Example file name	檔名範例
 Cancel saving this video	取消儲存此影片
 Cancel saving this photo	取消儲存此照片
 Download on reels	Reels 下載選項
@@ -1260,3 +1260,5 @@ That reel isn't on their profile. It might be a trial reel.	該 Reel 不在對�
 The red dots and counts for new messages and notifications take the color you picked. Restart Instagram to see the change.	新訊息和通知的紅點與數字會改用你選擇的顏色。請重新啟動 Instagram 以套用變更。
 Your fonts in story text	限時動態文字的自訂字型
 Your story fonts	你的限時動態字型
+%1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s 是貼文網址中的短代碼。限時動態和未知貼文會省略。加入此代碼後，範本也會用於相片檔名。
+Videos and photos use %1$s. Unknown codes are left out.	影片和相片使用 %1$s。未知的代碼會省略。

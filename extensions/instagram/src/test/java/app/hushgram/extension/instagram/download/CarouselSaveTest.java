@@ -141,6 +141,8 @@ public class CarouselSaveTest {
         MediaBridge.post = null;
         MediaBridge.poster = null;
         MediaBridge.postedAt = null;
+        MediaBridge.postId = null;
+        MediaBridge.story = null;
         MediaBridge.cover = null;
         MediaBridge.frames = null;
         CoverFrame.firstFrameForTests = null;
@@ -150,6 +152,7 @@ public class CarouselSaveTest {
         DownloadHistory.accounts = accounts;
         Settings.SAVE_NAME_BY_POST.resetToDefault();
         Settings.SAVE_PHOTO_METADATA.resetToDefault();
+        Settings.FILENAME_TEMPLATE.resetToDefault();
         MetadataExif.files.clear();
         MetadataExif.failures.clear();
         for (OutputStream stream : metadataStreams) stream.close();
@@ -168,6 +171,85 @@ public class CarouselSaveTest {
     private MediaSave.Item page(boolean video, String path, String id) {
         server.serve(path, video ? "video/mp4" : "image/jpeg", body(video));
         return new MediaSave.Item(video, SavesForTests.renditions(server.origin() + path), null, PostDetails.of(id));
+    }
+
+    @Test public void singlePostsUseTheirCodeWhileStorySavesKeepTheirUsualPrefixes() throws Exception {
+        Settings.FILENAME_TEMPLATE.save("{shortcode}");
+        List<PostDetails> handed = Collections.synchronizedList(new ArrayList<>());
+        MediaSave.detailsForTests = handed::add;
+        MediaSave.Item photo = page(false, "/post.jpg", "3549837394260045367");
+        MediaSave.Item video = page(true, "/post.mp4", "908540701891980503");
+        assertTrue(VideoDownload.save(photo, null, null));
+        waitForSaves();
+        assertTrue(VideoDownload.save(video, null, null));
+        waitForSaves();
+
+        MediaBridge.story = page(false, "/story.jpg", "3549837394260045367");
+        assertTrue(StoryDownload.save("Download", new Object()));
+        waitForSaves();
+        MediaBridge.story = page(true, "/story.mp4", "908540701891980503");
+        assertTrue(StoryDownload.save("Download", new Object()));
+        waitForSaves();
+
+        assertEquals("DFDjk1fRK43.jpg", gallery.rows.get(1L).getAsString(MediaStore.MediaColumns.DISPLAY_NAME));
+        assertEquals("ybyPRoQWzX.mp4", gallery.rows.get(2L).getAsString(MediaStore.MediaColumns.DISPLAY_NAME));
+        assertTrue(gallery.rows.toString(), gallery.rows.get(3L).getAsString(MediaStore.MediaColumns.DISPLAY_NAME)
+                .matches("IG_IMG_\\d{8}_\\d{6}\\.jpg"));
+        assertTrue(gallery.rows.toString(), gallery.rows.get(4L).getAsString(MediaStore.MediaColumns.DISPLAY_NAME)
+                .matches("IG_VID_\\d{8}_\\d{6}\\.mp4"));
+        assertEquals(4, handed.size());
+        assertEquals("DFDjk1fRK43", handed.get(0).shortcode);
+        assertEquals("ybyPRoQWzX", handed.get(1).shortcode);
+        assertNull(handed.get(2).shortcode);
+        assertNull(handed.get(3).shortcode);
+        for (ContentValues row : gallery.rows.values()) {
+            assertEquals(Integer.valueOf(0), row.getAsInteger(MediaStore.MediaColumns.IS_PENDING));
+        }
+        assertClean();
+    }
+
+    @Test @Config(sdk = {28, 37})
+    public void shortcodeOnlyCarouselNamesUseTheParentAndKeepRepeatedPages() throws Exception {
+        Shadows.shadowOf(RuntimeEnvironment.getApplication()).grantPermissions(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        for (String directory : new String[]{Environment.DIRECTORY_PICTURES, Environment.DIRECTORY_MOVIES}) {
+            File[] old = new File(Environment.getExternalStoragePublicDirectory(directory), "Instagram").listFiles();
+            if (old != null) for (File file : old) assertTrue(file.delete());
+        }
+        FileNameTemplateTest.FolderGallery output = Robolectric.setupContentProvider(
+                FileNameTemplateTest.FolderGallery.class, MediaStore.AUTHORITY);
+        Settings.FILENAME_TEMPLATE.save("{shortcode}");
+        MediaBridge.postId = "3549837394260045367_123";
+        MediaBridge.post = Arrays.asList(page(false, "/first.jpg", "101"), page(true, "/second.mp4", "102"),
+                page(false, "/third.jpg", "103"), page(true, "/fourth.mp4", "104"));
+        List<PostDetails> handed = Collections.synchronizedList(new ArrayList<>());
+        MediaSave.detailsForTests = handed::add;
+
+        VideoDownload.saveAll(MediaBridge.post, null);
+        waitForSaves();
+
+        assertEquals("Saved 4. Failed 0. Skipped 0.", ShadowToast.getTextOfLatestToast());
+        List<String> names = new ArrayList<>();
+        if (MediaStoreWriter.legacyStorage()) names.addAll(savedNames());
+        else for (ContentValues row : output.rows.values()) {
+            names.add(row.getAsString(MediaStore.MediaColumns.DISPLAY_NAME));
+            assertEquals(Integer.valueOf(0), row.getAsInteger(MediaStore.MediaColumns.IS_PENDING));
+        }
+        assertEquals(names.toString(), 4, names.size());
+        assertEquals(names.toString(), 4, new HashSet<>(names).size());
+        assertTrue(names.toString(), names.contains("DFDjk1fRK43.jpg"));
+        assertTrue(names.toString(), names.contains("DFDjk1fRK43.mp4"));
+        for (String name : names) assertTrue(name, name.matches("DFDjk1fRK43(?:_\\d{6})?\\.(?:jpg|mp4)"));
+        assertEquals(4, handed.size());
+        for (int page = 0; page < handed.size(); page++) {
+            assertEquals(Integer.toString(101 + page), handed.get(page).videoId);
+            assertEquals("DFDjk1fRK43", handed.get(page).shortcode);
+            assertEquals(page + 1, handed.get(page).page);
+        }
+        MediaBridge.postId = null;
+        PostDetails unknownParent = VideoDownload.details(MediaBridge.post.get(0), MediaBridge.post);
+        assertEquals("101", unknownParent.videoId);
+        assertFalse("a child id isn't a substitute for the missing parent", unknownParent.hasShortcode());
+        assertClean();
     }
 
     private void waitForSaves() throws Exception {
@@ -1248,6 +1330,8 @@ public class CarouselSaveTest {
     @Implements(value = InstagramMedia.class, isInAndroidSdk = false)
     public static class MediaBridge {
         static List<MediaSave.Item> post;
+        static String postId;
+        static Object story;
         static String poster;
         static Long postedAt;
         static List<MediaSave.Rendition> cover;
@@ -1258,6 +1342,7 @@ public class CarouselSaveTest {
         @Implementation protected static Object saveAllOption() { return ALL; }
         @Implementation protected static Object feedOption(String name) { return name; }
         @Implementation protected static Object feedMenuMedia(Object menu) { return post; }
+        @Implementation protected static Object storyMedia(Object menu) { return story; }
         @Implementation protected static Object feedMenuItemState(Object menu) { return 1; }
         @Implementation protected static void addSaveAllRow(Object menu, ArrayList<Object> rows, Object option, CharSequence title) {
             rows.add(option); label = title;
@@ -1288,7 +1373,9 @@ public class CarouselSaveTest {
         @Implementation protected static Object owner(Object media) { return poster; }
         @Implementation protected static String username(Object user) { return (String) user; }
         @Implementation protected static Long takenAt(Object media) { return postedAt; }
-        @Implementation protected static String mediaId(Object media) { return media instanceof MediaSave.Item ? ((MediaSave.Item) media).details.videoId : null; }
+        @Implementation protected static String mediaId(Object media) {
+            return media == post ? postId : media instanceof MediaSave.Item ? ((MediaSave.Item) media).details.videoId : null;
+        }
     }
     @Test
     @Config(shadows = {LocalCandidates.class, MediaBridge.class, MetadataExif.class})

@@ -134,6 +134,7 @@ import app.hushgram.extension.instagram.reels.TabOrder;
 import app.hushgram.extension.instagram.download.DownloadHistory;
 import app.hushgram.extension.instagram.profile.Unfollowers;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
+import app.hushgram.extension.instagram.download.PostDetails;
 import app.hushgram.extension.instagram.download.HoldFingers;
 import app.hushgram.extension.instagram.download.HoldTime;
 import app.hushgram.extension.instagram.download.ReelSoundButton;
@@ -5023,8 +5024,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static FileNameRow fileNameRow(Context context) {
         FileNameRow row = new FileNameRow(context);
         row.setKey(Settings.FILENAME_TEMPLATE.key);
-        row.setTitle(L10n.t("Video file name"));
-        row.setDialogTitle(L10n.t("Video file name"));
+        row.setTitle(L10n.t("Download file name"));
+        row.setDialogTitle(L10n.t("Download file name"));
         row.setDialogMessage(L10n.f("%1$s becomes the date and time of the save, %2$s the video's number on "
                         + "Instagram, %3$s who posted it and %4$s the day it was posted. What a save doesn't know is "
                         + "left out, and a name with none of these gets the date added. When the name is already in "
@@ -5032,7 +5033,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         + "Leave it blank to use the default, %5$s.",
                 L10n.isolate(FileNameTemplate.DATE), L10n.isolate(FileNameTemplate.VIDEO_ID),
                 L10n.isolate(FileNameTemplate.OWNER), L10n.isolate(FileNameTemplate.POSTED),
-                L10n.isolate(FileNameTemplate.DEFAULT)));
+                L10n.isolate(FileNameTemplate.DEFAULT)) + " "
+                + L10n.f("%1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.",
+                L10n.isolate(FileNameTemplate.SHORTCODE)));
         row.setPositiveButtonText(L10n.t("Save"));
         // Android's own Cancel follows the activity's language, as the folder row's did.
         row.setNegativeButtonText(L10n.t("Cancel"));
@@ -5052,12 +5055,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /**
-     * "Videos are named IG_VID_{date}. Photos are always named IG_IMG_ followed by the date and
-     * time." for [template]. The photo prefix is HushGram's, not Instagram's, so it isn't called
-     * Instagram's own naming.
-     */
+    /** The current template's media types, with the default photo name when it doesn't opt photos in. */
     static String fileNameSummary(String template) {
+        if (FileNameTemplate.usesShortcode(template)) {
+            return L10n.f("Videos and photos use %1$s. Unknown codes are left out.", L10n.isolate(template));
+        }
         return L10n.f("Videos are named %1$s. Photos are always named %2$s followed by the date and time.",
                 L10n.isolate(template), L10n.isolate(FileNameTemplate.PHOTO_PREFIX));
     }
@@ -5728,7 +5730,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         static String previewName(String text, java.util.Date when) {
-            return FileNameTemplate.videoName(FileNameTemplate.sanitize(text), when, "123456") + ".mp4";
+            return FileNameTemplate.videoName(FileNameTemplate.sanitize(text), when,
+                    PostDetails.of("123456").withPostId("123456")) + ".mp4";
         }
 
         @Override protected View onCreateDialogView() {
@@ -5742,7 +5745,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (field.getParent() instanceof android.view.ViewGroup) ((android.view.ViewGroup) field.getParent()).removeView(field);
             content.addView(field, new android.widget.LinearLayout.LayoutParams(-1, -2));
             TextView label = new TextView(context);
-            label.setText(L10n.t("Example without post details"));
+            label.setText(L10n.t("Example file name"));
             label.setTextSize(12);
             label.setTextColor(colors.summary);
             label.setPadding(0, pad, 0, pad / 4);

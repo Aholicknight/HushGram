@@ -164,12 +164,12 @@ Choose a folder name under Movies and Pictures. Invalid characters become unders
 Save	Salva
 Folder name	Nome della cartella
 Folder set to %1$s.	Cartella impostata su %1$s.
-Video file name	Nome del file video
+Download file name	Nome file dei download
 %1$s becomes the date and time of the save, %2$s the video's number on Instagram, %3$s who posted it and %4$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %5$s.	%1$s diventa la data e l'ora del salvataggio, %2$s il numero del video su Instagram, %3$s chi l'ha pubblicato e %4$s il giorno di pubblicazione. Ciò che un salvataggio non conosce viene omesso, e un nome senza nessuno di questi riceve la data. Se il nome è già nella cartella, l'ora del salvataggio viene aggiunta in fondo. I caratteri non validi diventano trattini bassi. Lascia vuoto per usare il predefinito, %5$s.
 File name	Nome del file
 File name set to %1$s.	Nome del file impostato su %1$s.
 Videos go to %1$s and photos to %2$s.	I video vanno in %1$s e le foto in %2$s.
-Example without post details	Esempio senza dettagli del post
+Example file name	Nome file di esempio
 Cancel saving this video	Annulla il salvataggio di questo video
 Cancel saving this photo	Annulla il salvataggio di questa foto
 Download on reels	Scarica sui reel
@@ -1257,3 +1257,5 @@ Every row of Instagram's Settings and activity shows. Untick the ones you don't 
 %1$d row is left off Instagram's Settings and activity.	%1$d riga è tolta da Impostazioni e attività di Instagram.
 %1$d rows are left off Instagram's Settings and activity.	%1$d righe sono tolte da Impostazioni e attività di Instagram.
 Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.	Apri una volta Impostazioni e attività in Instagram, poi torna qui. Le sue righe compaiono in questo elenco per togliere la spunta.
+%1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s è il codice breve del post. Viene omesso per storie e post sconosciuti. Usandolo, il modello vale anche per le foto.
+Videos and photos use %1$s. Unknown codes are left out.	Video e foto usano %1$s. I codici sconosciuti vengono omessi.

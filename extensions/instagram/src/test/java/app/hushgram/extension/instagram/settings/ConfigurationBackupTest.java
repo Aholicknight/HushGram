@@ -150,6 +150,18 @@ public class ConfigurationBackupTest {
         assertTrue(ConfigurationBackup.canUndo());
     }
 
+    @Test public void shortcodeTemplatesImportAndRoundTripWithoutAnAddedDate() throws Exception {
+        ConfigurationBackup.Result imported = ConfigurationBackup.restore(file(
+                entry(Settings.FILENAME_TEMPLATE.key, "string", "{shortcode}")));
+        assertEquals(1, imported.applied);
+        assertEquals(0, imported.skipped);
+        assertEquals("{shortcode}", Settings.FILENAME_TEMPLATE.savedValue());
+        byte[] exported = ConfigurationBackup.export();
+        Settings.FILENAME_TEMPLATE.save("Old_{date}");
+        assertEquals(0, ConfigurationBackup.restore(exported).skipped);
+        assertEquals("{shortcode}", Settings.FILENAME_TEMPLATE.savedValue());
+    }
+
     @Test public void unknownAndAbsentFamilyKeysSkipWithoutChangingThemOrPause() throws Exception {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
         Settings.DOWNLOAD_PHOTOS.save(false);

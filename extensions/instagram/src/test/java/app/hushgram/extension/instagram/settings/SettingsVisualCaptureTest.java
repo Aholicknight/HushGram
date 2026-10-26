@@ -187,6 +187,19 @@ public class SettingsVisualCaptureTest {
         }
     }
 
+    @Test public void shortcodeNameEditorRendersAtTwiceTheTextSize() throws Exception {
+        scale = "shortcode-extra-large";
+        RuntimeEnvironment.setFontScale(2f);
+        open();
+        openCategory("Downloads");
+        HushgramPreferenceFragment.FileNameRow row = (HushgramPreferenceFragment.FileNameRow)
+                page.findPreference(Settings.FILENAME_TEMPLATE.key);
+        row.setText("{shortcode}");
+        clickInList(row);
+        captureAlert("file-name-shortcode");
+    }
+
+
     @Test public void realChoiceInputGhostPauseAndNoticeStatesRender() throws Exception {
         open();
         openCategory("Downloads");

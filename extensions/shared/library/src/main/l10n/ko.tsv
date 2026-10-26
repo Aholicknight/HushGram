@@ -165,12 +165,12 @@ Choose a folder name under Movies and Pictures. Invalid characters become unders
 Save	저장
 Folder name	폴더 이름
 Folder set to %1$s.	폴더가 %1$s로 설정되었습니다
-Video file name	동영상 파일 이름
+Download file name	다운로드 파일 이름
 %1$s becomes the date and time of the save, %2$s the video's number on Instagram, %3$s who posted it and %4$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %5$s.	%1$s는 저장한 날짜와 시간, %2$s는 Instagram에서 해당 동영상의 번호, %3$s는 게시한 사람, %4$s는 게시된 날짜로 표시됩니다. 저장할 때 알 수 없는 정보는 이름에서 제외되며, 이 항목들을 하나도 포함하지 않는 이름에는 날짜가 추가됩니다. 같은 이름이 이미 폴더에 있으면 저장한 시간이 이름 끝에 추가됩니다. 사용할 수 없는 문자는 밑줄로 변경됩니다. 비워 두면 기본값인 %5$s를 사용합니다
 File name	파일 이름
 File name set to %1$s.	파일 이름이 %1$s로 설정되었습니다
 Videos go to %1$s and photos to %2$s.	동영상은 %1$s에, 사진은 %2$s에 저장됩니다
-Example without post details	게시물 세부 정보가 없는 예시
+Example file name	파일 이름 예시
 Cancel saving this video	이 동영상 저장 취소
 Cancel saving this photo	이 사진 저장 취소
 Download on reels	릴스 다운로드 메뉴 추가
@@ -1256,3 +1256,5 @@ Every row of Instagram's Settings and activity shows. Untick the ones you don't 
 %1$d row is left off Instagram's Settings and activity.	Instagram 설정 및 활동에서 항목 %1$d개를 뺐습니다.
 %1$d rows are left off Instagram's Settings and activity.	Instagram 설정 및 활동에서 항목 %1$d개를 뺐습니다.
 Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.	Instagram에서 설정 및 활동을 한 번 연 다음 여기로 돌아오세요. 그 화면의 항목이 이 목록에 나타나 체크를 해제할 수 있습니다.
+%1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s는 게시물의 단축 코드입니다. 스토리나 알 수 없는 게시물에서는 생략됩니다. 이 토큰을 넣으면 사진 이름에도 템플릿이 적용됩니다.
+Videos and photos use %1$s. Unknown codes are left out.	동영상과 사진에 %1$s를 사용합니다. 알 수 없는 코드는 생략됩니다.
