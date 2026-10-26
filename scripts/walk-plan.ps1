@@ -172,8 +172,13 @@ function Test-WalkNodeUncovered {
         # This is a structural capture allowance, not an opacity measurement. Labels,
         # controls, children or an ImageView invalidate it. Unknown structures refuse.
         $prefix = $Candidate.GetAttribute('package') + ':id/'
+        # Native snapshots omit these flags; a legacy UIAutomator dump that sets one marks a control.
+        function Test-WalkInteractiveFlag([Xml.XmlNode]$Flagged) {
+            return @('long-clickable','checkable','checked','focusable','focused','password' | Where-Object { $Flagged.GetAttribute($_) -cne '' -and $Flagged.GetAttribute($_) -cne 'false' }).Count -ne 0
+        }
         function Test-WalkInertNode([Xml.XmlNode]$Inert) {
-            return $Inert.GetAttribute('enabled') -ceq 'true' -and $Inert.GetAttribute('clickable') -ceq 'false' -and
+            return -not (Test-WalkInteractiveFlag $Inert) -and
+                $Inert.GetAttribute('enabled') -ceq 'true' -and $Inert.GetAttribute('clickable') -ceq 'false' -and
                 $Inert.GetAttribute('scrollable') -ceq 'false' -and $Inert.GetAttribute('selected') -ceq 'false' -and
                 -not $Inert.GetAttribute('resource-id') -and
                 [string]::IsNullOrWhiteSpace($Inert.GetAttribute('text') + $Inert.GetAttribute('content-desc') + $Inert.GetAttribute('hint'))
@@ -194,7 +199,7 @@ function Test-WalkNodeUncovered {
         }
         if ($Candidate.GetAttribute('class') -cnotin @('android.widget.FrameLayout','android.widget.Button') -or $Candidate.ChildNodes.Count -ne 0 -or
             $Candidate.GetAttribute('enabled') -cne 'true' -or $Candidate.GetAttribute('clickable') -cne 'false' -or
-            $Candidate.GetAttribute('scrollable') -cne 'false' -or
+            $Candidate.GetAttribute('scrollable') -cne 'false' -or (Test-WalkInteractiveFlag $Candidate) -or
             -not [string]::IsNullOrWhiteSpace($Candidate.GetAttribute('text') + $Candidate.GetAttribute('content-desc') + $Candidate.GetAttribute('hint'))) {
             return $false
         }

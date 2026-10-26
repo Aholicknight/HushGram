@@ -399,9 +399,24 @@ try {
         'other parent'={ param($c,$p) $p.SetAttribute('resource-id',"${script:package}:id/other_container") }
         'no refreshable sibling'={ param($c,$p) $p.LastChild.SetAttribute('resource-id',"${script:package}:id/other_container") }
     }
+    # Legacy UIAutomator dumps also carry these flags (audit-2026-10-25 46-input-control-instagram-explore).
+    $legacyFlags=@('long-clickable','checkable','checked','focusable','focused','password')
+    Assert-PlanContent $exploreDestination (Get-ExploreScaffoldDocument {
+        param($c) foreach($uiNode in @($c,$c.FirstChild)) { foreach($flag in $legacyFlags) { $uiNode.SetAttribute($flag,'false') } }
+    }) $true 'Exact Explore Compose scaffold with legacy flags off'
+    foreach($flag in $legacyFlags) {
+        $scaffoldControls["$flag ComposeView"]=[scriptblock]::Create("param(`$c) `$c.SetAttribute('$flag','true')")
+        $scaffoldControls["$flag inner View"]=[scriptblock]::Create("param(`$c) `$c.FirstChild.SetAttribute('$flag','true')")
+    }
     foreach($name in $scaffoldControls.Keys) {
         Assert-PlanContent $exploreDestination (Get-ExploreScaffoldDocument $scaffoldControls[$name]) $false "Explore Compose cover: $name"
     }
+    foreach($flag in $legacyFlags) {
+        $button.RemoveAttribute('text'); $button.SetAttribute($flag,'true')
+        Assert-PlanContent $inboxDestination $document $false "Inbox scaffold Button with $flag cannot use scaffold allowance"
+        $button.RemoveAttribute($flag)
+    }
+    Assert-PlanContent $inboxDestination $document $true 'Inbox semantic scaffold with its flags restored'
     foreach ($overlay in @(
         (Get-PlanNode -Id 'android:id/alertTitle' -Class 'android.widget.TextView' -Text 'Dialog'),
         (Get-PlanNode -Class 'android.widget.TextView' -Text 'Your messages are locked'),
