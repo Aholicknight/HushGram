@@ -318,6 +318,10 @@ The bundle lands in `patches/build/release/patches-<version>.mpp`, beside its SH
 
 For local phone builds, `scripts/patch-for-device.ps1` accepts `-Keystore` and `-KeyAlias`. Use `-KeystorePassword ''` for an empty store password. A separate key password can come from `HUSHGRAM_SIDELOAD_KEY_PASSWORD` or `-KeyPassword`; otherwise it uses the store password. Passwords go through a temporary argument file that is removed when patching exits. Keep the installed app's signing key so updates preserve its data.
 
+Release walkthroughs use PowerShell 7.5 or newer and the Android SDK. `scripts/walk-app.ps1` checks Home, Explore, Reels, the inbox, your profile and the settings sections included by the catalog. Each visit needs visible content and its own XML and PNG evidence. It checks the installed APK before and after the walk. A loading screen, covered page or shortened visit can't earn a full PASS.
+
+To walk an already installed candidate, pass `-SkipPatch -SignedApk <signed.apk> -Report <result.json> -Record <patch-record.json>` along with the device's `-Serial` and `-ExpectedModel`. Those files must come from that bundle's patch run. The tool updates a separate capture test app with the supplied signing key and preserves Instagram's data and settings. Receipts and captures stay in the output folder. Old receipts without this evidence aren't accepted for publication. A passing walk still needs explicit release authorization.
+
 ### Where things live
 
 - `patches/src/main/kotlin/app/morphe/patches/instagram/` holds the patches, grouped by feature area. `misc/extension/` has the target lookup and hook helpers they share, and `shared/compat/AppCompatibilities.kt` names the supported build and Meta's signing certificates.
