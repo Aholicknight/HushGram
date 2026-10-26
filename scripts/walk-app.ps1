@@ -272,13 +272,21 @@ function Invoke-WalkApp {
                     $section = if ($Destination.page) { Get-WalkCaptureActionArea -Capture $current -Package $Package -Title $Destination.title }
                     if ($null -ne $section) {
                         Send-WalkTap $section
-                        for ($rowIndex=0; $rowIndex -lt 24; $rowIndex++) {
+                        $current = Read-WalkSettingsCapture
+                        $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
+                        if ($content.Valid) { return [pscustomobject]@{ Capture=$current; Expanded=$true } }
+                        # Rows only count under a visible heading, so lift the heading to the top once, slowly enough not to fling.
+                        $heading = Get-WalkCaptureActionArea -Capture $current -Package $Package -Title $Destination.title
+                        $listBounds = Get-WalkCaptureActionArea -Capture $current -Package $Package -Scroll
+                        $target = if ($null -ne $listBounds) { [int]($listBounds.Top + ($listBounds.Bottom-$listBounds.Top)*0.1) }
+                        if ($null -ne $heading -and $null -ne $listBounds -and $heading.Y -gt $target) {
+                            [void](Invoke-WalkAdb @('shell','input','swipe',[string]$listBounds.X,[string]$heading.Y,[string]$listBounds.X,[string]$target,'1000'))
+                            Start-Sleep -Milliseconds 400
                             $current = Read-WalkSettingsCapture
                             $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
                             if ($content.Valid) { return [pscustomobject]@{ Capture=$current; Expanded=$true } }
-                            if (-not (Send-WalkSettingsSwipe $current 'down')) { break }
                         }
-                        throw "The settings section '$($Destination.title)' expanded without a verified row. It was tapped once."
+                        throw "The settings section '$($Destination.title)' expanded without a verified row within a screen of its heading. It was tapped once."
                     }
                     if (-not (Send-WalkSettingsSwipe $current $direction)) { break }
                 }
@@ -337,13 +345,20 @@ function Invoke-WalkApp {
                 foreach ($destination in @($destinations | Where-Object { $_.kind -ceq 'settings' })) {
                     # In the saved long-list mode, observe headings and rows without changing its mode.
                     $navigationDestination = [pscustomobject]@{ id=$destination.id; title=$destination.title; kind=$destination.kind
-                        page=($pages -and $destination.page); anchors=$destination.anchors }
+                        page=($pages -and $destination.page); anchors=$destination.anchors; headings=$destination.headings }
                     $found = Find-WalkSettingsSection $navigationDestination
                     Add-WalkObservation $destination $found.Capture
                     if ($found.Expanded) {
-                        # Fold it again from the heading the capture verified, so settings end as the walk found them.
+                        # Fold it again from a verified heading, so a still-open section can't lend its rows to a later one.
                         $heading = Get-WalkCaptureActionArea -Capture $found.Capture -Package $Package -Title $destination.title
-                        if ($null -ne $heading) { Send-WalkTap $heading }
+                        if ($null -eq $heading) { $heading = Get-WalkCaptureActionArea -Capture (Read-WalkSettingsCapture) -Package $Package -Title $destination.title }
+                        if ($null -eq $heading) { throw "The settings section '$($destination.title)' could not be folded. Its heading was not steady on screen." }
+                        Send-WalkTap $heading
+                        $folded = Read-WalkSettingsCapture
+                        if ($null -eq (Get-WalkCaptureActionArea -Capture $folded -Package $Package -Title $destination.title) -or
+                            (Test-WalkDestinationContent -Destination $navigationDestination -Document $folded.ParsedXml -Package $Package).Valid) {
+                            throw "The settings section '$($destination.title)' still showed its rows after the fold tap."
+                        }
                     }
                 }
             }

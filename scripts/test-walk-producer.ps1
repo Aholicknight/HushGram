@@ -25,7 +25,7 @@ function Reset-Producer {
     $script:state=@{ calls=[Collections.Generic.List[string]]::new(); captures=0; leases=0; releases=0; reads=0; bindings=0
         current='home'; refuseAt=0; wrongBefore=$false; wrongAfter=$false; artifactDrift=$false; rejectProof=$false; wrongPackage=$false }
     $script:state.settingsMode='none'
-    $script:state.expanded=$false; $script:state.expandBroken=$false; $script:state.headingTaps=0
+    $script:state.expanded=$false; $script:state.expandBroken=$false; $script:state.foldBroken=$false; $script:state.headingTaps=0
 }
 # Strict APK/report/PNG validation has its own real-byte fixtures. These tests cover the
 # producer's choice of operations and its propagation of each reader's refusal.
@@ -78,7 +78,7 @@ function Invoke-HushgramAdbCommand {
     elseif ($command -like 'shell input tap *') {
         if ($state.current -ceq 'settings-root') {
             $state.headingTaps++
-            if (-not $state.expandBroken) { $state.expanded=-not $state.expanded }
+            if (-not $state.expandBroken -and -not ($state.foldBroken -and $state.expanded)) { $state.expanded=-not $state.expanded }
         }
         else {
             $index=[int]([int]$Arguments[5]/100)
@@ -194,6 +194,12 @@ try {
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
     Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 1 -and
         @($receipt.problems | Where-Object { $_ -like '*expanded without a verified row*' }).Count -eq 1) 'A heading that showed no rows earned PASS or was tapped again.'
+    # A section left open could lend its rows to the next one, so a fold that doesn't take fails the walk.
+    Reset-Producer; $state.settingsMode='pages'; $state.foldBroken=$true
+    $path=Invoke-WalkApp @arguments
+    $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 2 -and
+        @($receipt.problems | Where-Object { $_ -like '*still showed its rows after the fold tap*' }).Count -eq 1) 'A section that stayed open after its fold tap earned PASS.'
 
     # Coordinates come from one visible, enabled native target and all ancestor clipping.
     Reset-Producer

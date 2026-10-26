@@ -131,18 +131,26 @@ function Get-NativePlanDocument {
     return ,$document
 }
 function Get-SettingsPlanDocument {
-    param($Destination, [switch]$Page)
+    param($Destination, [switch]$Page, [string[]]$Headings, [string[]]$Rows)
     # SettingsDialog.java:154-199,276-279 and HushgramPreferenceFragment.java:5173-5249.
     # The preference title and summary have distinct framework IDs in 04-baseline-settings.xml.
+    # -Rows lays out the overview list top to bottom; an entry also in -Headings is drawn as a heading.
     $title = if ($Page) { $Destination.title } else { 'HushGram' }
     $bar = Get-PlanNode -Class 'android.widget.LinearLayout' -Children (
         (Get-PlanNode -Class 'android.widget.Button' -Description 'Back') +
         (Get-PlanNode -Class 'android.widget.TextView' -Text $title))
-    $rows = if ($Destination.kind -ceq 'settings' -and -not $Page) {
-        Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $Destination.title.ToUpperInvariant()
-    } else { '' }
-    $rows += Get-PlanNode -Class 'android.widget.LinearLayout' -Children (
-        Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $Destination.anchors[0])
+    if ($Rows) {
+        $rows = ($Rows | ForEach-Object {
+            if ($_ -cin $Headings) { Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $_.ToUpperInvariant() }
+            else { Get-PlanNode -Class 'android.widget.LinearLayout' -Children (Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $_) }
+        }) -join ''
+    } else {
+        $rows = if ($Destination.kind -ceq 'settings' -and -not $Page) {
+            Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $Destination.title.ToUpperInvariant()
+        } else { '' }
+        $rows += Get-PlanNode -Class 'android.widget.LinearLayout' -Children (
+            Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $Destination.anchors[0])
+    }
     $document = Get-PlanDocument ($bar + (Get-PlanNode -Id 'android:id/list' -Class 'android.widget.ListView' -Children $rows))
     foreach ($uiNode in @($document.DocumentElement.FirstChild.FirstChild.SelectNodes('descendant-or-self::node'))) {
         $uiNode.SetAttribute('bounds','[0,0][720,128]')
@@ -465,6 +473,22 @@ try {
     $anchorNode = @($document.SelectNodes('//node[@resource-id="android:id/title"]'))[-1]
     $anchorNode.SetAttribute('resource-id','android:id/summary')
     Assert-PlanContent $section $document $false 'Summary cannot impersonate a title'
+    # Expanded rows sit under their own heading, up to the next one. Feed and Reels share an anchor.
+    $feed = $all | Where-Object id -CEQ 'settings-feed'
+    $reels = $all | Where-Object id -CEQ 'settings-reels'
+    $shared = 'Hide suggested accounts'
+    Assert-PlanTest ($feed.anchors -ccontains $shared -and $reels.anchors -ccontains $shared -and $section.headings -ccontains $feed.title) 'The shared-anchor fixture no longer matches the policy.'
+    Assert-PlanContent $feed (Get-SettingsPlanDocument $feed -Headings $section.headings -Rows @($reels.title,$feed.title,$shared)) $true 'Open section under a folded heading'
+    Assert-PlanContent $reels (Get-SettingsPlanDocument $reels -Headings $section.headings -Rows @($reels.title,$feed.title,$shared)) $false 'Another section''s row under a later heading'
+    Assert-PlanContent $reels (Get-SettingsPlanDocument $reels -Headings $section.headings -Rows @($shared,$reels.title)) $false 'A row above its heading'
+    Assert-PlanContent $reels (Get-SettingsPlanDocument $reels -Headings $section.headings -Rows @($reels.title,$feed.title)) $false 'A folded heading with no rows'
+    Assert-PlanContent $reels (Get-SettingsPlanDocument $reels -Headings $section.headings -Rows @($feed.title,$shared,$reels.title,$shared)) $true 'Both open, each row under its own heading'
+    $headingTitles = [Collections.Generic.HashSet[string]]::new([string[]]@($policy.categories.title), [StringComparer]::OrdinalIgnoreCase)
+    foreach ($category in $policy.categories) {
+        foreach ($anchor in @($category.anchors.title)) {
+            Assert-PlanTest (-not $headingTitles.Contains($anchor)) "Anchor '$anchor' ($($category.id)) shares a heading's title, which would end its own section."
+        }
+    }
     $document = Get-PlanDocument ((Get-PlanNode -Class 'android.widget.TextView' -Text $section.title) +
         (Get-PlanNode -Class 'android.widget.TextView' -Text $section.anchors[0]))
     Assert-PlanContent $section $document $false 'Native caption cannot impersonate settings'

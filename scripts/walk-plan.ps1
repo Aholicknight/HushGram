@@ -114,13 +114,15 @@ function Get-WalkRequiredDestinations {
     if ($selected.Contains($policy.prerequisite)) {
         $overview = [pscustomobject]@{ id='settings-root'; title='HushGram settings'; kind='settings-root'; page=$false; anchors=@() }
         $destinations.Add($overview)
+        # Every heading title, so a row is only credited to the section it sits under.
+        $headingTitles = @($policy.categories | ForEach-Object { $_.title })
         foreach ($category in @($policy.categories)) {
             if (-not (Test-WalkPatchCondition -Condition $category.when -Selected $selected -Known $known)) { continue }
             $anchors = @($category.anchors | Where-Object { Test-WalkPatchCondition -Condition $_.when -Selected $selected } |
                 ForEach-Object { $_.title })
             if (-not $anchors.Count) { throw "Required walkthrough category '$($category.title)' has no applicable verified anchor." }
             $destinations.Add([pscustomobject]@{ id=$category.id; title=$category.title; kind='settings'; page=$category.page
-                anchors=$anchors; builder=$category.builder })
+                anchors=$anchors; headings=$headingTitles; builder=$category.builder })
         }
         $overview.anchors = @('HushGram is on','HushGram is paused','Show all settings as a list','Show settings by category') +
             @($destinations | Where-Object { $_.kind -ceq 'settings' } | ForEach-Object { $_.anchors } | Select-Object -Unique)
@@ -422,7 +424,26 @@ function Test-WalkDestinationContent {
              $isRootBar -and -not (Test-WalkPreferenceTitle $Destination.title))) {
             return Get-WalkContentFailure 'The required settings section is not visible.'
         }
-        if (-not @($Destination.anchors | Where-Object { Test-WalkPreferenceTitle $_ -RequireEnabled }).Count) {
+        if ($Destination.kind -ceq 'settings' -and $isRootBar) {
+            # On the overview a row belongs to the heading above it, up to the next heading, so an
+            # anchor shared by two categories (or a section left open) can't stand in for another.
+            $listTitles = @($preferenceLists[0].SelectNodes('.//node[@resource-id="android:id/title"]') | Where-Object {
+                $visibleSet.Contains($_) -and $_.GetAttribute('class') -ceq 'android.widget.TextView'
+            })
+            $owned = $false
+            for ($headingIndex=0; $headingIndex -lt $listTitles.Count -and -not $owned; $headingIndex++) {
+                if ($listTitles[$headingIndex].GetAttribute('text') -ine $Destination.title) { continue }
+                for ($rowIndex=$headingIndex+1; $rowIndex -lt $listTitles.Count; $rowIndex++) {
+                    $rowText = $listTitles[$rowIndex].GetAttribute('text')
+                    if (@($Destination.headings | Where-Object { $_ -ieq $rowText }).Count) { break }
+                    if (@($Destination.anchors | Where-Object { $_ -ieq $rowText }).Count -and
+                        -not @($listTitles[$rowIndex].SelectNodes('ancestor-or-self::node') | Where-Object {
+                            $_.GetAttribute('enabled') -cne 'true'
+                        }).Count) { $owned = $true; break }
+                }
+            }
+            if (-not $owned) { return Get-WalkContentFailure 'The settings section has no verified enabled content row under its heading.' }
+        } elseif (-not @($Destination.anchors | Where-Object { Test-WalkPreferenceTitle $_ -RequireEnabled }).Count) {
             return Get-WalkContentFailure 'The settings section has no verified enabled content row.'
         }
     } elseif ($Destination.kind -ceq 'native') {
