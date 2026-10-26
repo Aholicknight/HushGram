@@ -39,7 +39,7 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.MESSAGE_BOX)
                 || build.contains(PatchFamily.FULL_SCREEN_BARS)) {
             PreferenceCategory messages = category(screen, L10n.t("Messages"), SettingsIcons.CHATS,
-                    L10n.t("Keep your chats private and your inbox clear of extras."));
+                    L10n.t("Privacy and controls for your chats."));
             if (build.contains(PatchFamily.NOTES_ROW)) {
                 messages.addPreference(toggle(context, Settings.HIDE_NOTES_ROW, L10n.t("Hide the notes row"),
                         L10n.t("Takes the row of notes off the top of your messages, the Map bubble in it too. "

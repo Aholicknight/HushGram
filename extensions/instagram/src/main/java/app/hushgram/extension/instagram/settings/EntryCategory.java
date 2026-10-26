@@ -28,7 +28,7 @@ final class EntryCategory {
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         PreferenceCategory entry = category(screen, L10n.t("Settings entry"), SettingsIcons.SETTINGS,
-                L10n.t("How you open HushGram, and how this screen is laid out."));
+                L10n.t("How you open HushGram and lay out settings."));
         entry.addPreference(navigationRow(context));
         entry.addPreference(profileMenuRow(context));
         // Each way in has a switch, and the last one still on stays on (HushFacebook#146).

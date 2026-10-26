@@ -940,15 +940,15 @@ Hides the status bar and the navigation bar while your messages or a chat shows.
 Hide Notes on profile pictures	隱藏個人檔案相片上的筆記
 Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.	移除個人檔案相片上的筆記泡泡，自己的也適用。私訊中的筆記不受影響。
 # context: the line that opens a category's page in HushGram settings, under the page title
-How you open HushGram, and how this screen is laid out.	設定 HushGram 的開啟方式與此畫面的排列方式。
-Hide ads and share less about yourself with Instagram.	隱藏廣告，並減少向 Instagram 分享個人資訊。
+How you open HushGram and lay out settings.	開啟 HushGram 的方式與設定版面。
+Hide ads and share less with Instagram.	隱藏廣告，減少與 Instagram 分享的資訊。
 Choose what Home shows and how it behaves.	選擇首頁顯示的內容與操作方式。
-Take Meta AI out of search, your feed, reels and profiles.	從搜尋、動態、Reels 與個人檔案移除 Meta AI。
-Tidy up the Search tab and what it remembers.	整理搜尋分頁與它保留的記錄。
-Keep your chats private and your inbox clear of extras.	保護聊天隱私，並移除收件匣中的額外內容。
-Choose what reels show, and how they play and scroll.	選擇 Reels 顯示的內容、播放與捲動方式。
-Choose which stories you see and what people see you do.	選擇觀看哪些限時動態，以及他人能看到您的哪些活動。
-Choose how videos start, sound and look.	選擇影片的播放方式、聲音與畫質。
+Control where Meta AI appears.	選擇 Meta AI 出現的位置。
+Search, suggestions and the Explore grid.	搜尋、建議與探索網格。
+Privacy and controls for your chats.	聊天室的隱私與控制選項。
+Playback and controls in the Reels tab.	Reels 分頁的播放與控制選項。
+Viewing, sound and the stories tray.	觀看、音效與限時動態列。
+Media quality, auto-play and controls.	媒體品質、自動播放與控制選項。
 Take buttons you don't use off posts and the share sheet.	移除貼文與分享表單中用不到的按鈕。
 Copy, save or hide comments.	複製、儲存或隱藏留言。
 See who follows you back, and clear extras off profiles.	查看誰回追了您，並移除個人檔案的額外內容。
@@ -1040,7 +1040,7 @@ Report a problem	回報問題
 Opens a GitHub report with your versions and settings filled in. Add what happened.	開啟已填入版本與設定的 GitHub 問題回報，請補充發生的情況。
 # context: the settings row under Search, and the title of its dialog of one-tap choices
 Quick setups	快速設定
-Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row.	點一下即可啟用一組開關，或將所有開關還原為初始狀態。長按可隱藏此列。
+Quiet, Privacy, or back to defaults. Hold to hide.	清靜、隱私，或還原預設值。長按即可隱藏。
 # context: row on Settings backup that hides or shows the Quick setups row on the home page, and its two summaries
 Quick setups on the home page	設定首頁的快速設定
 Shown. Tap to hide it.	已顯示。點擊即可隱藏。

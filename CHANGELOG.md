@@ -41,6 +41,7 @@ Every HushGram release, newest first.
 
 #### Improvements
 
+* **Instagram:** Settings opens with Search, followed by the list view option. Compact rows and shorter descriptions fit more categories on screen. The active-status banner is gone, and larger text still wraps.
 * **Tooling:** The patching help explains the small-heap limit and keeps Manager's embedded VM workaround.
 * **Instagram:** Download file names support `{shortcode}`, using the parent post's code for carousel pages. Unknown codes are left out. Photo names use the template when it includes that token.
 * **Instagram:** `Date in backup file names` adds the local date and time to settings exports. It starts off, keeping the existing backup name until enabled.

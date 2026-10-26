@@ -119,6 +119,77 @@ public class SettingsVisualCaptureTest {
         SettingsDialogBoundaryTest.BrokenPage.viewFailures = 0;
     }
 
+    @Test public void compactOverviewAndItsMainInteractionsRender() throws Exception {
+        scale = "compact-normal";
+        open();
+        PreferenceGroup screen = page.getPreferenceScreen();
+        assertEquals("hushgram_settings_search", screen.getPreference(0).getKey());
+        assertEquals("hushgram_view_toggle", screen.getPreference(1).getKey());
+        assertNull("the active banner must not occupy a row", screen.findPreference("hushgram_status"));
+        capturePage("00-overview", false);
+        ListView list = page.getView().findViewById(android.R.id.list);
+        int visibleCategories = 0;
+        for (int i = 0; i < list.getChildCount(); i++) {
+            View row = list.getChildAt(i);
+            Object item = list.getItemAtPosition(list.getFirstVisiblePosition() + i);
+            if (!(item instanceof Preference)) continue;
+            String key = ((Preference) item).getKey();
+            if (key != null && key.startsWith(HushgramPreferenceFragment.CATEGORY_ROW_KEY)
+                    && row.getTop() >= 0 && row.getBottom() <= list.getHeight()) {
+                visibleCategories++;
+                assertTrue("compact rows remain tappable", row.getHeight() >= 48 * row.getResources().getDisplayMetrics().density);
+            }
+        }
+        assertTrue("the overview should expose at least eight complete categories: " + visibleCategories, visibleCategories >= 8);
+        Preference feed = titled(screen, "Feed");
+        clickInList(feed);
+        assertNotNull(page.findPreference(Settings.START_ON_FOLLOWING.key));
+        capturePage("01-feed", false);
+        EditText input = page.getView().findViewWithTag("hushgram-settings-search");
+        input.setText("Hide ads");
+        settle();
+        Preference ads = page.findPreference(Settings.HIDE_ADS.key);
+        assertNotNull("typing searches across categories", ads);
+        boolean wasHidden = Settings.HIDE_ADS.savedValue();
+        clickInList(ads);
+        assertEquals(!wasHidden, Settings.HIDE_ADS.savedValue());
+        capturePage("02-search", false);
+        clickInList(ads);
+        list.setSelectionFromTop(0, 0);
+        settle();
+        input = page.getView().findViewWithTag("hushgram-settings-search");
+        input.setText("");
+        settle();
+        assertTrue(page.closeCategory());
+        settle();
+        clickInList(page.getPreferenceScreen().findPreference("hushgram_view_toggle"));
+        assertFalse(Settings.CATEGORY_PAGES.savedValue());
+        assertEquals("Show settings by category", page.getPreferenceScreen().getPreference(1).getTitle());
+        clickInList(page.getPreferenceScreen().findPreference("hushgram_view_toggle"));
+        assertTrue(Settings.CATEGORY_PAGES.savedValue());
+        capturePage("03-restored-overview", false);
+    }
+
+    @Test public void compactOverviewAndCategoryRenderAtTwiceTheTextSize() throws Exception {
+        scale = "compact-extra-large";
+        RuntimeEnvironment.setFontScale(2f);
+        open();
+        capturePage("00-overview", false);
+        openCategory("Feed");
+        capturePage("01-feed", false);
+    }
+
+    @Test @Config(qualifiers = "ar-rEG-ldrtl-w411dp-h891dp-xhdpi")
+    public void compactOverviewAndCategoryRenderRightToLeft() throws Exception {
+        scale = "compact-rtl";
+        RuntimeEnvironment.setFontScale(1.3f);
+        open();
+        dialog.getView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        capturePage("00-overview", false);
+        openCategory("Feed");
+        capturePage("01-feed", false);
+    }
+
     @Test public void everyCategoryAndItsScrolledContentRender() throws Exception {
         open();
         capturePage("00-overview", true);
@@ -245,6 +316,7 @@ public class SettingsVisualCaptureTest {
         page.searchSettings("");
         settle();
         openCategory("About");
+        capturePage("36-about", false);
         clickInList(titled(page.getPreferenceScreen(), "Licenses"));
         captureAlert("33-licenses");
     }

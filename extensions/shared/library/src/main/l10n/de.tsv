@@ -942,15 +942,15 @@ Hides the status bar and the navigation bar while your messages or a chat shows.
 Hide Notes on profile pictures	Notizen auf Profilbildern ausblenden
 Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.	Entfernt die Notizblase von Profilbildern, auch von deinem. Notizen in Nachrichten bleiben, wie sie sind.
 # context: the line that opens a category's page in HushGram settings, under the page title
-How you open HushGram, and how this screen is laid out.	Wie du HushGram öffnest und wie dieser Bildschirm aufgebaut ist.
-Hide ads and share less about yourself with Instagram.	Blende Werbung aus und gib Instagram weniger über dich preis.
+How you open HushGram and lay out settings.	Wie du HushGram öffnest und die Einstellungen anordnest.
+Hide ads and share less with Instagram.	Werbung ausblenden und weniger mit Instagram teilen.
 Choose what Home shows and how it behaves.	Wähle, was die Startseite zeigt und wie sie sich verhält.
-Take Meta AI out of search, your feed, reels and profiles.	Entferne Meta AI aus der Suche, deinem Feed, Reels und Profilen.
-Tidy up the Search tab and what it remembers.	Räume den Suche-Tab auf und bestimme, was er sich merkt.
-Keep your chats private and your inbox clear of extras.	Halte deine Chats privat und dein Postfach frei von Extras.
-Choose what reels show, and how they play and scroll.	Wähle, was Reels zeigen, wie sie abgespielt werden und wie sie scrollen.
-Choose which stories you see and what people see you do.	Wähle, welche Stories du siehst und was andere von dir sehen.
-Choose how videos start, sound and look.	Wähle, wie Videos starten, klingen und aussehen.
+Control where Meta AI appears.	Bestimme, wo Meta AI erscheint.
+Search, suggestions and the Explore grid.	Suche, Vorschläge und das Entdecken-Raster.
+Privacy and controls for your chats.	Datenschutz und Optionen für deine Chats.
+Playback and controls in the Reels tab.	Wiedergabe und Optionen im Reels-Tab.
+Viewing, sound and the stories tray.	Ansicht, Ton und die Story-Leiste.
+Media quality, auto-play and controls.	Medienqualität, automatische Wiedergabe und Optionen.
 Take buttons you don't use off posts and the share sheet.	Entferne Schaltflächen, die du nicht nutzt, von Beiträgen und aus dem Teilen-Menü.
 Copy, save or hide comments.	Kommentare kopieren, speichern oder ausblenden.
 See who follows you back, and clear extras off profiles.	Sieh, wer dir zurückfolgt, und entferne Extras von Profilen.
@@ -1042,7 +1042,7 @@ Report a problem	Ein Problem melden
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Öffnet einen GitHub-Bericht, in dem deine Versionen und Einstellungen schon stehen. Schreib dazu, was passiert ist.
 # context: the settings row under Search, and the title of its dialog of one-tap choices
 Quick setups	Schnelleinstellungen
-Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row.	Schalte mehrere Schalter mit einem Tippen ein oder setze alle Schalter auf ihren Ausgangszustand zurück. Halte gedrückt, um diese Zeile auszublenden.
+Quiet, Privacy, or back to defaults. Hold to hide.	Ruhig, Datenschutz oder zurück zum Standard. Zum Ausblenden gedrückt halten.
 # context: row on Settings backup that hides or shows the Quick setups row on the home page, and its two summaries
 Quick setups on the home page	Schnelleinstellungen auf der Startseite
 Shown. Tap to hide it.	Angezeigt. Tippe, um sie auszublenden.

@@ -70,7 +70,7 @@ final class PrivacyCategory {
         }
         if (!privacy.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Ads and privacy"), SettingsIcons.PRIVACY,
-                    L10n.t("Hide ads and share less about yourself with Instagram."));
+                    L10n.t("Hide ads and share less with Instagram."));
             for (Preference row : privacy) section.addPreference(row);
         }
     }

@@ -505,17 +505,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Preference status = statusCard(context);
         status.setOrder(-40);
         screen.addPreference(status);
-        // The sign-in notice stays right under the status card, so the view button goes after it.
+        // Search and the list switch lead the page; notices and recovery follow them.
         beforeSignIn = null;
         if (!Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) {
             Preference notice = beforeSignIn = signInNotice(context, screen);
             notice.setOrder(-30);
             screen.addPreference(notice);
         }
-        viewToggle.setOrder(-20);
+        viewToggle.setOrder(-45);
         screen.addPreference(viewToggle);
         search = new SearchRow(context);
-        search.setOrder(-10);
+        search.setOrder(-50);
         search.setKey("hushgram_settings_search");
         search.setTitle(L10n.t("Search settings"));
         search.setPersistent(false);
@@ -526,7 +526,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         noSearchResults.setPersistent(false);
         noSearchResults.setSelectable(false);
         noSearchResults.setKey("hushgram_settings_search_empty");
-        noSearchResults.setOrder(search.getOrder() + 1);
+        noSearchResults.setOrder(-1);
         noSearchResults.setTitle(L10n.t("No matching settings"));
         noSearchResults.setSummary(L10n.t("Try another word. Settings only appear for patches included in this install."));
         mark(noSearchResults, SettingsIcons.SEARCH);
@@ -557,12 +557,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         PauseCategory.add(this, screen, context, build);
         AboutCategory.add(this, screen, context, build);
 
-        // Outside every category, so no category page or count changes. Under Search (-10) and
+        // Outside every category, so no category page or count changes. Under Search and
         // above the first category, whose line on its own page takes the order just before it.
         Row quick = quickSetups = new Row(context);
         quick.setKey(QUICK_SETUPS_ROW_KEY);
         quick.setTitle(L10n.t("Quick setups"));
-        quick.setSummary(L10n.t("Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row."));
+        quick.setSummary(L10n.t("Quiet, Privacy, or back to defaults. Hold to hide."));
         quick.setPersistent(false);
         quick.setOrder(-5);
         quick.setOnPreferenceClickListener(p -> {
@@ -1254,7 +1254,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (top == null) continue;
             // A tap hid the notice for good and took it off the screen. It stays off.
             if (top == beforeSignIn && Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) continue;
-            boolean hidden = categoryContext && top != search;
+            boolean hidden = (categoryContext && top != search)
+                    || (top == statusCard && !HushgramPause.isPaused());
             if (hidden) {
                 if (top.getParent() == screen) screen.removePreference(top);
             } else if (top.getParent() != screen) screen.addPreference(top);
@@ -2328,12 +2329,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             int touch = Math.round(48 * context.getResources().getDisplayMetrics().density);
             float density = context.getResources().getDisplayMetrics().density;
             int inset = Math.round(18 * density);
-            int gap = Math.round(6 * density);
+            int gap = Math.round(4 * density);
             android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
             for (boolean focused : new boolean[]{true, false}) {
                 android.graphics.drawable.GradientDrawable surface = new android.graphics.drawable.GradientDrawable();
                 surface.setColor(ScreenColors.DEFAULT.card);
-                surface.setCornerRadius(Math.round(12 * density));
+                surface.setCornerRadius(Math.round(10 * density));
                 surface.setStroke(Math.round(density), focused ? ScreenColors.DEFAULT.heading : ScreenColors.DEFAULT.outline);
                 states.addState(focused ? new int[]{android.R.attr.state_focused} : new int[]{},
                         new android.graphics.drawable.InsetDrawable(surface, inset, gap, inset, gap));
@@ -2483,6 +2484,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      */
     private Preference statusCard(Context context) {
         Row card = new Row(context);
+        card.setKey("hushgram_status");
         card.setPersistent(false);
         card.setEnabled(!resumingFromOverview);
         boolean paused = HushgramPause.isPaused();

@@ -942,15 +942,15 @@ Hides the status bar and the navigation bar while your messages or a chat shows.
 Hide Notes on profile pictures	Profil fotoğraflarındaki Notları gizle
 Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.	Notlar balonunu profil fotoğraflarından kaldırır, seninki dahil. Mesajlar'daki Notlar olduğu gibi kalır.
 # context: the line that opens a category's page in HushGram settings, under the page title
-How you open HushGram, and how this screen is laid out.	HushGram'ı nasıl açtığın ve bu ekranın düzeni.
-Hide ads and share less about yourself with Instagram.	Reklamları gizle ve Instagram'la kendin hakkında daha az şey paylaş.
+How you open HushGram and lay out settings.	HushGram'ı açma ve ayarları düzenleme.
+Hide ads and share less with Instagram.	Reklamları gizle ve Instagram ile daha az bilgi paylaş.
 Choose what Home shows and how it behaves.	Ana Sayfa'nın ne gösterdiğini ve nasıl davrandığını seç.
-Take Meta AI out of search, your feed, reels and profiles.	Meta AI'ı aramadan, akışından, reels'ten ve profillerden çıkar.
-Tidy up the Search tab and what it remembers.	Ara sekmesini ve hatırladıklarını düzenle.
-Keep your chats private and your inbox clear of extras.	Sohbetlerini gizli, gelen kutunu da fazlalıklardan uzak tut.
-Choose what reels show, and how they play and scroll.	Reels'in ne gösterdiğini, nasıl oynatılıp kaydırıldığını seç.
-Choose which stories you see and what people see you do.	Hangi hikayeleri göreceğini ve başkalarının senin yaptıklarından neyi göreceğini seç.
-Choose how videos start, sound and look.	Videoların nasıl başlayacağını, sesini ve görünümünü seç.
+Control where Meta AI appears.	Meta AI'ın nerede görüneceğini seç.
+Search, suggestions and the Explore grid.	Arama, öneriler ve Keşfet ızgarası.
+Privacy and controls for your chats.	Sohbetler için gizlilik ve kontroller.
+Playback and controls in the Reels tab.	Reels sekmesinde oynatma ve kontroller.
+Viewing, sound and the stories tray.	İzleme, ses ve hikâye tepsisi.
+Media quality, auto-play and controls.	Medya kalitesi, otomatik oynatma ve kontroller.
 Take buttons you don't use off posts and the share sheet.	Kullanmadığın düğmeleri gönderilerden ve paylaşım sayfasından kaldır.
 Copy, save or hide comments.	Yorumları kopyala, kaydet ya da gizle.
 See who follows you back, and clear extras off profiles.	Seni kimin geri takip ettiğini gör ve profillerdeki fazlalıkları kaldır.
@@ -1042,7 +1042,7 @@ Report a problem	Sorun bildir
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Sürümlerin ve ayarların önceden doldurulmuş bir GitHub raporu açar. Ne olduğunu ekle.
 # context: the settings row under Search, and the title of its dialog of one-tap choices
 Quick setups	Hızlı kurulumlar
-Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row.	Bir grup anahtarı tek dokunuşla aç veya tüm anahtarları başlangıçtaki hâline döndür. Bu satırı gizlemek için basılı tut.
+Quiet, Privacy, or back to defaults. Hold to hide.	Sessiz, Gizlilik veya varsayılanlara dön. Gizlemek için basılı tut.
 # context: row on Settings backup that hides or shows the Quick setups row on the home page, and its two summaries
 Quick setups on the home page	Ana sayfada hızlı kurulumlar
 Shown. Tap to hide it.	Gösteriliyor. Gizlemek için dokun.

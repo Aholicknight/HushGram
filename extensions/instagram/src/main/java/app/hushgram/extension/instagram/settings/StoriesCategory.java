@@ -134,7 +134,7 @@ final class StoriesCategory {
         }
         if (!stories.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Stories"), SettingsIcons.STORIES,
-                    L10n.t("Choose which stories you see and what people see you do."));
+                    L10n.t("Viewing, sound and the stories tray."));
             for (Preference row : stories) section.addPreference(row);
         }
     }

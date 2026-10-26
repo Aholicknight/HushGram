@@ -155,7 +155,7 @@ public final class SettingsDialog extends DialogFragment {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         // Start and end, not left and right: in a right-to-left language the bar is mirrored.
-        bar.setPaddingRelative(dp(4), dp(8), dp(18), dp(8));
+        bar.setPaddingRelative(dp(4), dp(4), dp(18), dp(4));
 
         ImageButton back = new ImageButton(getContext());
         android.graphics.drawable.Drawable arrow = SettingsIcons.icon(getContext(), SettingsIcons.BACK, palette.title);
@@ -189,7 +189,7 @@ public final class SettingsDialog extends DialogFragment {
         title.setText("HushGram");
         title.setTextColor(palette.title);
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
         title.setPaddingRelative(dp(8), 0, 0, 0);
         title.setAccessibilityHeading(true);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));

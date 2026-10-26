@@ -25,6 +25,7 @@ import android.os.Build;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceGroup;
+import android.preference.PreferenceScreen;
 import android.preference.TwoStatePreference;
 import android.util.SparseBooleanArray;
 import android.util.TypedValue;
@@ -62,7 +63,7 @@ public final class ScreenColors {
     /** Grouped preference rows and their edge. */
     public final int card;
     public final int outline;
-    /** Tonal tile behind decorative row icons. */
+    /** Tonal surface used by secondary controls. */
     public final int iconSurface;
     /** Text on the filled primary dialog action. */
     public final int onAccent;
@@ -154,10 +155,12 @@ public final class ScreenColors {
 
     /** A row's title and summary, its switch if it has one, and its chevron if a tap opens something. */
     void paintRow(View row, Preference preference) {
+        boolean overview = preference.getParent() instanceof PreferenceScreen;
         TextView title = row.findViewById(android.R.id.title);
         if (title != null) {
             title.setTextColor(dimmedWhenDisabled(this.title));
-            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP,
+                    "hushgram_status".equals(preference.getKey()) ? 14 : overview ? 15 : 16);
             title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             if (title.getParent() instanceof View) {
                 View text = (View) title.getParent();
@@ -168,8 +171,8 @@ public final class ScreenColors {
         TextView summary = row.findViewById(android.R.id.summary);
         if (summary != null) {
             summary.setTextColor(dimmedWhenDisabled(this.summary));
-            summary.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            summary.setLineSpacing(dp(row, 2), 1);
+            summary.setTextSize(TypedValue.COMPLEX_UNIT_SP, overview ? 12 : 13);
+            summary.setLineSpacing(0, 1);
         }
         View widget = row.findViewById(android.R.id.switch_widget);
         if (widget instanceof Switch) {
@@ -198,21 +201,18 @@ public final class ScreenColors {
         if (icon != null) icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         if (icon != null && preference.getIcon() != null) {
             ViewGroup.LayoutParams imageSize = icon.getLayoutParams();
-            imageSize.width = dp(row, 36);
-            imageSize.height = dp(row, 36);
+            imageSize.width = dp(row, 24);
+            imageSize.height = dp(row, 24);
             icon.setLayoutParams(imageSize);
-            icon.setPadding(dp(row, 6), dp(row, 6), dp(row, 6), dp(row, 6));
+            icon.setPadding(0, 0, 0, 0);
             icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
             icon.setImageTintList(dimmedWhenDisabled(heading));
-            GradientDrawable tile = new GradientDrawable();
-            tile.setColor(iconSurface);
-            tile.setCornerRadius(dp(row, 8));
-            icon.setBackground(tile);
+            icon.setBackground(null);
             if (icon.getParent() instanceof ViewGroup) {
                 ViewGroup frame = (ViewGroup) icon.getParent();
-                frame.setPaddingRelative(0, 0, dp(row, 12), 0);
+                frame.setPaddingRelative(0, 0, dp(row, 14), 0);
                 ViewGroup.LayoutParams size = frame.getLayoutParams();
-                size.width = dp(row, 48);
+                size.width = dp(row, 38);
                 frame.setLayoutParams(size);
             }
         }
@@ -272,7 +272,8 @@ public final class ScreenColors {
      * height is the row's: its text wraps at any font size and the row grows to fit.
      */
     void paintSurface(View row, Preference preference, boolean first, boolean last) {
-        float radius = dp(row, 12);
+        boolean overview = preference.getParent() instanceof PreferenceScreen;
+        float radius = overview ? 0 : dp(row, 10);
         GradientDrawable surface = new GradientDrawable();
         surface.setColor(card);
         surface.setStroke(dp(row, 1), preference.isSelectable() ? interactionOutline(outline)
@@ -282,15 +283,18 @@ public final class ScreenColors {
                 first ? radius : 0, first ? radius : 0,
                 last ? radius : 0, last ? radius : 0,
                 last ? radius : 0, last ? radius : 0});
-        Drawable inset = new InsetDrawable(surface, dp(row, 18), first ? dp(row, 6) : -dp(row, 1),
-                dp(row, 18), last ? dp(row, 6) : 0);
+        int side = overview ? 0 : dp(row, 18);
+        Drawable inset = new InsetDrawable(surface, side, overview ? -dp(row, 1) : first ? dp(row, 4) : -dp(row, 1),
+                side, !overview && last ? dp(row, 4) : 0);
         row.setBackground(preference.isSelectable()
                 ? new RippleDrawable(interactionRipple(heading), inset, null).mutate() : inset);
         // Explicit padding after the inset background prevents its padding from moving the text.
-        int vertical = preference.getIcon() == null ? 16 : 14;
-        row.setPaddingRelative(dp(row, 30), dp(row, vertical + (first ? 6 : 0)),
-                dp(row, 30), dp(row, vertical + (last ? 6 : 0)));
-        row.setMinimumHeight(dp(row, 72));
+        int horizontal = overview ? 20 : 30;
+        int vertical = overview ? 6 : 10;
+        row.setPaddingRelative(dp(row, horizontal), dp(row, vertical + (!overview && first ? 4 : 0)),
+                dp(row, horizontal), dp(row, vertical + (!overview && last ? 4 : 0)));
+        row.setMinimumHeight(dp(row, "hushgram_view_toggle".equals(preference.getKey()) ? 48
+                : "hushgram_status".equals(preference.getKey()) ? 56 : overview ? 52 : 64));
     }
 
     /** A section title. */

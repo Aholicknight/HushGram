@@ -531,7 +531,9 @@ public class SettingsRowAccessibilityTest {
         open();
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.ONLY_FOLLOWING.key));
-        Preference status = page.getPreferenceScreen().getPreference(0);
+        assertNull(page.getPreferenceScreen().findPreference("hushgram_status"));
+        Preference status = page.about.getPreference(0);
+        assertEquals("Version", status.getTitle());
         assertFalse(status.isSelectable());
         View view = row(status);
         AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();

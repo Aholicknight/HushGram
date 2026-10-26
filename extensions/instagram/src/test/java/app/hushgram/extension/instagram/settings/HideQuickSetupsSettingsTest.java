@@ -103,8 +103,7 @@ public class HideQuickSetupsSettingsTest {
             HushgramPreferenceFragment page = open(controller);
             Preference quick = quick(page);
             assertNotNull(quick);
-            assertEquals("Turn on a set of switches in one tap, or put every switch back the way it started."
-                    + " Press and hold to hide this row.", String.valueOf(quick.getSummary()));
+            assertEquals("Quiet, Privacy, or back to defaults. Hold to hide.", String.valueOf(quick.getSummary()));
         }
     }
 

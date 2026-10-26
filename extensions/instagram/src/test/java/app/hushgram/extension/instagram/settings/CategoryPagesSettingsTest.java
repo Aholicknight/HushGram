@@ -244,8 +244,10 @@ public class CategoryPagesSettingsTest {
         ShadowLooper.idleMainLooper();
         assertSame("the home page has it back", notice,
                 screen.findPreference(HushgramPreferenceFragment.SIGN_IN_NOTICE_KEY));
-        assertEquals("right under the status card", HushgramPreferenceFragment.SIGN_IN_NOTICE_KEY,
-                screen.getPreference(1).getKey());
+        assertEquals("Search leads the page", "hushgram_settings_search", screen.getPreference(0).getKey());
+        assertEquals("the list switch follows Search", "hushgram_view_toggle", screen.getPreference(1).getKey());
+        assertEquals("the notice follows navigation", HushgramPreferenceFragment.SIGN_IN_NOTICE_KEY,
+                screen.getPreference(2).getKey());
 
         assertTrue(notice.getOnPreferenceClickListener().onPreferenceClick(notice));
         assertTrue(Settings.SIGN_IN_NOTICE_HIDDEN.savedValue());
@@ -412,7 +414,7 @@ public class CategoryPagesSettingsTest {
         Preference field = page.getPreferenceScreen().findPreference("hushgram_settings_search");
         int at = -1;
         for (int i = 0; i < list.getAdapter().getCount(); i++) if (list.getAdapter().getItem(i) == field) at = i;
-        assertTrue("the field sits under other rows to begin with: " + at, at > 0);
+        assertEquals("Search remains the first row while typing", 0, at);
         assertEquals(at, list.getFirstVisiblePosition());
         assertEquals(list.getPaddingTop(), list.getChildAt(0).getTop());
         assertTrue("moving the list lost typing focus: " + page.getView().findFocus(), input.hasFocus());
@@ -439,11 +441,11 @@ public class CategoryPagesSettingsTest {
      */
     @Test public void aPendingRestartShowsItsBarUnderTheCategoryAndMovesNoRow() throws Exception {
         openDialog();
-        Preference status = page.getPreferenceScreen().getPreference(0);
+        Preference homeControl = page.getPreferenceScreen().findPreference("hushgram_view_toggle");
         View bar = dialog.getView().findViewById(SettingsDialog.RESTART_ID);
         tap(categoryRow("Feed"));
         layoutPage();
-        assertNull(status.getParent());
+        assertNull(homeControl.getParent());
         assertEquals("nothing waits on a restart yet", View.GONE, bar.getVisibility());
         ListView list = page.getView().findViewById(android.R.id.list);
         int rows = list.getAdapter().getCount();
@@ -457,7 +459,7 @@ public class CategoryPagesSettingsTest {
                 ((android.widget.TextView) bar).getText().toString());
         assertTrue("under the page, not over its rows",
                 bar.getTop() >= dialog.getView().findViewById(SettingsDialog.CONTAINER_ID).getBottom());
-        assertNull("no row goes in above the one that was flipped", status.getParent());
+        assertNull("no home control goes in above the one that was flipped", homeControl.getParent());
         assertEquals(rows, list.getAdapter().getCount());
         assertEquals("hushgram_settings_search", page.getPreferenceScreen().getPreference(0).getKey());
         following.setChecked(before);

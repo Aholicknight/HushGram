@@ -238,7 +238,7 @@ public class SettingsCardsTest {
         assertEquals("the card takes the page's colours", ScreenColors.DEFAULT.card, top.getColor().getDefaultColor());
     }
 
-    @Test public void theCategoryRowsShareOneCardAsASectionsRowsDo() throws Exception {
+    @Test public void theOverviewUsesFlatConnectedRows() throws Exception {
         open(true, EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.FOLLOWING_FEED, PatchFamily.NOTIFICATION_GROUPS));
         List<Preference> rows = categoryRows();
         Preference entry = categoryRow("Settings entry");
@@ -259,20 +259,23 @@ public class SettingsCardsTest {
         Preference support = page.findPreference(HushgramPreferenceFragment.SUPPORT_ROW_KEY);
         assertFalse(ScreenColors.opensCard(support));
         assertTrue(ScreenColors.closesCard(support));
-        Preference status = onScreen().get(0);
-        assertEquals("HushGram is on", String.valueOf(status.getTitle()));
-        assertTrue("the status card stays a card of its own", ScreenColors.opensCard(status) && ScreenColors.closesCard(status));
-
-        assertTrue(roundedTop(card(render(entry))));
+        assertNull("the active status strip is absent", page.getPreferenceScreen().findPreference("hushgram_status"));
+        assertEquals("hushgram_settings_search", onScreen().get(0).getKey());
+        assertEquals("hushgram_view_toggle", onScreen().get(1).getKey());
+        assertFalse(roundedTop(card(render(entry))));
         assertFalse(roundedBottom(card(render(entry))));
         assertFalse(roundedTop(card(render(rows.get(1)))));
-        assertTrue(roundedBottom(card(render(backup))));
+        assertFalse(roundedBottom(card(render(backup))));
+        View drawn = render(entry);
+        ImageView icon = drawn.findViewById(android.R.id.icon);
+        assertNull("the line icon has no decorative tile", icon.getBackground());
+        assertTrue("rows keep a touch target", drawn.getHeight() >= 48 * drawn.getResources().getDisplayMetrics().density);
     }
 
     @Test public void onlyARowThatOpensSomethingEndsInAChevron() throws Exception {
         open(true, EnumSet.of(PatchFamily.HIDE_ADS));
         assertTrue("a category row opens its page", hasChevron(render(categoryRow("Ads and privacy"))));
-        assertFalse("the status card only reports", hasChevron(render(onScreen().get(0))));
+        assertNull("an active status card does not take space", page.getPreferenceScreen().findPreference("hushgram_status"));
         tap(categoryRow("Settings entry"));
         assertTrue("a list row opens its choices",
                 hasChevron(render(page.findPreference(Settings.NAVIGATION_SETTINGS_TARGET.key))));

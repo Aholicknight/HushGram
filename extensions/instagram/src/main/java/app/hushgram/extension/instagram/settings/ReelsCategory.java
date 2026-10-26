@@ -240,7 +240,7 @@ final class ReelsCategory {
         }
         if (!reels.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Reels"), SettingsIcons.REELS,
-                    L10n.t("Choose what reels show, and how they play and scroll."));
+                    L10n.t("Playback and controls in the Reels tab."));
             for (Preference row : reels) section.addPreference(row);
         }
     }
