@@ -1805,7 +1805,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         showConfiguration();
         Intent picker = new Intent(importing ? Intent.ACTION_OPEN_DOCUMENT : Intent.ACTION_CREATE_DOCUMENT)
                 .addCategory(Intent.CATEGORY_OPENABLE).setType("application/json");
-        if (!importing) picker.putExtra(Intent.EXTRA_TITLE, "HushGram-settings.json");
+        if (!importing) picker.putExtra(Intent.EXTRA_TITLE,
+                ConfigurationBackup.fileName(new Date(), Settings.DATE_SETTINGS_EXPORT.savedValue()));
         try {
             startActivityForResult(picker, documentCode);
         } catch (ActivityNotFoundException | SecurityException failure) {

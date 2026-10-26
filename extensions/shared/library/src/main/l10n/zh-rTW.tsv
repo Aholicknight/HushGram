@@ -1260,5 +1260,7 @@ That reel isn't on their profile. It might be a trial reel.	該 Reel 不在對�
 The red dots and counts for new messages and notifications take the color you picked. Restart Instagram to see the change.	新訊息和通知的紅點與數字會改用你選擇的顏色。請重新啟動 Instagram 以套用變更。
 Your fonts in story text	限時動態文字的自訂字型
 Your story fonts	你的限時動態字型
+Date in backup file names	在備份檔名加入日期
+Add the current date and time when exporting settings. Off keeps HushGram-settings.json.	匯出設定時加入目前的日期與時間。關閉時保留 HushGram-settings.json。
 %1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s 是貼文網址中的短代碼。限時動態和未知貼文會省略。加入此代碼後，範本也會用於相片檔名。
 Videos and photos use %1$s. Unknown codes are left out.	影片和相片使用 %1$s。未知的代碼會省略。

@@ -118,6 +118,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting CATEGORY_PAGES =
             new BooleanSetting("hushgram_category_pages", TRUE);
 
+    /** A settings-page choice, read saved even during Pause. Existing backup names stay the default. */
+    public static final BooleanSetting DATE_SETTINGS_EXPORT =
+            new BooleanSetting("hushgram_date_settings_export", FALSE);
+
     /** Sponsored posts, reels and stories: the ad injector is told no ad went in. */
     public static final BooleanSetting HIDE_ADS =
             new BooleanSetting("hushgram_hide_ads", TRUE);

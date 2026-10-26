@@ -13,8 +13,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.json.JSONException;
@@ -58,6 +61,12 @@ public final class ConfigurationBackup {
     private static long undoId;
 
     private ConfigurationBackup() {}
+
+    /** The suggested document name, with optional local time in safe, locale-independent digits. */
+    static String fileName(Date when, boolean dated) {
+        return "HushGram-settings" + (dated
+                ? "-" + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(when) : "") + ".json";
+    }
 
     /** The page no longer permits a queued change. Nothing was written or consumed. */
     public static final class Held extends IOException {
@@ -202,6 +211,7 @@ public final class ConfigurationBackup {
         settings.put(Settings.SETTINGS_SHORTCUT.key, Settings.SETTINGS_SHORTCUT);
         settings.put(Settings.SETTINGS_LOGO_PRESS.key, Settings.SETTINGS_LOGO_PRESS);
         settings.put(Settings.CATEGORY_PAGES.key, Settings.CATEGORY_PAGES);
+        settings.put(Settings.DATE_SETTINGS_EXPORT.key, Settings.DATE_SETTINGS_EXPORT);
         return settings;
     }
 

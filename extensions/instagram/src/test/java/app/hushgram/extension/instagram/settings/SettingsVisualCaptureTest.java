@@ -110,6 +110,7 @@ public class SettingsVisualCaptureTest {
         PatchFamily.inBuildForTests = null;
         Settings.CATEGORY_PAGES.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
+        Settings.DATE_SETTINGS_EXPORT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         RuntimeEnvironment.setFontScale(1f);
@@ -199,6 +200,17 @@ public class SettingsVisualCaptureTest {
         captureAlert("file-name-shortcode");
     }
 
+    @Test public void datedBackupOptionRendersAtTwiceTheTextSize() throws Exception {
+        scale = "backup-date-extra-large";
+        RuntimeEnvironment.setFontScale(2f);
+        open();
+        openCategory("Settings backup");
+        Preference option = page.findPreference(Settings.DATE_SETTINGS_EXPORT.key);
+        assertNotNull(option);
+        clickInList(option);
+        assertTrue(Settings.DATE_SETTINGS_EXPORT.savedValue());
+        capturePage("backup-date-on", true);
+    }
 
     @Test public void realChoiceInputGhostPauseAndNoticeStatesRender() throws Exception {
         open();

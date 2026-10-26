@@ -1257,5 +1257,7 @@ Every row of Instagram's Settings and activity shows. Untick the ones you don't 
 %1$d row is left off Instagram's Settings and activity.	Se quitó %1$d fila de Configuración y actividad de Instagram.
 %1$d rows are left off Instagram's Settings and activity.	Se quitaron %1$d filas de Configuración y actividad de Instagram.
 Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.	Abre Configuración y actividad en Instagram una vez y luego vuelve aquí. Sus filas aparecerán en esta lista para desmarcarlas.
+Date in backup file names	Fecha en los nombres de las copias
+Add the current date and time when exporting settings. Off keeps HushGram-settings.json.	Añade la fecha y hora actuales al exportar los ajustes. Desactivado mantiene HushGram-settings.json.
 %1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s es el código corto de la publicación. Se omite en historias y publicaciones desconocidas. Al usarlo, la plantilla también nombra las fotos.
 Videos and photos use %1$s. Unknown codes are left out.	Los videos y las fotos usan %1$s. Los códigos desconocidos se omiten.
