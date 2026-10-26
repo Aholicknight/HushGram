@@ -6,27 +6,39 @@ package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import android.animation.ValueAnimator;
+import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Shader;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
+import org.robolectric.shadows.ShadowLooper;
+
+import java.lang.reflect.Method;
 
 /**
- * The settings title in Instagram's gradient: every stop reads on the black bar, a sweep runs as
- * the screen opens and once each period, the gradient ends a sweep where it began, the name is
- * drawn in more than one colour, and a search's title stays plain white.
+ * Every HushGram title in Instagram's gradient: every stop reads on the black bar, a sheen sweeps
+ * as the title opens and once each period, the colours drift without a jump, a worn title is drawn
+ * in more than one colour and in different ones as time passes, and it keeps moving on screen with
+ * Android's animations off, as the S22 runs (2026-10-26).
  */
 @RunWith(RobolectricTestRunner.class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -40,7 +52,7 @@ public class ShimmerTitleTest {
     }
 
     @Test
-    public void aSweepRunsAsTheScreenOpensAndOnceEachPeriod() {
+    public void aSweepRunsAsTheTitleOpensAndOnceEachPeriod() {
         assertEquals(0f, ShimmerTitle.sweep(0L), 0f);
         assertEquals(0.5f, ShimmerTitle.sweep(ShimmerTitle.SWEEP_MS / 2), 0.001f);
         assertEquals(-1f, ShimmerTitle.sweep(ShimmerTitle.SWEEP_MS), 0f);
@@ -50,52 +62,85 @@ public class ShimmerTitleTest {
     }
 
     @Test
-    public void theGradientEndsASweepWhereItBegan() {
-        assertEquals(0f, ShimmerTitle.flow(0f), 0f);
-        assertEquals(0f, ShimmerTitle.flow(1f), 0f);
-        assertEquals(0f, ShimmerTitle.flow(-1f), 0f);
-        assertEquals(0.5f, ShimmerTitle.flow(0.5f), 0.001f);
+    public void theColoursDriftRoundAndStartAgainWhereTheyBegan() {
+        assertEquals(0f, ShimmerTitle.drift(0L), 0f);
+        assertEquals(0f, ShimmerTitle.drift(-5L), 0f);
+        assertEquals(0.5f, ShimmerTitle.drift(ShimmerTitle.DRIFT_MS / 2), 0.001f);
+        assertEquals(0f, ShimmerTitle.drift(ShimmerTitle.DRIFT_MS), 0f);
         float before = 0f;
         for (int step = 1; step < 20; step++) {
-            float now = ShimmerTitle.flow(step / 20f);
+            float now = ShimmerTitle.drift(step * ShimmerTitle.DRIFT_MS / 20);
             assertTrue(now > before);
             before = now;
         }
     }
 
     @Test
-    public void theNameIsDrawnInTheGradientAndASearchTitleInWhite() {
-        ShimmerTitle title = new ShimmerTitle(RuntimeEnvironment.getApplication());
+    public void aWornTitleIsDrawnInTheGradientAndChangesAsItDrifts() {
+        TextView title = title("Search settings");
+        ShimmerTitle.wear(title);
+        assertTrue(ShimmerTitle.wears(title));
+        // A whole drift round on, between sweeps: yellow at the start, blue at the end.
+        assertEquals(-1f, ShimmerTitle.sweep(ShimmerTitle.DRIFT_MS), 0f);
+        Bitmap still = draw(title, ShimmerTitle.DRIFT_MS);
+        assertTrue("warm letters", anyPixel(still, true));
+        assertTrue("cool letters", anyPixel(still, false));
+        Bitmap later = draw(title, ShimmerTitle.DRIFT_MS + ShimmerTitle.DRIFT_MS / 4);
+        assertFalse("the colours moved", still.sameAs(later));
+        Bitmap sweeping = draw(title, ShimmerTitle.SWEEP_MS / 2);
+        assertTrue("the sheen pass still shows the gradient", anyPixel(sweeping, true));
+    }
+
+    @Test
+    public void aTitleOnScreenKeepsMovingWithAnimationsOff() throws Exception {
+        Method scale = ValueAnimator.class.getMethod("setDurationScale", float.class);
+        scale.invoke(null, 0f);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            assertFalse(ValueAnimator.areAnimatorsEnabled());
+            TextView title = title("HushGram");
+            FrameLayout root = new FrameLayout(controller.get());
+            root.addView(title);
+            controller.get().setContentView(root);
+            ShimmerTitle.wear(title);
+            assertNotNull("the gradient is on as the title opens", shift(title, 100));
+            // Past the opening sweep the paint holds the drifting gradient alone.
+            Float first = shift(title, ShimmerTitle.SWEEP_MS + 200);
+            Float later = shift(title, 500);
+            assertNotNull(first);
+            assertNotNull(later);
+            assertTrue("the colours drifted with animations off: " + first + " then " + later, later > first);
+        } finally {
+            scale.invoke(null, 1f);
+        }
+    }
+
+    /** Runs the main looper [ms] on and gives how far the title's shader is moved along x, if any. */
+    private static Float shift(TextView title, long ms) {
+        ShadowLooper.idleMainLooper(ms, java.util.concurrent.TimeUnit.MILLISECONDS);
+        Shader shader = title.getPaint().getShader();
+        if (shader == null) return null;
+        Matrix local = new Matrix();
+        shader.getLocalMatrix(local);
+        float[] values = new float[9];
+        local.getValues(values);
+        return values[Matrix.MTRANS_X];
+    }
+
+    private static TextView title(String text) {
+        TextView title = new TextView(RuntimeEnvironment.getApplication());
         // As in the bar: a laid-out TextView reads its layout params when its text changes.
         title.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
-        title.show("HushGram", true);
-        assertTrue(title.wearsGradient());
-        Bitmap named = draw(title);
-        assertTrue("warm letters", anyPixel(named, true));
-        assertTrue("cool letters", anyPixel(named, false));
-        assertNull("the shader doesn't stay on the paint", title.getPaint().getShader());
-
-        title.show("Results for blur", false);
-        assertFalse(title.wearsGradient());
-        Bitmap search = draw(title);
-        int lit = 0;
-        for (int x = 0; x < search.getWidth(); x++) {
-            for (int y = 0; y < search.getHeight(); y++) {
-                int pixel = search.getPixel(x, y);
-                if (Color.alpha(pixel) == 0) continue;
-                lit++;
-                assertTrue(Integer.toHexString(pixel), Math.abs(Color.red(pixel) - Color.blue(pixel)) <= 2);
-            }
-        }
-        assertTrue(lit > 0);
+        title.setText(text);
+        return title;
     }
 
-    private static Bitmap draw(ShimmerTitle title) {
+    private static Bitmap draw(TextView title, long sinceStart) {
         title.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
         title.layout(0, 0, title.getMeasuredWidth(), title.getMeasuredHeight());
+        ShimmerTitle.frameFor(title, sinceStart);
         Bitmap bitmap = Bitmap.createBitmap(title.getWidth(), title.getHeight(), Bitmap.Config.ARGB_8888);
         title.draw(new Canvas(bitmap));
         return bitmap;

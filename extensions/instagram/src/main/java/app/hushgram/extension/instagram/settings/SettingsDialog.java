@@ -57,7 +57,7 @@ public final class SettingsDialog extends DialogFragment {
     /** Put back over a screen that can't draw text yet, so closing without building anything. */
     private boolean closing;
     private Button retry;
-    private ShimmerTitle heading;
+    private TextView heading;
     private TextView restart;
     /** The lock's checks on this dialog's window while it's started. */
     private Window lockWindow;
@@ -184,9 +184,10 @@ public final class SettingsDialog extends DialogFragment {
         });
         bar.addView(back, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
-        ShimmerTitle title = new ShimmerTitle(getContext());
+        TextView title = new TextView(getContext());
         heading = title;
-        title.show("HushGram", true);
+        title.setText("HushGram");
+        ShimmerTitle.wear(title);
         title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
         title.setPaddingRelative(dp(8), 0, 0, 0);
@@ -274,8 +275,8 @@ public final class SettingsDialog extends DialogFragment {
 
     /** Shows the search title, and HushGram again for null. */
     void showTitle(@androidx.annotation.Nullable CharSequence title) {
-        ShimmerTitle bar = heading;
-        if (bar != null) bar.show(title == null ? "HushGram" : title, title == null);
+        TextView bar = heading;
+        if (bar != null) bar.setText(title == null ? "HushGram" : title);
     }
 
     /** Clears a search before Back closes the dialog. Expanding a section adds no Back level. */
@@ -501,7 +502,7 @@ public final class SettingsDialog extends DialogFragment {
         content.addView(icon, iconSize);
         TextView title = new TextView(getContext());
         title.setText(L10n.t(getContext(), "Settings couldn't open"));
-        title.setTextColor(palette.title);
+        ShimmerTitle.wear(title);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         title.setGravity(Gravity.CENTER);

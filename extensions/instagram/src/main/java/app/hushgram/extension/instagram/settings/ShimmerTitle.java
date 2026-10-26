@@ -4,116 +4,162 @@
  */
 package app.hushgram.extension.instagram.settings;
 
-import android.animation.ValueAnimator;
-import android.content.Context;
-import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ComposeShader;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
+import android.graphics.PorterDuff;
 import android.graphics.Shader;
 import android.text.Layout;
-import android.text.TextPaint;
+import android.view.View;
 import android.view.animation.AnimationUtils;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
+
+import java.util.Map;
+import java.util.WeakHashMap;
+
 /**
- * The HushGram name over the settings, in Instagram's gradient. As the screen opens, and every
- * {@link #PERIOD_MS} after, the colours flow along the word and a white sheen sweeps over it, then
- * it holds still until the next sweep, so nothing redraws between sweeps. Any other title, such as
- * a search's, is plain white, and with Android's animations off the gradient stays still.
+ * Every HushGram title in Instagram's gradient: the settings bar, its dialogs and the screens that
+ * stand in for it. The colours drift along the words all the time the title is on screen, and as
+ * it opens, and every {@link #PERIOD_MS} after, a white sheen sweeps over them. It moves whatever
+ * Android's animation scale says (Matt, 2026-10-26: the S22 runs with animations off and the title
+ * sat still there).
  */
-final class ShimmerTitle extends TextView {
-    /** One sweep and the still wait after it. */
+public final class ShimmerTitle implements Runnable, View.OnAttachStateChangeListener {
+    /** One sheen sweep and the wait after it. */
     static final long PERIOD_MS = 6000;
-    /** How long a sweep runs. */
+    /** How long a sheen sweep runs. */
     static final long SWEEP_MS = 1400;
+    /** How long the colours take to drift one whole mirrored round. */
+    static final long DRIFT_MS = 8000;
+    /**
+     * The least time between frames: the next frame after it, so about 60 a second on a 60 or
+     * 120 Hz screen. A frame posted with no wait runs at once wherever time stands still, as in a
+     * test's paused looper, which then never goes idle.
+     */
+    private static final long FRAME_MS = 10;
+    /** How often a title that isn't showing checks whether it is again. */
+    private static final long HIDDEN_CHECK_MS = 500;
     /**
      * Instagram's gradient, yellow through orange, pink and purple to blue, each stop lightened
      * where needed so it reads at 7:1 or better on the black bar.
      */
     static final int[] COLORS = {0xFFFEDA75, 0xFFFA7E1E, 0xFFFF5C9A, 0xFFC77DFF, 0xFF85A1FF};
     private static final int[] SHEEN = {0x00FFFFFF, 0xB3FFFFFF, 0x00FFFFFF};
+    /** The titles wearing the gradient, so painting one twice doesn't run two loops. */
+    private static final Map<TextView, ShimmerTitle> WORN = new WeakHashMap<>();
 
+    private final TextView title;
     private final Matrix move = new Matrix();
+    private final Matrix across = new Matrix();
     private LinearGradient colors;
     private LinearGradient sheen;
     private float shadedWidth = -1f;
     private float shadedHeight = -1f;
-    /** When the first sweep started, so it plays as the screen opens. */
+    /** When the first sweep started, so it plays as the title opens. */
     private long startedAt = -1L;
-    private boolean brand = true;
+    private boolean running;
 
-    ShimmerTitle(Context context) {
-        super(context);
-        setTextColor(Color.WHITE);
+    private ShimmerTitle(TextView title) {
+        this.title = title;
     }
 
-    /** Shows [title], HushGram's own name when [brand] and so in the gradient, plain white otherwise. */
-    void show(CharSequence title, boolean brand) {
-        this.brand = brand;
-        setText(title);
-        invalidate();
+    /** Puts [title] in the gradient, moving for as long as it's on screen. Again changes nothing. */
+    public static void wear(TextView title) {
+        if (WORN.containsKey(title)) return;
+        ShimmerTitle shimmer = new ShimmerTitle(title);
+        WORN.put(title, shimmer);
+        // The gradient replaces the colour, and a full-strength colour keeps it full strength.
+        title.setTextColor(Color.WHITE);
+        title.addOnAttachStateChangeListener(shimmer);
+        if (title.isAttachedToWindow()) shimmer.onViewAttachedToWindow(title);
     }
 
-    /** Whether the title wears the gradient: HushGram's own name. */
-    boolean wearsGradient() {
-        return brand;
+    /** Whether [title] wears the gradient. */
+    static boolean wears(TextView title) {
+        return WORN.containsKey(title);
     }
 
     @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
+    public void onViewAttachedToWindow(View view) {
         startedAt = -1L;
+        if (!running) {
+            running = true;
+            title.postOnAnimationDelayed(this, FRAME_MS);
+        }
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
-        TextPaint paint = getPaint();
-        Layout layout = getLayout();
-        if (!brand || layout == null || layout.getLineCount() == 0) {
-            paint.setShader(null);
-            super.onDraw(canvas);
+    public void onViewDetachedFromWindow(View view) {
+        running = false;
+        title.removeCallbacks(this);
+    }
+
+    @Override
+    public void run() {
+        if (!running || !title.isAttachedToWindow()) {
+            running = false;
             return;
         }
-        float left = layout.getLineLeft(0);
-        float width = Math.max(1f, layout.getLineRight(0) - left);
+        if (!title.isShown()) {
+            // Nothing to draw behind a closed page: look again in a while instead of every frame.
+            startedAt = -1L;
+            title.postDelayed(this, HIDDEN_CHECK_MS);
+            return;
+        }
+        long now = AnimationUtils.currentAnimationTimeMillis();
+        if (startedAt < 0L) startedAt = now;
+        frame(now - startedAt);
+        title.postOnAnimationDelayed(this, FRAME_MS);
+    }
+
+    /** Shades [title], which wears the gradient, as it stands [sinceStart] ms after it opened. */
+    static void frameFor(TextView title, long sinceStart) {
+        ShimmerTitle shimmer = WORN.get(title);
+        if (shimmer != null) shimmer.frame(sinceStart);
+    }
+
+    /** Shades the title as it stands [sinceStart] ms after it opened, and has it redrawn. */
+    void frame(long sinceStart) {
+        title.getPaint().setShader(shade(sinceStart));
+        title.invalidate();
+    }
+
+    @Nullable
+    private Shader shade(long sinceStart) {
+        Layout layout = title.getLayout();
+        if (layout == null || layout.getLineCount() == 0) return null;
+        // TextView draws its layout from the padding's corner, so these are the layout's own
+        // coordinates. A wrapped title takes its colours across its widest line.
+        float left = Float.MAX_VALUE, right = -Float.MAX_VALUE;
+        for (int line = 0; line < layout.getLineCount(); line++) {
+            left = Math.min(left, layout.getLineLeft(line));
+            right = Math.max(right, layout.getLineRight(line));
+        }
+        float width = Math.max(1f, right - left);
         float height = Math.max(1f, layout.getHeight());
+        float band = height * 1.6f;
         if (colors == null || width != shadedWidth || height != shadedHeight) {
             colors = new LinearGradient(0f, 0f, width, 0f, COLORS, null, Shader.TileMode.MIRROR);
-            float band = height * 1.6f;
             sheen = new LinearGradient(0f, 0f, band, band * 0.35f, SHEEN, null, Shader.TileMode.CLAMP);
             shadedWidth = width;
             shadedHeight = height;
         }
-        boolean moving = ValueAnimator.areAnimatorsEnabled();
-        long now = AnimationUtils.currentAnimationTimeMillis();
-        if (startedAt < 0L) startedAt = now;
-        float sweep = moving ? sweep(now - startedAt) : -1f;
-
-        // The text sits at the layout's line left inside the padding, so the shaders start there.
-        float x = getCompoundPaddingLeft() + left;
-        move.setTranslate(x + flow(sweep) * 2f * width, 0f);
+        move.setTranslate(left + drift(sinceStart) * 2f * width, 0f);
         colors.setLocalMatrix(move);
-        paint.setShader(colors);
-        super.onDraw(canvas);
-
-        if (sweep >= 0f) {
-            float band = height * 1.6f;
-            move.setTranslate(x - band + sweep * (width + band), getExtendedPaddingTop());
-            sheen.setLocalMatrix(move);
-            paint.setShader(sheen);
-            super.onDraw(canvas);
-            postInvalidateOnAnimation();
-        } else if (moving) {
-            long wait = PERIOD_MS - (now - startedAt) % PERIOD_MS;
-            postInvalidateDelayed(Math.max(16L, wait));
-        }
-        paint.setShader(null);
+        float sweep = sweep(sinceStart);
+        if (sweep < 0f) return colors;
+        across.setTranslate(left - band + sweep * (width + band), 0f);
+        sheen.setLocalMatrix(across);
+        // Built afresh each frame: a ComposeShader keeps the matrices its parts had when it was made.
+        return new ComposeShader(colors, sheen, PorterDuff.Mode.SRC_OVER);
     }
 
     /**
-     * How far into its sweep the title is [sinceStart] ms after the first one began, 0 to 1, or
-     * -1 while it waits for the next.
+     * How far into its sweep the title is [sinceStart] ms after it opened, 0 to 1, or -1 while it
+     * waits for the next.
      */
     static float sweep(long sinceStart) {
         if (sinceStart < 0L) return -1f;
@@ -122,11 +168,11 @@ final class ShimmerTitle extends TextView {
     }
 
     /**
-     * How far the gradient has flowed for [sweep], eased in and out. One whole sweep moves it a full
-     * mirrored round, so it holds the same colours between sweeps as it had before the first.
+     * How far round its mirrored cycle the gradient has drifted [sinceStart] ms after the title
+     * opened, 0 to 1. A whole round ends on the colours it began with, so the drift never jumps.
      */
-    static float flow(float sweep) {
-        if (sweep <= 0f || sweep >= 1f) return 0f;
-        return (float) ((1.0 - Math.cos(Math.PI * sweep)) / 2.0);
+    static float drift(long sinceStart) {
+        if (sinceStart <= 0L) return 0f;
+        return (sinceStart % DRIFT_MS) / (float) DRIFT_MS;
     }
 }

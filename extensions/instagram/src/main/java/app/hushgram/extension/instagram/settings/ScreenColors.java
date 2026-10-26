@@ -507,7 +507,7 @@ public final class ScreenColors {
             // Centred by gravity, which a start alignment from showAllText would override.
             title.setTextAlignment(View.TEXT_ALIGNMENT_GRAVITY);
             title.setTextSize(22);
-            title.setTextColor(palette.title);
+            ShimmerTitle.wear(title);
             title.setTypeface(Typeface.create("sans-serif-medium", 0));
             Drawable icon = SettingsIcons.icon(row.getContext(), SettingsIcons.ABOUT, palette.heading);
             icon.setBounds(0, 0, dp(row, 56), dp(row, 56));
@@ -550,7 +550,8 @@ public final class ScreenColors {
         int titleId = dialog.getContext().getResources().getIdentifier("alertTitle", "id", "android");
         TextView title = titleId == 0 ? null : dialog.findViewById(titleId);
         if (title != null) {
-            title.setTextColor(this.title);
+            // In the gradient, as every HushGram title is.
+            ShimmerTitle.wear(title);
             title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
             title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             title.setSingleLine(false);
