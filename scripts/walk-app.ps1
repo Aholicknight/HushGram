@@ -115,12 +115,16 @@ function Get-WalkActionArea {
     }
     if ($matchesForAction.Count -ne 1) { return $null }
     $actionNode = $matchesForAction[0]
+    $tapNode = $actionNode
     if (-not $Scroll) {
         while ($null -ne $actionNode -and $actionNode.Name -ceq 'node' -and $actionNode.GetAttribute('clickable') -cne 'true') {
             $actionNode = $actionNode.ParentNode
         }
         if ($null -eq $actionNode -or $actionNode.Name -cne 'node' -or $actionNode.GetAttribute('enabled') -cne 'true') { return $null }
     }
+    # A non-clickable title can delegate to a row. Its own bounds still locate the
+    # intended control; a broader clickable ancestor's center could hit another row.
+    $actionNode = $tapNode
     $leftEdge = [int]::MinValue; $topEdge = [int]::MinValue
     $rightEdge = [int]::MaxValue; $bottomEdge = [int]::MaxValue
     while ($null -ne $actionNode -and $actionNode.Name -ceq 'node') {
@@ -134,7 +138,13 @@ function Get-WalkActionArea {
         $actionNode = $actionNode.ParentNode
     }
     if ($rightEdge - $leftEdge -lt 4 -or $bottomEdge - $topEdge -lt 4) { return $null }
-    [pscustomobject]@{ X=[int](($leftEdge+$rightEdge)/2); Y=[int](($topEdge+$bottomEdge)/2)
+    $x=[int](($leftEdge+$rightEdge)/2); $y=[int](($topEdge+$bottomEdge)/2)
+    $geometryNodes=[Collections.Generic.HashSet[Xml.XmlNode]]::new()
+    foreach($uiNode in @(Get-WalkVisibleNodes -Document $Document -GeometryOnly)) { [void]$geometryNodes.Add($uiNode) }
+    $point=[pscustomobject]@{ Left=$x; Top=$y; Right=$x+1; Bottom=$y+1 }
+    if (-not (Test-WalkNodeUncovered -Node $tapNode -Visible $geometryNodes `
+        -Geometry ([Collections.Generic.Dictionary[Xml.XmlNode,object]]::new()) -TargetArea $point)) { return $null }
+    [pscustomobject]@{ X=$x; Y=$y
         Top=$topEdge; Bottom=$bottomEdge; Left=$leftEdge; Right=$rightEdge }
 }
 

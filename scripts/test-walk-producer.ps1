@@ -212,6 +212,30 @@ try {
     $otherCover=$cover.CloneNode($true); $otherCover.SetAttribute('bounds','[45,0][720,1000]')
     [void]$ui.DocumentElement.FirstChild.AppendChild($otherCover)
     Assert-Producer ($null -eq (Get-WalkActionArea -Document $ui -Package 'com.instagram.android' -ResourceId 'com.instagram.android:id/feed_tab')) 'Two covering siblings admitted a hidden tap target.'
+    $ui=New-ProducerUi
+    $ui.SelectSingleNode('//node[@resource-id="com.instagram.android:id/feed_tab"]').SetAttribute('drawing-order','1')
+    $cover=$ui.CreateElement('node')
+    foreach($pair in @(@('package','com.instagram.android'),@('class','android.widget.Button'),@('visible-to-user','true'),
+        @('enabled','true'),@('bounds','[40,850][60,1000]'),@('text','Cover'),@('drawing-order','2'))) { $cover.SetAttribute($pair[0],$pair[1]) }
+    [void]$ui.DocumentElement.FirstChild.AppendChild($cover)
+    Assert-Producer ($null -eq (Get-WalkActionArea -Document $ui -Package 'com.instagram.android' -ResourceId 'com.instagram.android:id/feed_tab')) 'A partly visible tab admitted a tap on its covered center.'
+    $cover.SetAttribute('bounds','[40,930][60,970]'); $cover.SetAttribute('drawing-order','0')
+    Assert-Producer ($null -eq (Get-WalkActionArea -Document $ui -Package 'com.instagram.android' -ResourceId 'com.instagram.android:id/feed_tab')) 'A blocker omitted by whole-control visibility was omitted from the point check.'
+    $cover.SetAttribute('visible-to-user','false')
+    Assert-Producer ($null -ne (Get-WalkActionArea -Document $ui -Package 'com.instagram.android' -ResourceId 'com.instagram.android:id/feed_tab')) 'A hidden center cover blocked navigation.'
+    $cover.SetAttribute('visible-to-user','true'); $cover.SetAttribute('drawing-order','1')
+    $ui.SelectSingleNode('//node[@resource-id="com.instagram.android:id/feed_tab"]').SetAttribute('drawing-order','2')
+    Assert-Producer ($null -ne (Get-WalkActionArea -Document $ui -Package 'com.instagram.android' -ResourceId 'com.instagram.android:id/feed_tab')) 'A lower center cover blocked navigation.'
+    $cover.SetAttribute('drawing-order','3'); $cover.SetAttribute('bounds','[0,930][20,970]')
+    Assert-Producer ($null -ne (Get-WalkActionArea -Document $ui -Package 'com.instagram.android' -ResourceId 'com.instagram.android:id/feed_tab')) 'A side cover blocked an unobstructed center.'
+    [xml]$delegated=@'
+<hierarchy><node package="com.instagram.android" enabled="true" visible-to-user="true" bounds="[0,0][720,1000]">
+<node package="com.instagram.android" class="android.widget.LinearLayout" enabled="true" clickable="true" visible-to-user="true" bounds="[100,200][600,500]">
+<node package="com.instagram.android" class="android.widget.TextView" text="Known category" enabled="true" clickable="false" visible-to-user="true" bounds="[120,220][220,260]" />
+</node></node></hierarchy>
+'@
+    $area=Get-WalkActionArea -Document $delegated -Package 'com.instagram.android' -Title 'Known category'
+    Assert-Producer ($null -ne $area -and $area.X -eq 170 -and $area.Y -eq 240) 'A delegated title used its broad ancestor center.'
     Write-Host "[walk-producer] $checks checks passed"
 } finally {
     $tempRoot=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')+'\'

@@ -147,7 +147,7 @@ function Read-WalkUiDocument {
 
 function Test-WalkNodeUncovered {
     param([Xml.XmlNode]$Node, [Collections.Generic.HashSet[Xml.XmlNode]]$Visible,
-        [Collections.Generic.Dictionary[Xml.XmlNode,object]]$Geometry)
+        [Collections.Generic.Dictionary[Xml.XmlNode,object]]$Geometry, $TargetArea)
     function Get-WalkNodeGeometry([Xml.XmlNode]$Candidate) {
         if ($Geometry.ContainsKey($Candidate)) { return $Geometry[$Candidate] }
         $left = [int]::MinValue; $top = [int]::MinValue
@@ -218,6 +218,13 @@ function Test-WalkNodeUncovered {
         return $false
     }
     $target = Get-WalkNodeGeometry $Node
+    if ($null -ne $TargetArea) {
+        foreach($edge in @('Left','Top','Right','Bottom')) { if($TargetArea.$edge -isnot [int]) { return $false } }
+        if ($TargetArea.Left -lt $target.Left -or $TargetArea.Top -lt $target.Top -or
+            $TargetArea.Right -gt $target.Right -or $TargetArea.Bottom -gt $target.Bottom -or
+            $TargetArea.Left -ge $TargetArea.Right -or $TargetArea.Top -ge $TargetArea.Bottom) { return $false }
+        $target=$TargetArea
+    }
     $blockers = [Collections.Generic.List[object]]::new()
     $branch = $Node
     while ($branch.ParentNode -and $branch.ParentNode.Name -ceq 'node') {
@@ -264,7 +271,7 @@ function Test-WalkNodeUncovered {
 }
 
 function Get-WalkVisibleNodes {
-    param([xml]$Document)
+    param([xml]$Document, [switch]$GeometryOnly)
     $geometricallyVisible = @($Document.SelectNodes('//node') | Where-Object {
         $candidateNode = $_
         $visible = $true
@@ -282,6 +289,7 @@ function Get-WalkVisibleNodes {
         }
         $visible
     })
+    if ($GeometryOnly) { return $geometricallyVisible }
     $visible = [Collections.Generic.HashSet[Xml.XmlNode]]::new()
     foreach ($uiNode in $geometricallyVisible) { [void]$visible.Add($uiNode) }
     $geometry = [Collections.Generic.Dictionary[Xml.XmlNode,object]]::new()
