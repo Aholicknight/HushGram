@@ -3,12 +3,13 @@ package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.*;
 
+import java.io.BufferedReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.TreeSet;
-import org.json.JSONArray;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -37,16 +38,14 @@ public class ConfigurationSelectionBackupTest {
     }
 
     @Test public void everyCurrentNativeRowChoiceSurvivesExportRestoreAndUndo() throws Exception {
-        JSONArray ids;
-        try (InputStream input = getClass().getResourceAsStream("/settings-row-ids-452.json")) {
-            assertNotNull(input);
-            java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
-            byte[] buffer = new byte[4096];
-            for (int count; (count = input.read(buffer)) != -1;) bytes.write(buffer, 0, count);
-            ids = new JSONArray(new String(bytes.toByteArray(), StandardCharsets.UTF_8));
-        }
         Set<String> checked = new TreeSet<>();
-        for (int at = 0; at < ids.length(); at++) checked.add(ids.getString(at));
+        try (InputStream input = getClass().getResourceAsStream("/settings-row-ids-452.txt")) {
+            assertNotNull(input);
+            try (BufferedReader lines = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+                lines.lines().filter(line -> !line.isEmpty() && !line.startsWith("#")).forEach(checked::add);
+            }
+        }
+        assertEquals("every captured native row is retained", 161, checked.size());
         String picked = SettingsRows.join(checked);
         assertTrue("real row choices exceed the ordinary text ceiling", picked.length() > ConfigurationBackup.MAX_TEXT);
         assertTrue("the existing bounded JSON reader still accepts them", picked.length() <= ConfigurationBackup.MAX_WORDS_TEXT);
