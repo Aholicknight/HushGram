@@ -18,7 +18,7 @@
           }
         },
         {
-          "title": "Open categories as pages",
+          "title": "Expandable categories",
           "when": {
             "op": "unconditional"
           }

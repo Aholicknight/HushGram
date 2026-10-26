@@ -244,27 +244,43 @@ function Invoke-WalkApp {
             [void](Invoke-WalkAdb @('shell','input','tap',[string]$Bounds.X,[string]$Bounds.Y))
             Start-Sleep -Seconds $SettleSeconds
         }
+        function Send-WalkSettingsSwipe($Capture, [string]$Direction) {
+            $listBounds = Get-WalkCaptureActionArea -Capture $Capture -Package $Package -Scroll
+            if ($null -eq $listBounds) { return $false }
+            $top = [int]($listBounds.Top + ($listBounds.Bottom-$listBounds.Top)*0.2)
+            $bottom = [int]($listBounds.Top + ($listBounds.Bottom-$listBounds.Top)*0.8)
+            $from = if ($Direction -ceq 'up') { $top } else { $bottom }
+            $to = if ($Direction -ceq 'up') { $bottom } else { $top }
+            [void](Invoke-WalkAdb @('shell','input','swipe',[string]$listBounds.X,[string]$from,[string]$listBounds.X,[string]$to,'300'))
+            Start-Sleep -Milliseconds 400
+            return $true
+        }
+        function Read-WalkSettingsCapture {
+            $current = Read-WalkCapture
+            if (-not (Test-WalkSettingsVisible $current.ParsedXml)) { throw 'The settings search field is not visible. No settings navigation was sent.' }
+            return $current
+        }
         function Find-WalkSettingsSection($Destination) {
             # Preferences can be reordered. Search both directions using only the verified settings list.
+            # A category heading expands its rows in place under it, so it is tapped once, never Back
+            # (Back closes settings), and the rows are then looked for further down.
             foreach ($direction in @('up','down')) {
                 for ($scrollIndex=0; $scrollIndex -lt 24; $scrollIndex++) {
-                    $current = Read-WalkCapture
-                    if (-not (Test-WalkSettingsVisible $current.ParsedXml)) { throw 'The settings search field is not visible. No settings navigation was sent.' }
-                    $section = Get-WalkCaptureActionArea -Capture $current -Package $Package -Title $Destination.title
+                    $current = Read-WalkSettingsCapture
                     $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
-                    if ($content.Valid -and -not $Destination.page) { return $current }
-                    if ($null -ne $section -and $Destination.page) {
+                    if ($content.Valid) { return [pscustomobject]@{ Capture=$current; Expanded=$false } }
+                    $section = if ($Destination.page) { Get-WalkCaptureActionArea -Capture $current -Package $Package -Title $Destination.title }
+                    if ($null -ne $section) {
                         Send-WalkTap $section
-                        return Read-WalkCapture
+                        for ($rowIndex=0; $rowIndex -lt 24; $rowIndex++) {
+                            $current = Read-WalkSettingsCapture
+                            $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
+                            if ($content.Valid) { return [pscustomobject]@{ Capture=$current; Expanded=$true } }
+                            if (-not (Send-WalkSettingsSwipe $current 'down')) { break }
+                        }
+                        throw "The settings section '$($Destination.title)' expanded without a verified row. It was tapped once."
                     }
-                    $listBounds = Get-WalkCaptureActionArea -Capture $current -Package $Package -Scroll
-                    if ($null -eq $listBounds) { break }
-                    $top = [int]($listBounds.Top + ($listBounds.Bottom-$listBounds.Top)*0.2)
-                    $bottom = [int]($listBounds.Top + ($listBounds.Bottom-$listBounds.Top)*0.8)
-                    $from = if ($direction -ceq 'up') { $top } else { $bottom }
-                    $to = if ($direction -ceq 'up') { $bottom } else { $top }
-                    [void](Invoke-WalkAdb @('shell','input','swipe',[string]$listBounds.X,[string]$from,[string]$listBounds.X,[string]$to,'300'))
-                    Start-Sleep -Milliseconds 400
+                    if (-not (Send-WalkSettingsSwipe $current $direction)) { break }
                 }
             }
             throw "The required settings section '$($Destination.title)' was unavailable. No setting was changed."
@@ -322,11 +338,12 @@ function Invoke-WalkApp {
                     # In the saved long-list mode, observe headings and rows without changing its mode.
                     $navigationDestination = [pscustomobject]@{ id=$destination.id; title=$destination.title; kind=$destination.kind
                         page=($pages -and $destination.page); anchors=$destination.anchors }
-                    $capture = Find-WalkSettingsSection $navigationDestination
-                    Add-WalkObservation $destination $capture
-                    if ($navigationDestination.page) {
-                        [void](Invoke-WalkAdb @('shell','input','keyevent','KEYCODE_BACK'))
-                        Start-Sleep -Seconds $SettleSeconds
+                    $found = Find-WalkSettingsSection $navigationDestination
+                    Add-WalkObservation $destination $found.Capture
+                    if ($found.Expanded) {
+                        # Fold it again from the heading the capture verified, so settings end as the walk found them.
+                        $heading = Get-WalkCaptureActionArea -Capture $found.Capture -Package $Package -Title $destination.title
+                        if ($null -ne $heading) { Send-WalkTap $heading }
                     }
                 }
             }

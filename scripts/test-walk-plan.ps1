@@ -178,6 +178,14 @@ try {
     $all = @(Get-WalkRequiredDestinations -CatalogPath $catalogPath -SelectedPatches $allNames)
     $defaults = @(Get-WalkRequiredDestinations -CatalogPath $catalogPath -SelectedPatches @($catalog.patches | Where-Object use | ForEach-Object name))
     Assert-PlanTest (@($all | Where-Object kind -CEQ 'settings').Count -eq 23) 'All patches must require all 23 headings.'
+    # A renamed heading or row leaves the walk looking for text settings no longer draw.
+    $settingsSource = (Get-ChildItem -LiteralPath (Join-Path $repo 'extensions\instagram\src\main\java\app\hushgram\extension\instagram\settings') -Filter '*.java' |
+        ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
+    foreach ($category in $policy.categories) {
+        foreach ($title in @($category.title) + @($category.anchors.title)) {
+            Assert-PlanTest ($settingsSource.Contains('L10n.t("' + $title + '"')) "Walk policy text '$title' ($($category.id)) is not a settings title in the source."
+        }
+    }
     Assert-PlanTest (@($defaults | Where-Object kind -CEQ 'settings').Count -eq 23) 'Default patches must require all 23 headings.'
     Assert-PlanTest (@($all | Where-Object { $_.kind -ceq 'settings' -and $_.page }).Count -eq 22) 'Exactly 22 settings pages are expected.'
     $pause = $all | Where-Object id -CEQ 'settings-pause'

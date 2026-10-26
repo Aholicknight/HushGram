@@ -25,6 +25,7 @@ function Reset-Producer {
     $script:state=@{ calls=[Collections.Generic.List[string]]::new(); captures=0; leases=0; releases=0; reads=0; bindings=0
         current='home'; refuseAt=0; wrongBefore=$false; wrongAfter=$false; artifactDrift=$false; rejectProof=$false; wrongPackage=$false }
     $script:state.settingsMode='none'
+    $script:state.expanded=$false; $script:state.expandBroken=$false; $script:state.headingTaps=0
 }
 # Strict APK/report/PNG validation has its own real-byte fixtures. These tests cover the
 # producer's choice of operations and its propagation of each reader's refusal.
@@ -72,9 +73,13 @@ function Invoke-HushgramAdbCommand {
         $output=@('Status: ok')
         if ($command -like '*OPEN_SETTINGS true') { $state.current='settings-root' }
     }
-    elseif ($command -ceq 'shell input keyevent KEYCODE_BACK') { $state.current='settings-root' }
+    # Categories expand in place on the overview; Back from it closes settings.
+    elseif ($command -ceq 'shell input keyevent KEYCODE_BACK') { $state.current='home' }
     elseif ($command -like 'shell input tap *') {
-        if ($state.current -ceq 'settings-root') { $state.current='settings-fixture' }
+        if ($state.current -ceq 'settings-root') {
+            $state.headingTaps++
+            if (-not $state.expandBroken) { $state.expanded=-not $state.expanded }
+        }
         else {
             $index=[int]([int]$Arguments[5]/100)
             $state.current=@('home','explore','reels','inbox','profile')[$index]
@@ -90,6 +95,7 @@ function New-ProducerUi {
             "<node package='com.instagram.android' class='android.widget.TextView' text='$modeLabel' enabled='true' visible-to-user='true' bounds='[0,160][700,200]' />"+
             "<node package='com.instagram.android' class='android.widget.ListView' resource-id='android:id/list' enabled='true' visible-to-user='true' bounds='[0,200][700,950]'>"+
             "<node package='com.instagram.android' class='android.widget.TextView' text='Fixture category' clickable='true' enabled='true' visible-to-user='true' bounds='[0,300][700,400]' />"+
+            $(if ($state.expanded) { "<node package='com.instagram.android' class='android.widget.TextView' text='Known row' enabled='true' visible-to-user='true' bounds='[0,400][700,500]' />" })+
             '</node>'
         return [xml]"<hierarchy><node package='com.instagram.android' enabled='true' visible-to-user='true' bounds='[0,0][720,1000]'>$children</node></hierarchy>"
     }
@@ -114,7 +120,7 @@ function Test-WalkDestinationContent {
     param($Destination)
     $valid=$Destination.id -ceq $state.current -or
         ($Destination.id -ceq 'settings-pause' -and $state.current -ceq 'settings-root') -or
-        ($Destination.id -ceq 'settings-fixture' -and $state.settingsMode -ceq 'flat' -and $state.current -ceq 'settings-root')
+        ($Destination.id -ceq 'settings-fixture' -and $state.current -ceq 'settings-root' -and ($state.settingsMode -ceq 'flat' -or $state.expanded))
     [pscustomobject]@{ Valid=$valid; Reason='The requested destination is not active.' }
 }
 function Test-WalkReceipt { [pscustomobject]@{ Valid=(-not $state.rejectProof); Reason='The complete proof was refused.' } }
@@ -177,10 +183,17 @@ try {
         $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
         Assert-Producer ($receipt.result -ceq 'PASS' -and $receipt.screens -eq 8 -and
             $receipt.observations.id -ccontains 'settings-root' -and $receipt.observations.id -ccontains 'settings-pause') "Settings coverage in $mode mode was incomplete."
-        $expectedTaps=if($mode -ceq 'pages') { 6 } else { 5 }
+        # Category mode taps the heading open and closed again; Back would close settings.
+        $expectedTaps=if($mode -ceq 'pages') { 7 } else { 5 }
         Assert-Producer (@($state.calls | Where-Object { $_ -like '*input tap*' }).Count -eq $expectedTaps -and
             @($state.calls | Where-Object { $_ -like '*input tap*180*' }).Count -eq 0) 'The producer changed list mode, tapped Pause or opened a flat section.'
+        Assert-Producer (-not $state.expanded -and @($state.calls | Where-Object { $_ -like '*KEYCODE_BACK*' }).Count -eq 0) "Settings in $mode mode were left expanded or closed with Back."
     }
+    Reset-Producer; $state.settingsMode='pages'; $state.expandBroken=$true
+    $path=Invoke-WalkApp @arguments
+    $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 1 -and
+        @($receipt.problems | Where-Object { $_ -like '*expanded without a verified row*' }).Count -eq 1) 'A heading that showed no rows earned PASS or was tapped again.'
 
     # Coordinates come from one visible, enabled native target and all ancestor clipping.
     Reset-Producer

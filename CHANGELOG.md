@@ -38,6 +38,7 @@ Every HushGram release, newest first.
 * **Tooling:** Release walkthroughs require matching bundle, candidate and installed APK evidence, with visible content for each required destination. Incomplete receipts, changed installs and covered pages can't authorize publication.
 * **Tooling:** Walk navigation checks the chosen tap point, including covers over a partly visible control. Settings labels keep their own location when a row handles the tap.
 * **Tooling:** The walk accepts a loaded Explore grid under Instagram's empty Compose layer. A labeled, clickable, focusable, filled or differently built layer still counts as a cover.
+* **Tooling:** The release walk expands each settings category in place and folds it again, instead of pressing Back, which now closes settings. Its category rows are checked against the settings source.
 
 #### Improvements
 
