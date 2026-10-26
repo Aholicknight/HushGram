@@ -41,6 +41,7 @@ Every HushGram release, newest first.
 
 #### Improvements
 
+* **Instagram:** Settings categories expand their controls directly underneath. Several sections can stay open, and tapping a heading collapses it. Search finds controls across every section and restores your open sections when cleared.
 * **Instagram:** Quick setups and its show/hide control are removed. Settings opens with Search, the list-view switch and the compact category list.
 * **Instagram:** Settings opens with Search, followed by the list view option. Compact rows and shorter descriptions fit more categories on screen. The active-status banner is gone, and larger text still wraps.
 * **Tooling:** The patching help explains the small-heap limit and keeps Manager's embedded VM workaround.

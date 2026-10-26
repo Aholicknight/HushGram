@@ -206,14 +206,14 @@ Watched-story sorting leaves your own story and Instagram's special tray entries
 Inside Instagram, long-press the Instagram logo at the top of your feed. A tap still does what Instagram made it do, and the long press works while HushGram is paused. From your home screen, long-press Instagram's icon and tap **HushGram settings**. Or open **Settings and activity** from the menu on your profile and tap **HushGram settings** at the top. The shortcut works before you sign in too. Under **Settings entry** you can also pick a tab, or your profile's menu button, whose long press opens HushGram. Every way in has a switch there, so you can keep just the one you like. The last one still on can't be turned off.
 
 <p>
-  <img src="assets/settings-switches.png" alt="HushGram settings with Search first, followed by list mode and compact categories" width="270">
+  <img src="assets/settings-switches.png" alt="HushGram settings with Search first and Feed expanded on the main page" width="270">
   <img src="assets/settings-pause-and-diagnostics.png" alt="HushGram Pause and diagnostics controls" width="270">
-  <img src="assets/settings-about.png" alt="HushGram About page with version and licenses" width="270">
+  <img src="assets/settings-about.png" alt="HushGram About section expanded beneath its button" width="270">
 </p>
 
-Search is at the top of settings, with **Show all settings as a list** directly below it. The compact category list starts with Settings entry, then Ads and privacy, Feed and the other parts of Instagram. **Search settings** finds a control by its label in your phone's language or by its English patch name. The rows you see depend on the patches you picked. The screenshots show a native rendering preview of the unreleased v0.0.17 settings.
+Search is at the top of settings, with **Show all settings as a list** directly below it. Tap a category to expand its controls underneath. Tap it again to collapse them. You can keep several sections open on the same page, or show every setting at once. The controls you see depend on the patches you picked. The screenshots show a native rendering preview of the unreleased v0.0.17 settings.
 
-Search stays available inside each category. Rotation keeps your category and position, and a change that needs a restart shows the action on that page. Place and sharing-domain editors keep an invalid entry open so you can correct it.
+**Search settings** finds controls across all categories by their labels in your phone's language or their English patch names. Clearing the search restores the sections you had open. Rotation keeps those sections and your position. A change that needs a restart shows the action below the list. Place and sharing-domain editors keep an invalid entry open so you can correct it.
 
 PIN forms keep their labels visible and scroll above the keyboard. Next moves to confirmation, and Done submits. Incomplete entries don't spend an attempt. The picture viewer keeps Close and Save below the preview, clear of system bars. Save becomes available after loading.
 

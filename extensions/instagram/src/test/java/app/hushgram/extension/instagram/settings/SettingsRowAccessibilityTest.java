@@ -83,6 +83,7 @@ public class SettingsRowAccessibilityTest {
         ScreenColors.shown = null;
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
+        Settings.CATEGORY_PAGES.resetToDefault();
         Settings.HIDE_ADS.resetToDefault();
         Settings.START_ON_FOLLOWING.resetToDefault();
         Settings.ONLY_FOLLOWING.resetToDefault();
@@ -674,6 +675,50 @@ public class SettingsRowAccessibilityTest {
         assertFalse("a removed category's child still exposes a working action", advertised);
         assertFalse(performed);
         assertFalse(Settings.HIDE_ADS.savedValue());
+    }
+
+    @Test public void categoryAccessibilityActionsExpandCollapseAndRejectDetachedChildren() throws Exception {
+        Settings.CATEGORY_PAGES.save(true);
+        open(PatchFamily.HIDE_ADS);
+        Preference header = null;
+        for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {
+            Preference candidate = page.getPreferenceScreen().getPreference(i);
+            if ("Ads and privacy".contentEquals(candidate.getTitle())) header = candidate;
+        }
+        assertNotNull(header);
+        View button = row(header);
+        AccessibilityNodeInfo node = button.createAccessibilityNodeInfo();
+        assertTrue(node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND));
+        assertFalse(node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE));
+        if (android.os.Build.VERSION.SDK_INT >= 30) assertEquals("Collapsed", node.getStateDescription());
+        else assertTrue(String.valueOf(node.getContentDescription()).endsWith("Collapsed"));
+        node.recycle();
+        assertTrue(button.performAccessibilityAction(AccessibilityNodeInfo.ACTION_EXPAND, null));
+        layout();
+        Preference ads = page.findPreference(Settings.HIDE_ADS.key);
+        assertSame(header, ads.getParent());
+        assertTrue(ads.isEnabled());
+        View child = row(ads);
+        assertTrue(child.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null));
+        assertTrue(Settings.HIDE_ADS.savedValue());
+        button = row(header);
+        node = button.createAccessibilityNodeInfo();
+        assertTrue(node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE));
+        assertFalse(node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND));
+        if (android.os.Build.VERSION.SDK_INT >= 30) assertEquals("Expanded", node.getStateDescription());
+        else assertTrue(String.valueOf(node.getContentDescription()).endsWith("Expanded"));
+        node.recycle();
+        assertTrue(button.performAccessibilityAction(AccessibilityNodeInfo.ACTION_COLLAPSE, null));
+        // The adapter still holds the old child view until its queued hierarchy refresh runs.
+        assertNull(ads.getParent());
+        assertFalse(clickable(child.createAccessibilityNodeInfo()));
+        assertFalse(child.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null));
+        assertTrue(Settings.HIDE_ADS.savedValue());
+        layout();
+        assertTrue(row(header).performAccessibilityAction(AccessibilityNodeInfo.ACTION_EXPAND, null));
+        layout();
+        assertSame(ads, page.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key));
+        assertTrue(((android.preference.SwitchPreference) ads).isChecked());
     }
 
     @Test public void aReplacedScreenCannotAcceptItsPreviousRowBeforeRebinding() throws Exception {

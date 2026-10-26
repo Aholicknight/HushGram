@@ -110,10 +110,9 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_profile_menu_long_press", FALSE);
 
     /**
-     * HushGram's settings list their categories, and a tap opens one as its own page. Search still
-     * looks through every category. On to start (#80, #100). The button under the status card, or
-     * this switch, makes the page one long list. A choice about the page itself, so it's read
-     * saved, not through Pause.
+     * Categories expand inline on the main settings screen. Off shows every setting in one list.
+     * Keep the existing stored key and default for upgrades and backups. Read the saved value
+     * because Pause doesn't change how settings are displayed.
      */
     public static final BooleanSetting CATEGORY_PAGES =
             new BooleanSetting("hushgram_category_pages", TRUE);

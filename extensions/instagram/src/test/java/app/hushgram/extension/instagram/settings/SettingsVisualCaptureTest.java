@@ -145,6 +145,8 @@ public class SettingsVisualCaptureTest {
         clickInList(feed);
         assertNotNull(page.findPreference(Settings.START_ON_FOLLOWING.key));
         capturePage("01-feed", false);
+        list.setSelectionFromTop(0, 0);
+        settle();
         EditText input = page.getView().findViewWithTag("hushgram-settings-search");
         input.setText("Hide ads");
         settle();
@@ -160,7 +162,7 @@ public class SettingsVisualCaptureTest {
         input = page.getView().findViewWithTag("hushgram-settings-search");
         input.setText("");
         settle();
-        assertTrue(page.closeCategory());
+        tap(feed);
         settle();
         clickInList(page.getPreferenceScreen().findPreference("hushgram_view_toggle"));
         assertFalse(Settings.CATEGORY_PAGES.savedValue());
@@ -194,17 +196,15 @@ public class SettingsVisualCaptureTest {
         open();
         capturePage("00-overview", true);
         List<Preference> categories = categories();
-        assertEquals("Every category except the always-open recovery section has its own page", 22, categories.size());
+        assertEquals("Every category except recovery can expand in place", 22, categories.size());
         int number = 1;
         for (Preference category : categories) {
             tap(category);
             ListView list = page.getView().findViewById(android.R.id.list);
-            assertEquals("Opening " + category.getTitle() + " starts at Search", 0, list.getFirstVisiblePosition());
-            EditText search = page.getView().findViewWithTag("hushgram-settings-search");
-            assertNotNull("Search must stay visible in " + category.getTitle(), search);
-            assertTrue(search.isShown());
+            assertTrue(((HushgramPreferenceFragment.Heading) category).expanded);
+            assertNotNull("Search remains on the same page", page.getPreferenceScreen().findPreference("hushgram_settings_search"));
             capturePage(String.format(Locale.ROOT, "%02d-%s", number++, slug(category.getTitle())), true);
-            assertTrue("Back must restore the category overview", page.closeCategory());
+            tap(category);
             settle();
         }
         Settings.CATEGORY_PAGES.save(false);
@@ -238,7 +238,7 @@ public class SettingsVisualCaptureTest {
         for (Preference category : categories()) {
             tap(category);
             capturePage(String.format(Locale.ROOT, "%02d-%s", number++, slug(category.getTitle())), false);
-            assertTrue(page.closeCategory());
+            tap(category);
             settle();
         }
     }
@@ -254,7 +254,7 @@ public class SettingsVisualCaptureTest {
         for (Preference category : categories()) {
             tap(category);
             capturePage(String.format(Locale.ROOT, "%02d-%s", number++, slug(category.getTitle())), false);
-            assertTrue(page.closeCategory());
+            tap(category);
             settle();
         }
     }
@@ -292,7 +292,7 @@ public class SettingsVisualCaptureTest {
         captureAlert("28-save-folder");
         clickInList(page.findPreference(Settings.FILENAME_TEMPLATE.key));
         captureAlert("29-file-name");
-        assertTrue(page.closeCategory());
+        tap(titled(page.getPreferenceScreen(), "Downloads"));
         settle();
         openCategory("Ads and privacy");
         SwitchPreference ghost = (SwitchPreference) titled(page.getPreferenceScreen(), "Ghost mode");
@@ -303,7 +303,7 @@ public class SettingsVisualCaptureTest {
         assertTrue("The real ghost control must reflect its constituent settings", ghost.isChecked());
         capturePage("30-ghost-on", false);
         ghost.getOnPreferenceChangeListener().onPreferenceChange(ghost, false);
-        assertTrue(page.closeCategory());
+        tap(titled(page.getPreferenceScreen(), "Ads and privacy"));
         settle();
         page.searchSettings("Pause HushGram");
         settle();
@@ -957,7 +957,8 @@ public class SettingsVisualCaptureTest {
         PreferenceGroup screen = page.getPreferenceScreen();
         for (int i = 0; i < screen.getPreferenceCount(); i++) {
             Preference item = screen.getPreference(i);
-            if (item.getKey() != null && item.getKey().startsWith(HushgramPreferenceFragment.CATEGORY_ROW_KEY)) result.add(item);
+            if (item instanceof HushgramPreferenceFragment.Heading
+                    && ((HushgramPreferenceFragment.Heading) item).collapsible) result.add(item);
         }
         return result;
     }
@@ -1011,13 +1012,25 @@ public class SettingsVisualCaptureTest {
     private void capturePage(String name, boolean allContent) throws Exception {
         ListView list = page.getView().findViewById(android.R.id.list);
         assertNotNull(list);
-        list.setSelectionFromTop(0, 0);
+        int start = 0, end = list.getCount() - 1;
+        Preference expanded = page.getPreferenceScreen().findPreference(page.currentPage());
+        if (expanded instanceof HushgramPreferenceFragment.Heading
+                && ((HushgramPreferenceFragment.Heading) expanded).collapsible) {
+            for (int i = 0; i < list.getCount(); i++) {
+                if (list.getItemAtPosition(i) == expanded) {
+                    start = i;
+                    end = i + ((PreferenceGroup) expanded).getPreferenceCount();
+                    break;
+                }
+            }
+        }
+        list.setSelectionFromTop(start, 0);
         settle();
         int part = 1, previous = -1;
         do {
             capture(dialog.getView(), name + String.format(Locale.ROOT, "-p%02d", part++));
             assertTitlesAndControls(dialog.getView());
-            if (!allContent || list.getLastVisiblePosition() >= list.getCount() - 1) break;
+            if (!allContent || list.getLastVisiblePosition() >= end) break;
             int next = Math.max(list.getFirstVisiblePosition() + 1, list.getLastVisiblePosition());
             assertTrue("Scrolling must advance through every row", next > previous);
             previous = next;

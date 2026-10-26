@@ -17,6 +17,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
@@ -199,10 +200,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String STORY_FONTS_ROW = "hushgram_story_fonts_row";
     static final String GHOST_PICKS_ROW = "hushgram_ghost_picks_row";
     private static final String SCREEN_KEY = "hushgram_settings_root";
-    /** The keys of category page rows, stable across translations and installed patch combinations. */
+    /** Stable category keys. Keep the old prefix for saved restart and recreation state. */
     static final String CATEGORY_ROW_KEY = "hushgram_category_page_";
-    /** The key of the line an open category's page starts with. */
-    static final String INTRO_KEY = "hushgram_category_intro";
 
     /** The first row, which says whether HushGram runs now and whether the next start changes that. */
     @Nullable
@@ -272,20 +271,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private final Map<Preference, Integer> builtOrders = new HashMap<>();
     /** Past every section's and row's own order, and far short of the rows that close the page. */
     private static final int RANKED_LATER = 100_000;
-    /** With Open categories as pages on: the row that opens each category, made with the snapshot. */
-    private final Map<PreferenceCategory, Row> categoryRows = new LinkedHashMap<>();
-    /** The category whose page is open, or null for the list of categories. */
-    @Nullable private PreferenceCategory openCategory;
-    /** The line above the open category's section, on the page only while one is open. */
-    @Nullable private Intro intro;
+    /** Stable category keys, retained while search temporarily reveals other settings. */
+    private final Set<String> expandedCategories = new java.util.LinkedHashSet<>();
+    /** The last expanded section, used to return to it after a restart. */
+    @Nullable private String lastCategory;
     /** The button at the top that switches between the list of categories and one long list. */
     @Nullable private Row viewToggle;
     /** Before you sign in, while no tap has hidden it. The home page's, like the status card. */
     @Nullable private Preference beforeSignIn;
-    /** True while a category's page is open, with its search and any pending restart still reachable. */
-    private boolean topHidden;
-    /** Where the list of categories was scrolled to when a page opened, for Back. */
-    private int categoryListPosition, categoryListTop;
     @Nullable private String restoredCategory;
     private int restoredPosition = -1;
     private int restoredTop;
@@ -313,10 +306,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     public void onCreate(Bundle state) {
         if (state != null) {
             restoredCategory = state.getString("hushgram_open_category");
+            List<String> expanded = state.getStringArrayList("hushgram_expanded_categories");
+            if (expanded != null) expandedCategories.addAll(expanded);
             restoredPosition = state.getInt("hushgram_category_position", -1);
             restoredTop = state.getInt("hushgram_category_top", 0);
-            categoryListPosition = state.getInt("hushgram_category_list_position", 0);
-            categoryListTop = state.getInt("hushgram_category_list_top", 0);
             documentRequest = state.getInt("hushgram_document_request", 0);
             // Older saved pages used the operation itself as their Android request code.
             documentCode = state.getInt("hushgram_document_code", documentRequest);
@@ -340,8 +333,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
             }
         } else if (getParentFragment() instanceof SettingsDialog) {
-            // Back after Restart now: the page it was tapped on, which initialize opens like a
-            // page put back after a turn. Only with Open categories as pages on, like that one.
+            // Keep the old restart marker compatible by expanding its section on the main page.
             restoredCategory = ((SettingsDialog) getParentFragment()).startPage();
         }
         super.onCreate(state);
@@ -356,15 +348,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         state.putString("hushgram_font_process", Fonts.importProcess());
         state.putInt("hushgram_document_sequence", documentSequence);
         state.putString("hushgram_configuration_export", configurationExportToken);
-        Row category = categoryRows.get(openCategory);
-        if (category != null) state.putString("hushgram_open_category", category.getKey());
+        state.putStringArrayList("hushgram_expanded_categories", new ArrayList<>(expandedCategories));
+        if (lastCategory != null) state.putString("hushgram_open_category", lastCategory);
         ListView list = listView();
         boolean searching = !searchQuery.trim().isEmpty();
         View first = list == null ? null : list.getChildAt(0);
         state.putInt("hushgram_category_position", searching || list == null ? 0 : list.getFirstVisiblePosition());
         state.putInt("hushgram_category_top", searching || first == null ? 0 : first.getTop() - list.getPaddingTop());
-        state.putInt("hushgram_category_list_position", categoryListPosition);
-        state.putInt("hushgram_category_list_top", categoryListTop);
     }
 
     @Override
@@ -379,7 +369,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             list.setDividerHeight(0);
             list.setBackgroundColor(Color.BLACK);
         }
-        showTitle(openCategory == null ? null : openCategory.getTitle());
+        showTitle(null);
     }
 
     @Override public void onViewStateRestored(Bundle state) {
@@ -391,6 +381,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             restoredPosition = -1;
             list.post(() -> {
                 if (list == listView()) list.setSelectionFromTop(position, top);
+            });
+        } else if (list != null && categoryPages() && lastCategory != null) {
+            String category = lastCategory;
+            list.post(() -> {
+                if (list != listView()) return;
+                for (int i = 0; i < list.getCount(); i++) {
+                    Object item = list.getItemAtPosition(i);
+                    if (item instanceof Heading && category.equals(((Heading) item).getKey())) {
+                        list.setSelectionFromTop(i, 0);
+                        break;
+                    }
+                }
             });
         }
     }
@@ -439,9 +441,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         interruptedSaves = null;
         // The rows outlive this view, and a search left on them would be read as how they were built.
         restoreOrders();
-        // Closing the settings on a page, or on the one long list, counts what showed as seen.
-        if (openCategory != null) NewRowDots.left(openCategory);
-        else if (!categoryPages()) NewRowDots.leftEverything();
+        if (!categoryPages()) NewRowDots.leftEverything();
+        else for (PreferenceCategory group : searchableRows.keySet()) {
+            if (expandedCategories.contains(group.getKey())) NewRowDots.left(group);
+        }
         super.onDestroyView();
     }
 
@@ -469,11 +472,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         setPreferenceScreen(screen);
         searchableRows.clear();
         searchAliases.clear();
-        categoryRows.clear();
         // The rows are built again, so the old ones' greying is no longer anyone's to undo.
         lockedRows.clear();
-        openCategory = null;
-        intro = new Intro(context);
 
         viewToggle = new Row(context);
         viewToggle.setKey("hushgram_view_toggle");
@@ -675,49 +675,30 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (row.getIcon() == null) mark(row, SettingsIcons.forKey(key, iconOf(group)));
             }
             searchableRows.put(group, rows);
-            // Pause and diagnostics stays open in every mode, as it does while searching.
-            if (group != recovery) categoryRows.put(group, categoryRow(context, group, rows));
+            if (group != recovery) {
+                group.setKey(CATEGORY_ROW_KEY + iconOf(group));
+                mark(group, iconOf(group));
+                group.setOnPreferenceClickListener(tapped -> {
+                    toggleCategory(group);
+                    return true;
+                });
+            }
         }
         // After every row is known: a first open counts them all as seen, so a fresh install has no dots.
         NewRowDots.start(context, searchableRows);
-        for (Map.Entry<PreferenceCategory, Row> category : categoryRows.entrySet()) {
-            NewRowDots.opens(category.getValue(), category.getKey());
+        Set<String> available = new HashSet<>();
+        for (PreferenceCategory group : searchableRows.keySet()) {
+            if (group == recovery) continue;
+            available.add(group.getKey());
+            NewRowDots.opens(group, group);
         }
-        if (categoryPages() && restoredCategory != null) {
-            for (Map.Entry<PreferenceCategory, Row> category : categoryRows.entrySet()) {
-                if (restoredCategory.equals(category.getValue().getKey())) {
-                    openCategory = category.getKey();
-                    break;
-                }
-            }
-        }
-        if (restoredCategory != null && openCategory == null) restoredPosition = -1;
+        expandedCategories.retainAll(available);
+        if (restoredCategory != null && available.contains(restoredCategory)) {
+            expandedCategories.add(restoredCategory);
+            lastCategory = restoredCategory;
+        } else if (restoredCategory != null) restoredPosition = -1;
         restoredCategory = null;
         filterSettings();
-    }
-
-    /** The row that opens [group]'s page: its name, its first few settings, and where it stood. */
-    private Row categoryRow(Context context, PreferenceCategory group, List<Preference> rows) {
-        Row row = new Row(context);
-        row.setKey(CATEGORY_ROW_KEY + iconOf(group));
-        row.setPersistent(false);
-        row.setTitle(group.getTitle());
-        List<String> titles = new ArrayList<>();
-        for (Preference each : rows) {
-            if (titles.size() == 3) break;
-            CharSequence title = each.getTitle();
-            if (title != null && title.length() > 0) titles.add(title.toString());
-        }
-        String description = group instanceof Heading ? ((Heading) group).intro : null;
-        row.setSummary(description == null ? String.join(", ", titles) : description);
-        mark(row, iconOf(group));
-        // The category itself is off the screen while its row is on, so the row takes its place.
-        row.setOrder(group.getOrder());
-        row.setOnPreferenceClickListener(tapped -> {
-            openCategory(group);
-            return true;
-        });
-        return row;
     }
 
     private static String iconOf(PreferenceCategory group) {
@@ -729,44 +710,40 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return Settings.CATEGORY_PAGES.savedValue();
     }
 
-    /** Opens [group]'s page, keeping where the list of categories was for Back. */
-    private void openCategory(PreferenceCategory group) {
+    /** Expand in place. Keep the visible anchor instead of scrolling to the top of settings. */
+    private void toggleCategory(PreferenceCategory group) {
+        if (!categoryPages() || !searchQuery.trim().isEmpty()) return;
         ListView list = listView();
-        if (list != null) {
-            categoryListPosition = list.getFirstVisiblePosition();
-            View first = list.getChildAt(0);
-            categoryListTop = first == null ? 0 : first.getTop() - list.getPaddingTop();
+        int position = list == null ? -1 : list.getFirstVisiblePosition();
+        Object anchor = list == null || position < 0 || position >= list.getCount()
+                ? null : list.getItemAtPosition(position);
+        View first = list == null ? null : list.getChildAt(0);
+        int top = first == null ? 0 : first.getTop() - list.getPaddingTop();
+        if (expandedCategories.remove(group.getKey())) {
+            NewRowDots.left(group);
+            if (group.getKey().equals(lastCategory)) lastCategory = null;
+        } else {
+            expandedCategories.add(group.getKey());
+            lastCategory = group.getKey();
         }
         focusPage();
-        openCategory = group;
         filterSettings();
-        showTitle(group.getTitle());
-        if (list != null) {
-            // After the adapter has caught up with the screen's new rows.
-            list.post(() -> list.setSelection(0));
-            list.announceForAccessibility(group.getTitle());
+        if (list != null && anchor != null) {
+            list.post(() -> {
+                if (list != listView()) return;
+                for (int i = 0; i < list.getCount(); i++) {
+                    if (list.getItemAtPosition(i) == anchor) {
+                        list.setSelectionFromTop(i, top);
+                        break;
+                    }
+                }
+            });
         }
     }
 
-    /**
-     * Back on a category's page: the list of categories again, scrolled where it was. A search
-     * ends first. Answers whether there was either, so Back closes settings only from the list
-     * with nothing searched.
-     */
+    /** Back clears a search first. Expanded sections do not add a navigation level. */
     boolean closeCategory() {
-        if (endSearch()) return true;
-        if (openCategory == null) return false;
-        // The page is left: what it listed has been seen, so its dots are gone on the list again.
-        NewRowDots.left(openCategory);
-        openCategory = null;
-        filterSettings();
-        showTitle(null);
-        ListView list = listView();
-        if (list != null) {
-            int position = categoryListPosition, top = categoryListTop;
-            list.post(() -> list.setSelectionFromTop(position, top));
-        }
-        return true;
+        return endSearch();
     }
 
     /**
@@ -840,7 +817,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     private void restoreSearchRows() {
         PreferenceScreen screen = getPreferenceScreen();
-        if (screen == null || search == null || (!topHidden && screen.findPreference(search.getKey()) != search)) return;
+        if (screen == null || search == null || screen.findPreference(search.getKey()) != search) return;
         for (Map.Entry<PreferenceCategory, List<Preference>> section : searchableRows.entrySet()) {
             PreferenceCategory group = section.getKey();
             if (group.getParent() != screen) screen.addPreference(group);
@@ -1202,38 +1179,24 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     void filterSettings() {
         PreferenceScreen screen = getPreferenceScreen();
-        if (screen == null || search == null || (!topHidden && screen.findPreference(search.getKey()) != search)) return;
+        if (screen == null || search == null || screen.findPreference(search.getKey()) != search) return;
         String normalized = searchText(searchQuery).trim();
         String[] terms = normalized.isEmpty() ? new String[0] : normalized.split("\\s+");
         boolean pages = categoryPages();
         NewRowDots.searching(terms.length > 0);
-        if (!pages && openCategory != null) {
-            openCategory = null;
-            showTitle(null);
-        }
-        // Before the intro below reads its section's order.
         rankForSearch(terms);
-        // A search looks through every category, whichever page is open, and clearing it goes back.
+        // Search reveals matching rows without changing the sections the person expanded.
         boolean listing = pages && terms.length == 0;
-        // Search stays within reach on every page. Restart now is the screen's bar, under the page.
-        topHidden = listing && openCategory != null;
-        boolean categoryContext = pages && openCategory != null;
-        showTitle(terms.length > 0 ? L10n.t("Search settings")
-                : openCategory == null ? null : openCategory.getTitle());
-        // The status card, the sign-in notice and the list switch are the home page's. On a
-        // category's page the notice stood a third of the screen tall above Search, and a tap on
-        // Search put the field behind the keyboard (S25, 2026-10-13).
+        showTitle(terms.length > 0 ? L10n.t("Search settings") : null);
         for (Preference top : new Preference[]{statusCard, beforeSignIn, viewToggle, search}) {
             if (top == null) continue;
             // A tap hid the notice for good and took it off the screen. It stays off.
             if (top == beforeSignIn && Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) continue;
-            boolean hidden = (categoryContext && top != search)
-                    || (top == statusCard && !HushgramPause.isPaused());
+            boolean hidden = top == statusCard && !HushgramPause.isPaused();
             if (hidden) {
                 if (top.getParent() == screen) screen.removePreference(top);
             } else if (top.getParent() != screen) screen.addPreference(top);
         }
-        showIntro(screen);
         if (viewToggle != null) {
             CharSequence label = pages ? L10n.t("Show all settings as a list") : L10n.t("Show settings by category");
             if (!label.equals(viewToggle.getTitle())) {
@@ -1245,33 +1208,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         int matches = 0;
         for (Map.Entry<PreferenceCategory, List<Preference>> section : searchableRows.entrySet()) {
             PreferenceCategory group = section.getKey();
+            boolean expanded = !listing || group == recovery || expandedCategories.contains(group.getKey());
+            boolean filled = false;
             for (Preference row : section.getValue()) {
                 String text = searchText(group.getTitle()) + " " + searchText(row.getTitle()) + " "
                         + searchText(row.getSummary()) + " " + searchText(searchAliases.get(row));
                 boolean match = true;
                 for (String term : terms) if (!text.contains(term)) { match = false; break; }
                 if (match) matches++;
-                if (match || group == recovery) {
+                filled |= match || group == recovery;
+                if (expanded && (match || group == recovery)) {
                     if (row.getParent() != group) group.addPreference(row);
                 } else if (row.getParent() == group) group.removePreference(row);
             }
-            // Running saves are live rows outside the snapshot, so Cancel survives every query.
-            boolean filled = group.getPreferenceCount() > 0;
-            boolean asRow = listing && openCategory == null && group != recovery;
-            // Pause and diagnostics lives in the list of categories only, not on each category's page.
-            boolean elsewhere = listing && openCategory != null && group != openCategory;
-            if (filled && !asRow && !elsewhere) {
+            // Keep live row objects. A query never hides a running save's Cancel button.
+            if (group == downloads) {
+                for (SaveRow save : saveRows.values()) {
+                    filled = true;
+                    if (expanded && save.getParent() != group) group.addPreference(save);
+                    else if (!expanded && save.getParent() == group) group.removePreference(save);
+                }
+                if (lastCarouselSave != null && SaveControl.batchOutcome() != null) {
+                    filled = true;
+                    if (expanded && lastCarouselSave.getParent() != group) group.addPreference(lastCarouselSave);
+                    else if (!expanded && lastCarouselSave.getParent() == group) group.removePreference(lastCarouselSave);
+                }
+            }
+            if (group instanceof Heading) ((Heading) group).display(listing && group != recovery, expanded);
+            if (filled) {
                 if (group.getParent() != screen) screen.addPreference(group);
             } else if (group.getParent() == screen) screen.removePreference(group);
-            Row row = categoryRows.get(group);
-            if (row != null) {
-                if (filled && asRow) {
-                    if (row.getParent() != screen) screen.addPreference(row);
-                } else if (row.getParent() == screen) screen.removePreference(row);
-            }
         }
-        // The rows outside every category: the home page (and a search each matches) shows them,
-        // a category's page doesn't.
+        // Actions below the categories remain on the same page.
         Row[] loose = {report, support};
         String[] looseAliases = {" github bug issue", " ko-fi kofi donate coffee"};
         for (int i = 0; i < loose.length; i++) {
@@ -1280,7 +1248,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             String text = searchText(row.getTitle()) + " " + searchText(row.getSummary()) + looseAliases[i];
             boolean match = true;
             for (String term : terms) if (!text.contains(term)) { match = false; break; }
-            boolean shown = match && (terms.length > 0 || !pages || openCategory == null);
+            boolean shown = match;
             if (terms.length > 0 && match) matches++;
             if (shown) {
                 if (row.getParent() != screen) screen.addPreference(row);
@@ -1581,31 +1549,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private static boolean holdsAll(String text, String[] terms) {
         for (String term : terms) if (!text.contains(term)) return false;
         return true;
-    }
-
-    /**
-     * Puts the open category's intro right above its section, or takes it off when no page is open
-     * or a search runs. Top-level actions have negative orders reserved ahead of every section,
-     * so even the first category's intro follows Search and directly precedes its section.
-     */
-    private void showIntro(PreferenceScreen screen) {
-        Intro line = intro;
-        if (line == null) return;
-        PreferenceCategory open = openCategory;
-        String text = topHidden && open instanceof Heading ? ((Heading) open).intro : null;
-        if (text == null) {
-            if (line.getParent() == screen) screen.removePreference(line);
-            return;
-        }
-        int order = open.getOrder() - 1;
-        if (line.getParent() == screen && (line.getOrder() != order || !TextUtils.equals(text, line.getTitle()))) {
-            screen.removePreference(line);
-        }
-        if (line.getParent() != screen) {
-            line.setOrder(order);
-            line.setTitle(text);
-            screen.addPreference(line);
-        }
     }
 
     /** Every row in the categories, on the screen or kept off it by a category page or a search. */
@@ -2532,10 +2475,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    /** The key of the open category page's row, or "" for the first page. */
+    /** The last expanded section to reveal after restarting, or the top of the main list. */
     String currentPage() {
-        Row category = categoryRows.get(openCategory);
-        return category == null || category.getKey() == null ? "" : category.getKey();
+        return categoryPages() && expandedCategories.contains(lastCategory) ? lastCategory : "";
     }
 
     /**
@@ -5074,9 +5016,32 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         String icon = SettingsIcons.SETTINGS;
         /** One short sentence on what the section is for, shown above it on its own page. */
         @Nullable String intro;
+        private final int headingLayout;
+        private final int buttonLayout;
+        boolean collapsible;
+        boolean expanded;
 
         Heading(Context context) {
             super(context);
+            headingLayout = getLayoutResource();
+            buttonLayout = new Preference(context).getLayoutResource();
+            setSelectable(false);
+            setPersistent(false);
+        }
+
+        void display(boolean collapsible, boolean expanded) {
+            if (this.collapsible == collapsible && this.expanded == expanded) return;
+            this.collapsible = collapsible;
+            this.expanded = expanded;
+            setLayoutResource(collapsible ? buttonLayout : headingLayout);
+            setSelectable(collapsible);
+            setSummary(collapsible ? intro : null);
+            notifyChanged();
+        }
+
+        @Override public boolean isEnabled() {
+            // PreferenceCategory normally disables its heading, independently of its children.
+            return collapsible && !super.shouldDisableDependents();
         }
 
         @Override
@@ -5084,27 +5049,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             super.onBindView(view);
             view.setAccessibilityHeading(true);
             showAllText(view);
-            ScreenColors.heading(view);
-        }
-    }
-
-    /**
-     * The line a category's page opens with, under the page's title: what the page is for. It's
-     * plain text on the page rather than a card, and a screen reader reads it as it comes to it.
-     */
-    static final class Intro extends Preference {
-        Intro(Context context) {
-            super(context);
-            setKey(INTRO_KEY);
-            setPersistent(false);
-            setSelectable(false);
-        }
-
-        @Override
-        protected void onBindView(View view) {
-            super.onBindView(view);
-            showAllText(view);
-            ScreenColors.intro(view);
+            if (collapsible) {
+                ScreenColors.row(view, this);
+                view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+            } else {
+                view.setAccessibilityDelegate(null);
+                ScreenColors.heading(view);
+            }
         }
     }
 
@@ -6879,6 +6830,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             info.removeAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK);
             if (clickable) {
                 info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK);
+                if (preference instanceof Heading && ((Heading) preference).collapsible) {
+                    boolean expanded = ((Heading) preference).expanded;
+                    info.addAction(expanded ? AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE
+                            : AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND);
+                    CharSequence state = expanded ? L10n.t("Expanded") : L10n.t("Collapsed");
+                    if (Build.VERSION.SDK_INT >= 30) info.setStateDescription(state);
+                    else info.setContentDescription(TextUtils.concat(info.getContentDescription(), ", ", state));
+                }
             }
         }
 
@@ -6893,7 +6852,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
         @Override
         public boolean performAccessibilityAction(View host, int action, Bundle arguments) {
-            if (action == AccessibilityNodeInfo.ACTION_CLICK) {
+            boolean categoryAction = preference instanceof Heading && ((Heading) preference).collapsible
+                    && (action == AccessibilityNodeInfo.ACTION_EXPAND && !((Heading) preference).expanded
+                    || action == AccessibilityNodeInfo.ACTION_COLLAPSE && ((Heading) preference).expanded);
+            if (action == AccessibilityNodeInfo.ACTION_CLICK || categoryAction) {
                 AbsListView list = listOf(host);
                 int position = positionOf(preference, host, list);
                 if (position == AdapterView.INVALID_POSITION || !enabledViewTree(host)

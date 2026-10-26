@@ -310,28 +310,6 @@ public final class ScreenColors {
         row.setPaddingRelative(dp(row, 22), dp(row, 20), dp(row, 22), dp(row, 8));
     }
 
-    /**
-     * The line that opens a category's page: secondary text on the page itself, outside any card,
-     * starting where the section titles do. It wraps and the row grows with it at any font size.
-     */
-    void paintIntro(View row) {
-        TextView text = row.findViewById(android.R.id.title);
-        if (text != null) {
-            text.setTextColor(summary);
-            text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            text.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-            text.setLineSpacing(dp(row, 2), 1);
-            if (text.getParent() instanceof View) {
-                View block = (View) text.getParent();
-                block.setPadding(0, 0, 0, 0);
-                block.setMinimumHeight(0);
-            }
-        }
-        row.setBackground(null);
-        row.setMinimumHeight(0);
-        row.setPaddingRelative(dp(row, 22), dp(row, 12), dp(row, 22), 0);
-    }
-
     /** Marks the chevron a row was given, so a recycled row's can be found and taken off. */
     static final String CHEVRON = "hushgram_chevron";
 
@@ -376,8 +354,11 @@ public final class ScreenColors {
             frame.addView(image, new LinearLayout.LayoutParams(dp(row, 16), dp(row, 24)));
         }
         Drawable drawn = image.getDrawable();
-        if (!(drawn instanceof Chevron) || ((Chevron) drawn).color != summary) {
-            image.setImageDrawable(new Chevron(summary, dp(row, 2)));
+        int direction = preference instanceof HushgramPreferenceFragment.Heading
+                ? ((HushgramPreferenceFragment.Heading) preference).expanded ? -1 : 1 : 0;
+        if (!(drawn instanceof Chevron) || ((Chevron) drawn).color != summary
+                || ((Chevron) drawn).direction != direction) {
+            image.setImageDrawable(new Chevron(summary, dp(row, 2), direction));
         }
         image.setEnabled(preference.isEnabled());
         frame.setVisibility(View.VISIBLE);
@@ -390,12 +371,19 @@ public final class ScreenColors {
     static final class Chevron extends Drawable {
         /** The colour it's drawn in on a row that can be tapped now. */
         final int color;
+        /** Zero follows reading direction; positive opens down, negative collapses up. */
+        final int direction;
         private final ColorStateList colors;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path path = new Path();
 
         Chevron(int color, float stroke) {
+            this(color, stroke, 0);
+        }
+
+        Chevron(int color, float stroke, int direction) {
             this.color = color;
+            this.direction = direction;
             colors = dimmedWhenDisabled(color);
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(stroke);
@@ -415,6 +403,10 @@ public final class ScreenColors {
             float reach = getLayoutDirection() == View.LAYOUT_DIRECTION_RTL ? -half / 2 : half / 2;
             float x = bounds.exactCenterX();
             float y = bounds.exactCenterY();
+            if (direction != 0) {
+                float tip = half / 2 * direction;
+                return new float[]{x - half, y - tip, x, y + tip, x + half, y - tip};
+            }
             return new float[]{x - reach, y - half, x + reach, y, x - reach, y + half};
         }
 
@@ -659,12 +651,6 @@ public final class ScreenColors {
     static void heading(View row) {
         ScreenColors colors = shown;
         (colors == null ? DEFAULT : colors).paintHeading(row);
-    }
-
-    /** Paints a category page's intro with the colours on show, if there are any. */
-    static void intro(View row) {
-        ScreenColors colors = shown;
-        (colors == null ? DEFAULT : colors).paintIntro(row);
     }
 
     /** Paints both recovery actions even if the ordinary settings page failed to initialize. */

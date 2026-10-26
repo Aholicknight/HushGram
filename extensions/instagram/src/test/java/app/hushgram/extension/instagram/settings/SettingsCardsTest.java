@@ -46,8 +46,8 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
- * The settings page as grouped cards (#130): each category's page opens with a one-line intro,
- * rows share rounded cards under the section titles, every row leads with a decorative icon, and
+ * Categories expand directly under their buttons, without repeating their title or introduction.
+ * Rows share rounded cards under the section buttons, every row leads with a decorative icon, and
  * only a row that opens something ends in a chevron. Text still wraps at twice the size.
  */
 @RunWith(RobolectricTestRunner.class)
@@ -97,7 +97,8 @@ public class SettingsCardsTest {
     private List<Preference> categoryRows() {
         List<Preference> rows = new ArrayList<>();
         for (Preference item : onScreen()) {
-            if (item.getKey() != null && item.getKey().startsWith(HushgramPreferenceFragment.CATEGORY_ROW_KEY)) rows.add(item);
+            if (item instanceof HushgramPreferenceFragment.Heading
+                    && ((HushgramPreferenceFragment.Heading) item).collapsible) rows.add(item);
         }
         return rows;
     }
@@ -166,51 +167,47 @@ public class SettingsCardsTest {
                 && ((View) chevron.getParent()).getVisibility() == View.VISIBLE;
     }
 
-    @Test public void everyCategoryPageOpensWithItsIntro() throws Exception {
+    @Test public void everyCategoryExpandsItsControlsBelowTheSameButton() throws Exception {
         open(true, EnumSet.allOf(PatchFamily.class));
-        List<String> titles = new ArrayList<>();
-        for (Preference row : categoryRows()) titles.add(String.valueOf(row.getTitle()));
-        assertTrue("too few categories to mean anything: " + titles, titles.size() >= 20);
-        assertNull("the list of categories has no intro", page.getPreferenceScreen()
-                .findPreference(HushgramPreferenceFragment.INTRO_KEY));
-        for (String title : titles) {
-            tap(categoryRow(title));
-            List<Preference> shown = onScreen();
+        List<Preference> categories = categoryRows();
+        assertEquals(22, categories.size());
+        for (Preference row : categories) {
+            HushgramPreferenceFragment.Heading group = (HushgramPreferenceFragment.Heading) row;
+            assertEquals(0, group.getPreferenceCount());
+            tap(group);
+            assertSame(group, categoryRow(group.getTitle().toString()));
+            assertTrue(group.getTitle() + " has controls", group.getPreferenceCount() > 0);
+            assertEquals(group.intro, group.getSummary());
+            assertTrue(group.getSummary().length() <= 90);
+            ListAdapter adapter = page.getPreferenceScreen().getRootAdapter();
             int at = -1;
-            for (int i = 0; i < shown.size(); i++) {
-                if (shown.get(i) instanceof HushgramPreferenceFragment.Intro) at = i;
-            }
-            assertTrue(title + " opened without an intro: " + shown, at >= 0);
-            assertEquals(title + " keeps Search ahead of its intro", "hushgram_settings_search", shown.get(0).getKey());
-            assertEquals(title + " places its intro directly after Search", 1, at);
-            Preference intro = shown.get(at);
-            assertTrue(title + "'s section sits right under its intro",
-                    at + 1 < shown.size() && shown.get(at + 1) instanceof HushgramPreferenceFragment.Heading
-                            && title.contentEquals(shown.get(at + 1).getTitle()));
-            String text = String.valueOf(intro.getTitle());
-            assertEquals(((HushgramPreferenceFragment.Heading) shown.get(at + 1)).intro, text);
-            assertFalse(title + "'s intro is one sentence or two, not a paragraph", text.length() > 90);
-            assertFalse("the intro is text, not a control", intro.isSelectable());
-            assertTrue(page.closeCategory());
-            ShadowLooper.idleMainLooper();
-            assertNull("Back takes the intro off with the page", page.getPreferenceScreen()
-                    .findPreference(HushgramPreferenceFragment.INTRO_KEY));
+            for (int i = 0; i < adapter.getCount(); i++) if (adapter.getItem(i) == group) at = i;
+            assertTrue(at >= 0);
+            assertSame("no duplicate heading or intro separates the controls", group.getPreference(0), adapter.getItem(at + 1));
+            assertEquals(categories, categoryRows());
+            tap(group);
+            assertEquals(0, group.getPreferenceCount());
         }
     }
 
-    @Test public void theIntroLeavesForASearchAndTheLongList() throws Exception {
+    @Test public void searchAndTheLongListUsePlainHeadingsThenRestoreTheExpandedButton() throws Exception {
         open(true, EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.FOLLOWING_FEED));
-        tap(categoryRow("Feed"));
-        PreferenceScreen screen = page.getPreferenceScreen();
-        assertNotNull(screen.findPreference(HushgramPreferenceFragment.INTRO_KEY));
+        HushgramPreferenceFragment.Heading feed = (HushgramPreferenceFragment.Heading) categoryRow("Feed");
+        tap(feed);
+        assertTrue(feed.isSelectable());
         page.searchSettings("Hide ads");
-        assertNull("a search shows every category's matches, under no page's intro",
-                screen.findPreference(HushgramPreferenceFragment.INTRO_KEY));
+        assertFalse(feed.isSelectable());
+        assertNull(feed.getSummary());
         page.searchSettings("");
-        assertNotNull("clearing the search goes back to the page", screen.findPreference(HushgramPreferenceFragment.INTRO_KEY));
+        assertTrue(feed.isSelectable());
+        assertTrue(feed.expanded);
+        assertEquals(feed.intro, feed.getSummary());
         Settings.CATEGORY_PAGES.save(false);
         page.searchSettings("");
-        assertNull("the long list has no page to introduce", screen.findPreference(HushgramPreferenceFragment.INTRO_KEY));
+        assertFalse(feed.isSelectable());
+        assertNull(feed.getSummary());
+        ShadowLooper.idleMainLooper();
+        assertFalse(hasChevron(render(feed)));
     }
 
     @Test public void aSectionsRowsShareOneRoundedCard() throws Exception {
@@ -274,16 +271,18 @@ public class SettingsCardsTest {
 
     @Test public void onlyARowThatOpensSomethingEndsInAChevron() throws Exception {
         open(true, EnumSet.of(PatchFamily.HIDE_ADS));
-        assertTrue("a category row opens its page", hasChevron(render(categoryRow("Ads and privacy"))));
+        Preference ads = categoryRow("Ads and privacy");
+        assertTrue("a category button expands its controls", hasChevron(render(ads)));
+        assertEquals(1, ((ScreenColors.Chevron) ((ImageView) render(ads).findViewWithTag(ScreenColors.CHEVRON)).getDrawable()).direction);
+        tap(ads);
+        assertEquals(-1, ((ScreenColors.Chevron) ((ImageView) render(ads).findViewWithTag(ScreenColors.CHEVRON)).getDrawable()).direction);
         assertNull("an active status card does not take space", page.getPreferenceScreen().findPreference("hushgram_status"));
         tap(categoryRow("Settings entry"));
         assertTrue("a list row opens its choices",
                 hasChevron(render(page.findPreference(Settings.NAVIGATION_SETTINGS_TARGET.key))));
         assertFalse("a switch says what it does with its switch",
                 hasChevron(render(page.findPreference(Settings.CATEGORY_PAGES.key))));
-        assertFalse("the intro is text", hasChevron(render(page.findPreference(HushgramPreferenceFragment.INTRO_KEY))));
-        assertTrue(page.closeCategory());
-        ShadowLooper.idleMainLooper();
+        tap(categoryRow("Settings entry"));
         tap(categoryRow("About"));
         assertFalse("Version only reports", hasChevron(render(titled("Version"))));
         assertTrue("Licenses opens a dialog", hasChevron(render(titled("Licenses"))));
@@ -320,7 +319,7 @@ public class SettingsCardsTest {
         node.recycle();
     }
 
-    @Test public void aCategoryRowCarriesItsSectionsIconAndReadsAsBefore() throws Exception {
+    @Test public void aCategoryButtonReadsItsLabelAndSkipsTheDecorativeIcon() throws Exception {
         open(true, EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.FOLLOWING_FEED));
         Preference feed = categoryRow("Feed");
         assertNotNull(feed.getIcon());
@@ -329,7 +328,7 @@ public class SettingsCardsTest {
         assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, icon.getImportantForAccessibility());
         AccessibilityNodeInfo node = row.createAccessibilityNodeInfo();
         assertEquals(Button.class.getName(), String.valueOf(node.getClassName()));
-        assertEquals(feed.getTitle() + "\n" + feed.getSummary(), String.valueOf(node.getContentDescription()));
+        assertTrue(String.valueOf(node.getContentDescription()).startsWith(feed.getTitle() + "\n" + feed.getSummary()));
         node.recycle();
     }
 
@@ -353,13 +352,11 @@ public class SettingsCardsTest {
         Preference adsRow = categoryRow("Ads and privacy");
         assertWhole(render(adsRow));
         tap(adsRow);
-        Preference intro = page.findPreference(HushgramPreferenceFragment.INTRO_KEY);
-        View introView = render(intro);
-        TextView introText = introView.findViewById(android.R.id.title);
-        assertTrue("the intro wraps at twice the size", introText.getLayout().getLineCount() > 1);
-        assertFalse("the intro is read as text, not as a heading", introView.isAccessibilityHeading());
-        assertNull("the intro has no card", introView.getBackground());
-        assertWhole(introView);
+        View header = render(adsRow);
+        TextView summary = header.findViewById(android.R.id.summary);
+        assertTrue("the category description wraps", summary.getLayout().getLineCount() > 1);
+        assertTrue(header.isAccessibilityHeading());
+        assertWhole(header);
         assertWhole(render(page.findPreference(Settings.HIDE_ADS.key)));
     }
 
