@@ -43,6 +43,7 @@ Every HushGram release, newest first.
 #### Improvements
 
 * **Instagram:** HushGram's settings use Instagram's own blues instead of pink. Switches and buttons take its indigo button color, while icons and headings use the lighter blue Instagram gives links on a dark screen.
+* **Instagram:** The HushGram name over the settings wears Instagram's gradient. A sheen sweeps across it as settings open and every few seconds after. It holds still when Android's animations are off, and search titles stay white.
 * **Instagram:** Settings categories expand their controls directly underneath. Several sections can stay open, and tapping a heading collapses it. Search finds controls across every section and restores your open sections when cleared.
 * **Instagram:** Settings opens with Search, the list view option and a compact category list with shorter descriptions. Quick setups and the active-status banner are gone. Larger text still wraps.
 * **Tooling:** The patching help explains the small-heap limit and keeps Manager's embedded VM workaround.
