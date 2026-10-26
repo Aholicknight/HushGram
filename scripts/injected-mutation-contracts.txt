@@ -2010,6 +2010,16 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->keepMuted(I
 # the class that calls a superclass onCreate. Left out, stories open as the ringer and volume
 # alone say; twice or elsewhere, it isn't the call the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StorySound;->startWithSound(Ljava/lang/Object;)I in instance (Landroid/os/Bundle;)V calling instance L*;->onCreate(Landroid/os/Bundle;)V class-holding ReelViewerFragment.onCurrentActiveItemBound
+# On a yes it tells StorySound.opened() whether the account's sound was already on, in the same
+# onCreate. The viewer's onPause asks StorySound.pausing() first and StorySound.paused() once, and
+# its onResume asks StorySound.resuming() first, so a story that turned the sound on puts it back
+# before the feed resumes (#342). Left out, the feed and Reels keep the story's sound.
+once-call Lapp/hushgram/extension/instagram/stories/StorySound;->opened(Ljava/lang/Object;I)V in instance (Landroid/os/Bundle;)V calling instance L*;->onCreate(Landroid/os/Bundle;)V class-holding ReelViewerFragment.onCurrentActiveItemBound
+start-call Lapp/hushgram/extension/instagram/stories/StorySound;->pausing(Ljava/lang/Object;)I in instance ()V holding ReelViewerFragment.onPause
+once-call Lapp/hushgram/extension/instagram/stories/StorySound;->pausing(Ljava/lang/Object;)I in instance ()V holding ReelViewerFragment.onPause
+once-call Lapp/hushgram/extension/instagram/stories/StorySound;->paused(Ljava/lang/Object;I)I in instance ()V holding ReelViewerFragment.onPause
+start-call Lapp/hushgram/extension/instagram/stories/StorySound;->resuming(Ljava/lang/Object;)I in instance ()V holding ReelViewerFragment.onResume
+once-call Lapp/hushgram/extension/instagram/stories/StorySound;->resuming(Ljava/lang/Object;)I in instance ()V holding ReelViewerFragment.onResume
 # Stop swipe up to reply asks StorySwipeReply.keepsSwipe() first thing in the reply composer's
 # swipe listener, the one instance ()Z method that reads a Redex class's EditText field and focuses
 # it (0Axw.GKf on 452, 0BfY.GKr on its other build 385810231), and once in the story viewer's item delegate,

@@ -511,7 +511,12 @@ tasks.register("verifyAndroidBoundaries") {
                 "aSilentPhoneOrNoVolumeIsInstagramsOwnChoice[28]", "aSilentPhoneOrNoVolumeIsInstagramsOwnChoice[37]",
                 "pausedHushGramLeavesTheSoundAlone[28]", "pausedHushGramLeavesTheSoundAlone[37]",
                 "beforeTheSettingsAreReadyItIsInstagramsOwnSound[28]", "beforeTheSettingsAreReadyItIsInstagramsOwnSound[37]",
-                "withoutAViewerItSaysNo[28]", "withoutAViewerItSaysNo[37]"),
+                "withoutAViewerItSaysNo[28]", "withoutAViewerItSaysNo[37]",
+                "aViewerThatTurnedTheSoundOnPutsItBackAsItIsLeft[28]", "aViewerThatTurnedTheSoundOnPutsItBackAsItIsLeft[37]",
+                "aSoundAlreadyOnIsLeftOn[28]", "aSoundAlreadyOnIsLeftOn[37]",
+                "aStoryMutedByHandStaysMuted[28]", "aStoryMutedByHandStaysMuted[37]",
+                "aResumeWithoutTheSwitchOrTheRingerKeepsTheSoundOff[28]", "aResumeWithoutTheSwitchOrTheRingerKeepsTheSoundOff[37]",
+                "viewersAreTrackedOneByOne[28]", "viewersAreTrackedOneByOne[37]"),
             "app.hushgram.extension.instagram.stories.StorySwipeReplyTest" to listOf(
                 "offToStartKeepsTheSwipe[28]", "offToStartKeepsTheSwipe[37]",
                 "onStopsTheSwipe[28]", "onStopsTheSwipe[37]",
