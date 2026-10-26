@@ -8,6 +8,7 @@ Every HushGram release, newest first.
 
 #### Bug Fixes
 
+* **Instagram:** `Hide Follow on feed posts` also filters Subscribe before the feed header builds it. The author's name, time and menu keep their native paths.
 * **Instagram:** `Tap to play` keeps a Reels auto-scroll allowance for the next Reel. Feed and unidentified players can't spend it, and a real tap on Feed still works.
 * **Instagram:** `Group Instagram's notifications` keeps summaries while their notifications remain. Turning grouping off or removing one notification no longer dismisses the others. Pending posts stay protected while Android catches up. One notification uses the singular count label.
 * **Instagram:** Turning off profile posts as a list, or pausing HushGram, cancels an automatic opening that was still waiting for the grid.
