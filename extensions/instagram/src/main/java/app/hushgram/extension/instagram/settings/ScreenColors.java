@@ -43,7 +43,7 @@ import androidx.annotation.Nullable;
 
 import app.hushgram.extension.shared.settings.preference.ImmediateAction;
 
-/** Shared black, charcoal and pink surfaces for HushGram's settings and runtime controls. */
+/** Shared black and charcoal surfaces, in Instagram's own blues, for HushGram's settings and runtime controls. */
 public final class ScreenColors {
     public final boolean light;
     /** The page, behind the title bar and every row. */
@@ -81,8 +81,10 @@ public final class ScreenColors {
         dialog = 0xFF18161D;
         title = 0xFFF8F5F8;
         summary = 0xFFAAA5AF;
-        heading = 0xFFFF82AD;
-        accent = 0xFFCB2861;
+        // Instagram's own blues (AccentColor.role): its link on a dark screen, 7:1 on the charcoal,
+        // and its Prism indigo button fill, which white text reads on at 5:1.
+        heading = 0xFF85A1FF;
+        accent = 0xFF4A5DF9;
         // At least 3:1 against either charcoal surface, with a white thumb above 5:1.
         switchOff = 0xFF696370;
         card = 0xFF151419;
@@ -131,7 +133,7 @@ public final class ScreenColors {
                 new int[]{(accent & 0x00FFFFFF) | 0x22000000, normal});
     }
 
-    /** The lighter pink passes text contrast on charcoal, unlike the filled action's accent. */
+    /** The lighter blue passes text contrast on charcoal, unlike the filled action's accent. */
     int secondaryActionText() {
         return heading;
     }
