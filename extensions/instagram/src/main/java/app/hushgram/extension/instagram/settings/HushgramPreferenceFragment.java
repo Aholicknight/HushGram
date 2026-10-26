@@ -545,7 +545,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         AboutCategory.add(this, screen, context, build);
 
         // Outside every category, like Support HushGram below it. Every row counts toward the
-        // switches it lists, the ones a category page or a search keeps off the screen too.
+        // switches it lists, the ones a folded category or a search keeps off the screen too.
         Row bug = report = new Row(context);
         bug.setKey(REPORT_ROW_KEY);
         bug.setTitle(L10n.t("Report a problem"));
@@ -558,7 +558,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         });
         mark(bug, SettingsIcons.BUG);
 
-        // Outside every category, so no category page, count or saved setting changes. filterSettings
+        // Outside every category, so no category section, count or saved setting changes. filterSettings
         // puts it last on the home page and in a search it matches.
         Row donate = support = new Row(context);
         donate.setKey(SUPPORT_ROW_KEY);
@@ -1551,7 +1551,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return true;
     }
 
-    /** Every row in the categories, on the screen or kept off it by a category page or a search. */
+    /** Every row in the categories, on the screen or kept off it by a folded category or a search. */
     private List<Preference> everyRow() {
         List<Preference> rows = new ArrayList<>();
         for (List<Preference> section : searchableRows.values()) rows.addAll(section);
@@ -2567,8 +2567,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /**
      * A section of the page; the icon its row on the list of categories, and its rows without one
-     * of their own, lead with; and the line its own page opens with, or null for a section that
-     * never gets a page.
+     * of their own, lead with; and the line under its expandable heading, or null for a section
+     * that never folds.
      */
     static PreferenceCategory category(PreferenceScreen screen, String title, String icon,
                                                @Nullable String intro) {
@@ -5014,7 +5014,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final class Heading extends PreferenceCategory {
         /** The section's icon, one of {@link SettingsIcons}'. */
         String icon = SettingsIcons.SETTINGS;
-        /** One short sentence on what the section is for, shown above it on its own page. */
+        /** One short sentence on what the section is for, shown under its expandable heading. */
         @Nullable String intro;
         private final int headingLayout;
         private final int buttonLayout;

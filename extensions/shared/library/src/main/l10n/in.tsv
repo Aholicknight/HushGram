@@ -1042,14 +1042,6 @@ Loading the picture...	Memuat gambar...
 # context: the settings row right above Support HushGram that opens a new bug report on GitHub
 Report a problem	Laporkan masalah
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Membuka laporan GitHub yang sudah berisi versi dan pengaturanmu. Tambahkan apa yang terjadi.
-# context: the settings row under Search, and the title of its dialog of one-tap choices
-# context: row on Settings backup that hides or shows the Quick setups row on the home page, and its two summaries
-# context: toast after a long press hides Quick setups; the page named is Settings backup
-# context: a Quick setups choice that hides ads, suggestions and promotions
-# context: a Quick setups choice that turns on the privacy switches
-# context: a Quick setups choice that puts every switch back the way it started
-# context: toast after a Quick setups choice changed exactly one switch
-# context: the same toast for any other count, zero included; %1$d is how many
 Hide the reply bar on reels from chats	Sembunyikan bilah balasan di reel dari chat
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Kotak balasan di bawah reel yang kamu buka dari chat, beserta reaksi dan tombol plusnya. Kotak pesan di chat itu sendiri tetap ada.
 # context: Layout list title; it picks the font Instagram's text draws in

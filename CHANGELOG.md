@@ -26,7 +26,6 @@ Every HushGram release, newest first.
 * **Instagram:** Font imports finish reading and closing their provider before replacing a live font. Failed or stale imports leave the current files alone, and reopening settings can't start a competing copy.
 * **Instagram:** Replacing an imported app font keeps Restart now available even when the font choice hasn't changed.
 * **Instagram:** Settings backups restore large selections of hidden Instagram settings rows. Selecting all 161 supported rows no longer causes that choice to be skipped.
-* **Instagram:** Privacy quick setup describes the analytics upload alarm it disables. It no longer promises to stop every usage report.
 * **Instagram:** `Hide suggested posts` keeps native paging when a filtered page retains a real post, even before its list is displayed. Header-only pages can still finish.
 * **Instagram:** `Glass tab bar` blur recovers after a temporary capture failure on a still screen. Automatic retries stay bounded, and pending work stops when the bar leaves or HushGram pauses.
 * **Instagram:** `Story text fonts` puts local fonts before Instagram's paid section, so selecting one doesn't open a Plus offer. Instagram's paid fonts keep their subscription checks. Reported in #275 and #325.
@@ -43,8 +42,7 @@ Every HushGram release, newest first.
 #### Improvements
 
 * **Instagram:** Settings categories expand their controls directly underneath. Several sections can stay open, and tapping a heading collapses it. Search finds controls across every section and restores your open sections when cleared.
-* **Instagram:** Quick setups and its show/hide control are removed. Settings opens with Search, the list-view switch and the compact category list.
-* **Instagram:** Settings opens with Search, followed by the list view option. Compact rows and shorter descriptions fit more categories on screen. The active-status banner is gone, and larger text still wraps.
+* **Instagram:** Settings opens with Search, the list view option and a compact category list with shorter descriptions. Quick setups and the active-status banner are gone. Larger text still wraps.
 * **Tooling:** The patching help explains the small-heap limit and keeps Manager's embedded VM workaround.
 * **Instagram:** Download file names support `{shortcode}`, using the parent post's code for carousel pages. Unknown codes are left out. Photo names use the template when it includes that token.
 * **Instagram:** `Date in backup file names` adds the local date and time to settings exports. It starts off, keeping the existing backup name until enabled.
