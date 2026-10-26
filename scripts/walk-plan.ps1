@@ -171,13 +171,33 @@ function Test-WalkNodeUncovered {
         # 16-baseline-home-dark,25-final-inbox,02-baseline-profile.{png,xml}.
         # This is a structural capture allowance, not an opacity measurement. Labels,
         # controls, children or an ImageView invalidate it. Unknown structures refuse.
+        $prefix = $Candidate.GetAttribute('package') + ':id/'
+        function Test-WalkInertNode([Xml.XmlNode]$Inert) {
+            return $Inert.GetAttribute('enabled') -ceq 'true' -and $Inert.GetAttribute('clickable') -ceq 'false' -and
+                $Inert.GetAttribute('scrollable') -ceq 'false' -and $Inert.GetAttribute('selected') -ceq 'false' -and
+                -not $Inert.GetAttribute('resource-id') -and
+                [string]::IsNullOrWhiteSpace($Inert.GetAttribute('text') + $Inert.GetAttribute('content-desc') + $Inert.GetAttribute('hint'))
+        }
+        # Loaded Explore (cold-control walk 8a838eb8 capture-0004.{png,xml} and -after.xml)
+        # draws an anonymous ComposeView above refreshable_container, holding exactly one
+        # childless contentless View of its bounds, while the PNG shows the grid unobscured.
+        if ($Candidate.GetAttribute('class') -ceq 'androidx.compose.ui.platform.ComposeView') {
+            $inner = @($Candidate.SelectNodes('./node'))
+            $holder = $Candidate.ParentNode
+            return $Candidate.ChildNodes.Count -eq 1 -and $inner.Count -eq 1 -and $inner[0].ChildNodes.Count -eq 0 -and
+                $inner[0].GetAttribute('class') -ceq 'android.view.View' -and
+                (Test-WalkInertNode $Candidate) -and (Test-WalkInertNode $inner[0]) -and
+                $inner[0].GetAttribute('bounds') -ceq $Candidate.GetAttribute('bounds') -and
+                $holder.GetAttribute('resource-id') -ceq ($prefix + 'layout_recyclerview_parent_container') -and
+                $holder.GetAttribute('bounds') -ceq $Candidate.GetAttribute('bounds') -and
+                @($holder.SelectNodes('./node') | Where-Object { $_.GetAttribute('resource-id') -ceq ($prefix + 'refreshable_container') }).Count -eq 1
+        }
         if ($Candidate.GetAttribute('class') -cnotin @('android.widget.FrameLayout','android.widget.Button') -or $Candidate.ChildNodes.Count -ne 0 -or
             $Candidate.GetAttribute('enabled') -cne 'true' -or $Candidate.GetAttribute('clickable') -cne 'false' -or
             $Candidate.GetAttribute('scrollable') -cne 'false' -or
             -not [string]::IsNullOrWhiteSpace($Candidate.GetAttribute('text') + $Candidate.GetAttribute('content-desc') + $Candidate.GetAttribute('hint'))) {
             return $false
         }
-        $prefix = $Candidate.GetAttribute('package') + ':id/'
         $resourceId = $Candidate.GetAttribute('resource-id')
         $parent = $Candidate.ParentNode
         $parentId = $parent.GetAttribute('resource-id')

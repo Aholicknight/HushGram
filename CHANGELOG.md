@@ -37,6 +37,7 @@ Every HushGram release, newest first.
 * **Tooling:** Cached patch lookups now refresh when classes are added, replaced or removed. Unchanged classes keep their cached reads.
 * **Tooling:** Release walkthroughs require matching bundle, candidate and installed APK evidence, with visible content for each required destination. Incomplete receipts, changed installs and covered pages can't authorize publication.
 * **Tooling:** Walk navigation checks the chosen tap point, including covers over a partly visible control. Settings labels keep their own location when a row handles the tap.
+* **Tooling:** The walk accepts a loaded Explore grid under Instagram's empty Compose layer. A labeled, clickable, filled or differently built layer still counts as a cover.
 
 #### Improvements
 

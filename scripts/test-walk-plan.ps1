@@ -357,6 +357,51 @@ try {
     Assert-PlanContent $inboxDestination $document $true 'Exact inbox semantic scaffold'
     $button.SetAttribute('text','Cover')
     Assert-PlanContent $inboxDestination $document $false 'Labeled control cannot use scaffold allowance'
+    # Loaded Explore draws an anonymous ComposeView, holding one contentless View of the same
+    # bounds, above refreshable_container (cold-control walk 8a838eb8 capture-0004).
+    $exploreDestination=$all | Where-Object id -CEQ 'explore'
+    function Get-ExploreScaffoldDocument([scriptblock]$Mutation) {
+        $document=Get-NativePlanDocument $exploreDestination
+        $grid=$document.SelectSingleNode("//node[@resource-id='${script:package}:id/recycler_view']")
+        $bounds=$grid.GetAttribute('bounds')
+        $fragment=$document.CreateDocumentFragment()
+        $fragment.InnerXml=Get-PlanNode -Id 'layout_recyclerview_parent_container' -Bounds $bounds -Children (
+            (Get-PlanNode -Class 'androidx.compose.ui.platform.ComposeView' -Bounds $bounds -Children (Get-PlanNode -Class 'android.view.View' -Bounds $bounds)) +
+            (Get-PlanNode -Id 'refreshable_container' -Bounds $bounds))
+        $container=$fragment.FirstChild
+        [void]$grid.ParentNode.ReplaceChild($fragment,$grid)
+        $compose=$container.FirstChild; $refreshable=$container.LastChild
+        [void]$refreshable.AppendChild($grid)
+        foreach($uiNode in @($compose,$compose.FirstChild)) {
+            foreach($flag in @('clickable','scrollable')) { $uiNode.SetAttribute($flag,'false') }
+        }
+        $compose.SetAttribute('drawing-order','8'); $compose.FirstChild.SetAttribute('drawing-order','0')
+        $refreshable.SetAttribute('drawing-order','2'); $grid.SetAttribute('drawing-order','1')
+        if ($Mutation) { & $Mutation $compose $container }
+        return ,$document
+    }
+    Assert-PlanContent $exploreDestination (Get-ExploreScaffoldDocument) $true 'Exact Explore Compose scaffold'
+    $scaffoldControls=[ordered]@{
+        'labeled ComposeView'={ param($c) $c.SetAttribute('content-desc','Cover') }
+        'labeled inner View'={ param($c) $c.FirstChild.SetAttribute('text','Cover') }
+        'clickable ComposeView'={ param($c) $c.SetAttribute('clickable','true') }
+        'clickable inner View'={ param($c) $c.FirstChild.SetAttribute('clickable','true') }
+        'scrollable inner View'={ param($c) $c.FirstChild.SetAttribute('scrollable','true') }
+        'selected ComposeView'={ param($c) $c.SetAttribute('selected','true') }
+        'disabled inner View'={ param($c) $c.FirstChild.SetAttribute('enabled','false') }
+        'missing click flag'={ param($c) $c.FirstChild.RemoveAttribute('clickable') }
+        'identified ComposeView'={ param($c) $c.SetAttribute('resource-id',"${script:package}:id/explore_overlay") }
+        'populated inner View'={ param($c) [void]$c.FirstChild.AppendChild($c.FirstChild.CloneNode($false)) }
+        'second inner View'={ param($c) [void]$c.AppendChild($c.FirstChild.CloneNode($true)) }
+        'childless ComposeView'={ param($c) [void]$c.RemoveChild($c.FirstChild) }
+        'inner ImageView'={ param($c) $c.FirstChild.SetAttribute('class','android.widget.ImageView') }
+        'unequal inner bounds'={ param($c) $c.FirstChild.SetAttribute('bounds','[0,240][720,800]') }
+        'other parent'={ param($c,$p) $p.SetAttribute('resource-id',"${script:package}:id/other_container") }
+        'no refreshable sibling'={ param($c,$p) $p.LastChild.SetAttribute('resource-id',"${script:package}:id/other_container") }
+    }
+    foreach($name in $scaffoldControls.Keys) {
+        Assert-PlanContent $exploreDestination (Get-ExploreScaffoldDocument $scaffoldControls[$name]) $false "Explore Compose cover: $name"
+    }
     foreach ($overlay in @(
         (Get-PlanNode -Id 'android:id/alertTitle' -Class 'android.widget.TextView' -Text 'Dialog'),
         (Get-PlanNode -Class 'android.widget.TextView' -Text 'Your messages are locked'),
@@ -422,6 +467,11 @@ try {
             }
             $destination = $all | Where-Object id -CEQ $capture.id
             Assert-PlanContent $destination $document $capture.valid "Saved $($capture.file) evidence"
+        }
+        # Native snapshots of the loaded Explore grid, before and after the capture.
+        foreach ($file in @('capture-0004.xml','capture-0004-after.xml')) {
+            $path = Join-Path $CaptureWorkRoot ('walk-binding/cold-control/b839a0c34a784c70b67636342c7136fd/walk/8a838eb895b046d7b96cae33638eaf0f/' + $file)
+            Assert-PlanContent $exploreDestination (Read-WalkUiDocument $path) $true "Saved cold-control Explore $file"
         }
     }
     Write-Output "walk-plan: $script:checks checks passed."
