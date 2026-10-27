@@ -16,16 +16,16 @@
       }
     },
     {
-      "purl": "pkg:maven/org.jetbrains.kotlin/kotlin-stdlib@2.4.20",
-      "file": "kotlin-stdlib-2.4.20.jar",
-      "sha256": "2226de463d309d4a5500a481320b3dea515a6981dcae1def531fbc158884e25f",
+      "purl": "pkg:maven/org.jetbrains.kotlin/kotlin-stdlib@2.4.21",
+      "file": "kotlin-stdlib-2.4.21.jar",
+      "sha256": "bd8250210584cb659847dce9cda660f8e9906e5def7fbebcea93dc6dcb6a88a3",
       "license": {
         "id": "Apache-2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
       },
       "evidence": {
-        "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.4.20/kotlin-stdlib-2.4.20.pom",
-        "sha256": "bd69b382dba8e2b7ae3846375eb2f1389017eb908987277051ae4e3acec8c938",
+        "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.4.21/kotlin-stdlib-2.4.21.pom",
+        "sha256": "b92b23ec9c444b2578b9852447565efc72c24b3ea77b4c3bf4e644f685eeef07",
         "declaredLicense": "Apache-2.0"
       }
     },

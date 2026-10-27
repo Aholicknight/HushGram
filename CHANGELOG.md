@@ -49,6 +49,7 @@ Every HushGram release, newest first.
 * **Tooling:** The walk accepts a loaded Explore grid under Instagram's empty Compose layer. A labeled, clickable, focusable, filled or differently built layer still counts as a cover.
 * **Tooling:** The release walk expands each settings category in place and checks it folds again, since Back now closes settings. A row only counts under its own heading, and every row is checked against the settings source.
 * **Tooling:** The source census keeps a relicensed source's old licence pinned and records code it took from elsewhere. InstaEclipse is GPL-3.0 now, and the HushGram downloader it carries counts as ours. Stylus dropped its Instagram patch.
+* **Tooling:** The build moves to the Morphe patches plugin 2.0.0 and Kotlin 2.4.21, held to one version across the plugin's classpath. Patched apps come out the same, and the bundle carries Kotlin stdlib 2.4.21.
 
 #### Improvements
 

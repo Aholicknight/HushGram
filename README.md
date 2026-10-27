@@ -303,7 +303,7 @@ The diagnostic report stays on your phone until you copy or share it yourself.
 
 ## Building from source
 
-You need JDK 17 or newer and the Android SDK. The Morphe patcher comes from GitHub Packages, so you also need a GitHub token with `read:packages`. The build runs on Gradle 9.8.2, Android Gradle Plugin 9.1.0 and Kotlin 2.4.20, with Morphe patcher 2.0.1. Use Morphe Desktop 1.19.1 or newer for local patch checks.
+You need JDK 17 or newer and the Android SDK. The Morphe patcher comes from GitHub Packages, so you also need a GitHub token with `read:packages`. The build runs on Gradle 9.8.2, Android Gradle Plugin 9.1.0 and Kotlin 2.4.21, with Morphe patcher 2.0.1. Use Morphe Desktop 1.19.1 or newer for local patch checks.
 
 ```bash
 export GITHUB_ACTOR=<your GitHub user>
