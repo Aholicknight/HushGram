@@ -3238,7 +3238,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     @Nullable
-    private static Activity activityOf(Context context) {
+    static Activity activityOf(Context context) {
         for (Context at = context; at != null; at = at instanceof android.content.ContextWrapper
                 ? ((android.content.ContextWrapper) at).getBaseContext() : null) {
             if (at instanceof Activity) return (Activity) at;
@@ -4084,7 +4084,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** How round Rounded corners on posts cuts a post's corners. Its summary is the size chosen. */
+    /** How round Rounded corners on posts and on Reels cut their corners. Its summary is the size chosen. */
     static CornerSizeRow cornerSizeRow(Context context) {
         CornerSizeRow row = new CornerSizeRow(context);
         row.setKey(Settings.ROUNDED_CORNER_SIZE.key);

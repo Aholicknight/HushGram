@@ -1023,8 +1023,10 @@ Active at %1$s	Aktif pukul %1$s
 Active yesterday at %1$s	Aktif kemarin pukul %1$s
 Active %1$s at %2$s	Aktif %1$s pukul %2$s
 Rounded corners on posts	Sudut membulat pada kiriman
-Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles, Explore and Reels stay as they were.	Membulatkan sudut foto, video, dan halaman carousel pada kiriman di Beranda dan Mengikuti. Kiriman yang kamu gulir setelah perubahan akan menampilkannya. Cerita, profil, Jelajahi, dan Reels tetap seperti semula.
+Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	Membulatkan sudut foto, video, dan halaman carousel pada kiriman di Beranda dan Mengikuti. Kiriman yang kamu gulir setelah perubahan akan menampilkannya. Cerita, profil, dan Jelajahi tetap seperti semula.
 Corner size	Ukuran sudut
+Rounded corners on Reels	Sudut membulat pada Reels
+Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.	Membulatkan sudut video reel di tab Reels dan di mana pun reel dibuka layar penuh. Bilah geser, teks, dan tombol tetap utuh.
 Large	Besar
 Small	Kecil
 # context: a toast shown once when safe mode has paused HushGram on its own after crashes at start

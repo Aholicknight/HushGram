@@ -1022,8 +1022,10 @@ Active at %1$s	%1$s에 활동
 Active yesterday at %1$s	어제 %1$s에 활동
 Active %1$s at %2$s	%1$s %2$s에 활동
 Rounded corners on posts	게시물 모서리 둥글게
-Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles, Explore and Reels stay as they were.	홈과 팔로잉에서 게시물의 사진, 동영상, 캐러셀 페이지 모서리를 둥글게 만듭니다. 변경한 뒤에 스크롤해서 보는 게시물부터 적용됩니다. 스토리, 프로필, 탐색, 릴스는 그대로입니다.
+Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	홈과 팔로잉에서 게시물의 사진, 동영상, 캐러셀 페이지 모서리를 둥글게 만듭니다. 변경한 뒤에 스크롤해서 보는 게시물부터 적용됩니다. 스토리, 프로필, 탐색은 그대로입니다.
 Corner size	모서리 크기
+Rounded corners on Reels	Reels 둥근 모서리
+Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.	Reels 탭과 릴스가 전체 화면으로 열리는 모든 곳에서 릴스 동영상의 모서리를 둥글게 합니다. 탐색 막대, 자막, 버튼은 잘리지 않습니다.
 Large	크게
 Small	작게
 # context: a toast shown once when safe mode has paused HushGram on its own after crashes at start

@@ -1021,8 +1021,10 @@ Active at %1$s	%1$s 上線
 Active yesterday at %1$s	昨天 %1$s 上線
 Active %1$s at %2$s	%1$s %2$s 上線
 Rounded corners on posts	貼文圓角
-Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles, Explore and Reels stay as they were.	將首頁與追蹤中貼文的照片、影片與輪播頁面改為圓角。變更後捲動到的貼文才會顯示。限時動態、個人檔案、探索與 Reels 不變。
+Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	將首頁與追蹤中貼文的照片、影片與輪播頁面改為圓角。變更後捲動到的貼文才會顯示。限時動態、個人檔案與探索不變。
 Corner size	圓角大小
+Rounded corners on Reels	Reels 圓角
+Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.	在 Reels 分頁及任何以全螢幕開啟 Reels 的地方，將 Reels 影片的邊角變圓。進度列、字幕和按鈕保持完整。
 Large	大
 Small	小
 # context: a toast shown once when safe mode has paused HushGram on its own after crashes at start

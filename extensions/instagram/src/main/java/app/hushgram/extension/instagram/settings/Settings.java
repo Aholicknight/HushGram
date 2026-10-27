@@ -313,10 +313,18 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting ROUNDED_POST_CORNERS =
             new BooleanSetting("hushgram_rounded_post_corners", FALSE);
 
-    /** Under {@link #ROUNDED_POST_CORNERS}: how round the corners are. Small to start. */
+    /**
+     * A reel's video in the Reels tab and wherever a reel opens full screen is cut at rounded corners
+     * ({@link app.hushgram.extension.instagram.feed.ReelCorners}, #362), with the seek bar, captions and
+     * buttons left whole. Part of the Rounded post corners patch. Off to start.
+     */
+    public static final BooleanSetting ROUNDED_REEL_CORNERS =
+            new BooleanSetting("hushgram_rounded_reel_corners", FALSE);
+
+    /** Under {@link #ROUNDED_POST_CORNERS} and {@link #ROUNDED_REEL_CORNERS}: how round the corners are. Small to start. */
     public static final EnumSetting<app.hushgram.extension.instagram.feed.CornerSize> ROUNDED_CORNER_SIZE =
             new EnumSetting<>("hushgram_rounded_corner_size", app.hushgram.extension.instagram.feed.CornerSize.SMALL,
-                    parent(ROUNDED_POST_CORNERS));
+                    parentsAny(ROUNDED_POST_CORNERS, ROUNDED_REEL_CORNERS));
 
     /**
      * The stories you watch, which Instagram posts to media/seen/ to put you on their viewer lists.

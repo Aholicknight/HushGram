@@ -27,7 +27,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Rounded corners on posts: a Feed switch that starts off, with a Corner size list under it, both kept in a backup, and off while paused. */
+/** Rounded corners on posts and on Reels: Feed switches that start off, with a Corner size list under them, all kept in a backup, and off while paused. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
@@ -39,6 +39,7 @@ public class RoundedCornersSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.ROUNDED_POST_CORNERS.resetToDefault();
+        Settings.ROUNDED_REEL_CORNERS.resetToDefault();
         Settings.ROUNDED_CORNER_SIZE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -50,6 +51,7 @@ public class RoundedCornersSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.ROUNDED_POST_CORNERS.resetToDefault();
+        Settings.ROUNDED_REEL_CORNERS.resetToDefault();
         Settings.ROUNDED_CORNER_SIZE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -76,9 +78,13 @@ public class RoundedCornersSettingsTest {
         // The zoom's own rows, Long press a photo to zoom and then Keep the zoom open, come right before.
         assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key, keys[at - 2]);
         assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_ZOOM_STAYS_OPEN.key, keys[at - 1]);
-        assertEquals(Arrays.toString(keys), Settings.ROUNDED_CORNER_SIZE.key, keys[at + 1]);
+        // Rounded corners on Reels (#362) sits between the posts switch and the list both share.
+        assertEquals(Arrays.toString(keys), Settings.ROUNDED_REEL_CORNERS.key, keys[at + 1]);
+        assertEquals(Arrays.toString(keys), Settings.ROUNDED_CORNER_SIZE.key, keys[at + 2]);
+        assertEquals("Rounded corners on Reels", feed.getPreference(at + 1).getTitle().toString());
+        assertFalse(Settings.ROUNDED_REEL_CORNERS.get());
 
-        HushgramPreferenceFragment.CornerSizeRow size = (HushgramPreferenceFragment.CornerSizeRow) feed.getPreference(at + 1);
+        HushgramPreferenceFragment.CornerSizeRow size = (HushgramPreferenceFragment.CornerSizeRow) feed.getPreference(at + 2);
         assertEquals("Corner size", size.getTitle().toString());
         assertEquals(Arrays.asList("Small", "Large"), Arrays.asList(size.getEntries()[0].toString(), size.getEntries()[1].toString()));
         assertEquals("SMALL", size.getValue());
@@ -94,7 +100,24 @@ public class RoundedCornersSettingsTest {
 
         assertEquals("Rounded post corners", PatchFamily.ROUNDED_POST_CORNERS.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ROUNDED_POST_CORNERS.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ROUNDED_REEL_CORNERS.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ROUNDED_CORNER_SIZE.key));
+    }
+    /** The list follows either switch, so reels alone can be rounded at either size. */
+    @Test public void theReelsSwitchAloneWakesTheList() throws Exception {
+        open(EnumSet.of(PatchFamily.ROUNDED_POST_CORNERS));
+        android.preference.SwitchPreference reels = (android.preference.SwitchPreference)
+                page.getPreferenceScreen().findPreference(Settings.ROUNDED_REEL_CORNERS.key);
+        Preference size = page.getPreferenceScreen().findPreference(Settings.ROUNDED_CORNER_SIZE.key);
+        assertFalse(size.isEnabled());
+        reels.setChecked(true);
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        assertTrue(Settings.ROUNDED_REEL_CORNERS.savedValue());
+        assertFalse("posts stay as they were", Settings.ROUNDED_POST_CORNERS.savedValue());
+        assertTrue(size.isEnabled());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.ROUNDED_REEL_CORNERS.get());
     }
     @Test public void theSwitchAloneStillMakesTheFeedSection() throws Exception {
         open(EnumSet.of(PatchFamily.ROUNDED_POST_CORNERS));
@@ -115,6 +138,8 @@ public class RoundedCornersSettingsTest {
         open(EnumSet.of(PatchFamily.LONG_PRESS_ZOOM));
         assertNull(page.getPreferenceScreen().findPreference(Settings.ROUNDED_POST_CORNERS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.ROUNDED_CORNER_SIZE.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.ROUNDED_REEL_CORNERS.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.ROUNDED_REEL_CORNERS.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.ROUNDED_POST_CORNERS.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.ROUNDED_CORNER_SIZE.key));
     }

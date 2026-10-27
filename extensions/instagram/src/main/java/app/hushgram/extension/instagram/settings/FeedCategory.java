@@ -6,6 +6,7 @@
  */
 package app.hushgram.extension.instagram.settings;
 
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.activityOf;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.cornerSizeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
@@ -13,9 +14,11 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import android.content.Context;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
+import android.preference.SwitchPreference;
 
 import java.util.Set;
 
+import app.hushgram.extension.instagram.feed.ReelCorners;
 import app.hushgram.extension.shared.L10n;
 
 /** Builds the Feed category of HushGram settings. */
@@ -168,8 +171,17 @@ final class FeedCategory {
         if (roundedCorners) {
             feed.addPreference(toggle(context, Settings.ROUNDED_POST_CORNERS, L10n.t("Rounded corners on posts"),
                     L10n.t("Rounds the corners of a post's photo, video and carousel pages in Home and Following. "
-                            + "Posts you scroll to after a change show it. Stories, profiles, Explore and Reels stay "
-                            + "as they were.")));
+                            + "Posts you scroll to after a change show it. Stories, profiles and Explore stay as "
+                            + "they were.")));
+            SwitchPreference reels = toggle(context, Settings.ROUNDED_REEL_CORNERS, L10n.t("Rounded corners on Reels"),
+                    L10n.t("Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full "
+                            + "screen. The seek bar, captions and buttons stay whole."));
+            // Settings are a dialog over Instagram's screen, which never resumes when it closes.
+            reels.setOnPreferenceChangeListener((row, value) -> {
+                ReelCorners.switchChanged(activityOf(row.getContext()));
+                return true;
+            });
+            feed.addPreference(reels);
             feed.addPreference(cornerSizeRow(context));
         }
         if (fullScreen) {

@@ -1023,8 +1023,10 @@ Active at %1$s	Ativo às %1$s
 Active yesterday at %1$s	Ativo ontem às %1$s
 Active %1$s at %2$s	Ativo em %1$s às %2$s
 Rounded corners on posts	Cantos arredondados nas publicações
-Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles, Explore and Reels stay as they were.	Arredonda os cantos da foto, do vídeo e das páginas do carrossel de uma publicação no Início e em Seguindo. As publicações que você rolar depois de uma mudança já aparecem assim. Stories, perfis, Explorar e Reels continuam como estavam.
+Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	Arredonda os cantos da foto, do vídeo e das páginas do carrossel de uma publicação no Início e em Seguindo. As publicações que você rolar depois de uma mudança já aparecem assim. Stories, perfis e Explorar continuam como estavam.
 Corner size	Tamanho dos cantos
+Rounded corners on Reels	Cantos arredondados nos Reels
+Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.	Arredonda os cantos do vídeo de um reel na aba Reels e onde quer que um reel abra em tela cheia. A barra de progresso, as legendas e os botões ficam inteiros.
 Large	Grande
 Small	Pequeno
 # context: a toast shown once when safe mode has paused HushGram on its own after crashes at start

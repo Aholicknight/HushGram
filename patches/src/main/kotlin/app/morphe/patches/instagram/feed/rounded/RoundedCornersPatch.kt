@@ -49,15 +49,18 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * code changes, and the extension does the work once for each frame, when it is made, so scrolling
  * costs nothing extra.
  *
+ * Rounded corners on Reels (#362) needs no change of its own: the extension rounds each reel's video
+ * frame by its view id after the viewer lays out, so it comes with this patch.
+ *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
  */
 @Suppress("unused")
 val roundedPostCornersPatch = bytecodePatch(
     name = "Rounded post corners",
-    description = "Rounds the corners of a post's photo, video and carousel pages in Home and Following, at a " +
-        "small or large size. Stories, profiles, Explore and Reels stay as Instagram draws them. Starts off. " +
-        "Turn it on in HushGram settings > Feed.",
+    description = "Rounds the corners of a post's photo, video and carousel pages in Home and Following, and of " +
+        "reels if you like, at a small or large size. Stories, profiles and Explore stay as Instagram draws them. " +
+        "Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)
