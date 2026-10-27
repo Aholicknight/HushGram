@@ -602,6 +602,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         || L10n.t("Pure black dark mode isn't in this build").equals(row.getTitle())) {
                     aliases.append(" amoled oled black theme");
                 }
+                if (NotificationsCategory.movedFromProfiles(key)) aliases.append(' ').append(L10n.t("Profiles"));
+                if (Settings.HIDE_REELS_TAB.key.equals(key) || Settings.SHOW_REELS_TAB.key.equals(key)) {
+                    aliases.append(' ').append(L10n.t("Reels"));
+                }
+                if (Settings.VIEW_DM_MEDIA_ANONYMOUSLY.key.equals(key)) aliases.append(' ').append(L10n.t("Ads and privacy"));
                 for (PatchFamily family : build) {
                     boolean belongs = family.switches.stream().anyMatch(setting -> setting.key.equals(key));
                     belongs |= family == PatchFamily.STORY_RING && (Settings.STORY_RING_SCALE.key.equals(key)

@@ -39,7 +39,6 @@
               "Hide ads",
               "Sanitize sharing links",
               "Open links in external browser",
-              "View DM photos and videos anonymously",
               "Spoof location"
             ]
           },
@@ -214,6 +213,7 @@
           "Hide Instants",
           "Read messages without the seen receipt",
           "Hide that you're typing",
+          "View DM photos and videos anonymously",
           "Hide your active status",
           "Show when someone was last active",
           "Lock your messages",
@@ -264,7 +264,6 @@
           "Download any reel",
           "Turn off double tap to like",
           "Change the like animation",
-          "Hide the Reels tab",
           "Full screen Reels and Home",
           "Keep the reel speed",
           "Show a reel's exact time",
@@ -567,7 +566,8 @@
       "when": {
         "op": "any",
         "patches": [
-          "Group Instagram's notifications"
+          "Group Instagram's notifications",
+          "Hide suggested people on profiles"
         ]
       },
       "anchors": [
@@ -586,6 +586,15 @@
             "op": "any",
             "patches": [
               "Group Instagram's notifications"
+            ]
+          }
+        },
+        {
+          "title": "Hide People you don't follow back",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide suggested people on profiles"
             ]
           }
         }

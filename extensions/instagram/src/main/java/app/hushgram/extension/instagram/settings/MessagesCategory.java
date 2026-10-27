@@ -29,6 +29,7 @@ final class MessagesCategory {
         if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.INBOX_SEARCH)
                 || build.contains(PatchFamily.INBOX_SUGGESTIONS) || build.contains(PatchFamily.INSTANTS)
                 || build.contains(PatchFamily.THREAD_SEEN) || build.contains(PatchFamily.TYPING)
+                || build.contains(PatchFamily.DM_MEDIA_SEEN)
                 || build.contains(PatchFamily.ACTIVE_STATUS)
                 || build.contains(PatchFamily.LAST_ACTIVE)
                 || build.contains(PatchFamily.MESSAGES_LOCK)
@@ -78,6 +79,13 @@ final class MessagesCategory {
                 messages.addPreference(toggle(context, Settings.HIDE_TYPING, L10n.t("Hide that you're typing"),
                         L10n.t("People you're chatting with don't see the typing dots while you write, and you "
                                 + "still see theirs.")));
+            }
+            // Under Ads and privacy until 2026-10-26, and a search for that still finds it.
+            if (build.contains(PatchFamily.DM_MEDIA_SEEN)) {
+                messages.addPreference(toggle(context, Settings.VIEW_DM_MEDIA_ANONYMOUSLY,
+                        L10n.t("View DM photos and videos anonymously"),
+                        L10n.t("Stops people seeing that you opened their view once photos and videos. They still "
+                                + "disappear after you view them. This is a test feature and starts off.")));
             }
             if (build.contains(PatchFamily.ACTIVE_STATUS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_ACTIVE_STATUS, L10n.t("Hide your active status"),

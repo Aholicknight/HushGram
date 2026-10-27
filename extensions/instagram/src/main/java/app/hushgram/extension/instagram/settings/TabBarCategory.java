@@ -41,6 +41,13 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.HIDE_HOME_TAB, L10n.t("Hide the Home tab"),
                         L10n.t("Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home "
                                 + "that's on the bar, or Home stays. Restart Instagram to see the change.")));
+                // Under Reels until 2026-10-26, and a search for Reels still finds them.
+                glass.addPreference(toggle(context, Settings.HIDE_REELS_TAB, L10n.t("Hide the Reels tab"),
+                        L10n.t("Takes Reels off the tab bar. Reels in your feed and reels people send you still open. "
+                                + "Restart Instagram to see the change.")));
+                glass.addPreference(toggle(context, Settings.SHOW_REELS_TAB, L10n.t("Show the Reels tab"),
+                        L10n.t("Puts Reels back on the tab bar if Instagram left it off yours. Hide the Reels tab wins if "
+                                + "both are on. Restart Instagram to see the change.")));
                 glass.addPreference(toggle(context, Settings.HIDE_SEARCH_TAB, L10n.t("Hide the Search tab"),
                         L10n.t("Takes Search off the tab bar and closes up the gap. Restart Instagram to see the change.")));
                 glass.addPreference(toggle(context, Settings.HIDE_CREATE_TAB, L10n.t("Hide the Create tab"),

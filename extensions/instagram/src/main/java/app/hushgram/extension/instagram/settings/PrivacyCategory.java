@@ -56,12 +56,6 @@ final class PrivacyCategory {
                     L10n.t("Web links you tap open in your usual browser, without Instagram's click tracker. "
                             + "Instagram pages and ads still open in the app.")));
         }
-        if (build.contains(PatchFamily.DM_MEDIA_SEEN)) {
-            privacy.add(toggle(context, Settings.VIEW_DM_MEDIA_ANONYMOUSLY,
-                    L10n.t("View DM photos and videos anonymously"),
-                    L10n.t("Stops people seeing that you opened their view once photos and videos. They still "
-                            + "disappear after you view them. This is a test feature and starts off.")));
-        }
         if (build.contains(PatchFamily.SPOOF_LOCATION)) {
             privacy.add(toggle(context, Settings.SPOOF_LOCATION, L10n.t("Spoof location"),
                     L10n.t("Tells Instagram your phone is at the place set below, for the location sticker, nearby "

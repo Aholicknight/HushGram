@@ -54,6 +54,7 @@ Every HushGram release, newest first.
 * **Instagram:** HushGram's settings use Instagram's own blues instead of pink. Switches and buttons take its indigo button color, while icons and headings use the lighter blue Instagram gives links on a dark screen.
 * **Instagram:** Every HushGram title wears Instagram's gradient now, including the settings bar, its dialogs and the lock screen. The colors drift slowly and a sheen sweeps across every few seconds, even with Android's animations turned off.
 * **Instagram:** Settings categories expand their controls directly underneath. Several sections can stay open, and tapping a heading collapses it. Search finds controls across every section and restores your open sections when cleared.
+* **Instagram:** Settings put switches with the screen they change. The Notifications page's suggestion switches moved to Notifications, the Reels tab's to Tab bar, and anonymous DM photos to Messages. Searching their old section still finds them.
 * **Instagram:** Settings opens with Search, the list view option and a compact category list with shorter descriptions. Quick setups and the active-status banner are gone. Larger text still wraps.
 * **Tooling:** The patching help explains the small-heap limit and keeps Manager's embedded VM workaround.
 * **Instagram:** Download file names support `{shortcode}`, using the parent post's code for carousel pages. Unknown codes are left out. Photo names use the template when it includes that token.
