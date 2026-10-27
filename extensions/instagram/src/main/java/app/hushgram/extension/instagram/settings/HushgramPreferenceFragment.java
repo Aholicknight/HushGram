@@ -689,20 +689,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (row.getIcon() == null) mark(row, SettingsIcons.forKey(key, iconOf(group)));
             }
             searchableRows.put(group, rows);
-            if (group != recovery) {
-                group.setKey(CATEGORY_ROW_KEY + iconOf(group));
-                mark(group, iconOf(group));
-                group.setOnPreferenceClickListener(tapped -> {
-                    toggleCategory(group);
-                    return true;
-                });
-            }
+            group.setKey(CATEGORY_ROW_KEY + iconOf(group));
+            mark(group, iconOf(group));
+            group.setOnPreferenceClickListener(tapped -> {
+                toggleCategory(group);
+                return true;
+            });
         }
         // After every row is known: a first open counts them all as seen, so a fresh install has no dots.
         NewRowDots.start(context, searchableRows);
         Set<String> available = new HashSet<>();
         for (PreferenceCategory group : searchableRows.keySet()) {
-            if (group == recovery) continue;
             available.add(group.getKey());
             NewRowDots.opens(group, group);
         }
@@ -1222,7 +1219,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         int matches = 0;
         for (Map.Entry<PreferenceCategory, List<Preference>> section : searchableRows.entrySet()) {
             PreferenceCategory group = section.getKey();
-            boolean expanded = !listing || group == recovery || expandedCategories.contains(group.getKey());
+            // Pause, the lock and an interrupted save stay in reach: their section opens and can't fold,
+            // and stays open after, so unlocking doesn't fold the row just tapped.
+            boolean held = listing && group == recovery && recoveryHeldOpen();
+            if (held) expandedCategories.add(group.getKey());
+            boolean expanded = !listing || expandedCategories.contains(group.getKey());
             boolean filled = false;
             for (Preference row : section.getValue()) {
                 String text = searchText(group.getTitle()) + " " + searchText(row.getTitle()) + " "
@@ -1248,7 +1249,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     else if (!expanded && lastCarouselSave.getParent() == group) group.removePreference(lastCarouselSave);
                 }
             }
-            if (group instanceof Heading) ((Heading) group).display(listing && group != recovery, expanded);
+            if (group instanceof Heading) ((Heading) group).display(listing && !held, expanded);
             if (filled) {
                 if (group.getParent() != screen) screen.addPreference(group);
             } else if (group.getParent() == screen) screen.removePreference(group);
@@ -1307,6 +1308,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         } finally {
             showingLock = false;
         }
+        // The lock can close on its own clock, and a save can stop while the page is away: refold.
+        if (recovery instanceof Heading && recovery.getParent() != null && categoryPages()
+                && searchQuery.trim().isEmpty() && ((Heading) recovery).collapsible == recoveryHeldOpen()) {
+            filterSettings();
+        }
+    }
+
+    /** Whether Pause and diagnostics must stay open: HushGram is paused, the lock holds, or a save was interrupted. */
+    private boolean recoveryHeldOpen() {
+        return HushgramPause.isPaused() || BaseSettings.PAUSED.savedValue() || SettingsLock.locked()
+                || interruptedSaves != null;
     }
 
     /** Greys out [row] while the settings are locked, unless it changes nothing or it's the lock itself. */

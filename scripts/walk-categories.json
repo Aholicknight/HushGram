@@ -770,7 +770,7 @@
       "id": "settings-pause",
       "title": "Pause and diagnostics",
       "builder": "PauseCategory",
-      "page": false,
+      "page": true,
       "when": {
         "op": "unconditional"
       },

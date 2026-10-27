@@ -57,6 +57,7 @@ Every HushGram release, newest first.
 * **Instagram:** Settings put switches with the screen they change. The Notifications page's suggestion switches moved to Notifications, the Reels tab's to Tab bar, and anonymous DM photos to Messages. Searching their old section still finds them.
 * **Instagram:** The Updates section in settings is now called Version warnings, since all it holds is the switch for Instagram's "this version is too old" screen. Searching for Updates still finds it.
 * **Instagram:** Settings open on Ads and privacy now. Settings entry moved down next to backup and the other upkeep sections, after the everyday controls.
+* **Instagram:** Pause and diagnostics folds like the other sections now, so Debug logging and the report rows don't fill the overview. It opens by itself while HushGram is paused, the settings are locked or a save was interrupted.
 * **Instagram:** Settings opens with Search, the list view option and a compact category list with shorter descriptions. Quick setups and the active-status banner are gone. Larger text still wraps.
 * **Tooling:** The patching help explains the small-heap limit and keeps Manager's embedded VM workaround.
 * **Instagram:** Download file names support `{shortcode}`, using the parent post's code for carousel pages. Unknown codes are left out. Photo names use the template when it includes that token.
