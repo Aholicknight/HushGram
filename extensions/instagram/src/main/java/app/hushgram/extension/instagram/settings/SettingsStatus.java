@@ -416,6 +416,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Start reels with sound patch. */
+    public static boolean reelSound() {
+        return false;
+    }
+
     public static boolean reelAutoScroll() {
         return false;
     }

@@ -2219,6 +2219,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_reels_muted", FALSE);
 
     /**
+     * A reel opened from a post on Home starts with its sound on, through Instagram's own audio
+     * state, when the phone's ringer is on and its volume is up, and Home is muted again on the way
+     * back ({@link app.hushgram.extension.instagram.reels.ReelSound}). Off to start.
+     */
+    public static final BooleanSetting START_REELS_WITH_SOUND =
+            new BooleanSetting("hushgram_start_reels_with_sound", FALSE);
+
+    /**
      * A video or reel over two minutes left partway picks up there the next time a player starts
      * it ({@link app.hushgram.extension.instagram.media.ResumePlayback}). Starts off: it keeps the
      * IDs of the videos you left partway, for 30 days, in the app's own storage.
