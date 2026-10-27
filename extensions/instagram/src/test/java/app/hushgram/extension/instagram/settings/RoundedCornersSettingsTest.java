@@ -21,6 +21,7 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import app.hushgram.extension.instagram.feed.CornerSize;
+import app.hushgram.extension.instagram.feed.ReelCorners;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -63,6 +64,21 @@ public class RoundedCornersSettingsTest {
         page = new HushgramPreferenceFragment();
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
         Utils.awaitBackgroundTasksForTests();
+    }
+    /** Settings are a dialog over Instagram's screen, which doesn't resume when they close, so flipping Reels on reaches it at once. */
+    @Test public void flippingTheReelsSwitchOnReachesTheScreenUnderSettings() throws Exception {
+        open(EnumSet.of(PatchFamily.ROUNDED_POST_CORNERS));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.ROUNDED_REEL_CORNERS.key);
+        try {
+            assertFalse(ReelCorners.listeningForTests(controller.get()));
+            assertTrue(row.getOnPreferenceChangeListener().onPreferenceChange(row, true));
+            // The switch saves after its listener, so the helper reads the value once the change is posted.
+            Settings.ROUNDED_REEL_CORNERS.save(true);
+            org.robolectric.shadows.ShadowLooper.idleMainLooper();
+            assertTrue(ReelCorners.listeningForTests(controller.get()));
+        } finally {
+            ReelCorners.resetForTests();
+        }
     }
     @Test public void theSwitchAndItsListAreUnderFeedAfterTheZoomAndStartOff() throws Exception {
         open(EnumSet.of(PatchFamily.LONG_PRESS_ZOOM, PatchFamily.ROUNDED_POST_CORNERS));

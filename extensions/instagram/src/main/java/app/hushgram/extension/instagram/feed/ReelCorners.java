@@ -131,14 +131,14 @@ public final class ReelCorners {
         return rounded.size();
     }
 
-    static boolean listeningForTests(Activity activity) {
+    public static boolean listeningForTests(Activity activity) {
         synchronized (sessions) {
             Session session = sessions.get(activity);
             return session != null && session.observer != null;
         }
     }
 
-    static void resetForTests() {
+    public static void resetForTests() {
         ids.clear();
         synchronized (sessions) {
             for (Session session : new ArrayList<>(sessions.values())) session.detach();

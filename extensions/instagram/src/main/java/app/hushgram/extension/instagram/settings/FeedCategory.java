@@ -6,18 +6,18 @@
  */
 package app.hushgram.extension.instagram.settings;
 
-import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.activityOf;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.cornerSizeRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
 import android.content.Context;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
-import android.preference.SwitchPreference;
 
 import java.util.Set;
 
+import app.hushgram.extension.instagram.feed.FeedFollowButton;
 import app.hushgram.extension.instagram.feed.ReelCorners;
 import app.hushgram.extension.shared.L10n;
 
@@ -173,15 +173,9 @@ final class FeedCategory {
                     L10n.t("Rounds the corners of a post's photo, video and carousel pages in Home and Following. "
                             + "Posts you scroll to after a change show it. Stories, profiles and Explore stay as "
                             + "they were.")));
-            SwitchPreference reels = toggle(context, Settings.ROUNDED_REEL_CORNERS, L10n.t("Rounded corners on Reels"),
+            feed.addPreference(onFlip(toggle(context, Settings.ROUNDED_REEL_CORNERS, L10n.t("Rounded corners on Reels"),
                     L10n.t("Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full "
-                            + "screen. The seek bar, captions and buttons stay whole."));
-            // Settings are a dialog over Instagram's screen, which never resumes when it closes.
-            reels.setOnPreferenceChangeListener((row, value) -> {
-                ReelCorners.switchChanged(activityOf(row.getContext()));
-                return true;
-            });
-            feed.addPreference(reels);
+                            + "screen. The seek bar, captions and buttons stay whole.")), ReelCorners::switchChanged));
             feed.addPreference(cornerSizeRow(context));
         }
         if (fullScreen) {
@@ -190,8 +184,9 @@ final class FeedCategory {
                             + "bring them back for a moment.")));
         }
         if (feedFollow) {
-            feed.addPreference(toggle(context, Settings.HIDE_FEED_FOLLOW, L10n.t("Hide Follow on posts"),
-                    L10n.t("Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.")));
+            feed.addPreference(onFlip(toggle(context, Settings.HIDE_FEED_FOLLOW, L10n.t("Hide Follow on posts"),
+                    L10n.t("Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.")),
+                    FeedFollowButton::switchChanged));
         }
     }
 }

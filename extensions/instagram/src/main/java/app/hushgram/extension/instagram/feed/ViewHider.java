@@ -43,7 +43,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>With a [scope] the views count only inside a view of that id, so an id Instagram reuses
  * elsewhere (a Follow button in a story or a reel) stays. With the switch off, HushGram paused or
  * the settings not read, an activity gets no listener, and one already listening drops both at its
- * next frame. A resumed activity decides again, so the switch needs no restart. Views hidden stay
+ * next frame. A resumed activity decides again, and so does the one under HushGram settings when the
+ * switch is flipped, so the switch needs no restart. Views hidden stay
  * gone until Instagram binds them again, which it does itself when a row comes back on screen.
  * Anything thrown leaves the screen as Instagram drew it.
  */
@@ -114,6 +115,15 @@ final class ViewHider {
         } catch (Throwable failure) {
             HookStatus.threw(family, hook, failure);
         }
+    }
+
+    /**
+     * The switch was flipped in HushGram settings. They open as a dialog over [activity], which stays
+     * resumed, so it decides again now rather than at its next resume. Posted, so it reads the value
+     * this change saves.
+     */
+    void switchChanged(@Nullable Activity activity) {
+        if (activity != null) Utils.runOnMainThread(() -> watch(activity));
     }
 
     void unwatch(Activity activity) {

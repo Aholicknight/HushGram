@@ -3238,7 +3238,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     @Nullable
-    static Activity activityOf(Context context) {
+    private static Activity activityOf(Context context) {
         for (Context at = context; at != null; at = at instanceof android.content.ContextWrapper
                 ? ((android.content.ContextWrapper) at).getBaseContext() : null) {
             if (at instanceof Activity) return (Activity) at;
@@ -3258,6 +3258,19 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         preference.setTitle(title);
         preference.setSummary(summary);
         return preference;
+    }
+
+    /**
+     * Hands [changed] the activity under HushGram settings each time [row] is flipped. Settings are a
+     * dialog over Instagram's screen, which never resumes when they close, so a helper that decides as
+     * an activity resumes hears of the change here.
+     */
+    static SwitchPreference onFlip(SwitchPreference row, java.util.function.Consumer<Activity> changed) {
+        row.setOnPreferenceChangeListener((preference, value) -> {
+            changed.accept(activityOf(preference.getContext()));
+            return true;
+        });
+        return row;
     }
 
     /**
