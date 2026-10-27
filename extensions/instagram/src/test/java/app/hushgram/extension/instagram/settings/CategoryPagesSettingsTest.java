@@ -233,6 +233,25 @@ public class CategoryPagesSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CATEGORY_PAGES.key));
     }
 
+    /** Everyday controls lead; Settings entry and the upkeep sections follow them, About last. */
+    @Test public void settingsAccessAndUpkeepComeAfterTheEverydayControls() throws Exception {
+        PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
+        Settings.CATEGORY_PAGES.save(true);
+        open();
+        List<String> categories = shown(Preference.class);
+        assertEquals(categories.toString(), "Ads and privacy", categories.get(0));
+        int entry = categories.indexOf("Settings entry");
+        for (String everyday : List.of("Feed", "Messages", "Notifications", "Downloads", "Battery", "Version warnings")) {
+            assertTrue(everyday + " before Settings entry: " + categories, categories.indexOf(everyday) >= 0
+                    && categories.indexOf(everyday) < entry);
+        }
+        assertEquals(categories.toString(), List.of("Settings entry", "Set when you patched", "Settings backup"),
+                categories.subList(entry, entry + 3));
+        assertEquals(categories.toString(), "About", categories.get(categories.size() - 1));
+        assertEquals("hushgram_settings_search", page.getPreferenceScreen().getPreference(0).getKey());
+        assertEquals("hushgram_view_toggle", page.getPreferenceScreen().getPreference(1).getKey());
+    }
+
     @Test public void onTheCategoriesAreListedWithPauseStillOpen() throws Exception {
         Settings.CATEGORY_PAGES.save(true);
         open();

@@ -3,29 +3,6 @@
   "prerequisite": "HushGram settings",
   "categories": [
     {
-      "id": "settings-entry",
-      "title": "Settings entry",
-      "builder": "EntryCategory",
-      "page": true,
-      "when": {
-        "op": "unconditional"
-      },
-      "anchors": [
-        {
-          "title": "Settings shortcut on the app icon",
-          "when": {
-            "op": "unconditional"
-          }
-        },
-        {
-          "title": "Expandable categories",
-          "when": {
-            "op": "unconditional"
-          }
-        }
-      ]
-    },
-    {
       "id": "settings-privacy",
       "title": "Ads and privacy",
       "builder": "PrivacyCategory",
@@ -704,6 +681,29 @@
             "patches": [
               "Remove build expired popup"
             ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-entry",
+      "title": "Settings entry",
+      "builder": "EntryCategory",
+      "page": true,
+      "when": {
+        "op": "unconditional"
+      },
+      "anchors": [
+        {
+          "title": "Settings shortcut on the app icon",
+          "when": {
+            "op": "unconditional"
+          }
+        },
+        {
+          "title": "Expandable categories",
+          "when": {
+            "op": "unconditional"
           }
         }
       ]

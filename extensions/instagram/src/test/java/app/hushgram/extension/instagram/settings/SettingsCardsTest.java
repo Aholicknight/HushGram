@@ -241,9 +241,13 @@ public class SettingsCardsTest {
         Preference entry = categoryRow("Settings entry");
         Preference backup = categoryRow("Settings backup");
         Preference about = categoryRow("About");
-        assertSame("the list starts with Settings entry", entry, rows.get(0));
-        assertTrue(ScreenColors.opensCard(entry));
-        assertFalse(ScreenColors.closesCard(entry));
+        Preference first = categoryRow("Ads and privacy");
+        assertSame("the list starts with the everyday controls", first, rows.get(0));
+        assertTrue(ScreenColors.opensCard(first));
+        assertFalse(ScreenColors.closesCard(first));
+        assertTrue("Settings entry comes after the everyday controls, before backup: " + rows,
+                rows.indexOf(entry) > rows.indexOf(categoryRow("Feed")) && rows.indexOf(entry) < rows.indexOf(backup));
+        assertFalse("Settings entry sits inside the card", ScreenColors.opensCard(entry) || ScreenColors.closesCard(entry));
         for (Preference row : rows.subList(1, rows.indexOf(backup))) {
             assertFalse(row.getTitle() + " sits inside the card", ScreenColors.opensCard(row) || ScreenColors.closesCard(row));
         }

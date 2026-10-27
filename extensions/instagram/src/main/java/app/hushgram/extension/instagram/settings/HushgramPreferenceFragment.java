@@ -522,7 +522,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         // The export row below reads this; registering twice keeps one.
         PatchFamily.registerDiagnostics();
         Set<PatchFamily> build = PatchFamily.inThisBuild();
-        EntryCategory.add(this, screen, context, build);
+        // Everyday controls first; settings access and upkeep follow them.
         PrivacyCategory.add(this, screen, context, build);
         FeedCategory.add(this, screen, context, build);
         MetaAiCategory.add(this, screen, context, build);
@@ -541,6 +541,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         DownloadsCategory.add(this, screen, context, build);
         BatteryCategory.add(this, screen, context, build);
         UpdatesCategory.add(this, screen, context, build);
+        EntryCategory.add(this, screen, context, build);
         PatchTimeCategory.add(this, screen, context, build);
         BackupCategory.add(this, screen, context, build);
         PauseCategory.add(this, screen, context, build);
