@@ -30,6 +30,7 @@ import android.preference.PreferenceCategory;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
+import android.provider.DocumentsContract;
 import android.preference.TwoStatePreference;
 import android.text.Layout;
 import android.text.Editable;
@@ -144,6 +145,7 @@ import app.hushgram.extension.instagram.download.ReelSoundButton;
 import app.hushgram.extension.instagram.download.SaveControl;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.download.SaveFolder;
+import app.hushgram.extension.instagram.download.SaveTree;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -222,6 +224,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private static final int PICK_FONT = 0x484d;
     private static final int PICK_STORY_FONT = 0x484e;
     private static final int PICK_STORY_EMOJI = 0x484f;
+    private static final int PICK_SAVE_FOLDER = 0x4850;
     /** Framework fragment callbacks run on the main thread. Never reuse a code across pages. */
     private static int documentSequence = PICK_FONT;
     private int documentRequest;
@@ -294,6 +297,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** The Downloads section, where the running saves are listed, or null when no download patch is in. */
     @Nullable
     PreferenceCategory downloads;
+    /** Choose a folder (#333) and Use Movies and Pictures, under Save folder. */
+    @Nullable Row saveTree;
+    @Nullable Row galleryFolders;
     @Nullable PreferenceCategory recovery;
     @Nullable private Row interruptedSaves;
     @Nullable private Row lastCarouselSave;
@@ -1606,6 +1612,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     void showConfiguration() {
         refreshFontRows();
         boolean busy = changingConfiguration || documentRequest != 0 || ExportStatus.CONFIGURATION.active() || Fonts.importActive();
+        showSaveTree(busy);
         if (exportConfiguration != null) {
             exportConfiguration.setEnabled(!busy);
             ExportStatus.State state = ExportStatus.CONFIGURATION.state();
@@ -1701,6 +1708,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (result == Activity.RESULT_OK) keepPickedFont(request, data == null ? null : data.getData(), revision);
             return;
         }
+        if (request == PICK_SAVE_FOLDER) {
+            documentRequest = 0;
+            documentCode = 0;
+            if (result == Activity.RESULT_OK) keepSaveFolder(data == null ? null : data.getData());
+            showConfiguration();
+            return;
+        }
         if (request != EXPORT_CONFIGURATION && request != IMPORT_CONFIGURATION) return;
         documentRequest = 0;
         documentCode = 0;
@@ -1755,6 +1769,98 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             showConfiguration();
             Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
         }
+    }
+
+    /** Choose a folder (#333): Android's folder picker, starting in the folder picked before. */
+    Row saveTreeRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(Settings.SAVE_TREE.key);
+        row.setPersistent(false);
+        row.actsAtOnce = true;
+        row.setTitle(L10n.t("Choose a folder"));
+        row.setOnPreferenceClickListener(p -> {
+            pickSaveFolder();
+            return true;
+        });
+        saveTree = row;
+        return row;
+    }
+
+    /** Use Movies and Pictures: forgets the picked folder, there only while one is picked. */
+    Row galleryFoldersRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(GALLERY_FOLDERS);
+        row.setPersistent(false);
+        row.actsAtOnce = true;
+        row.setTitle(L10n.t("Use Movies and Pictures"));
+        row.setSummary(L10n.t("Stop using the folder you picked. Saves go back to Movies and Pictures."));
+        row.setOnPreferenceClickListener(p -> {
+            if (!allowMutation() || !SaveTree.picked()) return true;
+            SaveTree.forget(p.getContext());
+            showConfiguration();
+            Utils.showToastShort(L10n.t("Saves go to Movies and Pictures again."));
+            return true;
+        });
+        galleryFolders = row;
+        return row;
+    }
+
+    static final String GALLERY_FOLDERS = "hushgram_gallery_folders";
+
+    private void pickSaveFolder() {
+        if (documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active() || Fonts.importActive()) return;
+        if (!allowMutation()) return;
+        if (documentSequence == Integer.MAX_VALUE) {
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+            return;
+        }
+        documentRequest = PICK_SAVE_FOLDER;
+        documentCode = ++documentSequence;
+        showConfiguration();
+        Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+        Uri current = SaveTree.saved();
+        if (current != null) picker.putExtra(DocumentsContract.EXTRA_INITIAL_URI, SaveTree.root(current));
+        try {
+            startActivityForResult(picker, documentCode);
+        } catch (ActivityNotFoundException | SecurityException failure) {
+            documentRequest = 0;
+            documentCode = 0;
+            showConfiguration();
+            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+        }
+    }
+
+    /** The picker's answer [tree]: kept, and said where saves go now, or said it couldn't be. */
+    private void keepSaveFolder(@Nullable Uri tree) {
+        Context context = getContext();
+        if (context == null || !allowMutation()) return;
+        if (!SaveTree.keep(context, tree)) {
+            Utils.showToastLong(L10n.t("Couldn't use that folder. Saves still go where they did."));
+            return;
+        }
+        Utils.showToastShort(L10n.f("Folder set to %1$s.", L10n.isolate(SaveTree.label(context, tree))));
+    }
+
+    /** What the two folder rows say and allow now, for the picked folder or none. */
+    private void showSaveTree(boolean busy) {
+        Row row = saveTree;
+        if (row != null) {
+            Context context = row.getContext();
+            Uri picked = SaveTree.saved();
+            row.setEnabled(!busy);
+            if (!SaveTree.picked()) {
+                row.setSummary(L10n.t("Saves go to Movies and Pictures. Pick any folder instead, a hidden one too, "
+                        + "and every photo and video goes there."));
+            } else if (SaveTree.reachable(context)) {
+                row.setSummary(L10n.f("Photos and videos go to %1$s. Tap to pick another folder.",
+                        L10n.isolate(SaveTree.label(context, picked))));
+            } else {
+                row.setSummary(SaveTree.lostMessage(context, picked));
+            }
+        }
+        if (galleryFolders != null) galleryFolders.setEnabled(!busy && SaveTree.picked());
     }
 
     private static boolean isFontRequest(int request) {

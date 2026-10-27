@@ -2301,6 +2301,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_save_folder_per_account", FALSE);
 
     /**
+     * The folder picked with Android's folder picker that every save goes to in place of Movies
+     * and Pictures, as the picker's tree address, or empty for none (#333).
+     * {@link app.hushgram.extension.instagram.download.SaveTree} keeps
+     * the grant that goes with it, which is this phone's alone, so a settings export leaves it out.
+     */
+    public static final StringSetting SAVE_TREE = new StringSetting("hushgram_save_tree", "");
+
+    /**
      * Every save, photo or video, is named for the account that posted it and when it was posted,
      * with a carousel page's number on the end, when the save knows both (#20). It takes the place
      * of the {@code IG_IMG_} name and of {@link #FILENAME_TEMPLATE}. Starts off, so saves keep the

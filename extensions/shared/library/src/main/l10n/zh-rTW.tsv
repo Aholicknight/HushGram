@@ -1261,3 +1261,12 @@ Group Instagram's notifications, and take suggestions off the Notifications page
 Take suggestions and Featured off the Notifications page.	移除通知頁面上的建議和精選內容。
 Version warnings	版本警告
 Pause HushGram, lock these settings, or make a report when something breaks.	暫停 HushGram、鎖定這些設定，或在出問題時製作報告。
+Choose a folder	選擇資料夾
+Saves go to Movies and Pictures. Pick any folder instead, a hidden one too, and every photo and video goes there.	儲存的內容會放在 Movies 和 Pictures。你可以改選任何資料夾，包括隱藏資料夾，所有相片和影片都會存到那裡。
+Photos and videos go to %1$s. Tap to pick another folder.	相片和影片會存到 %1$s。輕觸即可選擇其他資料夾。
+HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.	HushGram 已無法存取 %1$s，因此儲存的內容會放在 Movies 和 Pictures。請重新選擇資料夾。
+Use Movies and Pictures	使用 Movies 和 Pictures
+Stop using the folder you picked. Saves go back to Movies and Pictures.	停止使用你選擇的資料夾。儲存的內容會改回放在 Movies 和 Pictures。
+Couldn't use that folder. Saves still go where they did.	無法使用該資料夾。儲存的內容仍會存到原本的位置。
+Saves go to Movies and Pictures again.	儲存的內容已改回放在 Movies 和 Pictures。
+%1$s didn't take this save, so it went to Movies and Pictures.	%1$s 無法存放這次儲存的內容，因此改放在 Movies 和 Pictures。
