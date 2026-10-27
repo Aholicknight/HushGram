@@ -780,6 +780,14 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_story_bar_thickness", StoryBarThickness.TWICE, parent(THICKER_STORY_BAR));
 
     /**
+     * A seek bar over the bottom of a video story, which moves the video when dragged
+     * ({@link app.hushgram.extension.instagram.stories.StorySeekBar}, #355). Nothing Instagram stores
+     * is written, so off or paused, the bar hides at once. Off to start.
+     */
+    public static final BooleanSetting STORY_SEEK_BAR =
+            new BooleanSetting("hushgram_story_seek_bar", FALSE);
+
+    /**
      * Home opening on the Following feed, with Instagram's For you and Following picker at its top,
      * while you haven't picked a feed there. Instagram remembers a pick from then on. Off to start.
      */

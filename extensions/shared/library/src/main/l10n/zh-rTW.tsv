@@ -1024,6 +1024,8 @@ Rounded corners on posts	貼文圓角
 Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	將首頁與追蹤中貼文的照片、影片與輪播頁面改為圓角。變更後捲動到的貼文才會顯示。限時動態、個人檔案與探索不變。
 Corner size	圓角大小
 Rounded corners on Reels	Reels 圓角
+Seek bar on stories	限時動態拖曳列
+Shows a bar near the bottom of a video story. Drag it to jump to any point in the video. Photos don't get one.	在影片限時動態底部附近顯示一條拖曳列。拖曳它即可跳到影片中的任何位置。相片不會顯示。
 Thicker story progress bar	較粗的限時動態進度列
 Draws the bar along the top of a story as thick as the choice below. Its segments and timing stay as they were.	依下方選擇的粗細繪製限時動態頂端的進度列。各段與時間長度不變。
 Thickness	粗細

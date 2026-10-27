@@ -2062,6 +2062,12 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySound;->pausing(Ljava/l
 once-call Lapp/hushgram/extension/instagram/stories/StorySound;->paused(Ljava/lang/Object;I)I in instance ()V holding ReelViewerFragment.onPause
 start-call Lapp/hushgram/extension/instagram/stories/StorySound;->resuming(Ljava/lang/Object;)I in instance ()V holding ReelViewerFragment.onResume
 once-call Lapp/hushgram/extension/instagram/stories/StorySound;->resuming(Ljava/lang/Object;)I in instance ()V holding ReelViewerFragment.onResume
+# Seek bar on stories tells StorySeekBar the story viewer came and went, once in each, right after
+# ReelViewerFragment's onResume and onPause hand on to their superclass's (#355). Left out, no bar
+# shows and none goes away; twice or elsewhere, it isn't the call the patch wrote.
+# StorySeekBarHookTest checks on the 452 fixtures that each call sits right after the super call.
+once-call Lapp/hushgram/extension/instagram/stories/StorySeekBar;->resumed(Ljava/lang/Object;)V in instance ()V holding ReelViewerFragment.onResume
+once-call Lapp/hushgram/extension/instagram/stories/StorySeekBar;->paused(Ljava/lang/Object;)V in instance ()V holding ReelViewerFragment.onPause
 # Start reels with sound asks ReelSound.wanted() once, right after the Reels viewer's onCreate
 # (the one holding ClipsViewerFragment.onCreate) calls its super, and on a yes hands the viewer's
 # source to ReelSound.startWithSound() and tells ReelSound.opened() whether the sound was on, in

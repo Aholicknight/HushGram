@@ -183,6 +183,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Seek bar on stories patch. */
+    public static boolean storySeekBar() {
+        return false;
+    }
+
     public static boolean repostButton() {
         return false;
     }

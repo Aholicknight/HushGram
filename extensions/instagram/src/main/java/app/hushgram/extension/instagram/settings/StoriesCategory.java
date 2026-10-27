@@ -81,6 +81,11 @@ final class StoriesCategory {
                             + "and timing stay as they were.")), StoryProgressBar::switchChanged));
             stories.add(storyBarRow(context));
         }
+        if (build.contains(PatchFamily.STORY_SEEK_BAR)) {
+            stories.add(toggle(context, Settings.STORY_SEEK_BAR, L10n.t("Seek bar on stories"),
+                    L10n.t("Shows a bar near the bottom of a video story. Drag it to jump to any point in the "
+                            + "video. Photos don't get one.")));
+        }
         if (build.contains(PatchFamily.STORY_AUTO_ADVANCE)) {
             stories.add(toggle(context, Settings.BLOCK_STORY_AUTO_ADVANCE, L10n.t("Stop Story auto-advance"),
                     L10n.t("A finished story stays on screen until you tap or swipe. Turn this off for Instagram's timing.")));
