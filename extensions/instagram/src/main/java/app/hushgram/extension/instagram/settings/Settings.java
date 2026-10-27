@@ -1162,7 +1162,8 @@ public class Settings extends BaseSettings {
 
     /**
      * The icon on the home screen and in the app drawer: Instagram's own, HushGram's, or Instagram's
-     * glyph on black or on plum ({@link app.hushgram.extension.instagram.misc.AppIcon}, #284). It
+     * glyph on black, on plum or in black on white ({@link app.hushgram.extension.instagram.misc.AppIcon},
+     * #284, #353). It
      * changes when Instagram next goes to the background. Starts on Instagram's own.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.misc.AppIconChoice> APP_ICON =
