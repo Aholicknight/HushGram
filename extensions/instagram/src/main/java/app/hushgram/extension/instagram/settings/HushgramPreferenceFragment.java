@@ -131,6 +131,7 @@ import app.hushgram.extension.instagram.reels.HiddenSounds;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.ScrollBreakTime;
 import app.hushgram.extension.instagram.reels.StartTab;
+import app.hushgram.extension.instagram.reels.TabBarLayoutChoice;
 import app.hushgram.extension.instagram.reels.TabOrder;
 import app.hushgram.extension.instagram.download.DownloadHistory;
 import app.hushgram.extension.instagram.profile.Unfollowers;
@@ -639,6 +640,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.MESSAGE_BOX && Settings.HIDDEN_MESSAGE_BOX_BUTTONS.key.equals(key);
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
+                    belongs |= family == PatchFamily.TAB_BAR_LAYOUT && Settings.TAB_BAR_LAYOUT.key.equals(key);
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.CAPTION_WORD_REELS && (Settings.REELS_BLOCKED_WORDS.key.equals(key)
                             || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key));
@@ -4296,6 +4298,52 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 L10n.isolate(startTabLabel(tab)));
     }
 
+    /** Which tab bar Instagram draws. Its summary says what the choice does. */
+    static TabBarLayoutRow tabBarLayoutRow(Context context) {
+        TabBarLayoutRow row = new TabBarLayoutRow(context);
+        row.setKey(Settings.TAB_BAR_LAYOUT.key);
+        row.setTitle(L10n.t("Tab bar layout"));
+        row.setDialogTitle(L10n.t("Tab bar layout"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        TabBarLayoutChoice[] choices = TabBarLayoutChoice.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = tabBarLayoutLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.TAB_BAR_LAYOUT.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [choice]. */
+    static String tabBarLayoutLabel(TabBarLayoutChoice choice) {
+        switch (choice) {
+            case SWIPE:
+                return L10n.t("Swipe between tabs");
+            case CLASSIC:
+                return L10n.t("Classic");
+            default:
+                return L10n.t("Instagram's choice");
+        }
+    }
+
+    /** What the bar looks like with [choice], for the row's summary. */
+    static String tabBarLayoutSummary(TabBarLayoutChoice choice) {
+        switch (choice) {
+            case SWIPE:
+                return L10n.t("Keeps the newer bar, with Messages on it, and you can swipe sideways between every tab, even "
+                        + "if Instagram moves your account back to the older one. Restart Instagram to see the change.");
+            case CLASSIC:
+                return L10n.t("Keeps the older bar, with Create on it and Messages at the top of Home. Swiping only moves "
+                        + "between Home and the screens beside it. Restart Instagram to see the change.");
+            default:
+                return L10n.t("Instagram picks the tab bar for your account, and it can switch between the two on its own.");
+        }
+    }
+
     /** What the list calls [hue]. */
     static String accentHueLabel(AccentHue hue) {
         switch (hue) {
@@ -4649,6 +4697,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((HiddenBarsRow) preference).showSummary();
         } else if (preference instanceof StartTabRow) {
             ((StartTabRow) preference).showSummary();
+        } else if (preference instanceof TabBarLayoutRow) {
+            ((TabBarLayoutRow) preference).showSummary();
         } else if (preference instanceof FontRow) {
             ((FontRow) preference).showSummary();
         } else if (preference instanceof LockDelayRow) {
@@ -4690,6 +4740,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((HiddenBarsRow) listPreference).showSummary();
         } else if (listPreference instanceof StartTabRow) {
             ((StartTabRow) listPreference).showSummary();
+        } else if (listPreference instanceof TabBarLayoutRow) {
+            ((TabBarLayoutRow) listPreference).showSummary();
         } else if (listPreference instanceof FontRow) {
             ((FontRow) listPreference).showSummary();
         } else if (listPreference instanceof LockDelayRow) {
@@ -6462,6 +6514,42 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(getValue())) choice = candidate;
             }
             setSummary(fontSummary(choice));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class TabBarLayoutRow extends ListPreference {
+        TabBarLayoutRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        /** The summary is the sentence for the bar chosen, not the entry. */
+        void showSummary() {
+            TabBarLayoutChoice choice = TabBarLayoutChoice.INSTAGRAM;
+            for (TabBarLayoutChoice candidate : TabBarLayoutChoice.values()) {
+                if (candidate.name().equals(getValue())) choice = candidate;
+            }
+            setSummary(tabBarLayoutSummary(choice));
         }
 
         @Override

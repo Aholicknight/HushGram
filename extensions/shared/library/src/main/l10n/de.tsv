@@ -1241,3 +1241,10 @@ Date in backup file names	Datum in Sicherungsdateinamen
 Add the current date and time when exporting settings. Off keeps HushGram-settings.json.	Fügt beim Export der Einstellungen das aktuelle Datum und die Uhrzeit hinzu. Aus behält HushGram-settings.json bei.
 %1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s ist der Kurzcode des Beitrags. Bei Storys und unbekannten Beiträgen entfällt er. Mit diesem Platzhalter gilt die Vorlage auch für Fotos.
 Videos and photos use %1$s. Unknown codes are left out.	Videos und Fotos verwenden %1$s. Unbekannte Codes werden weggelassen.
+Tab bar layout	Layout der Tab-Leiste
+Swipe between tabs	Zwischen Tabs wischen
+Classic	Klassisch
+Instagram's choice	Auswahl von Instagram
+Keeps the newer bar, with Messages on it, and you can swipe sideways between every tab, even if Instagram moves your account back to the older one. Restart Instagram to see the change.	Behält die neuere Leiste mit Nachrichten darauf, und du kannst seitlich zwischen allen Tabs wischen, auch wenn Instagram dein Konto zurück auf die ältere setzt. Starte Instagram neu, um die Änderung zu sehen.
+Keeps the older bar, with Create on it and Messages at the top of Home. Swiping only moves between Home and the screens beside it. Restart Instagram to see the change.	Behält die ältere Leiste mit Erstellen darauf und Nachrichten oben auf der Startseite. Wischen wechselt nur zwischen der Startseite und den Bildschirmen daneben. Starte Instagram neu, um die Änderung zu sehen.
+Instagram picks the tab bar for your account, and it can switch between the two on its own.	Instagram wählt die Tab-Leiste für dein Konto und kann von selbst zwischen den beiden wechseln.

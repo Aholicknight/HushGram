@@ -1240,3 +1240,10 @@ Date in backup file names	백업 파일 이름에 날짜 넣기
 Add the current date and time when exporting settings. Off keeps HushGram-settings.json.	설정을 내보낼 때 현재 날짜와 시간을 덧붙입니다. 끄면 HushGram-settings.json을 유지합니다.
 %1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s는 게시물의 단축 코드입니다. 스토리나 알 수 없는 게시물에서는 생략됩니다. 이 토큰을 넣으면 사진 이름에도 템플릿이 적용됩니다.
 Videos and photos use %1$s. Unknown codes are left out.	동영상과 사진에 %1$s를 사용합니다. 알 수 없는 코드는 생략됩니다.
+Tab bar layout	탭 바 레이아웃
+Swipe between tabs	탭 사이 스와이프
+Classic	클래식
+Instagram's choice	Instagram의 선택
+Keeps the newer bar, with Messages on it, and you can swipe sideways between every tab, even if Instagram moves your account back to the older one. Restart Instagram to see the change.	메시지가 있는 새 바를 유지하며, Instagram이 계정을 이전 바로 되돌려도 모든 탭 사이를 옆으로 스와이프할 수 있습니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Keeps the older bar, with Create on it and Messages at the top of Home. Swiping only moves between Home and the screens beside it. Restart Instagram to see the change.	만들기가 있고 메시지가 홈 상단에 있는 이전 바를 유지합니다. 스와이프는 홈과 그 옆 화면 사이에서만 이동합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Instagram picks the tab bar for your account, and it can switch between the two on its own.	Instagram이 계정의 탭 바를 고르며, 두 가지 사이를 스스로 바꿀 수 있습니다.

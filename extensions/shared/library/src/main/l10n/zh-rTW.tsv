@@ -1244,3 +1244,10 @@ Date in backup file names	在備份檔名加入日期
 Add the current date and time when exporting settings. Off keeps HushGram-settings.json.	匯出設定時加入目前的日期與時間。關閉時保留 HushGram-settings.json。
 %1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s 是貼文網址中的短代碼。限時動態和未知貼文會省略。加入此代碼後，範本也會用於相片檔名。
 Videos and photos use %1$s. Unknown codes are left out.	影片和相片使用 %1$s。未知的代碼會省略。
+Tab bar layout	分頁列版面
+Swipe between tabs	在分頁間滑動
+Classic	經典
+Instagram's choice	Instagram 的選擇
+Keeps the newer bar, with Messages on it, and you can swipe sideways between every tab, even if Instagram moves your account back to the older one. Restart Instagram to see the change.	保留含有私訊的新版分頁列，即使 Instagram 把你的帳號改回舊版，也能在所有分頁之間左右滑動。重新啟動 Instagram 即可看到變更。
+Keeps the older bar, with Create on it and Messages at the top of Home. Swiping only moves between Home and the screens beside it. Restart Instagram to see the change.	保留含有建立按鈕、私訊位於首頁頂端的舊版分頁列。滑動只會在首頁和旁邊的畫面之間切換。重新啟動 Instagram 即可看到變更。
+Instagram picks the tab bar for your account, and it can switch between the two on its own.	Instagram 會為你的帳號挑選分頁列，也可能自行在兩者之間切換。

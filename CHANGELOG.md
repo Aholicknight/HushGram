@@ -6,6 +6,10 @@ Every HushGram release, newest first.
 
 ### HushGram v0.0.17
 
+#### Features
+
+* **Instagram - Tab bar layout:** new patch. `Tab bar layout` under Tab bar keeps the newer bar, where you swipe between every tab, or the classic one, even when Instagram switches your account. Starts on Instagram's choice. Asked for in #356.
+
 #### Bug Fixes
 
 * **Instagram:** Morphe Manager now knows the armeabi-v7a, x86 and x86_64 builds of Instagram 452.1.0.53.64, so an older 32-bit phone is pointed at the build it can install instead of the arm64 one. Reported in #346.

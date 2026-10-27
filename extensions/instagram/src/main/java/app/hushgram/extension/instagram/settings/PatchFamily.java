@@ -101,6 +101,7 @@ public enum PatchFamily {
             Settings.ONLY_FOLLOWING, Settings.LOGO_ON_FOLLOWING),
     SWIPE_TO_CREATE(FamilyNames.SWIPE_TO_CREATE, "swipeToCreate", null, Settings.STOP_SWIPE_TO_CREATE),
     TAB_SWIPE(FamilyNames.TAB_SWIPE, "tabSwipe", null, Settings.STOP_TAB_SWIPING),
+    TAB_BAR_LAYOUT(FamilyNames.TAB_BAR_LAYOUT, "tabBarLayout", null),
     FULL_RESOLUTION(FamilyNames.FULL_RESOLUTION, "fullResolution", null, Settings.FULL_RESOLUTION_PHOTOS,
             Settings.ASK_FOR_LARGER_PHOTOS, Settings.FULL_SIZE_COVERS),
     META_AI(FamilyNames.META_AI, "metaAi", null, Settings.HIDE_META_AI_SEARCH, Settings.HIDE_META_AI_POSTS,
@@ -514,6 +515,8 @@ public enum PatchFamily {
                 return Collections.singletonList(Settings.HIDDEN_SETTINGS_ROWS);
             case REEL_TAP_AND_VOLUME:
                 return Collections.singletonList(Settings.REEL_TAP_CHOICE);
+            case TAB_BAR_LAYOUT:
+                return Collections.singletonList(Settings.TAB_BAR_LAYOUT);
             default:
                 return Collections.emptyList();
         }

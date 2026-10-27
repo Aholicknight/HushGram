@@ -498,6 +498,17 @@ tasks.register("verifyAndroidBoundaries") {
                 "onItSkipsTheUnmuteOnlyForVolumeUp[28]", "onItSkipsTheUnmuteOnlyForVolumeUp[37]",
                 "pausedHushGramLeavesTheUnmuteAlone[28]", "pausedHushGramLeavesTheUnmuteAlone[37]",
                 "beforeTheSettingsAreReadyTheUnmuteHappens[28]", "beforeTheSettingsAreReadyTheUnmuteHappens[37]"),
+            "app.hushgram.extension.instagram.reels.TabBarLayoutTest" to listOf(
+                "theChoiceStartsAtInstagramsBar[28]", "theChoiceStartsAtInstagramsBar[37]",
+                "swipeKeepsTheNewerBarAndCountsTheTurnedAnswers[28]", "swipeKeepsTheNewerBarAndCountsTheTurnedAnswers[37]",
+                "classicKeepsTheOlderBarAndCountsTheTurnedAnswers[28]", "classicKeepsTheOlderBarAndCountsTheTurnedAnswers[37]",
+                "pausedHushGramIsInstagramsOwnBar[28]", "pausedHushGramIsInstagramsOwnBar[37]",
+                "beforeTheSettingsAreReadyItIsInstagramsOwnBar[28]", "beforeTheSettingsAreReadyItIsInstagramsOwnBar[37]"),
+            "app.hushgram.extension.instagram.settings.TabBarLayoutSettingsTest" to listOf(
+                "missingPatchHasNoLayoutChoice[28]", "missingPatchHasNoLayoutChoice[37]",
+                "theChoiceAloneStillGetsTabBar[28]", "theChoiceAloneStillGetsTabBar[37]",
+                "choiceStartsAtInstagramsFirstUnderTabBar[28]", "choiceStartsAtInstagramsFirstUnderTabBar[37]",
+                "choosingSwipeChangesTheSummary[28]", "choosingSwipeChangesTheSummary[37]"),
             "app.hushgram.extension.instagram.settings.ReelTapAndVolumeSettingsTest" to listOf(
                 "missingPatchHasNoTapChoice[28]", "missingPatchHasNoTapChoice[37]",
                 "theChoiceAloneStillGetsPlayback[28]", "theChoiceAloneStillGetsPlayback[37]",

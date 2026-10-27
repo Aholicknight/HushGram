@@ -15,6 +15,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassReelsHideRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.hapticStyleRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.startTabRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.tabBarLayoutRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
 import android.content.Context;
@@ -30,9 +31,12 @@ final class TabBarCategory {
     private TabBarCategory() { }
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
-        if (build.contains(PatchFamily.GLASS_TAB_BAR) || build.contains(PatchFamily.REELS_TAB)) {
+        if (build.contains(PatchFamily.GLASS_TAB_BAR) || build.contains(PatchFamily.REELS_TAB)
+                || build.contains(PatchFamily.TAB_BAR_LAYOUT)) {
             PreferenceCategory glass = category(screen, L10n.t("Tab bar"), SettingsIcons.TAB_BAR,
                     L10n.t("Pick your tabs, their order and how the bar looks."));
+            // First, since it picks which bar the rows below work on (#356).
+            if (build.contains(PatchFamily.TAB_BAR_LAYOUT)) glass.addPreference(tabBarLayoutRow(context));
             if (build.contains(PatchFamily.REELS_TAB)) {
                 glass.addPreference(toggle(context, Settings.HIDE_HOME_TAB, L10n.t("Hide the Home tab"),
                         L10n.t("Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home "
