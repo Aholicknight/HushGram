@@ -352,7 +352,7 @@ Profiles	個人檔案
 Show if a profile follows you	顯示帳號是否已追蹤您
 Adds Follows you or Doesn't follow you beside the name on someone's profile, after their pronouns if they've set any. Nothing shows until Instagram has checked.	在他人個人檔案的名稱旁新增「已追蹤你」或「未追蹤你」；若有設定代名詞，會顯示在代名詞之後。Instagram 完成查詢前不會顯示。
 Mark who doesn't follow you back	標示未回追的帳號
-On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.	在您的追蹤中名單內，於未回追帳號的名稱後方新增「未追蹤你」。Instagram 完成查詢前不會顯示。
+On your own Following list, adds Doesn't follow you before the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.	在您的追蹤中名單內，於未回追帳號的名稱前方新增「未追蹤你」。Instagram 完成查詢前不會顯示。
 Put accounts that don't follow you back first	優先顯示未回追的帳號
 On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.	在您的追蹤中名單內，將未回追帳號移至頂端，各組內仍維持 Instagram 原本的順序。尚未完成查詢的帳號會留在下方。
 Follows you	已追蹤你

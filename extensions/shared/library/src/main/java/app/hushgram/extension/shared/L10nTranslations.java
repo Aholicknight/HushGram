@@ -1533,8 +1533,8 @@ public final class L10nTranslations {
                 "Auf dem Reels-Bildschirm werden Schaltfl\u00e4chen, Beschreibung und Leisten blasser, wenn du sie in Ruhe l\u00e4sst. Eine Ber\u00fchrung auf einem davon holt sie zur\u00fcck.");
         table.put("On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.",
                 "Bei diesem Instagram-Build deckt es %1$d von %2$d Wegen ab. Der Diagnosebericht nennt die \u00fcbrigen.");
-        table.put("On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
-                "Zeigt in deiner eigenen Gefolgt-Liste Folgt dir nicht hinter dem Namen jedes Kontos, das dir nicht zur\u00fcckfolgt. Es erscheint erst etwas, wenn Instagram es gepr\u00fcft hat.");
+        table.put("On your own Following list, adds Doesn't follow you before the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
+                "Zeigt in deiner eigenen Gefolgt-Liste Folgt dir nicht vor dem Namen jedes Kontos, das dir nicht zur\u00fcckfolgt. Es erscheint erst etwas, wenn Instagram es gepr\u00fcft hat.");
         table.put("On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.",
                 "Setzt in deiner eigenen Gefolgt-Liste die Konten, die dir nicht zur\u00fcckfolgen, nach oben und l\u00e4sst Instagrams Reihenfolge innerhalb jeder Gruppe unver\u00e4ndert. Konten, die Instagram noch nicht gepr\u00fcft hat, bleiben darunter.");
         table.put("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.",
@@ -4042,8 +4042,8 @@ public final class L10nTranslations {
                 "En la pantalla de Reels, los botones, la descripci\u00f3n y las barras se aten\u00faan cuando no los tocas. Tocar uno de ellos los devuelve.");
         table.put("On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.",
                 "En esta compilaci\u00f3n de Instagram cubre %1$d de %2$d v\u00edas. El informe de diagn\u00f3stico indica el resto.");
-        table.put("On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
-                "En tu propia lista de Seguidos, a\u00f1ade No te sigue despu\u00e9s del nombre de cada cuenta que no te sigue. No se muestra nada hasta que Instagram lo haya comprobado.");
+        table.put("On your own Following list, adds Doesn't follow you before the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
+                "En tu propia lista de Seguidos, a\u00f1ade No te sigue antes del nombre de cada cuenta que no te sigue. No se muestra nada hasta que Instagram lo haya comprobado.");
         table.put("On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.",
                 "En tu propia lista de Seguidos, sube las cuentas que no te siguen y mantiene el orden de Instagram dentro de cada grupo. Las cuentas que Instagram a\u00fan no ha comprobado quedan debajo.");
         table.put("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.",
@@ -6551,8 +6551,8 @@ public final class L10nTranslations {
                 "Di layar Reels, tombol, keterangan, dan bilah memudar saat dibiarkan. Menyentuh salah satunya mengembalikannya.");
         table.put("On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.",
                 "Pada build Instagram ini, fitur ini mencakup %1$d dari %2$d jalur. Laporan diagnostik mencantumkan sisanya.");
-        table.put("On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
-                "Di daftar Mengikuti milikmu sendiri, menambahkan Tidak mengikuti kamu setelah nama setiap akun yang tidak mengikuti balik kamu. Tidak ada yang muncul sampai Instagram memeriksanya.");
+        table.put("On your own Following list, adds Doesn't follow you before the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
+                "Di daftar Mengikuti milikmu sendiri, menambahkan Tidak mengikuti kamu sebelum nama setiap akun yang tidak mengikuti balik kamu. Tidak ada yang muncul sampai Instagram memeriksanya.");
         table.put("On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.",
                 "Di daftar Mengikuti milikmu sendiri, memindahkan akun yang tidak mengikuti balik kamu ke atas dan mempertahankan urutan Instagram di setiap kelompok. Akun yang belum diperiksa Instagram tetap di bawah.");
         table.put("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.",
@@ -9060,8 +9060,8 @@ public final class L10nTranslations {
                 "Nella schermata dei reel, i pulsanti, la didascalia e le barre sfumano quando non li tocchi. Toccarne uno li riporta.");
         table.put("On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.",
                 "Su questa build di Instagram copre %1$d percorsi su %2$d. Il report diagnostico elenca il resto.");
-        table.put("On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
-                "Nella tua lista Seguiti, aggiunge Non ti segue dopo il nome di ogni account che non ti segue a sua volta. Non compare nulla finch\u00e9 Instagram non ha controllato.");
+        table.put("On your own Following list, adds Doesn't follow you before the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
+                "Nella tua lista Seguiti, aggiunge Non ti segue prima del nome di ogni account che non ti segue a sua volta. Non compare nulla finch\u00e9 Instagram non ha controllato.");
         table.put("On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.",
                 "Nella tua lista Seguiti, sposta in alto gli account che non ti seguono a loro volta e mantiene l'ordine di Instagram all'interno di ogni gruppo. Gli account che Instagram non ha ancora controllato restano sotto.");
         table.put("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.",
@@ -11569,8 +11569,8 @@ public final class L10nTranslations {
                 "\ub9b4\uc2a4 \ud654\uba74\uc5d0\uc11c \ubc84\ud2bc, \uc124\uba85, \ubc14\ub97c \uadf8\ub300\ub85c \ub450\uba74 \ud750\ub824\uc9d1\ub2c8\ub2e4. \uadf8\uc911 \ud558\ub098\ub97c \ud130\uce58\ud558\uba74 \ub2e4\uc2dc \ubcf4\uc785\ub2c8\ub2e4.");
         table.put("On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.",
                 "\uc774 Instagram \ube4c\ub4dc\uc5d0\uc11c\ub294 \uacbd\ub85c %2$d\uac1c \uc911 %1$d\uac1c\ub97c \ub2e4\ub8f9\ub2c8\ub2e4. \ub098\uba38\uc9c0\ub294 \uc9c4\ub2e8 \ubcf4\uace0\uc11c\uc5d0 \ub098\uc640 \uc788\uc2b5\ub2c8\ub2e4.");
-        table.put("On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
-                "\ub0b4 \ud314\ub85c\uc789 \ubaa9\ub85d\uc5d0\uc11c \ub098\ub97c \ub9de\ud314\ub85c\uc6b0\ud558\uc9c0 \uc54a\ub294 \uacc4\uc815\uc758 \uc774\ub984 \ub4a4\uc5d0 '\ub098\ub97c \ud314\ub85c\uc6b0\ud558\uc9c0 \uc54a\uc74c\u2019\uc774\ub77c\uace0 \ud45c\uc2dc\ud569\ub2c8\ub2e4. Instagram\uc5d0\uc11c \ud655\uc778\uc744 \uc644\ub8cc\ud558\uae30 \uc804\uae4c\uc9c0\ub294 \uc544\ubb34\uac83\ub3c4 \ud45c\uc2dc\ub418\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4");
+        table.put("On your own Following list, adds Doesn't follow you before the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
+                "\ub0b4 \ud314\ub85c\uc789 \ubaa9\ub85d\uc5d0\uc11c \ub098\ub97c \ub9de\ud314\ub85c\uc6b0\ud558\uc9c0 \uc54a\ub294 \uacc4\uc815\uc758 \uc774\ub984 \uc55e\uc5d0 '\ub098\ub97c \ud314\ub85c\uc6b0\ud558\uc9c0 \uc54a\uc74c\u2019\uc774\ub77c\uace0 \ud45c\uc2dc\ud569\ub2c8\ub2e4. Instagram\uc5d0\uc11c \ud655\uc778\uc744 \uc644\ub8cc\ud558\uae30 \uc804\uae4c\uc9c0\ub294 \uc544\ubb34\uac83\ub3c4 \ud45c\uc2dc\ub418\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4");
         table.put("On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.",
                 "\ub0b4 \ud314\ub85c\uc789 \ubaa9\ub85d\uc5d0\uc11c \ub098\ub97c \ub9de\ud314\ub85c\uc6b0\ud558\uc9c0 \uc54a\ub294 \uacc4\uc815\uc744 \ub9e8 \uc704\ub85c \uc62c\ub9ac\uace0, \uac01 \uadf8\ub8f9 \uc548\uc5d0\uc11c\ub294 Instagram\uc758 \uc21c\uc11c\ub97c \uc720\uc9c0\ud569\ub2c8\ub2e4. Instagram\uc5d0\uc11c \uc544\uc9c1 \ud655\uc778\ud558\uc9c0 \uc54a\uc740 \uacc4\uc815\uc740 \uc544\ub798\uc5d0 \ub0a8\uc2b5\ub2c8\ub2e4.");
         table.put("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.",
@@ -14078,8 +14078,8 @@ public final class L10nTranslations {
                 "Na tela de Reels, os bot\u00f5es, a legenda e as barras ficam mais fracos quando voc\u00ea n\u00e3o mexe neles. Tocar em um deles os traz de volta.");
         table.put("On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.",
                 "Nesta vers\u00e3o do Instagram, cobre %1$d de %2$d caminhos. O relat\u00f3rio de diagn\u00f3stico lista o restante.");
-        table.put("On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
-                "Na sua pr\u00f3pria lista Seguindo, adiciona N\u00e3o segue voc\u00ea depois do nome de cada conta que n\u00e3o segue voc\u00ea de volta. Nada aparece at\u00e9 o Instagram verificar.");
+        table.put("On your own Following list, adds Doesn't follow you before the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
+                "Na sua pr\u00f3pria lista Seguindo, adiciona N\u00e3o segue voc\u00ea antes do nome de cada conta que n\u00e3o segue voc\u00ea de volta. Nada aparece at\u00e9 o Instagram verificar.");
         table.put("On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.",
                 "Na sua pr\u00f3pria lista Seguindo, move para o topo as contas que n\u00e3o seguem voc\u00ea de volta e mant\u00e9m a ordem do Instagram dentro de cada grupo. As contas que o Instagram ainda n\u00e3o verificou ficam abaixo.");
         table.put("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.",
@@ -16587,8 +16587,8 @@ public final class L10nTranslations {
                 "Reels ekran\u0131nda d\u00fc\u011fmeler, a\u00e7\u0131klama ve \u00e7ubuklar onlara dokunmad\u0131\u011f\u0131n\u0131zda solukla\u015f\u0131r. Birine dokunmak onlar\u0131 geri getirir.");
         table.put("On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.",
                 "Bu Instagram s\u00fcr\u00fcm\u00fcnde %2$d yolun %1$d tanesini kaps\u0131yor. Kalanlar tan\u0131lama raporunda listelenir.");
-        table.put("On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
-                "Kendi Takip edilenler listende, seni geri takip etmeyen her hesab\u0131n ad\u0131ndan sonra Seni takip etmiyor ekler. Instagram kontrol edene kadar hi\u00e7bir \u015fey g\u00f6r\u00fcnmez.");
+        table.put("On your own Following list, adds Doesn't follow you before the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
+                "Kendi Takip edilenler listende, seni geri takip etmeyen her hesab\u0131n ad\u0131ndan \u00f6nce Seni takip etmiyor ekler. Instagram kontrol edene kadar hi\u00e7bir \u015fey g\u00f6r\u00fcnmez.");
         table.put("On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.",
                 "Kendi Takip edilenler listende, seni geri takip etmeyen hesaplar\u0131 en \u00fcste ta\u015f\u0131r ve her grubun i\u00e7inde Instagram'\u0131n s\u0131ras\u0131n\u0131 korur. Instagram'\u0131n hen\u00fcz kontrol etmedi\u011fi hesaplar altta kal\u0131r.");
         table.put("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.",
@@ -19096,8 +19096,8 @@ public final class L10nTranslations {
                 "\u5728 Reels \u756b\u9762\u4e2d\uff0c\u672a\u64cd\u4f5c\u7684\u6309\u9215\u3001\u8aaa\u660e\u6587\u5b57\u8207\u5217\u6703\u6de1\u5316\u3002\u89f8\u78b0\u5176\u4e2d\u4e00\u9805\u5373\u53ef\u6062\u5fa9\u986f\u793a\u3002");
         table.put("On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.",
                 "\u5728\u6b64 Instagram \u7248\u672c\u4e0a\uff0c\u5df2\u6db5\u84cb %1$d \u689d\u8def\u5f91\uff0c\u5171 %2$d \u689d\u3002\u5176\u9918\u8def\u5f91\u5217\u65bc\u8a3a\u65b7\u5831\u544a\u3002");
-        table.put("On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
-                "\u5728\u60a8\u7684\u8ffd\u8e64\u4e2d\u540d\u55ae\u5167\uff0c\u65bc\u672a\u56de\u8ffd\u5e33\u865f\u7684\u540d\u7a31\u5f8c\u65b9\u65b0\u589e\u300c\u672a\u8ffd\u8e64\u4f60\u300d\u3002Instagram \u5b8c\u6210\u67e5\u8a62\u524d\u4e0d\u6703\u986f\u793a\u3002");
+        table.put("On your own Following list, adds Doesn't follow you before the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
+                "\u5728\u60a8\u7684\u8ffd\u8e64\u4e2d\u540d\u55ae\u5167\uff0c\u65bc\u672a\u56de\u8ffd\u5e33\u865f\u7684\u540d\u7a31\u524d\u65b9\u65b0\u589e\u300c\u672a\u8ffd\u8e64\u4f60\u300d\u3002Instagram \u5b8c\u6210\u67e5\u8a62\u524d\u4e0d\u6703\u986f\u793a\u3002");
         table.put("On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.",
                 "\u5728\u60a8\u7684\u8ffd\u8e64\u4e2d\u540d\u55ae\u5167\uff0c\u5c07\u672a\u56de\u8ffd\u5e33\u865f\u79fb\u81f3\u9802\u7aef\uff0c\u5404\u7d44\u5167\u4ecd\u7dad\u6301 Instagram \u539f\u672c\u7684\u9806\u5e8f\u3002\u5c1a\u672a\u5b8c\u6210\u67e5\u8a62\u7684\u5e33\u865f\u6703\u7559\u5728\u4e0b\u65b9\u3002");
         table.put("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.",

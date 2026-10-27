@@ -18,6 +18,7 @@ Every HushGram release, newest first.
 
 #### Bug Fixes
 
+* **Instagram - Show if a profile follows you:** On your Following list, Doesn't follow you now comes before the name. A long name used to push it off the end of the line. Reported in #351.
 * **Instagram:** `Hide the emoji row` and `Hide Follow on posts` now work the moment you switch them on. Before, nothing changed until you left Instagram and came back.
 * **Instagram:** `Hide suggested stories` adds `Keep the Stories tray in the feed` under Stories. On some accounts the row floated over Home mid-feed and stayed put while posts scrolled under it. Now it stays in the feed. Starts off. Reported in #357.
 * **Instagram:** Morphe Manager now knows the armeabi-v7a, x86 and x86_64 builds of Instagram 452.1.0.53.64, so an older 32-bit phone is pointed at the build it can install instead of the arm64 one. Reported in #346.
