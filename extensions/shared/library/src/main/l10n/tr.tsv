@@ -919,7 +919,7 @@ Space under the tab bar	Sekme çubuğunun altındaki boşluk
 A little more	Biraz daha
 More	Daha fazla
 Hide the tab bar as you scroll	Kaydırırken sekme çubuğunu gizle
-Scrolling a list down slides the pill out of the way. Scrolling up, reaching the top, or changing tab brings it back. Restart Instagram after changing it.	Bir listeyi aşağı kaydırmak çubuğu yoldan çeker. Yukarı kaydırmak, en üste ulaşmak veya sekme değiştirmek onu geri getirir. Değiştirdikten sonra Instagram'ı yeniden başlatın.
+Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.	Bir listeyi aşağı kaydırmak sekme çubuğunu yoldan çeker. Yukarı kaydırmak, en üste ulaşmak veya sekme değiştirmek onu geri getirir. Cam sekme çubuğu açık da kapalı da çalışır. Değiştirdikten sonra Instagram'ı yeniden başlatın.
 Hide the tab bar on Reels	Reels'te sekme çubuğunu gizle
 # context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
 Never	Hiçbir zaman

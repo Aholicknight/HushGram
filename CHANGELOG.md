@@ -8,6 +8,7 @@ Every HushGram release, newest first.
 
 #### Features
 
+* **Instagram - Glass tab bar:** `Hide the tab bar as you scroll` works with the glass off too. Scroll down and Instagram's own bar slides away while the page fills its space. Scroll up and it's back. Reels keep their bar. Asked for in #343.
 * **Instagram - Rounded post corners:** `Rounded corners on Reels` under Feed rounds a reel's video in the Reels tab and full screen, at the same Corner size. The seek bar, captions and buttons stay whole. Starts off. Asked for in #362.
 * **Instagram - Thicker story progress bar:** new patch. `Thicker story progress bar` under Stories draws the bar along the top of a story twice or three times as thick. Its segments and timing don't change. Starts off. Asked for in #360.
 * **Instagram - Start reels with sound:** new patch. `Start reels with sound` under Playback plays a reel you tap open from a post on Home with sound, and Home is muted again when you go back. Starts off. Asked for in #342.

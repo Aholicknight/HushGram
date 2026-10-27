@@ -918,7 +918,7 @@ Space under the tab bar	탭 바 아래 공간
 A little more	조금 더
 More	더
 Hide the tab bar as you scroll	스크롤할 때 탭 바 숨기기
-Scrolling a list down slides the pill out of the way. Scrolling up, reaching the top, or changing tab brings it back. Restart Instagram after changing it.	목록을 아래로 스크롤하면 알약 모양 바가 옆으로 비켜 줍니다. 위로 스크롤하거나 맨 위에 닿거나 탭을 바꾸면 다시 나타납니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
+Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.	목록을 아래로 스크롤하면 탭 바가 아래로 비켜 줍니다. 위로 스크롤하거나 맨 위에 닿거나 탭을 바꾸면 다시 나타납니다. 유리 탭 바를 켜든 끄든 작동합니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
 Hide the tab bar on Reels	릴스에서 탭 바 숨기기
 # context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
 Never	안 함

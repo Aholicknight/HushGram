@@ -1011,12 +1011,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_haptics", TRUE, true, parent(GLASS_TAB_BAR));
 
     /**
-     * Under {@link #GLASS_TAB_BAR}: scrolling a list down slides the pill off the bottom of the screen, and
-     * scrolling up, reaching the top, changing tab or pressing Back brings it back
-     * ({@link app.hushgram.extension.instagram.misc.GlassTabBar}). Off to start.
+     * Scrolling a list down slides the tab bar off the bottom of the screen, and scrolling up, reaching the
+     * top, changing tab or pressing Back brings it back. The glass pill
+     * ({@link app.hushgram.extension.instagram.misc.GlassTabBar}) or, with {@link #GLASS_TAB_BAR} off,
+     * Instagram's own bar, whose room the screens take while it's away (#343), so it isn't under the glass
+     * switch. Off to start.
      */
     public static final BooleanSetting GLASS_TAB_BAR_HIDE_ON_SCROLL =
-            new BooleanSetting("hushgram_glass_tab_bar_hide_on_scroll", FALSE, true, parent(GLASS_TAB_BAR));
+            new BooleanSetting("hushgram_glass_tab_bar_hide_on_scroll", FALSE, true);
 
     /**
      * A finger put on the tab bar and slid sideways carries a highlight, and lifting it opens the tab under

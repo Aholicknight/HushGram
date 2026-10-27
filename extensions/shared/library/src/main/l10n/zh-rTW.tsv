@@ -919,7 +919,7 @@ Space under the tab bar	分頁列下方間距
 A little more	稍多
 More	更多
 Hide the tab bar as you scroll	捲動時隱藏分頁列
-Scrolling a list down slides the pill out of the way. Scrolling up, reaching the top, or changing tab brings it back. Restart Instagram after changing it.	向下捲動清單時，膠囊會滑出畫面；向上捲動、回到頂端或切換分頁時會重新出現。變更後請重新啟動 Instagram。
+Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.	向下捲動清單時，分頁列會滑出畫面；向上捲動、回到頂端或切換分頁時會重新出現。無論是否啟用「玻璃分頁列」都可使用。變更後請重新啟動 Instagram。
 Hide the tab bar on Reels	在 Reels 隱藏分頁列
 # context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
 Never	永不
