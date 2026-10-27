@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.settings;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.animation.ValueAnimator;
@@ -112,6 +113,23 @@ public class ShimmerTitleTest {
         } finally {
             scale.invoke(null, 1f);
         }
+    }
+
+    @Test
+    public void aWornTitleCanBeLetGo() {
+        java.lang.ref.WeakReference<TextView> gone = wornAndDropped();
+        for (int i = 0; i < 20 && gone.get() != null; i++) {
+            System.gc();
+            System.runFinalization();
+        }
+        assertNull("the gradient kept its title alive", gone.get());
+    }
+
+    private static java.lang.ref.WeakReference<TextView> wornAndDropped() {
+        TextView title = title("HushGram");
+        ShimmerTitle.wear(title);
+        assertTrue(ShimmerTitle.wears(title));
+        return new java.lang.ref.WeakReference<>(title);
     }
 
     /** Runs the main looper [ms] on and gives how far the title's shader is moved along x, if any. */
