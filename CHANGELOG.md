@@ -77,6 +77,7 @@ Every HushGram release, newest first.
 * **Instagram:** Added Traditional Chinese (Taiwan), contributed by JhouHank in #313. Traditional Chinese script preferences and Hong Kong or Macao locales use the new table.
 * **Tooling:** GitHub release notes now read like Hushfacebook's. A short summary comes first, then plain grouped bullets with no Instagram label, the update steps and what was checked.
 * **Tooling:** The bundle now carries Gson 2.15.0. The patch catalog comes out byte for byte the same, and new tests hold its key order, nulls and unescaped text, including emoji.
+* **Instagram:** Hide the emoji row, Hide Follow on posts, Rounded corners on Reels and Thicker story progress bar now share one check before each frame. With several on, Instagram does that work once per frame instead of once for each.
 
 ## 0.0.16 (2026-10-24)
 

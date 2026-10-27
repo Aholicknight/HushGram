@@ -7,12 +7,9 @@ package app.hushgram.extension.instagram.feed;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
-import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -25,6 +22,7 @@ import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.ResourceIdCache;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.ViewWatcher;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -69,7 +67,7 @@ public final class ReelCorners {
         try {
             if (registered || !SettingsStatus.roundedPostCorners() || !(context instanceof Application)) return;
             registered = true;
-            ((Application) context).registerActivityLifecycleCallbacks(new Watcher());
+            ViewWatcher.onResumeAndPause((Application) context, ReelCorners::watch, ReelCorners::unwatch);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ROUNDED_POST_CORNERS, HOOK + " start", failure);
         }
@@ -134,7 +132,7 @@ public final class ReelCorners {
     public static boolean listeningForTests(Activity activity) {
         synchronized (sessions) {
             Session session = sessions.get(activity);
-            return session != null && session.observer != null;
+            return session != null && session.listening();
         }
     }
 
@@ -148,86 +146,49 @@ public final class ReelCorners {
         logged = false;
     }
 
-    /** One activity's listeners. */
-    private static final class Session implements ViewTreeObserver.OnGlobalLayoutListener,
-            ViewTreeObserver.OnPreDrawListener, View.OnAttachStateChangeListener {
+    /** One activity's place in the shared frame watcher. */
+    private static final class Session implements ViewWatcher.Member {
         private final WeakReference<Activity> activity;
-        @Nullable
-        private ViewTreeObserver observer;
-        private boolean waiting;
-        private boolean dirty = true;
 
         Session(Activity activity) {
             this.activity = new WeakReference<>(activity);
         }
 
-        void attach() {
+        boolean listening() {
             Activity owner = activity.get();
-            if (owner == null || observer != null || waiting) return;
-            HookStatus.invoked(FamilyNames.ROUNDED_POST_CORNERS);
-            View decor = owner.getWindow().getDecorView();
-            if (decor.isAttachedToWindow()) {
-                listen(decor);
-            } else {
-                // An observer taken from a view that isn't attached is a stand-in thrown away on attach.
-                waiting = true;
-                decor.addOnAttachStateChangeListener(this);
-            }
+            return owner != null && ViewWatcher.listening(owner, this);
         }
 
-        private void listen(View decor) {
-            ViewTreeObserver tree = decor.getViewTreeObserver();
-            tree.addOnGlobalLayoutListener(this);
-            tree.addOnPreDrawListener(this);
-            observer = tree;
-            dirty = true;
-            decor.invalidate();
+        void attach() {
+            Activity owner = activity.get();
+            if (owner == null || ViewWatcher.joined(owner, this)) return;
+            HookStatus.invoked(FamilyNames.ROUNDED_POST_CORNERS);
+            ViewWatcher.join(owner, this);
         }
 
         void detach() {
-            ViewTreeObserver tree = observer;
-            observer = null;
-            if (tree != null && tree.isAlive()) {
-                tree.removeOnGlobalLayoutListener(this);
-                tree.removeOnPreDrawListener(this);
-            }
             Activity owner = activity.get();
-            if (waiting && owner != null) owner.getWindow().getDecorView().removeOnAttachStateChangeListener(this);
-            waiting = false;
+            if (owner != null) ViewWatcher.leave(owner, this);
         }
 
         @Override
-        public void onViewAttachedToWindow(View view) {
-            if (!waiting) return;
-            waiting = false;
-            view.removeOnAttachStateChangeListener(this);
-            if (observer == null && wanted()) listen(view);
+        public boolean wanted() {
+            return ReelCorners.wanted();
         }
 
         @Override
-        public void onViewDetachedFromWindow(View view) {
-        }
-
-        @Override
-        public void onGlobalLayout() {
-            dirty = true;
-        }
-
-        @Override
-        public boolean onPreDraw() {
+        public boolean preDraw(Activity owner, boolean laidOut) {
             try {
-                Activity owner = activity.get();
-                if (owner == null || !wanted()) {
+                if (!wanted()) {
                     rounded.putBack();
                     detach();
-                    return true;
+                    return false;
                 }
-                if (dirty) {
-                    dirty = false;
+                if (laidOut) {
                     int id = ids.resolve(owner.getResources(), owner.getPackageName(), FRAME, false);
                     if (id == 0) {
                         HookStatus.missingViewId(FamilyNames.ROUNDED_POST_CORNERS, FRAME);
-                        return true;
+                        return false;
                     }
                     HookStatus.recoveredViewId(FamilyNames.ROUNDED_POST_CORNERS, FRAME);
                     float radius = Settings.ROUNDED_CORNER_SIZE.get().dp * owner.getResources().getDisplayMetrics().density;
@@ -237,7 +198,7 @@ public final class ReelCorners {
                 HookStatus.threw(FamilyNames.ROUNDED_POST_CORNERS, HOOK, failure);
             }
             // The outline is set before this frame is drawn, so the frame already shows it.
-            return true;
+            return false;
         }
 
         private void walk(View view, int id, float radius, int[] budget) {
@@ -257,21 +218,5 @@ public final class ReelCorners {
                 for (int i = 0; i < group.getChildCount(); i++) walk(group.getChildAt(i), id, radius, budget);
             }
         }
-    }
-
-    private static final class Watcher implements Application.ActivityLifecycleCallbacks {
-        @Override public void onActivityResumed(@NonNull Activity activity) {
-            watch(activity);
-        }
-
-        @Override public void onActivityPaused(@NonNull Activity activity) {
-            unwatch(activity);
-        }
-
-        @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) { }
-        @Override public void onActivityStarted(@NonNull Activity activity) { }
-        @Override public void onActivityStopped(@NonNull Activity activity) { }
-        @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) { }
-        @Override public void onActivityDestroyed(@NonNull Activity activity) { }
     }
 }
