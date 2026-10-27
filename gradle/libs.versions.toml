@@ -25,7 +25,7 @@ smali = "ac700e1942"
 # The Android Gradle plugin and Kotlin come from the app.morphe.patches settings plugin
 # (2.0.0 brings AGP 9.1.0 and Kotlin 2.4.21); nothing here pins them.
 annotation = "1.11.0"
-gson = "2.14.0"
+gson = "2.15.0"
 # Test-only for the extension: see extensions/instagram/build.gradle.kts. Kept at the Kotlin
 # the settings plugin brings (2.4.21 with plugin 2.0.0), which is also patcher 2.0.1's runtime.
 kotlin-stdlib = "2.4.21"
