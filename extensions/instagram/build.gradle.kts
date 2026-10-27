@@ -550,6 +550,21 @@ tasks.register("verifyAndroidBoundaries") {
                 "theSwitchIsUnderStoriesAfterTheSuggestionsAndStartsOff[28]", "theSwitchIsUnderStoriesAfterTheSuggestionsAndStartsOff[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
                 "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
+            "app.hushgram.extension.instagram.settings.DoubleTapHiddenChatsSettingsTest" to listOf(
+                "theSwitchFollowsHiddenChatsUnderMessagesAndStartsOff[28]", "theSwitchFollowsHiddenChatsUnderMessagesAndStartsOff[37]",
+                "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
+                "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
+            "app.hushgram.extension.instagram.direct.HiddenChatsTapTest" to listOf(
+                "oneTapOnMessagesGoesToInstagram[28]", "oneTapOnMessagesGoesToInstagram[37]",
+                "aQuickSecondTapIsKeptFromInstagramAndOpensTheList[28]", "aQuickSecondTapIsKeptFromInstagramAndOpensTheList[37]",
+                "aSlowSecondTapGoesToInstagram[28]", "aSlowSecondTapGoesToInstagram[37]",
+                "tapsAwayFromMessagesDontPair[28]", "tapsAwayFromMessagesDontPair[37]",
+                "aSecondTapFarFromTheFirstGoesToInstagram[28]", "aSecondTapFarFromTheFirstGoesToInstagram[37]",
+                "aScrollOrAHoldIsNoFirstTap[28]", "aScrollOrAHoldIsNoFirstTap[37]",
+                "aSecondFingerIsNoFirstTap[28]", "aSecondFingerIsNoFirstTap[37]",
+                "aCancelledSecondTapOpensNothing[28]", "aCancelledSecondTapOpensNothing[37]",
+                "offOrPausedEveryTapGoesToInstagram[28]", "offOrPausedEveryTapGoesToInstagram[37]",
+                "aScreenWithoutMessagesButtonsHasNone[28]", "aScreenWithoutMessagesButtonsHasNone[37]"),
             "app.hushgram.extension.instagram.settings.KeepTrayInFeedSettingsTest" to listOf(
                 "theSwitchIsUnderStoriesAfterTheTrayAndStartsOff[28]", "theSwitchIsUnderStoriesAfterTheTrayAndStartsOff[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",

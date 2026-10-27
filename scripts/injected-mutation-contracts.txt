@@ -191,6 +191,10 @@ first-call Lapp/hushgram/extension/instagram/direct/HiddenChats;->redraw(Ljava/l
 # searches store's counted reader, after it sorts them and before it trims them to the count. The
 # store's plain reader is left alone, since opening a chat writes entries back by their place in it.
 # No rule here either, for the same reason.
+# Double-tap Messages for hidden chats reads every touch in IgFragmentActivity.dispatchTouchEvent,
+# first or right after Tap to play's TapClock, and keeps the second tap of a double tap on Messages
+# from Instagram. Left out, the switch shows but a double tap only opens Messages (#358).
+once-call Lapp/hushgram/extension/instagram/direct/HiddenChatsTap;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
 # View live anonymously asks LiveSeen.hold() first where the live heartbeat manager's tick asks for
 # a viewer's or guest's heartbeat (IgLiveHeartbeatManager.A00 calling 036w.A00 on 450, the request
 # adding live_with_eligibility), and the tick returns its plain result while the switch is on. The

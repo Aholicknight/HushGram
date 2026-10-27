@@ -80,6 +80,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -2818,6 +2819,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private void showHiddenChats() {
         Context context = getActivity();
         if (context == null) return;
+        show(hiddenChatsList(context, this::allowMutation));
+    }
+
+    /**
+     * The same list over whatever Instagram screen [activity] shows, for two quick taps on Messages
+     * (#358). Nothing on the list changes while these settings are locked. The caller has already
+     * asked the phone's lock when a messages lock is on.
+     */
+    public static void showHiddenChatsOver(Activity activity) {
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+        AlertDialog dialog = hiddenChatsList(activity, () -> {
+            if (!SettingsLock.locked()) return true;
+            sayLocked();
+            return false;
+        }).show();
+        ScreenColors.dialog(dialog);
+    }
+
+    /** Builds the hidden chats list, asking [allowMutation] before each check changes. */
+    private static AlertDialog.Builder hiddenChatsList(Context context, BooleanSupplier allowMutation) {
         String account = ChatAccounts.active();
         List<ChatLocks.Chat> chats = new ArrayList<>(HiddenChats.saved(account));
         ChatLocks.Chat last = HiddenChats.lastOpened(account);
@@ -2835,7 +2856,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 hidden[i] = !offer;
             }
             builder.setMultiChoiceItems(names, hidden, (dialog, which, checked) -> {
-                if (!allowMutation()) {
+                if (!allowMutation.getAsBoolean()) {
                     setChecked((AlertDialog) dialog, which, !checked);
                     return;
                 }
@@ -2855,7 +2876,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
             });
         }
-        show(builder.setPositiveButton(L10n.t("OK"), null));
+        return builder.setPositiveButton(L10n.t("OK"), null);
     }
 
     /** The row that opens the list of accounts whose posts Home and Following leave out. */

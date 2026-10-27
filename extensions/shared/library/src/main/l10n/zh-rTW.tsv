@@ -826,6 +826,8 @@ Chat %1$s	聊天 %1$s
 # context: Hidden chats under Messages, the list of chats left out of the inbox with their notifications dropped, and the toasts after checking a chat in it
 Hidden chats	已隱藏的聊天
 Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	隱藏個別聊天。隱藏的聊天會從收件匣移除，也不會發出通知，直到您在此重新顯示。
+Double-tap Messages for hidden chats	點兩下訊息開啟隱藏的聊天
+Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	在分頁列或首頁頂端的訊息按鈕上快速點兩下，就會開啟你隱藏的聊天。開啟鎖定時會先要求解鎖。點一下則照常開啟訊息。
 Open a chat in Instagram, then come back here to hide it.	先在 Instagram 開啟聊天，再回到此處隱藏。
 %1$s is hidden	已隱藏 %1$s
 %1$s is shown again	已重新顯示 %1$s

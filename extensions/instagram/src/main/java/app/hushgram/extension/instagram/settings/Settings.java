@@ -424,6 +424,14 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_hidden_chats", "", false, false);
 
     /**
+     * Two quick taps on Messages' button, on the tab bar or at the top of Home, open the list of
+     * hidden chats over Instagram, after the phone's lock while a messages lock is on
+     * ({@link app.hushgram.extension.instagram.direct.HiddenChatsTap}, #358). Off to start.
+     */
+    public static final BooleanSetting DOUBLE_TAP_HIDDEN_CHATS =
+            new BooleanSetting("hushgram_double_tap_hidden_chats", FALSE);
+
+    /**
      * What unlocks the messages: the phone's lock, or a HushGram PIN
      * ({@link app.hushgram.extension.instagram.direct.PinLock}). It isn't a switch, and a backup
      * leaves it out, since a restored choice of PIN would have no PIN behind it.
