@@ -670,6 +670,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_stories_tray", FALSE);
 
     /**
+     * The row of stories stays in the feed instead of floating over it when you come back to Home
+     * mid-feed ({@link app.hushgram.extension.instagram.stories.StoriesTray#keepTrayOutOfOverlay}).
+     * Off to start.
+     */
+    public static final BooleanSetting KEEP_TRAY_IN_FEED =
+            new BooleanSetting("hushgram_keep_tray_in_feed", FALSE);
+
+    /**
      * The Music for you card Instagram puts between stories in the viewer
      * ({@link app.hushgram.extension.instagram.stories.StoriesTray#musicCard}). Off to start.
      */
