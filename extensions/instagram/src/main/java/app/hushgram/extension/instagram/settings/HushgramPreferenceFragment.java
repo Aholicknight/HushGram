@@ -598,6 +598,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 // Its title follows the lock's state, so the words for every state find it.
                 if (row == settingsLock) aliases.append(' ').append(L10n.t("Lock these settings"))
                         .append(' ').append(L10n.t("Ask to unlock")).append(" lock focus cooldown wait timer");
+                if (L10n.t("Pure black dark mode").equals(row.getTitle())
+                        || L10n.t("Pure black dark mode isn't in this build").equals(row.getTitle())) {
+                    aliases.append(" amoled oled black theme");
+                }
                 for (PatchFamily family : build) {
                     boolean belongs = family.switches.stream().anyMatch(setting -> setting.key.equals(key));
                     belongs |= family == PatchFamily.STORY_RING && (Settings.STORY_RING_SCALE.key.equals(key)

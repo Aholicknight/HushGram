@@ -313,6 +313,8 @@ the start-up fix for x86 devices	a correção de inicialização para dispositiv
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	Modo escuro preto puro
 Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.	O modo escuro do Instagram usa preto puro em vez do cinza quase preto, também nos menus que sobem da parte de baixo. Os botões mantêm os próprios tons de cinza.
+Pure black dark mode isn't in this build	Modo escuro preto puro não está nesta versão
+To make dark mode pure black instead of dark gray, which can save battery on an OLED screen, pick Pure black dark mode in Morphe Manager the next time you patch Instagram.	Para deixar o modo escuro preto puro em vez de cinza escuro, o que pode economizar bateria numa tela OLED, escolha Modo escuro preto puro no Morphe Manager na próxima vez que fizer o patch do Instagram.
 the pure black dark mode	o modo escuro preto puro
 No Play Store updates	Sem atualizações da Play Store
 Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	O Google Play não vai oferecer as atualizações da Meta sobre esta versão. Para voltar ao Instagram normal, desinstale esta primeiro, o que apaga os dados do Instagram neste celular. As próximas versões do HushGram também precisam de Change version code, ou não serão instaladas por cima desta.

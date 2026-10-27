@@ -313,6 +313,8 @@ the start-up fix for x86 devices	x86 cihazlar için açılış düzeltmesi
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	Saf siyah karanlık mod
 Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.	Instagram'ın karanlık modu, siyaha yakın grisi yerine saf siyah kullanır. Alttan açılan menüler de siyah olur. Düğmeler kendi gri tonlarını korur.
+Pure black dark mode isn't in this build	Saf siyah karanlık mod bu derlemede yok
+To make dark mode pure black instead of dark gray, which can save battery on an OLED screen, pick Pure black dark mode in Morphe Manager the next time you patch Instagram.	Karanlık modu koyu gri yerine saf siyah yapmak için (OLED ekranda pil tasarrufu sağlayabilir) Instagram'ı bir sonraki yamalayışında Morphe Manager'da Saf siyah karanlık mod'u seç.
 the pure black dark mode	saf siyah karanlık mod
 No Play Store updates	Play Store güncellemesi yok
 Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	Google Play bu sürümün üzerine Meta güncellemeleri sunmaz. Normal Instagram'a dönmek için önce bunu kaldır. Bu işlem Instagram'ın bu telefondaki verilerini siler. Sonraki HushGram sürümlerinin de Change version code'a ihtiyacı var, yoksa bunun üzerine kurulmazlar.

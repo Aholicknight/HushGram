@@ -554,6 +554,10 @@ tasks.register("verifyAndroidBoundaries") {
                 "theSwitchFollowsHiddenChatsUnderMessagesAndStartsOff[28]", "theSwitchFollowsHiddenChatsUnderMessagesAndStartsOff[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
                 "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
+            "app.hushgram.extension.instagram.settings.PureBlackHintSettingsTest" to listOf(
+                "aBuildWithoutPureBlackShowsTheHintUnderLayout[28]", "aBuildWithoutPureBlackShowsTheHintUnderLayout[37]",
+                "aBuildWithPureBlackShowsItsRowAndNoHint[28]", "aBuildWithPureBlackShowsItsRowAndNoHint[37]",
+                "searchFindsEitherRowByAmoled[28]", "searchFindsEitherRowByAmoled[37]"),
             "app.hushgram.extension.instagram.direct.HiddenChatsTapTest" to listOf(
                 "oneTapOnMessagesGoesToInstagram[28]", "oneTapOnMessagesGoesToInstagram[37]",
                 "aQuickSecondTapIsKeptFromInstagramAndOpensTheList[28]", "aQuickSecondTapIsKeptFromInstagramAndOpensTheList[37]",

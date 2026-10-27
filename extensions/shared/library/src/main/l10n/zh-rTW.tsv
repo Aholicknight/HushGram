@@ -318,6 +318,8 @@ the start-up fix for x86 devices	x86 裝置啟動修正
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	AMOLED 純黑模式
 Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.	將 Instagram 深色模式的近黑灰色改為純黑，底部滑出的選單也適用。按鈕仍保留原本的灰色。
+Pure black dark mode isn't in this build	這個版本沒有 AMOLED 純黑模式
+To make dark mode pure black instead of dark gray, which can save battery on an OLED screen, pick Pure black dark mode in Morphe Manager the next time you patch Instagram.	想讓深色模式變成純黑而不是深灰（在 OLED 螢幕上可以省電），下次修補 Instagram 時，請在 Morphe Manager 中選取 AMOLED 純黑模式。
 the pure black dark mode	純黑深色模式
 No Play Store updates	停用 Play 商店更新
 Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	Google Play 不會再為此版本提供 Meta 的更新。若要恢復一般 Instagram，請先解除安裝此版本，這會刪除手機上的 Instagram 資料。之後的 HushGram 版本也需套用「變更版本號碼」，否則無法覆蓋安裝。
