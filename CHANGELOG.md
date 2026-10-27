@@ -19,6 +19,7 @@ Every HushGram release, newest first.
 * **Instagram - HushGram settings:** A build without Pure black dark mode now says under Layout how to get it: pick it in Morphe Manager next time you patch. Searching settings for "amoled" or "oled" finds it too. Asked for in #359.
 * **Instagram - Download any video:** `Choose a folder` under Downloads sends every photo and video to a folder you pick, a hidden one too, and it works on Android 9 without the storage permission. `Use Movies and Pictures` puts saves back. Asked for in #333.
 * **Instagram - Seek bar on stories:** new patch. `Seek bar on stories` under Stories puts a bar near the bottom of a video story. Drag it to jump anywhere in the video and the story plays on from there. Starts off. Asked for in #355.
+* **Instagram - Swipe through a chat's reels:** new patch. With `Swipe through a chat's reels` on under Messages, swiping up on a reel opened from a chat goes through the chat's other shared reels before any suggested ones. Starts off. Asked for in #350.
 * **Instagram - Hide suggested stories:** `Filter the Stories tray by verified accounts` under Stories keeps only verified accounts in the row at the top of Home, or only the ones that aren't. Your own story stays. Starts off. Asked for in #340.
 
 #### Bug Fixes

@@ -15,6 +15,7 @@ import app.morphe.patches.instagram.direct.presence.showLastActivePatch
 import app.morphe.patches.instagram.direct.lock.lockMessagesPatch
 import app.morphe.patches.instagram.stories.live.viewLiveAnonymouslyPatch
 import app.morphe.patches.instagram.direct.keep.keepInChatPatch
+import app.morphe.patches.instagram.direct.reels.swipeChatReelsPatch
 import app.morphe.patches.instagram.direct.screenshots.allowScreenshotsPatch
 import app.morphe.patches.instagram.direct.screenshots.dontReportScreenshotsPatch
 import app.morphe.patches.instagram.direct.notes.hideNotesRowPatch
@@ -196,6 +197,7 @@ class DefaultCatalogTest {
         hideThreadsButtonPatch,
         hideTypingPatch,
         keepInChatPatch,
+        swipeChatReelsPatch,
         keepReelsAutoScrollPatch,
         launchScreenPatch,
         lockMessagesPatch,
@@ -277,7 +279,7 @@ class DefaultCatalogTest {
     }
 
     @Test fun initiallyNeutralControlsAreAvailableInSimpleMode() {
-        assertEquals(101, neutral.size)
+        assertEquals(102, neutral.size)
         neutral.forEach { assertEquals(it.name, true, it.default) }
     }
 
@@ -289,7 +291,7 @@ class DefaultCatalogTest {
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.default }
-        assertEquals("every named patch needs one reviewed decision", 122, all.size)
+        assertEquals("every named patch needs one reviewed decision", 123, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

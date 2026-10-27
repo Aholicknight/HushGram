@@ -4521,6 +4521,46 @@
       "options": []
     },
     {
+      "name": "Swipe through a chat's reels",
+      "description": "Swiping up on a reel you opened from a chat goes through the other reels shared in that chat before any suggested reels. Starts off. Turn it on in HushGram settings > Messages.",
+      "category": "Messages",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "452.1.0.53.64"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "452.1.0.53.64",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385811006,
+                "ARMEABI_V7A": 385811005,
+                "X86": 385811007,
+                "X86_64": 385811008
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Tab bar layout",
       "description": "Lets you keep the newer tab bar, where you swipe between every tab, or the classic one, instead of the one Instagram picks for your account. Starts on Instagram's choice. Pick one in HushGram settings > Tab bar.",
       "category": "Interface",

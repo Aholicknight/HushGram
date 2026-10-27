@@ -517,6 +517,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting KEEP_IN_CHAT = new BooleanSetting("hushgram_keep_in_chat", FALSE);
 
     /**
+     * Swiping up on a reel opened from a chat goes to the next reel shared in that chat, by
+     * Instagram's own chat reels test ({@link app.hushgram.extension.instagram.direct.ChatReels}, #350).
+     * Off to start.
+     */
+    public static final BooleanSetting SWIPE_CHAT_REELS = new BooleanSetting("hushgram_swipe_chat_reels", FALSE);
+
+    /**
      * A call started from a chat waits for a question first
      * ({@link app.hushgram.extension.instagram.direct.CallConfirm}). Off to start.
      */

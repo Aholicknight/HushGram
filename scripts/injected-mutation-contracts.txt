@@ -570,6 +570,12 @@ once-call Lapp/hushgram/extension/instagram/direct/LastActive;->exact(J)Ljava/la
 # on 452). Left out, a finished story moves on; twice or elsewhere, it isn't the answer the patch
 # wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StoryLoop;->loop(I)Z in instance (Lcom/instagram/model/reels/ReelItem;)Z holding const:0x810ff8000155de
+# Swipe through a chat's reels answers the read of Instagram's own chat reels flag through chain(),
+# right after it in the test taking the session that the opener of a reel shared in a chat asks
+# (02JG.A00 on 452.1, #350). Its sibling tests share the shape, so the rule names the flag. Left
+# out, a reel opened from a chat swipes on to suggested reels; twice or elsewhere, it isn't the
+# answer the patch wrote.
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->chain(I)Z in instance (Lcom/instagram/common/session/UserSession;)Z holding const:0x81155f00006ed0
 # Restore trust on re-signed builds puts its call first in the package signer reader, which its
 # fingerprint picks by the SigningInfo and PackageInfo calls it makes. The reader holds no string,
 # so the rule holds the old signatures array it reads, which 28 methods read on 449. Of

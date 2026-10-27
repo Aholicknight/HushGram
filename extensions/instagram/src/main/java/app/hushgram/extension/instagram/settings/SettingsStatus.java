@@ -546,6 +546,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Swipe through a chat's reels patch. */
+    public static boolean chatReels() {
+        return false;
+    }
+
     /** Rewritten by the View live anonymously patch. */
     public static boolean liveSeen() {
         return false;
