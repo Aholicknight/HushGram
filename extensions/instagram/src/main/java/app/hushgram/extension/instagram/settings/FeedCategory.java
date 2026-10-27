@@ -18,6 +18,7 @@ import android.preference.PreferenceScreen;
 import java.util.Set;
 
 import app.hushgram.extension.instagram.feed.FeedFollowButton;
+import app.hushgram.extension.instagram.feed.CarouselPeek;
 import app.hushgram.extension.instagram.feed.ReelCorners;
 import app.hushgram.extension.shared.L10n;
 
@@ -183,6 +184,9 @@ final class FeedCategory {
                     L10n.t("Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full "
                             + "screen. The seek bar, captions and buttons stay whole.")), ReelCorners::switchChanged));
             feed.addPreference(cornerSizeRow(context));
+            feed.addPreference(onFlip(toggle(context, Settings.PEEK_CAROUSEL_PAGES, L10n.t("Peek at the next carousel page"),
+                    L10n.t("A carousel post's page sits a little in from the edges, with the start of the next page "
+                            + "showing at the right.")), CarouselPeek::switchChanged));
         }
         if (fullScreen) {
             feed.addPreference(toggle(context, Settings.FULL_SCREEN_HOME, L10n.t("Full screen Home"),

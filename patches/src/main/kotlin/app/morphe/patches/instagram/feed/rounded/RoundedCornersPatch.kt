@@ -50,7 +50,9 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * costs nothing extra.
  *
  * Rounded corners on Reels (#362) needs no change of its own: the extension rounds each reel's video
- * frame by its view id after the viewer lays out, so it comes with this patch.
+ * frame by its view id after the viewer lays out, so it comes with this patch. Peek at the next carousel
+ * page (#361) is the same: the extension finds each carousel's pager above its page frame and narrows
+ * its pages through the pager's public setters.
  *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.

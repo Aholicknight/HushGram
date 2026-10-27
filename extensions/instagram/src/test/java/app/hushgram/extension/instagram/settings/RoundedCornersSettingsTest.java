@@ -119,6 +119,30 @@ public class RoundedCornersSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ROUNDED_REEL_CORNERS.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ROUNDED_CORNER_SIZE.key));
     }
+    /** Peek at the next carousel page (#361) comes after Corner size, starts off, is kept in a backup and reaches the screen under settings. */
+    @Test public void thePeekSwitchFollowsTheCornerSizeAndStartsOff() throws Exception {
+        Settings.PEEK_CAROUSEL_PAGES.resetToDefault();
+        open(EnumSet.of(PatchFamily.ROUNDED_POST_CORNERS));
+        Preference size = page.getPreferenceScreen().findPreference(Settings.ROUNDED_CORNER_SIZE.key);
+        PreferenceGroup feed = size.getParent();
+        String[] keys = new String[feed.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
+        int at = Arrays.asList(keys).indexOf(Settings.ROUNDED_CORNER_SIZE.key);
+        assertEquals(Arrays.toString(keys), Settings.PEEK_CAROUSEL_PAGES.key, keys[at + 1]);
+        Preference row = feed.getPreference(at + 1);
+        assertEquals("Peek at the next carousel page", row.getTitle().toString());
+        assertFalse(Settings.PEEK_CAROUSEL_PAGES.get());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.PEEK_CAROUSEL_PAGES.key));
+        try {
+            assertTrue(row.getOnPreferenceChangeListener().onPreferenceChange(row, true));
+            Settings.PEEK_CAROUSEL_PAGES.save(true);
+            org.robolectric.shadows.ShadowLooper.idleMainLooper();
+            assertTrue(app.hushgram.extension.instagram.feed.CarouselPeek.listeningForTests(controller.get()));
+        } finally {
+            app.hushgram.extension.instagram.feed.CarouselPeek.resetForTests();
+            Settings.PEEK_CAROUSEL_PAGES.resetToDefault();
+        }
+    }
     /** The list follows either switch, so reels alone can be rounded at either size. */
     @Test public void theReelsSwitchAloneWakesTheList() throws Exception {
         open(EnumSet.of(PatchFamily.ROUNDED_POST_CORNERS));

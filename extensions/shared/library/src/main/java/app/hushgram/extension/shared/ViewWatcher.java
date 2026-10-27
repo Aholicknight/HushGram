@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 /**
  * One global-layout listener and one pre-draw listener for each activity, shared by the helpers
  * that change Instagram's views just before a frame without changing its code (the view hider,
- * Rounded corners on Reels, Thicker story progress bar).
+ * Rounded corners on Reels, Peek at the next carousel page, Thicker story progress bar).
  *
  * <p>A helper joins an activity with a {@link Member} while its switch is on. The activity's
  * listeners go on with the first member and come off with the last, so with every helper on, the

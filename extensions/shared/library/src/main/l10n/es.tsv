@@ -1036,6 +1036,8 @@ Thickness	Grosor
 Twice as thick	El doble de gruesa
 Three times as thick	Tres veces más gruesa
 Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.	Redondea las esquinas del video de un reel en la pestaña Reels y dondequiera que un reel se abra a pantalla completa. La barra de progreso, los subtítulos y los botones quedan completos.
+Peek at the next carousel page	Asomar la siguiente página del carrusel
+A carousel post's page sits a little in from the edges, with the start of the next page showing at the right.	La página de una publicación en carrusel queda un poco separada de los bordes, con el comienzo de la siguiente página a la derecha.
 Large	Grande
 Small	Pequeño
 # context: a toast shown once when safe mode has paused HushGram on its own after crashes at start

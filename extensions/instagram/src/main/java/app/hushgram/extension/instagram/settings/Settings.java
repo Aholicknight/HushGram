@@ -337,6 +337,14 @@ public class Settings extends BaseSettings {
                     parentsAny(ROUNDED_POST_CORNERS, ROUNDED_REEL_CORNERS));
 
     /**
+     * A feed carousel's page sits inset with the next page's edge showing at the right
+     * ({@link app.hushgram.extension.instagram.feed.CarouselPeek}, #361). Part of the Rounded post
+     * corners patch. Off to start.
+     */
+    public static final BooleanSetting PEEK_CAROUSEL_PAGES =
+            new BooleanSetting("hushgram_peek_carousel_pages", FALSE);
+
+    /**
      * The stories you watch, which Instagram posts to media/seen/ to put you on their viewer lists.
      * Held back, you stay off them. Replies and reactions still show you. Off to start.
      */
