@@ -511,6 +511,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Keep your place in Home patch. */
+    public static boolean homePlace() {
+        return false;
+    }
+
     /** Rewritten by the Start feed videos with sound patch. */
     public static boolean feedSound() {
         return false;

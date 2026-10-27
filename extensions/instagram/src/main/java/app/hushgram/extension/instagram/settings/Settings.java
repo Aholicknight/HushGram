@@ -226,6 +226,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_back_leaves_home", FALSE);
 
     /**
+     * Coming back to Instagram leaves Home where it was, however long you were away, instead of
+     * reloading the feed and scrolling to the top after 30 seconds
+     * ({@link app.hushgram.extension.instagram.feed.HomePlace}). Off to start.
+     */
+    public static final BooleanSetting KEEP_HOME_PLACE =
+            new BooleanSetting("hushgram_keep_home_position", FALSE);
+
+    /**
      * A story plays again from the start when it ends, instead of the viewer moving on
      * ({@link app.hushgram.extension.instagram.stories.StoryLoop}). While it's on it wins over
      * {@link #BLOCK_STORY_AUTO_ADVANCE}. Off to start.

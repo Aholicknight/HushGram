@@ -37,6 +37,7 @@ final class FeedCategory {
         boolean postTime = build.contains(PatchFamily.POST_TIME);
         boolean hiddenLikes = build.contains(PatchFamily.HIDDEN_LIKE_COUNTS);
         boolean backHome = build.contains(PatchFamily.BACK_LEAVES_HOME);
+        boolean homePlace = build.contains(PatchFamily.HOME_PLACE);
         boolean feedSound = build.contains(PatchFamily.FEED_SOUND);
         boolean feedTapPause = build.contains(PatchFamily.FEED_TAP_PAUSE);
         boolean longPressZoom = build.contains(PatchFamily.LONG_PRESS_ZOOM);
@@ -44,7 +45,7 @@ final class FeedCategory {
         boolean fullScreen = build.contains(PatchFamily.FULL_SCREEN_BARS);
         boolean feedFollow = build.contains(PatchFamily.FEED_FOLLOW);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
-                || askLike || askRefresh || postTime || hiddenLikes || backHome || feedSound || feedTapPause || longPressZoom || roundedCorners
+                || askLike || askRefresh || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || longPressZoom || roundedCorners
                 || fullScreen || feedFollow
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
@@ -137,6 +138,11 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.BACK_LEAVES_HOME, L10n.t("Back leaves Home as it is"),
                     L10n.t("Back on Home leaves Instagram without first scrolling the feed to the top and reloading "
                             + "it.")));
+        }
+        if (homePlace) {
+            feed.addPreference(toggle(context, Settings.KEEP_HOME_PLACE, L10n.t("Keep your place in Home"),
+                    L10n.t("Coming back to Instagram leaves Home on the post you were on, however long you were "
+                            + "away. Pull down to refresh still reloads it.")));
         }
         if (postTime) {
             feed.addPreference(toggle(context, Settings.SHOW_POST_TIME, L10n.t("Show a post's exact time"),

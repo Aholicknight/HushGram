@@ -30,6 +30,7 @@ public final class FamilyNames {
     public static final String POST_TIME = "Show a post's exact time";
     public static final String HIDDEN_LIKE_COUNTS = "Show hidden like counts";
     public static final String BACK_LEAVES_HOME = "Back leaves Home";
+    public static final String HOME_PLACE = "Keep your place in Home";
     public static final String STORY_LOOP = "Loop a story";
     public static final String STORY_SOUND = "Start stories with sound";
     public static final String STORY_SWIPE_REPLY = "Stop swipe up to reply";
