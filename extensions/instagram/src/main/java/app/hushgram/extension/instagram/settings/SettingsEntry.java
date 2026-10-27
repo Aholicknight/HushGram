@@ -54,6 +54,7 @@ import app.hushgram.extension.instagram.misc.ProfileSaved;
 import app.hushgram.extension.instagram.misc.LaunchScreen;
 import app.hushgram.extension.instagram.misc.AppIcon;
 import app.hushgram.extension.instagram.profile.ProfileTitle;
+import app.hushgram.extension.instagram.stories.StoryProgressBar;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -152,6 +153,7 @@ public final class SettingsEntry {
         FeedFollowButton.install(context);
         FollowingFeed.install(context);
         ReelCorners.install(context);
+        StoryProgressBar.install(context);
         ProfileMenuPress.install(context);
         ProfileTitle.install(context);
         LaunchScreen.install(context);

@@ -1026,6 +1026,11 @@ Rounded corners on posts	Gönderilerde yuvarlak köşeler
 Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	Ana Sayfa ve Takip Edilenler'de bir gönderinin fotoğraf, video ve kaydırmalı albüm sayfalarının köşelerini yuvarlar. Bir değişiklikten sonra kaydırdığın gönderilerde görünür. Hikayeler, profiller ve Keşfet olduğu gibi kalır.
 Corner size	Köşe boyutu
 Rounded corners on Reels	Reels'te yuvarlak köşeler
+Thicker story progress bar	Daha kalın hikaye ilerleme çubuğu
+Draws the bar along the top of a story as thick as the choice below. Its segments and timing stay as they were.	Bir hikayenin üstündeki çubuğu aşağıdaki seçim kadar kalın çizer. Bölümleri ve zamanlaması olduğu gibi kalır.
+Thickness	Kalınlık
+Twice as thick	İki kat kalın
+Three times as thick	Üç kat kalın
 Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.	Reels sekmesinde ve bir reel'in tam ekran açıldığı her yerde reel videosunun köşelerini yuvarlar. Arama çubuğu, altyazılar ve düğmeler bütün kalır.
 Large	Büyük
 Small	Küçük

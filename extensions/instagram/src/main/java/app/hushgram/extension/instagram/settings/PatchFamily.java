@@ -93,6 +93,7 @@ public enum PatchFamily {
             Settings.HIDE_STORIES_TRAY, Settings.KEEP_TRAY_IN_FEED, Settings.HIDE_MUSIC_CARD, Settings.HIDE_STORY_SUGGESTIONS,
             Settings.HIDE_ADD_YOURS_CARDS),
     STORY_RING(FamilyNames.STORY_RING, "storyRingSize", null, Settings.STORY_RING),
+    STORY_PROGRESS_BAR(FamilyNames.STORY_PROGRESS_BAR, "storyProgressBar", null, Settings.THICKER_STORY_BAR),
     FEED_REELS(FamilyNames.FEED_REELS, "feedReels", null, Settings.HIDE_FEED_REELS),
     FEED_SUGGESTIONS(FamilyNames.FEED_SUGGESTIONS, "feedSuggestions", null, Settings.HIDE_SUGGESTED_ACCOUNTS,
             Settings.HIDE_SUGGESTED_POSTS, Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS,

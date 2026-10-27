@@ -106,6 +106,7 @@ import app.morphe.patches.instagram.stories.autoadvance.stopStoryAutoAdvancePatc
 import app.morphe.patches.instagram.stories.follow.hideStoryFollowPatch
 import app.morphe.patches.instagram.stories.loop.loopStoryPatch
 import app.morphe.patches.instagram.stories.mentions.storyMentionsPatch
+import app.morphe.patches.instagram.stories.progressbar.storyProgressBarPatch
 import app.morphe.patches.instagram.stories.ring.storyRingSizePatch
 import app.morphe.patches.instagram.stories.seen.viewStoriesAnonymouslyPatch
 import app.morphe.patches.instagram.stories.time.showStoryTimePatch
@@ -217,6 +218,7 @@ class DefaultCatalogTest {
         stopTabSwipingPatch,
         storyMentionsPatch,
         storyRingSizePatch,
+        storyProgressBarPatch,
         tabBarLayoutPatch,
         tapToPlayPatch,
         turnOffDoubleTapLikePatch,
@@ -269,7 +271,7 @@ class DefaultCatalogTest {
     }
 
     @Test fun initiallyNeutralControlsAreAvailableInSimpleMode() {
-        assertEquals(97, neutral.size)
+        assertEquals(98, neutral.size)
         neutral.forEach { assertEquals(it.name, true, it.default) }
     }
 
@@ -281,7 +283,7 @@ class DefaultCatalogTest {
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.default }
-        assertEquals("every named patch needs one reviewed decision", 118, all.size)
+        assertEquals("every named patch needs one reviewed decision", 119, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

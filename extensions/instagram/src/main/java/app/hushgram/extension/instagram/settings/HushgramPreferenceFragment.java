@@ -106,6 +106,7 @@ import app.hushgram.extension.instagram.misc.SettingsRows;
 import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.ShareSheetActions;
 import app.hushgram.extension.instagram.share.SharingDomain;
+import app.hushgram.extension.instagram.stories.StoryBarThickness;
 import app.hushgram.extension.instagram.stories.StoryEmoji;
 import app.hushgram.extension.instagram.stories.StoryFonts;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
@@ -620,6 +621,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.STORY_RING && (Settings.STORY_RING_SCALE.key.equals(key)
                             || Settings.STORY_RING_COLOR.key.equals(key));
                     belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
+                    belongs |= family == PatchFamily.STORY_PROGRESS_BAR && Settings.STORY_BAR_THICKNESS.key.equals(key);
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DECLUTTER && (Settings.BURN_IN_GUARD.key.equals(key)
                             || Settings.BURN_IN_WAIT.key.equals(key) || Settings.BURN_IN_STAY_DIM.key.equals(key));
@@ -4122,6 +4124,31 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return size == CornerSize.LARGE ? L10n.t("Large") : L10n.t("Small");
     }
 
+    /** How much thicker Thicker story progress bar draws the bar. Its summary is the choice. */
+    static StoryBarRow storyBarRow(Context context) {
+        StoryBarRow row = new StoryBarRow(context);
+        row.setKey(Settings.STORY_BAR_THICKNESS.key);
+        row.setTitle(L10n.t("Thickness"));
+        row.setDialogTitle(L10n.t("Thickness"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        StoryBarThickness[] choices = StoryBarThickness.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = storyBarLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.STORY_BAR_THICKNESS.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [thickness]. */
+    static String storyBarLabel(StoryBarThickness thickness) {
+        return thickness == StoryBarThickness.THREE_TIMES ? L10n.t("Three times as thick") : L10n.t("Twice as thick");
+    }
+
     /** How long Hold to download's fingers stay down. Its summary is the time chosen. */
     static HoldTimeRow holdTimeRow(Context context) {
         HoldTimeRow row = new HoldTimeRow(context);
@@ -6578,6 +6605,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(value)) size = candidate;
             }
             setSummary(cornerSizeLabel(size));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class StoryBarRow extends ListPreference {
+        StoryBarRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the thickness chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            StoryBarThickness thickness = StoryBarThickness.TWICE;
+            for (StoryBarThickness candidate : StoryBarThickness.values()) {
+                if (candidate.name().equals(value)) thickness = candidate;
+            }
+            setSummary(storyBarLabel(thickness));
         }
 
         @Override

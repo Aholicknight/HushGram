@@ -7,6 +7,8 @@
 package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyBarRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingColorRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyTimeModeRow;
@@ -21,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import app.hushgram.extension.instagram.stories.StoryProgressBar;
 import app.hushgram.extension.shared.L10n;
 
 /** Builds the Stories category of HushGram settings. */
@@ -66,6 +69,12 @@ final class StoriesCategory {
                             + "change.")));
             stories.add(storyRingRow(context));
             stories.add(storyRingColorRow(context));
+        }
+        if (build.contains(PatchFamily.STORY_PROGRESS_BAR)) {
+            stories.add(onFlip(toggle(context, Settings.THICKER_STORY_BAR, L10n.t("Thicker story progress bar"),
+                    L10n.t("Draws the bar along the top of a story as thick as the choice below. Its segments "
+                            + "and timing stay as they were.")), StoryProgressBar::switchChanged));
+            stories.add(storyBarRow(context));
         }
         if (build.contains(PatchFamily.STORY_AUTO_ADVANCE)) {
             stories.add(toggle(context, Settings.BLOCK_STORY_AUTO_ADVANCE, L10n.t("Stop Story auto-advance"),

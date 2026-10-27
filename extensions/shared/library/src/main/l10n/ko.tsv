@@ -1025,6 +1025,11 @@ Rounded corners on posts	게시물 모서리 둥글게
 Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	홈과 팔로잉에서 게시물의 사진, 동영상, 캐러셀 페이지 모서리를 둥글게 만듭니다. 변경한 뒤에 스크롤해서 보는 게시물부터 적용됩니다. 스토리, 프로필, 탐색은 그대로입니다.
 Corner size	모서리 크기
 Rounded corners on Reels	Reels 둥근 모서리
+Thicker story progress bar	더 두꺼운 스토리 진행 막대
+Draws the bar along the top of a story as thick as the choice below. Its segments and timing stay as they were.	스토리 위쪽의 막대를 아래에서 고른 두께로 그립니다. 구간과 타이밍은 그대로입니다.
+Thickness	두께
+Twice as thick	두 배 두껍게
+Three times as thick	세 배 두껍게
 Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.	Reels 탭과 릴스가 전체 화면으로 열리는 모든 곳에서 릴스 동영상의 모서리를 둥글게 합니다. 탐색 막대, 자막, 버튼은 잘리지 않습니다.
 Large	크게
 Small	작게

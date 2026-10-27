@@ -178,6 +178,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Thicker story progress bar patch. */
+    public static boolean storyProgressBar() {
+        return false;
+    }
+
     public static boolean repostButton() {
         return false;
     }

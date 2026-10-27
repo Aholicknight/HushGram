@@ -19,6 +19,7 @@ import app.hushgram.extension.instagram.download.SaveFolder;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
 import app.hushgram.extension.instagram.profile.ProfileTabs;
+import app.hushgram.extension.instagram.stories.StoryBarThickness;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
@@ -744,6 +745,18 @@ public class Settings extends BaseSettings {
      */
     public static final EnumSetting<StoryRingColor> STORY_RING_COLOR =
             new EnumSetting<>("hushgram_story_ring_color", StoryRingColor.INSTAGRAM, true, parent(STORY_RING));
+
+    /**
+     * The progress bar along the top of a story is drawn {@link #STORY_BAR_THICKNESS} times as thick
+     * ({@link app.hushgram.extension.instagram.stories.StoryProgressBar}, #360). Nothing Instagram
+     * stores is written, so off or paused, the bar is Instagram's again at once. Off to start.
+     */
+    public static final BooleanSetting THICKER_STORY_BAR =
+            new BooleanSetting("hushgram_thicker_story_bar", FALSE);
+
+    /** Under {@link #THICKER_STORY_BAR}: how much thicker the bar is. Twice to start. */
+    public static final EnumSetting<StoryBarThickness> STORY_BAR_THICKNESS =
+            new EnumSetting<>("hushgram_story_bar_thickness", StoryBarThickness.TWICE, parent(THICKER_STORY_BAR));
 
     /**
      * Home opening on the Following feed, with Instagram's For you and Following picker at its top,
