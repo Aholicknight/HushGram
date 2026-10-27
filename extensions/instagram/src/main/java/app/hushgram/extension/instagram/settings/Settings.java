@@ -23,6 +23,7 @@ import app.hushgram.extension.instagram.stories.StoryBarThickness;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
+import app.hushgram.extension.instagram.stories.TrayBadge;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.EnumSetting;
@@ -726,6 +727,18 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting HIDE_ADD_YOURS_CARDS =
             new BooleanSetting("hushgram_hide_add_yours_cards", FALSE);
+
+    /**
+     * The row of stories at the top of Home keeps only the stories {@link #TRAY_BADGE} names, by
+     * the owner's verified badge ({@link app.hushgram.extension.instagram.stories.StoriesTray#filter},
+     * #340). Your own story stays. Off to start, which is every story.
+     */
+    public static final BooleanSetting FILTER_TRAY_BY_BADGE =
+            new BooleanSetting("hushgram_filter_tray_by_badge", FALSE);
+
+    /** Under {@link #FILTER_TRAY_BY_BADGE}: which stories stay. Accounts without the badge to start. */
+    public static final EnumSetting<TrayBadge> TRAY_BADGE =
+            new EnumSetting<>("hushgram_tray_badge", TrayBadge.UNVERIFIED, parent(FILTER_TRAY_BY_BADGE));
 
     /**
      * The rings in the stories row at the top of Home are drawn at the size in

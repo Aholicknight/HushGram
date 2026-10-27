@@ -112,6 +112,7 @@ import app.hushgram.extension.instagram.stories.StoryFonts;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
+import app.hushgram.extension.instagram.stories.TrayBadge;
 import app.hushgram.extension.instagram.profile.FollowLabelPlace;
 import app.hushgram.extension.instagram.profile.ProfileTabs;
 import app.hushgram.extension.instagram.misc.GlassCorners;
@@ -622,6 +623,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.STORY_RING_COLOR.key.equals(key));
                     belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
                     belongs |= family == PatchFamily.STORY_PROGRESS_BAR && Settings.STORY_BAR_THICKNESS.key.equals(key);
+                    belongs |= family == PatchFamily.STORIES_TRAY && Settings.TRAY_BADGE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DECLUTTER && (Settings.BURN_IN_GUARD.key.equals(key)
                             || Settings.BURN_IN_WAIT.key.equals(key) || Settings.BURN_IN_STAY_DIM.key.equals(key));
@@ -4149,6 +4151,31 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return thickness == StoryBarThickness.THREE_TIMES ? L10n.t("Three times as thick") : L10n.t("Twice as thick");
     }
 
+    /** Which stories Filter the Stories tray by verified accounts keeps (#340). Its summary is the choice. */
+    static TrayBadgeRow trayBadgeRow(Context context) {
+        TrayBadgeRow row = new TrayBadgeRow(context);
+        row.setKey(Settings.TRAY_BADGE.key);
+        row.setTitle(L10n.t("Stories to keep"));
+        row.setDialogTitle(L10n.t("Stories to keep"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        TrayBadge[] choices = TrayBadge.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = trayBadgeLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.TRAY_BADGE.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [badge]. */
+    static String trayBadgeLabel(TrayBadge badge) {
+        return badge == TrayBadge.VERIFIED ? L10n.t("Only verified accounts") : L10n.t("Only accounts that aren't verified");
+    }
+
     /** How long Hold to download's fingers stay down. Its summary is the time chosen. */
     static HoldTimeRow holdTimeRow(Context context) {
         HoldTimeRow row = new HoldTimeRow(context);
@@ -6637,6 +6664,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(value)) thickness = candidate;
             }
             setSummary(storyBarLabel(thickness));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class TrayBadgeRow extends ListPreference {
+        TrayBadgeRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the choice. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            TrayBadge badge = TrayBadge.UNVERIFIED;
+            for (TrayBadge candidate : TrayBadge.values()) {
+                if (candidate.name().equals(value)) badge = candidate;
+            }
+            setSummary(trayBadgeLabel(badge));
         }
 
         @Override

@@ -13,6 +13,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyTimeModeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.trayBadgeRow;
 
 import android.content.Context;
 import android.preference.Preference;
@@ -61,6 +62,10 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.HIDE_ADD_YOURS_CARDS, L10n.t("Hide Add Yours cards between stories"),
                     L10n.t("Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, "
                             + "that Instagram puts between the stories you tap through. The stories themselves stay.")));
+            stories.add(toggle(context, Settings.FILTER_TRAY_BY_BADGE, L10n.t("Filter the Stories tray by verified accounts"),
+                    L10n.t("The row of stories at the top of Home keeps only the accounts the choice below names, "
+                            + "by Instagram's verified badge. Your own story stays. Turn it off to see every story.")));
+            stories.add(trayBadgeRow(context));
         }
         if (build.contains(PatchFamily.STORY_RING)) {
             stories.add(toggle(context, Settings.STORY_RING, L10n.t("Story ring size"),
