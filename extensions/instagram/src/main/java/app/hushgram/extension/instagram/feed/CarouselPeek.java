@@ -117,10 +117,20 @@ public final class CarouselPeek {
             this.nextOnly = nextOnly;
         }
 
-        /** [kind]'s pager methods, or null when it lacks any of them. */
+        /**
+         * [kind]'s pager methods, or null when it isn't a pager or lacks any of them. A class with
+         * the page size setter is Instagram's pager, so what else it lacks is reported.
+         */
         @Nullable
         @SuppressWarnings({"unchecked", "rawtypes"})
         static Pager of(Class<?> kind) {
+            Method size;
+            try {
+                size = kind.getMethod("setOverridePageSize", int.class);
+            } catch (NoSuchMethodException notAPager) {
+                return null;
+            }
+            String looking = "setExtraBufferSize$default";
             try {
                 Method buffer = null, bias = null;
                 for (Method method : kind.getMethods()) {
@@ -133,21 +143,31 @@ public final class CarouselPeek {
                         bias = method;
                     }
                 }
-                if (buffer == null || bias == null) return null;
+                if (buffer == null) return missing(kind, looking);
+                if (bias == null) return missing(kind, looking = "setBufferBias");
                 Class<?> biasKind = bias.getParameterTypes()[0];
+                looking = "its one bias field";
                 Field biasNow = null;
                 for (Field field : kind.getFields()) {
                     if (field.getType() != biasKind || Modifier.isStatic(field.getModifiers())) continue;
-                    if (biasNow != null) return null;
+                    if (biasNow != null) return missing(kind, looking);
                     biasNow = field;
                 }
-                if (biasNow == null) return null;
+                if (biasNow == null) return missing(kind, looking);
+                looking = NEXT_ONLY;
                 Object nextOnly = Enum.valueOf((Class) biasKind, NEXT_ONLY);
-                return new Pager(kind.getMethod("setOverridePageSize", int.class), kind.getMethod("setPageSpacing", float.class),
-                        kind.getMethod("getPageSpacing"), kind.getMethod("getExtraBufferSize"), buffer, bias, biasNow, nextOnly);
-            } catch (NoSuchMethodException | IllegalArgumentException missing) {
-                return null;
+                looking = "setPageSpacing, getPageSpacing or getExtraBufferSize";
+                return new Pager(size, kind.getMethod("setPageSpacing", float.class), kind.getMethod("getPageSpacing"),
+                        kind.getMethod("getExtraBufferSize"), buffer, bias, biasNow, nextOnly);
+            } catch (NoSuchMethodException | IllegalArgumentException gone) {
+                return missing(kind, looking);
             }
+        }
+
+        @Nullable
+        private static Pager missing(Class<?> kind, String name) {
+            HookStatus.missingMember(FamilyNames.ROUNDED_POST_CORNERS, "pager member", kind.getName(), name);
+            return null;
         }
 
         /** Sets [pager]'s extra buffer to [pages], leaving the bridge's other arguments at their defaults. */
@@ -259,6 +279,9 @@ public final class CarouselPeek {
             // The spacing setter lays the pages out again at the new size.
             methods.spacing.invoke(pager, gap);
             changed = true;
+        } else if (methods.biasNow.get(pager) != methods.nextOnly) {
+            // Kept from the next layout on, should Instagram set its bias again.
+            methods.bias.invoke(pager, methods.nextOnly);
         }
         float pivot = inset / (1 - scale);
         for (int i = 0; i < pager.getChildCount(); i++) {
@@ -284,6 +307,7 @@ public final class CarouselPeek {
             Pager methods = pager == null ? null : kind(pager);
             if (methods == null) continue;
             try {
+                // -1 is the pager's own "no override": its pages take its width again.
                 methods.size.invoke(pager, -1);
                 methods.bias.invoke(pager, entry.getValue().bias);
                 methods.buffer(pager, entry.getValue().buffer);

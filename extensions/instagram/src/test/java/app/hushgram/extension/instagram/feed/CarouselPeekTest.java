@@ -231,7 +231,65 @@ public class CarouselPeekTest {
         assertEquals(FakeBias.BIAS_FORWARD, pager.A0K);
         assertEquals(1f, first.getScaleX(), 0f);
         assertEquals(1f, second.getScaleY(), 0f);
+        assertFalse("each page scales from its own middle again", first.isPivotSet() || second.isPivotSet());
         assertEquals(0, CarouselPeek.peekingForTests());
+    }
+
+    @Test
+    public void aBiasInstagramSetsAgainIsTurnedBackOnTheNextLayout() {
+        Settings.PEEK_CAROUSEL_PAGES.save(true);
+        CarouselPeek.watch(activity);
+        frame();
+
+        pager.A0K = FakeBias.BIAS_FORWARD;
+        pager.requestLayout();
+        shadowOf(Looper.getMainLooper()).idle();
+        frame();
+
+        assertEquals(FakeBias.BIAS_NEXT_ONLY, pager.A0K);
+        assertEquals("the rest stays as it was set up", 1, pager.bufferCalls);
+    }
+
+    /** An older pager's bias, without the one that keeps the next page. */
+    public enum OldBias { BIAS_START, BIAS_FORWARD }
+
+    /** A pager with Instagram's page size setter whose bias can't keep the next page attached. */
+    public static class OldPager extends FrameLayout {
+        public OldBias A0K = OldBias.BIAS_FORWARD;
+        int pageSize = -1;
+
+        public OldPager(Context context) {
+            super(context);
+        }
+
+        public void setOverridePageSize(int size) {
+            pageSize = size;
+        }
+
+        public void setBufferBias(OldBias bias) {
+            A0K = bias;
+        }
+
+        public static void setExtraBufferSize$default(OldPager pager, int size, boolean now, Boolean bias, int mask, Object unused) {
+        }
+    }
+
+    @Test
+    public void aPagerMissingAPartIsLeftAloneAndSaysSo() {
+        root.removeView(pager);
+        OldPager old = new OldPager(activity);
+        root.addView(old, new FrameLayout.LayoutParams(WIDTH, HEIGHT));
+        FrameLayout page = page(old);
+        shadowOf(Looper.getMainLooper()).idle();
+        Settings.PEEK_CAROUSEL_PAGES.save(true);
+
+        CarouselPeek.watch(activity);
+        frame();
+
+        assertEquals(-1, old.pageSize);
+        assertEquals(1f, page.getScaleX(), 0f);
+        String missing = HookStatus.missing("Rounded post corners").toString();
+        assertTrue(missing, missing.contains("BIAS_NEXT_ONLY"));
     }
 
     @Test
