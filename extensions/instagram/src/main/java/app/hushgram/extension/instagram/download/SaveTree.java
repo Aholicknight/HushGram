@@ -87,9 +87,13 @@ public final class SaveTree {
         return tree != null && granted(context, tree) ? tree : null;
     }
 
-    /** Whether a folder is picked and Instagram can still write in it. Never throws. */
+    /**
+     * Whether a folder is picked, Instagram can still write in it, and it's still there to take
+     * files: one deleted in Files keeps its grant, but saves go to Movies and Pictures. Never throws.
+     */
     public static boolean reachable(Context context) {
-        return usable(context) != null;
+        Uri tree = usable(context);
+        return tree != null && takesFiles(context, tree, false);
     }
 
     private static boolean granted(Context context, Uri tree) {
@@ -121,7 +125,7 @@ public final class SaveTree {
             MediaSave.failure(() -> "could not keep the grant for the folder that was picked", t);
             return false;
         }
-        if (!takesFiles(context, tree)) {
+        if (!takesFiles(context, tree, true)) {
             MediaSave.info(() -> "the folder that was picked doesn't take new files");
             // Picked again as the folder already kept: its grant is still the one saves use.
             if (!tree.equals(saved())) release(context, tree);
@@ -153,12 +157,15 @@ public final class SaveTree {
         }
     }
 
-    /** Whether the folder [tree] names says it takes new files. */
-    private static boolean takesFiles(Context context, Uri tree) {
+    /**
+     * Whether the folder [tree] names says it takes new files. A folder that's gone throws, which is
+     * only [logged] at pick time: the settings row asks on every refresh.
+     */
+    private static boolean takesFiles(Context context, Uri tree, boolean logged) {
         try (Cursor row = query(context, root(tree), new String[] { Document.COLUMN_FLAGS })) {
             return row != null && row.moveToFirst() && (row.getInt(0) & Document.FLAG_DIR_SUPPORTS_CREATE) != 0;
         } catch (Throwable t) {
-            MediaSave.failure(() -> "could not ask the folder that was picked whether it takes files", t);
+            if (logged) MediaSave.failure(() -> "could not ask the folder that was picked whether it takes files", t);
             return false;
         }
     }

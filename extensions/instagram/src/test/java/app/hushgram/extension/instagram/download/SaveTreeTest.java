@@ -593,6 +593,11 @@ public class SaveTreeTest {
             return true;
         }
 
+        /** Download/.Insta deleted in Files, its grant kept. */
+        public void deleteFolder() {
+            docs.remove(ROOT);
+        }
+
         /** The files, never the folders, anywhere in the tree. */
         List<Doc> files() {
             List<Doc> files = new ArrayList<>();

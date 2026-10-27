@@ -772,6 +772,26 @@ public class DownloadSettingsTest {
         }
     }
 
+    /** A folder deleted in Files keeps its grant, but its row says saves went back, not that they go there. */
+    @Test
+    public void aDeletedFolderSaysSoOnItsRow() {
+        SaveTreeTest.Tree tree = SaveTreeTest.install();
+        Context context = RuntimeEnvironment.getApplication();
+        assertTrue(SaveTree.keep(context, SaveTreeTest.TREE));
+        tree.deleteFolder();
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            Preference row = page.findPreference(Settings.SAVE_TREE.key);
+            assertEquals(L10n.f("HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.",
+                    L10n.isolate("Download/.Insta")), String.valueOf(row.getSummary()));
+            assertTrue("Use Movies and Pictures can't be tapped for a deleted folder",
+                    page.findPreference(HushgramPreferenceFragment.GALLERY_FOLDERS).isEnabled());
+        } finally {
+            SaveTree.forget(context);
+        }
+    }
+
     /** Name saves by account and post time sits right under Folder per account, starts off and goes in a settings file. */
     @Test
     public void nameSavesByPostSitsUnderFolderPerAccount() {
