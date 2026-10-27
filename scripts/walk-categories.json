@@ -687,7 +687,7 @@
     },
     {
       "id": "settings-updates",
-      "title": "Updates",
+      "title": "Version warnings",
       "builder": "UpdatesCategory",
       "page": true,
       "when": {
