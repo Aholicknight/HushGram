@@ -28,7 +28,7 @@ Every HushGram release, newest first.
 * **Instagram - Show if a profile follows you:** On your Following list, Doesn't follow you now comes before the name. A long name used to push it off the end of the line. Reported in #351.
 * **Instagram:** `Hide the emoji row` and `Hide Follow on posts` now work the moment you switch them on. Before, nothing changed until you left Instagram and came back.
 * **Instagram:** `Hide suggested stories` adds `Keep the Stories tray in the feed` under Stories. On some accounts the row floated over Home mid-feed and stayed put while posts scrolled under it. Now it stays in the feed. Starts off. Reported in #357.
-* **Instagram:** Morphe Manager now knows the armeabi-v7a, x86 and x86_64 builds of Instagram 452.1.0.53.64, so an older 32-bit phone is pointed at the build it can install instead of the arm64 one. Reported in #346.
+* **Instagram:** Morphe Manager now knows the armeabi-v7a, x86 and x86_64 builds of Instagram too, so an older 32-bit phone is pointed at the build it can install instead of the arm64 one. Reported in #346.
 * **Instagram:** `Glass tab bar` no longer leaves a dark band under a reel opened from the feed, where Instagram hides the tab bar. Reels opened from the Reels tab still stop above the bar. Reported in #347.
 * **Instagram:** `Start stories with sound` turns Instagram's sound back off when you leave a story, so Feed and Reels stay muted. Coming back to the story turns it on again, and a story you muted yourself stays muted. Reported in #342.
 * **Instagram:** `Download any story` also adds Download to the menu of your own highlights, which Instagram builds differently from other story menus. Reported in #339.
@@ -67,6 +67,7 @@ Every HushGram release, newest first.
 
 #### Improvements
 
+* **Instagram:** HushGram now patches Instagram 453.0.0.55.79 instead of 452.1.0.53.64. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385914283. The armeabi-v7a build (385914282) is declared too, and so are the x86 and x86_64 builds (385914284 and 385914285). Thanks to toidicakhia for #366.
 * **Instagram:** HushGram's settings use Instagram's own blues instead of pink. Switches and buttons take its indigo button color, while icons and headings use the lighter blue Instagram gives links on a dark screen.
 * **Instagram:** Every HushGram title wears Instagram's gradient now, including the settings bar, its dialogs and the lock screen. The colors drift slowly and a sheen sweeps across every few seconds, even with Android's animations turned off.
 * **Instagram:** Settings categories expand their controls directly underneath. Several sections can stay open, and tapping a heading collapses it. Search finds controls across every section and restores your open sections when cleared.
