@@ -4,9 +4,9 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
-### HushGram v0.0.17
+## 0.0.17 (2026-10-28)
 
-#### Features
+### Features
 
 * **Instagram - Keep your place in Home:** New switch under Feed. Coming back to Instagram leaves Home on the post you were on, however long you were away. Instagram no longer reloads it or resets the app to the top. Pull down still refreshes. Starts off. Asked for in #354.
 * **Instagram - Glass tab bar:** `Hide the tab bar as you scroll` works with the glass off too. Scroll down and Instagram's own bar slides away while the page fills its space. Scroll up and it's back. Reels keep their bar. Asked for in #343.
@@ -24,7 +24,7 @@ Every HushGram release, newest first.
 * **Instagram - Swipe through a chat's reels:** new patch. With `Swipe through a chat's reels` on under Messages, swiping up on a reel opened from a chat goes through the chat's other shared reels before any suggested ones. Starts off. Asked for in #350.
 * **Instagram - Hide suggested stories:** `Filter the Stories tray by verified accounts` under Stories keeps only verified accounts in the row at the top of Home, or only the ones that aren't. Your own story stays. Starts off. Asked for in #340.
 
-#### Bug Fixes
+### Bug Fixes
 
 * **Instagram - Show if a profile follows you:** On your Following list, Doesn't follow you now comes before the name. A long name used to push it off the end of the line. Reported in #351.
 * **Instagram:** `Hide the emoji row` and `Hide Follow on posts` now work the moment you switch them on. Before, nothing changed until you left Instagram and came back.
@@ -66,7 +66,7 @@ Every HushGram release, newest first.
 * **Tooling:** The source census keeps a relicensed source's old licence pinned and records code it took from elsewhere. InstaEclipse is GPL-3.0 now, and the HushGram downloader it carries counts as ours. Stylus dropped its Instagram patch.
 * **Tooling:** The build moves to the Morphe patches plugin 2.0.0 and Kotlin 2.4.21, held to one version across the plugin's classpath. Patched apps come out the same, and the bundle carries Kotlin stdlib 2.4.21.
 
-#### Improvements
+### Improvements
 
 * **Instagram:** HushGram now patches Instagram 453.0.0.55.79 instead of 452.1.0.53.64. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385914283. The armeabi-v7a build (385914282) is declared too, and so are the x86 and x86_64 builds (385914284 and 385914285). Thanks to toidicakhia for #366.
 * **Instagram:** HushGram's settings use Instagram's own blues instead of pink. Switches and buttons take its indigo button color, while icons and headings use the lighter blue Instagram gives links on a dark screen.
