@@ -135,9 +135,9 @@ public final class LinkCleaner {
      * Injected where Instagram's handler for its in-app browser's menu takes the page's address for
      * Share or Copy link, before it goes into the share sheet's text or to the clipboard. Answers the
      * address without Meta's click id and the utm_ keys, on any site, and an Instagram link without
-     * Instagram's tracking keys as well, moved to the Sharing domain when one is set, or as it came
-     * while the switch is off, HushGram is paused or the settings aren't ready yet. The page itself
-     * still loads with them. Never throws.
+     * Instagram's tracking keys as well, moving it to the Sharing domain when one is set, or as it
+     * came while the switch is off, HushGram is paused or the settings aren't ready yet. The page
+     * itself still loads with them. Never throws.
      */
     public static String browserLink(String url) {
         HookStatus.invoked(FamilyNames.SANITIZE_SHARING_LINKS);
