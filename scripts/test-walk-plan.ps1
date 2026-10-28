@@ -3,16 +3,17 @@
     Verify category selection and visible destination evidence without a device.
 .NOTES
     Copyright 2026 HushGram contributors. https://github.com/SysAdminDoc/HushGram
-    GPL-3.0-only. CaptureWorkRoot optionally points to saved local work captures.
+    GPL-3.0-only. CaptureWorkRoot optionally points to saved local work captures. Root is the
+    checkout the push gate tests, the one above this script by default.
 #>
 [CmdletBinding()]
-param([string]$CaptureWorkRoot)
+param([string]$CaptureWorkRoot, [string]$Root)
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'walk-plan.ps1')
 $script:checks = 0
 $script:package = 'com.instagram.android'
-$repo = Split-Path $PSScriptRoot -Parent
+$repo = if ($Root) { $Root } else { Split-Path $PSScriptRoot -Parent }
 $catalogPath = Join-Path $repo 'patches-list.json'
 $policyPath = Join-Path $PSScriptRoot 'walk-categories.json'
 $catalogText = Get-Content -LiteralPath $catalogPath -Raw

@@ -3,10 +3,10 @@
     Exercise walkthrough navigation and candidate reuse with device and artifact-reader stand-ins.
 .NOTES
     Copyright 2026 HushGram contributors. https://github.com/SysAdminDoc/HushGram
-    GPL-3.0-only.
+    GPL-3.0-only. The push gate starts every suite with -Root; this one reads the scripts beside it.
 #>
 [CmdletBinding()]
-param()
+param([string]$Root)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'walk-app.ps1')
 $checks=0
