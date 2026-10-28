@@ -194,6 +194,16 @@ try {
             Assert-PlanTest ($settingsSource.Contains('L10n.t("' + $title + '"')) "Walk policy text '$title' ($($category.id)) is not a settings title in the source."
         }
     }
+    # The walk expands a heading and wants a verified row within a screen of it; an anchor 14 rows down failed 0.0.17's walk.
+    foreach ($selection in @(, $all) + @(, $defaults)) {
+        foreach ($destination in @($selection | Where-Object { $_.kind -ceq 'settings' -and $_.page })) {
+            $builder = ($policy.categories | Where-Object id -CEQ $destination.id).builder
+            $builderPath = Join-Path $repo "extensions\instagram\src\main\java\app\hushgram\extension\instagram\settings\$builder.java"
+            $texts = @([regex]::Matches((Get-Content -LiteralPath $builderPath -Raw), 'L10n\.t\("((?:[^"\\]|\\.)*)"') | ForEach-Object { $_.Groups[1].Value })
+            $first = @($destination.anchors | ForEach-Object { [Array]::IndexOf($texts, [string]$_) } | Where-Object { $_ -ge 0 } | Sort-Object)[0]
+            Assert-PlanTest ($null -ne $first -and $first -le 10) "Walk anchors for '$($destination.id)' start at text $first of $builder; one must sit in the first rows under the heading."
+        }
+    }
     Assert-PlanTest (@($defaults | Where-Object kind -CEQ 'settings').Count -eq 23) 'Default patches must require all 23 headings.'
     Assert-PlanTest (@($all | Where-Object { $_.kind -ceq 'settings' -and $_.page }).Count -eq 23) 'Exactly 23 settings pages are expected.'
     $pause = $all | Where-Object id -CEQ 'settings-pause'
